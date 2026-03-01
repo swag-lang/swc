@@ -527,16 +527,6 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     bool changed = false;
     initRunState(context);
 
-    KnownRegMap&             known                      = known_;
-    KnownStackSlotMap&       knownStackSlots            = knownStackSlots_;
-    KnownAddressMap&         knownAddresses             = knownAddresses_;
-    KnownStackAddressMap&    knownStackAddresses        = knownStackAddresses_;
-    KnownConstantPointerMap& knownConstantPointers      = knownConstantPointers_;
-    auto&                    relocationByInstructionRef = relocationByInstructionRef_;
-    const MicroReg           stackPointerReg            = stackPointerReg_;
-    MicroStorage&            storage                    = *storage_;
-    MicroOperandStorage&     operands                   = *operands_;
-
     for (auto it = storage_->view().begin(); it != storage_->view().end(); ++it)
     {
         const MicroInstrRef                          instRef = it.current;
@@ -552,11 +542,11 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         {
             case MicroInstrOpcode::LoadAmcRegMem:
             {
-                if (!stackPointerReg.isValid() || !ops[0].reg.isInt() || !ops[1].reg.isInt() || !ops[2].reg.isInt())
+                if (!stackPointerReg_.isValid() || !ops[0].reg.isInt() || !ops[1].reg.isInt() || !ops[2].reg.isInt())
                     break;
 
                 uint64_t stackOffset = 0;
-                if (!tryResolveStackOffsetForAmc(stackOffset, knownAddresses, known, stackPointerReg, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
+                if (!tryResolveStackOffsetForAmcFromState(stackOffset, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
                     break;
 
                 InstrRewriteSnapshot rewriteSnapshot;
@@ -564,7 +554,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 bool rewritten = false;
 
                 uint64_t knownValue = 0;
-                if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[4].opBits))
+                if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[4].opBits))
                 {
                     inst.op          = MicroInstrOpcode::LoadRegImm;
                     inst.numOperands = 3;
@@ -576,7 +566,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 {
                     inst.op          = MicroInstrOpcode::LoadRegMem;
                     inst.numOperands = 4;
-                    ops[1].reg       = stackPointerReg;
+                    ops[1].reg       = stackPointerReg_;
                     ops[2].opBits    = ops[4].opBits;
                     ops[3].valueU64  = stackOffset;
                     rewritten        = true;
@@ -589,18 +579,18 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 }
 
                 uint64_t knownStackAddressOffset = 0;
-                if (tryGetKnownStackAddress(knownStackAddressOffset, knownStackAddresses, stackOffset, ops[3].opBits))
+                if (tryGetKnownStackAddress(knownStackAddressOffset, knownStackAddresses_, stackOffset, ops[3].opBits))
                     deferredAddressDef = std::pair{ops[0].reg.packed, knownStackAddressOffset};
                 break;
             }
             case MicroInstrOpcode::LoadRegMem:
             {
                 uint64_t stackOffset = 0;
-                if (!tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[1].reg, ops[3].valueU64))
+                if (!tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[3].valueU64))
                     break;
 
                 uint64_t knownValue = 0;
-                if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits))
+                if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits))
                 {
                     const uint64_t normalizedValue = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
                     if (ops[0].reg.isInt())
@@ -621,7 +611,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     break;
 
                 uint64_t knownStackAddressOffset = 0;
-                if (tryGetKnownStackAddress(knownStackAddressOffset, knownStackAddresses, stackOffset, ops[2].opBits))
+                if (tryGetKnownStackAddress(knownStackAddressOffset, knownStackAddresses_, stackOffset, ops[2].opBits))
                     deferredAddressDef = std::pair{ops[0].reg.packed, knownStackAddressOffset};
                 break;
             }
@@ -632,11 +622,11 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     break;
 
                 uint64_t stackOffset = 0;
-                if (!tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[1].reg, ops[4].valueU64))
+                if (!tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[4].valueU64))
                     break;
 
                 uint64_t knownValue = 0;
-                if (!tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[3].opBits))
+                if (!tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[3].opBits))
                     break;
 
                 uint64_t immValue = 0;
@@ -666,8 +656,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
                 const MicroReg baseReg    = ops[1].reg;
                 const uint64_t baseOffset = ops[3].valueU64;
-                const auto     itKnown    = known.find(ops[1].reg.packed);
-                if (itKnown == known.end())
+                const auto     itKnown    = known_.find(ops[1].reg.packed);
+                if (itKnown == known_.end())
                     break;
 
                 inst.op          = MicroInstrOpcode::LoadRegImm;
@@ -679,8 +669,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (ops[2].opBits != MicroOpBits::B64)
                     break;
 
-                const auto itAddress = knownAddresses.find(baseReg.packed);
-                if (itAddress != knownAddresses.end() && itAddress->second <= std::numeric_limits<uint64_t>::max() - baseOffset)
+                const auto itAddress = knownAddresses_.find(baseReg.packed);
+                if (itAddress != knownAddresses_.end() && itAddress->second <= std::numeric_limits<uint64_t>::max() - baseOffset)
                     deferredAddressDef = std::pair{ops[0].reg.packed, itAddress->second + baseOffset};
                 break;
             }
@@ -693,8 +683,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             case MicroInstrOpcode::LoadRegReg:
             {
                 const MicroReg sourceReg = ops[1].reg;
-                const auto     itKnown   = known.find(ops[1].reg.packed);
-                if (itKnown != known.end() && ops[0].reg.isInt())
+                const auto     itKnown   = known_.find(ops[1].reg.packed);
+                if (itKnown != known_.end() && ops[0].reg.isInt())
                 {
                     inst.op         = MicroInstrOpcode::LoadRegImm;
                     ops[1].opBits   = ops[2].opBits;
@@ -703,8 +693,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
                     if (ops[2].opBits == MicroOpBits::B64)
                     {
-                        const auto itAddress = knownAddresses.find(sourceReg.packed);
-                        if (itAddress != knownAddresses.end())
+                        const auto itAddress = knownAddresses_.find(sourceReg.packed);
+                        if (itAddress != knownAddresses_.end())
                             deferredAddressDef = std::pair{ops[0].reg.packed, itAddress->second};
                     }
                 }
@@ -715,8 +705,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt() || !ops[1].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[1].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[1].reg.packed);
+                if (itKnown != known_.end())
                 {
                     inst.op          = MicroInstrOpcode::LoadRegImm;
                     inst.numOperands = 3;
@@ -731,8 +721,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt() || !ops[1].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[1].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[1].reg.packed);
+                if (itKnown != known_.end())
                 {
                     inst.op          = MicroInstrOpcode::LoadRegImm;
                     inst.numOperands = 3;
@@ -748,15 +738,15 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     break;
 
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[1].reg, ops[4].valueU64))
+                if (tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[4].valueU64))
                 {
                     uint64_t knownValue = 0;
-                    if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits))
+                    if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits))
                     {
                         const uint64_t immValue   = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
-                        const auto     itKnownDst = known.find(ops[0].reg.packed);
+                        const auto     itKnownDst = known_.find(ops[0].reg.packed);
 
-                        if (itKnownDst != known.end())
+                        if (itKnownDst != known_.end())
                         {
                             uint64_t foldedValue  = 0;
                             auto     safetyStatus = Math::FoldStatus::Ok;
@@ -798,13 +788,13 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             {
                 if (ops[0].reg.isInt() && ops[1].reg.isInt())
                 {
-                    const auto itKnownSrc = known.find(ops[1].reg.packed);
-                    if (itKnownSrc != known.end())
+                    const auto itKnownSrc = known_.find(ops[1].reg.packed);
+                    if (itKnownSrc != known_.end())
                     {
                         const uint64_t immValue   = MicroPassHelpers::normalizeToOpBits(itKnownSrc->second.value, ops[2].opBits);
-                        const auto     itKnownDst = known.find(ops[0].reg.packed);
+                        const auto     itKnownDst = known_.find(ops[0].reg.packed);
 
-                        if (itKnownDst != known.end())
+                        if (itKnownDst != known_.end())
                         {
                             uint64_t foldedValue  = 0;
                             auto     safetyStatus = Math::FoldStatus::Ok;
@@ -842,8 +832,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 }
                 else if (ops[3].microOp == MicroOp::ConvertFloatToInt && ops[0].reg.isInt())
                 {
-                    const auto itKnownSrc = known.find(ops[1].reg.packed);
-                    if (itKnownSrc != known.end())
+                    const auto itKnownSrc = known_.find(ops[1].reg.packed);
+                    if (itKnownSrc != known_.end())
                     {
                         uint64_t immValue = 0;
                         if (foldConvertFloatToIntToBits(immValue, itKnownSrc->second.value, ops[2].opBits))
@@ -861,9 +851,9 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                          ops[3].microOp == MicroOp::FloatMultiply ||
                          ops[3].microOp == MicroOp::FloatDivide)
                 {
-                    const auto itKnownDst = known.find(ops[0].reg.packed);
-                    const auto itKnownSrc = known.find(ops[1].reg.packed);
-                    if (itKnownDst != known.end() && itKnownSrc != known.end())
+                    const auto itKnownDst = known_.find(ops[0].reg.packed);
+                    const auto itKnownSrc = known_.find(ops[1].reg.packed);
+                    if (itKnownDst != known_.end() && itKnownSrc != known_.end())
                     {
                         uint64_t foldedValue = 0;
                         if (foldFloatBinaryToBits(foldedValue, itKnownDst->second.value, itKnownSrc->second.value, ops[3].microOp, ops[2].opBits))
@@ -877,8 +867,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt() || !ops[1].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[1].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[1].reg.packed);
+                if (itKnown != known_.end())
                 {
                     const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
@@ -900,8 +890,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[0].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[0].reg.packed);
+                if (itKnown != known_.end())
                 {
                     const MicroOp          binaryOp     = ops[2].microOp;
                     const uint64_t         immValue     = ops[3].valueU64;
@@ -919,8 +909,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
                         if (opBits == MicroOpBits::B64)
                         {
-                            const auto itAddress = knownAddresses.find(ops[0].reg.packed);
-                            if (itAddress != knownAddresses.end())
+                            const auto itAddress = knownAddresses_.find(ops[0].reg.packed);
+                            if (itAddress != knownAddresses_.end())
                             {
                                 uint64_t updatedOffset = 0;
                                 if (tryApplyUnsignedAddSubOffset(updatedOffset, itAddress->second, immValue, binaryOp))
@@ -941,8 +931,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[0].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[0].reg.packed);
+                if (itKnown != known_.end())
                 {
                     uint64_t               foldedValue = 0;
                     const Math::FoldStatus foldStatus  = foldUnaryImmediateToBits(foldedValue, itKnown->second.value, ops[2].microOp, ops[1].opBits);
@@ -971,8 +961,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[1].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[1].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[1].reg.packed);
+                if (itKnown != known_.end())
                 {
                     const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
@@ -995,8 +985,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[2].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[2].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[2].reg.packed);
+                if (itKnown != known_.end())
                 {
                     const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[4].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
@@ -1021,8 +1011,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[1].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[1].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[1].reg.packed);
+                if (itKnown != known_.end())
                 {
                     const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
@@ -1046,8 +1036,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[1].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[1].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[1].reg.packed);
+                if (itKnown != known_.end())
                 {
                     const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
@@ -1071,16 +1061,16 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
         updateCompareStateForInstruction(inst, ops, deferredKnownDef);
 
-        const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
-        eraseKnownDefs(known, useDef.defs);
-        eraseKnownAddressDefs(knownAddresses, useDef.defs);
-        eraseKnownConstantPointerDefs(knownConstantPointers, useDef.defs);
+        const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context.encoder);
+        eraseKnownDefs(known_, useDef.defs);
+        eraseKnownAddressDefs(knownAddresses_, useDef.defs);
+        eraseKnownConstantPointerDefs(knownConstantPointers_, useDef.defs);
 
-        if (stackPointerReg.isValid() && definesRegisterInSet(useDef.defs, stackPointerReg))
+        if (stackPointerReg_.isValid() && definesRegisterInSet(useDef.defs, stackPointerReg_))
         {
-            knownStackSlots.clear();
-            knownAddresses.clear();
-            knownStackAddresses.clear();
+            knownStackSlots_.clear();
+            knownAddresses_.clear();
+            knownStackAddresses_.clear();
         }
 
         if (useDef.isCall)
@@ -1095,10 +1085,10 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             case MicroInstrOpcode::LoadMemImm:
             {
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[0].reg, ops[2].valueU64))
+                if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[2].valueU64))
                 {
-                    setKnownStackSlot(knownStackSlots, stackOffset, ops[1].opBits, ops[3].valueU64);
-                    eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[1].opBits);
+                    setKnownStackSlot(knownStackSlots_, stackOffset, ops[1].opBits, ops[3].valueU64);
+                    eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[1].opBits);
                     handledMemoryWrite = true;
                 }
                 break;
@@ -1106,40 +1096,40 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             case MicroInstrOpcode::LoadMemReg:
             {
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[0].reg, ops[3].valueU64))
+                if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
                 {
-                    const auto itKnownReg = known.find(ops[1].reg.packed);
-                    if (itKnownReg != known.end())
+                    const auto itKnownReg = known_.find(ops[1].reg.packed);
+                    if (itKnownReg != known_.end())
                     {
-                        setKnownStackSlot(knownStackSlots, stackOffset, ops[2].opBits, itKnownReg->second.value);
+                        setKnownStackSlot(knownStackSlots_, stackOffset, ops[2].opBits, itKnownReg->second.value);
                     }
                     else
                     {
                         bool           handledConstantCopy = false;
                         const uint32_t slotNumBytes        = getNumBytes(ops[2].opBits);
-                        if (it != storage.view().begin() &&
+                        if (it != storage_->view().begin() &&
                             slotNumBytes &&
                             slotNumBytes <= 16)
                         {
                             auto              itPrev   = std::prev(it);
                             const MicroInstr& prevInst = *itPrev;
-                            const auto*       prevOps  = prevInst.ops(operands);
+                            const auto*       prevOps  = prevInst.ops(*operands_);
                             if (prevOps &&
                                 prevInst.op == MicroInstrOpcode::LoadRegMem &&
                                 prevOps[0].reg == ops[1].reg &&
                                 prevOps[2].opBits == ops[2].opBits &&
                                 prevOps[1].reg.isInt())
                             {
-                                const auto itConstPtr = knownConstantPointers.find(prevOps[1].reg.packed);
-                                if (itConstPtr != knownConstantPointers.end())
+                                const auto itConstPtr = knownConstantPointers_.find(prevOps[1].reg.packed);
+                                if (itConstPtr != knownConstantPointers_.end())
                                 {
                                     const uint64_t constantOffset = itConstPtr->second.offset + prevOps[3].valueU64;
 
                                     std::array<std::byte, 16> bytes{};
                                     if (tryGetPointerBytesRange(bytes, slotNumBytes, itConstPtr->second.pointer, constantOffset))
                                     {
-                                        eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[2].opBits);
-                                        setKnownStackSlotsFromBytes(knownStackSlots, stackOffset, std::span<const std::byte>{bytes.data(), slotNumBytes});
+                                        eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[2].opBits);
+                                        setKnownStackSlotsFromBytes(knownStackSlots_, stackOffset, std::span<const std::byte>{bytes.data(), slotNumBytes});
                                         handledConstantCopy = true;
                                     }
                                 }
@@ -1147,20 +1137,20 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                         }
 
                         if (!handledConstantCopy)
-                            eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[2].opBits);
+                            eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[2].opBits);
                     }
 
                     if (ops[2].opBits == MicroOpBits::B64)
                     {
-                        const auto itKnownAddress = knownAddresses.find(ops[1].reg.packed);
-                        if (itKnownAddress != knownAddresses.end())
-                            setKnownStackAddress(knownStackAddresses, stackOffset, itKnownAddress->second);
+                        const auto itKnownAddress = knownAddresses_.find(ops[1].reg.packed);
+                        if (itKnownAddress != knownAddresses_.end())
+                            setKnownStackAddress(knownStackAddresses_, stackOffset, itKnownAddress->second);
                         else
-                            eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[2].opBits);
+                            eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[2].opBits);
                     }
                     else
                     {
-                        eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[2].opBits);
+                        eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[2].opBits);
                     }
 
                     handledMemoryWrite = true;
@@ -1170,10 +1160,10 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             case MicroInstrOpcode::LoadAmcMemImm:
             {
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffsetForAmc(stackOffset, knownAddresses, known, stackPointerReg, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
+                if (tryResolveStackOffsetForAmcFromState(stackOffset, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
                 {
-                    setKnownStackSlot(knownStackSlots, stackOffset, ops[4].opBits, ops[7].valueU64);
-                    eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[4].opBits);
+                    setKnownStackSlot(knownStackSlots_, stackOffset, ops[4].opBits, ops[7].valueU64);
+                    eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[4].opBits);
                     handledMemoryWrite = true;
                 }
                 break;
@@ -1181,25 +1171,25 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             case MicroInstrOpcode::LoadAmcMemReg:
             {
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffsetForAmc(stackOffset, knownAddresses, known, stackPointerReg, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
+                if (tryResolveStackOffsetForAmcFromState(stackOffset, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
                 {
-                    const auto itKnownReg = known.find(ops[2].reg.packed);
-                    if (itKnownReg != known.end())
-                        setKnownStackSlot(knownStackSlots, stackOffset, ops[4].opBits, itKnownReg->second.value);
+                    const auto itKnownReg = known_.find(ops[2].reg.packed);
+                    if (itKnownReg != known_.end())
+                        setKnownStackSlot(knownStackSlots_, stackOffset, ops[4].opBits, itKnownReg->second.value);
                     else
-                        eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[4].opBits);
+                        eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[4].opBits);
 
                     if (ops[4].opBits == MicroOpBits::B64)
                     {
-                        const auto itKnownAddress = knownAddresses.find(ops[2].reg.packed);
-                        if (itKnownAddress != knownAddresses.end())
-                            setKnownStackAddress(knownStackAddresses, stackOffset, itKnownAddress->second);
+                        const auto itKnownAddress = knownAddresses_.find(ops[2].reg.packed);
+                        if (itKnownAddress != knownAddresses_.end())
+                            setKnownStackAddress(knownStackAddresses_, stackOffset, itKnownAddress->second);
                         else
-                            eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[4].opBits);
+                            eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[4].opBits);
                     }
                     else
                     {
-                        eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[4].opBits);
+                        eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[4].opBits);
                     }
 
                     handledMemoryWrite = true;
@@ -1209,23 +1199,23 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             case MicroInstrOpcode::OpBinaryMemImm:
             {
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[0].reg, ops[3].valueU64))
+                if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
                 {
                     uint64_t knownValue = 0;
-                    if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[1].opBits))
+                    if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[1].opBits))
                     {
                         uint64_t foldedValue = 0;
                         if (tryFoldBinaryImmediateForPropagation(foldedValue, knownValue, ops[4].valueU64, ops[2].microOp, ops[1].opBits) == BinaryFoldResult::Folded)
-                            setKnownStackSlot(knownStackSlots, stackOffset, ops[1].opBits, foldedValue);
+                            setKnownStackSlot(knownStackSlots_, stackOffset, ops[1].opBits, foldedValue);
                         else
-                            eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[1].opBits);
+                            eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
                     }
                     else
                     {
-                        eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[1].opBits);
+                        eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
                     }
 
-                    eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[1].opBits);
+                    eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[1].opBits);
                     handledMemoryWrite = true;
                 }
                 break;
@@ -1233,24 +1223,24 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             case MicroInstrOpcode::OpBinaryMemReg:
             {
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[0].reg, ops[4].valueU64))
+                if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[4].valueU64))
                 {
                     uint64_t   knownValue = 0;
-                    const auto itKnownReg = known.find(ops[1].reg.packed);
-                    if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits) && itKnownReg != known.end())
+                    const auto itKnownReg = known_.find(ops[1].reg.packed);
+                    if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits) && itKnownReg != known_.end())
                     {
                         uint64_t foldedValue = 0;
                         if (tryFoldBinaryImmediateForPropagation(foldedValue, knownValue, itKnownReg->second.value, ops[3].microOp, ops[2].opBits) == BinaryFoldResult::Folded)
-                            setKnownStackSlot(knownStackSlots, stackOffset, ops[2].opBits, foldedValue);
+                            setKnownStackSlot(knownStackSlots_, stackOffset, ops[2].opBits, foldedValue);
                         else
-                            eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[2].opBits);
+                            eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[2].opBits);
                     }
                     else
                     {
-                        eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[2].opBits);
+                        eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[2].opBits);
                     }
 
-                    eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[2].opBits);
+                    eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[2].opBits);
                     handledMemoryWrite = true;
                 }
                 break;
@@ -1258,26 +1248,26 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             case MicroInstrOpcode::OpUnaryMem:
             {
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[0].reg, ops[3].valueU64))
+                if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
                 {
                     uint64_t knownValue = 0;
-                    if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[1].opBits))
+                    if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[1].opBits))
                     {
                         uint64_t               foldedValue = 0;
                         const Math::FoldStatus foldStatus  = foldUnaryImmediateToBits(foldedValue, knownValue, ops[2].microOp, ops[1].opBits);
                         if (foldStatus == Math::FoldStatus::Ok)
-                            setKnownStackSlot(knownStackSlots, stackOffset, ops[1].opBits, foldedValue);
+                            setKnownStackSlot(knownStackSlots_, stackOffset, ops[1].opBits, foldedValue);
                         else if (Math::isSafetyError(foldStatus))
                             return MicroPassHelpers::raiseFoldSafetyError(context, instRef, foldStatus);
                         else
-                            eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[1].opBits);
+                            eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
                     }
                     else
                     {
-                        eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[1].opBits);
+                        eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
                     }
 
-                    eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[1].opBits);
+                    eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[1].opBits);
                     handledMemoryWrite = true;
                 }
                 break;
@@ -1288,30 +1278,30 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
         if (MicroInstrInfo::isMemoryWriteInstruction(inst) && !handledMemoryWrite)
         {
-            knownStackSlots.clear();
-            knownStackAddresses.clear();
+            knownStackSlots_.clear();
+            knownStackAddresses_.clear();
         }
 
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadRegImm:
-                known[ops[0].reg.packed] = {
+                known_[ops[0].reg.packed] = {
                     .value = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
                 };
                 break;
             case MicroInstrOpcode::LoadRegReg:
             {
-                const auto itKnown = known.find(ops[1].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[1].reg.packed);
+                if (itKnown != known_.end())
                 {
-                    known[ops[0].reg.packed] = {
+                    known_[ops[0].reg.packed] = {
                         .value = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits),
                     };
                 }
                 break;
             }
             case MicroInstrOpcode::ClearReg:
-                known[ops[0].reg.packed] = {
+                known_[ops[0].reg.packed] = {
                     .value = 0,
                 };
                 break;
@@ -1320,15 +1310,15 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt())
                     break;
 
-                const auto itKnown = known.find(ops[0].reg.packed);
-                if (itKnown != known.end())
+                const auto itKnown = known_.find(ops[0].reg.packed);
+                if (itKnown != known_.end())
                 {
                     uint64_t               foldedValue  = 0;
                     auto                   safetyStatus = Math::FoldStatus::Ok;
                     const BinaryFoldResult foldResult   = tryFoldBinaryImmediateForPropagation(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits, &safetyStatus);
                     if (foldResult == BinaryFoldResult::Folded)
                     {
-                        known[ops[0].reg.packed] = {
+                        known_[ops[0].reg.packed] = {
                             .value = foldedValue,
                         };
                     }
@@ -1346,7 +1336,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
         if (deferredKnownDef.has_value())
         {
-            known[deferredKnownDef->first] = {
+            known_[deferredKnownDef->first] = {
                 .value = deferredKnownDef->second,
             };
         }
@@ -1359,8 +1349,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     break;
 
                 bool       canTrackConstantPointer = false;
-                const auto itRelocation            = relocationByInstructionRef.find(instRef);
-                if (itRelocation != relocationByInstructionRef.end())
+                const auto itRelocation            = relocationByInstructionRef_.find(instRef);
+                if (itRelocation != relocationByInstructionRef_.end())
                 {
                     const auto* relocation = itRelocation->second;
                     if (relocation &&
@@ -1373,14 +1363,14 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
                 if (canTrackConstantPointer && ops[2].valueU64)
                 {
-                    knownConstantPointers[ops[0].reg.packed] = {
+                    knownConstantPointers_[ops[0].reg.packed] = {
                         .pointer = ops[2].valueU64,
                         .offset  = 0,
                     };
                 }
                 else
                 {
-                    knownConstantPointers.erase(ops[0].reg.packed);
+                    knownConstantPointers_.erase(ops[0].reg.packed);
                 }
                 break;
             }
@@ -1389,14 +1379,14 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt() || !ops[1].reg.isInt() || ops[2].opBits != MicroOpBits::B64)
                     break;
 
-                const auto itConstPtr = knownConstantPointers.find(ops[1].reg.packed);
-                if (itConstPtr != knownConstantPointers.end())
+                const auto itConstPtr = knownConstantPointers_.find(ops[1].reg.packed);
+                if (itConstPtr != knownConstantPointers_.end())
                 {
-                    knownConstantPointers[ops[0].reg.packed] = itConstPtr->second;
+                    knownConstantPointers_[ops[0].reg.packed] = itConstPtr->second;
                 }
                 else
                 {
-                    knownConstantPointers.erase(ops[0].reg.packed);
+                    knownConstantPointers_.erase(ops[0].reg.packed);
                 }
                 break;
             }
@@ -1405,19 +1395,19 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt() || ops[1].opBits != MicroOpBits::B64)
                     break;
 
-                const auto itConstPtr = knownConstantPointers.find(ops[0].reg.packed);
-                if (itConstPtr != knownConstantPointers.end())
+                const auto itConstPtr = knownConstantPointers_.find(ops[0].reg.packed);
+                if (itConstPtr != knownConstantPointers_.end())
                 {
                     auto     knownConstPtr = itConstPtr->second;
                     uint64_t updatedOffset = 0;
                     if (tryApplyUnsignedAddSubOffset(updatedOffset, knownConstPtr.offset, ops[3].valueU64, ops[2].microOp))
                     {
-                        knownConstPtr.offset                     = updatedOffset;
-                        knownConstantPointers[ops[0].reg.packed] = knownConstPtr;
+                        knownConstPtr.offset                      = updatedOffset;
+                        knownConstantPointers_[ops[0].reg.packed] = knownConstPtr;
                     }
                     else
                     {
-                        knownConstantPointers.erase(ops[0].reg.packed);
+                        knownConstantPointers_.erase(ops[0].reg.packed);
                     }
                 }
                 break;
@@ -1433,8 +1423,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt())
                     break;
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[1].reg, ops[3].valueU64))
-                    knownAddresses[ops[0].reg.packed] = stackOffset;
+                if (tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[3].valueU64))
+                    knownAddresses_[ops[0].reg.packed] = stackOffset;
                 break;
             }
             case MicroInstrOpcode::LoadAddrAmcRegMem:
@@ -1442,9 +1432,9 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (!ops[0].reg.isInt())
                     break;
                 uint64_t stackOffset = 0;
-                if (tryResolveStackOffsetForAmc(stackOffset, knownAddresses, known, stackPointerReg, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
+                if (tryResolveStackOffsetForAmcFromState(stackOffset, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
                 {
-                    knownAddresses[ops[0].reg.packed] = stackOffset;
+                    knownAddresses_[ops[0].reg.packed] = stackOffset;
                 }
                 break;
             }
@@ -1452,15 +1442,15 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             {
                 if (!ops[0].reg.isInt() || !ops[1].reg.isInt() || ops[2].opBits != MicroOpBits::B64)
                     break;
-                if (ops[1].reg == stackPointerReg)
+                if (ops[1].reg == stackPointerReg_)
                 {
-                    knownAddresses[ops[0].reg.packed] = 0;
+                    knownAddresses_[ops[0].reg.packed] = 0;
                 }
                 else
                 {
-                    const auto itAddress = knownAddresses.find(ops[1].reg.packed);
-                    if (itAddress != knownAddresses.end())
-                        knownAddresses[ops[0].reg.packed] = itAddress->second;
+                    const auto itAddress = knownAddresses_.find(ops[1].reg.packed);
+                    if (itAddress != knownAddresses_.end())
+                        knownAddresses_[ops[0].reg.packed] = itAddress->second;
                 }
                 break;
             }
@@ -1468,12 +1458,12 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             {
                 if (!ops[0].reg.isInt() || ops[1].opBits != MicroOpBits::B64)
                     break;
-                const auto itAddress = knownAddresses.find(ops[0].reg.packed);
-                if (itAddress != knownAddresses.end())
+                const auto itAddress = knownAddresses_.find(ops[0].reg.packed);
+                if (itAddress != knownAddresses_.end())
                 {
                     uint64_t updatedOffset = 0;
                     if (tryApplyUnsignedAddSubOffset(updatedOffset, itAddress->second, ops[3].valueU64, ops[2].microOp))
-                        knownAddresses[ops[0].reg.packed] = updatedOffset;
+                        knownAddresses_[ops[0].reg.packed] = updatedOffset;
                 }
                 break;
             }
@@ -1482,7 +1472,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         }
 
         if (deferredAddressDef.has_value())
-            knownAddresses[deferredAddressDef->first] = deferredAddressDef->second;
+            knownAddresses_[deferredAddressDef->first] = deferredAddressDef->second;
 
         clearControlFlowBoundaryForInstruction(inst, ops);
     }
@@ -1599,7 +1589,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 break;
 
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[2].valueU64))
+            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[2].valueU64))
             {
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[1].opBits))
@@ -1626,7 +1616,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 break;
 
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[3].valueU64))
+            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
             {
                 uint64_t   knownValue = 0;
                 const auto itKnownRhs = known_.find(ops[1].reg.packed);

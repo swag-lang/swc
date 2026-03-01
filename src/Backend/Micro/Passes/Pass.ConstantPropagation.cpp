@@ -31,35 +31,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         DeferredDef         deferredAddressDef;
 
         // Phase 1: rewrite the instruction from currently known values.
-        if (ops && stackPointerReg_.isValid())
-        {
-            uint8_t memBaseIndex   = 0;
-            uint8_t memOffsetIndex = 0;
-            if (MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, inst))
-            {
-                const MicroReg baseReg = ops[memBaseIndex].reg;
-                if (baseReg.isInt() && baseReg != stackPointerReg_)
-                {
-                    uint64_t stackOffset = 0;
-                    if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, baseReg, ops[memOffsetIndex].valueU64))
-                    {
-                        const MicroReg originalBase   = ops[memBaseIndex].reg;
-                        const uint64_t originalOffset = ops[memOffsetIndex].valueU64;
-                        ops[memBaseIndex].reg         = stackPointerReg_;
-                        ops[memOffsetIndex].valueU64  = stackOffset;
-                        if (MicroPassHelpers::violatesEncoderConformance(context, inst, ops))
-                        {
-                            ops[memBaseIndex].reg        = originalBase;
-                            ops[memOffsetIndex].valueU64 = originalOffset;
-                        }
-                        else
-                        {
-                            context.passChanged = true;
-                        }
-                    }
-                }
-            }
-        }
+        if (rewritePhase1MemoryBaseToKnownStack(inst, ops))
+            context.passChanged = true;
 
         SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(instRef, inst, ops, deferredKnownDef, deferredAddressDef));
 
@@ -94,5 +67,38 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     }
 
     return Result::Continue;
+}
+
+bool MicroConstantPropagationPass::rewritePhase1MemoryBaseToKnownStack(MicroInstr& inst, MicroInstrOperand* ops) const
+{
+    SWC_ASSERT(context_ != nullptr);
+    if (!ops || !stackPointerReg_.isValid())
+        return false;
+
+    uint8_t memBaseIndex   = 0;
+    uint8_t memOffsetIndex = 0;
+    if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, inst))
+        return false;
+
+    const MicroReg baseReg = ops[memBaseIndex].reg;
+    if (!baseReg.isInt() || baseReg == stackPointerReg_)
+        return false;
+
+    uint64_t stackOffset = 0;
+    if (!tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, baseReg, ops[memOffsetIndex].valueU64))
+        return false;
+
+    const MicroReg originalBase   = ops[memBaseIndex].reg;
+    const uint64_t originalOffset = ops[memOffsetIndex].valueU64;
+    ops[memBaseIndex].reg         = stackPointerReg_;
+    ops[memOffsetIndex].valueU64  = stackOffset;
+    if (MicroPassHelpers::violatesEncoderConformance(*context_, inst, ops))
+    {
+        ops[memBaseIndex].reg        = originalBase;
+        ops[memOffsetIndex].valueU64 = originalOffset;
+        return false;
+    }
+
+    return true;
 }
 SWC_END_NAMESPACE();

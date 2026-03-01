@@ -231,18 +231,15 @@ uint32_t MicroRegisterAllocationPass::distanceToNextUse(MicroReg key, uint32_t i
     return *it - instructionIndex;
 }
 
-bool MicroRegisterAllocationPass::prepareInstructionData()
+void MicroRegisterAllocationPass::prepareInstructionData()
 {
     usePositions_.clear();
-
-    if (!instructionCount_)
-        return false;
 
     const MicroControlFlowGraph&         controlFlowGraph = SWC_NOT_NULL(context_->builder)->controlFlowGraph();
     const std::span<const MicroInstrRef> instructionRefs  = controlFlowGraph.instructionRefs();
     SWC_ASSERT(instructionRefs.size() == instructionCount_);
     if (instructionRefs.size() != instructionCount_)
-        return false;
+        return;
 
     bool hasVirtual = false;
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
@@ -270,7 +267,7 @@ bool MicroRegisterAllocationPass::prepareInstructionData()
         instructionUseDefs_[idx] = std::move(useDef);
     }
 
-    return hasVirtual;
+    context_->passChanged = hasVirtual;
 }
 
 void MicroRegisterAllocationPass::analyzeLiveness()
@@ -285,7 +282,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     if (!instructionCount_)
         return;
 
-    const MicroControlFlowGraph&         controlFlowGraph = SWC_NOT_NULL(context_->builder)->controlFlowGraph();
+    const MicroControlFlowGraph&         controlFlowGraph = context_->builder->controlFlowGraph();
     const std::span<const MicroInstrRef> instructionRefs  = controlFlowGraph.instructionRefs();
     SWC_ASSERT(instructionRefs.size() == instructionCount_);
     if (instructionRefs.size() != instructionCount_)
@@ -567,6 +564,7 @@ void MicroRegisterAllocationPass::ensureSpillSlot(VRegState& regState, bool isFl
     regState.spillBits   = bits;
     regState.hasSpill    = true;
     spillFrameUsed_ += slotSize;
+    context_->passChanged = true;
 }
 
 uint64_t MicroRegisterAllocationPass::spillMemOffset(uint64_t spillOffset, int64_t stackDepth)
@@ -1169,21 +1167,14 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions);
 
     clearState();
-
-    // Order matters: liveness/use analysis informs allocation, then we patch IR and finalize frame.
     initState(context);
 
-    if (!instructionCount_)
-        return Result::Continue;
-
-    const bool hadVirtualRegisters = prepareInstructionData();
-
+    prepareInstructionData();
     analyzeLiveness();
     setupPools();
     rewriteInstructions();
     insertSpillFrame();
 
-    context.passChanged = hadVirtualRegisters || spillFrameUsed_ != 0;
     return Result::Continue;
 }
 

@@ -60,7 +60,7 @@ private:
     bool            tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t stamp, bool allowConcreteLive, MicroReg& outPhys) const;
     void            returnToFreePool(MicroReg reg);
     uint32_t        distanceToNextUse(MicroReg key, uint32_t instructionIndex) const;
-    bool            prepareInstructionData();
+    void            prepareInstructionData();
     void            analyzeLiveness();
     void            setupPools();
     void            ensureSpillSlot(VRegState& regState, bool isFloat);

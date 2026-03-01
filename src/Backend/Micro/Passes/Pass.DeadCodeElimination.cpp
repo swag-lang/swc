@@ -371,7 +371,7 @@ namespace
         return changed;
     }
 
-    bool eliminateDeadPureDefsByBackwardLiveness(MicroPassContext& context, MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
+    bool eliminateDeadPureDefsByBackwardLiveness(const MicroPassContext& context, MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
     {
         if (context.builder)
         {

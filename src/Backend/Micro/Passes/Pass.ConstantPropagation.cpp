@@ -131,14 +131,7 @@ namespace
         return true;
     }
 
-    bool tryResolveStackOffsetForAmc(uint64_t&              outOffset,
-                                     const KnownAddressMap& knownAddresses,
-                                     const KnownRegMap&     known,
-                                     MicroReg               stackPointerReg,
-                                     MicroReg               baseReg,
-                                     MicroReg               mulReg,
-                                     uint64_t               mulValue,
-                                     uint64_t               addValue)
+    bool tryResolveStackOffsetForAmc(uint64_t& outOffset, const KnownAddressMap& knownAddresses, const KnownRegMap& known, MicroReg stackPointerReg, MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue)
     {
         uint64_t baseOffset = 0;
         if (!tryResolveStackOffset(baseOffset, knownAddresses, stackPointerReg, baseReg, 0))
@@ -541,9 +534,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         if (rewriteMemoryBaseToKnownStack(inst, ops))
             changed = true;
 
-        Result result = rewriteInstructionFromKnownValues(context, changed, instRef, inst, ops, deferredKnownDef, deferredAddressDef);
-        if (result != Result::Continue)
-            return result;
+        SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(context, changed, instRef, inst, ops, deferredKnownDef, deferredAddressDef));
 
         // Phase 2: consume defs/calls and invalidate stale state.
         updateCompareStateForInstruction(inst, ops, deferredKnownDef);
@@ -561,9 +552,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
         // Phase 3: update tracked stack facts for memory writes.
         bool handledMemoryWrite = false;
-        result                  = trackKnownMemoryWrite(context, instRef, prevInst, prevOps, inst, ops, handledMemoryWrite);
-        if (result != Result::Continue)
-            return result;
+        SWC_RESULT_VERIFY(trackKnownMemoryWrite(context, instRef, prevInst, prevOps, inst, ops, handledMemoryWrite));
 
         if (MicroInstrInfo::isMemoryWriteInstruction(inst) && !handledMemoryWrite)
         {
@@ -572,18 +561,14 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         }
 
         // Phase 4: rebuild facts produced by the rewritten instruction.
-        result = updateKnownRegistersForInstruction(context, instRef, inst, ops);
-        if (result != Result::Continue)
-            return result;
+        SWC_RESULT_VERIFY(updateKnownRegistersForInstruction(context, instRef, inst, ops));
 
         applyDeferredKnownDefinition(deferredKnownDef);
-
         updateKnownConstantPointersForInstruction(instRef, inst, ops);
-
         updateKnownAddressesForInstruction(inst, ops);
         applyDeferredAddressDefinition(deferredAddressDef);
-
         clearControlFlowBoundaryForInstruction(inst, ops);
+
         prevInst = &inst;
         prevOps  = ops;
     }
@@ -592,9 +577,9 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     return Result::Continue;
 }
 
-// Dispatch rewrite rules by instruction family so adding new rules only
+// Dispatch rewrite rules by instruction family, so adding new rules only
 // requires touching one focused helper.
-Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
+Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
 {
     switch (inst.op)
     {
@@ -630,7 +615,7 @@ Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(MicroPass
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
+Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const
 {
     SWC_UNUSED(instRef);
 
@@ -755,7 +740,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroPass
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
+Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, const DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
 {
     SWC_UNUSED(context);
     SWC_UNUSED(instRef);
@@ -851,7 +836,7 @@ Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(MicroPassCon
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
+Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
 {
     switch (inst.op)
     {
@@ -1084,7 +1069,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroP
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
 {
     SWC_UNUSED(instRef);
 
@@ -1208,7 +1193,7 @@ void MicroConstantPropagationPass::invalidateStateForDefinitions(const MicroInst
 
 // Update stack-slot facts after memory writes. Kept separate from rewrite
 // logic to make dataflow effects explicit.
-Result MicroConstantPropagationPass::trackKnownMemoryWrite(MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite)
+Result MicroConstantPropagationPass::trackKnownMemoryWrite(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite)
 {
     switch (inst.op)
     {
@@ -1327,7 +1312,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::trackStackMutationInstruction(MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite)
+Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite)
 {
     switch (inst.op)
     {
@@ -1446,7 +1431,7 @@ bool MicroConstantPropagationPass::tryTrackConstantPointerStackCopy(uint64_t sta
     return true;
 }
 
-Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
+Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
 {
     switch (inst.op)
     {

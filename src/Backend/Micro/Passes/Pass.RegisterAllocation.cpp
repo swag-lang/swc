@@ -85,7 +85,7 @@ namespace
         std::unordered_set<uint32_t>&                                             callSpillVregs;
     };
 
-    void initState(PassState& state, MicroPassContext& context)
+    void initState(const PassState& state, MicroPassContext& context)
     {
         state.context          = &context;
         state.conv             = &CallConv::get(context.callConvKind);
@@ -198,7 +198,7 @@ namespace
         return false;
     }
 
-    void returnToFreePool(PassState& state, MicroReg reg)
+    void returnToFreePool(const PassState& state, MicroReg reg)
     {
         if (reg.isInt())
         {
@@ -379,7 +379,7 @@ namespace
         }
     }
 
-    void buildUsePositions(PassState& state)
+    void buildUsePositions(const PassState& state)
     {
         // Forward index of uses to pick better eviction victims (furthest next use first).
         state.usePositions.clear();
@@ -400,7 +400,7 @@ namespace
         }
     }
 
-    void setupPools(PassState& state)
+    void setupPools(const PassState& state)
     {
         // Build free lists split by class (int/float) and persistence (transient/persistent).
         state.intPersistentSet.clear();
@@ -443,7 +443,7 @@ namespace
         }
     }
 
-    void ensureSpillSlot(PassState& state, VRegState& regState, bool isFloat)
+    void ensureSpillSlot(const PassState& state, VRegState& regState, bool isFloat)
     {
         // Allocate spill slots lazily to avoid stack growth for registers that never spill.
         if (regState.hasSpill)
@@ -623,7 +623,7 @@ namespace
         SmallVector<MicroReg>* secondary = nullptr;
     };
 
-    FreePools pickFreePools(PassState& state, const AllocRequest& request)
+    FreePools pickFreePools(const PassState& state, const AllocRequest& request)
     {
         if (request.virtReg.isVirtualInt())
         {
@@ -658,7 +658,7 @@ namespace
         return false;
     }
 
-    void unmapVirtReg(PassState& state, uint32_t virtKey)
+    void unmapVirtReg(const PassState& state, uint32_t virtKey)
     {
         const auto mapIt = state.mapping.find(virtKey);
         if (mapIt == state.mapping.end())
@@ -671,7 +671,7 @@ namespace
             stateIt->second.mapped = false;
     }
 
-    void mapVirtReg(PassState& state, uint32_t virtKey, MicroReg physReg)
+    void mapVirtReg(const PassState& state, uint32_t virtKey, MicroReg physReg)
     {
         state.mapping[virtKey] = physReg;
 

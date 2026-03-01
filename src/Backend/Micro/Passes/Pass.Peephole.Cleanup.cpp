@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
@@ -8,6 +9,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint32_t K_STACK_ADDRESS_ESCAPE_WINDOW_BYTES = 32;
+
     bool foldBoolAndChainIntoDirectJumps(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context  = pass.context();
@@ -516,6 +519,46 @@ namespace
         return nextNextIt != endIt && nextNextIt->op == MicroInstrOpcode::Ret;
     }
 
+    bool isEpilogStackAdjustBeforeReturn(const MicroStorage& storage, const std::span<const MicroInstrRef> instructionRefs, const uint32_t instructionIndex, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackReg)
+    {
+        if (!ops)
+            return false;
+
+        if (inst.op != MicroInstrOpcode::OpBinaryRegImm || ops[0].reg != stackReg)
+            return false;
+
+        if (instructionIndex + 1 >= instructionRefs.size())
+            return false;
+
+        const MicroInstr* nextInst = storage.ptr(instructionRefs[instructionIndex + 1]);
+        if (!nextInst)
+            return false;
+
+        if (nextInst->op == MicroInstrOpcode::Ret)
+            return true;
+
+        if (nextInst->op != MicroInstrOpcode::Pop)
+            return false;
+
+        if (instructionIndex + 2 >= instructionRefs.size())
+            return false;
+
+        const MicroInstr* nextNextInst = storage.ptr(instructionRefs[instructionIndex + 2]);
+        return nextNextInst && nextNextInst->op == MicroInstrOpcode::Ret;
+    }
+
+    bool isPopBeforeReturn(const MicroStorage& storage, const std::span<const MicroInstrRef> instructionRefs, const uint32_t instructionIndex, const MicroInstr& inst)
+    {
+        if (inst.op != MicroInstrOpcode::Pop)
+            return false;
+
+        if (instructionIndex + 1 >= instructionRefs.size())
+            return false;
+
+        const MicroInstr* nextInst = storage.ptr(instructionRefs[instructionIndex + 1]);
+        return nextInst && nextInst->op == MicroInstrOpcode::Ret;
+    }
+
     bool canTreatStackBaseRegistersAsEquivalent(const MicroPassContext& context)
     {
         const CallConv& conv = CallConv::get(context.callConvKind);
@@ -534,7 +577,16 @@ namespace
             const MicroInstr&        inst = *it;
             const MicroInstrOperand* ops  = inst.ops(*context.operands);
             if (!ops)
+            {
+                if (inst.op == MicroInstrOpcode::Label ||
+                    inst.op == MicroInstrOpcode::Nop ||
+                    inst.op == MicroInstrOpcode::Ret)
+                {
+                    continue;
+                }
+
                 return false;
+            }
 
             const MicroInstrUseDef useDef = inst.collectUseDef(*context.operands, context.encoder);
             if (inst.op == MicroInstrOpcode::LoadRegReg &&
@@ -584,7 +636,7 @@ namespace
                     continue;
             }
 
-            return false;
+            sawFrameAliasToStack = false;
         }
 
         return sawFrameAliasToStack;
@@ -607,7 +659,16 @@ namespace
             const MicroInstr&        scanInst                 = *it;
             const MicroInstrOperand* scanOps                  = scanInst.ops(*context.operands);
             if (!scanOps)
+            {
+                if (scanInst.op == MicroInstrOpcode::Label ||
+                    scanInst.op == MicroInstrOpcode::Nop ||
+                    scanInst.op == MicroInstrOpcode::Ret)
+                {
+                    continue;
+                }
+
                 return true;
+            }
 
             const MicroInstrUseDef scanUseDef = scanInst.collectUseDef(*context.operands, context.encoder);
             if (afterExcludedInstruction && scanUseDef.isCall)
@@ -639,6 +700,16 @@ namespace
 
                     return true;
                 }
+            }
+
+            if (afterExcludedInstruction &&
+                scanInst.op == MicroInstrOpcode::LoadMemReg &&
+                (scanOps[1].reg == slotBaseReg ||
+                 (equivalentStackBases &&
+                  MicroPassHelpers::isStackBaseRegister(context, scanOps[1].reg) &&
+                  MicroPassHelpers::isStackBaseRegister(context, slotBaseReg))))
+            {
+                return true;
             }
 
             if (!isAddressOnlyInstruction(scanInst) && !isMemoryReadInstruction(scanInst) && !isMemoryWriteInstruction(scanInst))
@@ -688,7 +759,7 @@ namespace
             const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
             if (isAddressOnlyInstruction(scanInst))
             {
-                if (MicroPassHelpers::rangesOverlap(slotOffset, slotSize, scanSlotOffset, 1))
+                if (MicroPassHelpers::rangesOverlap(slotOffset, slotSize, scanSlotOffset, K_STACK_ADDRESS_ESCAPE_WINDOW_BYTES))
                     return true;
 
                 continue;

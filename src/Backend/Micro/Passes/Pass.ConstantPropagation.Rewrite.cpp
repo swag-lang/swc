@@ -17,13 +17,13 @@ Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(MicroInst
         case MicroInstrOpcode::LoadRegMem:
         case MicroInstrOpcode::LoadSignedExtRegMem:
         case MicroInstrOpcode::LoadZeroExtRegMem:
-            return rewriteLoadFromMemoryInstructions(instRef, inst, ops, deferredKnownDef, deferredAddressDef);
+            return rewriteLoadFromMemoryInstructions(inst, ops, deferredKnownDef, deferredAddressDef);
 
         case MicroInstrOpcode::LoadAddrRegMem:
         case MicroInstrOpcode::LoadRegReg:
         case MicroInstrOpcode::LoadSignedExtRegReg:
         case MicroInstrOpcode::LoadZeroExtRegReg:
-            return rewriteLoadAndMoveInstructions(instRef, inst, ops, deferredKnownDef, deferredAddressDef);
+            return rewriteLoadAndMoveInstructions(inst, ops, deferredAddressDef);
 
         case MicroInstrOpcode::OpBinaryRegMem:
         case MicroInstrOpcode::OpBinaryRegReg:
@@ -36,7 +36,7 @@ Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(MicroInst
         case MicroInstrOpcode::LoadAmcMemReg:
         case MicroInstrOpcode::OpBinaryMemReg:
         case MicroInstrOpcode::CmpMemReg:
-            return rewriteMemoryOperandInstructions(instRef, inst, ops);
+            return rewriteMemoryOperandInstructions(inst, ops);
 
         default:
             break;
@@ -45,10 +45,9 @@ Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(MicroInst
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const
+Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const
 {
     SWC_ASSERT(context_ != nullptr);
-    SWC_UNUSED(instRef);
 
     switch (inst.op)
     {
@@ -171,11 +170,9 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInst
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, const DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
+Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredAddressDef)
 {
     SWC_ASSERT(context_ != nullptr);
-    SWC_UNUSED(instRef);
-    SWC_UNUSED(deferredKnownDef);
 
     switch (inst.op)
     {
@@ -498,14 +495,12 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
             break;
     }
 
-    SWC_UNUSED(deferredAddressDef);
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(MicroInstr& inst, MicroInstrOperand* ops)
 {
     SWC_ASSERT(context_ != nullptr);
-    SWC_UNUSED(instRef);
 
     switch (inst.op)
     {

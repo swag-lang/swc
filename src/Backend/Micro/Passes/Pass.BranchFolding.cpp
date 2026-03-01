@@ -13,124 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    int64_t toSigned(uint64_t value, MicroOpBits opBits)
-    {
-        const uint64_t normalized = MicroPassHelpers::normalizeToOpBits(value, opBits);
-        switch (opBits)
-        {
-            case MicroOpBits::B8:
-                return static_cast<int8_t>(normalized);
-            case MicroOpBits::B16:
-                return static_cast<int16_t>(normalized);
-            case MicroOpBits::B32:
-                return static_cast<int32_t>(normalized);
-            case MicroOpBits::B64:
-                return static_cast<int64_t>(normalized);
-            default:
-                return static_cast<int64_t>(normalized);
-        }
-    }
-
-    std::optional<bool> evaluateCondition(MicroCond condition, uint64_t lhs, uint64_t rhs, MicroOpBits opBits)
-    {
-        const uint64_t lhsUnsigned = MicroPassHelpers::normalizeToOpBits(lhs, opBits);
-        const uint64_t rhsUnsigned = MicroPassHelpers::normalizeToOpBits(rhs, opBits);
-        const int64_t  lhsSigned   = toSigned(lhs, opBits);
-        const int64_t  rhsSigned   = toSigned(rhs, opBits);
-
-        switch (condition)
-        {
-            case MicroCond::Unconditional:
-                return true;
-            case MicroCond::Equal:
-            case MicroCond::Zero:
-                return lhsUnsigned == rhsUnsigned;
-            case MicroCond::NotEqual:
-            case MicroCond::NotZero:
-                return lhsUnsigned != rhsUnsigned;
-            case MicroCond::Above:
-                return lhsUnsigned > rhsUnsigned;
-            case MicroCond::AboveOrEqual:
-                return lhsUnsigned >= rhsUnsigned;
-            case MicroCond::Below:
-                return lhsUnsigned < rhsUnsigned;
-            case MicroCond::BelowOrEqual:
-            case MicroCond::NotAbove:
-                return lhsUnsigned <= rhsUnsigned;
-            case MicroCond::Greater:
-                return lhsSigned > rhsSigned;
-            case MicroCond::GreaterOrEqual:
-                return lhsSigned >= rhsSigned;
-            case MicroCond::Less:
-                return lhsSigned < rhsSigned;
-            case MicroCond::LessOrEqual:
-                return lhsSigned <= rhsSigned;
-            default:
-                return std::nullopt;
-        }
-    }
-
-    bool tryFoldAddSubSignedNoOverflow(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
-    {
-        if (op != MicroOp::Add && op != MicroOp::Subtract)
-            return false;
-
-        const int64_t lhsSigned = toSigned(lhs, opBits);
-        const int64_t rhsSigned = toSigned(rhs, opBits);
-        int64_t       minValue  = std::numeric_limits<int64_t>::min();
-        int64_t       maxValue  = std::numeric_limits<int64_t>::max();
-        switch (opBits)
-        {
-            case MicroOpBits::B8:
-                minValue = std::numeric_limits<int8_t>::min();
-                maxValue = std::numeric_limits<int8_t>::max();
-                break;
-            case MicroOpBits::B16:
-                minValue = std::numeric_limits<int16_t>::min();
-                maxValue = std::numeric_limits<int16_t>::max();
-                break;
-            case MicroOpBits::B32:
-                minValue = std::numeric_limits<int32_t>::min();
-                maxValue = std::numeric_limits<int32_t>::max();
-                break;
-            case MicroOpBits::B64:
-                minValue = std::numeric_limits<int64_t>::min();
-                maxValue = std::numeric_limits<int64_t>::max();
-                break;
-            default:
-                return false;
-        }
-
-        int64_t resultSigned = 0;
-        if (op == MicroOp::Add)
-        {
-            if ((rhsSigned > 0 && lhsSigned > maxValue - rhsSigned) ||
-                (rhsSigned < 0 && lhsSigned < minValue - rhsSigned))
-            {
-                return false;
-            }
-
-            resultSigned = lhsSigned + rhsSigned;
-        }
-        else
-        {
-            if ((rhsSigned < 0 && lhsSigned > maxValue + rhsSigned) ||
-                (rhsSigned > 0 && lhsSigned < minValue + rhsSigned))
-            {
-                return false;
-            }
-
-            resultSigned = lhsSigned - rhsSigned;
-        }
-
-        outValue = MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(resultSigned), opBits);
-        return true;
-    }
-
-    bool isAddOrSub(MicroOp op)
-    {
-        return op == MicroOp::Add || op == MicroOp::Subtract;
-    }
 }
 
 Result MicroBranchFoldingPass::run(MicroPassContext& context)
@@ -171,7 +53,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
         {
             if (compareValid_)
             {
-                const std::optional<bool> jumpTaken = evaluateCondition(ops[0].cpuCond, compareLhs_, compareRhs_, compareOpBits_);
+                const std::optional<bool> jumpTaken = MicroPassHelpers::evaluateCondition(ops[0].cpuCond, compareLhs_, compareRhs_, compareOpBits_);
                 if (jumpTaken.has_value())
                 {
                     if (*jumpTaken)
@@ -270,11 +152,11 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
                 }
                 else if (Math::isSafetyError(foldStatus))
                 {
-                    if (tryFoldAddSubSignedNoOverflow(folded, valueIt->second, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
+                    if (MicroPassHelpers::tryFoldAddSubSignedNoOverflow(folded, valueIt->second, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
                     {
                         knownValues_[ops[0].reg.packed] = folded;
                     }
-                    else if (!isAddOrSub(ops[2].microOp))
+                    else if (!MicroPassHelpers::isAddOrSubMicroOp(ops[2].microOp))
                     {
                         return MicroPassHelpers::raiseFoldSafetyError(context, instRef, foldStatus);
                     }

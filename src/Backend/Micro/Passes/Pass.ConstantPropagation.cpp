@@ -325,63 +325,6 @@ namespace
         }
     }
 
-    int64_t toSigned(uint64_t value, MicroOpBits opBits)
-    {
-        const uint64_t normalized = MicroPassHelpers::normalizeToOpBits(value, opBits);
-        switch (opBits)
-        {
-            case MicroOpBits::B8:
-                return static_cast<int8_t>(normalized);
-            case MicroOpBits::B16:
-                return static_cast<int16_t>(normalized);
-            case MicroOpBits::B32:
-                return static_cast<int32_t>(normalized);
-            case MicroOpBits::B64:
-                return static_cast<int64_t>(normalized);
-            default:
-                return static_cast<int64_t>(normalized);
-        }
-    }
-
-    std::optional<bool> evaluateCondition(MicroCond condition, uint64_t lhs, uint64_t rhs, MicroOpBits opBits)
-    {
-        const uint64_t lhsUnsigned = MicroPassHelpers::normalizeToOpBits(lhs, opBits);
-        const uint64_t rhsUnsigned = MicroPassHelpers::normalizeToOpBits(rhs, opBits);
-        const int64_t  lhsSigned   = toSigned(lhs, opBits);
-        const int64_t  rhsSigned   = toSigned(rhs, opBits);
-
-        switch (condition)
-        {
-            case MicroCond::Unconditional:
-                return true;
-            case MicroCond::Equal:
-            case MicroCond::Zero:
-                return lhsUnsigned == rhsUnsigned;
-            case MicroCond::NotEqual:
-            case MicroCond::NotZero:
-                return lhsUnsigned != rhsUnsigned;
-            case MicroCond::Above:
-                return lhsUnsigned > rhsUnsigned;
-            case MicroCond::AboveOrEqual:
-                return lhsUnsigned >= rhsUnsigned;
-            case MicroCond::Below:
-                return lhsUnsigned < rhsUnsigned;
-            case MicroCond::BelowOrEqual:
-            case MicroCond::NotAbove:
-                return lhsUnsigned <= rhsUnsigned;
-            case MicroCond::Greater:
-                return lhsSigned > rhsSigned;
-            case MicroCond::GreaterOrEqual:
-                return lhsSigned >= rhsSigned;
-            case MicroCond::Less:
-                return lhsSigned < rhsSigned;
-            case MicroCond::LessOrEqual:
-                return lhsSigned <= rhsSigned;
-            default:
-                return std::nullopt;
-        }
-    }
-
     bool foldFloatBinaryToBits(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
     {
         if (opBits == MicroOpBits::B32)
@@ -489,68 +432,6 @@ namespace
         return false;
     }
 
-    bool tryFoldAddSubSignedNoOverflow(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
-    {
-        if (op != MicroOp::Add && op != MicroOp::Subtract)
-            return false;
-
-        const int64_t lhsSigned = toSigned(lhs, opBits);
-        const int64_t rhsSigned = toSigned(rhs, opBits);
-        int64_t       minValue  = std::numeric_limits<int64_t>::min();
-        int64_t       maxValue  = std::numeric_limits<int64_t>::max();
-        switch (opBits)
-        {
-            case MicroOpBits::B8:
-                minValue = std::numeric_limits<int8_t>::min();
-                maxValue = std::numeric_limits<int8_t>::max();
-                break;
-            case MicroOpBits::B16:
-                minValue = std::numeric_limits<int16_t>::min();
-                maxValue = std::numeric_limits<int16_t>::max();
-                break;
-            case MicroOpBits::B32:
-                minValue = std::numeric_limits<int32_t>::min();
-                maxValue = std::numeric_limits<int32_t>::max();
-                break;
-            case MicroOpBits::B64:
-                minValue = std::numeric_limits<int64_t>::min();
-                maxValue = std::numeric_limits<int64_t>::max();
-                break;
-            default:
-                return false;
-        }
-
-        int64_t resultSigned = 0;
-        if (op == MicroOp::Add)
-        {
-            if ((rhsSigned > 0 && lhsSigned > maxValue - rhsSigned) ||
-                (rhsSigned < 0 && lhsSigned < minValue - rhsSigned))
-            {
-                return false;
-            }
-
-            resultSigned = lhsSigned + rhsSigned;
-        }
-        else
-        {
-            if ((rhsSigned < 0 && lhsSigned > maxValue + rhsSigned) ||
-                (rhsSigned > 0 && lhsSigned < minValue + rhsSigned))
-            {
-                return false;
-            }
-
-            resultSigned = lhsSigned - rhsSigned;
-        }
-
-        outValue = MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(resultSigned), opBits);
-        return true;
-    }
-
-    bool isAddOrSub(MicroOp op)
-    {
-        return op == MicroOp::Add || op == MicroOp::Subtract;
-    }
-
     enum class BinaryFoldResult : uint8_t
     {
         NotFolded,
@@ -572,7 +453,7 @@ namespace
         if (!Math::isSafetyError(foldStatus))
             return BinaryFoldResult::NotFolded;
 
-        if (tryFoldAddSubSignedNoOverflow(outValue, lhs, rhs, op, opBits))
+        if (MicroPassHelpers::tryFoldAddSubSignedNoOverflow(outValue, lhs, rhs, op, opBits))
             return BinaryFoldResult::Folded;
 
         if (outSafetyStatus)
@@ -929,7 +810,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                                     changed          = true;
                                     break;
                                 case BinaryFoldResult::SafetyError:
-                                    if (!isAddOrSub(ops[3].microOp))
+                                    if (!MicroPassHelpers::isAddOrSubMicroOp(ops[3].microOp))
                                         return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
                                     break;
                                 case BinaryFoldResult::NotFolded:
@@ -977,7 +858,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                                     changed          = true;
                                     break;
                                 case BinaryFoldResult::SafetyError:
-                                    if (!isAddOrSub(ops[3].microOp))
+                                    if (!MicroPassHelpers::isAddOrSubMicroOp(ops[3].microOp))
                                         return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
                                     break;
                                 case BinaryFoldResult::NotFolded:
@@ -1089,7 +970,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     }
                     else if (foldResult == BinaryFoldResult::SafetyError)
                     {
-                        if (!isAddOrSub(binaryOp))
+                        if (!MicroPassHelpers::isAddOrSubMicroOp(binaryOp))
                             return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
                     }
                 }
@@ -1493,7 +1374,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     }
                     else if (foldResult == BinaryFoldResult::SafetyError)
                     {
-                        if (!isAddOrSub(ops[2].microOp))
+                        if (!MicroPassHelpers::isAddOrSubMicroOp(ops[2].microOp))
                             return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
                     }
                 }
@@ -1830,7 +1711,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
             if (!ops[0].reg.isInt() || !compareState_.valid)
                 break;
 
-            const std::optional<bool> condValue = evaluateCondition(ops[1].cpuCond, compareState_.lhs, compareState_.rhs, compareState_.opBits);
+            const std::optional<bool> condValue = MicroPassHelpers::evaluateCondition(ops[1].cpuCond, compareState_.lhs, compareState_.rhs, compareState_.opBits);
             if (condValue.has_value())
                 deferredKnownDef = std::pair{ops[0].reg.packed, static_cast<uint64_t>(*condValue ? 1 : 0)};
             break;

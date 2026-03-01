@@ -342,8 +342,8 @@ PagedStore::Page* PagedStore::newPage()
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
-    const auto* const bPtr  = static_cast<const uint8_t*>(ptr);
-    const auto        pages = snapshotPages();
+    const auto* bPtr  = static_cast<const uint8_t*>(ptr);
+    const auto  pages = snapshotPages();
     for (uint32_t j = 0; j < pages->size(); j++)
     {
         const Page* page = (*pages)[j];

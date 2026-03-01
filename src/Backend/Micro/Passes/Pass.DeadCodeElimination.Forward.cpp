@@ -14,7 +14,7 @@ bool MicroDeadCodeEliminationPass::runForwardPureDefElimination()
     {
         const MicroInstrRef currentRef = it.current;
         const MicroInstr&   inst       = *it;
-        const auto* const   ops        = inst.ops(*operands_);
+        const auto*         ops        = inst.ops(*operands_);
 
         const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, encoder_);
         if (isControlFlowBarrier(inst, useDef))

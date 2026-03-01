@@ -45,12 +45,12 @@ void SemaCycle::addEdge(const Symbol* from, const Symbol* to, Job* job, const Ta
 
 void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
 {
-    for (const auto* const sym : cycle)
+    for (const auto* sym : cycle)
         const_cast<Symbol*>(sym)->addFlag(SymbolFlagsE::Ignored);
 
-    const auto* const firstSym = cycle[0];
-    const auto* const nextSym  = cycle.size() > 1 ? cycle[1] : cycle[0];
-    const auto        itLoc    = graph_.edges.find({firstSym, nextSym});
+    const Symbol* firstSym = cycle[0];
+    const Symbol* nextSym  = cycle.size() > 1 ? cycle[1] : cycle[0];
+    const auto    itLoc    = graph_.edges.find({firstSym, nextSym});
     if (itLoc == graph_.edges.end())
         return;
 
@@ -63,9 +63,9 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
 
     for (size_t i = 0; i < cycle.size(); i++)
     {
-        const auto* const sym    = cycle[i];
-        const auto* const next   = cycle[(i + 1) % cycle.size()];
-        const auto        itEdge = graph_.edges.find({sym, next});
+        const Symbol* sym    = cycle[i];
+        const Symbol* next   = cycle[(i + 1) % cycle.size()];
+        const auto    itEdge = graph_.edges.find({sym, next});
         if (itEdge == graph_.edges.end())
             continue;
         Sema* edgeSema = jobSema(itEdge->second.job);
@@ -89,7 +89,7 @@ void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, S
     const auto it = graph_.adj.find(v);
     if (it != graph_.adj.end())
     {
-        for (const auto* const w : it->second)
+        for (const auto* w : it->second)
         {
             if (onStack.contains(w))
             {

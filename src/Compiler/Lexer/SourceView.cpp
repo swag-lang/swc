@@ -26,9 +26,9 @@ Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
     line--;
     SWC_ASSERT(line < lines_.size());
 
-    const auto        offset      = lines_[line];
-    const auto* const startBuffer = stringView_.data() + offset;
-    const char*       end;
+    const auto  offset      = lines_[line];
+    const auto* startBuffer = stringView_.data() + offset;
+    const char* end;
 
     if (line == lines_.size() - 1)
         end = stringView_.data() + stringView_.size();

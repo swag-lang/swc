@@ -267,7 +267,6 @@ struct ForeachVariadicPayload
 
 #test
 {
-    #[Swag.PrintMicro]
     func foreachTypedLarge(values: s32...)->s32
     {
         var acc: s32 = 0

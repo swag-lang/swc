@@ -1,11 +1,12 @@
 #include "pch.h"
+#include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.Private.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace DeadCodeEliminationPass
 {
-    bool runForwardPureDefElimination(MicroPassContext& context, std::unordered_map<MicroReg, MicroInstrRef>& lastPureDefByReg)
+    bool runForwardPureDefElimination(const MicroPassContext& context, std::unordered_map<MicroReg, MicroInstrRef>& lastPureDefByReg)
     {
         SWC_ASSERT(context.instructions != nullptr);
         SWC_ASSERT(context.operands != nullptr);

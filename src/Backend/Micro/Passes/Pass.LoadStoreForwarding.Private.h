@@ -1,7 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -49,8 +48,8 @@ namespace LoadStoreForwardingPass
     bool isSameMemoryAddress(const MicroInstrOperand* storeOps, const MicroInstrOperand* loadOps);
     bool isSameMemoryAddressForImmediateStore(const MicroInstrOperand* storeOps, const MicroInstrOperand* loadOps);
     bool canCrossInstruction(const MicroPassContext& context, const MicroInstr& store, const MicroInstrOperand* storeOps, const MicroInstr& scanInst);
-    bool runForwardStoreToLoad(MicroPassContext& context);
-    bool promoteStackSlotLoads(MicroPassContext& context);
+    bool runForwardStoreToLoad(const MicroPassContext& context);
+    bool promoteStackSlotLoads(const MicroPassContext& context);
 }
 
 SWC_END_NAMESPACE();

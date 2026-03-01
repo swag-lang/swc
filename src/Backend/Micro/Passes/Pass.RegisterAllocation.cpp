@@ -640,7 +640,7 @@ namespace
         return FreePools{&state.freeFloatTransient, nullptr};
     }
 
-    bool tryTakeFreePhysical(PassState&          state,
+    bool tryTakeFreePhysical(const PassState&    state,
                              const AllocRequest& request,
                              uint32_t            stamp,
                              bool                allowConcreteLive,
@@ -763,7 +763,7 @@ namespace
         return physReg;
     }
 
-    void spillCallLiveOut(PassState& state, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
+    void spillCallLiveOut(const PassState& state, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
     {
         // Calls may clobber transient regs; force spill of vulnerable live values before call.
         for (auto it = state.mapping.begin(); it != state.mapping.end();)
@@ -793,7 +793,7 @@ namespace
         }
     }
 
-    void flushAllMappedVirtuals(PassState& state, int64_t stackDepth, std::vector<PendingInsert>& pending)
+    void flushAllMappedVirtuals(const PassState& state, int64_t stackDepth, std::vector<PendingInsert>& pending)
     {
         // Control-flow boundaries require a stable memory state for all mapped values.
         for (const auto& [virtKey, physReg] : state.mapping)
@@ -815,7 +815,7 @@ namespace
         state.mapping.clear();
     }
 
-    void clearAllMappedVirtuals(PassState& state)
+    void clearAllMappedVirtuals(const PassState& state)
     {
         for (const auto& [virtKey, physReg] : state.mapping)
         {
@@ -827,7 +827,7 @@ namespace
         state.mapping.clear();
     }
 
-    void expireDeadMappings(PassState& state, uint32_t stamp)
+    void expireDeadMappings(const PassState& state, uint32_t stamp)
     {
         // Linear dead-expiry is only safe when the instruction stream has no control-flow joins.
         if (state.hasControlFlow)

@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.LoadStoreForwarding.Private.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace LoadStoreForwardingPass
 {
-    bool promoteStackSlotLoads(MicroPassContext& context)
+    bool promoteStackSlotLoads(const MicroPassContext& context)
     {
         SWC_ASSERT(context.instructions != nullptr);
         SWC_ASSERT(context.operands != nullptr);

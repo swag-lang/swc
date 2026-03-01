@@ -1,9 +1,6 @@
 #pragma once
-#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroStorage.h"
-#include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -16,12 +13,8 @@ namespace DeadCodeEliminationPass
     bool isPureDefCandidate(const MicroInstr& inst, const MicroInstrUseDef& useDef, const Encoder* encoder, CallConvKind callConvKind);
     bool isBackwardDeadDefRemovableInstruction(const MicroInstr& inst);
     void addLiveReg(std::unordered_set<MicroReg>& liveRegs, MicroReg reg);
-    void transferInstructionLiveness(std::unordered_set<MicroReg>&       outLiveIn,
-                                     const std::unordered_set<MicroReg>& liveOut,
-                                     const MicroInstr&                   inst,
-                                     const MicroInstrUseDef&             useDef,
-                                     CallConvKind                        callConvKind);
-    bool runForwardPureDefElimination(MicroPassContext& context, std::unordered_map<MicroReg, MicroInstrRef>& lastPureDefByReg);
+    void transferInstructionLiveness(std::unordered_set<MicroReg>& outLiveIn, const std::unordered_set<MicroReg>& liveOut, const MicroInstr& inst, const MicroInstrUseDef& useDef, CallConvKind callConvKind);
+    bool runForwardPureDefElimination(const MicroPassContext& context, std::unordered_map<MicroReg, MicroInstrRef>& lastPureDefByReg);
     bool eliminateDeadPureDefsByBackwardLiveness(const MicroPassContext& context, MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind);
 }
 

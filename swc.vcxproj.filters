@@ -222,10 +222,28 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Forward.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Helpers.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Liveness.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Forward.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Helpers.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Promote.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp">
@@ -750,6 +768,12 @@
       <Filter>src\Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Micro\Passes\Pass.DeadCodeElimination.Private.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Micro\Passes\Pass.LoadStoreForwarding.Private.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantPropagation.Private.h">

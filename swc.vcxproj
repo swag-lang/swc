@@ -224,8 +224,14 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Forward.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Helpers.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Liveness.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Forward.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Helpers.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Promote.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp"/>
@@ -413,6 +419,8 @@
         <ClInclude Include="src\Backend\Backend.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.DeadCodeElimination.Private.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.LoadStoreForwarding.Private.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>

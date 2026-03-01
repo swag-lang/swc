@@ -201,22 +201,20 @@ namespace
         return Result::Continue;
     }
 
-    Result runOptimizationPasses(MicroPassContext& context, std::span<MicroPass* const> optimizationPasses)
+    Result runLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes)
     {
-        if (optimizationPasses.empty())
+        if (passes.empty())
             return Result::Continue;
 
         const uint32_t maxIterations = std::max<uint32_t>(optimizationIterationLimit(context), 1);
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
             bool changed = false;
-            for (MicroPass* pass : optimizationPasses)
+            for (MicroPass* pass : passes)
             {
-                SWC_ASSERT(pass != nullptr);
                 bool passChanged = false;
                 SWC_RESULT_VERIFY(runPass(context, *pass, passChanged));
-                if (passChanged)
-                    changed = true;
+                changed = changed || passChanged;
             }
 
             if (!changed)
@@ -307,7 +305,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
     context.printInstrCountBefore = context.instructions->count();
 
     SWC_RESULT_VERIFY(runLinearPasses(context, startPasses_));
-    SWC_RESULT_VERIFY(runOptimizationPasses(context, loopPasses_));
+    SWC_RESULT_VERIFY(runLoopPasses(context, loopPasses_));
     SWC_RESULT_VERIFY(runLinearPasses(context, finalPasses_));
 
     return Result::Continue;

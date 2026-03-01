@@ -150,11 +150,8 @@ namespace
     {
         if (context.optimizationIterationLimit)
             return context.optimizationIterationLimit;
-
-        if (context.builder)
-            return optimizationIterationLimit(context.builder->backendBuildCfg());
-
-        return optimizationIterationLimit(Runtime::BuildCfgBackend{});
+        SWC_ASSERT(context.builder);
+        return optimizationIterationLimit(context.builder->backendBuildCfg());
     }
 
     Result runPass(MicroPassContext& context, MicroPass& pass, bool& outChanged)
@@ -198,7 +195,7 @@ namespace
         {
             SWC_ASSERT(pass != nullptr);
             bool changed = false;
-            SWC_RESULT_VERIFY(runPass(context, *SWC_NOT_NULL(pass), changed));
+            SWC_RESULT_VERIFY(runPass(context, *pass, changed));
         }
 
         return Result::Continue;
@@ -217,7 +214,7 @@ namespace
             {
                 SWC_ASSERT(pass != nullptr);
                 bool passChanged = false;
-                SWC_RESULT_VERIFY(runPass(context, *SWC_NOT_NULL(pass), passChanged));
+                SWC_RESULT_VERIFY(runPass(context, *pass, passChanged));
                 if (passChanged)
                     changed = true;
             }
@@ -247,8 +244,7 @@ MicroPassManager::MicroPassManager()
     emitPass_                = std::make_unique<MicroEmitPass>();
 }
 
-MicroPassManager::~MicroPassManager() = default;
-
+MicroPassManager::~MicroPassManager()                                      = default;
 MicroPassManager::MicroPassManager(MicroPassManager&&) noexcept            = default;
 MicroPassManager& MicroPassManager::operator=(MicroPassManager&&) noexcept = default;
 
@@ -359,6 +355,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
 {
     SWC_ASSERT(context.instructions != nullptr);
     context.printInstrCountBefore = context.instructions->count();
+
     SWC_RESULT_VERIFY(runOptimizationPasses(context, preOptimizationPasses_));
     SWC_RESULT_VERIFY(runLinearPasses(context, mandatoryPasses_));
     SWC_RESULT_VERIFY(runOptimizationPasses(context, postOptimizationPasses_));

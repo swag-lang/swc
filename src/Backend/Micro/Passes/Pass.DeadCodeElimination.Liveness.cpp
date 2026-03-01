@@ -5,6 +5,99 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    constexpr uint32_t K_INVALID_DENSE_INDEX = std::numeric_limits<uint32_t>::max();
+
+    uint32_t ensureDenseRegIndex(std::unordered_map<MicroReg, uint32_t>& regToDenseIndex,
+                                 std::vector<MicroReg>&                  denseToReg,
+                                 const MicroReg                          reg)
+    {
+        const auto it = regToDenseIndex.find(reg);
+        if (it != regToDenseIndex.end())
+            return it->second;
+
+        const uint32_t newIndex = static_cast<uint32_t>(denseToReg.size());
+        regToDenseIndex.emplace(reg, newIndex);
+        denseToReg.push_back(reg);
+        return newIndex;
+    }
+
+    void pushDenseRegIndex(SmallVector<uint32_t, 4>&               outIndices,
+                           std::unordered_map<MicroReg, uint32_t>& regToDenseIndex,
+                           std::vector<MicroReg>&                  denseToReg,
+                           const MicroReg                          reg)
+    {
+        if (!reg.isValid() || reg.isNoBase())
+            return;
+        outIndices.push_back(ensureDenseRegIndex(regToDenseIndex, denseToReg, reg));
+    }
+
+    std::span<uint64_t> denseBitRow(std::vector<uint64_t>& bits, const uint32_t rowIndex, const uint32_t rowWordCount)
+    {
+        if (!rowWordCount)
+            return {};
+
+        const size_t offset = static_cast<size_t>(rowIndex) * rowWordCount;
+        return {bits.data() + offset, rowWordCount};
+    }
+
+    std::span<const uint64_t> denseBitRow(const std::vector<uint64_t>& bits, const uint32_t rowIndex, const uint32_t rowWordCount)
+    {
+        if (!rowWordCount)
+            return {};
+
+        const size_t offset = static_cast<size_t>(rowIndex) * rowWordCount;
+        return {bits.data() + offset, rowWordCount};
+    }
+
+    void denseBitSet(std::span<uint64_t> bits, const uint32_t bitIndex)
+    {
+        if (bits.empty())
+            return;
+
+        const uint32_t wordIndex = bitIndex >> 6u;
+        SWC_ASSERT(wordIndex < bits.size());
+        bits[wordIndex] |= (1ull << (bitIndex & 63u));
+    }
+
+    void denseBitClear(std::span<uint64_t> bits, const uint32_t bitIndex)
+    {
+        if (bits.empty())
+            return;
+
+        const uint32_t wordIndex = bitIndex >> 6u;
+        SWC_ASSERT(wordIndex < bits.size());
+        bits[wordIndex] &= ~(1ull << (bitIndex & 63u));
+    }
+
+    bool denseBitContains(const std::span<const uint64_t> bits, const uint32_t bitIndex)
+    {
+        if (bits.empty())
+            return false;
+
+        const uint32_t wordIndex = bitIndex >> 6u;
+        SWC_ASSERT(wordIndex < bits.size());
+        return (bits[wordIndex] & (1ull << (bitIndex & 63u))) != 0;
+    }
+
+    bool copyDenseRowIfChanged(std::span<uint64_t> outDst, const std::span<const uint64_t> src)
+    {
+        SWC_ASSERT(outDst.size() == src.size());
+        for (size_t i = 0; i < outDst.size(); ++i)
+        {
+            if (outDst[i] == src[i])
+                continue;
+
+            for (size_t j = 0; j < outDst.size(); ++j)
+                outDst[j] = src[j];
+            return true;
+        }
+
+        return false;
+    }
+}
+
 bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(const MicroControlFlowGraph& controlFlowGraph) const
 {
     SWC_ASSERT(storage_ != nullptr);
@@ -14,46 +107,138 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
     if (instructionRefs.empty())
         return false;
 
-    const size_t                              instructionCount = instructionRefs.size();
-    std::vector<std::unordered_set<MicroReg>> liveIn(instructionCount);
-    std::vector<std::unordered_set<MicroReg>> liveOut(instructionCount);
-    bool                                      dataflowUpdated = true;
-    while (dataflowUpdated)
-    {
-        dataflowUpdated = false;
+    const uint32_t instructionCount = static_cast<uint32_t>(instructionRefs.size());
 
-        for (size_t i = instructionCount; i > 0; --i)
+    std::vector<const MicroInstr*> instructionPtrs(instructionCount, nullptr);
+
+    std::vector<uint8_t>  pureDefCandidateFlags(instructionCount, 0);
+    std::vector<uint32_t> pureDefDenseDefIndex(instructionCount, K_INVALID_DENSE_INDEX);
+
+    std::unordered_map<MicroReg, uint32_t> regToDenseIndex;
+    std::vector<MicroReg>                  denseToReg;
+    const size_t                           denseReserve = static_cast<size_t>(instructionCount) * 2ull + 8ull;
+    regToDenseIndex.reserve(denseReserve);
+    denseToReg.reserve(denseReserve);
+
+    std::vector<SmallVector<uint32_t, 4>> killDenseIndices(instructionCount);
+    std::vector<SmallVector<uint32_t, 4>> useDenseIndices(instructionCount);
+
+    const CallConv& conv = CallConv::get(callConvKind_);
+
+    for (uint32_t idx = 0; idx < instructionCount; ++idx)
+    {
+        const MicroInstrRef instructionRef = instructionRefs[idx];
+        const MicroInstr*   inst           = storage_->ptr(instructionRef);
+        instructionPtrs[idx]               = inst;
+        if (!inst)
+            continue;
+
+        MicroInstrUseDef useDef = inst->collectUseDef(*operands_, encoder_);
+
+        auto& killIndices = killDenseIndices[idx];
+        auto& useIndices  = useDenseIndices[idx];
+
+        if (inst->op == MicroInstrOpcode::Ret)
         {
-            const size_t        idx            = i - 1;
-            const MicroInstrRef instructionRef = instructionRefs[idx];
-            const MicroInstr*   inst           = storage_->ptr(instructionRef);
-            if (!inst)
+            pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, conv.intReturn);
+            pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, conv.floatReturn);
+        }
+
+        if (useDef.isCall)
+        {
+            const CallConv& convAtCall = CallConv::get(useDef.callConv);
+            for (const MicroReg reg : convAtCall.intTransientRegs)
+                pushDenseRegIndex(killIndices, regToDenseIndex, denseToReg, reg);
+            for (const MicroReg reg : convAtCall.floatTransientRegs)
+                pushDenseRegIndex(killIndices, regToDenseIndex, denseToReg, reg);
+            for (const MicroReg reg : convAtCall.intArgRegs)
+                pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, reg);
+            for (const MicroReg reg : convAtCall.floatArgRegs)
+                pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, reg);
+            for (const MicroReg reg : useDef.uses)
+                pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, reg);
+        }
+        else
+        {
+            for (const MicroReg reg : useDef.defs)
+                pushDenseRegIndex(killIndices, regToDenseIndex, denseToReg, reg);
+            for (const MicroReg reg : useDef.uses)
+                pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, reg);
+        }
+
+        if (isBackwardDeadDefRemovableInstruction(*inst) &&
+            isPureDefCandidate(*inst, useDef, encoder_, callConvKind_))
+        {
+            pureDefCandidateFlags[idx] = 1;
+            pureDefDenseDefIndex[idx]  = ensureDenseRegIndex(regToDenseIndex, denseToReg, useDef.defs.front());
+        }
+    }
+
+    const uint32_t        rowWordCount = static_cast<uint32_t>((denseToReg.size() + 63ull) / 64ull);
+    std::vector<uint64_t> liveInBits(static_cast<size_t>(instructionCount) * rowWordCount, 0);
+
+    std::vector<SmallVector<uint32_t>> predecessors(instructionCount);
+    for (uint32_t idx = 0; idx < instructionCount; ++idx)
+    {
+        const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
+        for (const uint32_t successorIdx : successors)
+        {
+            if (successorIdx >= instructionCount)
+                continue;
+            predecessors[successorIdx].push_back(idx);
+        }
+    }
+
+    std::vector<uint32_t> worklist;
+    worklist.reserve(instructionCount);
+    std::vector<uint8_t> inWorklist(instructionCount, 0);
+    for (uint32_t idx = 0; idx < instructionCount; ++idx)
+    {
+        worklist.push_back(idx);
+        inWorklist[idx] = 1;
+    }
+
+    std::vector<uint64_t> tempOut(rowWordCount, 0);
+    std::vector<uint64_t> tempIn(rowWordCount, 0);
+
+    while (!worklist.empty())
+    {
+        const uint32_t idx = worklist.back();
+        worklist.pop_back();
+        inWorklist[idx] = 0;
+
+        if (!instructionPtrs[idx])
+            continue;
+
+        for (uint64_t& wordBits : tempOut)
+            wordBits = 0;
+
+        const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
+        for (const uint32_t successorIdx : successors)
+        {
+            if (successorIdx >= instructionCount)
                 continue;
 
-            const MicroInstrUseDef useDef = inst->collectUseDef(*operands_, encoder_);
+            const std::span<const uint64_t> successorLiveIn = denseBitRow(liveInBits, successorIdx, rowWordCount);
+            for (size_t wordIndex = 0; wordIndex < tempOut.size(); ++wordIndex)
+                tempOut[wordIndex] |= successorLiveIn[wordIndex];
+        }
 
-            std::unordered_set<MicroReg> newLiveOut;
-            const SmallVector<uint32_t>& successors = controlFlowGraph.successors(static_cast<uint32_t>(idx));
-            for (const uint32_t successorIndexRef : successors)
-            {
-                const size_t successorIndex = successorIndexRef;
-                if (successorIndex >= liveIn.size())
-                    continue;
+        tempIn = tempOut;
+        for (const uint32_t bitIndex : killDenseIndices[idx])
+            denseBitClear(tempIn, bitIndex);
+        for (const uint32_t bitIndex : useDenseIndices[idx])
+            denseBitSet(tempIn, bitIndex);
 
-                const std::unordered_set<MicroReg>& successorLiveIn = liveIn[successorIndex];
-                for (const MicroReg reg : successorLiveIn)
-                    newLiveOut.insert(reg);
-            }
+        if (!copyDenseRowIfChanged(denseBitRow(liveInBits, idx, rowWordCount), tempIn))
+            continue;
 
-            std::unordered_set<MicroReg> newLiveIn;
-            transferInstructionLiveness(newLiveIn, newLiveOut, *inst, useDef, callConvKind_);
-
-            if (newLiveOut != liveOut[idx] || newLiveIn != liveIn[idx])
-            {
-                liveOut[idx]    = std::move(newLiveOut);
-                liveIn[idx]     = std::move(newLiveIn);
-                dataflowUpdated = true;
-            }
+        for (const uint32_t predecessorIdx : predecessors[idx])
+        {
+            if (inWorklist[predecessorIdx])
+                continue;
+            worklist.push_back(predecessorIdx);
+            inWorklist[predecessorIdx] = 1;
         }
     }
 
@@ -61,25 +246,31 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
     std::vector<MicroInstrRef> eraseList;
     eraseList.reserve(64);
 
-    for (size_t i = 0; i < instructionCount; ++i)
+    for (uint32_t idx = 0; idx < instructionCount; ++idx)
     {
-        const MicroInstrRef instructionRef = instructionRefs[i];
-        const MicroInstr*   inst           = storage_->ptr(instructionRef);
-        if (!inst)
+        if (!instructionPtrs[idx] || !pureDefCandidateFlags[idx])
             continue;
 
-        const MicroInstrUseDef useDef = inst->collectUseDef(*operands_, encoder_);
-        if (!isBackwardDeadDefRemovableInstruction(*inst) ||
-            !isPureDefCandidate(*inst, useDef, encoder_, callConvKind_))
+        for (uint64_t& wordBits : tempOut)
+            wordBits = 0;
+
+        const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
+        for (const uint32_t successorIdx : successors)
         {
-            continue;
+            if (successorIdx >= instructionCount)
+                continue;
+
+            const std::span<const uint64_t> successorLiveIn = denseBitRow(liveInBits, successorIdx, rowWordCount);
+            for (size_t wordIndex = 0; wordIndex < tempOut.size(); ++wordIndex)
+                tempOut[wordIndex] |= successorLiveIn[wordIndex];
         }
 
-        const MicroReg defRegKey = useDef.defs.front();
-        if (liveOut[i].contains(defRegKey))
+        const uint32_t defDenseIndex = pureDefDenseDefIndex[idx];
+        SWC_ASSERT(defDenseIndex != K_INVALID_DENSE_INDEX);
+        if (denseBitContains(tempOut, defDenseIndex))
             continue;
 
-        eraseList.push_back(instructionRef);
+        eraseList.push_back(instructionRefs[idx]);
     }
 
     for (const MicroInstrRef eraseRef : eraseList)

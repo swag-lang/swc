@@ -183,6 +183,9 @@
     <ClCompile Include="src\Backend\\Micro\MicroStorage.cpp">
       <Filter>src\Backend\Micro</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroControlFlowGraph.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp">
       <Filter>src\Backend\Micro</Filter>
     </ClCompile>
@@ -747,6 +750,9 @@
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\MicroStorage.h">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroControlFlowGraph.h">
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Unittest\UnittestHelpers.h">

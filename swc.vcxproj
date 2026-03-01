@@ -210,6 +210,7 @@
         <ClCompile Include="src\Backend\\ABI\ABITypeNormalize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroStorage.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroControlFlowGraph.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroReg.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp"/>
@@ -410,6 +411,7 @@
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroOptimization.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroControlFlowGraph.h"/>
         <ClInclude Include="src\Backend\Unittest\UnittestHelpers.h"/>
         <ClInclude Include="src\Support\Unittest\Unittest.h"/>
         <ClInclude Include="src\Backend\\ABI\CallConv.h"/>

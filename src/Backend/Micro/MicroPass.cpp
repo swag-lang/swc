@@ -276,26 +276,21 @@ namespace
     }
 }
 
-struct MicroPassManager::Impl
+MicroPassManager::MicroPassManager()
 {
-    MicroControlFlowSimplificationPass cfgSimplifyPass;
-    MicroInstructionCombinePass        instructionCombinePass;
-    MicroStrengthReductionPass         strengthReductionPass;
-    MicroCopyPropagationPass           copyPropagationPass;
-    MicroConstantPropagationPass       constantPropagationPass;
-    MicroDeadCodeEliminationPass       deadCodePass;
-    MicroBranchFoldingPass             branchFoldingPass;
-    MicroLoadStoreForwardingPass       loadStoreForwardPass;
-    MicroPeepholePass                  peepholePass;
-    MicroRegisterAllocationPass        regAllocPass;
-    MicroPrologEpilogPass              prologEpilogPass;
-    MicroLegalizePass                  legalizePass;
-    MicroEmitPass                      emitPass;
-};
-
-MicroPassManager::MicroPassManager() :
-    impl_(std::make_unique<Impl>())
-{
+    cfgSimplifyPass_         = std::make_unique<MicroControlFlowSimplificationPass>();
+    instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
+    strengthReductionPass_   = std::make_unique<MicroStrengthReductionPass>();
+    copyPropagationPass_     = std::make_unique<MicroCopyPropagationPass>();
+    constantPropagationPass_ = std::make_unique<MicroConstantPropagationPass>();
+    deadCodePass_            = std::make_unique<MicroDeadCodeEliminationPass>();
+    branchFoldingPass_       = std::make_unique<MicroBranchFoldingPass>();
+    loadStoreForwardPass_    = std::make_unique<MicroLoadStoreForwardingPass>();
+    peepholePass_            = std::make_unique<MicroPeepholePass>();
+    regAllocPass_            = std::make_unique<MicroRegisterAllocationPass>();
+    prologEpilogPass_        = std::make_unique<MicroPrologEpilogPass>();
+    legalizePass_            = std::make_unique<MicroLegalizePass>();
+    emitPass_                = std::make_unique<MicroEmitPass>();
 }
 
 MicroPassManager::~MicroPassManager() = default;
@@ -315,71 +310,70 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 {
     clear();
 
-    auto& passes = *SWC_NOT_NULL(impl_.get());
     if (optimize)
     {
-        addPreOptimization(passes.strengthReductionPass);
-        addPreOptimization(passes.instructionCombinePass);
-        addPreOptimization(passes.copyPropagationPass);
-        addPreOptimization(passes.constantPropagationPass);
-        addPreOptimization(passes.loadStoreForwardPass);
-        addPreOptimization(passes.branchFoldingPass);
-        addPreOptimization(passes.cfgSimplifyPass);
-        addPostOptimization(passes.branchFoldingPass);
-        addPostOptimization(passes.cfgSimplifyPass);
-        addPostOptimization(passes.constantPropagationPass);
-        addPostOptimization(passes.deadCodePass);
-        addPostOptimization(passes.peepholePass);
-        addPostOptimization(passes.cfgSimplifyPass);
+        addPreOptimization(*strengthReductionPass_);
+        addPreOptimization(*instructionCombinePass_);
+        addPreOptimization(*copyPropagationPass_);
+        addPreOptimization(*constantPropagationPass_);
+        addPreOptimization(*loadStoreForwardPass_);
+        addPreOptimization(*branchFoldingPass_);
+        addPreOptimization(*cfgSimplifyPass_);
+        addPostOptimization(*branchFoldingPass_);
+        addPostOptimization(*cfgSimplifyPass_);
+        addPostOptimization(*constantPropagationPass_);
+        addPostOptimization(*deadCodePass_);
+        addPostOptimization(*peepholePass_);
+        addPostOptimization(*cfgSimplifyPass_);
     }
 
-    addMandatory(passes.regAllocPass);
-    addMandatory(passes.legalizePass);
-    addMandatory(passes.regAllocPass);
-
-    if (optimize)
-    {
-        addFinal(passes.constantPropagationPass);
-        addFinal(passes.loadStoreForwardPass);
-        addFinal(passes.branchFoldingPass);
-        addFinal(passes.cfgSimplifyPass);
-        addFinal(passes.deadCodePass);
-        addFinal(passes.peepholePass);
-        addFinal(passes.constantPropagationPass);
-        addFinal(passes.branchFoldingPass);
-        addFinal(passes.cfgSimplifyPass);
-    }
-
-    addFinal(passes.prologEpilogPass);
-    addFinal(passes.legalizePass);
+    addMandatory(*regAllocPass_);
+    addMandatory(*legalizePass_);
+    addMandatory(*regAllocPass_);
 
     if (optimize)
     {
-        addFinal(passes.constantPropagationPass);
-        addFinal(passes.loadStoreForwardPass);
-        addFinal(passes.branchFoldingPass);
-        addFinal(passes.cfgSimplifyPass);
-        addFinal(passes.peepholePass);
-        addFinal(passes.deadCodePass);
-        addFinal(passes.constantPropagationPass);
-        addFinal(passes.branchFoldingPass);
-        addFinal(passes.cfgSimplifyPass);
+        addFinal(*constantPropagationPass_);
+        addFinal(*loadStoreForwardPass_);
+        addFinal(*branchFoldingPass_);
+        addFinal(*cfgSimplifyPass_);
+        addFinal(*deadCodePass_);
+        addFinal(*peepholePass_);
+        addFinal(*constantPropagationPass_);
+        addFinal(*branchFoldingPass_);
+        addFinal(*cfgSimplifyPass_);
     }
 
-    addFinal(passes.regAllocPass);
+    addFinal(*prologEpilogPass_);
+    addFinal(*legalizePass_);
 
     if (optimize)
     {
-        addFinal(passes.constantPropagationPass);
-        addFinal(passes.loadStoreForwardPass);
-        addFinal(passes.peepholePass);
-        addFinal(passes.deadCodePass);
-        addFinal(passes.constantPropagationPass);
-        addFinal(passes.branchFoldingPass);
-        addFinal(passes.cfgSimplifyPass);
+        addFinal(*constantPropagationPass_);
+        addFinal(*loadStoreForwardPass_);
+        addFinal(*branchFoldingPass_);
+        addFinal(*cfgSimplifyPass_);
+        addFinal(*peepholePass_);
+        addFinal(*deadCodePass_);
+        addFinal(*constantPropagationPass_);
+        addFinal(*branchFoldingPass_);
+        addFinal(*cfgSimplifyPass_);
     }
 
-    addFinal(passes.emitPass);
+    addFinal(*regAllocPass_);
+
+    if (optimize)
+    {
+        addFinal(*constantPropagationPass_);
+        addFinal(*loadStoreForwardPass_);
+        addFinal(*peepholePass_);
+        addFinal(*deadCodePass_);
+        addFinal(*constantPropagationPass_);
+        addFinal(*branchFoldingPass_);
+        addFinal(*cfgSimplifyPass_);
+    }
+
+    addFinal(*emitPass_);
 }
 
 void MicroPassManager::add(MicroPass& pass)

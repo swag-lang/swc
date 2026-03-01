@@ -31,7 +31,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         DeferredDef         deferredAddressDef;
 
         // Phase 1: rewrite the instruction from currently known values.
-        if (rewritePhase1MemoryBaseToKnownStack(inst, ops))
+        if (rewriteMemoryBaseToKnownStack(inst, ops))
             context.passChanged = true;
 
         SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(instRef, inst, ops, deferredKnownDef, deferredAddressDef));
@@ -69,7 +69,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     return Result::Continue;
 }
 
-bool MicroConstantPropagationPass::rewritePhase1MemoryBaseToKnownStack(MicroInstr& inst, MicroInstrOperand* ops) const
+bool MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const
 {
     SWC_ASSERT(context_ != nullptr);
     if (!ops || !stackPointerReg_.isValid())

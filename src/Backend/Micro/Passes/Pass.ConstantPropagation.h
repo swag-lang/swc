@@ -75,7 +75,7 @@ private:
     void   updateKnownConstantPointersForInstruction(MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops);
     void   updateKnownAddressesForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
     void   applyDeferredAddressDefinition(const DeferredDef& deferredAddressDef);
-    bool   rewritePhase1MemoryBaseToKnownStack(MicroInstr& inst, MicroInstrOperand* ops) const;
+    bool   rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const;
     void   clearRunContext();
     void   clearState();
     void   initRunState(MicroPassContext& context);

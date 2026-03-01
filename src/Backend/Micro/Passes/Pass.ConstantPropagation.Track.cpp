@@ -1,8 +1,6 @@
 #include "pch.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.Private.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
@@ -80,13 +78,9 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
             {
                 const auto itKnownReg = known_.find(ops[1].reg.packed);
                 if (itKnownReg != known_.end())
-                {
                     setKnownStackSlot(knownStackSlots_, stackOffset, ops[2].opBits, itKnownReg->second.value);
-                }
                 else if (!tryTrackConstantPointerStackCopy(stackOffset, ops[2].opBits, ops[1].reg, prevInst, prevOps))
-                {
                     eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[2].opBits);
-                }
 
                 if (ops[2].opBits == MicroOpBits::B64)
                 {
@@ -97,9 +91,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
                         eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[2].opBits);
                 }
                 else
-                {
                     eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[2].opBits);
-                }
 
                 handledMemoryWrite = true;
             }
@@ -138,9 +130,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
                         eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[4].opBits);
                 }
                 else
-                {
                     eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[4].opBits);
-                }
 
                 handledMemoryWrite = true;
             }
@@ -173,9 +163,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPa
                         eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
                 }
                 else
-                {
                     eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
-                }
 
                 eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[1].opBits);
                 handledMemoryWrite = true;
@@ -199,9 +187,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPa
                         eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[2].opBits);
                 }
                 else
-                {
                     eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[2].opBits);
-                }
 
                 eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[2].opBits);
                 handledMemoryWrite = true;
@@ -227,9 +213,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPa
                         eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
                 }
                 else
-                {
                     eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
-                }
 
                 eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[1].opBits);
                 handledMemoryWrite = true;

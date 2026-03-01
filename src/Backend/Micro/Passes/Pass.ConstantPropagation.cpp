@@ -27,7 +27,7 @@ namespace
 
     void eraseOverlappingStackSlots(KnownStackSlotMap& knownSlots, uint64_t offset, MicroOpBits opBits)
     {
-        const uint32_t slotSize = microOpBitsNumBytes(opBits);
+        const uint32_t slotSize = getNumBytes(opBits);
         if (!slotSize)
         {
             knownSlots.clear();
@@ -36,7 +36,7 @@ namespace
 
         for (auto it = knownSlots.begin(); it != knownSlots.end();)
         {
-            const uint32_t knownSize = microOpBitsNumBytes(it->first.opBits);
+            const uint32_t knownSize = getNumBytes(it->first.opBits);
             if (rangesOverlap(offset, slotSize, it->first.offset, knownSize))
                 it = knownSlots.erase(it);
             else
@@ -54,7 +54,7 @@ namespace
 
     void eraseOverlappingStackAddresses(KnownStackAddressMap& knownStackAddresses, uint64_t offset, MicroOpBits opBits)
     {
-        const uint32_t slotSize = microOpBitsNumBytes(opBits);
+        const uint32_t slotSize = getNumBytes(opBits);
         if (!slotSize)
         {
             knownStackAddresses.clear();
@@ -98,13 +98,13 @@ namespace
             return true;
         }
 
-        const uint32_t wantedSize = microOpBitsNumBytes(opBits);
+        const uint32_t wantedSize = getNumBytes(opBits);
         if (!wantedSize || wantedSize > sizeof(uint64_t))
             return false;
 
         for (const auto& [knownKey, knownValue] : knownSlots)
         {
-            const uint32_t knownSize = microOpBitsNumBytes(knownKey.opBits);
+            const uint32_t knownSize = getNumBytes(knownKey.opBits);
             if (!knownSize || knownSize > sizeof(uint64_t))
                 continue;
 
@@ -1137,7 +1137,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     else
                     {
                         bool           handledConstantCopy = false;
-                        const uint32_t slotNumBytes        = microOpBitsNumBytes(ops[2].opBits);
+                        const uint32_t slotNumBytes        = getNumBytes(ops[2].opBits);
                         if (it != storage.view().begin() &&
                             slotNumBytes &&
                             slotNumBytes <= 16)

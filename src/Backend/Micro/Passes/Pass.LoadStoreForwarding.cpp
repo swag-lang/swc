@@ -165,7 +165,7 @@ namespace
 
     void invalidateOverlappingSlots(StackSlotMap& slots, const StackSlotKey& targetKey)
     {
-        const uint32_t targetSize = microOpBitsNumBytes(targetKey.opBits);
+        const uint32_t targetSize = getNumBytes(targetKey.opBits);
         if (!targetSize)
         {
             slots.clear();
@@ -175,7 +175,7 @@ namespace
         for (auto it = slots.begin(); it != slots.end();)
         {
             const StackSlotKey& slotKey  = it->first;
-            const uint32_t      slotSize = microOpBitsNumBytes(slotKey.opBits);
+            const uint32_t      slotSize = getNumBytes(slotKey.opBits);
             if (slotSize &&
                 slotKey.baseReg == targetKey.baseReg &&
                 rangesOverlap(slotKey.offset, slotSize, targetKey.offset, targetSize))

@@ -812,7 +812,7 @@ namespace PeepholePass
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return true;
 
-                const uint32_t scanSlotSize = microOpBitsNumBytes(scanOpBits);
+                const uint32_t scanSlotSize = getNumBytes(scanOpBits);
                 if (!scanSlotSize)
                     return true;
 
@@ -881,7 +881,7 @@ namespace PeepholePass
             if (!isStackBaseRegister(context, baseReg))
                 return false;
 
-            const uint32_t slotSize = microOpBitsNumBytes(opBits);
+            const uint32_t slotSize = getNumBytes(opBits);
             if (!slotSize)
                 return false;
 
@@ -940,7 +940,7 @@ namespace PeepholePass
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return false;
 
-                const uint32_t scanSlotSize = microOpBitsNumBytes(scanOpBits);
+                const uint32_t scanSlotSize = getNumBytes(scanOpBits);
                 if (!scanSlotSize)
                     return false;
 
@@ -1034,7 +1034,7 @@ namespace PeepholePass
             if (!getMemAccessOpBits(opBits, *inst, ops))
                 return false;
 
-            const uint32_t slotSize = microOpBitsNumBytes(opBits);
+            const uint32_t slotSize = getNumBytes(opBits);
             if (!slotSize)
                 return false;
             const uint64_t slotOffset = ops[offsetIndex].valueU64;
@@ -1115,7 +1115,7 @@ namespace PeepholePass
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return false;
 
-                const uint32_t scanSlotSize = microOpBitsNumBytes(scanOpBits);
+                const uint32_t scanSlotSize = getNumBytes(scanOpBits);
                 if (!scanSlotSize)
                     return false;
 
@@ -1154,7 +1154,7 @@ namespace PeepholePass
             if (!getMemAccessOpBits(opBits, *inst, ops))
                 return false;
 
-            const uint32_t slotSize = microOpBitsNumBytes(opBits);
+            const uint32_t slotSize = getNumBytes(opBits);
             if (!slotSize)
                 return false;
 

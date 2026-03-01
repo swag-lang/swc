@@ -158,8 +158,8 @@ namespace PeepholePass
             if (!matchesRead && !matchesWrite)
                 return false;
 
-            const uint32_t accessSize = microOpBitsNumBytes(access.opBits);
-            const uint32_t targetSize = microOpBitsNumBytes(targetOpBits);
+            const uint32_t accessSize = getNumBytes(access.opBits);
+            const uint32_t targetSize = getNumBytes(targetOpBits);
             if (!accessSize || !targetSize)
                 return true;
 

@@ -16,7 +16,7 @@ uint64_t MicroPassHelpers::normalizeToOpBits(uint64_t value, MicroOpBits opBits)
     if (opBits == MicroOpBits::B64)
         return value;
 
-    const uint64_t mask = getOpBitsMask(opBits);
+    const uint64_t mask = getBitsMask(opBits);
     return value & mask;
 }
 
@@ -281,7 +281,7 @@ namespace
                 return value == 0;
             case MicroOp::And:
             {
-                const uint64_t mask = getOpBitsMask(opBits);
+                const uint64_t mask = getBitsMask(opBits);
                 return mask != 0 && value == mask;
             }
             default:

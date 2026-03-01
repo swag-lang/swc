@@ -65,7 +65,7 @@ namespace PeepholePass
                 const MicroOpBits storeBits = originalOps[2].opBits;
                 uint64_t          value     = ops[2].valueU64;
                 if (storeBits != MicroOpBits::B64)
-                    value &= getOpBitsMask(storeBits);
+                    value &= getBitsMask(storeBits);
 
                 scanInst.op         = MicroInstrOpcode::LoadMemImm;
                 scanOps[0]          = originalOps[0];
@@ -140,7 +140,7 @@ namespace PeepholePass
                 uint64_t          immValue = ops[2].valueU64;
                 const MicroOpBits opBits   = originalOps[2].opBits;
                 if (opBits != MicroOpBits::B64)
-                    immValue &= getOpBitsMask(opBits);
+                    immValue &= getBitsMask(opBits);
 
                 scanInst.op         = MicroInstrOpcode::LoadRegImm;
                 scanOps[0]          = originalOps[0];
@@ -192,7 +192,7 @@ namespace PeepholePass
             uint64_t          immValue = ops[2].valueU64;
             const MicroOpBits opBits   = originalOps[2].opBits;
             if (opBits != MicroOpBits::B64)
-                immValue &= getOpBitsMask(opBits);
+                immValue &= getBitsMask(opBits);
 
             nextInst.op         = MicroInstrOpcode::OpBinaryRegImm;
             nextOps[0]          = originalOps[0];
@@ -242,7 +242,7 @@ namespace PeepholePass
             uint64_t          immValue = ops[2].valueU64;
             const MicroOpBits opBits   = originalOps[2].opBits;
             if (opBits != MicroOpBits::B64)
-                immValue &= getOpBitsMask(opBits);
+                immValue &= getBitsMask(opBits);
 
             nextInst.op         = MicroInstrOpcode::CmpRegImm;
             nextOps[0]          = originalOps[0];
@@ -533,8 +533,8 @@ namespace PeepholePass
             const MicroInstrOpcode originalFirstOp  = firstInst->op;
             const std::array       originalFirstOps = {firstOps[0], firstOps[1], firstOps[2], firstOps[3]};
 
-            const uint64_t loValue = originalFirstOps[3].valueU64 & getOpBitsMask(MicroOpBits::B32);
-            const uint64_t hiValue = nextOps[3].valueU64 & getOpBitsMask(MicroOpBits::B32);
+            const uint64_t loValue = originalFirstOps[3].valueU64 & getBitsMask(MicroOpBits::B32);
+            const uint64_t hiValue = nextOps[3].valueU64 & getBitsMask(MicroOpBits::B32);
             const uint64_t merged  = loValue | (hiValue << 32);
 
             firstInst->op        = MicroInstrOpcode::LoadMemImm;
@@ -657,7 +657,7 @@ namespace PeepholePass
 
             const MicroOp  originalFirstOp  = firstOps[2].microOp;
             const uint64_t originalFirstImm = firstOps[3].valueU64;
-            const uint64_t opBitsMask       = opBits == MicroOpBits::B64 ? std::numeric_limits<uint64_t>::max() : getOpBitsMask(opBits);
+            const uint64_t opBitsMask       = opBits == MicroOpBits::B64 ? std::numeric_limits<uint64_t>::max() : getBitsMask(opBits);
             const uint64_t firstImm         = originalFirstImm & opBitsMask;
             const uint64_t secondImm        = secondAdjustOps[3].valueU64 & opBitsMask;
             const MicroOp  secondOp         = secondAdjustOps[2].microOp;

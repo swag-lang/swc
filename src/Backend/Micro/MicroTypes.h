@@ -43,7 +43,7 @@ inline MicroOpBits microOpBitsFromBitWidth(uint32_t bitWidth)
     }
 }
 
-inline uint64_t getOpBitsMask(MicroOpBits opBits)
+inline uint64_t getBitsMask(MicroOpBits opBits)
 {
     switch (opBits)
     {
@@ -65,7 +65,7 @@ inline uint32_t getNumBits(MicroOpBits opBits)
     return static_cast<uint32_t>(opBits);
 }
 
-inline uint32_t microOpBitsNumBytes(MicroOpBits opBits)
+inline uint32_t getNumBytes(MicroOpBits opBits)
 {
     return getNumBits(opBits) / 8;
 }

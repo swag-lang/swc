@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroDenseBits.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
@@ -15,70 +16,6 @@ namespace
         if (!reg.isValid() || reg.isNoBase())
             return;
         outIndices.push_back(denseRegIndex.ensure(reg));
-    }
-
-    std::span<uint64_t> denseBitRow(std::vector<uint64_t>& bits, const uint32_t rowIndex, const uint32_t rowWordCount)
-    {
-        if (!rowWordCount)
-            return {};
-
-        const size_t offset = static_cast<size_t>(rowIndex) * rowWordCount;
-        return {bits.data() + offset, rowWordCount};
-    }
-
-    std::span<const uint64_t> denseBitRow(const std::vector<uint64_t>& bits, const uint32_t rowIndex, const uint32_t rowWordCount)
-    {
-        if (!rowWordCount)
-            return {};
-
-        const size_t offset = static_cast<size_t>(rowIndex) * rowWordCount;
-        return {bits.data() + offset, rowWordCount};
-    }
-
-    void denseBitSet(std::span<uint64_t> bits, const uint32_t bitIndex)
-    {
-        if (bits.empty())
-            return;
-
-        const uint32_t wordIndex = bitIndex >> 6u;
-        SWC_ASSERT(wordIndex < bits.size());
-        bits[wordIndex] |= (1ull << (bitIndex & 63u));
-    }
-
-    void denseBitClear(std::span<uint64_t> bits, const uint32_t bitIndex)
-    {
-        if (bits.empty())
-            return;
-
-        const uint32_t wordIndex = bitIndex >> 6u;
-        SWC_ASSERT(wordIndex < bits.size());
-        bits[wordIndex] &= ~(1ull << (bitIndex & 63u));
-    }
-
-    bool denseBitContains(const std::span<const uint64_t> bits, const uint32_t bitIndex)
-    {
-        if (bits.empty())
-            return false;
-
-        const uint32_t wordIndex = bitIndex >> 6u;
-        SWC_ASSERT(wordIndex < bits.size());
-        return (bits[wordIndex] & (1ull << (bitIndex & 63u))) != 0;
-    }
-
-    bool copyDenseRowIfChanged(std::span<uint64_t> outDst, const std::span<const uint64_t> src)
-    {
-        SWC_ASSERT(outDst.size() == src.size());
-        for (size_t i = 0; i < outDst.size(); ++i)
-        {
-            if (outDst[i] == src[i])
-                continue;
-
-            for (size_t j = 0; j < outDst.size(); ++j)
-                outDst[j] = src[j];
-            return true;
-        }
-
-        return false;
     }
 }
 
@@ -201,18 +138,18 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
             if (successorIdx >= instructionCount)
                 continue;
 
-            const std::span<const uint64_t> successorLiveIn = denseBitRow(liveInBits, successorIdx, rowWordCount);
+            const std::span<const uint64_t> successorLiveIn = MicroDenseBits::row(liveInBits, successorIdx, rowWordCount);
             for (size_t wordIndex = 0; wordIndex < tempOut.size(); ++wordIndex)
                 tempOut[wordIndex] |= successorLiveIn[wordIndex];
         }
 
         tempIn = tempOut;
         for (const uint32_t bitIndex : killDenseIndices[idx])
-            denseBitClear(tempIn, bitIndex);
+            MicroDenseBits::clear(tempIn, bitIndex);
         for (const uint32_t bitIndex : useDenseIndices[idx])
-            denseBitSet(tempIn, bitIndex);
+            MicroDenseBits::set(tempIn, bitIndex);
 
-        if (!copyDenseRowIfChanged(denseBitRow(liveInBits, idx, rowWordCount), tempIn))
+        if (!MicroDenseBits::copyIfChanged(MicroDenseBits::row(liveInBits, idx, rowWordCount), tempIn))
             continue;
 
         for (const uint32_t predecessorIdx : predecessors[idx])
@@ -242,14 +179,14 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
             if (successorIdx >= instructionCount)
                 continue;
 
-            const std::span<const uint64_t> successorLiveIn = denseBitRow(liveInBits, successorIdx, rowWordCount);
+            const std::span<const uint64_t> successorLiveIn = MicroDenseBits::row(liveInBits, successorIdx, rowWordCount);
             for (size_t wordIndex = 0; wordIndex < tempOut.size(); ++wordIndex)
                 tempOut[wordIndex] |= successorLiveIn[wordIndex];
         }
 
         const uint32_t defDenseIndex = pureDefDenseDefIndex[idx];
         SWC_ASSERT(defDenseIndex != K_INVALID_DENSE_INDEX);
-        if (denseBitContains(tempOut, defDenseIndex))
+        if (MicroDenseBits::contains(tempOut, defDenseIndex))
             continue;
 
         eraseList.push_back(instructionRefs[idx]);

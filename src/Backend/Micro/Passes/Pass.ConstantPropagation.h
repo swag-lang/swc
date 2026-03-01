@@ -67,7 +67,7 @@ private:
     bool        tryResolveStackOffsetFromState(uint64_t& outOffset, MicroReg baseReg, uint64_t baseOffset) const;
     bool        tryResolveStackOffsetForAmcFromState(uint64_t& outOffset, MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue) const;
     bool        rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const;
-    static bool definesRegisterInSet(std::span<const MicroReg> defs, MicroReg reg);
+    static bool definesRegisterInSet(MicroRegSpan defs, MicroReg reg);
 
     KnownRegMap                                               known_;
     KnownStackSlotMap                                         knownStackSlots_;

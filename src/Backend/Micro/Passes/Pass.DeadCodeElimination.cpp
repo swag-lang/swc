@@ -109,7 +109,7 @@ namespace
         }
     }
 
-    bool definesSpecialRegister(std::span<const MicroReg> defs, const Encoder* encoder, CallConvKind callConvKind)
+    bool definesSpecialRegister(MicroRegSpan defs, const Encoder* encoder, CallConvKind callConvKind)
     {
         const CallConv& conv            = CallConv::get(callConvKind);
         MicroReg        stackPointerReg = conv.stackPointer;

@@ -54,17 +54,6 @@ namespace
 
     using StackSlotMap = std::unordered_map<StackSlotKey, StackSlotValue, StackSlotKeyHash>;
 
-    bool containsDef(std::span<const MicroReg> defs, const MicroReg reg)
-    {
-        for (const MicroReg defReg : defs)
-        {
-            if (defReg == reg)
-                return true;
-        }
-
-        return false;
-    }
-
     bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
     {
         if (!lhsSize || !rhsSize)
@@ -231,13 +220,13 @@ namespace
             return false;
 
         const MicroReg storeBaseReg = storeOps[0].reg;
-        if (containsDef(useDef.defs, storeBaseReg))
+        if (microRegSpanContains(useDef.defs, storeBaseReg))
             return false;
 
         if (store.op == MicroInstrOpcode::LoadMemReg)
         {
             const MicroReg storeValueReg = storeOps[1].reg;
-            if (containsDef(useDef.defs, storeValueReg))
+            if (microRegSpanContains(useDef.defs, storeValueReg))
                 return false;
         }
 

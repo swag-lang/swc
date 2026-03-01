@@ -196,26 +196,19 @@ bool CallConv::isFloatPersistentReg(MicroReg reg) const
     return false;
 }
 
-bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::span<const MicroReg> forbidden) const
+bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, MicroRegSpan forbidden) const
 {
     // Scratch regs are needed for ABI shuffles; avoid reserved/argument registers first.
     auto isForbidden = [&](MicroReg reg) {
         if (!reg.isValid() || reg == stackPointer || reg == framePointer || reg == intReturn || isIntArgReg(reg))
             return true;
-
-        for (const auto blocked : forbidden)
-        {
-            if (reg == blocked)
-                return true;
-        }
-
-        return false;
+        return microRegSpanContains(forbidden, reg);
     };
 
     outReg0 = MicroReg::invalid();
     outReg1 = MicroReg::invalid();
 
-    auto pickFrom = [&](std::span<const MicroReg> regs) {
+    auto pickFrom = [&](MicroRegSpan regs) {
         for (const auto reg : regs)
         {
             if (isForbidden(reg))
@@ -226,7 +219,7 @@ bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::
         }
     };
 
-    auto pickSecondFrom = [&](std::span<const MicroReg> regs) {
+    auto pickSecondFrom = [&](MicroRegSpan regs) {
         for (const auto reg : regs)
         {
             if (reg == outReg0 || isForbidden(reg))

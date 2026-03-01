@@ -125,9 +125,9 @@ namespace Backend::Unittest
         return Result::Continue;
     }
 
-    bool isPersistentReg(const SmallVector<MicroReg>& regs, MicroReg reg)
+    bool isPersistentReg(MicroRegSpan regs, MicroReg reg)
     {
-        return std::ranges::find(regs, reg) != regs.end();
+        return microRegSpanContains(regs, reg);
     }
 
     Result assertNoVirtualRegs(MicroBuilder& builder)

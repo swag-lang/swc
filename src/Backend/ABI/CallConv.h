@@ -71,7 +71,7 @@ struct CallConv
     bool                 isIntArgReg(MicroReg reg) const;
     bool                 isIntPersistentReg(MicroReg reg) const;
     bool                 isFloatPersistentReg(MicroReg reg) const;
-    bool                 tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::span<const MicroReg> forbidden = {}) const;
+    bool                 tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, MicroRegSpan forbidden = {}) const;
 
     static void            setup();
     static const CallConv& get(CallConvKind kind);

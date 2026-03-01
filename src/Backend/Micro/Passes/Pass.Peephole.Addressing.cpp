@@ -20,20 +20,9 @@ namespace PeepholePass
             bool        unknown = false;
         };
 
-        bool containsReg(std::span<const MicroReg> regs, const MicroReg reg)
-        {
-            for (const MicroReg candidate : regs)
-            {
-                if (candidate == reg)
-                    return true;
-            }
-
-            return false;
-        }
-
         bool touchesReg(const MicroInstrUseDef& useDef, const MicroReg reg)
         {
-            return containsReg(useDef.uses, reg) || containsReg(useDef.defs, reg);
+            return microRegSpanContains(useDef.uses, reg) || microRegSpanContains(useDef.defs, reg);
         }
 
         template<size_t N>
@@ -186,7 +175,7 @@ namespace PeepholePass
 
             if (touchesReg(useDef, trackedReg))
                 return false;
-            if (containsReg(useDef.defs, targetBaseReg))
+            if (microRegSpanContains(useDef.defs, targetBaseReg))
                 return false;
 
             if (hasOverlappingMemoryAccess(inst, ops, targetBaseReg, targetOffset, targetOpBits, !allowTargetReads, !allowTargetWrites))

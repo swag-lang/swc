@@ -64,4 +64,17 @@ struct MicroReg
     constexpr bool operator!=(const MicroReg& other) const { return packed != other.packed; }
 };
 
+using MicroRegSpan = std::span<const MicroReg>;
+
+constexpr bool microRegSpanContains(const MicroRegSpan regs, const MicroReg reg)
+{
+    for (const MicroReg value : regs)
+    {
+        if (value == reg)
+            return true;
+    }
+
+    return false;
+}
+
 SWC_END_NAMESPACE();

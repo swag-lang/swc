@@ -214,18 +214,7 @@ namespace
         return true;
     }
 
-    bool definesRegister(std::span<const MicroReg> defs, MicroReg reg)
-    {
-        for (const MicroReg defReg : defs)
-        {
-            if (defReg == reg)
-                return true;
-        }
-
-        return false;
-    }
-
-    void eraseKnownDefs(KnownRegMap& known, std::span<const MicroReg> defs)
+    void eraseKnownDefs(KnownRegMap& known, MicroRegSpan defs)
     {
         for (const MicroReg reg : defs)
         {
@@ -233,7 +222,7 @@ namespace
         }
     }
 
-    void eraseKnownAddressDefs(KnownAddressMap& knownAddresses, std::span<const MicroReg> defs)
+    void eraseKnownAddressDefs(KnownAddressMap& knownAddresses, MicroRegSpan defs)
     {
         for (const MicroReg reg : defs)
         {
@@ -241,7 +230,7 @@ namespace
         }
     }
 
-    void eraseKnownConstantPointerDefs(KnownConstantPointerMap& knownConstantPointers, std::span<const MicroReg> defs)
+    void eraseKnownConstantPointerDefs(KnownConstantPointerMap& knownConstantPointers, MicroRegSpan defs)
     {
         for (const MicroReg reg : defs)
             knownConstantPointers.erase(reg.packed);
@@ -1767,9 +1756,9 @@ bool MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInst
     return tryRewriteMemoryBaseToStack(*context_, inst, ops, stackPointerReg_, knownAddresses_);
 }
 
-bool MicroConstantPropagationPass::definesRegisterInSet(std::span<const MicroReg> defs, MicroReg reg)
+bool MicroConstantPropagationPass::definesRegisterInSet(MicroRegSpan defs, MicroReg reg)
 {
-    return definesRegister(defs, reg);
+    return microRegSpanContains(defs, reg);
 }
 
 SWC_END_NAMESPACE();

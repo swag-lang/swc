@@ -25,17 +25,6 @@ namespace
         return ops && operandIndex < inst.numOperands;
     }
 
-    bool containsReg(std::span<const MicroReg> regs, MicroReg reg)
-    {
-        for (const MicroReg value : regs)
-        {
-            if (value == reg)
-                return true;
-        }
-
-        return false;
-    }
-
     bool mustPreserveRegAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)
     {
         SWC_ASSERT(context.instructions);
@@ -59,9 +48,9 @@ namespace
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return true;
 
-            if (containsReg(useDef.uses, reg))
+            if (microRegSpanContains(useDef.uses, reg))
                 return true;
-            if (containsReg(useDef.defs, reg))
+            if (microRegSpanContains(useDef.defs, reg))
                 return false;
         }
 

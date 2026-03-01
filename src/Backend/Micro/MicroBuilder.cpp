@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
-#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -146,7 +146,7 @@ void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg f
     forbiddenRegs.push_back(forbiddenReg);
 }
 
-void MicroBuilder::addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, std::span<const MicroReg> forbiddenRegs)
+void MicroBuilder::addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs)
 {
     SWC_ASSERT(virtualReg.isVirtual());
     if (!virtualReg.isVirtual())

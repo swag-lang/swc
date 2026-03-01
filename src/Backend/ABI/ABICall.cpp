@@ -88,7 +88,7 @@ namespace
         return result;
     }
 
-    void forbidOtherArgRegs(MicroBuilder& builder, MicroReg virtualReg, std::span<const MicroReg> argRegs, uint32_t allowedIndex)
+    void forbidOtherArgRegs(MicroBuilder& builder, MicroReg virtualReg, MicroRegSpan argRegs, uint32_t allowedIndex)
     {
         if (!virtualReg.isVirtual())
             return;

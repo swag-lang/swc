@@ -17,7 +17,7 @@ namespace Backend::Unittest
     Result parseExpected(const char* text, std::vector<ExpectedByte>& result);
     Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn);
 
-    bool   isPersistentReg(const SmallVector<MicroReg>& regs, MicroReg reg);
+    bool   isPersistentReg(MicroRegSpan regs, MicroReg reg);
     Result assertNoVirtualRegs(MicroBuilder& builder);
 }
 

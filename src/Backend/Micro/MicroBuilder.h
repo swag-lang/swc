@@ -84,7 +84,7 @@ public:
     std::vector<MicroRelocation>&       codeRelocations() { return relocations_; }
     const std::vector<MicroRelocation>& codeRelocations() const { return relocations_; }
     void                                addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
-    void                                addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, std::span<const MicroReg> forbiddenRegs);
+    void                                addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
     bool                                isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
     bool                                isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
     uint32_t                            nextVirtualIntRegIndexHint() const;

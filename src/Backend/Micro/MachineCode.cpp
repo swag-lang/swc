@@ -46,15 +46,15 @@ namespace
         if (!backendCfg.optimize)
             return;
 
-        passManager.addFinal(*SWC_NOT_NULL(passes.constantPropagationPass));
-        passManager.addFinal(*SWC_NOT_NULL(passes.loadStoreForwardPass));
-        passManager.addFinal(*SWC_NOT_NULL(passes.branchFoldingPass));
-        passManager.addFinal(*SWC_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addFinal(*SWC_NOT_NULL(passes.deadCodePass));
-        passManager.addFinal(*SWC_NOT_NULL(passes.peepholePass));
-        passManager.addFinal(*SWC_NOT_NULL(passes.constantPropagationPass));
-        passManager.addFinal(*SWC_NOT_NULL(passes.branchFoldingPass));
-        passManager.addFinal(*SWC_NOT_NULL(passes.cfgSimplifyPass));
+        passManager.addFinal(*passes.constantPropagationPass);
+        passManager.addFinal(*passes.loadStoreForwardPass);
+        passManager.addFinal(*passes.branchFoldingPass);
+        passManager.addFinal(*passes.cfgSimplifyPass);
+        passManager.addFinal(*passes.deadCodePass);
+        passManager.addFinal(*passes.peepholePass);
+        passManager.addFinal(*passes.constantPropagationPass);
+        passManager.addFinal(*passes.branchFoldingPass);
+        passManager.addFinal(*passes.cfgSimplifyPass);
     }
 
     void registerFinalPasses(MicroPassManager&               passManager,
@@ -71,26 +71,26 @@ namespace
         passManager.addFinal(legalizePass);
         if (backendCfg.optimize)
         {
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.constantPropagationPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.loadStoreForwardPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.branchFoldingPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.cfgSimplifyPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.peepholePass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.deadCodePass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.constantPropagationPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.branchFoldingPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.cfgSimplifyPass));
+            passManager.addFinal(*optimizationPasses.constantPropagationPass);
+            passManager.addFinal(*optimizationPasses.loadStoreForwardPass);
+            passManager.addFinal(*optimizationPasses.branchFoldingPass);
+            passManager.addFinal(*optimizationPasses.cfgSimplifyPass);
+            passManager.addFinal(*optimizationPasses.peepholePass);
+            passManager.addFinal(*optimizationPasses.deadCodePass);
+            passManager.addFinal(*optimizationPasses.constantPropagationPass);
+            passManager.addFinal(*optimizationPasses.branchFoldingPass);
+            passManager.addFinal(*optimizationPasses.cfgSimplifyPass);
         }
         passManager.addFinal(regAllocPass);
         if (backendCfg.optimize)
         {
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.constantPropagationPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.loadStoreForwardPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.peepholePass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.deadCodePass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.constantPropagationPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.branchFoldingPass));
-            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.cfgSimplifyPass));
+            passManager.addFinal(*optimizationPasses.constantPropagationPass);
+            passManager.addFinal(*optimizationPasses.loadStoreForwardPass);
+            passManager.addFinal(*optimizationPasses.peepholePass);
+            passManager.addFinal(*optimizationPasses.deadCodePass);
+            passManager.addFinal(*optimizationPasses.constantPropagationPass);
+            passManager.addFinal(*optimizationPasses.branchFoldingPass);
+            passManager.addFinal(*optimizationPasses.cfgSimplifyPass);
         }
         passManager.addFinal(emitPass);
     }
@@ -101,19 +101,19 @@ namespace
 
     void registerOptimizationPassesOn(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
     {
-        passManager.addPreOptimization(*SWC_NOT_NULL(passes.strengthReductionPass));
-        passManager.addPreOptimization(*SWC_NOT_NULL(passes.instructionCombinePass));
-        passManager.addPreOptimization(*SWC_NOT_NULL(passes.copyPropagationPass));
-        passManager.addPreOptimization(*SWC_NOT_NULL(passes.constantPropagationPass));
-        passManager.addPreOptimization(*SWC_NOT_NULL(passes.loadStoreForwardPass));
-        passManager.addPreOptimization(*SWC_NOT_NULL(passes.branchFoldingPass));
-        passManager.addPreOptimization(*SWC_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addPostOptimization(*SWC_NOT_NULL(passes.branchFoldingPass));
-        passManager.addPostOptimization(*SWC_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addPostOptimization(*SWC_NOT_NULL(passes.constantPropagationPass));
-        passManager.addPostOptimization(*SWC_NOT_NULL(passes.deadCodePass));
-        passManager.addPostOptimization(*SWC_NOT_NULL(passes.peepholePass));
-        passManager.addPostOptimization(*SWC_NOT_NULL(passes.cfgSimplifyPass));
+        passManager.addPreOptimization(*passes.strengthReductionPass);
+        passManager.addPreOptimization(*passes.instructionCombinePass);
+        passManager.addPreOptimization(*passes.copyPropagationPass);
+        passManager.addPreOptimization(*passes.constantPropagationPass);
+        passManager.addPreOptimization(*passes.loadStoreForwardPass);
+        passManager.addPreOptimization(*passes.branchFoldingPass);
+        passManager.addPreOptimization(*passes.cfgSimplifyPass);
+        passManager.addPostOptimization(*passes.branchFoldingPass);
+        passManager.addPostOptimization(*passes.cfgSimplifyPass);
+        passManager.addPostOptimization(*passes.constantPropagationPass);
+        passManager.addPostOptimization(*passes.deadCodePass);
+        passManager.addPostOptimization(*passes.peepholePass);
+        passManager.addPostOptimization(*passes.cfgSimplifyPass);
     }
 
     void registerOptimizationPasses(MicroPassManager& passManager, const Runtime::BuildCfgBackend& backendCfg, const MicroOptimizationPasses& passes)

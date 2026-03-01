@@ -552,7 +552,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -611,7 +611,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -665,10 +665,10 @@ namespace
         if (!wouldConformEncoder(context, MicroInstrOpcode::OpBinaryRegMem, newOps))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->insertBefore(*context.operands, nextIt.current, MicroInstrOpcode::OpBinaryRegMem, newOps);
+        context.instructions->insertBefore(*context.operands, nextIt.current, MicroInstrOpcode::OpBinaryRegMem, newOps);
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
-        SWC_NOT_NULL(context.instructions)->erase(nextIt.current);
+        context.instructions->erase(instRef);
+        context.instructions->erase(nextIt.current);
         return true;
     }
 
@@ -692,49 +692,84 @@ namespace
         if (!nextOps)
             return false;
 
-        const MicroInstr&        thirdInst = *thirdIt;
-        const MicroInstrOperand* thirdOps  = thirdInst.ops(*context.operands);
-        if (!thirdOps)
+        const bool hasRhsCopy = nextInst.op == MicroInstrOpcode::LoadRegReg;
+
+        auto storeIt = thirdIt;
+        auto binIt   = nextIt;
+        if (hasRhsCopy)
+        {
+            binIt = thirdIt;
+            ++storeIt;
+            if (storeIt == endIt)
+                return false;
+        }
+
+        const MicroInstr&        binInst = *binIt;
+        const MicroInstrOperand* binOps  = binInst.ops(*context.operands);
+        if (!binOps)
             return false;
-        if (thirdInst.op != MicroInstrOpcode::LoadMemReg)
+
+        const MicroInstr&        storeInst = *storeIt;
+        const MicroInstrOperand* storeOps  = storeInst.ops(*context.operands);
+        if (!storeOps)
+            return false;
+        if (storeInst.op != MicroInstrOpcode::LoadMemReg)
             return false;
 
         const MicroReg    tmpReg    = ops[0].reg;
         const MicroReg    memBase   = ops[1].reg;
         const MicroOpBits memOpBits = ops[2].opBits;
         const uint64_t    memOffset = ops[3].valueU64;
-        if (thirdOps[0].reg != memBase || thirdOps[1].reg != tmpReg || thirdOps[2].opBits != memOpBits || thirdOps[3].valueU64 != memOffset)
+        if (storeOps[0].reg != memBase || storeOps[1].reg != tmpReg || storeOps[2].opBits != memOpBits || storeOps[3].valueU64 != memOffset)
             return false;
-        if (!pass.isCopyDeadAfterInstruction(std::next(thirdIt), endIt, tmpReg) &&
-            !pass.isRegUnusedAfterInstruction(std::next(thirdIt), endIt, tmpReg))
+        if (!pass.isCopyDeadAfterInstruction(std::next(storeIt), endIt, tmpReg) &&
+            !pass.isRegUnusedAfterInstruction(std::next(storeIt), endIt, tmpReg))
             return false;
+
+        auto rhsReg = MicroReg{};
+        if (hasRhsCopy)
+        {
+            if (nextOps[2].opBits != memOpBits)
+                return false;
+            if (nextOps[0].reg == tmpReg || nextOps[1].reg == tmpReg)
+                return false;
+        }
 
         std::array<MicroInstrOperand, 5> newOps;
         auto                             newOpcode = MicroInstrOpcode::End;
-        if (nextInst.op == MicroInstrOpcode::OpBinaryRegImm)
+        if (binInst.op == MicroInstrOpcode::OpBinaryRegImm)
         {
-            if (nextOps[0].reg != tmpReg || nextOps[1].opBits != memOpBits)
+            if (hasRhsCopy)
+                return false;
+            if (binOps[0].reg != tmpReg || binOps[1].opBits != memOpBits)
                 return false;
 
             newOpcode          = MicroInstrOpcode::OpBinaryMemImm;
             newOps[0].reg      = memBase;
             newOps[1].opBits   = memOpBits;
-            newOps[2].microOp  = nextOps[2].microOp;
+            newOps[2].microOp  = binOps[2].microOp;
             newOps[3].valueU64 = memOffset;
-            newOps[4]          = nextOps[3];
+            newOps[4]          = binOps[3];
         }
-        else if (nextInst.op == MicroInstrOpcode::OpBinaryRegReg)
+        else if (binInst.op == MicroInstrOpcode::OpBinaryRegReg)
         {
-            if (nextOps[0].reg != tmpReg || nextOps[2].opBits != memOpBits)
+            if (binOps[0].reg != tmpReg || binOps[2].opBits != memOpBits)
                 return false;
-            if (nextOps[1].reg == tmpReg)
+            rhsReg = binOps[1].reg;
+            if (hasRhsCopy)
+            {
+                if (rhsReg != nextOps[0].reg)
+                    return false;
+                rhsReg = nextOps[1].reg;
+            }
+            if (rhsReg == tmpReg)
                 return false;
 
             newOpcode          = MicroInstrOpcode::OpBinaryMemReg;
             newOps[0].reg      = memBase;
-            newOps[1].reg      = nextOps[1].reg;
+            newOps[1].reg      = rhsReg;
             newOps[2].opBits   = memOpBits;
-            newOps[3].microOp  = nextOps[3].microOp;
+            newOps[3].microOp  = binOps[3].microOp;
             newOps[4].valueU64 = memOffset;
         }
         else
@@ -745,11 +780,13 @@ namespace
         if (!wouldConformEncoder(context, newOpcode, newOps))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->insertBefore(*context.operands, instRef, newOpcode, newOps);
+        context.instructions->insertBefore(*context.operands, instRef, newOpcode, newOps);
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
-        SWC_NOT_NULL(context.instructions)->erase(nextIt.current);
-        SWC_NOT_NULL(context.instructions)->erase(thirdIt.current);
+        context.instructions->erase(instRef);
+        context.instructions->erase(binIt.current);
+        context.instructions->erase(storeIt.current);
+        if (hasRhsCopy)
+            context.instructions->erase(nextIt.current);
         return true;
     }
 
@@ -885,10 +922,10 @@ namespace
                 if (!wouldConformEncoder(context, MicroInstrOpcode::CmpMemImm, newOps))
                     return false;
 
-                SWC_NOT_NULL(context.instructions)->insertBefore(*context.operands, scanIt.current, MicroInstrOpcode::CmpMemImm, newOps);
+                context.instructions->insertBefore(*context.operands, scanIt.current, MicroInstrOpcode::CmpMemImm, newOps);
 
-                SWC_NOT_NULL(context.instructions)->erase(instRef);
-                SWC_NOT_NULL(context.instructions)->erase(scanIt.current);
+                context.instructions->erase(instRef);
+                context.instructions->erase(scanIt.current);
                 return true;
             }
 
@@ -943,7 +980,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -989,7 +1026,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1008,7 +1045,7 @@ namespace
             return false;
 
         bool frameMatchesStack = false;
-        for (const MicroInstr& scanInst : SWC_NOT_NULL(context.instructions)->view())
+        for (const MicroInstr& scanInst : context.instructions->view())
         {
             if (scanInst.op == MicroInstrOpcode::Label)
                 frameMatchesStack = false;
@@ -1068,7 +1105,7 @@ namespace
         if (!frameMatchesStack)
             return false;
 
-        const MicroInstr* rewriteInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
+        const MicroInstr* rewriteInst = context.instructions->ptr(instRef);
         if (!rewriteInst)
             return false;
 
@@ -1182,7 +1219,7 @@ namespace
             }
 
             if (pass.isCopyDeadAfterInstruction(std::next(scanIt), endIt, tmpReg))
-                SWC_NOT_NULL(context.instructions)->erase(instRef);
+                context.instructions->erase(instRef);
             return true;
         }
 
@@ -1269,7 +1306,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -1377,7 +1414,7 @@ namespace
 
         for (const RewriteCandidate& candidate : candidates)
         {
-            const MicroInstr* rewriteInst = SWC_NOT_NULL(context.instructions)->ptr(candidate.ref);
+            const MicroInstr* rewriteInst = context.instructions->ptr(candidate.ref);
             if (!rewriteInst)
                 return false;
             MicroInstrOperand* rewriteOps = rewriteInst->ops(*context.operands);
@@ -1397,7 +1434,7 @@ namespace
                     if (rollback.ref.isInvalid())
                         continue;
 
-                    const MicroInstr* rollbackInst = SWC_NOT_NULL(context.instructions)->ptr(rollback.ref);
+                    const MicroInstr* rollbackInst = context.instructions->ptr(rollback.ref);
                     if (!rollbackInst)
                         continue;
                     MicroInstrOperand* rollbackOps = rollbackInst->ops(*context.operands);
@@ -1415,7 +1452,7 @@ namespace
             }
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1477,7 +1514,7 @@ namespace
             return false;
         const uint64_t combinedAdd = ops[6].valueU64 + nextOffset;
 
-        MicroInstr* rewriteInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
+        MicroInstr* rewriteInst = context.instructions->ptr(instRef);
         if (!rewriteInst)
             return false;
 
@@ -1526,7 +1563,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(nextIt.current);
+        context.instructions->erase(nextIt.current);
         return true;
     }
 
@@ -1615,10 +1652,10 @@ namespace
             if (!wouldConformEncoder(context, MicroInstrOpcode::LoadAmcRegMem, newOps))
                 return false;
 
-            SWC_NOT_NULL(context.instructions)->insertBefore(*context.operands, scanIt.current, MicroInstrOpcode::LoadAmcRegMem, newOps);
+            context.instructions->insertBefore(*context.operands, scanIt.current, MicroInstrOpcode::LoadAmcRegMem, newOps);
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
-            SWC_NOT_NULL(context.instructions)->erase(scanIt.current);
+            context.instructions->erase(instRef);
+            context.instructions->erase(scanIt.current);
             return true;
         }
 

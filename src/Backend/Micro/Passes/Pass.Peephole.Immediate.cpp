@@ -79,7 +79,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -154,7 +154,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -208,7 +208,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -258,7 +258,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -441,12 +441,12 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(mulIt.current);
-            SWC_NOT_NULL(context.instructions)->erase(copyIt.current);
+            context.instructions->erase(mulIt.current);
+            context.instructions->erase(copyIt.current);
 
             if (copyIt != nextIt)
             {
-                const MicroInstr*  midInst = SWC_NOT_NULL(context.instructions)->ptr(nextIt.current);
+                const MicroInstr*  midInst = context.instructions->ptr(nextIt.current);
                 MicroInstrOperand* midOps  = midInst ? midInst->ops(*context.operands) : nullptr;
                 if (midInst && midOps && midInst->op == MicroInstrOpcode::LoadRegMem)
                 {
@@ -461,7 +461,7 @@ namespace
                         }
                         else
                         {
-                            SWC_NOT_NULL(context.instructions)->erase(addIt.current);
+                            context.instructions->erase(addIt.current);
                         }
                     }
                 }
@@ -487,12 +487,12 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(mulIt.current);
-            SWC_NOT_NULL(context.instructions)->erase(copyIt.current);
+            context.instructions->erase(mulIt.current);
+            context.instructions->erase(copyIt.current);
         }
 
         if (canEraseLoadImm)
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
 
         return true;
     }
@@ -527,7 +527,7 @@ namespace
         if (firstOffset + 4 != nextOffset)
             return false;
 
-        MicroInstr* firstInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
+        MicroInstr* firstInst = context.instructions->ptr(instRef);
         if (!firstInst)
             return false;
 
@@ -553,7 +553,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(nextIt.current);
+        context.instructions->erase(nextIt.current);
         return true;
     }
 
@@ -653,7 +653,7 @@ namespace
         if (!pass.areFlagsDeadAfterInstruction(secondAdjustIt, endIt))
             return false;
 
-        const MicroInstr* firstInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
+        const MicroInstr* firstInst = context.instructions->ptr(instRef);
         if (!firstInst)
             return false;
 
@@ -719,9 +719,9 @@ namespace
         }
 
         if (combinedImm == 0)
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
 
-        SWC_NOT_NULL(context.instructions)->erase(secondAdjustIt.current);
+        context.instructions->erase(secondAdjustIt.current);
         return true;
     }
 

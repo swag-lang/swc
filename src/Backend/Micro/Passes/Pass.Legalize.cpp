@@ -257,7 +257,7 @@ namespace
     void removeInstruction(const MicroPassContext& context, MicroInstrRef instRef)
     {
         // Remove instruction after replacements have been inserted before its position.
-        const bool erased = SWC_NOT_NULL(context.instructions)->erase(instRef);
+        const bool erased = context.instructions->erase(instRef);
         SWC_ASSERT(erased);
     }
 

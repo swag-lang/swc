@@ -87,7 +87,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -170,7 +170,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -275,7 +275,7 @@ namespace
         if (!pass.isRegUnusedAfterInstruction(nextIt, endIt, copyDstReg))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -343,7 +343,7 @@ namespace
         if (MicroPassHelpers::violatesEncoderConformance(context, nextInst, nextOps))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -445,7 +445,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -642,7 +642,7 @@ namespace
 
         for (RewritePlan& plan : rewritePlans)
         {
-            const MicroInstr* instPtr = SWC_NOT_NULL(context.instructions)->ptr(plan.ref);
+            const MicroInstr* instPtr = context.instructions->ptr(plan.ref);
             if (!instPtr)
                 return false;
 
@@ -654,7 +654,7 @@ namespace
                 instOps[opIdx] = plan.rewrittenOps[opIdx];
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -728,7 +728,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -814,7 +814,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -869,8 +869,8 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
-        SWC_NOT_NULL(context.instructions)->erase(copyBackIt.current);
+        context.instructions->erase(instRef);
+        context.instructions->erase(copyBackIt.current);
         return true;
     }
 
@@ -1162,8 +1162,8 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
-        SWC_NOT_NULL(context.instructions)->erase(copySwapIt.current);
+        context.instructions->erase(instRef);
+        context.instructions->erase(copySwapIt.current);
         return true;
     }
 
@@ -1216,8 +1216,8 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
-        SWC_NOT_NULL(context.instructions)->erase(copyBackIt.current);
+        context.instructions->erase(instRef);
+        context.instructions->erase(copyBackIt.current);
         return true;
     }
 
@@ -1360,7 +1360,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1500,7 +1500,7 @@ namespace
             return false;
 
         SWC_UNUSED(sawMutation);
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
 
         return true;
     }
@@ -1523,7 +1523,7 @@ namespace
         if (ops[0].reg != nextOps[0].reg || ops[2].opBits != nextOps[2].opBits)
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1551,7 +1551,7 @@ namespace
         if (!pass.isRegUnusedAfterInstruction(cursor.nextIt, cursor.endIt, dstReg))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1579,7 +1579,7 @@ namespace
         if (!pass.isCopyDeadAfterInstruction(cursor.nextIt, cursor.endIt, dstReg))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1644,8 +1644,8 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(prevCopyIt.current);
-        SWC_NOT_NULL(context.instructions)->erase(cursor.instRef);
+        context.instructions->erase(prevCopyIt.current);
+        context.instructions->erase(cursor.instRef);
         return true;
     }
 }

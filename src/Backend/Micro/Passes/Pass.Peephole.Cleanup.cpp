@@ -140,8 +140,8 @@ namespace
 
         const MicroInstrRef      set1Ref        = set1It.current;
         const MicroInstrRef      set2Ref        = set2It.current;
-        MicroInstr*              set1Mutable    = SWC_NOT_NULL(context.instructions)->ptr(set1Ref);
-        MicroInstr*              set2Mutable    = SWC_NOT_NULL(context.instructions)->ptr(set2Ref);
+        MicroInstr*              set1Mutable    = context.instructions->ptr(set1Ref);
+        MicroInstr*              set2Mutable    = context.instructions->ptr(set2Ref);
         MicroInstrOperand*       set1MutableOps = set1Mutable ? set1Mutable->ops(*context.operands) : nullptr;
         MicroInstrOperand*       set2MutableOps = set2Mutable ? set2Mutable->ops(*context.operands) : nullptr;
         const MicroInstrOperand* jumpMutableOps = jumpInst.ops(*context.operands);
@@ -185,24 +185,24 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(zext1It.current);
-        SWC_NOT_NULL(context.instructions)->erase(zext2It.current);
-        SWC_NOT_NULL(context.instructions)->erase(copyAIt.current);
-        SWC_NOT_NULL(context.instructions)->erase(copyBIt.current);
-        SWC_NOT_NULL(context.instructions)->erase(copyCIt.current);
-        SWC_NOT_NULL(context.instructions)->erase(andIt.current);
-        SWC_NOT_NULL(context.instructions)->erase(cmpZeroIt.current);
-        SWC_NOT_NULL(context.instructions)->erase(jumpIt.current);
+        context.instructions->erase(zext1It.current);
+        context.instructions->erase(zext2It.current);
+        context.instructions->erase(copyAIt.current);
+        context.instructions->erase(copyBIt.current);
+        context.instructions->erase(copyCIt.current);
+        context.instructions->erase(andIt.current);
+        context.instructions->erase(cmpZeroIt.current);
+        context.instructions->erase(jumpIt.current);
         return true;
     }
 
     bool tryResolveOriginalSetCond(MicroCond& outCond, MicroInstrRef& outSetCondRef, const MicroPassContext& context, MicroInstrRef startRef, MicroReg reg)
     {
-        MicroInstrRef scanRef    = SWC_NOT_NULL(context.instructions)->findPreviousInstructionRef(startRef);
+        MicroInstrRef scanRef    = context.instructions->findPreviousInstructionRef(startRef);
         MicroReg      trackedReg = reg;
         while (scanRef.isValid())
         {
-            const MicroInstr*        scanInst = SWC_NOT_NULL(context.instructions)->ptr(scanRef);
+            const MicroInstr*        scanInst = context.instructions->ptr(scanRef);
             const MicroInstrOperand* scanOps  = scanInst ? scanInst->ops(*context.operands) : nullptr;
             if (!scanInst || !scanOps)
                 return false;
@@ -223,7 +223,7 @@ namespace
 
             if (!regDefined)
             {
-                scanRef = SWC_NOT_NULL(context.instructions)->findPreviousInstructionRef(scanRef);
+                scanRef = context.instructions->findPreviousInstructionRef(scanRef);
                 continue;
             }
 
@@ -240,7 +240,7 @@ namespace
                 scanOps[2].opBits == MicroOpBits::B32 &&
                 scanOps[3].opBits == MicroOpBits::B8)
             {
-                scanRef = SWC_NOT_NULL(context.instructions)->findPreviousInstructionRef(scanRef);
+                scanRef = context.instructions->findPreviousInstructionRef(scanRef);
                 continue;
             }
 
@@ -249,7 +249,7 @@ namespace
                 scanOps[2].opBits == MicroOpBits::B8)
             {
                 trackedReg = scanOps[1].reg;
-                scanRef    = SWC_NOT_NULL(context.instructions)->findPreviousInstructionRef(scanRef);
+                scanRef    = context.instructions->findPreviousInstructionRef(scanRef);
                 continue;
             }
 
@@ -325,7 +325,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(cmpRef);
+        context.instructions->erase(cmpRef);
         return true;
     }
 
@@ -380,13 +380,13 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(cmpRef);
+        context.instructions->erase(cmpRef);
         if (originalSetCondRef.isValid())
         {
-            const MicroInstr*        originalSetCondInst = SWC_NOT_NULL(context.instructions)->ptr(originalSetCondRef);
+            const MicroInstr*        originalSetCondInst = context.instructions->ptr(originalSetCondRef);
             const MicroInstrOperand* originalSetCondOps  = originalSetCondInst ? originalSetCondInst->ops(*context.operands) : nullptr;
             if (originalSetCondOps && pass.isCopyDeadAfterInstruction(std::next(nextIt), endIt, originalSetCondOps[0].reg))
-                SWC_NOT_NULL(context.instructions)->erase(originalSetCondRef);
+                context.instructions->erase(originalSetCondRef);
         }
 
         return true;
@@ -519,46 +519,6 @@ namespace
         return nextNextIt != endIt && nextNextIt->op == MicroInstrOpcode::Ret;
     }
 
-    bool isEpilogStackAdjustBeforeReturn(const MicroStorage& storage, const std::span<const MicroInstrRef> instructionRefs, const uint32_t instructionIndex, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackReg)
-    {
-        if (!ops)
-            return false;
-
-        if (inst.op != MicroInstrOpcode::OpBinaryRegImm || ops[0].reg != stackReg)
-            return false;
-
-        if (instructionIndex + 1 >= instructionRefs.size())
-            return false;
-
-        const MicroInstr* nextInst = storage.ptr(instructionRefs[instructionIndex + 1]);
-        if (!nextInst)
-            return false;
-
-        if (nextInst->op == MicroInstrOpcode::Ret)
-            return true;
-
-        if (nextInst->op != MicroInstrOpcode::Pop)
-            return false;
-
-        if (instructionIndex + 2 >= instructionRefs.size())
-            return false;
-
-        const MicroInstr* nextNextInst = storage.ptr(instructionRefs[instructionIndex + 2]);
-        return nextNextInst && nextNextInst->op == MicroInstrOpcode::Ret;
-    }
-
-    bool isPopBeforeReturn(const MicroStorage& storage, const std::span<const MicroInstrRef> instructionRefs, const uint32_t instructionIndex, const MicroInstr& inst)
-    {
-        if (inst.op != MicroInstrOpcode::Pop)
-            return false;
-
-        if (instructionIndex + 1 >= instructionRefs.size())
-            return false;
-
-        const MicroInstr* nextInst = storage.ptr(instructionRefs[instructionIndex + 1]);
-        return nextInst && nextInst->op == MicroInstrOpcode::Ret;
-    }
-
     bool canTreatStackBaseRegistersAsEquivalent(const MicroPassContext& context)
     {
         const CallConv& conv = CallConv::get(context.callConvKind);
@@ -571,7 +531,7 @@ namespace
             return false;
 
         bool       sawFrameAliasToStack = false;
-        const auto view                 = SWC_NOT_NULL(context.instructions)->view();
+        const auto view                 = context.instructions->view();
         for (auto it = view.begin(); it != view.end(); ++it)
         {
             const MicroInstr&        inst = *it;
@@ -644,7 +604,7 @@ namespace
 
     bool hasAnyReadOrAddressTakenForStackSlot(const MicroPassContext& context, const MicroInstrRef excludedInstRef, const MicroReg slotBaseReg, const uint64_t slotOffset, const uint32_t slotSize, const bool equivalentStackBases)
     {
-        const MicroStorage::View view                       = SWC_NOT_NULL(context.instructions)->view();
+        const MicroStorage::View view                       = context.instructions->view();
         bool                     reachedExcludedInstruction = false;
 
         for (auto it = view.begin(); it != view.end(); ++it)
@@ -866,8 +826,8 @@ namespace
                 scanOps[2].opBits == opBits &&
                 scanOps[3].valueU64 == slotOffset)
             {
-                SWC_NOT_NULL(context.instructions)->erase(scanIt.current);
-                SWC_NOT_NULL(context.instructions)->erase(cursor.instRef);
+                context.instructions->erase(scanIt.current);
+                context.instructions->erase(cursor.instRef);
                 return true;
             }
 
@@ -903,6 +863,314 @@ namespace
                 return false;
 
             const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
+            if (MicroPassHelpers::rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize))
+                return false;
+        }
+
+        return false;
+    }
+
+    bool hasUseBeforeNextDef(const MicroPassContext& context, const MicroStorage::Iterator startIt, const MicroStorage::Iterator endIt, const MicroReg reg)
+    {
+        if (!reg.isValid())
+            return true;
+
+        for (auto it = startIt; it != endIt; ++it)
+        {
+            const MicroInstr&        scanInst = *it;
+            const MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
+            if (!scanOps)
+                return true;
+
+            const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
+            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                return true;
+
+            for (const MicroReg useReg : useDef.uses)
+            {
+                if (useReg == reg)
+                    return true;
+            }
+
+            for (const MicroReg defReg : useDef.defs)
+            {
+                if (defReg == reg)
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
+    bool foldLateLoadBinaryStoreBackIntoMemOp(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    {
+        const MicroPassContext&      context = pass.context();
+        const MicroInstrRef          instRef = cursor.instRef;
+        const MicroInstr*            inst    = cursor.inst;
+        const MicroInstrOperand*     ops     = cursor.ops;
+        const MicroStorage::Iterator nextIt  = cursor.nextIt;
+        const MicroStorage::Iterator endIt   = cursor.endIt;
+        if (!inst || !ops || inst->op != MicroInstrOpcode::LoadRegMem || nextIt == endIt)
+            return false;
+
+        auto thirdIt = nextIt;
+        ++thirdIt;
+        if (thirdIt == endIt)
+            return false;
+
+        const MicroInstr&        nextInst = *nextIt;
+        const MicroInstrOperand* nextOps  = nextInst.ops(*context.operands);
+        if (!nextOps)
+            return false;
+
+        const bool hasRhsCopy = nextInst.op == MicroInstrOpcode::LoadRegReg;
+
+        auto storeIt = thirdIt;
+        auto binIt   = nextIt;
+        if (hasRhsCopy)
+        {
+            binIt = thirdIt;
+            ++storeIt;
+            if (storeIt == endIt)
+                return false;
+        }
+
+        const MicroInstr&        binInst = *binIt;
+        const MicroInstrOperand* binOps  = binInst.ops(*context.operands);
+        if (!binOps)
+            return false;
+
+        const MicroInstr&        storeInst = *storeIt;
+        const MicroInstrOperand* storeOps  = storeInst.ops(*context.operands);
+        if (!storeOps || storeInst.op != MicroInstrOpcode::LoadMemReg)
+            return false;
+
+        const MicroReg    tmpReg    = ops[0].reg;
+        const MicroReg    memBase   = ops[1].reg;
+        const MicroOpBits memOpBits = ops[2].opBits;
+        const uint64_t    memOffset = ops[3].valueU64;
+        if (storeOps[0].reg != memBase || storeOps[1].reg != tmpReg || storeOps[2].opBits != memOpBits || storeOps[3].valueU64 != memOffset)
+            return false;
+        if (hasUseBeforeNextDef(context, std::next(storeIt), endIt, tmpReg))
+            return false;
+
+        auto rhsReg       = MicroReg{};
+        bool eraseRhsCopy = false;
+        if (hasRhsCopy)
+        {
+            if (nextOps[2].opBits != memOpBits)
+                return false;
+
+            const MicroReg copyTmpReg = nextOps[0].reg;
+            eraseRhsCopy              = !hasUseBeforeNextDef(context, std::next(storeIt), endIt, copyTmpReg);
+        }
+
+        MicroOp microOp;
+        if (binInst.op == MicroInstrOpcode::OpBinaryRegImm)
+            microOp = binOps[2].microOp;
+        else if (binInst.op == MicroInstrOpcode::OpBinaryRegReg)
+            microOp = binOps[3].microOp;
+        else
+            return false;
+        switch (microOp)
+        {
+            case MicroOp::Add:
+            case MicroOp::Subtract:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+            case MicroOp::MultiplySigned:
+                break;
+            default:
+                return false;
+        }
+
+        const MicroInstrRef binRef   = binIt.current;
+        const MicroInstrRef storeRef = storeIt.current;
+        const MicroInstrRef copyRef  = hasRhsCopy ? nextIt.current : MicroInstrRef::invalid();
+
+        MicroInstr*        binMutable    = context.instructions->ptr(binRef);
+        MicroInstrOperand* binMutableOps = binMutable ? binMutable->ops(*context.operands) : nullptr;
+        if (!binMutable || !binMutableOps)
+            return false;
+
+        const MicroInstr originalBinInst = *binMutable;
+        const auto       originalBinOps  = std::array{binMutableOps[0], binMutableOps[1], binMutableOps[2], binMutableOps[3], MicroInstrOperand{}};
+
+        if (binInst.op == MicroInstrOpcode::OpBinaryRegImm)
+        {
+            if (hasRhsCopy)
+                return false;
+            if (binOps[0].reg != tmpReg || binOps[1].opBits != memOpBits)
+                return false;
+
+            binMutable->op            = MicroInstrOpcode::OpBinaryMemImm;
+            binMutable->numOperands   = 5;
+            binMutableOps[0].reg      = memBase;
+            binMutableOps[1].opBits   = memOpBits;
+            binMutableOps[2].microOp  = binOps[2].microOp;
+            binMutableOps[3].valueU64 = memOffset;
+            binMutableOps[4]          = binOps[3];
+        }
+        else if (binInst.op == MicroInstrOpcode::OpBinaryRegReg)
+        {
+            if (binOps[0].reg != tmpReg || binOps[2].opBits != memOpBits)
+                return false;
+
+            rhsReg = binOps[1].reg;
+            if (hasRhsCopy)
+            {
+                if (rhsReg != nextOps[0].reg)
+                    return false;
+                rhsReg = nextOps[1].reg;
+            }
+
+            if (rhsReg == tmpReg)
+                return false;
+
+            binMutable->op            = MicroInstrOpcode::OpBinaryMemReg;
+            binMutable->numOperands   = 5;
+            binMutableOps[0].reg      = memBase;
+            binMutableOps[1].reg      = rhsReg;
+            binMutableOps[2].opBits   = memOpBits;
+            binMutableOps[3].microOp  = binOps[3].microOp;
+            binMutableOps[4].valueU64 = memOffset;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (MicroPassHelpers::violatesEncoderConformance(context, *binMutable, binMutableOps))
+        {
+            *binMutable   = originalBinInst;
+            binMutableOps = binMutable->ops(*context.operands);
+            if (binMutableOps)
+            {
+                for (uint32_t i = 0; i < 5; ++i)
+                    binMutableOps[i] = originalBinOps[i];
+            }
+            return false;
+        }
+
+        context.instructions->erase(instRef);
+        context.instructions->erase(storeRef);
+        if (hasRhsCopy && eraseRhsCopy)
+            context.instructions->erase(copyRef);
+        return true;
+    }
+
+    bool forwardStackStoreToFollowingLoad(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    {
+        const MicroPassContext&      context = pass.context();
+        const MicroInstr*            inst    = cursor.inst;
+        const MicroInstrOperand*     ops     = cursor.ops;
+        const MicroStorage::Iterator nextIt  = cursor.nextIt;
+        const MicroStorage::Iterator endIt   = cursor.endIt;
+        if (!inst || !ops)
+            return false;
+
+        if (inst->op != MicroInstrOpcode::LoadMemReg)
+            return false;
+
+        const MicroReg baseReg = ops[0].reg;
+        if (!MicroPassHelpers::isStackBaseRegister(context, baseReg))
+            return false;
+
+        if (ops[3].hasWideImmediateValue())
+            return false;
+
+        const MicroReg srcReg = ops[1].reg;
+        if (!srcReg.isValid())
+            return false;
+
+        const auto opBits = ops[2].opBits;
+        if (opBits == MicroOpBits::Zero)
+            return false;
+
+        const uint32_t slotSize = getNumBytes(opBits);
+        if (!slotSize)
+            return false;
+
+        const uint64_t slotOffset = ops[3].valueU64;
+        for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+        {
+            MicroInstr&        scanInst = const_cast<MicroInstr&>(*scanIt);
+            MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
+            if (scanInst.op == MicroInstrOpcode::Label)
+                return false;
+            if (scanInst.op == MicroInstrOpcode::Nop)
+                continue;
+            if (!scanOps)
+                return false;
+
+            const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
+            if (useDef.isCall)
+                return false;
+            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef) && scanInst.op != MicroInstrOpcode::JumpCond)
+                return false;
+
+            for (const MicroReg defReg : useDef.defs)
+            {
+                if (defReg == baseReg || defReg == srcReg)
+                    return false;
+            }
+
+            if (scanInst.op == MicroInstrOpcode::LoadRegMem &&
+                scanOps[1].reg == baseReg &&
+                !scanOps[3].hasWideImmediateValue() &&
+                scanOps[2].opBits == opBits &&
+                scanOps[3].valueU64 == slotOffset)
+            {
+                if (scanOps[0].reg == srcReg)
+                {
+                    context.instructions->erase(scanIt.current);
+                    return true;
+                }
+
+                const MicroInstr originalLoadInst = scanInst;
+                const std::array originalLoadOps  = {scanOps[0], scanOps[1], scanOps[2], scanOps[3]};
+
+                scanInst.op          = MicroInstrOpcode::LoadRegReg;
+                scanInst.numOperands = 3;
+                scanOps[0]           = originalLoadOps[0];
+                scanOps[1].reg       = srcReg;
+                scanOps[2].opBits    = opBits;
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
+                {
+                    scanInst = originalLoadInst;
+                    for (uint32_t i = 0; i < 4; ++i)
+                        scanOps[i] = originalLoadOps[i];
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (!isMemoryWriteInstruction(scanInst))
+                continue;
+
+            uint8_t memBaseIndex   = 0;
+            uint8_t memOffsetIndex = 0;
+            if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, scanInst))
+                return false;
+
+            const MicroReg scanBaseReg = scanOps[memBaseIndex].reg;
+            if (!MicroPassHelpers::isStackBaseRegister(context, scanBaseReg))
+                continue;
+
+            if (scanOps[memOffsetIndex].hasWideImmediateValue())
+                return false;
+
+            auto scanOpBits = MicroOpBits::Zero;
+            if (!MicroPassHelpers::getMemAccessOpBits(scanOpBits, scanInst, scanOps))
+                return false;
+
+            const uint32_t scanSlotSize = getNumBytes(scanOpBits);
+            if (!scanSlotSize)
+                return false;
+
+            const uint64_t scanSlotOffset = scanOps[memOffsetIndex].valueU64;
             if (MicroPassHelpers::rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize))
                 return false;
         }
@@ -951,7 +1219,7 @@ namespace
             {
                 if (scanBaseReg == baseReg && scanOffset == offset && scanBits == opBits)
                 {
-                    SWC_NOT_NULL(context.instructions)->erase(instRef);
+                    context.instructions->erase(instRef);
                     return true;
                 }
 
@@ -1001,7 +1269,7 @@ namespace
 
         if (MicroInstrInfo::definesCpuFlags(*inst))
         {
-            const MicroStorage::View view = SWC_NOT_NULL(context.instructions)->view();
+            const MicroStorage::View view = context.instructions->view();
             auto                     it   = view.begin();
             for (; it != view.end(); ++it)
             {
@@ -1022,7 +1290,7 @@ namespace
 
             if (scanInst.op == MicroInstrOpcode::Ret)
             {
-                SWC_NOT_NULL(context.instructions)->erase(instRef);
+                context.instructions->erase(instRef);
                 return true;
             }
 
@@ -1124,7 +1392,7 @@ namespace
 
         if (MicroInstrInfo::definesCpuFlags(*inst))
         {
-            const MicroStorage::View view = SWC_NOT_NULL(context.instructions)->view();
+            const MicroStorage::View view = context.instructions->view();
             auto                     it   = view.begin();
             for (; it != view.end(); ++it)
             {
@@ -1141,7 +1409,7 @@ namespace
         if (hasAnyReadOrAddressTakenForStackSlot(context, instRef, baseReg, slotOffset, slotSize, equivalentStackBases))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1201,8 +1469,8 @@ namespace
         if (saveOps[3].valueU64 != restoreOps[3].valueU64)
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(restoreIt.current);
-        SWC_NOT_NULL(context.instructions)->erase(cursor.instRef);
+        context.instructions->erase(restoreIt.current);
+        context.instructions->erase(cursor.instRef);
         return true;
     }
 
@@ -1235,7 +1503,7 @@ namespace
         if (getNumBits(ops[1].opBits) < getNumBits(nextOps[2].opBits))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(cursor.instRef);
+        context.instructions->erase(cursor.instRef);
         return true;
     }
 
@@ -1248,7 +1516,7 @@ namespace
         if (!MicroPassHelpers::isNoOpEncoderInstruction(inst, ops))
             return false;
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1266,7 +1534,7 @@ namespace
         if (!ops)
             return false;
 
-        const MicroStorage::View view        = SWC_NOT_NULL(context.instructions)->view();
+        const MicroStorage::View view        = context.instructions->view();
         auto                     it          = view.begin();
         MicroInstrRef            previousRef = MicroInstrRef::invalid();
         for (; it != view.end(); ++it)
@@ -1285,16 +1553,16 @@ namespace
         const MicroReg compareLhsReg          = compareUsesRegisterLhs ? ops[0].reg : MicroReg{};
         if (compareUsesRegisterLhs && previousRef.isValid() && compareLhsReg.isValid() && compareLhsReg.isInt())
         {
-            const MicroInstr* prevInst = SWC_NOT_NULL(context.instructions)->ptr(previousRef);
+            const MicroInstr* prevInst = context.instructions->ptr(previousRef);
             if (prevInst && prevInst->op == MicroInstrOpcode::LoadRegImm)
             {
                 const MicroInstrOperand* prevOps = prevInst->ops(*context.operands);
                 if (prevOps && prevOps[0].reg == compareLhsReg && pass.isCopyDeadAfterInstruction(cursor.nextIt, cursor.endIt, compareLhsReg))
-                    SWC_NOT_NULL(context.instructions)->erase(previousRef);
+                    context.instructions->erase(previousRef);
             }
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(instRef);
+        context.instructions->erase(instRef);
         return true;
     }
 
@@ -1470,7 +1738,7 @@ namespace
         };
 
         auto retargetSetCondToDst = [&]() {
-            const MicroInstr*  setCondInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
+            const MicroInstr*  setCondInst = context.instructions->ptr(instRef);
             MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*context.operands) : nullptr;
             if (!setCondOps)
                 return false;
@@ -1520,7 +1788,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(copyIt.current);
+            context.instructions->erase(copyIt.current);
             return true;
         }
 
@@ -1532,7 +1800,7 @@ namespace
             return false;
         }
 
-        SWC_NOT_NULL(context.instructions)->erase(copyIt.current);
+        context.instructions->erase(copyIt.current);
         return true;
     }
 
@@ -1613,7 +1881,7 @@ namespace
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            context.instructions->erase(instRef);
             return true;
         }
 
@@ -1633,6 +1901,16 @@ void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
     // Purpose: remove stores to local stack slots that are never observed before returning.
     // Example: mov [rsp], r9; mov rax, r9; ret -> mov rax, r9; ret
     outRules.emplace_back(RuleTarget::AnyInstruction, removeDeadStackStoreBeforeRet);
+
+    // Rule: fold_late_load_binary_store_back_into_mem_op
+    // Purpose: late fold of load/copy/op/store patterns into direct memory ops after regalloc introduced copies.
+    // Example: mov r11,[rbp]; mov r9,rcx; add r11,r9; mov [rbp],r11 -> add [rbp],rcx
+    outRules.emplace_back(RuleTarget::LoadRegMem, foldLateLoadBinaryStoreBackIntoMemOp);
+
+    // Rule: forward_stack_store_to_following_load
+    // Purpose: forward stack-slot stores directly to later loads when the source register is still available.
+    // Example: mov [rsp+64], r10; ...; mov rax, [rsp+64] -> mov [rsp+64], r10; ...; mov rax, r10
+    outRules.emplace_back(RuleTarget::AnyInstruction, forwardStackStoreToFollowingLoad);
 
     // Rule: remove_never_read_stack_store
     // Purpose: remove stack-pointer slot stores that are never read/address-taken anywhere in the function.

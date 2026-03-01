@@ -272,15 +272,10 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addLoopPass(*cfgSimplifyPass_);
         addLoopPass(*deadCodePass_);
         addLoopPass(*peepholePass_);
-        addLoopPass(*legalizePass_);
-        addLoopPass(*regAllocPass_);
-    }
-    else
-    {
-        addLoopPass(*legalizePass_);
-        addLoopPass(*regAllocPass_);
     }
 
+    addLoopPass(*legalizePass_);
+    addLoopPass(*regAllocPass_);
     addFinalPass(*emitPass_);
 }
 

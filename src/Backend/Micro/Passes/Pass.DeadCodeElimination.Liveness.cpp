@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroDenseBits.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
+#include "Support/Core/DenseBits.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -138,18 +138,18 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
             if (successorIdx >= instructionCount)
                 continue;
 
-            const std::span<const uint64_t> successorLiveIn = MicroDenseBits::row(liveInBits, successorIdx, rowWordCount);
+            const std::span<const uint64_t> successorLiveIn = DenseBits::row(liveInBits, successorIdx, rowWordCount);
             for (size_t wordIndex = 0; wordIndex < tempOut.size(); ++wordIndex)
                 tempOut[wordIndex] |= successorLiveIn[wordIndex];
         }
 
         tempIn = tempOut;
         for (const uint32_t bitIndex : killDenseIndices[idx])
-            MicroDenseBits::clear(tempIn, bitIndex);
+            DenseBits::clear(tempIn, bitIndex);
         for (const uint32_t bitIndex : useDenseIndices[idx])
-            MicroDenseBits::set(tempIn, bitIndex);
+            DenseBits::set(tempIn, bitIndex);
 
-        if (!MicroDenseBits::copyIfChanged(MicroDenseBits::row(liveInBits, idx, rowWordCount), tempIn))
+        if (!DenseBits::copyIfChanged(DenseBits::row(liveInBits, idx, rowWordCount), tempIn))
             continue;
 
         for (const uint32_t predecessorIdx : predecessors[idx])
@@ -179,14 +179,14 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
             if (successorIdx >= instructionCount)
                 continue;
 
-            const std::span<const uint64_t> successorLiveIn = MicroDenseBits::row(liveInBits, successorIdx, rowWordCount);
+            const std::span<const uint64_t> successorLiveIn = DenseBits::row(liveInBits, successorIdx, rowWordCount);
             for (size_t wordIndex = 0; wordIndex < tempOut.size(); ++wordIndex)
                 tempOut[wordIndex] |= successorLiveIn[wordIndex];
         }
 
         const uint32_t defDenseIndex = pureDefDenseDefIndex[idx];
         SWC_ASSERT(defDenseIndex != K_INVALID_DENSE_INDEX);
-        if (MicroDenseBits::contains(tempOut, defDenseIndex))
+        if (DenseBits::contains(tempOut, defDenseIndex))
             continue;
 
         eraseList.push_back(instructionRefs[idx]);

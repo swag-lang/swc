@@ -2,13 +2,13 @@
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroDenseBits.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
+#include "Support/Core/DenseBits.h"
 #include "Support/Math/Helpers.h"
 
 // Assigns physical registers to virtual registers and handles spills.
@@ -331,8 +331,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (succIdx >= instructionCount_)
                 continue;
 
-            const std::span<const uint64_t> succInVirtual  = MicroDenseBits::row(liveInVirtualBits, succIdx, virtualWordCount);
-            const std::span<const uint64_t> succInConcrete = MicroDenseBits::row(liveInConcreteBits, succIdx, concreteWordCount);
+            const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits, succIdx, virtualWordCount);
+            const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits, succIdx, concreteWordCount);
             for (size_t word = 0; word < tempOutVirtual.size(); ++word)
                 tempOutVirtual[word] |= succInVirtual[word];
             for (size_t word = 0; word < tempOutConcrete.size(); ++word)
@@ -344,20 +344,20 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             std::span<uint64_t> inVirtual = tempInVirtual;
             for (const uint32_t bitIndex : defVirtualIndices[instructionIndex])
-                MicroDenseBits::clear(inVirtual, bitIndex);
+                DenseBits::clear(inVirtual, bitIndex);
             for (const uint32_t bitIndex : useVirtualIndices[instructionIndex])
-                MicroDenseBits::set(inVirtual, bitIndex);
+                DenseBits::set(inVirtual, bitIndex);
         }
         {
             std::span<uint64_t> inConcrete = tempInConcrete;
             for (const uint32_t bitIndex : defConcreteIndices[instructionIndex])
-                MicroDenseBits::clear(inConcrete, bitIndex);
+                DenseBits::clear(inConcrete, bitIndex);
             for (const uint32_t bitIndex : useConcreteIndices[instructionIndex])
-                MicroDenseBits::set(inConcrete, bitIndex);
+                DenseBits::set(inConcrete, bitIndex);
         }
 
-        const bool changedVirtual  = MicroDenseBits::copyIfChanged(MicroDenseBits::row(liveInVirtualBits, instructionIndex, virtualWordCount), tempInVirtual);
-        const bool changedConcrete = MicroDenseBits::copyIfChanged(MicroDenseBits::row(liveInConcreteBits, instructionIndex, concreteWordCount), tempInConcrete);
+        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits, instructionIndex, virtualWordCount), tempInVirtual);
+        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits, instructionIndex, concreteWordCount), tempInConcrete);
         if (!changedVirtual && !changedConcrete)
             continue;
 
@@ -384,8 +384,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (succIdx >= instructionCount_)
                 continue;
 
-            const std::span<const uint64_t> succInVirtual  = MicroDenseBits::row(liveInVirtualBits, succIdx, virtualWordCount);
-            const std::span<const uint64_t> succInConcrete = MicroDenseBits::row(liveInConcreteBits, succIdx, concreteWordCount);
+            const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits, succIdx, virtualWordCount);
+            const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits, succIdx, concreteWordCount);
             for (size_t word = 0; word < tempOutVirtual.size(); ++word)
                 tempOutVirtual[word] |= succInVirtual[word];
             for (size_t word = 0; word < tempOutConcrete.size(); ++word)
@@ -394,7 +394,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
         auto& outVirtual = liveOut_[idx];
         outVirtual.clear();
-        outVirtual.reserve(MicroDenseBits::count(tempOutVirtual));
+        outVirtual.reserve(DenseBits::count(tempOutVirtual));
         for (size_t wordIndex = 0; wordIndex < tempOutVirtual.size(); ++wordIndex)
         {
             uint64_t wordBits = tempOutVirtual[wordIndex];
@@ -411,7 +411,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
         auto& outConcrete = concreteLiveOut_[idx];
         outConcrete.clear();
-        outConcrete.reserve(MicroDenseBits::count(tempOutConcrete));
+        outConcrete.reserve(DenseBits::count(tempOutConcrete));
         for (size_t wordIndex = 0; wordIndex < tempOutConcrete.size(); ++wordIndex)
         {
             uint64_t wordBits = tempOutConcrete[wordIndex];

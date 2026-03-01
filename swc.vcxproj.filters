@@ -375,6 +375,9 @@
     <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp">
       <Filter>src\Compiler\Sema\Constant</Filter>
     </ClCompile>
+    <ClCompile Include="src\Support\Core\DenseBits.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Support\Core\DataSegment.cpp">
       <Filter>src\Support\Core</Filter>
     </ClCompile>
@@ -897,6 +900,9 @@
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Core\ByteSpan.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\DenseBits.h">
       <Filter>src\Support\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Core\DataSegment.h">

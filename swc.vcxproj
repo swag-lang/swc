@@ -275,6 +275,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaPurity.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp"/>
+        <ClCompile Include="src\Support\Core\DenseBits.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
         <ClCompile Include="src\Support\Core\PagedStore.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8.cpp"/>
@@ -417,7 +418,6 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
-        <ClInclude Include="src\Backend\Micro\MicroDenseBits.h" />
         <ClInclude Include="src\Backend\Micro\MicroDenseRegIndex.h" />
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
@@ -464,6 +464,7 @@
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
+        <ClInclude Include="src\Support\Core\DenseBits.h"/>
         <ClInclude Include="src\Support\Core\DataSegment.h"/>
         <ClInclude Include="src\Support\Core\Flags.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>

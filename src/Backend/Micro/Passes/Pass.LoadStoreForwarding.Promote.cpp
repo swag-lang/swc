@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-bool MicroLoadStoreForwardingPass::promoteStackSlotLoads()
+bool MicroLoadStoreForwardingPass::promoteStackSlotLoads() const
 {
     SWC_ASSERT(context_ != nullptr);
     SWC_ASSERT(storage_ != nullptr);

@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-bool MicroLoadStoreForwardingPass::runForwardStoreToLoad()
+bool MicroLoadStoreForwardingPass::runForwardStoreToLoad() const
 {
     SWC_ASSERT(storage_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);

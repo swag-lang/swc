@@ -57,7 +57,7 @@ private:
     static bool     containsKey(MicroRegSpan keys, MicroReg key);
     bool            isPersistentPhysReg(MicroReg reg) const;
     bool            isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
-    bool            tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t stamp, bool allowConcreteLive, MicroReg& outPhys);
+    bool            tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t stamp, bool allowConcreteLive, MicroReg& outPhys) const;
     void            returnToFreePool(MicroReg reg);
     uint32_t        distanceToNextUse(MicroReg key, uint32_t instructionIndex) const;
     bool            prepareInstructionData();
@@ -99,7 +99,7 @@ private:
     void            clearAllMappedVirtuals();
     void            expireDeadMappings(uint32_t stamp);
     void            rewriteInstructions();
-    void            insertSpillFrame();
+    void            insertSpillFrame() const;
 
     MicroPassContext*    context_      = nullptr;
     const CallConv*      conv_         = nullptr;

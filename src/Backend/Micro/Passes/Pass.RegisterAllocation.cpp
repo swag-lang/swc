@@ -18,9 +18,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t ensureDenseRegIndex(std::unordered_map<MicroReg, uint32_t>& regToIndex,
-                                 std::vector<MicroReg>&                  regs,
-                                 const MicroReg                          reg)
+    uint32_t ensureDenseRegIndex(std::unordered_map<MicroReg, uint32_t>& regToIndex, std::vector<MicroReg>& regs, const MicroReg reg)
     {
         const auto it = regToIndex.find(reg);
         if (it != regToIndex.end())
@@ -58,16 +56,7 @@ namespace
             return {};
 
         const size_t offset = static_cast<size_t>(row) * rowWordCount;
-        return std::span<uint64_t>(bits.data() + offset, rowWordCount);
-    }
-
-    std::span<const uint64_t> denseBitRow(const std::vector<uint64_t>& bits, uint32_t row, uint32_t rowWordCount)
-    {
-        if (!rowWordCount)
-            return {};
-
-        const size_t offset = static_cast<size_t>(row) * rowWordCount;
-        return std::span<const uint64_t>(bits.data() + offset, rowWordCount);
+        return {bits.data() + offset, rowWordCount};
     }
 
     bool copyDenseRowIfChanged(std::span<uint64_t> dst, const std::span<const uint64_t> src)
@@ -184,7 +173,7 @@ bool MicroRegisterAllocationPass::tryTakeAllowedPhysical(SmallVector<MicroReg>& 
                                                          MicroReg               virtKey,
                                                          uint32_t               stamp,
                                                          bool                   allowConcreteLive,
-                                                         MicroReg&              outPhys)
+                                                         MicroReg&              outPhys) const
 {
     for (size_t index = pool.size(); index > 0; --index)
     {
@@ -650,7 +639,7 @@ void MicroRegisterAllocationPass::mergeLabelStackDepth(std::unordered_map<MicroL
     }
 
     // Keep the first observed depth. Mismatches can happen on dead edges
-    // (for example after a return in linearized IR).
+    // (for example, after a return in linearized IR).
     if (it->second != stackDepth)
         return;
 }
@@ -1105,7 +1094,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     }
 }
 
-void MicroRegisterAllocationPass::insertSpillFrame()
+void MicroRegisterAllocationPass::insertSpillFrame() const
 {
     // Materialize one function-level spill frame and balance it before every return.
     if (!spillFrameUsed_)

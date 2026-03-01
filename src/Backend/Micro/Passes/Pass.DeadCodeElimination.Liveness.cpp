@@ -176,7 +176,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
     return removedAny;
 }
 
-bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLiveness()
+bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLiveness() const
 {
     SWC_ASSERT(context_ != nullptr);
     SWC_ASSERT(storage_ != nullptr);

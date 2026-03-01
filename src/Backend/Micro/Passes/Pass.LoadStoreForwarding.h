@@ -56,8 +56,8 @@ private:
     static bool isSameMemoryAddress(const MicroInstrOperand* storeOps, const MicroInstrOperand* loadOps);
     static bool isSameMemoryAddressForImmediateStore(const MicroInstrOperand* storeOps, const MicroInstrOperand* loadOps);
     bool        canCrossInstruction(const MicroInstr& store, const MicroInstrOperand* storeOps, const MicroInstr& scanInst) const;
-    bool        runForwardStoreToLoad();
-    bool        promoteStackSlotLoads();
+    bool        runForwardStoreToLoad() const;
+    bool        promoteStackSlotLoads() const;
 
     MicroPassContext*    context_  = nullptr;
     MicroStorage*        storage_  = nullptr;

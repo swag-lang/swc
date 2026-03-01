@@ -21,7 +21,7 @@ public:
 private:
     void initRunState(MicroPassContext& context);
     bool runForwardPureDefElimination();
-    bool eliminateDeadPureDefsByBackwardLiveness();
+    bool eliminateDeadPureDefsByBackwardLiveness() const;
     bool eliminateDeadPureDefsByBackwardLivenessCfg(const MicroControlFlowGraph& controlFlowGraph) const;
     bool eliminateDeadPureDefsByBackwardLivenessLinearTail() const;
 

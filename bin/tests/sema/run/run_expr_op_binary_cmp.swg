@@ -220,3 +220,86 @@ enum CmpEnum: u16
 {
     func cmpLogicalBadRight(a: bool, b: [2] s32)->bool { return a or b } // swc-expected-error {{sema_err_binary_operand_type}}
 }
+
+#test
+{
+    func cmpLogicalStressInts(a: s32, b: s32, c: s32, d: s32, e: s32)->s32
+    {
+        var acc: s32 = 0
+        if a and b and c and d and e do
+            acc += 1
+        if a or b or c or d or e do
+            acc += 2
+        if (a and b) or (c and d) or e do
+            acc += 4
+        if (a or b) and (c or d) and e do
+            acc += 8
+        return acc
+    }
+
+    const V0 = #run cmpLogicalStressInts(1, 1, 1, 1, 1)
+    const V1 = #run cmpLogicalStressInts(1, 0, 1, 1, 0)
+    const V2 = #run cmpLogicalStressInts(0, 0, 0, 0, 0)
+    #assert(V0 == 15)
+    #assert(V1 == 6)
+    #assert(V2 == 0)
+}
+
+#test
+{
+    func cmpLogicalStressPtr(p: *void, q: *void, x: s32, y: s32, flag: bool)->s32
+    {
+        var acc: s32 = 0
+        if p and (x < y or flag) do
+            acc += 1
+        if q or (x > y and flag) do
+            acc += 2
+        if (p and q) or (x == y) do
+            acc += 4
+        if p and q and flag do
+            acc += 8
+        return acc
+    }
+
+    const V0 = #run cmpLogicalStressPtr(cast(*void) 0x10'u64, null, 1, 2, false)
+    const V1 = #run cmpLogicalStressPtr(cast(*void) 0x10'u64, cast(*void) 0x20'u64, 3, 1, true)
+    const V2 = #run cmpLogicalStressPtr(null, null, 3, 1, true)
+    #assert(V0 == 1)
+    #assert(V1 == 15)
+    #assert(V2 == 2)
+}
+
+#test
+{
+    func cmpAndOrPrecedenceStress(a: bool, b: bool, c: bool, d: bool, e: bool, f: bool)->bool
+    {
+        return a or b and c or d and e or f
+    }
+
+    const V0 = #run cmpAndOrPrecedenceStress(false, true, false, true, true, false)
+    const V1 = #run cmpAndOrPrecedenceStress(false, true, false, true, false, false)
+    const V2 = #run cmpAndOrPrecedenceStress(true, false, false, false, false, false)
+    #assert(V0)
+    #assert(!V1)
+    #assert(V2)
+}
+
+#test
+{
+    func cmpAndOrLoopStress(values: [6] s32)->s32
+    {
+        var acc: s32 = 0
+        foreach v, i in values
+        {
+            if (v > 0 and (i & 1) == 0) or (v < 0 and (i & 1) == 1) do
+                acc += v
+        }
+
+        return acc
+    }
+
+    const V0 = #run cmpAndOrLoopStress([5, -4, 3, -2, 1, -6])
+    const V1 = #run cmpAndOrLoopStress([-5, 4, -3, 2, -1, 6])
+    #assert(V0 == -3)
+    #assert(V1 == 0)
+}

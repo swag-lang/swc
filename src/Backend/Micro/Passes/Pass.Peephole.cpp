@@ -1,135 +1,122 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.Peephole.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/Passes/Pass.Peephole.Private.h"
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
+void MicroPeepholePass::initRunState(MicroPassContext& context)
 {
-    using RulePtr = const PeepholePass::Rule*;
+    context_  = &context;
+    storage_  = context.instructions;
+    operands_ = context.operands;
 
-    constexpr size_t K_MICRO_OPCODE_COUNT = static_cast<size_t>(MicroInstrOpcode::OpTernaryRegRegReg) + 1;
+    rules_.clear();
+    rules_.reserve(48);
+    buildRules(rules_);
+    ruleDispatch_ = buildRuleDispatch(rules_);
+}
 
-    bool isRuleApplicableToOpcode(const PeepholePass::Rule& rule, MicroInstrOpcode opcode)
+bool MicroPeepholePass::isRuleApplicableToOpcode(const Rule& rule, const MicroInstrOpcode opcode)
+{
+    switch (rule.target)
     {
-        switch (rule.target)
+        case RuleTarget::AnyInstruction:
+            return true;
+        case RuleTarget::LoadRegReg:
+            return opcode == MicroInstrOpcode::LoadRegReg;
+        case RuleTarget::LoadRegImm:
+            return opcode == MicroInstrOpcode::LoadRegImm;
+        case RuleTarget::LoadRegMem:
+            return opcode == MicroInstrOpcode::LoadRegMem;
+        case RuleTarget::OpBinaryRegImm:
+            return opcode == MicroInstrOpcode::OpBinaryRegImm;
+        case RuleTarget::LoadAddrRegMem:
+            return opcode == MicroInstrOpcode::LoadAddrRegMem;
+        case RuleTarget::LoadAddrAmcRegMem:
+            return opcode == MicroInstrOpcode::LoadAddrAmcRegMem;
+        case RuleTarget::LoadMemImm:
+            return opcode == MicroInstrOpcode::LoadMemImm;
+        default:
+            return false;
+    }
+}
+
+void MicroPeepholePass::buildRules(RuleList& outRules) const
+{
+    appendAddressingRules(outRules);
+    appendImmediateRules(outRules);
+    appendCopyRules(outRules);
+    appendCleanupRules(outRules);
+}
+
+MicroPeepholePass::RuleDispatch MicroPeepholePass::buildRuleDispatch(const RuleList& rules)
+{
+    RuleDispatch dispatch;
+    for (size_t opcodeIndex = 0; opcodeIndex < RuleDispatch::K_MICRO_OPCODE_COUNT; ++opcodeIndex)
+    {
+        const auto opcode = static_cast<MicroInstrOpcode>(opcodeIndex);
+        auto&      bucket = dispatch.rulesByOpcode[opcodeIndex];
+        for (const Rule& rule : rules)
         {
-            case PeepholePass::RuleTarget::AnyInstruction:
-                return true;
-            case PeepholePass::RuleTarget::LoadRegReg:
-                return opcode == MicroInstrOpcode::LoadRegReg;
-            case PeepholePass::RuleTarget::LoadRegImm:
-                return opcode == MicroInstrOpcode::LoadRegImm;
-            case PeepholePass::RuleTarget::LoadRegMem:
-                return opcode == MicroInstrOpcode::LoadRegMem;
-            case PeepholePass::RuleTarget::OpBinaryRegImm:
-                return opcode == MicroInstrOpcode::OpBinaryRegImm;
-            case PeepholePass::RuleTarget::LoadAddrRegMem:
-                return opcode == MicroInstrOpcode::LoadAddrRegMem;
-            case PeepholePass::RuleTarget::LoadAddrAmcRegMem:
-                return opcode == MicroInstrOpcode::LoadAddrAmcRegMem;
-            case PeepholePass::RuleTarget::LoadMemImm:
-                return opcode == MicroInstrOpcode::LoadMemImm;
-            default:
-                return false;
+            if (isRuleApplicableToOpcode(rule, opcode))
+                bucket.push_back(&rule);
         }
     }
 
-    struct PeepholeRuleDispatch
+    return dispatch;
+}
+
+bool MicroPeepholePass::applyOpcodeRules(const Cursor& cursor)
+{
+    SWC_ASSERT(cursor.inst != nullptr);
+
+    const auto& rules = ruleDispatch_.rulesByOpcode[static_cast<size_t>(SWC_NOT_NULL(cursor.inst)->op)];
+    for (const RulePtr rule : rules)
     {
-        std::array<std::vector<RulePtr>, K_MICRO_OPCODE_COUNT> rulesByOpcode;
-    };
-
-    PeepholePass::RuleList buildPeepholeRules()
-    {
-        PeepholePass::RuleList rules;
-        rules.reserve(48);
-
-        PeepholePass::appendAddressingRules(rules);
-        PeepholePass::appendImmediateRules(rules);
-        PeepholePass::appendCopyRules(rules);
-        PeepholePass::appendCleanupRules(rules);
-
-        return rules;
+        SWC_ASSERT(rule != nullptr);
+        SWC_ASSERT(SWC_NOT_NULL(rule)->apply != nullptr);
+        if (SWC_NOT_NULL(rule)->apply(*this, cursor))
+            return true;
     }
 
-    const PeepholePass::RuleList& peepholeRules()
+    return false;
+}
+
+MicroStorage::Iterator MicroPeepholePass::computeResumeIterator(const MicroStorage::View&     view,
+                                                                const MicroStorage::Iterator& prevIt,
+                                                                const bool                    hasPrev,
+                                                                const MicroInstrRef           instRef,
+                                                                const MicroStorage::Iterator& nextIt) const
+{
+    SWC_ASSERT(storage_ != nullptr);
+    if (storage_->ptr(instRef) != nullptr)
     {
-        static const PeepholePass::RuleList RULES = buildPeepholeRules();
-        return RULES;
+        auto currentIt = MicroStorage::Iterator{storage_, instRef};
+        ++currentIt;
+        return currentIt;
     }
 
-    PeepholeRuleDispatch buildPeepholeRuleDispatch()
+    if (hasPrev && storage_->ptr(prevIt.current) != nullptr)
     {
-        PeepholeRuleDispatch          dispatch;
-        const PeepholePass::RuleList& rules = peepholeRules();
-        for (size_t opcodeIndex = 0; opcodeIndex < K_MICRO_OPCODE_COUNT; ++opcodeIndex)
-        {
-            const auto opcode = static_cast<MicroInstrOpcode>(opcodeIndex);
-            auto&      bucket = dispatch.rulesByOpcode[opcodeIndex];
-            for (const PeepholePass::Rule& rule : rules)
-            {
-                if (isRuleApplicableToOpcode(rule, opcode))
-                    bucket.push_back(&rule);
-            }
-        }
-
-        return dispatch;
+        auto resumeIt = prevIt;
+        ++resumeIt;
+        return resumeIt;
     }
 
-    const std::vector<RulePtr>& peepholeRulesForOpcode(MicroInstrOpcode opcode)
-    {
-        static const PeepholeRuleDispatch DISPATCH = buildPeepholeRuleDispatch();
-        return DISPATCH.rulesByOpcode[static_cast<size_t>(opcode)];
-    }
+    if (nextIt != view.end() && storage_->ptr(nextIt.current) != nullptr)
+        return nextIt;
 
-    bool applyOpcodeRules(const MicroPassContext& context, const PeepholePass::Cursor& cursor)
-    {
-        SWC_ASSERT(cursor.inst != nullptr);
-        const auto& rules = peepholeRulesForOpcode(SWC_NOT_NULL(cursor.inst)->op);
-        for (const RulePtr rule : rules)
-        {
-            SWC_ASSERT(rule != nullptr);
-            SWC_ASSERT(SWC_NOT_NULL(rule)->apply != nullptr);
-            if (SWC_NOT_NULL(rule)->apply(context, cursor))
-                return true;
-        }
-
-        return false;
-    }
-
-    MicroStorage::Iterator computeResumeIterator(const MicroPassContext& context, const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt)
-    {
-        SWC_ASSERT(context.instructions != nullptr);
-        auto& storage = *context.instructions;
-
-        if (storage.ptr(instRef) != nullptr)
-        {
-            auto currentIt = MicroStorage::Iterator{&storage, instRef};
-            ++currentIt;
-            return currentIt;
-        }
-
-        if (hasPrev && storage.ptr(prevIt.current) != nullptr)
-        {
-            auto resumeIt = prevIt;
-            ++resumeIt;
-            return resumeIt;
-        }
-
-        if (nextIt != view.end() && storage.ptr(nextIt.current) != nullptr)
-            return nextIt;
-
-        return view.begin();
-    }
+    return view.begin();
 }
 
 Result MicroPeepholePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
-    const MicroStorage::View view  = context.instructions->view();
+
+    initRunState(context);
+
+    const MicroStorage::View view  = storage_->view();
     const auto               endIt = view.end();
     for (auto it = view.begin(); it != endIt;)
     {
@@ -143,21 +130,21 @@ Result MicroPeepholePass::run(MicroPassContext& context)
 
         const MicroInstrRef      instRef = it.current;
         MicroInstr&              inst    = *it;
-        const MicroInstrOperand* ops     = inst.ops(*context.operands);
+        const MicroInstrOperand* ops     = inst.ops(*operands_);
         auto                     nextIt  = it;
         ++nextIt;
 
-        PeepholePass::Cursor cursor;
+        Cursor cursor;
         cursor.instRef = instRef;
         cursor.inst    = &inst;
         cursor.ops     = ops;
         cursor.nextIt  = nextIt;
         cursor.endIt   = endIt;
 
-        if (applyOpcodeRules(context, cursor))
+        if (applyOpcodeRules(cursor))
         {
             context.passChanged = true;
-            it                  = computeResumeIterator(context, view, prevIt, hasPrev, instRef, nextIt);
+            it                  = computeResumeIterator(view, prevIt, hasPrev, instRef, nextIt);
             continue;
         }
 

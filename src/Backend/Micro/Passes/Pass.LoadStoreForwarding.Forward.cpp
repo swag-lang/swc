@@ -1,69 +1,63 @@
 #include "pch.h"
-#include "Backend/Micro/MicroStorage.h"
-#include "Backend/Micro/Passes/Pass.LoadStoreForwarding.Private.h"
+#include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
 
 SWC_BEGIN_NAMESPACE();
 
-namespace LoadStoreForwardingPass
+bool MicroLoadStoreForwardingPass::runForwardStoreToLoad()
 {
-    bool runForwardStoreToLoad(const MicroPassContext& context)
+    SWC_ASSERT(storage_ != nullptr);
+    SWC_ASSERT(operands_ != nullptr);
+
+    bool updated = false;
+
+    for (auto it = storage_->view().begin(); it != storage_->view().end(); ++it)
     {
-        SWC_ASSERT(context.instructions != nullptr);
-        SWC_ASSERT(context.operands != nullptr);
+        const MicroInstr& first = *it;
+        if (first.op != MicroInstrOpcode::LoadMemReg && first.op != MicroInstrOpcode::LoadMemImm)
+            continue;
 
-        bool                 updated  = false;
-        MicroStorage&        storage  = *context.instructions;
-        MicroOperandStorage& operands = *context.operands;
+        const MicroInstrOperand* firstOps = first.ops(*operands_);
+        if (!firstOps)
+            continue;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto scanIt = std::next(it); scanIt != storage_->view().end(); ++scanIt)
         {
-            const MicroInstr& first = *it;
-            if (first.op != MicroInstrOpcode::LoadMemReg && first.op != MicroInstrOpcode::LoadMemImm)
-                continue;
-
-            const MicroInstrOperand* firstOps = first.ops(operands);
-            if (!firstOps)
-                continue;
-
-            for (auto scanIt = std::next(it); scanIt != storage.view().end(); ++scanIt)
+            MicroInstr& scanInst = *scanIt;
+            if (scanInst.op == MicroInstrOpcode::LoadRegMem)
             {
-                MicroInstr& scanInst = *scanIt;
-                if (scanInst.op == MicroInstrOpcode::LoadRegMem)
+                MicroInstrOperand* scanOps = scanInst.ops(*operands_);
+                if (!scanOps)
+                    break;
+
+                if (first.op == MicroInstrOpcode::LoadMemReg && isSameMemoryAddress(firstOps, scanOps))
                 {
-                    MicroInstrOperand* scanOps = scanInst.ops(operands);
-                    if (!scanOps)
-                        break;
-
-                    if (first.op == MicroInstrOpcode::LoadMemReg && isSameMemoryAddress(firstOps, scanOps))
-                    {
-                        scanInst.op          = MicroInstrOpcode::LoadRegReg;
-                        scanInst.numOperands = 3;
-                        scanOps[1].reg       = firstOps[1].reg;
-                        scanOps[2].opBits    = firstOps[2].opBits;
-                        updated              = true;
-                        break;
-                    }
-
-                    if (first.op == MicroInstrOpcode::LoadMemImm &&
-                        scanOps[0].reg.isInt() &&
-                        isSameMemoryAddressForImmediateStore(firstOps, scanOps))
-                    {
-                        scanInst.op          = MicroInstrOpcode::LoadRegImm;
-                        scanInst.numOperands = 3;
-                        scanOps[1].opBits    = firstOps[1].opBits;
-                        scanOps[2].valueU64  = firstOps[3].valueU64;
-                        updated              = true;
-                        break;
-                    }
+                    scanInst.op          = MicroInstrOpcode::LoadRegReg;
+                    scanInst.numOperands = 3;
+                    scanOps[1].reg       = firstOps[1].reg;
+                    scanOps[2].opBits    = firstOps[2].opBits;
+                    updated              = true;
+                    break;
                 }
 
-                if (!canCrossInstruction(context, first, firstOps, scanInst))
+                if (first.op == MicroInstrOpcode::LoadMemImm &&
+                    scanOps[0].reg.isInt() &&
+                    isSameMemoryAddressForImmediateStore(firstOps, scanOps))
+                {
+                    scanInst.op          = MicroInstrOpcode::LoadRegImm;
+                    scanInst.numOperands = 3;
+                    scanOps[1].opBits    = firstOps[1].opBits;
+                    scanOps[2].valueU64  = firstOps[3].valueU64;
+                    updated              = true;
                     break;
+                }
             }
-        }
 
-        return updated;
+            if (!canCrossInstruction(first, firstOps, scanInst))
+                break;
+        }
     }
+
+    return updated;
 }
 
 SWC_END_NAMESPACE();

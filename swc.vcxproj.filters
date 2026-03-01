@@ -767,15 +767,6 @@
     <ClInclude Include="src\Backend\Backend.h">
       <Filter>src\Backend</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\Micro\Passes\Pass.DeadCodeElimination.Private.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\Micro\Passes\Pass.LoadStoreForwarding.Private.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
     <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantPropagation.Private.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>

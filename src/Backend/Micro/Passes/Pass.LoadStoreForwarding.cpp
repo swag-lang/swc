@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/Passes/Pass.LoadStoreForwarding.Private.h"
 
 // Forwards recent store values into matching following loads.
 // Example: store [rbp+8], r1; load r2, [rbp+8] -> mov r2, r1.
@@ -10,13 +9,22 @@
 
 SWC_BEGIN_NAMESPACE();
 
+void MicroLoadStoreForwardingPass::initRunState(MicroPassContext& context)
+{
+    context_  = &context;
+    storage_  = context.instructions;
+    operands_ = context.operands;
+}
+
 Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    const bool forwardedAny = LoadStoreForwardingPass::runForwardStoreToLoad(context);
-    const bool promotedAny  = LoadStoreForwardingPass::promoteStackSlotLoads(context);
+    initRunState(context);
+
+    const bool forwardedAny = runForwardStoreToLoad();
+    const bool promotedAny  = promoteStackSlotLoads();
     if (forwardedAny || promotedAny)
         context.passChanged = true;
 

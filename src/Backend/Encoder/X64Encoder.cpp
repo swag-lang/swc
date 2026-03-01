@@ -290,6 +290,38 @@ namespace
                op == MicroOp::MultiplyUnsigned;
     }
 
+    bool supportsOpBinaryRegImm(MicroOp op)
+    {
+        return op == MicroOp::FloatRound ||
+               op == MicroOp::Xor ||
+               op == MicroOp::Or ||
+               op == MicroOp::And ||
+               op == MicroOp::Add ||
+               op == MicroOp::Subtract ||
+               op == MicroOp::MultiplySigned ||
+               op == MicroOp::ShiftLeft ||
+               op == MicroOp::ShiftArithmeticLeft ||
+               op == MicroOp::ShiftRight ||
+               op == MicroOp::RotateLeft ||
+               op == MicroOp::RotateRight ||
+               op == MicroOp::ShiftArithmeticRight;
+    }
+
+    bool supportsOpBinaryMemImm(MicroOp op)
+    {
+        return op == MicroOp::Xor ||
+               op == MicroOp::Or ||
+               op == MicroOp::And ||
+               op == MicroOp::Add ||
+               op == MicroOp::Subtract ||
+               op == MicroOp::ShiftLeft ||
+               op == MicroOp::ShiftArithmeticLeft ||
+               op == MicroOp::ShiftRight ||
+               op == MicroOp::RotateLeft ||
+               op == MicroOp::RotateRight ||
+               op == MicroOp::ShiftArithmeticRight;
+    }
+
     uint8_t getRex(bool w, bool r, bool x, bool b)
     {
         uint8_t rex = 0x40;
@@ -885,7 +917,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (requiresRegImmRewrite(ops[2].microOp))
+        if (!supportsOpBinaryRegImm(ops[2].microOp) || requiresRegImmRewrite(ops[2].microOp))
         {
             outIssue.kind        = MicroConformanceIssueKind::RewriteRegImmToRegReg;
             outIssue.requiredReg = x64RegToMicroReg(X64Reg::Rax);
@@ -975,6 +1007,12 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
             outIssue.operandIndex     = 1;
             outIssue.normalizedOpBits = MicroOpBits::B64;
+            return true;
+        }
+
+        if (!supportsOpBinaryMemImm(ops[2].microOp))
+        {
+            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
             return true;
         }
 

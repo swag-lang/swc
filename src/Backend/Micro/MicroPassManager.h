@@ -46,9 +46,8 @@ public:
     Result run(MicroPassContext& context) const;
 
 private:
-    std::vector<MicroPass*>                             preOptimizationPasses_;
+    std::vector<MicroPass*>                             optimizationPasses_;
     std::vector<MicroPass*>                             mandatoryPasses_;
-    std::vector<MicroPass*>                             postOptimizationPasses_;
     std::vector<MicroPass*>                             finalPasses_;
     std::unique_ptr<MicroControlFlowSimplificationPass> cfgSimplifyPass_;
     std::unique_ptr<MicroInstructionCombinePass>        instructionCombinePass_;

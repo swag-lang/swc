@@ -250,15 +250,18 @@ MicroPassManager& MicroPassManager::operator=(MicroPassManager&&) noexcept = def
 
 void MicroPassManager::clear()
 {
-    preOptimizationPasses_.clear();
+    optimizationPasses_.clear();
     mandatoryPasses_.clear();
-    postOptimizationPasses_.clear();
     finalPasses_.clear();
 }
 
 void MicroPassManager::configureDefaultPipeline(const bool optimize)
 {
     clear();
+
+    addMandatory(*legalizePass_);
+    addMandatory(*regAllocPass_);
+    addMandatory(*prologEpilogPass_);
 
     if (optimize)
     {
@@ -269,58 +272,15 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addPreOptimization(*loadStoreForwardPass_);
         addPreOptimization(*branchFoldingPass_);
         addPreOptimization(*cfgSimplifyPass_);
-        addPostOptimization(*branchFoldingPass_);
-        addPostOptimization(*cfgSimplifyPass_);
-        addPostOptimization(*constantPropagationPass_);
-        addPostOptimization(*deadCodePass_);
-        addPostOptimization(*peepholePass_);
-        addPostOptimization(*cfgSimplifyPass_);
+        addPreOptimization(*deadCodePass_);
+        addPreOptimization(*peepholePass_);
+        addPreOptimization(*legalizePass_);
+        addPreOptimization(*regAllocPass_);
     }
-
-    addMandatory(*regAllocPass_);
-    addMandatory(*legalizePass_);
-    addMandatory(*regAllocPass_);
-
-    if (optimize)
+    else
     {
-        addFinal(*constantPropagationPass_);
-        addFinal(*loadStoreForwardPass_);
-        addFinal(*branchFoldingPass_);
-        addFinal(*cfgSimplifyPass_);
-        addFinal(*deadCodePass_);
-        addFinal(*peepholePass_);
-        addFinal(*constantPropagationPass_);
-        addFinal(*branchFoldingPass_);
-        addFinal(*cfgSimplifyPass_);
-    }
-
-    addFinal(*prologEpilogPass_);
-    addFinal(*legalizePass_);
-
-    if (optimize)
-    {
-        addFinal(*constantPropagationPass_);
-        addFinal(*loadStoreForwardPass_);
-        addFinal(*branchFoldingPass_);
-        addFinal(*cfgSimplifyPass_);
-        addFinal(*peepholePass_);
-        addFinal(*deadCodePass_);
-        addFinal(*constantPropagationPass_);
-        addFinal(*branchFoldingPass_);
-        addFinal(*cfgSimplifyPass_);
-    }
-
-    addFinal(*regAllocPass_);
-
-    if (optimize)
-    {
-        addFinal(*constantPropagationPass_);
-        addFinal(*loadStoreForwardPass_);
-        addFinal(*peepholePass_);
-        addFinal(*deadCodePass_);
-        addFinal(*constantPropagationPass_);
-        addFinal(*branchFoldingPass_);
-        addFinal(*cfgSimplifyPass_);
+        addPreOptimization(*legalizePass_);
+        addPreOptimization(*regAllocPass_);
     }
 
     addFinal(*emitPass_);
@@ -338,12 +298,12 @@ void MicroPassManager::addMandatory(MicroPass& pass)
 
 void MicroPassManager::addPreOptimization(MicroPass& pass)
 {
-    preOptimizationPasses_.push_back(&pass);
+    optimizationPasses_.push_back(&pass);
 }
 
 void MicroPassManager::addPostOptimization(MicroPass& pass)
 {
-    postOptimizationPasses_.push_back(&pass);
+    optimizationPasses_.push_back(&pass);
 }
 
 void MicroPassManager::addFinal(MicroPass& pass)
@@ -356,9 +316,8 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_ASSERT(context.instructions != nullptr);
     context.printInstrCountBefore = context.instructions->count();
 
-    SWC_RESULT_VERIFY(runOptimizationPasses(context, preOptimizationPasses_));
     SWC_RESULT_VERIFY(runLinearPasses(context, mandatoryPasses_));
-    SWC_RESULT_VERIFY(runOptimizationPasses(context, postOptimizationPasses_));
+    SWC_RESULT_VERIFY(runOptimizationPasses(context, optimizationPasses_));
     SWC_RESULT_VERIFY(runLinearPasses(context, finalPasses_));
 
     return Result::Continue;

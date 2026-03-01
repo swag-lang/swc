@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool foldLoadImmIntoNextMemStore(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadImmIntoNextMemStore(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -86,7 +86,7 @@ namespace
         return false;
     }
 
-    bool foldLoadImmIntoNextCopy(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadImmIntoNextCopy(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -161,7 +161,7 @@ namespace
         return false;
     }
 
-    bool foldLoadImmIntoNextBinary(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadImmIntoNextBinary(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -212,7 +212,7 @@ namespace
         return true;
     }
 
-    bool foldLoadImmIntoNextCompare(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadImmIntoNextCompare(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -262,7 +262,7 @@ namespace
         return true;
     }
 
-    bool foldLoadOpStoreIntoMemImm(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadOpStoreIntoMemImm(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          loadRef = cursor.instRef;
@@ -328,7 +328,7 @@ namespace
         return true;
     }
 
-    bool foldImmediateScaledAddChain(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldImmediateScaledAddChain(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -497,7 +497,7 @@ namespace
         return true;
     }
 
-    bool foldAdjacentMemImm32Stores(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldAdjacentMemImm32Stores(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -612,7 +612,7 @@ namespace
         return true;
     }
 
-    bool mergeRegImmArithmeticWithNext(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool mergeRegImmArithmeticWithNext(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -732,41 +732,41 @@ void MicroPeepholePass::appendImmediateRules(RuleList& outRules)
     // Rule: merge_regimm_arithmetic_with_next
     // Purpose: merge two same-register immediate add/sub operations into one, anywhere in the block.
     // Example: add rax, 12; mov r9, rcx; sub rax, 4 -> add rax, 8; mov r9, rcx
-    outRules.push_back({RuleTarget::OpBinaryRegImm, mergeRegImmArithmeticWithNext});
+    outRules.emplace_back(RuleTarget::OpBinaryRegImm, mergeRegImmArithmeticWithNext);
 
     // Rule: fold_loadimm_into_next_copy
     // Purpose: fold an immediate load through a copy and remove temporary register.
     // Example: mov r11, 42; mov rax, r11 -> mov rax, 42
-    outRules.push_back({RuleTarget::LoadRegImm, foldLoadImmIntoNextCopy});
+    outRules.emplace_back(RuleTarget::LoadRegImm, foldLoadImmIntoNextCopy);
 
     // Rule: fold_loadimm_into_next_binary
     // Purpose: fold reg-reg binary operation with temp immediate into reg-immediate form.
     // Example: mov r11, 42; add rax, r11 -> add rax, 42
-    outRules.push_back({RuleTarget::LoadRegImm, foldLoadImmIntoNextBinary});
+    outRules.emplace_back(RuleTarget::LoadRegImm, foldLoadImmIntoNextBinary);
 
     // Rule: fold_loadimm_into_next_compare
     // Purpose: fold reg-reg compare with temp immediate into reg-immediate compare.
     // Example: mov r11, 7; cmp rax, r11 -> cmp rax, 7
-    outRules.push_back({RuleTarget::LoadRegImm, foldLoadImmIntoNextCompare});
+    outRules.emplace_back(RuleTarget::LoadRegImm, foldLoadImmIntoNextCompare);
 
     // Rule: fold_loadimm_into_next_mem_store
     // Purpose: store immediate directly to memory instead of via temporary register.
     // Example: mov r11, 1; mov [rdx], r11 -> mov [rdx], 1
-    outRules.push_back({RuleTarget::LoadRegImm, foldLoadImmIntoNextMemStore});
+    outRules.emplace_back(RuleTarget::LoadRegImm, foldLoadImmIntoNextMemStore);
 
     // Rule: fold_loadopstore_into_memimm
     // Purpose: collapse load/compute/store memory update into direct memory-immediate op.
     // Example: mov r8,[rsp+32]; add r8,1; mov [rsp+32],r8 -> add [rsp+32],1
-    outRules.push_back({RuleTarget::LoadRegMem, foldLoadOpStoreIntoMemImm});
+    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadOpStoreIntoMemImm);
 
     // Rule: fold_immediate_scaled_add_chain
     // Purpose: fold immediate*scale + add chains into direct address-form setup.
     // Example: mov i,1; mov d,i; imul d,16; add d,s -> lea d,[s+16]
-    outRules.push_back({RuleTarget::LoadRegImm, foldImmediateScaledAddChain});
+    outRules.emplace_back(RuleTarget::LoadRegImm, foldImmediateScaledAddChain);
 
     // Rule: fold_adjacent_memimm32_stores
     // Purpose: merge two contiguous 32-bit immediate stores into one 64-bit store.
     // Example: mov [rdx], 1; mov [rdx + 4], 2 -> mov [rdx], 0x0000000200000001
-    outRules.push_back({RuleTarget::LoadMemImm, foldAdjacentMemImm32Stores});
+    outRules.emplace_back(RuleTarget::LoadMemImm, foldAdjacentMemImm32Stores);
 }
 SWC_END_NAMESPACE();

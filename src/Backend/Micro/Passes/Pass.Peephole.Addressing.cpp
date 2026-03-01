@@ -310,7 +310,7 @@ namespace
         return true;
     }
 
-    bool foldNonAdjacentLoadOpStoreIntoMemImm(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldNonAdjacentLoadOpStoreIntoMemImm(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      opRef   = cursor.instRef;
@@ -444,7 +444,7 @@ namespace
         return true;
     }
 
-    bool foldZeroIndexAmcFromImmediate(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldZeroIndexAmcFromImmediate(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -559,7 +559,7 @@ namespace
         return false;
     }
 
-    bool foldCopyAddIntoLoadAddress(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldCopyAddIntoLoadAddress(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -615,7 +615,7 @@ namespace
         return true;
     }
 
-    bool foldLoadRegMemIntoNextBinaryRegMem(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadRegMemIntoNextBinaryRegMem(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -672,7 +672,7 @@ namespace
         return true;
     }
 
-    bool foldLoadRegMemBinaryStoreBackIntoMemOp(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadRegMemBinaryStoreBackIntoMemOp(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -753,7 +753,7 @@ namespace
         return true;
     }
 
-    bool foldLoadRegMemBinaryStoreBackIntoMemOpTail(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadRegMemBinaryStoreBackIntoMemOpTail(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context   = pass.context();
         const MicroInstrRef      storeRef  = cursor.instRef;
@@ -838,7 +838,7 @@ namespace
         return true;
     }
 
-    bool foldLoadRegMemIntoNextCmpMemImm(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadRegMemIntoNextCmpMemImm(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
@@ -899,7 +899,7 @@ namespace
         return false;
     }
 
-    bool foldLoadRegMemIntoNextLoadAddrCopy(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadRegMemIntoNextLoadAddrCopy(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -947,7 +947,7 @@ namespace
         return true;
     }
 
-    bool foldLoadAddrIntoNextLoadAddr(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadAddrIntoNextLoadAddr(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -993,7 +993,7 @@ namespace
         return true;
     }
 
-    bool normalizeLoadAddrStackBaseToFramePointer(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool normalizeLoadAddrStackBaseToFramePointer(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
@@ -1087,7 +1087,7 @@ namespace
         return true;
     }
 
-    bool foldLoadAddrIntoNextMemOffset(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadAddrIntoNextMemOffset(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1189,7 +1189,7 @@ namespace
         return false;
     }
 
-    bool foldImmediateIndexAmcIntoNextLoadRegMem(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldImmediateIndexAmcIntoNextLoadRegMem(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1276,7 +1276,7 @@ namespace
         return false;
     }
 
-    bool foldLoadAddrIntoAllMemOffsets(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadAddrIntoAllMemOffsets(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1419,7 +1419,7 @@ namespace
         return true;
     }
 
-    bool foldLoadAddrAmcIntoNextMemoryAccess(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadAddrAmcIntoNextMemoryAccess(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1530,7 +1530,7 @@ namespace
         return true;
     }
 
-    bool foldLoadAddrAmcIntoLaterLoadRegMem(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldLoadAddrAmcIntoLaterLoadRegMem(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1629,46 +1629,46 @@ namespace
 
 void MicroPeepholePass::appendAddressingRules(RuleList& outRules)
 {
-    outRules.push_back({RuleTarget::LoadRegImm, foldZeroIndexAmcFromImmediate});
-    outRules.push_back({RuleTarget::LoadRegImm, foldImmediateIndexAmcIntoNextLoadRegMem});
+    outRules.emplace_back(RuleTarget::LoadRegImm, foldZeroIndexAmcFromImmediate);
+    outRules.emplace_back(RuleTarget::LoadRegImm, foldImmediateIndexAmcIntoNextLoadRegMem);
 
     // Rule: fold_copy_add_into_load_address
     // Purpose: fold copy + add-immediate into one address load.
     // Example: mov r11, rdx; add r11, 8 -> lea r11, [rdx + 8]
-    outRules.push_back({RuleTarget::LoadRegReg, foldCopyAddIntoLoadAddress});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyAddIntoLoadAddress);
 
     // Rule: fold_loadaddr_into_next_loadaddr
     // Purpose: collapse chained address computations into one.
     // Example: lea r11, [rsp + 8]; lea rdx, [r11] -> lea rdx, [rsp + 8]
-    outRules.push_back({RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextLoadAddr});
+    outRules.emplace_back(RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextLoadAddr);
 
     // Rule: fold_loadaddr_into_next_mem_offset
     // Purpose: consume temporary address register in next memory instruction.
     // Example: lea r11, [rdx + 8]; mov [r11], rax -> mov [rdx + 8], rax
-    outRules.push_back({RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextMemOffset});
-    outRules.push_back({RuleTarget::LoadAddrRegMem, normalizeLoadAddrStackBaseToFramePointer});
-    outRules.push_back({RuleTarget::LoadAddrRegMem, foldLoadAddrIntoAllMemOffsets});
+    outRules.emplace_back(RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextMemOffset);
+    outRules.emplace_back(RuleTarget::LoadAddrRegMem, normalizeLoadAddrStackBaseToFramePointer);
+    outRules.emplace_back(RuleTarget::LoadAddrRegMem, foldLoadAddrIntoAllMemOffsets);
 
-    outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemIntoNextLoadAddrCopy});
+    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemIntoNextLoadAddrCopy);
 
     // Rule: fold_loadregmem_into_next_cmpmemimm
     // Purpose: fold loaded temporary compared with immediate into direct memory compare.
     // Example: mov r8, [rsp + 8]; cmp r8, 0 -> cmp [rsp + 8], 0
-    outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemIntoNextCmpMemImm});
+    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemIntoNextCmpMemImm);
 
     // Rule: fold_nonadjacent_loadopstore_into_memimm
     // Purpose: fold load/op/store into direct memory-immediate op even with independent instructions in between.
     // Example: mov r8,[rsp+48]; add r8,1; ... ; mov [rsp+48],r8 -> add [rsp+48],1
-    outRules.push_back({RuleTarget::OpBinaryRegImm, foldNonAdjacentLoadOpStoreIntoMemImm});
+    outRules.emplace_back(RuleTarget::OpBinaryRegImm, foldNonAdjacentLoadOpStoreIntoMemImm);
 
-    outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemIntoNextBinaryRegMem});
-    outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemBinaryStoreBackIntoMemOp});
-    outRules.push_back({RuleTarget::AnyInstruction, foldLoadRegMemBinaryStoreBackIntoMemOpTail});
+    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemIntoNextBinaryRegMem);
+    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemBinaryStoreBackIntoMemOp);
+    outRules.emplace_back(RuleTarget::AnyInstruction, foldLoadRegMemBinaryStoreBackIntoMemOpTail);
 
     // Rule: fold_loadaddramc_into_next_memory_access
     // Purpose: consume temporary AMC address register by folding next memory access into AMC form.
     // Example: lea r11, [r8 + r9 * 16]; mov rdx, [r11] -> mov rdx, [r8 + r9 * 16]
-    outRules.push_back({RuleTarget::LoadAddrAmcRegMem, foldLoadAddrAmcIntoNextMemoryAccess});
-    outRules.push_back({RuleTarget::LoadAddrAmcRegMem, foldLoadAddrAmcIntoLaterLoadRegMem});
+    outRules.emplace_back(RuleTarget::LoadAddrAmcRegMem, foldLoadAddrAmcIntoNextMemoryAccess);
+    outRules.emplace_back(RuleTarget::LoadAddrAmcRegMem, foldLoadAddrAmcIntoLaterLoadRegMem);
 }
 SWC_END_NAMESPACE();

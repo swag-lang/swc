@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool forwardCopyIntoNextBinarySource(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool forwardCopyIntoNextBinarySource(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -94,7 +94,7 @@ namespace
         return false;
     }
 
-    bool forwardCopyIntoFollowingCopySource(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool forwardCopyIntoFollowingCopySource(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -177,7 +177,7 @@ namespace
         return false;
     }
 
-    bool forwardCopyIntoRetRegionSourceUses(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool forwardCopyIntoRetRegionSourceUses(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -279,7 +279,7 @@ namespace
         return true;
     }
 
-    bool forwardCopyIntoNextCompareSource(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool forwardCopyIntoNextCompareSource(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -347,7 +347,7 @@ namespace
         return true;
     }
 
-    bool foldCopyIntoNextMemoryBase(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldCopyIntoNextMemoryBase(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -658,7 +658,7 @@ namespace
         return true;
     }
 
-    bool foldCopyIntoNextSelfLoadMem(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldCopyIntoNextSelfLoadMem(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -735,7 +735,7 @@ namespace
         return false;
     }
 
-    bool foldCopyTwinLoadMemReuse(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldCopyTwinLoadMemReuse(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -818,7 +818,7 @@ namespace
         return true;
     }
 
-    bool foldCopyOpCopyBack(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldCopyOpCopyBack(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1087,7 +1087,7 @@ namespace
         return isDeadFromRef(startRef);
     }
 
-    bool foldCopySwapAddIntoAccumulator(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldCopySwapAddIntoAccumulator(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1167,7 +1167,7 @@ namespace
         return true;
     }
 
-    bool foldCopyUnaryCopyBack(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldCopyUnaryCopyBack(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1221,7 +1221,7 @@ namespace
         return true;
     }
 
-    bool foldTailCopyBinaryIntoSource(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldTailCopyBinaryIntoSource(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1477,7 +1477,7 @@ namespace
         return replacedAnyUse;
     }
 
-    bool coalesceCopyInstruction(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool coalesceCopyInstruction(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context   = pass.context();
         const MicroInstrRef          instRef   = cursor.instRef;
@@ -1505,7 +1505,7 @@ namespace
         return true;
     }
 
-    bool removeOverwrittenCopy(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeOverwrittenCopy(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1527,7 +1527,7 @@ namespace
         return true;
     }
 
-    bool removeUnusedCopyDestination(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeUnusedCopyDestination(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
@@ -1555,7 +1555,7 @@ namespace
         return true;
     }
 
-    bool removeDeadCopyBeforeUse(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeDeadCopyBeforeUse(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
@@ -1583,7 +1583,7 @@ namespace
         return true;
     }
 
-    bool foldCopyBackWithPreviousOp(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldCopyBackWithPreviousOp(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext& context = pass.context();
         if (!cursor.ops)
@@ -1655,86 +1655,86 @@ void MicroPeepholePass::appendCopyRules(RuleList& outRules)
     // Rule: forward_copy_into_next_binary_source
     // Purpose: forward copied source register into the next binary operation source.
     // Example: mov r8, r11; and r5, r8 -> and r5, r11
-    outRules.push_back({RuleTarget::LoadRegReg, forwardCopyIntoNextBinarySource});
+    outRules.emplace_back(RuleTarget::LoadRegReg, forwardCopyIntoNextBinarySource);
 
     // Rule: forward_copy_into_following_copy_source
     // Purpose: forward copied source register into a following copy source across neutral instructions.
     // Example: mov r11, rcx; mov r10, rdx; mov r9, r11 -> mov r10, rdx; mov r9, rcx
-    outRules.push_back({RuleTarget::LoadRegReg, forwardCopyIntoFollowingCopySource});
+    outRules.emplace_back(RuleTarget::LoadRegReg, forwardCopyIntoFollowingCopySource);
 
     // Rule: forward_copy_into_ret_region_sources
     // Purpose: forward a b64 copy into later source-only uses up to ret and remove the copy.
     // Example: mov r11, rcx; mov rax, r11; sub rax, r11; ret -> mov rax, rcx; sub rax, rcx; ret
-    outRules.push_back({RuleTarget::LoadRegReg, forwardCopyIntoRetRegionSourceUses});
+    outRules.emplace_back(RuleTarget::LoadRegReg, forwardCopyIntoRetRegionSourceUses);
 
     // Rule: forward_copy_into_next_compare_source
     // Purpose: forward copied source register into next compare.
     // Example: mov r8, r11; cmp r8, 0 -> cmp r11, 0
-    outRules.push_back({RuleTarget::LoadRegReg, forwardCopyIntoNextCompareSource});
+    outRules.emplace_back(RuleTarget::LoadRegReg, forwardCopyIntoNextCompareSource);
 
     // Rule: fold_copy_into_next_memory_base
     // Purpose: fold copied base register into next memory access base.
     // Example: mov r10, rsp; mov [r10], xmm3 -> mov [rsp], xmm3
-    outRules.push_back({RuleTarget::LoadRegReg, foldCopyIntoNextMemoryBase});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyIntoNextMemoryBase);
 
     // Rule: fold_copy_into_next_self_load_mem
     // Purpose: fold copied base into later self-load memory form.
     // Example: mov r11, rcx; mov r9, rdx; mov r11, [r11] -> mov r9, rdx; mov r11, [rcx]
-    outRules.push_back({RuleTarget::LoadRegReg, foldCopyIntoNextSelfLoadMem});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyIntoNextSelfLoadMem);
 
     // Rule: fold_copy_twin_load_mem_reuse
     // Purpose: reuse first identical memory load result and remove copied-base register.
     // Example: mov r10, rdx; mov rdx, [r10]; mov r9, [r10] -> mov rdx, [rdx]; mov r9, rdx
-    outRules.push_back({RuleTarget::LoadRegReg, foldCopyTwinLoadMemReuse});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyTwinLoadMemReuse);
 
     // Rule: fold_ret_copy_into_accumulator
     // Purpose: retarget the final accumulator chain to return register and drop trailing copy.
     // Example: add rdx, [r8]; mov rax, rdx; ret -> add rax, [r8]; ret
-    outRules.push_back({RuleTarget::LoadRegReg, foldRetCopyIntoAccumulator});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldRetCopyIntoAccumulator);
 
     // Rule: fold_copy_op_copy_back
     // Purpose: fold copy-to-temp + binary-op + copy-back into direct binary-op on a source.
     // Example: mov r8, r11; and r8, rdx; mov r11, r8 -> and r11, rdx
-    outRules.push_back({RuleTarget::LoadRegReg, foldCopyOpCopyBack});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyOpCopyBack);
 
     // Rule: fold_copy_swap_add_into_accumulator
     // Purpose: fold copy old-index + copy loaded-value + add + accumulator-store into direct 'add' on loaded value.
     // Example: mov rax,r8; mov r8,rcx; add r8,rax; add [rsp+30],r8 -> add rcx,r8; add [rsp+30],rcx
-    outRules.push_back({RuleTarget::LoadRegReg, foldCopySwapAddIntoAccumulator});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopySwapAddIntoAccumulator);
 
     // Rule: fold_copy_unary_copy_back
     // Purpose: fold copy-to-temp + unary-op + copy-back into direct unary-op on source.
     // Example: mov r8, r11; neg r8; mov r11, r8 -> neg r11
-    outRules.push_back({RuleTarget::LoadRegReg, foldCopyUnaryCopyBack});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyUnaryCopyBack);
 
     // Rule: fold_tail_copy_binary_into_source
     // Purpose: fold a copy + binary accumulator mutation near function tail into source register.
     // Example: mov r9, r8; add r9, r10; mov [rax], r9; mov rax, r9; ret -> add r8, r10; mov [rax], r8; mov rax, r8; ret
-    outRules.push_back({RuleTarget::LoadRegReg, foldTailCopyBinaryIntoSource});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldTailCopyBinaryIntoSource);
 
     // Rule: fold_copy_back_with_previous_op
     // Purpose: same fold as above, detected from trailing copy-back instruction.
     // Example: mov r8, r11; xor r8, rdx; mov r11, r8 -> xor r11, rdx
-    outRules.push_back({RuleTarget::LoadRegReg, foldCopyBackWithPreviousOp});
+    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyBackWithPreviousOp);
 
     // Rule: coalesce_copy_instruction
     // Purpose: rewrite downstream uses of copy destination to copy source and remove copy.
     // Example: mov r8, r11; add r9, r8; or r10, r8 -> add r9, r11; or r10, r11
-    outRules.push_back({RuleTarget::LoadRegReg, coalesceCopyInstruction});
+    outRules.emplace_back(RuleTarget::LoadRegReg, coalesceCopyInstruction);
 
     // Rule: remove_unused_copy_destination
     // Purpose: remove a copy when the destination register is never used afterward.
     // Example: mov r9, r11; add rax, rcx -> add rax, rcx
-    outRules.push_back({RuleTarget::LoadRegReg, removeUnusedCopyDestination});
+    outRules.emplace_back(RuleTarget::LoadRegReg, removeUnusedCopyDestination);
 
     // Rule: remove_dead_copy_before_use
     // Purpose: remove a copy when the destination value dies before any reachable use.
     // Example: mov rbp, rsp; push rdi; mov rbp, rsp -> push rdi; mov rbp, rsp
-    outRules.push_back({RuleTarget::LoadRegReg, removeDeadCopyBeforeUse});
+    outRules.emplace_back(RuleTarget::LoadRegReg, removeDeadCopyBeforeUse);
 
     // Rule: remove_overwritten_copy
     // Purpose: remove a copy when the destination is immediately overwritten by another copy.
     // Example: mov r8, r11; mov r8, rdx -> mov r8, rdx
-    outRules.push_back({RuleTarget::LoadRegReg, removeOverwrittenCopy});
+    outRules.emplace_back(RuleTarget::LoadRegReg, removeOverwrittenCopy);
 }
 SWC_END_NAMESPACE();

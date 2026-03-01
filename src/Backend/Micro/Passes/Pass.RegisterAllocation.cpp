@@ -697,7 +697,7 @@ namespace
         return selectEvictionCandidate(state, requestVirtKey, instructionIndex, isFloatReg, !preferPersistentPool, protectedKeys, stamp, allowConcreteLive, outVirtKey, outPhys);
     }
 
-    MicroReg allocatePhysical(PassState&                  state,
+    MicroReg allocatePhysical(const PassState&                  state,
                               const AllocRequest&         request,
                               std::span<const MicroReg>   protectedKeys,
                               uint32_t                    stamp,

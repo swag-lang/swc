@@ -256,7 +256,7 @@ namespace
         return false;
     }
 
-    bool foldSetCondCompareZeroIntoDirectJump(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldSetCondCompareZeroIntoDirectJump(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      cmpRef  = cursor.instRef;
@@ -326,7 +326,7 @@ namespace
         return true;
     }
 
-    bool foldSetCondCompareSetCondChain(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldSetCondCompareSetCondChain(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          cmpRef  = cursor.instRef;
@@ -746,7 +746,7 @@ namespace
         return true;
     }
 
-    bool removeRedundantStackLoadStorePair(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeRedundantStackLoadStorePair(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstr*            inst    = cursor.inst;
@@ -839,7 +839,7 @@ namespace
         return false;
     }
 
-    bool removeOverwrittenStoreToSameSlot(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeOverwrittenStoreToSameSlot(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -896,7 +896,7 @@ namespace
         return false;
     }
 
-    bool removeDeadStackStoreBeforeRet(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeDeadStackStoreBeforeRet(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1016,7 +1016,7 @@ namespace
         return false;
     }
 
-    bool removeNeverReadStackStore(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeNeverReadStackStore(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
@@ -1074,7 +1074,7 @@ namespace
         return true;
     }
 
-    bool removeRedundantStackSaveRestoreAroundImmediateShift(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeRedundantStackSaveRestoreAroundImmediateShift(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context  = pass.context();
         const MicroInstr*        saveInst = cursor.inst;
@@ -1135,7 +1135,7 @@ namespace
         return true;
     }
 
-    bool removeRedundantClearBeforeConvertFloatToInt(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeRedundantClearBeforeConvertFloatToInt(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstr*            inst    = cursor.inst;
@@ -1168,7 +1168,7 @@ namespace
         return true;
     }
 
-    bool removeNoOpInstruction(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeNoOpInstruction(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
@@ -1181,7 +1181,7 @@ namespace
         return true;
     }
 
-    bool removeDeadCompareInstruction(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool removeDeadCompareInstruction(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
@@ -1227,7 +1227,7 @@ namespace
         return true;
     }
 
-    bool foldSetCondZeroExtCopy(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldSetCondZeroExtCopy(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1465,7 +1465,7 @@ namespace
         return true;
     }
 
-    bool foldClearRegIntoNextMemStoreZero(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldClearRegIntoNextMemStoreZero(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1556,66 +1556,66 @@ void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
     // Rule: remove_overwritten_store_to_same_slot
     // Purpose: remove an earlier store when a later store overwrites the exact same address before any read.
     // Example: mov [rsp], 3; mov r10, 42; mov [rsp], r10 -> mov r10, 42; mov [rsp], r10
-    outRules.push_back({RuleTarget::AnyInstruction, removeOverwrittenStoreToSameSlot});
+    outRules.emplace_back(RuleTarget::AnyInstruction, removeOverwrittenStoreToSameSlot);
 
     // Rule: remove_dead_stack_store_before_ret
     // Purpose: remove stores to local stack slots that are never observed before returning.
     // Example: mov [rsp], r9; mov rax, r9; ret -> mov rax, r9; ret
-    outRules.push_back({RuleTarget::AnyInstruction, removeDeadStackStoreBeforeRet});
+    outRules.emplace_back(RuleTarget::AnyInstruction, removeDeadStackStoreBeforeRet);
 
     // Rule: remove_never_read_stack_store
     // Purpose: remove stack-pointer slot stores that are never read/address-taken anywhere in the function.
     // Example: mov [rsp+0x70], r9; ... (no read) -> <removed>
-    outRules.push_back({RuleTarget::AnyInstruction, removeNeverReadStackStore});
+    outRules.emplace_back(RuleTarget::AnyInstruction, removeNeverReadStackStore);
 
     // Rule: remove_redundant_stack_load_store_pair
     // Purpose: remove a stack load restored unchanged later, with no observable intervening effect.
     // Example: mov rax, [rsp+56]; mov rcx, [rsp+64]; mov [rsp+56], rax -> mov rcx, [rsp+64]
-    outRules.push_back({RuleTarget::LoadRegMem, removeRedundantStackLoadStorePair});
+    outRules.emplace_back(RuleTarget::LoadRegMem, removeRedundantStackLoadStorePair);
 
     // Rule: remove_dead_compare_instruction
     // Purpose: remove compare operations whose flags are never consumed.
     // Example: cmp r11, 0; mov rax, 11; ret -> mov rax, 11; ret
-    outRules.push_back({RuleTarget::AnyInstruction, removeDeadCompareInstruction});
+    outRules.emplace_back(RuleTarget::AnyInstruction, removeDeadCompareInstruction);
 
     // Rule: fold_setcond_compare_setcond_chain
     // Purpose: collapse bool rematerialization chain into one setcc.
     // Example: setne r9; cmp r9, 0; sete r10 -> sete r10
-    outRules.push_back({RuleTarget::AnyInstruction, foldSetCondCompareSetCondChain});
+    outRules.emplace_back(RuleTarget::AnyInstruction, foldSetCondCompareSetCondChain);
 
     // Rule: fold_setcond_compare_zero_into_direct_jump
     // Purpose: consume bool materialization compare in front of conditional jump.
     // Example: setcc r11; cmp r11, 0; je L0 -> setcc r11; j!cc L0
-    outRules.push_back({RuleTarget::AnyInstruction, foldSetCondCompareZeroIntoDirectJump});
+    outRules.emplace_back(RuleTarget::AnyInstruction, foldSetCondCompareZeroIntoDirectJump);
 
     // Rule: fold_bool_and_chain_into_direct_jumps
     // Purpose: replace materialized bool-and chains with direct conditional branches.
     // Example: cmp/setcc/.../and/cmp/jz L0 -> cmp/jcc L0; cmp/jcc L0
-    outRules.push_back({RuleTarget::AnyInstruction, foldBoolAndChainIntoDirectJumps});
+    outRules.emplace_back(RuleTarget::AnyInstruction, foldBoolAndChainIntoDirectJumps);
 
     // Rule: fold_setcond_zeroext_copy
     // Purpose: route setcc and zero-extend directly to final destination register.
     // Example: setcc r10; zero_extend r10; mov rax, r10 -> setcc rax; zero_extend rax
-    outRules.push_back({RuleTarget::AnyInstruction, foldSetCondZeroExtCopy});
+    outRules.emplace_back(RuleTarget::AnyInstruction, foldSetCondZeroExtCopy);
 
     // Rule: fold_clearreg_into_next_mem_store_zero
     // Purpose: store zero immediate directly to memory instead of through a cleared temp register.
     // Example: xor rdx, rdx; mov [rsp], rdx -> mov [rsp], 0
-    outRules.push_back({RuleTarget::AnyInstruction, foldClearRegIntoNextMemStoreZero});
+    outRules.emplace_back(RuleTarget::AnyInstruction, foldClearRegIntoNextMemStoreZero);
 
     // Rule: remove_redundant_stack_save_restore_around_immediate_shift
     // Purpose: remove save/restore pairs that became unnecessary after shift-count folding.
     // Example: mov [rsp+32], rcx; shl r8, 1; mov rcx, [rsp+32] -> shl r8, 1
-    outRules.push_back({RuleTarget::AnyInstruction, removeRedundantStackSaveRestoreAroundImmediateShift});
+    outRules.emplace_back(RuleTarget::AnyInstruction, removeRedundantStackSaveRestoreAroundImmediateShift);
 
     // Rule: remove_redundant_clear_before_convert_float_to_int
     // Purpose: remove clears of a destination register that is fully overwritten by cvtf2i.
     // Example: xor r10, r10; cvtf2i r10, xmm0 -> cvtf2i r10, xmm0
-    outRules.push_back({RuleTarget::AnyInstruction, removeRedundantClearBeforeConvertFloatToInt});
+    outRules.emplace_back(RuleTarget::AnyInstruction, removeRedundantClearBeforeConvertFloatToInt);
 
     // Rule: remove_no_op_instruction
     // Purpose: remove encoder-level no-op instructions.
     // Example: mov r8, r8 -> <removed>
-    outRules.push_back({RuleTarget::AnyInstruction, removeNoOpInstruction});
+    outRules.emplace_back(RuleTarget::AnyInstruction, removeNoOpInstruction);
 }
 SWC_END_NAMESPACE();

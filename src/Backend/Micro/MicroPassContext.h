@@ -1,8 +1,13 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Micro/MicroPrinter.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class MicroStorage;
+class MicroOperandStorage;
+class MicroBuilder;
+class TaskContext;
+class Encoder;
 
 struct MicroPassContext
 {

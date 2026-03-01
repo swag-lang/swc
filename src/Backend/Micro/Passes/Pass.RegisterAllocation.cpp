@@ -18,28 +18,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasVirtualRegisters(const MicroPassContext& context)
-    {
-        SWC_ASSERT(context.instructions != nullptr);
-        SWC_ASSERT(context.operands != nullptr);
-
-        MicroOperandStorage& storeOps = *context.operands;
-        for (const MicroInstr& inst : context.instructions->view())
-        {
-            SmallVector<MicroInstrRegOperandRef> refs;
-            inst.collectRegOperands(storeOps, refs, context.encoder);
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-                if (ref.reg->isVirtual())
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
     using VRegState = MicroRegisterAllocationPass::VRegState;
 
     struct PendingInsert
@@ -72,6 +50,7 @@ namespace
         std::vector<std::vector<MicroReg>>&                                   concreteLiveOut;
         std::unordered_set<MicroReg>&                                         vregsLiveAcrossCall;
         std::unordered_map<MicroReg, std::vector<uint32_t>>&                  usePositions;
+        std::vector<MicroInstrUseDef>&                                        instructionUseDefs;
         std::unordered_set<MicroReg>&                                         intPersistentSet;
         std::unordered_set<MicroReg>&                                         floatPersistentSet;
         SmallVector<MicroReg>&                                                freeIntTransient;
@@ -84,6 +63,87 @@ namespace
         std::unordered_map<MicroReg, uint32_t>&                               concreteLiveStamp;
         std::unordered_set<MicroReg>&                                         callSpillVregs;
     };
+
+    uint32_t ensureDenseRegIndex(std::unordered_map<MicroReg, uint32_t>& regToIndex,
+                                 std::vector<MicroReg>&                  regs,
+                                 const MicroReg                          reg)
+    {
+        const auto it = regToIndex.find(reg);
+        if (it != regToIndex.end())
+            return it->second;
+
+        const uint32_t newIndex = static_cast<uint32_t>(regs.size());
+        regToIndex.emplace(reg, newIndex);
+        regs.push_back(reg);
+        return newIndex;
+    }
+
+    void denseBitSet(std::span<uint64_t> bits, uint32_t bitIndex)
+    {
+        if (bits.empty())
+            return;
+
+        const uint32_t wordIndex = bitIndex >> 6u;
+        SWC_ASSERT(wordIndex < bits.size());
+        bits[wordIndex] |= (1ull << (bitIndex & 63u));
+    }
+
+    void denseBitClear(std::span<uint64_t> bits, uint32_t bitIndex)
+    {
+        if (bits.empty())
+            return;
+
+        const uint32_t wordIndex = bitIndex >> 6u;
+        SWC_ASSERT(wordIndex < bits.size());
+        bits[wordIndex] &= ~(1ull << (bitIndex & 63u));
+    }
+
+    std::span<uint64_t> denseBitRow(std::vector<uint64_t>& bits, uint32_t row, uint32_t rowWordCount)
+    {
+        if (!rowWordCount)
+            return {};
+
+        const size_t offset = static_cast<size_t>(row) * rowWordCount;
+        return std::span<uint64_t>(bits.data() + offset, rowWordCount);
+    }
+
+    std::span<const uint64_t> denseBitRow(const std::vector<uint64_t>& bits, uint32_t row, uint32_t rowWordCount)
+    {
+        if (!rowWordCount)
+            return {};
+
+        const size_t offset = static_cast<size_t>(row) * rowWordCount;
+        return std::span<const uint64_t>(bits.data() + offset, rowWordCount);
+    }
+
+    bool copyDenseRowIfChanged(std::span<uint64_t> dst, const std::span<const uint64_t> src)
+    {
+        SWC_ASSERT(dst.size() == src.size());
+        bool changed = false;
+        for (size_t i = 0; i < dst.size(); ++i)
+        {
+            if (dst[i] != src[i])
+            {
+                changed = true;
+                break;
+            }
+        }
+
+        if (!changed)
+            return false;
+
+        for (size_t i = 0; i < dst.size(); ++i)
+            dst[i] = src[i];
+        return true;
+    }
+
+    uint32_t denseBitCount(const std::span<const uint64_t> bits)
+    {
+        uint32_t result = 0;
+        for (const uint64_t value : bits)
+            result += std::popcount(value);
+        return result;
+    }
 
     void initState(const PassState& state, MicroPassContext& context)
     {
@@ -98,6 +158,8 @@ namespace
         const size_t reserveCount = static_cast<size_t>(state.instructionCount) * 2ull + 8ull;
         state.vregsLiveAcrossCall.reserve(reserveCount);
         state.usePositions.reserve(static_cast<size_t>(state.instructionCount) + 8ull);
+        state.instructionUseDefs.clear();
+        state.instructionUseDefs.resize(state.instructionCount);
         state.states.reserve(reserveCount);
         state.mapping.reserve(reserveCount);
         state.liveStamp.reserve(reserveCount);
@@ -142,15 +204,6 @@ namespace
         }
 
         return false;
-    }
-
-    void addCallConcreteClobberedRegs(std::vector<MicroReg>& defConcreteRegs, const CallConv& callConv)
-    {
-        defConcreteRegs.reserve(defConcreteRegs.size() + callConv.intTransientRegs.size() + callConv.floatTransientRegs.size());
-        for (const auto reg : callConv.intTransientRegs)
-            defConcreteRegs.push_back(reg);
-        for (const auto reg : callConv.floatTransientRegs)
-            defConcreteRegs.push_back(reg);
     }
 
     bool isPersistentPhysReg(const PassState& state, MicroReg reg)
@@ -235,6 +288,48 @@ namespace
         return *it - instructionIndex;
     }
 
+    bool prepareInstructionData(const PassState& state)
+    {
+        state.usePositions.clear();
+
+        if (!state.instructionCount)
+            return false;
+
+        const MicroControlFlowGraph&         controlFlowGraph = SWC_NOT_NULL(state.context->builder)->controlFlowGraph();
+        const std::span<const MicroInstrRef> instructionRefs  = controlFlowGraph.instructionRefs();
+        SWC_ASSERT(instructionRefs.size() == state.instructionCount);
+        if (instructionRefs.size() != state.instructionCount)
+            return false;
+
+        bool hasVirtual = false;
+        for (uint32_t idx = 0; idx < state.instructionCount; ++idx)
+        {
+            const MicroInstr* const inst = state.instructions->ptr(instructionRefs[idx]);
+            if (!inst)
+                continue;
+
+            MicroInstrUseDef useDef = inst->collectUseDef(*state.operands, state.context->encoder);
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (!reg.isVirtual())
+                    continue;
+
+                hasVirtual = true;
+                state.usePositions[reg].push_back(idx);
+            }
+
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg.isVirtual())
+                    hasVirtual = true;
+            }
+
+            state.instructionUseDefs[idx] = std::move(useDef);
+        }
+
+        return hasVirtual;
+    }
+
     void analyzeLiveness(PassState& state)
     {
         // CFG-aware backward liveness: captures live-out sets even across back-edges.
@@ -253,150 +348,222 @@ namespace
         if (instructionRefs.size() != state.instructionCount)
             return;
 
-        std::vector<MicroInstrUseDef>             useDefs;
-        std::vector<std::vector<MicroReg>>        useVirtual;
-        std::vector<std::vector<MicroReg>>        defVirtual;
-        std::vector<std::vector<MicroReg>>        useConcrete;
-        std::vector<std::vector<MicroReg>>        defConcrete;
-        std::vector<std::unordered_set<MicroReg>> liveInVirtual;
-        std::vector<std::unordered_set<MicroReg>> liveOutVirtual;
-        std::vector<std::unordered_set<MicroReg>> liveInConcrete;
-        std::vector<std::unordered_set<MicroReg>> liveOutConcrete;
+        std::unordered_map<MicroReg, uint32_t> denseVirtual;
+        std::vector<MicroReg>                  virtualRegs;
+        std::unordered_map<MicroReg, uint32_t> denseConcrete;
+        std::vector<MicroReg>                  concreteRegs;
+        const size_t                           denseReserve = static_cast<size_t>(state.instructionCount) * 2ull + 8ull;
+        denseVirtual.reserve(denseReserve);
+        denseConcrete.reserve(denseReserve);
+        virtualRegs.reserve(denseReserve);
+        concreteRegs.reserve(denseReserve);
 
-        useDefs.resize(state.instructionCount);
-        useVirtual.resize(state.instructionCount);
-        defVirtual.resize(state.instructionCount);
-        useConcrete.resize(state.instructionCount);
-        defConcrete.resize(state.instructionCount);
-        liveInVirtual.resize(state.instructionCount);
-        liveOutVirtual.resize(state.instructionCount);
-        liveInConcrete.resize(state.instructionCount);
-        liveOutConcrete.resize(state.instructionCount);
+        std::vector<SmallVector<uint32_t, 4>> useVirtualIndices(state.instructionCount);
+        std::vector<SmallVector<uint32_t, 4>> defVirtualIndices(state.instructionCount);
+        std::vector<SmallVector<uint32_t, 4>> useConcreteIndices(state.instructionCount);
+        std::vector<SmallVector<uint32_t, 4>> defConcreteIndices(state.instructionCount);
 
         for (uint32_t idx = 0; idx < state.instructionCount; ++idx)
         {
-            const MicroInstr* inst = state.instructions->ptr(instructionRefs[idx]);
-            if (!inst)
-                continue;
+            const MicroInstrUseDef& useDef = state.instructionUseDefs[idx];
+            auto&                   usesV  = useVirtualIndices[idx];
+            auto&                   defsV  = defVirtualIndices[idx];
+            auto&                   usesC  = useConcreteIndices[idx];
+            auto&                   defsC  = defConcreteIndices[idx];
 
-            useDefs[idx] = inst->collectUseDef(*state.operands, state.context->encoder);
-
-            auto& usesV = useVirtual[idx];
-            auto& defsV = defVirtual[idx];
-            auto& usesC = useConcrete[idx];
-            auto& defsC = defConcrete[idx];
-            usesV.reserve(useDefs[idx].uses.size());
-            defsV.reserve(useDefs[idx].defs.size());
-            usesC.reserve(useDefs[idx].uses.size());
-            defsC.reserve(useDefs[idx].defs.size());
-
-            for (const auto& reg : useDefs[idx].uses)
+            for (const MicroReg reg : useDef.uses)
             {
                 if (reg.isVirtual())
-                    usesV.push_back(reg);
-                else if (reg.isInt() || reg.isFloat())
-                    usesC.push_back(reg);
-            }
-
-            for (const auto& reg : useDefs[idx].defs)
-            {
-                if (reg.isVirtual())
-                    defsV.push_back(reg);
-                else if (reg.isInt() || reg.isFloat())
-                    defsC.push_back(reg);
-            }
-
-            if (useDefs[idx].isCall)
-            {
-                const CallConv& callConv = CallConv::get(useDefs[idx].callConv);
-                addCallConcreteClobberedRegs(defsC, callConv);
-            }
-        }
-
-        bool livenessUpdated = true;
-        while (livenessUpdated)
-        {
-            livenessUpdated = false;
-
-            for (int64_t rev = static_cast<int64_t>(state.instructionCount) - 1; rev >= 0; --rev)
-            {
-                const uint32_t i = static_cast<uint32_t>(rev);
-
-                std::unordered_set<MicroReg> newOutV;
-                std::unordered_set<MicroReg> newOutC;
-                const SmallVector<uint32_t>& successors = controlFlowGraph.successors(i);
-                for (const auto succIdx : successors)
                 {
-                    newOutV.insert(liveInVirtual[succIdx].begin(), liveInVirtual[succIdx].end());
-                    newOutC.insert(liveInConcrete[succIdx].begin(), liveInConcrete[succIdx].end());
+                    const uint32_t regIndex = ensureDenseRegIndex(denseVirtual, virtualRegs, reg);
+                    usesV.push_back(regIndex);
                 }
-
-                std::unordered_set<MicroReg> newInV = newOutV;
-                for (const auto defKey : defVirtual[i])
-                    newInV.erase(defKey);
-                for (const auto useKey : useVirtual[i])
-                    newInV.insert(useKey);
-
-                std::unordered_set<MicroReg> newInC = newOutC;
-                for (const auto defKey : defConcrete[i])
-                    newInC.erase(defKey);
-                for (const auto useKey : useConcrete[i])
-                    newInC.insert(useKey);
-
-                if (newOutV != liveOutVirtual[i] ||
-                    newOutC != liveOutConcrete[i] ||
-                    newInV != liveInVirtual[i] ||
-                    newInC != liveInConcrete[i])
+                else if (reg.isInt() || reg.isFloat())
                 {
-                    livenessUpdated    = true;
-                    liveOutVirtual[i]  = std::move(newOutV);
-                    liveOutConcrete[i] = std::move(newOutC);
-                    liveInVirtual[i]   = std::move(newInV);
-                    liveInConcrete[i]  = std::move(newInC);
+                    const uint32_t regIndex = ensureDenseRegIndex(denseConcrete, concreteRegs, reg);
+                    usesC.push_back(regIndex);
+                }
+            }
+
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg.isVirtual())
+                {
+                    const uint32_t regIndex = ensureDenseRegIndex(denseVirtual, virtualRegs, reg);
+                    defsV.push_back(regIndex);
+                }
+                else if (reg.isInt() || reg.isFloat())
+                {
+                    const uint32_t regIndex = ensureDenseRegIndex(denseConcrete, concreteRegs, reg);
+                    defsC.push_back(regIndex);
+                }
+            }
+
+            if (useDef.isCall)
+            {
+                const CallConv& callConv = CallConv::get(useDef.callConv);
+                for (const MicroReg reg : callConv.intTransientRegs)
+                {
+                    const uint32_t regIndex = ensureDenseRegIndex(denseConcrete, concreteRegs, reg);
+                    defsC.push_back(regIndex);
+                }
+                for (const MicroReg reg : callConv.floatTransientRegs)
+                {
+                    const uint32_t regIndex = ensureDenseRegIndex(denseConcrete, concreteRegs, reg);
+                    defsC.push_back(regIndex);
                 }
             }
         }
 
-        for (uint32_t i = 0; i < state.instructionCount; ++i)
+        const uint32_t virtualWordCount  = static_cast<uint32_t>((virtualRegs.size() + 63ull) / 64ull);
+        const uint32_t concreteWordCount = static_cast<uint32_t>((concreteRegs.size() + 63ull) / 64ull);
+
+        std::vector<uint64_t> liveInVirtualBits(static_cast<size_t>(state.instructionCount) * virtualWordCount, 0);
+        std::vector<uint64_t> liveInConcreteBits(static_cast<size_t>(state.instructionCount) * concreteWordCount, 0);
+
+        std::vector<SmallVector<uint32_t>> predecessors(state.instructionCount);
+        for (uint32_t idx = 0; idx < state.instructionCount; ++idx)
         {
-            auto& outVirtual = state.liveOut[i];
-            outVirtual.clear();
-            outVirtual.reserve(liveOutVirtual[i].size());
-            for (const auto key : liveOutVirtual[i])
-                outVirtual.push_back(key);
-
-            auto& outConcrete = state.concreteLiveOut[i];
-            outConcrete.clear();
-            outConcrete.reserve(liveOutConcrete[i].size());
-            for (const auto key : liveOutConcrete[i])
-                outConcrete.push_back(key);
-
-            if (useDefs[i].isCall)
+            const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
+            for (const uint32_t succIdx : successors)
             {
-                for (const auto key : liveOutVirtual[i])
-                    state.vregsLiveAcrossCall.insert(key);
+                if (succIdx >= state.instructionCount)
+                    continue;
+                predecessors[succIdx].push_back(idx);
             }
         }
-    }
 
-    void buildUsePositions(const PassState& state)
-    {
-        // Forward index of uses to pick better eviction victims (furthest next use first).
-        state.usePositions.clear();
-
-        uint32_t idx = 0;
-        for (const auto& inst : state.instructions->view())
+        std::vector<uint32_t> worklist;
+        worklist.reserve(state.instructionCount);
+        std::vector<uint8_t> inWorklist(state.instructionCount, 0);
+        for (uint32_t idx = 0; idx < state.instructionCount; ++idx)
         {
-            const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);
-            for (const auto& reg : useDef.uses)
+            worklist.push_back(idx);
+            inWorklist[idx] = 1;
+        }
+
+        std::vector<uint64_t> tempOutVirtual(virtualWordCount, 0);
+        std::vector<uint64_t> tempInVirtual(virtualWordCount, 0);
+        std::vector<uint64_t> tempOutConcrete(concreteWordCount, 0);
+        std::vector<uint64_t> tempInConcrete(concreteWordCount, 0);
+
+        while (!worklist.empty())
+        {
+            const uint32_t instructionIndex = worklist.back();
+            worklist.pop_back();
+            inWorklist[instructionIndex] = 0;
+
+            for (uint64_t& value : tempOutVirtual)
+                value = 0;
+            for (uint64_t& value : tempOutConcrete)
+                value = 0;
+
+            const SmallVector<uint32_t>& successors = controlFlowGraph.successors(instructionIndex);
+            for (const uint32_t succIdx : successors)
             {
-                if (!reg.isVirtual())
+                if (succIdx >= state.instructionCount)
                     continue;
 
-                state.usePositions[reg].push_back(idx);
+                const std::span<const uint64_t> succInVirtual  = denseBitRow(liveInVirtualBits, succIdx, virtualWordCount);
+                const std::span<const uint64_t> succInConcrete = denseBitRow(liveInConcreteBits, succIdx, concreteWordCount);
+                for (size_t word = 0; word < tempOutVirtual.size(); ++word)
+                    tempOutVirtual[word] |= succInVirtual[word];
+                for (size_t word = 0; word < tempOutConcrete.size(); ++word)
+                    tempOutConcrete[word] |= succInConcrete[word];
             }
 
-            ++idx;
+            tempInVirtual  = tempOutVirtual;
+            tempInConcrete = tempOutConcrete;
+            {
+                std::span<uint64_t> inVirtual = tempInVirtual;
+                for (const uint32_t bitIndex : defVirtualIndices[instructionIndex])
+                    denseBitClear(inVirtual, bitIndex);
+                for (const uint32_t bitIndex : useVirtualIndices[instructionIndex])
+                    denseBitSet(inVirtual, bitIndex);
+            }
+            {
+                std::span<uint64_t> inConcrete = tempInConcrete;
+                for (const uint32_t bitIndex : defConcreteIndices[instructionIndex])
+                    denseBitClear(inConcrete, bitIndex);
+                for (const uint32_t bitIndex : useConcreteIndices[instructionIndex])
+                    denseBitSet(inConcrete, bitIndex);
+            }
+
+            const bool changedVirtual  = copyDenseRowIfChanged(denseBitRow(liveInVirtualBits, instructionIndex, virtualWordCount), tempInVirtual);
+            const bool changedConcrete = copyDenseRowIfChanged(denseBitRow(liveInConcreteBits, instructionIndex, concreteWordCount), tempInConcrete);
+            if (!changedVirtual && !changedConcrete)
+                continue;
+
+            for (const uint32_t predIdx : predecessors[instructionIndex])
+            {
+                if (inWorklist[predIdx])
+                    continue;
+
+                worklist.push_back(predIdx);
+                inWorklist[predIdx] = 1;
+            }
+        }
+
+        for (uint32_t idx = 0; idx < state.instructionCount; ++idx)
+        {
+            for (uint64_t& value : tempOutVirtual)
+                value = 0;
+            for (uint64_t& value : tempOutConcrete)
+                value = 0;
+
+            const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
+            for (const uint32_t succIdx : successors)
+            {
+                if (succIdx >= state.instructionCount)
+                    continue;
+
+                const std::span<const uint64_t> succInVirtual  = denseBitRow(liveInVirtualBits, succIdx, virtualWordCount);
+                const std::span<const uint64_t> succInConcrete = denseBitRow(liveInConcreteBits, succIdx, concreteWordCount);
+                for (size_t word = 0; word < tempOutVirtual.size(); ++word)
+                    tempOutVirtual[word] |= succInVirtual[word];
+                for (size_t word = 0; word < tempOutConcrete.size(); ++word)
+                    tempOutConcrete[word] |= succInConcrete[word];
+            }
+
+            auto& outVirtual = state.liveOut[idx];
+            outVirtual.clear();
+            outVirtual.reserve(denseBitCount(tempOutVirtual));
+            for (size_t wordIndex = 0; wordIndex < tempOutVirtual.size(); ++wordIndex)
+            {
+                uint64_t wordBits = tempOutVirtual[wordIndex];
+                while (wordBits)
+                {
+                    const uint32_t bitInWord = std::countr_zero(wordBits);
+                    const size_t   bitIndex  = wordIndex * 64ull + bitInWord;
+                    if (bitIndex >= virtualRegs.size())
+                        break;
+                    outVirtual.push_back(virtualRegs[bitIndex]);
+                    wordBits &= (wordBits - 1ull);
+                }
+            }
+
+            auto& outConcrete = state.concreteLiveOut[idx];
+            outConcrete.clear();
+            outConcrete.reserve(denseBitCount(tempOutConcrete));
+            for (size_t wordIndex = 0; wordIndex < tempOutConcrete.size(); ++wordIndex)
+            {
+                uint64_t wordBits = tempOutConcrete[wordIndex];
+                while (wordBits)
+                {
+                    const uint32_t bitInWord = std::countr_zero(wordBits);
+                    const size_t   bitIndex  = wordIndex * 64ull + bitInWord;
+                    if (bitIndex >= concreteRegs.size())
+                        break;
+                    outConcrete.push_back(concreteRegs[bitIndex]);
+                    wordBits &= (wordBits - 1ull);
+                }
+            }
+
+            if (!state.instructionUseDefs[idx].isCall)
+                continue;
+
+            for (const MicroReg key : outVirtual)
+                state.vregsLiveAcrossCall.insert(key);
         }
     }
 
@@ -697,7 +864,7 @@ namespace
         return selectEvictionCandidate(state, requestVirtKey, instructionIndex, isFloatReg, !preferPersistentPool, protectedKeys, stamp, allowConcreteLive, outVirtKey, outPhys);
     }
 
-    MicroReg allocatePhysical(const PassState&                  state,
+    MicroReg allocatePhysical(const PassState&            state,
                               const AllocRequest&         request,
                               std::span<const MicroReg>   protectedKeys,
                               uint32_t                    stamp,
@@ -893,7 +1060,7 @@ namespace
                 state.concreteLiveStamp[key] = stamp;
 
             const MicroInstrRef instructionRef = it.current;
-            const bool          isCall         = it->collectUseDef(*state.operands, state.context->encoder).isCall;
+            const bool          isCall         = state.instructionUseDefs[idx].isCall;
             const bool          isTerminator   = MicroInstrInfo::isTerminatorInstruction(*it);
 
             if (state.hasControlFlow && (it->op == MicroInstrOpcode::Label || isTerminator))
@@ -1066,6 +1233,8 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 
     clearState();
 
+    std::vector<MicroInstrUseDef> instructionUseDefs;
+
     // Order matters: liveness/use analysis informs allocation, then we patch IR and finalize frame.
     PassState state = {
         context_,
@@ -1079,6 +1248,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
         concreteLiveOut_,
         vregsLiveAcrossCall_,
         usePositions_,
+        instructionUseDefs,
         intPersistentSet_,
         floatPersistentSet_,
         freeIntTransient_,
@@ -1096,10 +1266,9 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     if (!state.instructionCount)
         return Result::Continue;
 
-    const bool hadVirtualRegisters = hasVirtualRegisters(context);
+    const bool hadVirtualRegisters = prepareInstructionData(state);
 
     analyzeLiveness(state);
-    buildUsePositions(state);
     setupPools(state);
     rewriteInstructions(state);
     insertSpillFrame(state);

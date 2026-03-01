@@ -50,7 +50,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
     }
     else if (dstType.isFloat())
     {
-        TypeInfo::Sign hintSign = TypeInfo::Sign::Signed;
+        auto hintSign = TypeInfo::Sign::Signed;
         if (srcType.isIntUnsized() && srcType.payloadIntSign() == TypeInfo::Sign::Unknown)
         {
             const ConstantValue& unsizedValue = sema.cstMgr().get(castRequest.constantFoldingSrc());

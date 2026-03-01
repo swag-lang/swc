@@ -212,7 +212,6 @@ namespace
         }
     }
 
-
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
     {
         MicroBuilder&                          builder       = codeGen.builder();

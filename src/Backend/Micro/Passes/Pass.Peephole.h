@@ -36,19 +36,19 @@ public:
 
     struct Rule
     {
-        RuleTarget        target         = RuleTarget::AnyInstruction;
-        RuleApplyMutableFn applyMutable  = nullptr;
-        RuleApplyConstFn   applyConst    = nullptr;
+        RuleTarget         target       = RuleTarget::AnyInstruction;
+        RuleApplyMutableFn applyMutable = nullptr;
+        RuleApplyConstFn   applyConst   = nullptr;
 
         Rule() = default;
 
-        Rule(const RuleTarget targetValue, const RuleApplyMutableFn applyValue):
+        Rule(const RuleTarget targetValue, const RuleApplyMutableFn applyValue) :
             target(targetValue),
             applyMutable(applyValue)
         {
         }
 
-        Rule(const RuleTarget targetValue, const RuleApplyConstFn applyValue):
+        Rule(const RuleTarget targetValue, const RuleApplyConstFn applyValue) :
             target(targetValue),
             applyConst(applyValue)
         {
@@ -76,21 +76,21 @@ public:
 private:
     struct RuleDispatch
     {
-        static constexpr size_t                              K_MICRO_OPCODE_COUNT = static_cast<size_t>(MicroInstrOpcode::OpTernaryRegRegReg) + 1;
+        static constexpr size_t                             K_MICRO_OPCODE_COUNT = static_cast<size_t>(MicroInstrOpcode::OpTernaryRegRegReg) + 1;
         std::array<std::vector<Rule>, K_MICRO_OPCODE_COUNT> rulesByOpcode;
     };
 
-    void                   initRunState(MicroPassContext& context);
-    static bool            isRuleApplicableToOpcode(const Rule& rule, MicroInstrOpcode opcode);
-    static void            buildRules(RuleList& outRules);
-    static RuleDispatch    buildRuleDispatch(const RuleList& rules);
+    void                       initRunState(MicroPassContext& context);
+    static bool                isRuleApplicableToOpcode(const Rule& rule, MicroInstrOpcode opcode);
+    static void                buildRules(RuleList& outRules);
+    static RuleDispatch        buildRuleDispatch(const RuleList& rules);
     static const RuleDispatch& getRuleDispatch();
-    bool                   applyOpcodeRules(const Cursor& cursor);
-    MicroStorage::Iterator computeResumeIterator(const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt) const;
-    static void            appendAddressingRules(RuleList& outRules);
-    static void            appendImmediateRules(RuleList& outRules);
-    static void            appendCopyRules(RuleList& outRules);
-    static void            appendCleanupRules(RuleList& outRules);
+    bool                       applyOpcodeRules(const Cursor& cursor);
+    MicroStorage::Iterator     computeResumeIterator(const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt) const;
+    static void                appendAddressingRules(RuleList& outRules);
+    static void                appendImmediateRules(RuleList& outRules);
+    static void                appendCopyRules(RuleList& outRules);
+    static void                appendCleanupRules(RuleList& outRules);
 
     MicroPassContext*    context_  = nullptr;
     MicroStorage*        storage_  = nullptr;

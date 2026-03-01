@@ -72,8 +72,7 @@ MicroPeepholePass::RuleDispatch MicroPeepholePass::buildRuleDispatch(const RuleL
 
 const MicroPeepholePass::RuleDispatch& MicroPeepholePass::getRuleDispatch()
 {
-    static const RuleDispatch dispatch = []()
-    {
+    static const RuleDispatch dispatch = []() {
         RuleList rules;
         rules.reserve(48);
         buildRules(rules);

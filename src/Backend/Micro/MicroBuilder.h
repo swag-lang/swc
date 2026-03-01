@@ -2,6 +2,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPass.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Runtime.h"
@@ -10,8 +11,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroPassManager;
-struct MicroPassContext;
 class Symbol;
 
 enum class MicroBuilderFlagsE : uint8_t
@@ -93,7 +92,10 @@ public:
     void                                invalidateControlFlowGraph();
     void                                markControlFlowGraphMaybeDirty();
 
-    Result runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
+    MicroPassManager&       passManager() { return passManager_; }
+    const MicroPassManager& passManager() const { return passManager_; }
+    Result                  runPasses(Encoder* encoder, MicroPassContext& context);
+    Result                  runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
     MicroLabelRef createLabel();
     void          placeLabel(MicroLabelRef labelRef);
@@ -160,6 +162,7 @@ private:
     std::vector<MicroInstrRef>                          labels_;
     std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<uint32_t, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
+    MicroPassManager                                    passManager_;
     MicroControlFlowGraph                               controlFlowGraph_;
     uint64_t                                            controlFlowGraphStorageRevision_ = 0;
     uint64_t                                            controlFlowGraphHash_            = 0;

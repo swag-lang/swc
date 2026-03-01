@@ -753,6 +753,12 @@ Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder,
     return passes.run(context);
 }
 
+Result MicroBuilder::runPasses(Encoder* encoder, MicroPassContext& context)
+{
+    passManager_.configureDefaultPipeline(backendBuildCfg_.optimize);
+    return runPasses(passManager_, encoder, context);
+}
+
 Utf8 MicroBuilder::formatInstructions(MicroRegPrintMode regPrintMode, const Encoder* encoder) const
 {
     return MicroPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, this);

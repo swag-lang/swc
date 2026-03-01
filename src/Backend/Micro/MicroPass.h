@@ -49,6 +49,17 @@ public:
 class MicroPassManager
 {
 public:
+    MicroPassManager();
+    ~MicroPassManager();
+
+    MicroPassManager(const MicroPassManager&)            = delete;
+    MicroPassManager& operator=(const MicroPassManager&) = delete;
+    MicroPassManager(MicroPassManager&&) noexcept;
+    MicroPassManager& operator=(MicroPassManager&&) noexcept;
+
+    void clear();
+    void configureDefaultPipeline(bool optimize);
+
     // Legacy API: append to mandatory pipeline stage.
     void   add(MicroPass& pass);
     void   addMandatory(MicroPass& pass);
@@ -62,6 +73,8 @@ private:
     std::vector<MicroPass*> mandatoryPasses_;
     std::vector<MicroPass*> postOptimizationPasses_;
     std::vector<MicroPass*> finalPasses_;
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 SWC_END_NAMESPACE();

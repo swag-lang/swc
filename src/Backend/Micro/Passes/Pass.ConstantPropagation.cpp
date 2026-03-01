@@ -53,6 +53,7 @@ namespace
     };
 
     using KnownRegMap             = std::unordered_map<uint32_t, KnownConstant>;
+    using KnownRegMap             = std::unordered_map<uint32_t, KnownConstant>;
     using KnownStackSlotMap       = std::unordered_map<StackSlotKey, KnownConstant, StackSlotKeyHash>;
     using KnownAddressMap         = std::unordered_map<uint32_t, uint64_t>;
     using KnownStackAddressMap    = std::unordered_map<uint64_t, uint64_t>;

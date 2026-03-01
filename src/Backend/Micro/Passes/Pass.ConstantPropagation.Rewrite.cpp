@@ -1,11 +1,45 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.Private.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
 
 SWC_BEGIN_NAMESPACE();
+
+void MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const
+{
+    SWC_ASSERT(context_ != nullptr);
+    if (!ops || !stackPointerReg_.isValid())
+        return;
+
+    uint8_t memBaseIndex   = 0;
+    uint8_t memOffsetIndex = 0;
+    if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, inst))
+        return;
+
+    const MicroReg baseReg = ops[memBaseIndex].reg;
+    if (!baseReg.isInt() || baseReg == stackPointerReg_)
+        return;
+
+    uint64_t stackOffset = 0;
+    if (!tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, baseReg, ops[memOffsetIndex].valueU64))
+        return;
+
+    const MicroReg originalBase   = ops[memBaseIndex].reg;
+    const uint64_t originalOffset = ops[memOffsetIndex].valueU64;
+    ops[memBaseIndex].reg         = stackPointerReg_;
+    ops[memOffsetIndex].valueU64  = stackOffset;
+    if (MicroPassHelpers::violatesEncoderConformance(*context_, inst, ops))
+    {
+        ops[memBaseIndex].reg        = originalBase;
+        ops[memOffsetIndex].valueU64 = originalOffset;
+        return;
+    }
+
+    context_->passChanged = true;
+}
 
 Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
 {

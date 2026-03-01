@@ -65,24 +65,24 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
             case MicroOp::MultiplyUnsigned:
                 if (!canRewriteShift(ops))
                     break;
-                ops[2].microOp  = MicroOp::ShiftLeft;
-                ops[3].valueU64 = integerLog2(ops[3].valueU64);
+                ops[2].microOp      = MicroOp::ShiftLeft;
+                ops[3].valueU64     = integerLog2(ops[3].valueU64);
                 context.passChanged = true;
                 break;
 
             case MicroOp::DivideUnsigned:
                 if (!canRewriteShift(ops))
                     break;
-                ops[2].microOp  = MicroOp::ShiftRight;
-                ops[3].valueU64 = integerLog2(ops[3].valueU64);
+                ops[2].microOp      = MicroOp::ShiftRight;
+                ops[3].valueU64     = integerLog2(ops[3].valueU64);
                 context.passChanged = true;
                 break;
 
             case MicroOp::ModuloUnsigned:
                 if (!canRewriteShift(ops))
                     break;
-                ops[2].microOp  = MicroOp::And;
-                ops[3].valueU64 = ops[3].valueU64 - 1;
+                ops[2].microOp      = MicroOp::And;
+                ops[3].valueU64     = ops[3].valueU64 - 1;
                 context.passChanged = true;
                 break;
 

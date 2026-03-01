@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 // Forwards recent store values into matching following loads.
 // Example: store [rbp+8], r1; load r2, [rbp+8] -> mov r2, r1.

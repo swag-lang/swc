@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Support/Math/Helpers.h"
 
 // Inserts ABI-mandated save/restore code around the function body.

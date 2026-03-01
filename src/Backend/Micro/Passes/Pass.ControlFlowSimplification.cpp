@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.ControlFlowSimplification.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 // Simplifies the micro CFG by removing structurally redundant control flow.
 // Example: jmp L1; L1:          ->  <remove jump>.

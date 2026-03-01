@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 // Propagates known constants through register operations.
 // Example: load r1, 5; add r2, r1  ->  add r2, 5.

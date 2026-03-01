@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Private.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

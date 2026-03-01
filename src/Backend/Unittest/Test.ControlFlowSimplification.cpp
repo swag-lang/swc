@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ControlFlowSimplification.h"
 #include "Support/Unittest/Unittest.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 // Final emission pass: converts legalized micro instructions to machine code.
 // Example: branch placeholders are patched to concrete displacements.

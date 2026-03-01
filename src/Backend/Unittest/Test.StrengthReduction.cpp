@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Support/Unittest/Unittest.h"

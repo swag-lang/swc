@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"

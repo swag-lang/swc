@@ -18,6 +18,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 // Combines consecutive immediate ops on the same destination into one op.
 // Example: add r1, 2; add r1, 3  ->  add r1, 5.

@@ -5,6 +5,7 @@
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Unittest/UnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

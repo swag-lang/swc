@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.BranchFolding.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 // Folds branch decisions when compare inputs are compile-time constants.
 // Example: cmp r1, 42; jz L1 -> jmp L1 (if r1 is known 42).

@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 // Eliminates side-effect-free instructions whose results are not live.
 // Example: add r1, 4; ... (r1 never used) -> <remove add>.

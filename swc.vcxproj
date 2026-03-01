@@ -408,6 +408,7 @@
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
+        <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroOptimization.h"/>

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.CopyPropagation.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassContext.h"
 
 // Propagates register aliases created by copy/move instructions.
 // Example: mov r2, r1; add r3, r2 -> add r3, r1.

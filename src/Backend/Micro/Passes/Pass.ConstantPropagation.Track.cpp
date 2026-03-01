@@ -25,23 +25,33 @@ void MicroConstantPropagationPass::invalidateStateForDefinitions(const MicroInst
 
 // Update stack-slot facts after memory writes. Kept separate from rewrite
 // logic to make dataflow effects explicit.
-Result MicroConstantPropagationPass::trackKnownMemoryWrite(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite)
+Result MicroConstantPropagationPass::trackKnownMemoryWrite(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops)
 {
+    bool handledMemoryWrite = false;
+
     switch (inst.op)
     {
         case MicroInstrOpcode::LoadMemImm:
         case MicroInstrOpcode::LoadMemReg:
         case MicroInstrOpcode::LoadAmcMemImm:
         case MicroInstrOpcode::LoadAmcMemReg:
-            return trackStackStoreInstruction(prevInst, prevOps, inst, ops, handledMemoryWrite);
+            SWC_RESULT_VERIFY(trackStackStoreInstruction(prevInst, prevOps, inst, ops, handledMemoryWrite));
+            break;
 
         case MicroInstrOpcode::OpBinaryMemImm:
         case MicroInstrOpcode::OpBinaryMemReg:
         case MicroInstrOpcode::OpUnaryMem:
-            return trackStackMutationInstruction(context, instRef, inst, ops, handledMemoryWrite);
+            SWC_RESULT_VERIFY(trackStackMutationInstruction(context, instRef, inst, ops, handledMemoryWrite));
+            break;
 
         default:
             break;
+    }
+
+    if (MicroInstrInfo::isMemoryWriteInstruction(inst) && !handledMemoryWrite)
+    {
+        knownStackSlots_.clear();
+        knownStackAddresses_.clear();
     }
 
     return Result::Continue;

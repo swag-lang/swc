@@ -51,14 +51,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         }
 
         // Phase 3: update tracked stack facts for memory writes.
-        bool handledMemoryWrite = false;
-        SWC_RESULT_VERIFY(trackKnownMemoryWrite(context, instRef, prevInst, prevOps, inst, ops, handledMemoryWrite));
-
-        if (MicroInstrInfo::isMemoryWriteInstruction(inst) && !handledMemoryWrite)
-        {
-            knownStackSlots_.clear();
-            knownStackAddresses_.clear();
-        }
+        SWC_RESULT_VERIFY(trackKnownMemoryWrite(context, instRef, prevInst, prevOps, inst, ops));
 
         // Phase 4: rebuild facts produced by the rewritten instruction.
         SWC_RESULT_VERIFY(updateKnownRegistersForInstruction(context, instRef, inst, ops));

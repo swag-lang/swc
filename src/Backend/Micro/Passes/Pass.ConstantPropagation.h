@@ -66,7 +66,7 @@ private:
     Result      rewriteRegisterOperationInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
     Result      rewriteMemoryOperandInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops);
     void        invalidateStateForDefinitions(const MicroInstrUseDef& useDef);
-    Result      trackKnownMemoryWrite(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
+    Result      trackKnownMemoryWrite(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops);
     Result      trackStackStoreInstruction(const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
     Result      trackStackMutationInstruction(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
     bool        tryTrackConstantPointerStackCopy(uint64_t stackOffset, MicroOpBits slotOpBits, MicroReg sourceReg, const MicroInstr* prevInst, const MicroInstrOperand* prevOps);

@@ -181,6 +181,11 @@ uint32_t MicroStorage::count() const noexcept
     return count_;
 }
 
+uint64_t MicroStorage::revision() const noexcept
+{
+    return revision_;
+}
+
 size_t MicroStorage::allocatedBytes() const noexcept
 {
     return nodes_.capacity() * sizeof(Node);
@@ -188,6 +193,7 @@ size_t MicroStorage::allocatedBytes() const noexcept
 
 void MicroStorage::clear() noexcept
 {
+    ++revision_;
     nodes_.clear();
     freeList_.clear();
     head_  = MicroInstrRef::invalid();
@@ -221,6 +227,7 @@ std::pair<MicroInstrRef, MicroInstr*> MicroStorage::emplaceUninit()
 {
     const MicroInstrRef ref = allocNode();
     linkAtEnd(ref);
+    ++revision_;
     return {ref, &nodes_[ref.get()].instr};
 }
 
@@ -247,6 +254,7 @@ bool MicroStorage::erase(MicroInstrRef ref)
     freeList_.push_back(ref);
     SWC_ASSERT(count_ > 0);
     --count_;
+    ++revision_;
     return true;
 }
 
@@ -286,6 +294,7 @@ MicroInstrRef MicroStorage::insertBefore(MicroInstrRef beforeRef, const MicroIns
     else
         head_ = ref;
 
+    ++revision_;
     return ref;
 }
 

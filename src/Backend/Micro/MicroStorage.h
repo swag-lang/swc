@@ -87,6 +87,7 @@ public:
     };
 
     uint32_t                              count() const noexcept;
+    uint64_t                              revision() const noexcept;
     size_t                                allocatedBytes() const noexcept;
     void                                  clear() noexcept;
     MicroInstr*                           ptr(MicroInstrRef ref) noexcept;
@@ -113,9 +114,10 @@ private:
 
     std::vector<Node>          nodes_;
     std::vector<MicroInstrRef> freeList_;
-    MicroInstrRef              head_  = MicroInstrRef::invalid();
-    MicroInstrRef              tail_  = MicroInstrRef::invalid();
-    uint32_t                   count_ = 0;
+    MicroInstrRef              head_     = MicroInstrRef::invalid();
+    MicroInstrRef              tail_     = MicroInstrRef::invalid();
+    uint32_t                   count_    = 0;
+    uint64_t                   revision_ = 1;
 };
 
 SWC_END_NAMESPACE();

@@ -39,6 +39,28 @@ struct MicroRelocation
     ConstantRef   constantRef    = ConstantRef::invalid();
 };
 
+class MicroControlFlowGraph
+{
+public:
+    uint32_t                               instructionCount() const { return static_cast<uint32_t>(instructionRefs_.size()); }
+    std::span<const MicroInstrRef>         instructionRefs() const { return instructionRefs_; }
+    std::span<const SmallVector<uint32_t>> successors() const { return successors_; }
+    const SmallVector<uint32_t>&           successors(uint32_t instructionIndex) const { return successors_[instructionIndex]; }
+    bool                                   hasUnsupportedControlFlowForCfgLiveness() const { return hasUnsupportedControlFlowForCfgLiveness_; }
+    bool                                   supportsDeadCodeLiveness() const { return supportsDeadCodeLiveness_; }
+
+private:
+    void clear();
+    void build(const MicroStorage& storage, const MicroOperandStorage& operands);
+
+    std::vector<MicroInstrRef>         instructionRefs_;
+    std::vector<SmallVector<uint32_t>> successors_;
+    bool                               hasUnsupportedControlFlowForCfgLiveness_ = false;
+    bool                               supportsDeadCodeLiveness_                = true;
+
+    friend class MicroBuilder;
+};
+
 class MicroBuilder
 {
 public:
@@ -88,6 +110,9 @@ public:
     bool                                isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
     bool                                isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
     uint32_t                            nextVirtualIntRegIndexHint() const;
+    const MicroControlFlowGraph&        controlFlowGraph();
+    void                                invalidateControlFlowGraph();
+    void                                markControlFlowGraphMaybeDirty();
 
     Result runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -156,6 +181,11 @@ private:
     std::vector<MicroInstrRef>                          labels_;
     std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<uint32_t, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
+    MicroControlFlowGraph                               controlFlowGraph_;
+    uint64_t                                            controlFlowGraphStorageRevision_ = 0;
+    uint64_t                                            controlFlowGraphHash_            = 0;
+    bool                                                hasControlFlowGraph_             = false;
+    bool                                                controlFlowGraphMaybeDirty_      = false;
 };
 
 SWC_END_NAMESPACE();

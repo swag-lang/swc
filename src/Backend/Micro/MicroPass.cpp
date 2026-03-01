@@ -179,12 +179,28 @@ namespace
 
     Result runPass(MicroPassContext& context, MicroPass& pass, bool& outChanged)
     {
+        uint64_t storageRevisionBefore = 0;
+        if (context.instructions)
+            storageRevisionBefore = context.instructions->revision();
+
         updatePrintInstructionCountBaseline(context);
         if (shouldPrintPass(context, pass, true))
             printPassInstructions(context, pass, true);
 
         context.passChanged = false;
         SWC_RESULT_VERIFY(pass.run(context));
+
+        uint64_t storageRevisionAfter = storageRevisionBefore;
+        if (context.instructions)
+            storageRevisionAfter = context.instructions->revision();
+
+        if (context.passChanged && context.builder)
+        {
+            if (storageRevisionAfter != storageRevisionBefore)
+                context.builder->invalidateControlFlowGraph();
+            else
+                context.builder->markControlFlowGraphMaybeDirty();
+        }
 
         bool changed = context.passChanged;
         if (changed && context.builder && SWC_NOT_NULL(context.builder)->pruneDeadRelocations())

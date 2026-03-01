@@ -258,38 +258,39 @@ namespace
         if (!state.instructionCount)
             return;
 
-        std::vector<const MicroInstr*>            instructions;
+        const MicroControlFlowGraph&         controlFlowGraph = SWC_NOT_NULL(state.context->builder)->controlFlowGraph();
+        const std::span<const MicroInstrRef> instructionRefs  = controlFlowGraph.instructionRefs();
+        SWC_ASSERT(instructionRefs.size() == state.instructionCount);
+        if (instructionRefs.size() != state.instructionCount)
+            return;
+
         std::vector<MicroInstrUseDef>             useDefs;
         std::vector<std::vector<uint32_t>>        useVirtual;
         std::vector<std::vector<uint32_t>>        defVirtual;
         std::vector<std::vector<uint32_t>>        useConcrete;
         std::vector<std::vector<uint32_t>>        defConcrete;
-        std::vector<SmallVector<uint32_t>>        successors;
-        std::unordered_map<uint32_t, uint32_t>    labelToIndex;
         std::vector<std::unordered_set<uint32_t>> liveInVirtual;
         std::vector<std::unordered_set<uint32_t>> liveOutVirtual;
         std::vector<std::unordered_set<uint32_t>> liveInConcrete;
         std::vector<std::unordered_set<uint32_t>> liveOutConcrete;
-        const auto                                reserveCount = static_cast<size_t>(state.instructionCount);
 
-        instructions.reserve(reserveCount);
         useDefs.resize(state.instructionCount);
         useVirtual.resize(state.instructionCount);
         defVirtual.resize(state.instructionCount);
         useConcrete.resize(state.instructionCount);
         defConcrete.resize(state.instructionCount);
-        successors.resize(state.instructionCount);
-        labelToIndex.reserve(reserveCount / 2 + 1);
         liveInVirtual.resize(state.instructionCount);
         liveOutVirtual.resize(state.instructionCount);
         liveInConcrete.resize(state.instructionCount);
         liveOutConcrete.resize(state.instructionCount);
 
-        uint32_t idx = 0;
-        for (const auto& inst : state.instructions->view())
+        for (uint32_t idx = 0; idx < state.instructionCount; ++idx)
         {
-            instructions.push_back(&inst);
-            useDefs[idx] = inst.collectUseDef(*state.operands, state.context->encoder);
+            const MicroInstr* inst = state.instructions->ptr(instructionRefs[idx]);
+            if (!inst)
+                continue;
+
+            useDefs[idx] = inst->collectUseDef(*state.operands, state.context->encoder);
 
             auto& usesV = useVirtual[idx];
             auto& defsV = defVirtual[idx];
@@ -321,41 +322,6 @@ namespace
                 const CallConv& callConv = CallConv::get(useDefs[idx].callConv);
                 addCallConcreteClobberedRegs(defsC, callConv);
             }
-
-            if (inst.op == MicroInstrOpcode::Label && inst.numOperands >= 1)
-            {
-                const MicroInstrOperand* const ops                   = inst.ops(*state.operands);
-                labelToIndex[static_cast<uint32_t>(ops[0].valueU64)] = idx;
-            }
-
-            ++idx;
-        }
-
-        idx = 0;
-        for (const MicroInstr* inst : instructions)
-        {
-            SWC_ASSERT(inst != nullptr);
-            const MicroInstrOperand* const ops  = inst->ops(*state.operands);
-            auto&                          succ = successors[idx];
-            succ.clear();
-            succ.reserve(2);
-
-            if ((inst->op == MicroInstrOpcode::JumpCond || inst->op == MicroInstrOpcode::JumpCondImm) && inst->numOperands >= 3)
-            {
-                const uint32_t labelId = static_cast<uint32_t>(ops[2].valueU64);
-                const auto     itLabel = labelToIndex.find(labelId);
-                if (itLabel != labelToIndex.end())
-                    succ.push_back(itLabel->second);
-
-                if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, ops) && idx + 1 < state.instructionCount)
-                    succ.push_back(idx + 1);
-            }
-            else if (!MicroInstrInfo::isTerminatorInstruction(*inst) && idx + 1 < state.instructionCount)
-            {
-                succ.push_back(idx + 1);
-            }
-
-            ++idx;
         }
 
         bool changed = true;
@@ -369,7 +335,8 @@ namespace
 
                 std::unordered_set<uint32_t> newOutV;
                 std::unordered_set<uint32_t> newOutC;
-                for (const auto succIdx : successors[i])
+                const SmallVector<uint32_t>& successors = controlFlowGraph.successors(i);
+                for (const auto succIdx : successors)
                 {
                     newOutV.insert(liveInVirtual[succIdx].begin(), liveInVirtual[succIdx].end());
                     newOutC.insert(liveInConcrete[succIdx].begin(), liveInConcrete[succIdx].end());

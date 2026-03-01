@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 
 // Eliminates side-effect-free instructions whose results are not live.
@@ -11,18 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct InstructionIndexData
-    {
-        std::vector<MicroInstrRef>                       refs;
-        std::unordered_map<MicroLabelRef, MicroInstrRef> labelRefToInstructionRef;
-        std::unordered_map<MicroInstrRef, uint32_t>      instructionRefToIndex;
-    };
-
-    struct ControlFlowData
-    {
-        std::vector<std::vector<uint32_t>> successors;
-    };
-
     void addCallArgumentRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
     {
         for (const MicroReg reg : conv.intArgRegs)
@@ -181,99 +170,6 @@ namespace
         liveRegs.insert(reg.packed);
     }
 
-    bool isUnsupportedControlFlowForCfgLiveness(const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::JumpCondImm:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    bool buildInstructionIndexData(const MicroStorage& storage, const MicroOperandStorage& operands, InstructionIndexData& outData)
-    {
-        outData.refs.clear();
-        outData.labelRefToInstructionRef.clear();
-        outData.instructionRefToIndex.clear();
-
-        outData.refs.reserve(storage.count());
-        outData.labelRefToInstructionRef.reserve(storage.count());
-        outData.instructionRefToIndex.reserve(storage.count());
-
-        uint32_t index = 0;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
-        {
-            const MicroInstrRef instructionRef = it.current;
-            outData.refs.push_back(instructionRef);
-            outData.instructionRefToIndex[instructionRef] = index;
-            ++index;
-
-            if (it->op != MicroInstrOpcode::Label)
-                continue;
-
-            const MicroInstrOperand* labelOps = it->ops(operands);
-            if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<uint32_t>::max())
-                return false;
-
-            const MicroLabelRef labelRef(static_cast<uint32_t>(labelOps[0].valueU64));
-            outData.labelRefToInstructionRef[labelRef] = instructionRef;
-        }
-
-        return true;
-    }
-
-    bool buildControlFlowData(const MicroStorage& storage, const MicroOperandStorage& operands, const InstructionIndexData& indexData, ControlFlowData& outData)
-    {
-        outData.successors.clear();
-        outData.successors.resize(indexData.refs.size());
-
-        const size_t instructionCount = indexData.refs.size();
-        for (size_t i = 0; i < instructionCount; ++i)
-        {
-            const MicroInstrRef instructionRef = indexData.refs[i];
-            const MicroInstr*   inst           = storage.ptr(instructionRef);
-            if (!inst)
-                return false;
-
-            const bool hasFallthrough = i + 1 < instructionCount;
-            if (inst->op == MicroInstrOpcode::JumpCond)
-            {
-                const MicroInstrOperand* jumpOps = inst->ops(operands);
-                if (!jumpOps || jumpOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
-                    return false;
-
-                const MicroLabelRef targetLabelRef(static_cast<uint32_t>(jumpOps[2].valueU64));
-                const auto          targetRefIt = indexData.labelRefToInstructionRef.find(targetLabelRef);
-                if (targetRefIt == indexData.labelRefToInstructionRef.end())
-                    return false;
-
-                const auto targetIndexIt = indexData.instructionRefToIndex.find(targetRefIt->second);
-                if (targetIndexIt == indexData.instructionRefToIndex.end())
-                    return false;
-
-                std::vector<uint32_t>& successors = outData.successors[i];
-                successors.push_back(targetIndexIt->second);
-                if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, jumpOps) && hasFallthrough)
-                    successors.push_back(static_cast<uint32_t>(i + 1));
-                continue;
-            }
-
-            if (inst->op == MicroInstrOpcode::Ret)
-                continue;
-
-            if (MicroInstrInfo::isTerminatorInstruction(*inst))
-                return false;
-
-            if (hasFallthrough)
-                outData.successors[i].push_back(static_cast<uint32_t>(i + 1));
-        }
-
-        return true;
-    }
-
     void transferInstructionLiveness(std::unordered_set<uint32_t>&       outLiveIn,
                                      const std::unordered_set<uint32_t>& liveOut,
                                      const MicroInstr&                   inst,
@@ -309,20 +205,17 @@ namespace
             outLiveIn.insert(useReg.packed);
     }
 
-    bool eliminateDeadPureDefsByBackwardLivenessCfg(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
+    bool eliminateDeadPureDefsByBackwardLivenessCfg(MicroStorage&                storage,
+                                                    const MicroOperandStorage&   operands,
+                                                    const Encoder*               encoder,
+                                                    CallConvKind                 callConvKind,
+                                                    const MicroControlFlowGraph& controlFlowGraph)
     {
-        InstructionIndexData indexData;
-        if (!buildInstructionIndexData(storage, operands, indexData))
+        const std::span<const MicroInstrRef> instructionRefs = controlFlowGraph.instructionRefs();
+        if (instructionRefs.empty())
             return false;
 
-        if (indexData.refs.empty())
-            return false;
-
-        ControlFlowData controlFlowData;
-        if (!buildControlFlowData(storage, operands, indexData, controlFlowData))
-            return false;
-
-        const size_t                              instructionCount = indexData.refs.size();
+        const size_t                              instructionCount = instructionRefs.size();
         std::vector<std::unordered_set<uint32_t>> liveIn(instructionCount);
         std::vector<std::unordered_set<uint32_t>> liveOut(instructionCount);
         bool                                      changed = true;
@@ -333,7 +226,7 @@ namespace
             for (size_t i = instructionCount; i > 0; --i)
             {
                 const size_t        idx            = i - 1;
-                const MicroInstrRef instructionRef = indexData.refs[idx];
+                const MicroInstrRef instructionRef = instructionRefs[idx];
                 const MicroInstr*   inst           = storage.ptr(instructionRef);
                 if (!inst)
                     continue;
@@ -341,7 +234,7 @@ namespace
                 const MicroInstrUseDef useDef = inst->collectUseDef(operands, encoder);
 
                 std::unordered_set<uint32_t> newLiveOut;
-                const std::vector<uint32_t>& successors = controlFlowData.successors[idx];
+                const SmallVector<uint32_t>& successors = controlFlowGraph.successors(static_cast<uint32_t>(idx));
                 for (const uint32_t successorIndexRef : successors)
                 {
                     const size_t successorIndex = successorIndexRef;
@@ -371,7 +264,7 @@ namespace
 
         for (size_t i = 0; i < instructionCount; ++i)
         {
-            const MicroInstrRef instructionRef = indexData.refs[i];
+            const MicroInstrRef instructionRef = instructionRefs[i];
             const MicroInstr*   inst           = storage.ptr(instructionRef);
             if (!inst)
                 continue;
@@ -477,22 +370,17 @@ namespace
         return changed;
     }
 
-    bool eliminateDeadPureDefsByBackwardLiveness(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
+    bool eliminateDeadPureDefsByBackwardLiveness(MicroPassContext& context, MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
     {
-        bool hasUnsupportedControlFlow = false;
-        for (const MicroInstr& inst : storage.view())
+        if (context.builder)
         {
-            if (!isUnsupportedControlFlowForCfgLiveness(inst))
-                continue;
-            hasUnsupportedControlFlow = true;
-            break;
-        }
-
-        if (!hasUnsupportedControlFlow)
-        {
-            if (eliminateDeadPureDefsByBackwardLivenessCfg(storage, operands, encoder, callConvKind))
-                return true;
-            return eliminateDeadPureDefsByBackwardLivenessLinearTail(storage, operands, encoder, callConvKind);
+            const MicroControlFlowGraph& controlFlowGraph = SWC_NOT_NULL(context.builder)->controlFlowGraph();
+            if (!controlFlowGraph.hasUnsupportedControlFlowForCfgLiveness() && controlFlowGraph.supportsDeadCodeLiveness())
+            {
+                if (eliminateDeadPureDefsByBackwardLivenessCfg(storage, operands, encoder, callConvKind, controlFlowGraph))
+                    return true;
+                return eliminateDeadPureDefsByBackwardLivenessLinearTail(storage, operands, encoder, callConvKind);
+            }
         }
 
         return eliminateDeadPureDefsByBackwardLivenessLinearTail(storage, operands, encoder, callConvKind);
@@ -555,7 +443,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
             lastPureDefByReg[useDef.defs.front().packed] = currentRef;
     }
 
-    if (eliminateDeadPureDefsByBackwardLiveness(storage, operands, context.encoder, context.callConvKind))
+    if (eliminateDeadPureDefsByBackwardLiveness(context, storage, operands, context.encoder, context.callConvKind))
         changed = true;
 
     context.passChanged = changed;

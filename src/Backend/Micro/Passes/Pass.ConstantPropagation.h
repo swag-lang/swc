@@ -47,6 +47,8 @@ using KnownStackAddressMap    = std::unordered_map<uint64_t, uint64_t>;
 using KnownConstantPointerMap = std::unordered_map<uint32_t, KnownConstantPointer>;
 
 struct MicroRelocation;
+class MicroStorage;
+class MicroOperandStorage;
 
 class MicroConstantPropagationPass final : public MicroPass
 {
@@ -55,7 +57,24 @@ public:
     Result           run(MicroPassContext& context) override;
 
 private:
+    void clearRunContext();
     void clearState();
+    void initRunState(MicroPassContext& context);
+    void collectReferencedLabels();
+    void updateCompareStateForInstruction(MicroInstr&                                   inst,
+                                          MicroInstrOperand*                            ops,
+                                          std::optional<std::pair<uint32_t, uint64_t>>& deferredKnownDef);
+    void clearControlFlowBoundaryForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
+    void clearForCallBoundary(CallConvKind callConvKind);
+
+    bool tryResolveStackOffsetFromState(uint64_t& outOffset, MicroReg baseReg, uint64_t baseOffset) const;
+    bool tryResolveStackOffsetForAmcFromState(uint64_t& outOffset,
+                                              MicroReg  baseReg,
+                                              MicroReg  mulReg,
+                                              uint64_t  mulValue,
+                                              uint64_t  addValue) const;
+    bool rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops);
+    bool definesRegisterInSet(std::span<const MicroReg> defs, MicroReg reg) const;
 
     KnownRegMap                                               known_;
     KnownStackSlotMap                                         knownStackSlots_;
@@ -65,6 +84,10 @@ private:
     CompareState                                              compareState_;
     std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstructionRef_;
     std::unordered_set<MicroLabelRef>                         referencedLabels_;
+    MicroPassContext*                                         context_  = nullptr;
+    MicroStorage*                                             storage_  = nullptr;
+    MicroOperandStorage*                                      operands_ = nullptr;
+    MicroReg                                                  stackPointerReg_;
 };
 
 SWC_END_NAMESPACE();

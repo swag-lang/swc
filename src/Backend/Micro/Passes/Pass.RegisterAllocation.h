@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Support/Core/SmallVector.h"
 
@@ -25,7 +26,80 @@ public:
     };
 
 private:
+    struct PendingInsert
+    {
+        MicroInstrOpcode  op     = MicroInstrOpcode::Nop;
+        uint8_t           numOps = 0;
+        MicroInstrOperand ops[4] = {};
+    };
+
+    struct AllocRequest
+    {
+        MicroReg virtReg;
+        MicroReg virtKey          = MicroReg::invalid();
+        bool     needsPersistent  = false;
+        bool     isUse            = false;
+        bool     isDef            = false;
+        uint32_t instructionIndex = 0;
+    };
+
+    struct FreePools
+    {
+        SmallVector<MicroReg>* primary   = nullptr;
+        SmallVector<MicroReg>* secondary = nullptr;
+    };
+
     void clearState();
+    void initState(MicroPassContext& context);
+
+    bool            isLiveOut(MicroReg key, uint32_t stamp) const;
+    bool            isConcreteLiveOut(MicroReg reg, uint32_t stamp) const;
+    static bool     containsKey(MicroRegSpan keys, MicroReg key);
+    bool            isPersistentPhysReg(MicroReg reg) const;
+    bool            isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
+    bool            tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t stamp, bool allowConcreteLive, MicroReg& outPhys);
+    void            returnToFreePool(MicroReg reg);
+    uint32_t        distanceToNextUse(MicroReg key, uint32_t instructionIndex) const;
+    bool            prepareInstructionData();
+    void            analyzeLiveness();
+    void            setupPools();
+    void            ensureSpillSlot(VRegState& regState, bool isFloat);
+    static uint64_t spillMemOffset(uint64_t spillOffset, int64_t stackDepth);
+    void            queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
+    void            queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
+    void            applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst) const;
+    static void     mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth);
+    bool            isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const;
+    bool            selectEvictionCandidate(MicroReg     requestVirtKey,
+                                            uint32_t     instructionIndex,
+                                            bool         isFloatReg,
+                                            bool         fromPersistentPool,
+                                            MicroRegSpan protectedKeys,
+                                            uint32_t     stamp,
+                                            bool         allowConcreteLive,
+                                            MicroReg&    outVirtKey,
+                                            MicroReg&    outPhys) const;
+    FreePools       pickFreePools(const AllocRequest& request);
+    bool            tryTakeFreePhysical(const AllocRequest& request, uint32_t stamp, bool allowConcreteLive, MicroReg& outPhys);
+    void            unmapVirtReg(MicroReg virtKey);
+    void            mapVirtReg(MicroReg virtKey, MicroReg physReg);
+    bool            selectEvictionCandidateWithFallback(MicroReg     requestVirtKey,
+                                                        uint32_t     instructionIndex,
+                                                        bool         isFloatReg,
+                                                        bool         preferPersistentPool,
+                                                        MicroRegSpan protectedKeys,
+                                                        uint32_t     stamp,
+                                                        bool         allowConcreteLive,
+                                                        MicroReg&    outVirtKey,
+                                                        MicroReg&    outPhys) const;
+    MicroReg        allocatePhysical(const AllocRequest& request, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    MicroReg        assignVirtReg(const AllocRequest& request, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void            spillCallLiveOut(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void            flushAllMappedVirtuals(int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void            clearAllMappedVirtuals();
+    void            expireDeadMappings(uint32_t stamp);
+    void            rewriteInstructions();
+    void            insertSpillFrame();
 
     MicroPassContext*    context_      = nullptr;
     const CallConv*      conv_         = nullptr;
@@ -40,6 +114,7 @@ private:
     std::vector<std::vector<MicroReg>>                  concreteLiveOut_;
     std::unordered_set<MicroReg>                        vregsLiveAcrossCall_;
     std::unordered_map<MicroReg, std::vector<uint32_t>> usePositions_;
+    std::vector<MicroInstrUseDef>                       instructionUseDefs_;
 
     std::unordered_set<MicroReg> intPersistentSet_;
     std::unordered_set<MicroReg> floatPersistentSet_;

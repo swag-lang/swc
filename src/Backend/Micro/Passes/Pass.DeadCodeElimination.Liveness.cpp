@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 
@@ -7,30 +8,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_INVALID_DENSE_INDEX = std::numeric_limits<uint32_t>::max();
+    constexpr uint32_t K_INVALID_DENSE_INDEX = MicroDenseRegIndex::K_INVALID_INDEX;
 
-    uint32_t ensureDenseRegIndex(std::unordered_map<MicroReg, uint32_t>& regToDenseIndex,
-                                 std::vector<MicroReg>&                  denseToReg,
-                                 const MicroReg                          reg)
-    {
-        const auto it = regToDenseIndex.find(reg);
-        if (it != regToDenseIndex.end())
-            return it->second;
-
-        const uint32_t newIndex = static_cast<uint32_t>(denseToReg.size());
-        regToDenseIndex.emplace(reg, newIndex);
-        denseToReg.push_back(reg);
-        return newIndex;
-    }
-
-    void pushDenseRegIndex(SmallVector<uint32_t, 4>&               outIndices,
-                           std::unordered_map<MicroReg, uint32_t>& regToDenseIndex,
-                           std::vector<MicroReg>&                  denseToReg,
-                           const MicroReg                          reg)
+    void pushDenseRegIndex(SmallVector<uint32_t, 4>& outIndices, MicroDenseRegIndex& denseRegIndex, const MicroReg reg)
     {
         if (!reg.isValid() || reg.isNoBase())
             return;
-        outIndices.push_back(ensureDenseRegIndex(regToDenseIndex, denseToReg, reg));
+        outIndices.push_back(denseRegIndex.ensure(reg));
     }
 
     std::span<uint64_t> denseBitRow(std::vector<uint64_t>& bits, const uint32_t rowIndex, const uint32_t rowWordCount)
@@ -114,11 +98,9 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
     std::vector<uint8_t>  pureDefCandidateFlags(instructionCount, 0);
     std::vector<uint32_t> pureDefDenseDefIndex(instructionCount, K_INVALID_DENSE_INDEX);
 
-    std::unordered_map<MicroReg, uint32_t> regToDenseIndex;
-    std::vector<MicroReg>                  denseToReg;
-    const size_t                           denseReserve = static_cast<size_t>(instructionCount) * 2ull + 8ull;
-    regToDenseIndex.reserve(denseReserve);
-    denseToReg.reserve(denseReserve);
+    MicroDenseRegIndex denseRegIndex;
+    const size_t       denseReserve = static_cast<size_t>(instructionCount) * 2ull + 8ull;
+    denseRegIndex.reserve(denseReserve);
 
     std::vector<SmallVector<uint32_t, 4>> killDenseIndices(instructionCount);
     std::vector<SmallVector<uint32_t, 4>> useDenseIndices(instructionCount);
@@ -140,41 +122,41 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
 
         if (inst->op == MicroInstrOpcode::Ret)
         {
-            pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, conv.intReturn);
-            pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, conv.floatReturn);
+            pushDenseRegIndex(useIndices, denseRegIndex, conv.intReturn);
+            pushDenseRegIndex(useIndices, denseRegIndex, conv.floatReturn);
         }
 
         if (useDef.isCall)
         {
             const CallConv& convAtCall = CallConv::get(useDef.callConv);
             for (const MicroReg reg : convAtCall.intTransientRegs)
-                pushDenseRegIndex(killIndices, regToDenseIndex, denseToReg, reg);
+                pushDenseRegIndex(killIndices, denseRegIndex, reg);
             for (const MicroReg reg : convAtCall.floatTransientRegs)
-                pushDenseRegIndex(killIndices, regToDenseIndex, denseToReg, reg);
+                pushDenseRegIndex(killIndices, denseRegIndex, reg);
             for (const MicroReg reg : convAtCall.intArgRegs)
-                pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, reg);
+                pushDenseRegIndex(useIndices, denseRegIndex, reg);
             for (const MicroReg reg : convAtCall.floatArgRegs)
-                pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, reg);
+                pushDenseRegIndex(useIndices, denseRegIndex, reg);
             for (const MicroReg reg : useDef.uses)
-                pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, reg);
+                pushDenseRegIndex(useIndices, denseRegIndex, reg);
         }
         else
         {
             for (const MicroReg reg : useDef.defs)
-                pushDenseRegIndex(killIndices, regToDenseIndex, denseToReg, reg);
+                pushDenseRegIndex(killIndices, denseRegIndex, reg);
             for (const MicroReg reg : useDef.uses)
-                pushDenseRegIndex(useIndices, regToDenseIndex, denseToReg, reg);
+                pushDenseRegIndex(useIndices, denseRegIndex, reg);
         }
 
         if (isBackwardDeadDefRemovableInstruction(*inst) &&
             isPureDefCandidate(*inst, useDef, encoder_, callConvKind_))
         {
             pureDefCandidateFlags[idx] = 1;
-            pureDefDenseDefIndex[idx]  = ensureDenseRegIndex(regToDenseIndex, denseToReg, useDef.defs.front());
+            pureDefDenseDefIndex[idx]  = denseRegIndex.ensure(useDef.defs.front());
         }
     }
 
-    const uint32_t        rowWordCount = static_cast<uint32_t>((denseToReg.size() + 63ull) / 64ull);
+    const uint32_t        rowWordCount = denseRegIndex.wordCount();
     std::vector<uint64_t> liveInBits(static_cast<size_t>(instructionCount) * rowWordCount, 0);
 
     std::vector<SmallVector<uint32_t>> predecessors(instructionCount);

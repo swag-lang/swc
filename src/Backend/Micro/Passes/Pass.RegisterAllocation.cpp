@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -18,18 +19,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t ensureDenseRegIndex(std::unordered_map<MicroReg, uint32_t>& regToIndex, std::vector<MicroReg>& regs, const MicroReg reg)
-    {
-        const auto it = regToIndex.find(reg);
-        if (it != regToIndex.end())
-            return it->second;
-
-        const uint32_t newIndex = static_cast<uint32_t>(regs.size());
-        regToIndex.emplace(reg, newIndex);
-        regs.push_back(reg);
-        return newIndex;
-    }
-
     void denseBitSet(std::span<uint64_t> bits, uint32_t bitIndex)
     {
         if (bits.empty())
@@ -288,15 +277,11 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     if (instructionRefs.size() != instructionCount_)
         return;
 
-    std::unordered_map<MicroReg, uint32_t> denseVirtual;
-    std::vector<MicroReg>                  virtualRegs;
-    std::unordered_map<MicroReg, uint32_t> denseConcrete;
-    std::vector<MicroReg>                  concreteRegs;
-    const size_t                           denseReserve = static_cast<size_t>(instructionCount_) * 2ull + 8ull;
+    MicroDenseRegIndex denseVirtual;
+    MicroDenseRegIndex denseConcrete;
+    const size_t       denseReserve = static_cast<size_t>(instructionCount_) * 2ull + 8ull;
     denseVirtual.reserve(denseReserve);
     denseConcrete.reserve(denseReserve);
-    virtualRegs.reserve(denseReserve);
-    concreteRegs.reserve(denseReserve);
 
     std::vector<SmallVector<uint32_t, 4>> useVirtualIndices(instructionCount_);
     std::vector<SmallVector<uint32_t, 4>> defVirtualIndices(instructionCount_);
@@ -315,12 +300,12 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
-                const uint32_t regIndex = ensureDenseRegIndex(denseVirtual, virtualRegs, reg);
+                const uint32_t regIndex = denseVirtual.ensure(reg);
                 usesV.push_back(regIndex);
             }
             else if (reg.isInt() || reg.isFloat())
             {
-                const uint32_t regIndex = ensureDenseRegIndex(denseConcrete, concreteRegs, reg);
+                const uint32_t regIndex = denseConcrete.ensure(reg);
                 usesC.push_back(regIndex);
             }
         }
@@ -329,12 +314,12 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
-                const uint32_t regIndex = ensureDenseRegIndex(denseVirtual, virtualRegs, reg);
+                const uint32_t regIndex = denseVirtual.ensure(reg);
                 defsV.push_back(regIndex);
             }
             else if (reg.isInt() || reg.isFloat())
             {
-                const uint32_t regIndex = ensureDenseRegIndex(denseConcrete, concreteRegs, reg);
+                const uint32_t regIndex = denseConcrete.ensure(reg);
                 defsC.push_back(regIndex);
             }
         }
@@ -344,19 +329,21 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             const CallConv& callConv = CallConv::get(useDef.callConv);
             for (const MicroReg reg : callConv.intTransientRegs)
             {
-                const uint32_t regIndex = ensureDenseRegIndex(denseConcrete, concreteRegs, reg);
+                const uint32_t regIndex = denseConcrete.ensure(reg);
                 defsC.push_back(regIndex);
             }
             for (const MicroReg reg : callConv.floatTransientRegs)
             {
-                const uint32_t regIndex = ensureDenseRegIndex(denseConcrete, concreteRegs, reg);
+                const uint32_t regIndex = denseConcrete.ensure(reg);
                 defsC.push_back(regIndex);
             }
         }
     }
 
-    const uint32_t virtualWordCount  = static_cast<uint32_t>((virtualRegs.size() + 63ull) / 64ull);
-    const uint32_t concreteWordCount = static_cast<uint32_t>((concreteRegs.size() + 63ull) / 64ull);
+    const uint32_t virtualWordCount  = denseVirtual.wordCount();
+    const uint32_t concreteWordCount = denseConcrete.wordCount();
+    const auto&    virtualRegs       = denseVirtual.regs();
+    const auto&    concreteRegs      = denseConcrete.regs();
 
     std::vector<uint64_t> liveInVirtualBits(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
     std::vector<uint64_t> liveInConcreteBits(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);

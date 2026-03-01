@@ -21,19 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct MicroOptimizationPasses
-    {
-        MicroControlFlowSimplificationPass* cfgSimplifyPass         = nullptr;
-        MicroInstructionCombinePass*        instructionCombinePass  = nullptr;
-        MicroStrengthReductionPass*         strengthReductionPass   = nullptr;
-        MicroCopyPropagationPass*           copyPropagationPass     = nullptr;
-        MicroConstantPropagationPass*       constantPropagationPass = nullptr;
-        MicroDeadCodeEliminationPass*       deadCodePass            = nullptr;
-        MicroBranchFoldingPass*             branchFoldingPass       = nullptr;
-        MicroLoadStoreForwardingPass*       loadStoreForwardPass    = nullptr;
-        MicroPeepholePass*                  peepholePass            = nullptr;
-    };
-
     void registerMandatoryPasses(MicroPassManager& passManager, MicroRegisterAllocationPass& regAllocPass, MicroLegalizePass& legalizePass)
     {
         passManager.addMandatory(regAllocPass);
@@ -41,87 +28,100 @@ namespace
         passManager.addMandatory(regAllocPass);
     }
 
-    void registerLateOptimizationFinalPasses(MicroPassManager& passManager, const Runtime::BuildCfgBackend& backendCfg, const MicroOptimizationPasses& passes)
+    void registerLateOptimizationFinalPasses(MicroPassManager&                   passManager,
+                                             const Runtime::BuildCfgBackend&     backendCfg,
+                                             MicroControlFlowSimplificationPass& cfgSimplifyPass,
+                                             MicroConstantPropagationPass&       constantPropagationPass,
+                                             MicroDeadCodeEliminationPass&       deadCodePass,
+                                             MicroBranchFoldingPass&             branchFoldingPass,
+                                             MicroLoadStoreForwardingPass&       loadStoreForwardPass,
+                                             MicroPeepholePass&                  peepholePass)
     {
         if (!backendCfg.optimize)
             return;
 
-        passManager.addFinal(*passes.constantPropagationPass);
-        passManager.addFinal(*passes.loadStoreForwardPass);
-        passManager.addFinal(*passes.branchFoldingPass);
-        passManager.addFinal(*passes.cfgSimplifyPass);
-        passManager.addFinal(*passes.deadCodePass);
-        passManager.addFinal(*passes.peepholePass);
-        passManager.addFinal(*passes.constantPropagationPass);
-        passManager.addFinal(*passes.branchFoldingPass);
-        passManager.addFinal(*passes.cfgSimplifyPass);
+        passManager.addFinal(constantPropagationPass);
+        passManager.addFinal(loadStoreForwardPass);
+        passManager.addFinal(branchFoldingPass);
+        passManager.addFinal(cfgSimplifyPass);
+        passManager.addFinal(deadCodePass);
+        passManager.addFinal(peepholePass);
+        passManager.addFinal(constantPropagationPass);
+        passManager.addFinal(branchFoldingPass);
+        passManager.addFinal(cfgSimplifyPass);
     }
 
-    void registerFinalPasses(MicroPassManager&               passManager,
-                             const Runtime::BuildCfgBackend& backendCfg,
-                             const MicroOptimizationPasses&  optimizationPasses,
-                             MicroPrologEpilogPass&          prologEpilogPass,
-                             MicroRegisterAllocationPass&    regAllocPass,
-                             MicroLegalizePass&              legalizePass,
-                             MicroEmitPass&                  emitPass)
+    void registerFinalPasses(MicroPassManager&                   passManager,
+                             const Runtime::BuildCfgBackend&     backendCfg,
+                             MicroControlFlowSimplificationPass& cfgSimplifyPass,
+                             MicroConstantPropagationPass&       constantPropagationPass,
+                             MicroDeadCodeEliminationPass&       deadCodePass,
+                             MicroBranchFoldingPass&             branchFoldingPass,
+                             MicroLoadStoreForwardingPass&       loadStoreForwardPass,
+                             MicroPeepholePass&                  peepholePass,
+                             MicroPrologEpilogPass&              prologEpilogPass,
+                             MicroRegisterAllocationPass&        regAllocPass,
+                             MicroLegalizePass&                  legalizePass,
+                             MicroEmitPass&                      emitPass)
     {
-        registerLateOptimizationFinalPasses(passManager, backendCfg, optimizationPasses);
+        registerLateOptimizationFinalPasses(passManager, backendCfg, cfgSimplifyPass, constantPropagationPass, deadCodePass, branchFoldingPass, loadStoreForwardPass, peepholePass);
 
         passManager.addFinal(prologEpilogPass);
         passManager.addFinal(legalizePass);
         if (backendCfg.optimize)
         {
-            passManager.addFinal(*optimizationPasses.constantPropagationPass);
-            passManager.addFinal(*optimizationPasses.loadStoreForwardPass);
-            passManager.addFinal(*optimizationPasses.branchFoldingPass);
-            passManager.addFinal(*optimizationPasses.cfgSimplifyPass);
-            passManager.addFinal(*optimizationPasses.peepholePass);
-            passManager.addFinal(*optimizationPasses.deadCodePass);
-            passManager.addFinal(*optimizationPasses.constantPropagationPass);
-            passManager.addFinal(*optimizationPasses.branchFoldingPass);
-            passManager.addFinal(*optimizationPasses.cfgSimplifyPass);
+            passManager.addFinal(constantPropagationPass);
+            passManager.addFinal(loadStoreForwardPass);
+            passManager.addFinal(branchFoldingPass);
+            passManager.addFinal(cfgSimplifyPass);
+            passManager.addFinal(peepholePass);
+            passManager.addFinal(deadCodePass);
+            passManager.addFinal(constantPropagationPass);
+            passManager.addFinal(branchFoldingPass);
+            passManager.addFinal(cfgSimplifyPass);
         }
         passManager.addFinal(regAllocPass);
         if (backendCfg.optimize)
         {
-            passManager.addFinal(*optimizationPasses.constantPropagationPass);
-            passManager.addFinal(*optimizationPasses.loadStoreForwardPass);
-            passManager.addFinal(*optimizationPasses.peepholePass);
-            passManager.addFinal(*optimizationPasses.deadCodePass);
-            passManager.addFinal(*optimizationPasses.constantPropagationPass);
-            passManager.addFinal(*optimizationPasses.branchFoldingPass);
-            passManager.addFinal(*optimizationPasses.cfgSimplifyPass);
+            passManager.addFinal(constantPropagationPass);
+            passManager.addFinal(loadStoreForwardPass);
+            passManager.addFinal(peepholePass);
+            passManager.addFinal(deadCodePass);
+            passManager.addFinal(constantPropagationPass);
+            passManager.addFinal(branchFoldingPass);
+            passManager.addFinal(cfgSimplifyPass);
         }
         passManager.addFinal(emitPass);
     }
 
-    void registerOptimizationPassesOff(MicroPassManager&, const MicroOptimizationPasses&)
-    {
-    }
-
-    void registerOptimizationPassesOn(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
-    {
-        passManager.addPreOptimization(*passes.strengthReductionPass);
-        passManager.addPreOptimization(*passes.instructionCombinePass);
-        passManager.addPreOptimization(*passes.copyPropagationPass);
-        passManager.addPreOptimization(*passes.constantPropagationPass);
-        passManager.addPreOptimization(*passes.loadStoreForwardPass);
-        passManager.addPreOptimization(*passes.branchFoldingPass);
-        passManager.addPreOptimization(*passes.cfgSimplifyPass);
-        passManager.addPostOptimization(*passes.branchFoldingPass);
-        passManager.addPostOptimization(*passes.cfgSimplifyPass);
-        passManager.addPostOptimization(*passes.constantPropagationPass);
-        passManager.addPostOptimization(*passes.deadCodePass);
-        passManager.addPostOptimization(*passes.peepholePass);
-        passManager.addPostOptimization(*passes.cfgSimplifyPass);
-    }
-
-    void registerOptimizationPasses(MicroPassManager& passManager, const Runtime::BuildCfgBackend& backendCfg, const MicroOptimizationPasses& passes)
+    void registerOptimizationPasses(MicroPassManager&                   passManager,
+                                    const Runtime::BuildCfgBackend&     backendCfg,
+                                    MicroControlFlowSimplificationPass& cfgSimplifyPass,
+                                    MicroInstructionCombinePass&        instructionCombinePass,
+                                    MicroStrengthReductionPass&         strengthReductionPass,
+                                    MicroCopyPropagationPass&           copyPropagationPass,
+                                    MicroConstantPropagationPass&       constantPropagationPass,
+                                    MicroDeadCodeEliminationPass&       deadCodePass,
+                                    MicroBranchFoldingPass&             branchFoldingPass,
+                                    MicroLoadStoreForwardingPass&       loadStoreForwardPass,
+                                    MicroPeepholePass&                  peepholePass)
     {
         if (!backendCfg.optimize)
-            registerOptimizationPassesOff(passManager, passes);
-        else
-            registerOptimizationPassesOn(passManager, passes);
+            return;
+
+        passManager.addPreOptimization(strengthReductionPass);
+        passManager.addPreOptimization(instructionCombinePass);
+        passManager.addPreOptimization(copyPropagationPass);
+        passManager.addPreOptimization(constantPropagationPass);
+        passManager.addPreOptimization(loadStoreForwardPass);
+        passManager.addPreOptimization(branchFoldingPass);
+        passManager.addPreOptimization(cfgSimplifyPass);
+        passManager.addPostOptimization(branchFoldingPass);
+        passManager.addPostOptimization(cfgSimplifyPass);
+        passManager.addPostOptimization(constantPropagationPass);
+        passManager.addPostOptimization(deadCodePass);
+        passManager.addPostOptimization(peepholePass);
+        passManager.addPostOptimization(cfgSimplifyPass);
     }
 }
 
@@ -182,21 +182,31 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     encoder.clearDebugSourceRanges();
 #endif
 
-    MicroOptimizationPasses optimizationPasses;
-    optimizationPasses.cfgSimplifyPass         = &cfgSimplifyPass;
-    optimizationPasses.instructionCombinePass  = &instructionCombinePass;
-    optimizationPasses.strengthReductionPass   = &strengthReductionPass;
-    optimizationPasses.copyPropagationPass     = &copyPropagationPass;
-    optimizationPasses.constantPropagationPass = &constantPropagationPass;
-    optimizationPasses.deadCodePass            = &deadCodePass;
-    optimizationPasses.branchFoldingPass       = &branchFoldingPass;
-    optimizationPasses.loadStoreForwardPass    = &loadStoreForwardPass;
-    optimizationPasses.peepholePass            = &peepholePass;
-
     MicroPassManager passManager;
-    registerOptimizationPasses(passManager, builder.backendBuildCfg(), optimizationPasses);
+    registerOptimizationPasses(passManager,
+                               builder.backendBuildCfg(),
+                               cfgSimplifyPass,
+                               instructionCombinePass,
+                               strengthReductionPass,
+                               copyPropagationPass,
+                               constantPropagationPass,
+                               deadCodePass,
+                               branchFoldingPass,
+                               loadStoreForwardPass,
+                               peepholePass);
     registerMandatoryPasses(passManager, regAllocPass, legalizePass);
-    registerFinalPasses(passManager, builder.backendBuildCfg(), optimizationPasses, prologEpilogPass, regAllocPass, legalizePass, emitPass);
+    registerFinalPasses(passManager,
+                        builder.backendBuildCfg(),
+                        cfgSimplifyPass,
+                        constantPropagationPass,
+                        deadCodePass,
+                        branchFoldingPass,
+                        loadStoreForwardPass,
+                        peepholePass,
+                        prologEpilogPass,
+                        regAllocPass,
+                        legalizePass,
+                        emitPass);
 
 #if SWC_HAS_STATS
     const size_t numMicroInstrNoOptim    = builder.instructions().count();

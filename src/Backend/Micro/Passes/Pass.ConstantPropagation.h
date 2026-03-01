@@ -60,17 +60,17 @@ public:
 private:
     using DeferredDef = std::optional<std::pair<MicroReg, uint64_t>>;
 
-    Result rewriteInstructionFromKnownValues(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
-    Result rewriteLoadFromMemoryInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const;
-    Result rewriteLoadAndMoveInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, const DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
-    Result rewriteRegisterOperationInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
-    Result rewriteMemoryOperandInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops);
+    Result rewriteInstructionFromKnownValues(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
+    Result rewriteLoadFromMemoryInstructions(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const;
+    Result rewriteLoadAndMoveInstructions(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, const DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
+    Result rewriteRegisterOperationInstructions(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
+    Result rewriteMemoryOperandInstructions(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops);
     void   invalidateStateForDefinitions(const MicroInstrUseDef& useDef);
-    Result trackKnownMemoryWrite(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops);
+    Result trackKnownMemoryWrite(MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops);
     Result trackStackStoreInstruction(const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
-    Result trackStackMutationInstruction(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
+    Result trackStackMutationInstruction(MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
     bool   tryTrackConstantPointerStackCopy(uint64_t stackOffset, MicroOpBits slotOpBits, MicroReg sourceReg, const MicroInstr* prevInst, const MicroInstrOperand* prevOps);
-    Result updateKnownRegistersForInstruction(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops);
+    Result updateKnownRegistersForInstruction(MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops);
     void   applyDeferredKnownDefinition(const DeferredDef& deferredKnownDef);
     void   updateKnownConstantPointersForInstruction(MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops);
     void   updateKnownAddressesForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);

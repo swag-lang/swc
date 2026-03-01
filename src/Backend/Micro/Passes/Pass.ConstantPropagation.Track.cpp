@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.Private.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
@@ -23,8 +24,9 @@ void MicroConstantPropagationPass::invalidateStateForDefinitions(const MicroInst
 
 // Update stack-slot facts after memory writes. Kept separate from rewrite
 // logic to make dataflow effects explicit.
-Result MicroConstantPropagationPass::trackKnownMemoryWrite(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops)
+Result MicroConstantPropagationPass::trackKnownMemoryWrite(MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops)
 {
+    SWC_ASSERT(context_ != nullptr);
     bool handledMemoryWrite = false;
 
     switch (inst.op)
@@ -39,7 +41,7 @@ Result MicroConstantPropagationPass::trackKnownMemoryWrite(const MicroPassContex
         case MicroInstrOpcode::OpBinaryMemImm:
         case MicroInstrOpcode::OpBinaryMemReg:
         case MicroInstrOpcode::OpUnaryMem:
-            SWC_RESULT_VERIFY(trackStackMutationInstruction(context, instRef, inst, ops, handledMemoryWrite));
+            SWC_RESULT_VERIFY(trackStackMutationInstruction(instRef, inst, ops, handledMemoryWrite));
             break;
 
         default:
@@ -144,8 +146,9 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite)
+Result MicroConstantPropagationPass::trackStackMutationInstruction(MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite)
 {
+    SWC_ASSERT(context_ != nullptr);
     switch (inst.op)
     {
         case MicroInstrOpcode::OpBinaryMemImm:
@@ -208,7 +211,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPa
                     if (foldStatus == Math::FoldStatus::Ok)
                         setKnownStackSlot(knownStackSlots_, stackOffset, ops[1].opBits, foldedValue);
                     else if (Math::isSafetyError(foldStatus))
-                        return MicroPassHelpers::raiseFoldSafetyError(context, instRef, foldStatus);
+                        return MicroPassHelpers::raiseFoldSafetyError(*context_, instRef, foldStatus);
                     else
                         eraseOverlappingStackSlots(knownStackSlots_, stackOffset, ops[1].opBits);
                 }
@@ -257,8 +260,9 @@ bool MicroConstantPropagationPass::tryTrackConstantPointerStackCopy(uint64_t sta
     return true;
 }
 
-Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
+Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
 {
+    SWC_ASSERT(context_ != nullptr);
     switch (inst.op)
     {
         case MicroInstrOpcode::LoadRegImm:
@@ -305,7 +309,7 @@ Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(const Mi
                 else if (foldResult == BinaryFoldResult::SafetyError)
                 {
                     if (!MicroPassHelpers::isAddOrSubMicroOp(ops[2].microOp))
-                        return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
+                        return MicroPassHelpers::raiseFoldSafetyError(*context_, instRef, safetyStatus);
                 }
             }
             break;

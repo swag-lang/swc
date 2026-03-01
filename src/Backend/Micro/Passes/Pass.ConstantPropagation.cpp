@@ -61,7 +61,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             }
         }
 
-        SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(context, instRef, inst, ops, deferredKnownDef, deferredAddressDef));
+        SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(instRef, inst, ops, deferredKnownDef, deferredAddressDef));
 
         // Phase 2: consume defs/calls and invalidate stale state.
         updateCompareStateForInstruction(inst, ops, deferredKnownDef);
@@ -78,10 +78,10 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         }
 
         // Phase 3: update tracked stack facts for memory writes.
-        SWC_RESULT_VERIFY(trackKnownMemoryWrite(context, instRef, prevInst, prevOps, inst, ops));
+        SWC_RESULT_VERIFY(trackKnownMemoryWrite(instRef, prevInst, prevOps, inst, ops));
 
         // Phase 4: rebuild facts produced by the rewritten instruction.
-        SWC_RESULT_VERIFY(updateKnownRegistersForInstruction(context, instRef, inst, ops));
+        SWC_RESULT_VERIFY(updateKnownRegistersForInstruction(instRef, inst, ops));
 
         applyDeferredKnownDefinition(deferredKnownDef);
         updateKnownConstantPointersForInstruction(instRef, inst, ops);

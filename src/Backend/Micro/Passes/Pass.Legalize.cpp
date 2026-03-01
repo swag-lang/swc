@@ -55,7 +55,7 @@ namespace
         for (; it != view.end(); ++it)
         {
             const MicroInstr&      scanInst = *it;
-            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return true;
 
@@ -100,7 +100,7 @@ namespace
         for (const MicroInstr& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
-            inst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
+            inst.collectRegOperands(*context.operands, refs, context.encoder);
             for (const auto& ref : refs)
             {
                 if (!ref.reg)
@@ -156,7 +156,7 @@ namespace
         for (auto it = view.begin(); it != view.end() && it.current != instRef; ++it)
         {
             const MicroInstr&        scanInst = *it;
-            const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
             if (!scanOps)
                 continue;
 
@@ -782,7 +782,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         const MicroInstr&        inst = *it;
-        const MicroInstrOperand* ops  = inst.ops(*SWC_NOT_NULL(context.operands));
+        const MicroInstrOperand* ops  = inst.ops(*context.operands);
 
         MicroConformanceIssue issue;
         if (!encoder.queryConformanceIssue(issue, inst, ops))

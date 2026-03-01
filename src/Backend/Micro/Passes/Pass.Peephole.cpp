@@ -102,7 +102,7 @@ namespace
     MicroStorage::Iterator computeResumeIterator(const MicroPassContext& context, const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt)
     {
         SWC_ASSERT(context.instructions != nullptr);
-        auto& storage = *SWC_NOT_NULL(context.instructions);
+        auto& storage = *context.instructions;
 
         if (storage.ptr(instRef) != nullptr)
         {
@@ -145,7 +145,7 @@ Result MicroPeepholePass::run(MicroPassContext& context)
 
         const MicroInstrRef      instRef = it.current;
         MicroInstr&              inst    = *it;
-        const MicroInstrOperand* ops     = inst.ops(*SWC_NOT_NULL(context.operands));
+        const MicroInstrOperand* ops     = inst.ops(*context.operands);
         auto                     nextIt  = it;
         ++nextIt;
 

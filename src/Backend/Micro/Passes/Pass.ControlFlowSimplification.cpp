@@ -147,8 +147,8 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
 
     bool                     changed  = false;
-    MicroStorage&            storage  = *SWC_NOT_NULL(context.instructions);
-    MicroOperandStorage&     operands = *SWC_NOT_NULL(context.operands);
+    MicroStorage&            storage  = *context.instructions;
+    MicroOperandStorage&     operands = *context.operands;
     const MicroStorage::View view     = storage.view();
     const auto               endIt    = view.end();
     const auto               beginIt  = view.begin();

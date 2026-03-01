@@ -23,7 +23,7 @@ namespace
         SWC_ASSERT(context.instructions != nullptr);
         SWC_ASSERT(context.operands != nullptr);
 
-        MicroOperandStorage& storeOps = *SWC_NOT_NULL(context.operands);
+        MicroOperandStorage& storeOps = *context.operands;
         for (const MicroInstr& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;

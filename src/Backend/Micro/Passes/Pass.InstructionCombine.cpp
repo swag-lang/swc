@@ -98,8 +98,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
 
     bool                 changed  = false;
-    MicroStorage&        storage  = *SWC_NOT_NULL(context.instructions);
-    MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
+    MicroStorage&        storage  = *context.instructions;
+    MicroOperandStorage& operands = *context.operands;
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
         const MicroInstr& first = *it;

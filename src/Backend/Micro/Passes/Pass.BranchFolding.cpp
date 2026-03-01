@@ -156,8 +156,8 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
     known.reserve(64);
     CompareState compareState{};
 
-    MicroStorage&                     storage  = *SWC_NOT_NULL(context.instructions);
-    MicroOperandStorage&              operands = *SWC_NOT_NULL(context.operands);
+    MicroStorage&                     storage  = *context.instructions;
+    MicroOperandStorage&              operands = *context.operands;
     std::unordered_set<MicroLabelRef> referencedLabels;
     referencedLabels.reserve(storage.count());
     for (const MicroInstr& scanInst : storage.view())

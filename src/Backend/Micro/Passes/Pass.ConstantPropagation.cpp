@@ -672,8 +672,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     if (context.encoder)
         stackPointerReg = context.encoder->stackPointerReg();
 
-    MicroStorage&                                             storage  = *SWC_NOT_NULL(context.instructions);
-    MicroOperandStorage&                                      operands = *SWC_NOT_NULL(context.operands);
+    MicroStorage&                                             storage  = *context.instructions;
+    MicroOperandStorage&                                      operands = *context.operands;
     std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstructionRef;
     if (context.builder)
     {

@@ -53,7 +53,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
     std::unordered_map<uint32_t, MicroReg> aliases;
     aliases.reserve(64);
 
-    MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
+    MicroOperandStorage& operands = *context.operands;
     for (const MicroInstr& inst : context.instructions->view())
     {
         if (inst.op == MicroInstrOpcode::Label)

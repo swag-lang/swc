@@ -55,7 +55,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroPass
                 break;
 
             uint64_t stackOffset = 0;
-            if (!tryResolveStackOffsetForAmcFromState(stackOffset, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
+            if (!tryResolveStackOffsetForAmc(stackOffset, knownAddresses_, known_, stackPointerReg_, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
                 break;
 
             InstrRewriteSnapshot rewriteSnapshot;
@@ -96,7 +96,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroPass
         case MicroInstrOpcode::LoadRegMem:
         {
             uint64_t stackOffset = 0;
-            if (!tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[3].valueU64))
+            if (!tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[1].reg, ops[3].valueU64))
                 break;
 
             uint64_t knownValue = 0;
@@ -133,7 +133,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroPass
                 break;
 
             uint64_t stackOffset = 0;
-            if (!tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[4].valueU64))
+            if (!tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[1].reg, ops[4].valueU64))
                 break;
 
             uint64_t knownValue = 0;
@@ -274,7 +274,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroP
                 break;
 
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[4].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[1].reg, ops[4].valueU64))
             {
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits))

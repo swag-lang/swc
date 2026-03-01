@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/Passes/Pass.ConstantPropagation.Private.h"
 
 // Propagates known constants through register operations.
 // Example: load r1, 5; add r2, r1  ->  add r2, 5.
@@ -29,8 +31,35 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         DeferredDef         deferredAddressDef;
 
         // Phase 1: rewrite the instruction from currently known values.
-        if (rewriteMemoryBaseToKnownStack(inst, ops))
-            context.passChanged = true;
+        if (ops && stackPointerReg_.isValid())
+        {
+            uint8_t memBaseIndex   = 0;
+            uint8_t memOffsetIndex = 0;
+            if (MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, inst))
+            {
+                const MicroReg baseReg = ops[memBaseIndex].reg;
+                if (baseReg.isInt() && baseReg != stackPointerReg_)
+                {
+                    uint64_t stackOffset = 0;
+                    if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, baseReg, ops[memOffsetIndex].valueU64))
+                    {
+                        const MicroReg originalBase   = ops[memBaseIndex].reg;
+                        const uint64_t originalOffset = ops[memOffsetIndex].valueU64;
+                        ops[memBaseIndex].reg         = stackPointerReg_;
+                        ops[memOffsetIndex].valueU64  = stackOffset;
+                        if (MicroPassHelpers::violatesEncoderConformance(context, inst, ops))
+                        {
+                            ops[memBaseIndex].reg        = originalBase;
+                            ops[memOffsetIndex].valueU64 = originalOffset;
+                        }
+                        else
+                        {
+                            context.passChanged = true;
+                        }
+                    }
+                }
+            }
+        }
 
         SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(context, instRef, inst, ops, deferredKnownDef, deferredAddressDef));
 

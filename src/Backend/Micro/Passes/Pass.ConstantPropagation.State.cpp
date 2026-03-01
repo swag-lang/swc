@@ -117,7 +117,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 break;
 
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[2].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[2].valueU64))
             {
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[1].opBits))
@@ -144,7 +144,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 break;
 
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[3].valueU64))
             {
                 uint64_t   knownValue = 0;
                 const auto itKnownRhs = known_.find(ops[1].reg);
@@ -206,27 +206,6 @@ void MicroConstantPropagationPass::clearForCallBoundary(CallConvKind callConvKin
     knownStackAddresses_.clear();
     knownConstantPointers_.clear();
     compareState_.valid = false;
-}
-
-bool MicroConstantPropagationPass::tryResolveStackOffsetFromState(uint64_t& outOffset, MicroReg baseReg, uint64_t baseOffset) const
-{
-    return tryResolveStackOffset(outOffset, knownAddresses_, stackPointerReg_, baseReg, baseOffset);
-}
-
-bool MicroConstantPropagationPass::tryResolveStackOffsetForAmcFromState(uint64_t& outOffset, MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue) const
-{
-    return tryResolveStackOffsetForAmc(outOffset, knownAddresses_, known_, stackPointerReg_, baseReg, mulReg, mulValue, addValue);
-}
-
-bool MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const
-{
-    SWC_ASSERT(context_ != nullptr);
-    return tryRewriteMemoryBaseToStack(*context_, inst, ops, stackPointerReg_, knownAddresses_);
-}
-
-bool MicroConstantPropagationPass::definesRegisterInSet(MicroRegSpan defs, MicroReg reg)
-{
-    return microRegSpanContains(defs, reg);
 }
 
 SWC_END_NAMESPACE();

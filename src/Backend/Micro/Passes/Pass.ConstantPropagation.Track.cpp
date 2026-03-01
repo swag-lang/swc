@@ -13,7 +13,7 @@ void MicroConstantPropagationPass::invalidateStateForDefinitions(const MicroInst
     eraseKnownAddressDefs(knownAddresses_, useDef.defs);
     eraseKnownConstantPointerDefs(knownConstantPointers_, useDef.defs);
 
-    if (stackPointerReg_.isValid() && definesRegisterInSet(useDef.defs, stackPointerReg_))
+    if (stackPointerReg_.isValid() && microRegSpanContains(useDef.defs, stackPointerReg_))
     {
         knownStackSlots_.clear();
         knownAddresses_.clear();
@@ -62,7 +62,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
         case MicroInstrOpcode::LoadMemImm:
         {
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[2].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[2].valueU64))
             {
                 setKnownStackSlot(knownStackSlots_, stackOffset, ops[1].opBits, ops[3].valueU64);
                 eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[1].opBits);
@@ -74,7 +74,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
         case MicroInstrOpcode::LoadMemReg:
         {
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[3].valueU64))
             {
                 const auto itKnownReg = known_.find(ops[1].reg);
                 if (itKnownReg != known_.end())
@@ -101,7 +101,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
         case MicroInstrOpcode::LoadAmcMemImm:
         {
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetForAmcFromState(stackOffset, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
+            if (tryResolveStackOffsetForAmc(stackOffset, knownAddresses_, known_, stackPointerReg_, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
             {
                 setKnownStackSlot(knownStackSlots_, stackOffset, ops[4].opBits, ops[7].valueU64);
                 eraseOverlappingStackAddresses(knownStackAddresses_, stackOffset, ops[4].opBits);
@@ -113,7 +113,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
         case MicroInstrOpcode::LoadAmcMemReg:
         {
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetForAmcFromState(stackOffset, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
+            if (tryResolveStackOffsetForAmc(stackOffset, knownAddresses_, known_, stackPointerReg_, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
             {
                 const auto itKnownReg = known_.find(ops[2].reg);
                 if (itKnownReg != known_.end())
@@ -151,7 +151,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPa
         case MicroInstrOpcode::OpBinaryMemImm:
         {
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[3].valueU64))
             {
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[1].opBits))
@@ -174,7 +174,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPa
         case MicroInstrOpcode::OpBinaryMemReg:
         {
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[4].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[4].valueU64))
             {
                 uint64_t   knownValue = 0;
                 const auto itKnownReg = known_.find(ops[1].reg);
@@ -198,7 +198,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPa
         case MicroInstrOpcode::OpUnaryMem:
         {
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[3].valueU64))
             {
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[1].opBits))
@@ -418,7 +418,7 @@ void MicroConstantPropagationPass::updateKnownAddressesForInstruction(const Micr
             if (!ops[0].reg.isInt())
                 break;
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[3].valueU64))
+            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[1].reg, ops[3].valueU64))
                 knownAddresses_[ops[0].reg] = stackOffset;
             break;
         }
@@ -427,7 +427,7 @@ void MicroConstantPropagationPass::updateKnownAddressesForInstruction(const Micr
             if (!ops[0].reg.isInt())
                 break;
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffsetForAmcFromState(stackOffset, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
+            if (tryResolveStackOffsetForAmc(stackOffset, knownAddresses_, known_, stackPointerReg_, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
             {
                 knownAddresses_[ops[0].reg] = stackOffset;
             }

@@ -158,38 +158,6 @@ namespace
         return false;
     }
 
-    bool tryRewriteMemoryBaseToStack(const MicroPassContext& context, const MicroInstr& inst, MicroInstrOperand* ops, MicroReg stackPointerReg, const KnownAddressMap& knownAddresses)
-    {
-        if (!ops || !stackPointerReg.isValid())
-            return false;
-
-        uint8_t memBaseIndex   = 0;
-        uint8_t memOffsetIndex = 0;
-        if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, inst))
-            return false;
-
-        const MicroReg baseReg = ops[memBaseIndex].reg;
-        if (!baseReg.isInt() || baseReg == stackPointerReg)
-            return false;
-
-        uint64_t stackOffset = 0;
-        if (!tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, baseReg, ops[memOffsetIndex].valueU64))
-            return false;
-
-        const MicroReg originalBase   = ops[memBaseIndex].reg;
-        const uint64_t originalOffset = ops[memOffsetIndex].valueU64;
-        ops[memBaseIndex].reg         = stackPointerReg;
-        ops[memOffsetIndex].valueU64  = stackOffset;
-        if (MicroPassHelpers::violatesEncoderConformance(context, inst, ops))
-        {
-            ops[memBaseIndex].reg        = originalBase;
-            ops[memOffsetIndex].valueU64 = originalOffset;
-            return false;
-        }
-
-        return true;
-    }
-
     void eraseKnownDefs(KnownRegMap& known, MicroRegSpan defs)
     {
         for (const MicroReg reg : defs)

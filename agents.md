@@ -9,7 +9,7 @@
     - Verify expected successful behavior.
     - Verify expected failures by asserting the correct errors are raised.
 - Do not hack or make workarounds, always find the root cause of each problem.
-- Do not run a test for more than 20 seconds, as it can hang in case of failure.
+- Do not run a test for more than 40 seconds, as it can hang in case of failure.
 
 ## Coding Rules
 

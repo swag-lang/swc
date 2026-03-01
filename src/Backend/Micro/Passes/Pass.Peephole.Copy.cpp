@@ -858,10 +858,14 @@ namespace
 
         MicroInstrOperand* mutableOpOps   = opInst.ops(*context.operands);
         const MicroReg     originalDstReg = mutableOpOps[0].reg;
+        const MicroReg     originalSrcReg = mutableOpOps[1].reg;
         mutableOpOps[0].reg               = srcReg;
+        if (mutableOpOps[1].reg == tmpReg)
+            mutableOpOps[1].reg = srcReg;
         if (MicroPassHelpers::violatesEncoderConformance(context, opInst, mutableOpOps))
         {
             mutableOpOps[0].reg = originalDstReg;
+            mutableOpOps[1].reg = originalSrcReg;
             return false;
         }
 
@@ -1629,10 +1633,14 @@ namespace
             return false;
 
         const MicroReg originalReg = prevOpOps[0].reg;
+        const MicroReg originalSrc = prevOpOps[1].reg;
         mutablePrevOpOps[0].reg    = origReg;
+        if (mutablePrevOpOps[1].reg == tmpReg)
+            mutablePrevOpOps[1].reg = origReg;
         if (MicroPassHelpers::violatesEncoderConformance(context, prevOpInst, mutablePrevOpOps))
         {
             mutablePrevOpOps[0].reg = originalReg;
+            mutablePrevOpOps[1].reg = originalSrc;
             return false;
         }
 

@@ -322,6 +322,21 @@ namespace
                op == MicroOp::ShiftArithmeticRight;
     }
 
+    bool supportsOpBinaryMemReg(MicroOp op)
+    {
+        return op == MicroOp::Xor ||
+               op == MicroOp::Or ||
+               op == MicroOp::And ||
+               op == MicroOp::Add ||
+               op == MicroOp::Subtract ||
+               op == MicroOp::ShiftLeft ||
+               op == MicroOp::ShiftArithmeticLeft ||
+               op == MicroOp::ShiftRight ||
+               op == MicroOp::RotateLeft ||
+               op == MicroOp::RotateRight ||
+               op == MicroOp::ShiftArithmeticRight;
+    }
+
     uint8_t getRex(bool w, bool r, bool x, bool b)
     {
         uint8_t rex = 0x40;
@@ -820,6 +835,24 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
     {
         const MicroOp op = ops[3].microOp;
+
+        if (ops[2].opBits != MicroOpBits::B8 &&
+            ops[2].opBits != MicroOpBits::B16 &&
+            ops[2].opBits != MicroOpBits::B32 &&
+            ops[2].opBits != MicroOpBits::B64)
+        {
+            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+            outIssue.operandIndex     = 2;
+            outIssue.normalizedOpBits = MicroOpBits::B64;
+            return true;
+        }
+
+        if (!ops[0].reg.isInt() || !ops[1].reg.isInt() || !supportsOpBinaryMemReg(op))
+        {
+            outIssue.kind = MicroConformanceIssueKind::RewriteMemRegToRegReg;
+            return true;
+        }
+
         if (isShiftImmediateOp(op))
         {
             const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);

@@ -28,6 +28,7 @@ enum class MicroConformanceIssueKind : uint8_t
     RewriteLoadAddrAmcScale,
     RewriteLoadFloatRegImm,
     RewriteRegImmToRegReg,
+    RewriteMemRegToRegReg,
     RewriteRegRegOperandToFixedReg,
     RewriteRegRegOperandAwayFromFixedReg,
 };

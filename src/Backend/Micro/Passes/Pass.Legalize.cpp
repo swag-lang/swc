@@ -109,12 +109,51 @@ namespace
         return nextIndex;
     }
 
+    uint32_t computeNextVirtualFloatRegIndex(const MicroPassContext& context)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        uint32_t nextIndex = 1;
+        for (const MicroInstr& inst : context.instructions->view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(*context.operands, refs, context.encoder);
+            for (const auto& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg reg = *ref.reg;
+                if (!reg.isVirtualFloat())
+                    continue;
+
+                if (reg.index() < MicroReg::K_MAX_INDEX)
+                    nextIndex = std::max(nextIndex, reg.index() + 1);
+                else
+                    nextIndex = MicroReg::K_MAX_INDEX;
+            }
+        }
+
+        return nextIndex;
+    }
+
     MicroReg allocateVirtualIntReg(const MicroPassContext& context, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(nextVirtualIntRegIndex <= MicroReg::K_MAX_INDEX);
         SWC_ASSERT(nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX);
         const MicroReg result = MicroReg::virtualIntReg(nextVirtualIntRegIndex);
         ++nextVirtualIntRegIndex;
+        SWC_UNUSED(context);
+        return result;
+    }
+
+    MicroReg allocateVirtualFloatReg(const MicroPassContext& context, uint32_t& nextVirtualFloatRegIndex)
+    {
+        SWC_ASSERT(nextVirtualFloatRegIndex <= MicroReg::K_MAX_INDEX);
+        SWC_ASSERT(nextVirtualFloatRegIndex < MicroReg::K_MAX_INDEX);
+        const MicroReg result = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex);
+        ++nextVirtualFloatRegIndex;
         SWC_UNUSED(context);
         return result;
     }
@@ -392,6 +431,26 @@ namespace
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, ops);
     }
 
+    void insertLoadRegMem(const MicroPassContext& context, MicroInstrRef instRef, MicroReg dstReg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
+    {
+        std::array<MicroInstrOperand, 4> ops;
+        ops[0].reg      = dstReg;
+        ops[1].reg      = memReg;
+        ops[2].opBits   = opBits;
+        ops[3].valueU64 = memOffset;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, ops);
+    }
+
+    void insertLoadMemReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg memReg, uint64_t memOffset, MicroReg srcReg, MicroOpBits opBits)
+    {
+        std::array<MicroInstrOperand, 4> ops;
+        ops[0].reg      = memReg;
+        ops[1].reg      = srcReg;
+        ops[2].opBits   = opBits;
+        ops[3].valueU64 = memOffset;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemReg, ops);
+    }
+
     void insertBinaryRegReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg dstReg, MicroReg srcReg, MicroOp op, MicroOpBits opBits)
     {
         std::array<MicroInstrOperand, 4> ops;
@@ -493,6 +552,33 @@ namespace
             insertCmpMemReg(context, instRef, ops[0].reg, ops[2].valueU64, scratchReg, opBits);
         }
 
+        removeInstruction(context, instRef);
+    }
+
+    void applyRewriteMemRegToRegReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex, uint32_t& nextVirtualFloatRegIndex)
+    {
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryMemReg);
+
+        const MicroReg    memReg    = ops[0].reg;
+        const MicroReg    srcReg    = ops[1].reg;
+        const MicroOpBits opBits    = ops[2].opBits;
+        const MicroOp     op        = ops[3].microOp;
+        const uint64_t    memOffset = ops[4].valueU64;
+
+        MicroReg scratchReg = MicroReg::invalid();
+        if (srcReg.isFloat())
+            scratchReg = allocateVirtualFloatReg(context, nextVirtualFloatRegIndex);
+        else
+            scratchReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+        SWC_ASSERT(scratchReg.isValid());
+
+        addVirtualForbiddenReg(context, scratchReg, memReg);
+        addVirtualForbiddenReg(context, scratchReg, srcReg);
+
+        insertLoadRegMem(context, instRef, scratchReg, memReg, memOffset, opBits);
+        insertBinaryRegReg(context, instRef, scratchReg, srcReg, op, opBits);
+        insertLoadMemReg(context, instRef, memReg, memOffset, scratchReg, opBits);
         removeInstruction(context, instRef);
     }
 
@@ -714,7 +800,15 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, MicroInstrRef instRef, const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset, uint32_t& nextVirtualIntRegIndex)
+    void applyLegalizeIssue(const MicroPassContext&      context,
+                            const Encoder&               encoder,
+                            MicroInstrRef                instRef,
+                            const MicroInstr&            inst,
+                            MicroInstrOperand*           ops,
+                            const MicroConformanceIssue& issue,
+                            uint64_t                     stackScratchBaseOffset,
+                            uint32_t&                    nextVirtualIntRegIndex,
+                            uint32_t&                    nextVirtualFloatRegIndex)
     {
         // Encoder reports one issue at a time; apply one targeted rewrite/fix.
         switch (issue.kind)
@@ -739,6 +833,9 @@ namespace
                 return;
             case MicroConformanceIssueKind::RewriteRegImmToRegReg:
                 applyRewriteRegImmToRegReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
+                return;
+            case MicroConformanceIssueKind::RewriteMemRegToRegReg:
+                applyRewriteMemRegToRegReg(context, instRef, inst, ops, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
                 return;
             case MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg:
                 if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
@@ -765,9 +862,10 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.builder);
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
-    const auto& encoder                = *SWC_NOT_NULL(context.encoder);
-    uint64_t    stackScratchFrameSize  = 0;
-    uint32_t    nextVirtualIntRegIndex = computeNextVirtualIntRegIndex(context);
+    const auto& encoder                  = *SWC_NOT_NULL(context.encoder);
+    uint64_t    stackScratchFrameSize    = 0;
+    uint32_t    nextVirtualIntRegIndex   = computeNextVirtualIntRegIndex(context);
+    uint32_t    nextVirtualFloatRegIndex = computeNextVirtualFloatRegIndex(context);
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         const MicroInstr&        inst = *it;
@@ -807,7 +905,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         {
             context.passChanged                   = true;
             const uint64_t stackScratchBaseOffset = computeStackScratchBaseOffset(context, encoder, instRef, stackScratchFrameSize);
-            applyLegalizeIssue(context, encoder, instRef, inst, ops, issue, stackScratchBaseOffset, nextVirtualIntRegIndex);
+            applyLegalizeIssue(context, encoder, instRef, inst, ops, issue, stackScratchBaseOffset, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
 
             const MicroInstr* const currentInst = context.instructions->ptr(instRef);
             if (!currentInst)

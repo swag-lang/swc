@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -21,6 +22,15 @@ void MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInst
     const MicroReg baseReg = ops[memBaseIndex].reg;
     if (!baseReg.isInt() || baseReg == stackPointerReg_)
         return;
+
+    // Keep load-address canonicalization stable with peephole, which normalizes stack-based LEA
+    // instructions to frame-pointer form when FP mirrors SP.
+    if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
+    {
+        const CallConv& conv = CallConv::get(context_->callConvKind);
+        if (conv.framePointer.isValid() && conv.framePointer != conv.stackPointer && baseReg == conv.framePointer)
+            return;
+    }
 
     uint64_t stackOffset = 0;
     if (!tryResolveStackOffset(stackOffset, baseReg, ops[memOffsetIndex].valueU64))

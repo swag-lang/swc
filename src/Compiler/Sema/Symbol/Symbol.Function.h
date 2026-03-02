@@ -14,14 +14,14 @@ class TaskContext;
 
 enum class SymbolFunctionFlagsE : uint8_t
 {
-    Zero           = 0,
-    Closure        = 1 << 0,
-    Method         = 1 << 1,
-    Throwable      = 1 << 2,
-    Const          = 1 << 3,
-    Empty          = 1 << 4,
-    Attribute      = 1 << 5,
-    PureExpression = 1 << 6,
+    Zero      = 0,
+    Closure   = 1 << 0,
+    Method    = 1 << 1,
+    Throwable = 1 << 2,
+    Const     = 1 << 3,
+    Empty     = 1 << 4,
+    Attribute = 1 << 5,
+    Pure      = 1 << 6,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
@@ -56,10 +56,8 @@ public:
     bool             isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool             isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
     bool             isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
-    bool             isPureExpression() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::PureExpression); }
-    void             setPureExpression(bool value) noexcept;
-    AstNodeRef       pureExpressionRef() const noexcept { return pureExpressionRef_; }
-    void             setPureExpressionRef(AstNodeRef nodeRef) noexcept { pureExpressionRef_ = nodeRef; }
+    bool             isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
+    void             setPure(bool value) noexcept;
     bool             isForeign() const noexcept { return attributes().hasForeign; }
     std::string_view foreignModuleName() const { return attributes().foreignModuleName; }
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
@@ -101,7 +99,6 @@ private:
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
     CallConvKind                 callConvKind_        = CallConvKind::Host;
     AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
-    AstNodeRef                   pureExpressionRef_   = AstNodeRef::invalid();
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
 
     MicroBuilder                 microInstrBuilder_;

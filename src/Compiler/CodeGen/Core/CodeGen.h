@@ -35,6 +35,14 @@ struct CodeGenNodePayload
     bool isValue() const { return storageKind == StorageKind::Value; }
     void setIsAddress() { storageKind = StorageKind::Address; }
     bool isAddress() const { return storageKind == StorageKind::Address; }
+
+    void setValueOrAddress(bool isIndirect)
+    {
+        if (isIndirect)
+            setIsAddress();
+        else
+            setIsValue();
+    }
 };
 
 class CodeGenFrame

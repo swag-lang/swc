@@ -118,14 +118,6 @@ namespace
         return callConv.intArgRegs[paramInfo.slotIndex];
     }
 
-    void setPayloadStorageKind(CodeGenNodePayload& payload, bool isIndirect)
-    {
-        if (isIndirect)
-            payload.setIsAddress();
-        else
-            payload.setIsValue();
-    }
-
     MicroReg inlineResultAddressReg(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         SWC_ASSERT(symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
@@ -240,7 +232,7 @@ namespace
 
             builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs);
             CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
-            setPayloadStorageKind(symbolPayload, paramInfo.isIndirect);
+            symbolPayload.setValueOrAddress(paramInfo.isIndirect);
 
             codeGen.setVariablePayload(*symVar, symbolPayload);
         }

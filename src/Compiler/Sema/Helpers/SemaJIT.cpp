@@ -29,6 +29,83 @@ namespace
         uint64_t                         resultSize = 0;
     };
 
+    struct ConstCallJitPayload
+    {
+        SmallVector<SmallVector<std::byte>> argStorage;
+        SmallVector<JITArgument>            jitArgs;
+        SmallVector<std::byte>              resultStorage;
+    };
+
+    struct ConstCallPendingKey
+    {
+        const TaskContext* ctx     = nullptr;
+        AstNodeRef         nodeRef = AstNodeRef::invalid();
+
+        bool operator==(const ConstCallPendingKey& other) const noexcept
+        {
+            return ctx == other.ctx && nodeRef == other.nodeRef;
+        }
+    };
+
+    struct ConstCallPendingKeyHasher
+    {
+        size_t operator()(const ConstCallPendingKey& key) const noexcept
+        {
+            const size_t lhs = std::hash<const TaskContext*>{}(key.ctx);
+            const size_t rhs = std::hash<uint32_t>{}(key.nodeRef.get());
+            return lhs ^ (rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2));
+        }
+    };
+
+    struct ConstCallPendingEntry
+    {
+        std::shared_ptr<ConstCallJitPayload> payload;
+        JITCallResultMeta                    resultMeta;
+    };
+
+    std::mutex                                                                                constCallPendingMutex;
+    std::unordered_map<ConstCallPendingKey, ConstCallPendingEntry, ConstCallPendingKeyHasher> constCallPendingByNode;
+
+    bool hasPendingConstCall(const TaskContext& ctx, AstNodeRef nodeRef)
+    {
+        const std::scoped_lock lock(constCallPendingMutex);
+        return constCallPendingByNode.contains(ConstCallPendingKey{.ctx = &ctx, .nodeRef = nodeRef});
+    }
+
+    void registerPendingConstCall(const TaskContext& ctx, AstNodeRef nodeRef, const std::shared_ptr<ConstCallJitPayload>& payload, const JITCallResultMeta& resultMeta)
+    {
+        const std::scoped_lock    lock(constCallPendingMutex);
+        const ConstCallPendingKey key{
+            .ctx     = &ctx,
+            .nodeRef = nodeRef,
+        };
+
+        if (constCallPendingByNode.contains(key))
+            return;
+
+        constCallPendingByNode.emplace(key, ConstCallPendingEntry{
+                                                .payload    = payload,
+                                                .resultMeta = resultMeta,
+                                            });
+    }
+
+    std::optional<ConstCallPendingEntry> takePendingConstCall(const TaskContext& ctx, AstNodeRef nodeRef)
+    {
+        const std::scoped_lock    lock(constCallPendingMutex);
+        const ConstCallPendingKey key{
+            .ctx     = &ctx,
+            .nodeRef = nodeRef,
+        };
+
+        const auto it = constCallPendingByNode.find(key);
+        if (it == constCallPendingByNode.end())
+            return std::nullopt;
+
+        ConstCallPendingEntry entry = std::move(it->second);
+        constCallPendingByNode.erase(it);
+        return entry;
+    }
+
     void scheduleCodeGen(Sema& sema, SymbolFunction& symFn)
     {
         if (symFn.tryMarkCodeGenJobScheduled())
@@ -264,8 +341,10 @@ namespace
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
 {
     SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+
     if (const std::optional<Result> completion = consumeJitExecCompletion(sema, nodeExprRef))
         return *completion;
+
     if (sema.viewConstant(nodeExprRef).hasConstant())
         return Result::Continue;
     const SemaNodeView initialView = sema.viewType(nodeExprRef);
@@ -299,12 +378,32 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 
 Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs)
 {
+    TaskContext& ctx = sema.ctx();
+
+    if (const std::optional<Result> completion = consumeJitExecCompletion(sema, callRef))
+    {
+        if (const std::optional<ConstCallPendingEntry> pendingEntry = takePendingConstCall(ctx, callRef);
+            pendingEntry && *completion == Result::Continue)
+        {
+            const ConstantValue resultConstant = makeJitCallResultConstant(sema, pendingEntry->resultMeta, pendingEntry->payload->resultStorage.data());
+            sema.setFoldedTypedConst(callRef);
+            sema.setConstant(callRef, sema.cstMgr().addConstant(sema.ctx(), resultConstant));
+        }
+
+        if (*completion != Result::Continue)
+            return *completion;
+        if (sema.viewConstant(callRef).hasConstant())
+            return Result::Continue;
+    }
+
     if (!supportsConstCallJit(sema, calledFn))
         return Result::Continue;
     if (sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr))
         return Result::Continue;
     if (sema.viewConstant(callRef).hasConstant())
         return Result::Continue;
+    if (hasPendingConstCall(ctx, callRef))
+        return Result::Pause;
 
     const SymbolFunction* currentFn = sema.frame().currentFunction();
     if (currentFn == &calledFn)
@@ -312,40 +411,46 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     SWC_RESULT_VERIFY(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
 
     // All argument must be constant
-    SmallVector<SmallVector<std::byte>> argStorage;
-    SmallVector<JITArgument>            jitArgs;
-    if (!buildConstCallArguments(sema, calledFn, resolvedArgs, argStorage, jitArgs))
+    const auto payload = std::make_shared<ConstCallJitPayload>();
+    if (!buildConstCallArguments(sema, calledFn, resolvedArgs, payload->argStorage, payload->jitArgs))
         return Result::Continue;
 
-    TaskContext&            ctx           = sema.ctx();
     const TypeRef           exprTypeRef   = calledFn.returnTypeRef();
     const JITCallResultMeta resultMetaOpt = computeJitCallResultMeta(sema, exprTypeRef);
     SWC_RESULT_VERIFY(prepareJitFunction(sema, calledFn));
 
-    SmallVector<std::byte> resultStorage;
-    resultStorage.resize(resultMetaOpt.resultSize);
+    payload->resultStorage.resize(resultMetaOpt.resultSize);
 
     const JITReturn retMeta{
         .typeRef  = exprTypeRef,
-        .valuePtr = resultStorage.data(),
+        .valuePtr = payload->resultStorage.data(),
     };
 
     JITExecManager::Request request;
     request.function     = &calledFn;
     request.nodeRef      = callRef;
     request.codeRef      = sema.node(callRef).codeRef();
-    request.jitArgs      = jitArgs.span();
+    request.jitArgs      = payload->jitArgs.span();
     request.jitReturn    = retMeta;
     request.hasJitReturn = true;
-    request.runImmediate = true;
-    request.onCompleted  = [semaPtr = &sema, callRef, resultMetaOpt, &resultStorage](Result callResult) {
-        if (callResult != Result::Continue)
-            return;
-        const ConstantValue resultConstant = makeJitCallResultConstant(*semaPtr, resultMetaOpt, resultStorage.data());
-        semaPtr->setFoldedTypedConst(callRef);
-        semaPtr->setConstant(callRef, semaPtr->cstMgr().addConstant(semaPtr->ctx(), resultConstant));
-    };
-    return sema.compiler().jitExecMgr().submit(ctx, request);
+    request.runImmediate = false;
+    registerPendingConstCall(ctx, callRef, payload, resultMetaOpt);
+    const Result submitResult = sema.compiler().jitExecMgr().submit(ctx, request);
+    if (submitResult == Result::Pause)
+        return Result::Pause;
+
+    const std::optional<ConstCallPendingEntry> pendingEntry = takePendingConstCall(ctx, callRef);
+    if (submitResult != Result::Continue)
+        return submitResult;
+
+    if (pendingEntry)
+    {
+        const ConstantValue resultConstant = makeJitCallResultConstant(sema, pendingEntry->resultMeta, pendingEntry->payload->resultStorage.data());
+        sema.setFoldedTypedConst(callRef);
+        sema.setConstant(callRef, sema.cstMgr().addConstant(sema.ctx(), resultConstant));
+    }
+
+    return Result::Continue;
 }
 
 Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)

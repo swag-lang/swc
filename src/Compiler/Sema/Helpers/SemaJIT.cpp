@@ -29,8 +29,6 @@ namespace
         uint64_t                         resultSize = 0;
     };
 
-    ConstantValue makeJitCallResultConstant(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr);
-
     // Owns all buffers needed by a JIT request until completion.
     struct JITNodePayload
     {
@@ -100,6 +98,60 @@ namespace
         return entry;
     }
 
+    ConstantValue makeRunExprPointerStringConstant(Sema& sema, const std::byte* storagePtr)
+    {
+        const TaskContext& ctx           = sema.ctx();
+        const uint64_t     strPtrAddress = *reinterpret_cast<const uint64_t*>(storagePtr);
+        if (!strPtrAddress)
+            return ConstantValue::makeString(ctx, std::string_view{});
+
+        const auto* str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
+        if (!str->ptr || !str->length)
+            return ConstantValue::makeString(ctx, std::string_view{});
+
+        return ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
+    }
+
+    ConstantValue makeRunExprConstant(Sema& sema, TypeRef exprTypeRef, TypeRef storageTypeRef, const std::byte* storagePtr)
+    {
+        TaskContext&    ctx         = sema.ctx();
+        const TypeInfo& exprType    = sema.typeMgr().get(exprTypeRef);
+        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+        if (exprType.isEnum())
+        {
+            const ConstantValue storageValue = ConstantValue::make(ctx, storagePtr, storageTypeRef);
+            const ConstantRef   storageRef   = sema.cstMgr().addConstant(ctx, storageValue);
+            return ConstantValue::makeEnumValue(ctx, storageRef, exprTypeRef);
+        }
+
+        if (storageType.isValuePointer() || storageType.isBlockPointer())
+        {
+            const uint64_t ptrValue = *reinterpret_cast<const uint64_t*>(storagePtr);
+            if (!ptrValue)
+            {
+                ConstantValue nullValue = ConstantValue::makeNull(ctx);
+                if (exprType.isAlias())
+                    nullValue.setTypeRef(exprTypeRef);
+                else
+                    nullValue.setTypeRef(storageTypeRef);
+                return nullValue;
+            }
+        }
+
+        ConstantValue result = ConstantValue::make(ctx, storagePtr, storageTypeRef);
+        if (exprType.isAlias())
+            result.setTypeRef(exprTypeRef);
+        return result;
+    }
+
+    ConstantValue makeJitCallResultConstant(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
+    {
+        const TypeInfo& exprType = sema.typeMgr().get(resultMeta.exprTypeRef);
+        if (!resultMeta.normalizedRet.isIndirect && exprType.isString())
+            return makeRunExprPointerStringConstant(sema, storagePtr);
+        return makeRunExprConstant(sema, resultMeta.exprTypeRef, resultMeta.storageTypeRef, storagePtr);
+    }
+
     void applyPendingJitResult(Sema& sema, AstNodeRef nodeRef, const JITPendingEntry& pendingEntry)
     {
         const ConstantValue resultConstant = makeJitCallResultConstant(sema, pendingEntry.resultMeta, pendingEntry.payload->resultStorage.data());
@@ -143,52 +195,6 @@ namespace
         return exprType.unwrap(sema.ctx(), exprTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
     }
 
-    ConstantValue makeRunExprConstant(Sema& sema, TypeRef exprTypeRef, TypeRef storageTypeRef, const std::byte* storagePtr)
-    {
-        TaskContext&    ctx         = sema.ctx();
-        const TypeInfo& exprType    = sema.typeMgr().get(exprTypeRef);
-        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-        if (exprType.isEnum())
-        {
-            const ConstantValue storageValue = ConstantValue::make(ctx, storagePtr, storageTypeRef);
-            const ConstantRef   storageRef   = sema.cstMgr().addConstant(ctx, storageValue);
-            return ConstantValue::makeEnumValue(ctx, storageRef, exprTypeRef);
-        }
-
-        if (storageType.isValuePointer() || storageType.isBlockPointer())
-        {
-            const uint64_t ptrValue = *reinterpret_cast<const uint64_t*>(storagePtr);
-            if (!ptrValue)
-            {
-                ConstantValue nullValue = ConstantValue::makeNull(ctx);
-                if (exprType.isAlias())
-                    nullValue.setTypeRef(exprTypeRef);
-                else
-                    nullValue.setTypeRef(storageTypeRef);
-                return nullValue;
-            }
-        }
-
-        ConstantValue result = ConstantValue::make(ctx, storagePtr, storageTypeRef);
-        if (exprType.isAlias())
-            result.setTypeRef(exprTypeRef);
-        return result;
-    }
-
-    ConstantValue makeRunExprPointerStringConstant(Sema& sema, const std::byte* storagePtr)
-    {
-        const TaskContext& ctx           = sema.ctx();
-        const uint64_t     strPtrAddress = *reinterpret_cast<const uint64_t*>(storagePtr);
-        if (!strPtrAddress)
-            return ConstantValue::makeString(ctx, std::string_view{});
-
-        const auto* str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
-        if (!str->ptr || !str->length)
-            return ConstantValue::makeString(ctx, std::string_view{});
-
-        return ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
-    }
-
     JITCallResultMeta computeJitCallResultMeta(Sema& sema, TypeRef exprTypeRef)
     {
         TaskContext&                           ctx            = sema.ctx();
@@ -214,14 +220,6 @@ namespace
         resultMeta.normalizedRet  = normalizedRet;
         resultMeta.resultSize     = resultSize;
         return resultMeta;
-    }
-
-    ConstantValue makeJitCallResultConstant(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
-    {
-        const TypeInfo& exprType = sema.typeMgr().get(resultMeta.exprTypeRef);
-        if (!resultMeta.normalizedRet.isIndirect && exprType.isString())
-            return makeRunExprPointerStringConstant(sema, storagePtr);
-        return makeRunExprConstant(sema, resultMeta.exprTypeRef, resultMeta.storageTypeRef, storagePtr);
     }
 
     std::optional<Result> consumeJitExecCompletion(Sema& sema, AstNodeRef nodeRef)

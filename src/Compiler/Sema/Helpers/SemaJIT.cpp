@@ -6,6 +6,7 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -88,6 +89,133 @@ namespace
             return std::nullopt;
         return completion.result;
     }
+
+    bool hasAnyVariadicParameter(Sema& sema, const SymbolFunction& calledFn)
+    {
+        for (const SymbolVariable* param : calledFn.parameters())
+        {
+            SWC_ASSERT(param != nullptr);
+            const TypeInfo& paramType = sema.typeMgr().get(param->typeRef());
+            if (paramType.isAnyVariadic())
+                return true;
+        }
+
+        return false;
+    }
+
+    bool supportsConstCallValueType(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeRef   valueTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& valueType    = sema.typeMgr().get(valueTypeRef);
+        if (valueType.isEnum())
+            return true;
+        if (valueType.isBool() ||
+            valueType.isChar() ||
+            valueType.isRune() ||
+            valueType.isInt() ||
+            valueType.isFloat())
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    bool isInsideCompilerRunContext(const Sema& sema)
+    {
+        const SymbolFunction* currentFn = sema.frame().currentFunction();
+        if (!currentFn || !currentFn->decl())
+            return false;
+
+        const AstNodeId declId = currentFn->decl()->id();
+        return declId == AstNodeId::CompilerRunExpr || declId == AstNodeId::CompilerFunc;
+    }
+
+    bool supportsConstCallJit(Sema& sema, const SymbolFunction& calledFn)
+    {
+        if (!calledFn.isPure() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+            return false;
+        if (calledFn.isForeign() || calledFn.isEmpty())
+            return false;
+        if (!calledFn.returnTypeRef().isValid())
+            return false;
+
+        const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
+        if (returnType.isVoid())
+            return false;
+        if (!supportsConstCallValueType(sema, calledFn.returnTypeRef()))
+            return false;
+
+        return true;
+    }
+
+    bool canBuildConstCallArguments(Sema& sema, const SymbolFunction& calledFn, std::span<const ResolvedCallArgument> resolvedArgs)
+    {
+        if (resolvedArgs.size() != calledFn.parameters().size())
+            return false;
+        if (hasAnyVariadicParameter(sema, calledFn))
+            return false;
+
+        for (const ResolvedCallArgument& resolvedArg : resolvedArgs)
+        {
+            if (resolvedArg.passKind != CallArgumentPassKind::Direct)
+                return false;
+            if (resolvedArg.argRef.isInvalid())
+                return false;
+            if (!sema.viewConstant(resolvedArg.argRef).hasConstant())
+                return false;
+        }
+
+        return true;
+    }
+
+    bool buildConstCallArguments(Sema& sema, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
+    {
+        TaskContext& ctx = sema.ctx();
+        outArgStorage.clear();
+        outJitArgs.clear();
+
+        outArgStorage.reserve(resolvedArgs.size());
+        outJitArgs.reserve(resolvedArgs.size());
+
+        for (const ResolvedCallArgument& resolvedArg : resolvedArgs)
+        {
+            const AstNodeRef   argRef       = resolvedArg.argRef;
+            const SemaNodeView argTypeView  = sema.viewType(argRef);
+            const SemaNodeView argConstView = sema.viewConstant(argRef);
+            if (!argTypeView.typeRef().isValid() || !argConstView.cstRef().isValid())
+                return false;
+            if (!supportsConstCallValueType(sema, argTypeView.typeRef()))
+                return false;
+
+            const TypeRef argValueTypeRef = sema.typeMgr().get(argTypeView.typeRef()).unwrap(ctx, argTypeView.typeRef(), TypeExpandE::Alias);
+            if (!argValueTypeRef.isValid())
+                return false;
+
+            const TypeInfo& argValueType   = sema.typeMgr().get(argValueTypeRef);
+            const uint64_t  argStorageSize = argValueType.sizeOf(ctx);
+            if (!argStorageSize)
+                return false;
+            SWC_ASSERT(argStorageSize <= std::numeric_limits<uint32_t>::max());
+            if (argStorageSize > std::numeric_limits<uint32_t>::max())
+                return false;
+
+            auto& argStorage = outArgStorage.emplace_back();
+            argStorage.resize(static_cast<size_t>(argStorageSize));
+            std::memset(argStorage.data(), 0, argStorage.size());
+            ConstantLower::lowerToBytes(sema, ByteSpanRW{argStorage.data(), argStorage.size()}, argConstView.cstRef(), argValueTypeRef);
+
+            JITArgument arg;
+            arg.typeRef  = argValueTypeRef;
+            arg.valuePtr = argStorage.data();
+            outJitArgs.push_back(arg);
+        }
+
+        return true;
+    }
 }
 
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
@@ -158,6 +286,88 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
         semaPtr->setConstant(nodeExprRef, semaPtr->cstMgr().addConstant(semaPtr->ctx(), resultConstant));
     };
     return sema.compiler().jitExecMgr().submit(ctx, std::move(request));
+}
+
+Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs)
+{
+    if (!supportsConstCallJit(sema, calledFn))
+        return Result::Continue;
+    if (isInsideCompilerRunContext(sema))
+        return Result::Continue;
+
+    if (sema.viewConstant(callRef).hasConstant())
+        return Result::Continue;
+
+    if (!canBuildConstCallArguments(sema, calledFn, resolvedArgs))
+        return Result::Continue;
+
+    const SymbolFunction* currentFn = sema.frame().currentFunction();
+    if (currentFn == &calledFn)
+        return Result::Continue;
+
+    SWC_RESULT_VERIFY(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
+
+    SmallVector<SmallVector<std::byte>> argStorage;
+    SmallVector<JITArgument>            jitArgs;
+    if (!buildConstCallArguments(sema, resolvedArgs, argStorage, jitArgs))
+        return Result::Continue;
+
+    sema.ctx().state().jitEmissionError = false;
+    scheduleCodeGen(sema, calledFn);
+    SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&calledFn, calledFn.codeRef()));
+    if (sema.ctx().state().jitEmissionError)
+        return Result::Error;
+
+    TaskContext& ctx = sema.ctx();
+    SWC_RESULT_VERIFY(calledFn.emit(ctx));
+    if (ctx.state().jitEmissionError)
+        return Result::Error;
+
+    calledFn.jit(ctx);
+    if (ctx.state().jitEmissionError || !calledFn.jitEntryAddress())
+        return Result::Error;
+
+    const TypeRef   exprTypeRef    = calledFn.returnTypeRef();
+    const TypeRef   storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
+    const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+    const TypeInfo& exprType       = sema.typeMgr().get(exprTypeRef);
+
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, CallConv::host(), exprTypeRef, ABITypeNormalize::Usage::Return);
+    uint64_t                               resultSize    = storageType.sizeOf(ctx);
+    if (!normalizedRet.isIndirect)
+    {
+        if (normalizedRet.numBits)
+            resultSize = normalizedRet.numBits / 8;
+        else
+            resultSize = 8;
+    }
+
+    SWC_ASSERT(resultSize > 0);
+    if (!resultSize)
+        return Result::Error;
+
+    SmallVector<std::byte> resultStorage;
+    resultStorage.resize(static_cast<size_t>(resultSize));
+    std::memset(resultStorage.data(), 0, resultStorage.size());
+
+    const JITReturn retMeta{
+        .typeRef  = exprTypeRef,
+        .valuePtr = resultStorage.data(),
+    };
+
+    const Result callResult = JIT::emitAndCall(ctx, calledFn.jitEntryAddress(), jitArgs.span(), retMeta);
+    if (callResult != Result::Continue)
+        return callResult;
+
+    ConstantValue resultConstant;
+    if (!normalizedRet.isIndirect && exprType.isString())
+        resultConstant = makeRunExprPointerStringConstant(sema, resultStorage.data());
+    else
+        resultConstant = makeRunExprConstant(sema, exprTypeRef, storageTypeRef, resultStorage.data());
+
+    sema.setFoldedTypedConst(callRef);
+    sema.setConstant(callRef, sema.cstMgr().addConstant(ctx, resultConstant));
+    return Result::Continue;
 }
 
 Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)

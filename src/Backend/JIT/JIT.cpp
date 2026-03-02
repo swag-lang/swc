@@ -291,7 +291,7 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
     SWC_FORCE_ASSERT(memoryManager.makeExecutable(outExecutableMemory));
 }
 
-void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)
+Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)
 {
     SWC_ASSERT(targetFn != nullptr);
 
@@ -382,14 +382,14 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     const Result lowerResult = loweredCode.emit(ctx, builder);
     SWC_ASSERT(lowerResult == Result::Continue);
     if (lowerResult != Result::Continue)
-        return;
+        return lowerResult;
 
     JITMemory executableMemory;
     emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);
 
     void* const invoker = executableMemory.entryPoint();
     SWC_ASSERT(invoker != nullptr);
-    (void) call(ctx, invoker);
+    return call(ctx, invoker);
 }
 
 bool JIT::tryHandleRuntimeException(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind* outErrorKind)

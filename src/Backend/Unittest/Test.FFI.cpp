@@ -35,7 +35,9 @@ namespace
 
     Result callCaseTyped(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, TypeRef retTypeRef, void* outRetValue)
     {
-        JIT::emitAndCall(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
+        const Result jitResult = JIT::emitAndCall(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
+        if (jitResult != Result::Continue)
+            return jitResult;
         return Result::Continue;
     }
 }

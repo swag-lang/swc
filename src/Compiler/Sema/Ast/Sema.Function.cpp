@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaPurity.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
@@ -169,6 +170,9 @@ namespace
         }
         else
         {
+            SWC_RESULT_VERIFY(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
+            if (sema.viewConstant(sema.curNodeRef()).hasConstant())
+                return Result::Continue;
             SWC_RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
         }
 

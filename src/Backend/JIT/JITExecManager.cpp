@@ -17,8 +17,16 @@ Result JITExecManager::executeItem(const Item& item)
     const TaskScopedState scopedState(ctx);
     ctx.state().setRunJit(fn, item.request.nodeRef, item.request.codeRef);
 
-    auto         callErrorKind = JITCallErrorKind::None;
-    const Result callResult    = JIT::call(ctx, fn->jitEntryAddress(), item.request.hasArg0 ? &item.request.arg0 : nullptr, &callErrorKind);
+    Result callResult;
+    if (!item.request.jitArgs.empty() || item.request.hasJitReturn)
+    {
+        callResult = JIT::emitAndCall(ctx, fn->jitEntryAddress(), item.request.jitArgs, item.request.jitReturn);
+    }
+    else
+    {
+        auto callErrorKind = JITCallErrorKind::None;
+        callResult         = JIT::call(ctx, fn->jitEntryAddress(), item.request.hasArg0 ? &item.request.arg0 : nullptr, &callErrorKind);
+    }
 
     if (item.request.onCompleted)
         item.request.onCompleted(callResult);
@@ -30,6 +38,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
 {
     SWC_ASSERT(request.function != nullptr);
     SWC_ASSERT(request.function->jitEntryAddress() != nullptr);
+    SWC_ASSERT(!(request.hasArg0 && (!request.jitArgs.empty() || request.hasJitReturn)));
 
     if (request.runImmediate || strategy_ == Strategy::Immediate)
     {

@@ -330,12 +330,22 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         .valuePtr = resultStorage.data(),
     };
 
-    SWC_RESULT_VERIFY(JIT::emitAndCall(ctx, calledFn.jitEntryAddress(), jitArgs.span(), retMeta));
-
-    const ConstantValue resultConstant = makeJitCallResultConstant(sema, resultMetaOpt, resultStorage.data());
-    sema.setFoldedTypedConst(callRef);
-    sema.setConstant(callRef, sema.cstMgr().addConstant(ctx, resultConstant));
-    return Result::Continue;
+    JITExecManager::Request request;
+    request.function     = &calledFn;
+    request.nodeRef      = callRef;
+    request.codeRef      = sema.node(callRef).codeRef();
+    request.jitArgs      = jitArgs.span();
+    request.jitReturn    = retMeta;
+    request.hasJitReturn = true;
+    request.runImmediate = true;
+    request.onCompleted  = [semaPtr = &sema, callRef, resultMetaOpt, &resultStorage](Result callResult) {
+        if (callResult != Result::Continue)
+            return;
+        const ConstantValue resultConstant = makeJitCallResultConstant(*semaPtr, resultMetaOpt, resultStorage.data());
+        semaPtr->setFoldedTypedConst(callRef);
+        semaPtr->setConstant(callRef, semaPtr->cstMgr().addConstant(semaPtr->ctx(), resultConstant));
+    };
+    return sema.compiler().jitExecMgr().submit(ctx, request);
 }
 
 Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)

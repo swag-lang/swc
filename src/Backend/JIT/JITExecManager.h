@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/JIT/JIT.h"
 #include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -16,13 +17,16 @@ public:
 
     struct Request
     {
-        const SymbolFunction*       function     = nullptr;
-        AstNodeRef                  nodeRef      = AstNodeRef::invalid();
-        SourceCodeRef               codeRef      = SourceCodeRef::invalid();
-        uint64_t                    arg0         = 0;
-        bool                        hasArg0      = false;
-        bool                        runImmediate = false;
-        std::function<void(Result)> onCompleted;
+        const SymbolFunction*        function = nullptr;
+        AstNodeRef                   nodeRef  = AstNodeRef::invalid();
+        SourceCodeRef                codeRef  = SourceCodeRef::invalid();
+        uint64_t                     arg0     = 0;
+        bool                         hasArg0  = false;
+        std::span<const JITArgument> jitArgs;
+        JITReturn                    jitReturn;
+        bool                         hasJitReturn = false;
+        bool                         runImmediate = false;
+        std::function<void(Result)>  onCompleted;
     };
 
     struct Completion

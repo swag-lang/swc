@@ -141,23 +141,6 @@ namespace
         return addressReg;
     }
 
-    MicroOpBits scalarStoreBitsFromSize(uint32_t size)
-    {
-        switch (size)
-        {
-            case 1:
-                return MicroOpBits::B8;
-            case 2:
-                return MicroOpBits::B16;
-            case 4:
-                return MicroOpBits::B32;
-            case 8:
-                return MicroOpBits::B64;
-            default:
-                return MicroOpBits::Zero;
-        }
-    }
-
     Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
     {
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
@@ -176,7 +159,7 @@ namespace
             return Result::Continue;
         }
 
-        const MicroOpBits storeBits = scalarStoreBitsFromSize(copySize);
+        const MicroOpBits storeBits = microOpBitsFromChunkSize(copySize);
         SWC_ASSERT(storeBits != MicroOpBits::Zero);
         codeGen.builder().emitLoadMemReg(resultAddr, 0, exprPayload.reg, storeBits);
         return Result::Continue;

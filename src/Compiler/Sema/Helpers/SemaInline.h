@@ -16,12 +16,12 @@ namespace SemaInline
 
     struct Payload
     {
-        AstNodeRef                 callRef        = AstNodeRef::invalid();
-        AstNodeRef                 inlineRootRef  = AstNodeRef::invalid();
         const SymbolFunction*      sourceFunction = nullptr;
-        TypeRef                    returnTypeRef  = TypeRef::invalid();
         SymbolVariable*            resultVar      = nullptr;
-        SmallVector<ArgMapping, 8> argMappings;
+        SmallVector<ArgMapping, 6> argMappings;
+        AstNodeRef                 callRef       = AstNodeRef::invalid();
+        AstNodeRef                 inlineRootRef = AstNodeRef::invalid();
+        TypeRef                    returnTypeRef = TypeRef::invalid();
     };
 
     bool   canInlineCall(Sema& sema, const SymbolFunction& fn);

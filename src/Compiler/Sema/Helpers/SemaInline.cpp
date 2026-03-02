@@ -285,7 +285,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!returnTypeRef.isValid())
         returnTypeRef = sema.typeMgr().typeVoid();
 
-    auto* inlinePayload           = sema.compiler().allocate<SemaInline::Payload>();
+    // Create payload
+    auto* inlinePayload           = sema.compiler().allocate<Payload>();
     inlinePayload->callRef        = callRef;
     inlinePayload->inlineRootRef  = inlineRootRef;
     inlinePayload->sourceFunction = &fn;
@@ -294,13 +295,12 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         inlinePayload->argMappings.push_back({binding.idRef, binding.exprRef});
 
     SWC_RESULT_VERIFY(createInlineResultVariable(sema, callRef, returnTypeRef, inlinePayload->resultVar));
-    {
-        auto frame = sema.frame();
-        if (returnTypeRef != sema.typeMgr().typeVoid())
-            frame.pushBindingType(returnTypeRef);
-        frame.setCurrentInlinePayload(inlinePayload);
-        sema.pushFramePopOnPostNode(frame, inlineRootRef);
-    }
+
+    auto frame = sema.frame();
+    if (returnTypeRef != sema.typeMgr().typeVoid())
+        frame.pushBindingType(returnTypeRef);
+    frame.setCurrentInlinePayload(inlinePayload);
+    sema.pushFramePopOnPostNode(frame, inlineRootRef);
 
     sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
         SWC_ASSERT(inlinePayload != nullptr);

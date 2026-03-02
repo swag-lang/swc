@@ -8,6 +8,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaInline.Payload.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Helpers.h"
@@ -123,6 +124,75 @@ namespace
             payload.setIsAddress();
         else
             payload.setIsValue();
+    }
+
+    MicroReg inlineResultAddressReg(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        SWC_ASSERT(symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+        if (!symVar.offset())
+            return codeGen.localStackBaseReg();
+
+        MicroBuilder&  builder    = codeGen.builder();
+        const MicroReg addressReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(addressReg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(addressReg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+        return addressReg;
+    }
+
+    MicroOpBits scalarStoreBitsFromSize(uint32_t size)
+    {
+        switch (size)
+        {
+            case 1:
+                return MicroOpBits::B8;
+            case 2:
+                return MicroOpBits::B16;
+            case 4:
+                return MicroOpBits::B32;
+            case 8:
+                return MicroOpBits::B64;
+            default:
+                return MicroOpBits::Zero;
+        }
+    }
+
+    Result emitInlineResultStore(CodeGen& codeGen, const SemaInline::Payload& inlinePayload, AstNodeRef exprRef)
+    {
+        SWC_ASSERT(inlinePayload.resultVar != nullptr);
+        SWC_ASSERT(exprRef.isValid());
+
+        const TypeInfo& returnType = codeGen.typeMgr().get(inlinePayload.returnTypeRef);
+        const uint32_t  copySize   = checkedTypeSizeInBytes(codeGen, returnType);
+
+        const SymbolVariable& resultVar  = *inlinePayload.resultVar;
+        const MicroReg        resultAddr = inlineResultAddressReg(codeGen, resultVar);
+
+        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        if (exprPayload.isAddress())
+        {
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, resultAddr, exprPayload.reg, copySize);
+            return Result::Continue;
+        }
+
+        const MicroOpBits storeBits = scalarStoreBitsFromSize(copySize);
+        SWC_ASSERT(storeBits != MicroOpBits::Zero);
+        codeGen.builder().emitLoadMemReg(resultAddr, 0, exprPayload.reg, storeBits);
+        return Result::Continue;
+    }
+
+    Result emitInlineReturn(CodeGen& codeGen, const SemaInline::Payload& inlinePayload, AstNodeRef exprRef, MicroLabelRef doneLabel)
+    {
+        if (inlinePayload.returnTypeRef != codeGen.typeMgr().typeVoid())
+        {
+            SWC_ASSERT(exprRef.isValid());
+            SWC_RESULT_VERIFY(emitInlineResultStore(codeGen, inlinePayload, exprRef));
+        }
+
+        SWC_ASSERT(doneLabel.isValid());
+        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        return Result::Continue;
     }
 
     void collectFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
@@ -313,6 +383,13 @@ Result AstFunctionDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 {
+    if (codeGen.frame().hasCurrentInlineContext())
+    {
+        const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
+        if (SemaInline::isInlinePayload(inlineCtx.payload))
+            return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef, inlineCtx.doneLabel);
+    }
+
     return emitFunctionReturn(codeGen, codeGen.function(), nodeExprRef);
 }
 

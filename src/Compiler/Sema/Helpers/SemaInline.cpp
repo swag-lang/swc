@@ -1,10 +1,11 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.Payload.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -12,19 +13,35 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result finalizeInlinedCall(Sema& sema, AstNodeRef inlinedRef, AstNodeRef callRef, TypeRef returnTypeRef)
+    bool tryGetSimpleInlineConstant(Sema& sema, AstNodeRef inlineRootRef, ConstantRef& outConstant)
     {
-        SemaNodeView inlineView(sema, inlinedRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-        if (returnTypeRef != sema.typeMgr().typeVoid())
-            SWC_RESULT_VERIFY(Cast::cast(sema, inlineView, returnTypeRef, CastKind::Implicit));
+        outConstant = ConstantRef::invalid();
+        if (inlineRootRef.isInvalid())
+            return false;
 
-        if (inlineView.cstRef().isValid())
-        {
-            sema.setFoldedTypedConst(callRef);
-            sema.setConstant(callRef, inlineView.cstRef());
-        }
+        const AstNode& rootNode = sema.node(inlineRootRef);
+        if (!rootNode.is(AstNodeId::EmbeddedBlock))
+            return false;
 
-        return Result::Continue;
+        SmallVector<AstNodeRef> statements;
+        sema.ast().appendNodes(statements, rootNode.cast<AstEmbeddedBlock>().spanChildrenRef);
+        if (statements.size() != 1)
+            return false;
+
+        const AstNode& stmtNode = sema.node(statements.front());
+        if (!stmtNode.is(AstNodeId::ReturnStmt))
+            return false;
+
+        const AstNodeRef exprRef = stmtNode.cast<AstReturnStmt>().nodeExprRef;
+        if (exprRef.isInvalid())
+            return false;
+
+        const SemaNodeView exprView = sema.viewConstant(exprRef);
+        if (!exprView.hasConstant())
+            return false;
+
+        outConstant = exprView.cstRef();
+        return outConstant.isValid();
     }
 
     bool isNamedArgument(const AstNode& node)
@@ -48,42 +65,102 @@ namespace
         return true;
     }
 
-    AstNodeRef inlineExprRefFromDecl(const Sema& sema, const AstFunctionDecl& decl)
+    AstNodeRef makeInlineBodyFromShort(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
+    {
+        if (decl.nodeBodyRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNodeRef clonedExprRef = SemaClone::cloneAst(sema, decl.nodeBodyRef, cloneContext);
+        if (clonedExprRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        auto [returnRef, returnPtr] = sema.ast().makeNode<AstNodeId::ReturnStmt>(decl.tokRef());
+        returnPtr->nodeExprRef      = clonedExprRef;
+
+        auto [blockRef, blockPtr] = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(decl.tokRef());
+        SmallVector<AstNodeRef> statements;
+        statements.push_back(returnRef);
+        blockPtr->spanChildrenRef = sema.ast().pushSpan(statements.span());
+        return blockRef;
+    }
+
+    AstNodeRef inlineBodyRef(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
     {
         if (decl.hasFlag(AstFunctionFlagsE::Short))
-            return decl.nodeBodyRef;
+            return makeInlineBodyFromShort(sema, decl, cloneContext);
 
         if (decl.nodeBodyRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNode& bodyNode = sema.ast().node(decl.nodeBodyRef);
-        if (!bodyNode.is(AstNodeId::EmbeddedBlock))
+        const AstNodeRef clonedBodyRef = SemaClone::cloneAst(sema, decl.nodeBodyRef, cloneContext);
+        if (clonedBodyRef.isInvalid())
             return AstNodeRef::invalid();
 
+        if (sema.node(clonedBodyRef).is(AstNodeId::EmbeddedBlock))
+            return clonedBodyRef;
+
+        auto [blockRef, blockPtr] = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(decl.tokRef());
         SmallVector<AstNodeRef> statements;
-        sema.ast().appendNodes(statements, bodyNode.cast<AstEmbeddedBlock>().spanChildrenRef);
-        if (statements.size() != 1)
-            return AstNodeRef::invalid();
-
-        const AstNode& retNode = sema.ast().node(statements[0]);
-        if (!retNode.is(AstNodeId::ReturnStmt))
-            return AstNodeRef::invalid();
-
-        const AstNodeRef retExprRef = retNode.cast<AstReturnStmt>().nodeExprRef;
-        if (retExprRef.isInvalid())
-            return AstNodeRef::invalid();
-
-        return retExprRef;
+        statements.push_back(clonedBodyRef);
+        blockPtr->spanChildrenRef = sema.ast().pushSpan(statements.span());
+        return blockRef;
     }
 
-    AstNodeRef inlineExprRef(const Sema& sema, const SymbolFunction& fn)
+    Result createInlineResultVariable(Sema& sema, AstNodeRef callRef, TypeRef typeRef, SymbolVariable*& outResultVar)
     {
-        const AstFunctionDecl* decl = nullptr;
-        if (!resolveFunctionDeclInCurrentAst(sema, fn, decl))
-            return AstNodeRef::invalid();
-        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
-            return inlineExprRefFromDecl(sema, *decl);
-        return AstNodeRef::invalid();
+        outResultVar = nullptr;
+        if (typeRef.isInvalid() || typeRef == sema.typeMgr().typeVoid())
+            return Result::Continue;
+
+        const AstNode&      callNode = sema.node(callRef);
+        TaskContext&        ctx      = sema.ctx();
+        const SymbolFlags   flags    = sema.frame().flagsForCurrentAccess();
+        const IdentifierRef idRef    = SemaHelpers::getUniqueIdentifier(sema, "__inline_result");
+        auto*               symVar   = Symbol::make<SymbolVariable>(ctx, &callNode, callNode.tokRef(), idRef, flags);
+        symVar->addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar->setTypeRef(typeRef);
+        symVar->setDeclared(ctx);
+        symVar->setTyped(ctx);
+        symVar->setSemaCompleted(ctx);
+
+        if (SymbolFunction* currentFn = sema.frame().currentFunction())
+        {
+            const TypeInfo& resultType = sema.typeMgr().get(typeRef);
+            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&resultType, callRef));
+            currentFn->addLocalVariable(ctx, symVar);
+        }
+
+        outResultVar = symVar;
+        return Result::Continue;
+    }
+
+    Result finalizeInlineBlock(Sema& sema, AstNodeRef inlineRootRef, const SemaInline::Payload& payload)
+    {
+        SWC_ASSERT(inlineRootRef.isValid());
+        SWC_ASSERT(payload.returnTypeRef.isValid());
+
+        sema.setType(inlineRootRef, payload.returnTypeRef);
+        const TypeInfo& returnType = sema.typeMgr().get(payload.returnTypeRef);
+        if (!returnType.isVoid())
+        {
+            sema.setIsValue(inlineRootRef);
+            if (returnType.isReference())
+                sema.setIsLValue(inlineRootRef);
+        }
+
+        if (!returnType.isVoid())
+        {
+            ConstantRef cstRef = ConstantRef::invalid();
+            if (tryGetSimpleInlineConstant(sema, inlineRootRef, cstRef))
+            {
+                sema.setFoldedTypedConst(inlineRootRef);
+                sema.setConstant(inlineRootRef, cstRef);
+                sema.setFoldedTypedConst(payload.callRef);
+                sema.setConstant(payload.callRef, cstRef);
+            }
+        }
+
+        return Result::Continue;
     }
 
     bool mapArguments(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings)
@@ -153,7 +230,7 @@ namespace
                 return false;
 
             if (params[i]->idRef().isValid())
-                outBindings.push_back({params[i]->idRef(), bound[i]});
+                outBindings.push_back({params[i]->idRef(), bound[i], params[i]->typeRef()});
         }
 
         return true;
@@ -191,9 +268,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!canInlineCall(sema, fn))
         return Result::Continue;
 
-    // TODO
-    const AstNodeRef srcExprRef = inlineExprRef(sema, fn);
-    if (srcExprRef.isInvalid())
+    const AstFunctionDecl* decl = nullptr;
+    if (!resolveFunctionDeclInCurrentAst(sema, fn, decl))
         return Result::Continue;
 
     SmallVector<SemaClone::ParamBinding> bindings;
@@ -201,19 +277,41 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         return Result::Continue;
 
     const SemaClone::CloneContext cloneContext{bindings.span()};
-    const AstNodeRef              inlinedRef = SemaClone::cloneAst(sema, srcExprRef, cloneContext);
-    SWC_ASSERT(inlinedRef.isValid());
+    const AstNodeRef              inlineRootRef = inlineBodyRef(sema, *decl, cloneContext);
+    if (inlineRootRef.isInvalid())
+        return Result::Continue;
+    sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());
 
-    if (fn.returnTypeRef() != sema.typeMgr().typeVoid())
+    TypeRef returnTypeRef = fn.returnTypeRef();
+    if (!returnTypeRef.isValid())
+        returnTypeRef = sema.typeMgr().typeVoid();
+
+    auto* inlinePayload           = sema.compiler().allocate<SemaInline::Payload>();
+    inlinePayload->callRef        = callRef;
+    inlinePayload->inlineRootRef  = inlineRootRef;
+    inlinePayload->sourceFunction = &fn;
+    inlinePayload->returnTypeRef  = returnTypeRef;
+    for (const SemaClone::ParamBinding& binding : bindings)
+        inlinePayload->argMappings.push_back({binding.idRef, binding.exprRef});
+
+    SWC_RESULT_VERIFY(createInlineResultVariable(sema, callRef, returnTypeRef, inlinePayload->resultVar));
     {
         auto frame = sema.frame();
-        frame.pushBindingType(fn.returnTypeRef());
-        sema.pushFramePopOnPostNode(frame, inlinedRef);
+        if (returnTypeRef != sema.typeMgr().typeVoid())
+            frame.pushBindingType(returnTypeRef);
+        frame.setCurrentInlinePayload(inlinePayload);
+        sema.pushFramePopOnPostNode(frame, inlineRootRef);
     }
 
-    sema.setSubstitute(callRef, inlinedRef);
-    sema.deferPostNodeAction(inlinedRef, [callRef, returnTypeRef = fn.returnTypeRef()](Sema& inSema, AstNodeRef nodeRef) { return finalizeInlinedCall(inSema, nodeRef, callRef, returnTypeRef); });
-    sema.visit().restartCurrentNode(inlinedRef);
+    sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
+        SWC_ASSERT(SemaInline::isInlinePayload(inlinePayload));
+        SWC_RESULT_VERIFY(finalizeInlineBlock(inSema, nodeRef, *inlinePayload));
+        inSema.setCodeGenPayload(nodeRef, inlinePayload);
+        return Result::Continue;
+    });
+
+    sema.setSubstitute(callRef, inlineRootRef);
+    sema.visit().restartCurrentNode(inlineRootRef);
     return Result::Continue;
 }
 

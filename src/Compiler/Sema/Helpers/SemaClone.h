@@ -11,6 +11,7 @@ namespace SemaClone
     {
         IdentifierRef idRef;
         AstNodeRef    exprRef;
+        TypeRef       typeRef = TypeRef::invalid();
     };
 
     struct CloneContext final : swc::CloneContext

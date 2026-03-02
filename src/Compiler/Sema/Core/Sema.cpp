@@ -35,6 +35,7 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
 {
     visit_.start(nodePayloadContext_->ast(), root);
     pushFrame(parent.frame());
+    frame().setCurrentInlinePayload(nullptr);
     setVisitors();
 
     for (const auto& scope : parent.scopes_)

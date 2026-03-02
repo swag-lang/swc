@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.Payload.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaPurity.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -53,6 +54,23 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
 namespace
 {
+    bool isInsideInlineRoot(const Sema& sema, AstNodeRef inlineRootRef)
+    {
+        if (inlineRootRef.isInvalid())
+            return false;
+        if (sema.curNodeRef() == inlineRootRef)
+            return true;
+
+        for (size_t parentIndex = 0;; parentIndex++)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                return false;
+            if (parentRef == inlineRootRef)
+                return true;
+        }
+    }
+
     bool isCallResultIgnored(const Sema& sema)
     {
         const AstNode* parent = sema.visit().parentNode();
@@ -276,11 +294,22 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 
 Result AstReturnStmt::semaPostNode(Sema& sema) const
 {
-    const SymbolFunction* sym = sema.frame().currentFunction();
-    SWC_ASSERT(sym);
+    TypeRef returnTypeRef = TypeRef::invalid();
+    if (const SemaInline::Payload* inlinePayload = sema.frame().currentInlinePayload();
+        SemaInline::isInlinePayload(inlinePayload) &&
+        isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
+    {
+        returnTypeRef = inlinePayload->returnTypeRef;
+    }
+    else
+    {
+        const SymbolFunction* sym = sema.frame().currentFunction();
+        SWC_ASSERT(sym);
+        returnTypeRef = sym->returnTypeRef();
+    }
 
-    const TypeRef   returnTypeRef = sym->returnTypeRef();
-    const TypeInfo& returnType    = sema.typeMgr().get(returnTypeRef);
+    SWC_ASSERT(returnTypeRef.isValid());
+    const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
     if (nodeExprRef.isValid())
     {
         if (returnType.isVoid())

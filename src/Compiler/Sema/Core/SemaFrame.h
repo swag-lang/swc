@@ -7,6 +7,10 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolEnum;
+namespace SemaInline
+{
+    struct Payload;
+}
 
 struct SemaCompilerIf
 {
@@ -47,14 +51,16 @@ public:
     AttributeList&       currentAttributes() { return attributes_; }
     const AttributeList& currentAttributes() const { return attributes_; }
 
-    SemaCompilerIf*  currentCompilerIf() const { return compilerIf_; }
-    void             setCurrentCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
-    SymbolImpl*      currentImpl() const { return impl_; }
-    void             setCurrentImpl(SymbolImpl* impl) { impl_ = impl; }
-    SymbolInterface* currentInterface() const { return interface_; }
-    void             setCurrentInterface(SymbolInterface* itf) { interface_ = itf; }
-    SymbolFunction*  currentFunction() const { return function_; }
-    void             setCurrentFunction(SymbolFunction* func) { function_ = func; }
+    SemaCompilerIf*            currentCompilerIf() const { return compilerIf_; }
+    void                       setCurrentCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
+    SymbolImpl*                currentImpl() const { return impl_; }
+    void                       setCurrentImpl(SymbolImpl* impl) { impl_ = impl; }
+    SymbolInterface*           currentInterface() const { return interface_; }
+    void                       setCurrentInterface(SymbolInterface* itf) { interface_ = itf; }
+    SymbolFunction*            currentFunction() const { return function_; }
+    void                       setCurrentFunction(SymbolFunction* func) { function_ = func; }
+    const SemaInline::Payload* currentInlinePayload() const { return inlinePayload_; }
+    void                       setCurrentInlinePayload(const SemaInline::Payload* payload) { inlinePayload_ = payload; }
 
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
@@ -79,10 +85,11 @@ private:
     bool                          globalCompilerIfEnabled_ = true;
     AttributeList                 attributes_;
     SmallVector8<IdentifierRef>   nsPath_;
-    SemaCompilerIf*               compilerIf_ = nullptr;
-    SymbolImpl*                   impl_       = nullptr;
-    SymbolInterface*              interface_  = nullptr;
-    SymbolFunction*               function_   = nullptr;
+    SemaCompilerIf*               compilerIf_    = nullptr;
+    SymbolImpl*                   impl_          = nullptr;
+    SymbolInterface*              interface_     = nullptr;
+    SymbolFunction*               function_      = nullptr;
+    const SemaInline::Payload*    inlinePayload_ = nullptr;
     BreakContext                  breakable_;
     AstNodeRef                    currentSwitch_     = AstNodeRef::invalid();
     AstNodeRef                    currentSwitchCase_ = AstNodeRef::invalid();

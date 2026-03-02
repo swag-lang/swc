@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaInline.Payload.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -336,6 +337,16 @@ Result CodeGen::preNode(AstNode& node)
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     SWC_RESULT_VERIFY(info.codeGenPreNode(*this, node));
 
+    const SemaInline::Payload* inlinePayload = nullptr;
+    if (sema().hasCodeGenPayload(curNodeRef()))
+        inlinePayload = sema().codeGenPayload<SemaInline::Payload>(curNodeRef());
+    if (SemaInline::isInlinePayload(inlinePayload) && inlinePayload->inlineRootRef == curNodeRef())
+    {
+        CodeGenFrame frame = this->frame();
+        frame.setCurrentInlineContext(curNodeRef(), inlinePayload, builder().createLabel());
+        pushFrame(frame);
+    }
+
     if (curViewConstant().hasConstant())
         return Result::SkipChildren;
 
@@ -346,10 +357,49 @@ Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
     if (curViewConstant().hasConstant())
-        return emitConstant(curNodeRef());
+    {
+        SWC_RESULT_VERIFY(emitConstant(curNodeRef()));
+    }
+    else
+    {
+        const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+        SWC_RESULT_VERIFY(info.codeGenPostNode(*this, node));
+    }
 
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    SWC_RESULT_VERIFY(info.codeGenPostNode(*this, node));
+    if (frame().hasCurrentInlineContext() && frame().currentInlineContext().rootNodeRef == curNodeRef())
+    {
+        const CodeGenFrame::InlineContext inlineCtx = frame().currentInlineContext();
+        SWC_ASSERT(SemaInline::isInlinePayload(inlineCtx.payload));
+
+        if (inlineCtx.doneLabel.isValid())
+            builder().placeLabel(inlineCtx.doneLabel);
+
+        auto* inlineNodePayload    = compiler().allocate<CodeGenNodePayload>();
+        inlineNodePayload->typeRef = inlineCtx.payload->returnTypeRef;
+        if (inlineCtx.payload->returnTypeRef != typeMgr().typeVoid())
+        {
+            SWC_ASSERT(inlineCtx.payload->resultVar != nullptr);
+            const SymbolVariable& resultVar = *inlineCtx.payload->resultVar;
+            SWC_ASSERT(resultVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+            SWC_ASSERT(localStackBaseReg().isValid());
+
+            inlineNodePayload->setIsAddress();
+            if (!resultVar.offset())
+            {
+                inlineNodePayload->reg = localStackBaseReg();
+            }
+            else
+            {
+                inlineNodePayload->reg = nextVirtualIntRegister();
+                builder().emitLoadRegReg(inlineNodePayload->reg, localStackBaseReg(), MicroOpBits::B64);
+                builder().emitOpBinaryRegImm(inlineNodePayload->reg, ApInt(resultVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+            }
+        }
+        sema().setCodeGenPayload(curNodeRef(), inlineNodePayload);
+
+        popFrame();
+    }
+
     return Result::Continue;
 }
 

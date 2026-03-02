@@ -17,6 +17,10 @@ class SourceView;
 class SymbolVariable;
 struct ResolvedCallArgument;
 struct Token;
+namespace SemaInline
+{
+    struct Payload;
+}
 
 struct CodeGenNodePayload
 {
@@ -52,6 +56,13 @@ public:
         BreakContextKind kind    = BreakContextKind::None;
     };
 
+    struct InlineContext
+    {
+        AstNodeRef                 rootNodeRef = AstNodeRef::invalid();
+        const SemaInline::Payload* payload     = nullptr;
+        MicroLabelRef              doneLabel   = MicroLabelRef::invalid();
+    };
+
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
     {
@@ -60,14 +71,22 @@ public:
     }
     BreakContextKind currentBreakableKind() const { return breakable_.kind; }
 
-    AstNodeRef    currentSwitch() const { return currentSwitch_; }
-    void          setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-    AstNodeRef    currentSwitchCase() const { return currentSwitchCase_; }
-    void          setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
-    MicroLabelRef currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
-    void          setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
-    MicroLabelRef currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
-    void          setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
+    AstNodeRef           currentSwitch() const { return currentSwitch_; }
+    void                 setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef           currentSwitchCase() const { return currentSwitchCase_; }
+    void                 setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+    MicroLabelRef        currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
+    void                 setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
+    MicroLabelRef        currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
+    void                 setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
+    const InlineContext& currentInlineContext() const { return inlineContext_; }
+    void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInline::Payload* payload, MicroLabelRef doneLabel)
+    {
+        inlineContext_.rootNodeRef = rootNodeRef;
+        inlineContext_.payload     = payload;
+        inlineContext_.doneLabel   = doneLabel;
+    }
+    bool hasCurrentInlineContext() const { return inlineContext_.payload != nullptr && inlineContext_.rootNodeRef.isValid(); }
 
 private:
     BreakContext  breakable_;
@@ -75,6 +94,7 @@ private:
     AstNodeRef    currentSwitchCase_        = AstNodeRef::invalid();
     MicroLabelRef currentLoopContinueLabel_ = MicroLabelRef::invalid();
     MicroLabelRef currentLoopBreakLabel_    = MicroLabelRef::invalid();
+    InlineContext inlineContext_;
 };
 
 class CodeGen

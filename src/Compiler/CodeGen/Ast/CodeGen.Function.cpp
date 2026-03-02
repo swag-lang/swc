@@ -158,7 +158,7 @@ namespace
         }
     }
 
-    Result emitInlineResultStore(CodeGen& codeGen, const SemaInline::Payload& inlinePayload, AstNodeRef exprRef)
+    Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
     {
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
         SWC_ASSERT(exprRef.isValid());
@@ -182,7 +182,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitInlineReturn(CodeGen& codeGen, const SemaInline::Payload& inlinePayload, AstNodeRef exprRef, MicroLabelRef doneLabel)
+    Result emitInlineReturn(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef, MicroLabelRef doneLabel)
     {
         if (inlinePayload.returnTypeRef != codeGen.typeMgr().typeVoid())
         {

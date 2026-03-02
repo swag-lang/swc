@@ -14,18 +14,18 @@ namespace SemaInline
         AstNodeRef    argRef     = AstNodeRef::invalid();
     };
 
-    struct Payload
-    {
-        const SymbolFunction*      sourceFunction = nullptr;
-        SymbolVariable*            resultVar      = nullptr;
-        SmallVector<ArgMapping, 6> argMappings;
-        AstNodeRef                 callRef       = AstNodeRef::invalid();
-        AstNodeRef                 inlineRootRef = AstNodeRef::invalid();
-        TypeRef                    returnTypeRef = TypeRef::invalid();
-    };
-
     bool   canInlineCall(Sema& sema, const SymbolFunction& fn);
     Result tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg);
 }
+
+struct SemaInlinePayload
+{
+    const SymbolFunction*                  sourceFunction = nullptr;
+    SymbolVariable*                        resultVar      = nullptr;
+    SmallVector<SemaInline::ArgMapping, 6> argMappings;
+    AstNodeRef                             callRef       = AstNodeRef::invalid();
+    AstNodeRef                             inlineRootRef = AstNodeRef::invalid();
+    TypeRef                                returnTypeRef = TypeRef::invalid();
+};
 
 SWC_END_NAMESPACE();

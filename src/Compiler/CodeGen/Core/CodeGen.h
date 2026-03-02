@@ -17,10 +17,7 @@ class SourceView;
 class SymbolVariable;
 struct ResolvedCallArgument;
 struct Token;
-namespace SemaInline
-{
-    struct Payload;
-}
+struct SemaInlinePayload;
 
 struct CodeGenNodePayload
 {
@@ -58,9 +55,9 @@ public:
 
     struct InlineContext
     {
-        AstNodeRef                 rootNodeRef = AstNodeRef::invalid();
-        const SemaInline::Payload* payload     = nullptr;
-        MicroLabelRef              doneLabel   = MicroLabelRef::invalid();
+        AstNodeRef               rootNodeRef = AstNodeRef::invalid();
+        const SemaInlinePayload* payload     = nullptr;
+        MicroLabelRef            doneLabel   = MicroLabelRef::invalid();
     };
 
     const BreakContext& currentBreakContext() const { return breakable_; }
@@ -80,7 +77,7 @@ public:
     MicroLabelRef        currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
     void                 setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
     const InlineContext& currentInlineContext() const { return inlineContext_; }
-    void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInline::Payload* payload, MicroLabelRef doneLabel)
+    void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel)
     {
         inlineContext_.rootNodeRef = rootNodeRef;
         inlineContext_.payload     = payload;

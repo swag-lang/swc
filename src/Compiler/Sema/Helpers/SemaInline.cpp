@@ -133,7 +133,7 @@ namespace
         return Result::Continue;
     }
 
-    Result finalizeInlineBlock(Sema& sema, AstNodeRef inlineRootRef, const SemaInline::Payload& payload)
+    Result finalizeInlineBlock(Sema& sema, AstNodeRef inlineRootRef, const SemaInlinePayload& payload)
     {
         SWC_ASSERT(inlineRootRef.isValid());
         SWC_ASSERT(payload.returnTypeRef.isValid());
@@ -286,7 +286,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         returnTypeRef = sema.typeMgr().typeVoid();
 
     // Create payload
-    auto* inlinePayload           = sema.compiler().allocate<Payload>();
+    auto* inlinePayload           = sema.compiler().allocate<SemaInlinePayload>();
     inlinePayload->callRef        = callRef;
     inlinePayload->inlineRootRef  = inlineRootRef;
     inlinePayload->sourceFunction = &fn;

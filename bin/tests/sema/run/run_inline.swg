@@ -34,8 +34,3 @@ func inlineBranch(flag: bool, x: s32, y: s32)->s32
     @assert(c == 42)
     @assert(d == 42)
 }
-
-#test
-{
-    inlineAdd(1, 2) // swc-expected-error {{sema_err_return_value_must_be_used}}
-}

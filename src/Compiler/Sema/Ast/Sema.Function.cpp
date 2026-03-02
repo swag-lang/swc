@@ -294,7 +294,7 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 Result AstReturnStmt::semaPostNode(Sema& sema) const
 {
     TypeRef returnTypeRef = TypeRef::invalid();
-    if (const SemaInline::Payload* inlinePayload = sema.frame().currentInlinePayload();
+    if (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
         inlinePayload &&
         isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
     {

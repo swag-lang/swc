@@ -19,8 +19,30 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// ============================================================================
+// JIT-assisted semantic execution helpers
+// ============================================================================
+//
+// This file handles three semantic JIT use-cases:
+// 1) runExpr: execute expression code and materialize a folded constant.
+// 2) tryRunConstCall: fold constexpr-like calls through JIT.
+// 3) runStatement: execute statements for side effects.
+//
+// For runExpr/tryRunConstCall we use the same deferred lifecycle:
+// - build a JITNodePayload (arguments + return storage),
+// - register per-node pending state in sema payload,
+// - submit to JITExecManager,
+// - consume completion and apply result to AST node constant payload.
+//
+// Pending state is attached to the node through NodePayload's sema side-map
+// (not through global/static state), which is stable across payload rewrites.
+//
 namespace
 {
+    // ----------------------------------------------------------------------------
+    // Data model for one pending JIT evaluation
+    // ----------------------------------------------------------------------------
+
     struct JITCallResultMeta
     {
         TypeRef                          exprTypeRef;
@@ -37,65 +59,50 @@ namespace
         SmallVector<std::byte>              resultStorage;
     };
 
-    // Key used to track in-flight node executions per semantic task context.
-    struct JITPendingKey
-    {
-        const TaskContext* ctx     = nullptr;
-        AstNodeRef         nodeRef = AstNodeRef::invalid();
-
-        bool operator==(const JITPendingKey& other) const noexcept
-        {
-            return ctx == other.ctx && nodeRef == other.nodeRef;
-        }
-    };
-
-    struct JITPendingKeyHasher
-    {
-        size_t operator()(const JITPendingKey& key) const noexcept
-        {
-            const size_t lhs = std::hash<const TaskContext*>{}(key.ctx);
-            const size_t rhs = std::hash<uint32_t>{}(key.nodeRef.get());
-            return lhs ^ (rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2));
-        }
-    };
-
-    struct JITPendingEntry
+    // Pending execution data associated with one AST node through sema payload.
+    struct JITPendingNodeData
     {
         std::shared_ptr<JITNodePayload> payload;
         JITCallResultMeta               resultMeta;
         bool                            setFoldedTypedConst = false;
     };
 
-    std::mutex                                                              g_JITPendingMutex;
-    std::unordered_map<JITPendingKey, JITPendingEntry, JITPendingKeyHasher> g_JITPendingByNode;
-
-    bool hasPendingJitNode(const TaskContext& ctx, AstNodeRef nodeRef)
+    JITPendingNodeData* pendingJitNodeData(const Sema& sema, AstNodeRef nodeRef)
     {
-        const std::scoped_lock lock(g_JITPendingMutex);
-        return g_JITPendingByNode.contains(JITPendingKey{.ctx = &ctx, .nodeRef = nodeRef});
+        if (nodeRef.isInvalid())
+            return nullptr;
+        if (!sema.hasSemaPayload(nodeRef))
+            return nullptr;
+        return sema.semaPayload<JITPendingNodeData>(nodeRef);
     }
 
-    void registerPendingJitNode(const TaskContext& ctx, AstNodeRef nodeRef, const std::shared_ptr<JITNodePayload>& payload, const JITCallResultMeta& resultMeta, bool setFoldedTypedConst)
+    bool hasPendingJitNode(const Sema& sema, AstNodeRef nodeRef)
     {
-        const std::scoped_lock lock(g_JITPendingMutex);
-        const JITPendingKey    key{.ctx = &ctx, .nodeRef = nodeRef};
-        if (g_JITPendingByNode.contains(key))
+        return pendingJitNodeData(sema, nodeRef) != nullptr;
+    }
+
+    void registerPendingJitNode(Sema& sema, AstNodeRef nodeRef, const std::shared_ptr<JITNodePayload>& payload, const JITCallResultMeta& resultMeta, bool setFoldedTypedConst)
+    {
+        if (pendingJitNodeData(sema, nodeRef))
             return;
-        g_JITPendingByNode.emplace(key, JITPendingEntry{.payload = payload, .resultMeta = resultMeta, .setFoldedTypedConst = setFoldedTypedConst});
+
+        auto* pendingData                = heapNew<JITPendingNodeData>();
+        pendingData->payload             = payload;
+        pendingData->resultMeta          = resultMeta;
+        pendingData->setFoldedTypedConst = setFoldedTypedConst;
+        sema.setSemaPayload(nodeRef, pendingData);
     }
 
-    std::optional<JITPendingEntry> takePendingJitNode(const TaskContext& ctx, AstNodeRef nodeRef)
+    std::optional<JITPendingNodeData> takePendingJitNode(Sema& sema, AstNodeRef nodeRef)
     {
-        const std::scoped_lock lock(g_JITPendingMutex);
-        const JITPendingKey    key{.ctx = &ctx, .nodeRef = nodeRef};
-
-        const auto it = g_JITPendingByNode.find(key);
-        if (it == g_JITPendingByNode.end())
+        auto* pendingData = pendingJitNodeData(sema, nodeRef);
+        if (!pendingData)
             return std::nullopt;
 
-        JITPendingEntry entry = std::move(it->second);
-        g_JITPendingByNode.erase(it);
-        return entry;
+        JITPendingNodeData result = std::move(*pendingData);
+        sema.clearSemaPayload(nodeRef);
+        heapDelete(pendingData);
+        return result;
     }
 
     ConstantValue makeRunExprPointerStringConstant(Sema& sema, const std::byte* storagePtr)
@@ -152,7 +159,7 @@ namespace
         return makeRunExprConstant(sema, resultMeta.exprTypeRef, resultMeta.storageTypeRef, storagePtr);
     }
 
-    void applyPendingJitResult(Sema& sema, AstNodeRef nodeRef, const JITPendingEntry& pendingEntry)
+    void applyPendingJitResult(Sema& sema, AstNodeRef nodeRef, const JITPendingNodeData& pendingEntry)
     {
         const ConstantValue resultConstant = makeJitCallResultConstant(sema, pendingEntry.resultMeta, pendingEntry.payload->resultStorage.data());
         if (pendingEntry.setFoldedTypedConst)
@@ -160,19 +167,14 @@ namespace
         sema.setConstant(nodeRef, sema.cstMgr().addConstant(sema.ctx(), resultConstant));
     }
 
-    void scheduleCodeGen(Sema& sema, SymbolFunction& symFn)
+    Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
+        sema.ctx().state().jitEmissionError = false;
         if (symFn.tryMarkCodeGenJobScheduled())
         {
             auto* job = heapNew<CodeGenJob>(sema.ctx(), sema, symFn, symFn.declNodeRef());
             sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
         }
-    }
-
-    Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
-    {
-        sema.ctx().state().jitEmissionError = false;
-        scheduleCodeGen(sema, symFn);
         SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
         if (sema.ctx().state().jitEmissionError)
             return Result::Error;
@@ -236,11 +238,9 @@ namespace
         if (!completion)
             return std::nullopt;
 
-        if (const std::optional<JITPendingEntry> pendingEntry = takePendingJitNode(sema.ctx(), nodeRef);
-            pendingEntry && *completion == Result::Continue)
-        {
-            applyPendingJitResult(sema, nodeRef, *pendingEntry);
-        }
+        const std::optional<JITPendingNodeData> pendingEntry = takePendingJitNode(sema, nodeRef);
+        if (pendingEntry && *completion == Result::Continue)
+            applyPendingJitResult(sema, nodeRef, pendingEntry.value());
 
         return completion;
     }
@@ -249,16 +249,16 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
 
-        registerPendingJitNode(ctx, nodeRef, payload, resultMeta, setFoldedTypedConst);
+        registerPendingJitNode(sema, nodeRef, payload, resultMeta, setFoldedTypedConst);
         const Result submitResult = sema.compiler().jitExecMgr().submit(ctx, request);
         if (submitResult == Result::Pause)
             return Result::Pause;
 
-        const std::optional<JITPendingEntry> pendingEntry = takePendingJitNode(ctx, nodeRef);
+        const std::optional<JITPendingNodeData> pendingEntry = takePendingJitNode(sema, nodeRef);
         if (submitResult != Result::Continue)
             return submitResult;
         if (pendingEntry)
-            applyPendingJitResult(sema, nodeRef, *pendingEntry);
+            applyPendingJitResult(sema, nodeRef, pendingEntry.value());
         return Result::Continue;
     }
 
@@ -384,8 +384,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     if (sema.viewConstant(nodeExprRef).hasConstant())
         return Result::Continue;
 
-    const TaskContext& ctx = sema.ctx();
-    if (hasPendingJitNode(ctx, nodeExprRef))
+    if (hasPendingJitNode(sema, nodeExprRef))
         return Result::Pause;
 
     const SemaNodeView initialView = sema.viewType(nodeExprRef);
@@ -427,8 +426,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (sema.viewConstant(callRef).hasConstant())
         return Result::Continue;
 
-    const TaskContext& ctx = sema.ctx();
-    if (hasPendingJitNode(ctx, callRef))
+    if (hasPendingJitNode(sema, callRef))
         return Result::Pause;
 
     const SymbolFunction* currentFn = sema.frame().currentFunction();
@@ -468,25 +466,12 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
         return *completion;
 
     ///////////////////////////////////////////
-    // Prepare codegen and JIT entry point.
-    sema.ctx().state().jitEmissionError = false;
-    scheduleCodeGen(sema, symFn);
-    SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
-    if (sema.ctx().state().jitEmissionError)
-        return Result::Error;
-
-    TaskContext& ctx = sema.ctx();
-
-    SWC_RESULT_VERIFY(symFn.emit(ctx));
-    if (ctx.state().jitEmissionError)
-        return Result::Error;
-
-    symFn.jit(ctx);
-    if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
-        return Result::Error;
+    // Shared codegen/JIT preparation path.
+    SWC_RESULT_VERIFY(prepareJitFunction(sema, symFn));
 
     ///////////////////////////////////////////
     // Submit statement execution to the JIT manager.
+    TaskContext&            ctx = sema.ctx();
     JITExecManager::Request request;
     request.function     = &symFn;
     request.nodeRef      = nodeRef;

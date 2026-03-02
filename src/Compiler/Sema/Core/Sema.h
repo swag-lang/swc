@@ -133,6 +133,16 @@ public:
         return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
     }
 
+    bool hasSemaPayload(AstNodeRef n) const { return nodePayloadContext().hasSemaPayload(n); }
+    void setSemaPayload(AstNodeRef n, void* payload) { nodePayloadContext().setSemaPayload(n, payload); }
+    void clearSemaPayload(AstNodeRef n) { nodePayloadContext().clearSemaPayload(n); }
+
+    template<typename T>
+    T* semaPayload(AstNodeRef n) const
+    {
+        return static_cast<T*>(nodePayloadContext().getSemaPayload(n));
+    }
+
     void setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
     void appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
 

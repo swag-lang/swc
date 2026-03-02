@@ -106,6 +106,10 @@ protected:
     bool  hasCodeGenPayload(AstNodeRef nodeRef) const;
     void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
     void* getCodeGenPayload(AstNodeRef nodeRef) const;
+    bool  hasSemaPayload(AstNodeRef nodeRef) const;
+    void  setSemaPayload(AstNodeRef nodeRef, void* payload);
+    void* getSemaPayload(AstNodeRef nodeRef) const;
+    void  clearSemaPayload(AstNodeRef nodeRef);
 
     static void propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
     static void inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
@@ -163,8 +167,9 @@ private:
 
     struct Shard
     {
-        mutable std::shared_mutex mutex;
-        PagedStore                store;
+        mutable std::shared_mutex           mutex;
+        PagedStore                          store;
+        std::unordered_map<uint32_t, void*> semaPayloadByNode;
     };
 
     Shard shards_[NODE_PAYLOAD_SHARD_NUM];

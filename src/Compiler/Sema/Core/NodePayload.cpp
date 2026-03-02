@@ -585,6 +585,52 @@ void* NodePayload::getCodeGenPayload(AstNodeRef nodeRef) const
     return storage->payload;
 }
 
+bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard&           shard    = shards_[shardIdx];
+    const std::shared_lock lock(shard.mutex);
+    return shard.semaPayloadByNode.contains(nodeRef.get());
+}
+
+void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    SWC_ASSERT(payload);
+
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    auto&                  shard    = shards_[shardIdx];
+    const std::unique_lock lock(shard.mutex);
+    shard.semaPayloadByNode[nodeRef.get()] = payload;
+}
+
+void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return nullptr;
+
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard&           shard    = shards_[shardIdx];
+    const std::shared_lock lock(shard.mutex);
+    const auto             it = shard.semaPayloadByNode.find(nodeRef.get());
+    if (it == shard.semaPayloadByNode.end())
+        return nullptr;
+    return it->second;
+}
+
+void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
+{
+    if (nodeRef.isInvalid())
+        return;
+
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    auto&                  shard    = shards_[shardIdx];
+    const std::unique_lock lock(shard.mutex);
+    shard.semaPayloadByNode.erase(nodeRef.get());
+}
+
 void NodePayload::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
 {
     if (merge)

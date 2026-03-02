@@ -353,12 +353,9 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         .valuePtr = resultStorage.data(),
     };
 
-    const Result callResult = JIT::emitAndCall(ctx, calledFn.jitEntryAddress(), jitArgs.span(), retMeta);
-    if (callResult != Result::Continue)
-        return callResult;
+    SWC_RESULT_VERIFY(JIT::emitAndCall(ctx, calledFn.jitEntryAddress(), jitArgs.span(), retMeta));
 
     const ConstantValue resultConstant = makeJitCallResultConstant(sema, *resultMetaOpt, resultStorage.data());
-
     sema.setFoldedTypedConst(callRef);
     sema.setConstant(callRef, sema.cstMgr().addConstant(ctx, resultConstant));
     return Result::Continue;
@@ -391,7 +388,7 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
     request.codeRef      = sema.node(nodeRef).codeRef();
     request.hasArg0      = false;
     request.runImmediate = false;
-    return sema.compiler().jitExecMgr().submit(ctx, std::move(request));
+    return sema.compiler().jitExecMgr().submit(ctx, request);
 }
 
 SWC_END_NAMESPACE();

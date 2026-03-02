@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -49,7 +50,7 @@ bool MicroDeadCodeEliminationPass::runForwardPureDefElimination()
             }
         }
 
-        const bool trackAsPureDef = isPureDefCandidate(inst, useDef, encoder_, callConvKind_);
+        const bool trackAsPureDef = isPureDefCandidate(inst, useDef, encoder_, callConvKind_) && !MicroInstrInfo::definesCpuFlags(inst);
         if (trackAsPureDef)
             lastPureDefByReg_[useDef.defs.front()] = currentRef;
     }

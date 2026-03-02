@@ -31,6 +31,7 @@ private:
     static bool isControlFlowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef);
     static bool isPureDefCandidate(const MicroInstr& inst, const MicroInstrUseDef& useDef, const Encoder* encoder, CallConvKind callConvKind);
     static bool isBackwardDeadDefRemovableInstruction(const MicroInstr& inst);
+    bool        areCpuFlagsDeadAfterInstruction(MicroInstrRef instructionRef) const;
     static void addLiveReg(std::unordered_set<MicroReg>& liveRegs, MicroReg reg);
     static void transferInstructionLiveness(std::unordered_set<MicroReg>& outLiveIn, const std::unordered_set<MicroReg>& liveOut, const MicroInstr& inst, const MicroInstrUseDef& useDef, CallConvKind callConvKind);
 

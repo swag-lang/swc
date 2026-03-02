@@ -11,6 +11,48 @@ namespace
 {
     constexpr uint32_t K_STACK_ADDRESS_ESCAPE_WINDOW_BYTES = 32;
 
+    bool isSingleLinearPredecessorLabel(const MicroPassContext& context, const MicroInstrRef labelRef)
+    {
+        if (!context.builder || labelRef.isInvalid())
+            return false;
+
+        const MicroControlFlowGraph&         cfg             = context.builder->controlFlowGraph();
+        const std::span<const MicroInstrRef> instructionRefs = cfg.instructionRefs();
+        if (instructionRefs.empty())
+            return false;
+
+        uint32_t labelIndex = std::numeric_limits<uint32_t>::max();
+        for (uint32_t idx = 0; idx < instructionRefs.size(); ++idx)
+        {
+            if (instructionRefs[idx] == labelRef)
+            {
+                labelIndex = idx;
+                break;
+            }
+        }
+
+        if (labelIndex == std::numeric_limits<uint32_t>::max() || labelIndex == 0)
+            return false;
+
+        const uint32_t expectedPredIndex = labelIndex - 1;
+        uint32_t       predCount         = 0;
+        for (uint32_t idx = 0; idx < instructionRefs.size(); ++idx)
+        {
+            for (const uint32_t succIndex : cfg.successors(idx))
+            {
+                if (succIndex != labelIndex)
+                    continue;
+
+                if (idx != expectedPredIndex)
+                    return false;
+
+                ++predCount;
+            }
+        }
+
+        return predCount == 1;
+    }
+
     bool foldBoolAndChainIntoDirectJumps(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context  = pass.context();
@@ -1148,7 +1190,11 @@ namespace
             auto&              scanInst = const_cast<MicroInstr&>(*scanIt);
             MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
             if (scanInst.op == MicroInstrOpcode::Label)
-                return false;
+            {
+                if (!isSingleLinearPredecessorLabel(context, scanIt.current))
+                    return false;
+                continue;
+            }
             if (scanInst.op == MicroInstrOpcode::Nop)
                 continue;
             if (!scanOps)

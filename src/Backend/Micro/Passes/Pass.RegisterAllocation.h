@@ -71,32 +71,16 @@ private:
     void            applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst) const;
     static void     mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth);
     bool            isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const;
-    bool            selectEvictionCandidate(MicroReg     requestVirtKey,
-                                            uint32_t     instructionIndex,
-                                            bool         isFloatReg,
-                                            bool         fromPersistentPool,
-                                            MicroRegSpan protectedKeys,
-                                            uint32_t     stamp,
-                                            bool         allowConcreteLive,
-                                            MicroReg&    outVirtKey,
-                                            MicroReg&    outPhys) const;
+    bool            selectEvictionCandidate(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, MicroRegSpan protectedKeys, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;
     FreePools       pickFreePools(const AllocRequest& request);
     bool            tryTakeFreePhysical(const AllocRequest& request, uint32_t stamp, bool allowConcreteLive, MicroReg& outPhys);
     void            unmapVirtReg(MicroReg virtKey);
     void            mapVirtReg(MicroReg virtKey, MicroReg physReg);
-    bool            selectEvictionCandidateWithFallback(MicroReg     requestVirtKey,
-                                                        uint32_t     instructionIndex,
-                                                        bool         isFloatReg,
-                                                        bool         preferPersistentPool,
-                                                        MicroRegSpan protectedKeys,
-                                                        uint32_t     stamp,
-                                                        bool         allowConcreteLive,
-                                                        MicroReg&    outVirtKey,
-                                                        MicroReg&    outPhys) const;
+    bool            selectEvictionCandidateWithFallback(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool preferPersistentPool, MicroRegSpan protectedKeys, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;
     MicroReg        allocatePhysical(const AllocRequest& request, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     MicroReg        assignVirtReg(const AllocRequest& request, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void            spillCallLiveOut(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
-    void            flushAllMappedVirtuals(int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void            flushAllMappedVirtuals(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void            clearAllMappedVirtuals();
     void            expireDeadMappings(uint32_t stamp);
     void            rewriteInstructions();

@@ -389,12 +389,17 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
                     continue;
                 }
 
+                if (!microInstrRef.def)
+                    continue;
+
                 if (!containsPushedReg(reg))
                     pushedRegs_.push_back(reg);
             }
             else if (reg.isFloat())
             {
                 if (!conv.isFloatPersistentReg(reg))
+                    continue;
+                if (!microInstrRef.def)
                     continue;
 
                 if (!containsSavedSlot(reg))

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Support/Core/DenseBits.h"
@@ -189,6 +190,10 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
         if (DenseBits::contains(tempOut, defDenseIndex))
             continue;
 
+        const MicroInstr* inst = instructionPtrs[idx];
+        if (inst && MicroInstrInfo::definesCpuFlags(*inst) && !areCpuFlagsDeadAfterInstruction(instructionRefs[idx]))
+            continue;
+
         eraseList.push_back(instructionRefs[idx]);
     }
 
@@ -269,6 +274,15 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
         const MicroReg defKey = useDef.defs.front();
         if (!liveRegs.contains(defKey))
         {
+            if (MicroInstrInfo::definesCpuFlags(inst) && !areCpuFlagsDeadAfterInstruction(instRef))
+            {
+                for (const MicroReg defReg : useDef.defs)
+                    liveRegs.erase(defReg);
+                for (const MicroReg useReg : useDef.uses)
+                    liveRegs.insert(useReg);
+                continue;
+            }
+
             eraseList.push_back(instRef);
             removedAny = true;
             continue;

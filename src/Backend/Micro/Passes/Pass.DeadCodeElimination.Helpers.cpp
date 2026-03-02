@@ -84,6 +84,9 @@ bool MicroDeadCodeEliminationPass::canCurrentDefKillPreviousPureDef(const MicroI
     if (!ops)
         return false;
 
+    if (MicroInstrInfo::definesCpuFlags(inst))
+        return false;
+
     if (!defReg.isInt())
         return false;
 
@@ -153,10 +156,42 @@ bool MicroDeadCodeEliminationPass::isPureDefCandidate(const MicroInstr& inst, co
 
 bool MicroDeadCodeEliminationPass::isBackwardDeadDefRemovableInstruction(const MicroInstr& inst)
 {
-    if (MicroInstrInfo::definesCpuFlags(inst))
-        return false;
-
     return isRemovableInstruction(inst);
+}
+
+bool MicroDeadCodeEliminationPass::areCpuFlagsDeadAfterInstruction(const MicroInstrRef instructionRef) const
+{
+    SWC_ASSERT(storage_ != nullptr);
+    SWC_ASSERT(operands_ != nullptr);
+
+    if (instructionRef.isInvalid())
+        return true;
+
+    auto       scanIt = storage_->view().begin();
+    const auto endIt  = storage_->view().end();
+    for (; scanIt != endIt; ++scanIt)
+    {
+        if (scanIt.current == instructionRef)
+            break;
+    }
+
+    if (scanIt == endIt)
+        return true;
+
+    ++scanIt;
+    for (; scanIt != endIt; ++scanIt)
+    {
+        const MicroInstr&      scanInst = *scanIt;
+        const MicroInstrUseDef useDef   = scanInst.collectUseDef(*operands_, encoder_);
+        if (MicroInstrInfo::usesCpuFlags(scanInst))
+            return false;
+        if (MicroInstrInfo::definesCpuFlags(scanInst))
+            return true;
+        if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+            return true;
+    }
+
+    return true;
 }
 
 void MicroDeadCodeEliminationPass::addLiveReg(std::unordered_set<MicroReg>& liveRegs, const MicroReg reg)

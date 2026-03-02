@@ -833,13 +833,14 @@ void MicroRegisterAllocationPass::spillCallLiveOut(uint32_t stamp, int64_t stack
     }
 }
 
-void MicroRegisterAllocationPass::flushAllMappedVirtuals(int64_t stackDepth, std::vector<PendingInsert>& pending)
+void MicroRegisterAllocationPass::flushAllMappedVirtuals(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
 {
     // Control-flow boundaries require a stable memory state for all mapped values.
     for (const auto& [virtKey, physReg] : mapping_)
     {
-        auto& regState = states_[virtKey];
-        if (regState.dirty || !regState.hasSpill)
+        const bool liveOut  = isLiveOut(virtKey, stamp);
+        auto&      regState = states_[virtKey];
+        if (liveOut && (regState.dirty || !regState.hasSpill))
         {
             ensureSpillSlot(regState, physReg.isFloat());
             PendingInsert spillPending;
@@ -936,11 +937,30 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         const bool          isCall         = instructionUseDefs_[idx].isCall;
         const bool          isTerminator   = MicroInstrInfo::isTerminatorInstruction(*it);
 
-        if (hasControlFlow_ && (it->op == MicroInstrOpcode::Label || isTerminator))
+        bool flushBoundary = false;
+        if (hasControlFlow_)
+        {
+            if (isTerminator)
+            {
+                flushBoundary = true;
+            }
+            else if (it->op == MicroInstrOpcode::Label)
+            {
+                flushBoundary = true;
+                if (idx > 0 && idx < predecessors_.size())
+                {
+                    const auto& predecessors = predecessors_[idx];
+                    if (predecessors.size() == 1 && predecessors.front() == idx - 1)
+                        flushBoundary = false;
+                }
+            }
+        }
+
+        if (flushBoundary)
         {
             std::vector<PendingInsert> boundaryPending;
             boundaryPending.reserve(mapping_.size());
-            flushAllMappedVirtuals(stackDepth, boundaryPending);
+            flushAllMappedVirtuals(stamp, stackDepth, boundaryPending);
             for (const auto& pendingInst : boundaryPending)
             {
                 instructions_->insertBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps));

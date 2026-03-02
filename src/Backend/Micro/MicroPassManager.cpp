@@ -25,7 +25,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint32_t K_OPT_ITERATION_OFF = 1;
-    constexpr uint32_t K_OPT_ITERATION_ON  = 4;
+    constexpr uint32_t K_OPT_ITERATION_ON  = 16;
 
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {

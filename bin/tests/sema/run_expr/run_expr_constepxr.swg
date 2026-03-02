@@ -46,7 +46,7 @@ func wrapRuntimeArgNoRun(x: s32)->s32
 
 #test
 {
-    const V = #run constMul(6, 7)
+    const V = constMul(6, 7)
     #assert(V == 42)
 }
 

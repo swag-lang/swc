@@ -124,14 +124,23 @@ namespace
         return false;
     }
 
-    bool isInsideCompilerRunContext(const Sema& sema)
+    bool isInsideCompilerRunExpr(const Sema& sema)
     {
         const SymbolFunction* currentFn = sema.frame().currentFunction();
-        if (!currentFn || !currentFn->decl())
-            return false;
+        if (currentFn && currentFn->decl() && currentFn->decl()->id() == AstNodeId::CompilerRunExpr)
+            return true;
 
-        const AstNodeId declId = currentFn->decl()->id();
-        return declId == AstNodeId::CompilerRunExpr || declId == AstNodeId::CompilerFunc;
+        for (size_t parentIndex = 0;; parentIndex++)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                break;
+
+            if (sema.node(parentRef).is(AstNodeId::CompilerRunExpr))
+                return true;
+        }
+
+        return false;
     }
 
     bool supportsConstCallJit(Sema& sema, const SymbolFunction& calledFn)
@@ -292,7 +301,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 {
     if (!supportsConstCallJit(sema, calledFn))
         return Result::Continue;
-    if (isInsideCompilerRunContext(sema))
+    if (isInsideCompilerRunExpr(sema))
         return Result::Continue;
 
     if (sema.viewConstant(callRef).hasConstant())

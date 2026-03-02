@@ -535,7 +535,7 @@ namespace
         }
     }
 
-    bool foldRetCopyIntoAccumulator(MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    bool foldRetCopyIntoAccumulator(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
         const MicroInstrRef          instRef = cursor.instRef;
@@ -1269,7 +1269,7 @@ namespace
         bool                         replacedAny = false;
         bool                         failed      = false;
 
-        const auto rollback = [&rewrites]() {
+        const auto rollback = [&rewrites] {
             for (auto itRewrite = rewrites.rbegin(); itRewrite != rewrites.rend(); ++itRewrite)
                 SWC_NOT_NULL(itRewrite->reg)->packed = itRewrite->original.packed;
         };

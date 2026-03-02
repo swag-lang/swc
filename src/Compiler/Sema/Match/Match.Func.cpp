@@ -1037,7 +1037,7 @@ namespace
         }
 
         SmallVector4<uint64_t> dims;
-        dims.push_back(static_cast<uint64_t>(elemTypes.size()));
+        dims.push_back(elemTypes.size());
         const TypeRef concreteArrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, firstElemTypeRef));
 
         SemaNodeView castView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);

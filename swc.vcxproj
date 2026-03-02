@@ -202,6 +202,7 @@
         <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp"/>
         <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JITExecManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemory.cpp"/>
         <ClCompile Include="src\Backend\\ABI\CallConv.cpp"/>
@@ -452,6 +453,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroPassManager.h"/>
         <ClInclude Include="src\Backend\JIT\JIT.h"/>
+        <ClInclude Include="src\Backend\JIT\JITExecManager.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemory.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
         <ClInclude Include="src\Backend\\Encoder\Encoder.h"/>

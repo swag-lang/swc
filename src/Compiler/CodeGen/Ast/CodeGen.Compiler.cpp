@@ -94,7 +94,7 @@ Result AstCompilerFunc::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     return Result::Continue;
 }
 
-Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen) const
+Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen)
 {
     const CallConvKind callConvKind = codeGen.function().callConvKind();
     emitCompilerFunctionStackEpilogue(codeGen, callConvKind);

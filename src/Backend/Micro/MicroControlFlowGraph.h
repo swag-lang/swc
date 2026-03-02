@@ -16,9 +16,9 @@ public:
     bool                                   supportsDeadCodeLiveness() const { return supportsDeadCodeLiveness_; }
 
 private:
-    void     clear();
-    void     build(const MicroStorage& storage, const MicroOperandStorage& operands);
-    uint64_t computeHash(const MicroStorage& storage, const MicroOperandStorage& operands) const;
+    void            clear();
+    void            build(const MicroStorage& storage, const MicroOperandStorage& operands);
+    static uint64_t computeHash(const MicroStorage& storage, const MicroOperandStorage& operands);
 
     std::vector<MicroInstrRef>         instructionRefs_;
     std::vector<SmallVector<uint32_t>> successors_;

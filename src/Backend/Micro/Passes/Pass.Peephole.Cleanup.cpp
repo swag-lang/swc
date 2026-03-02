@@ -870,7 +870,7 @@ namespace
         return false;
     }
 
-    bool hasUseBeforeNextDef(const MicroPassContext& context, const MicroStorage::Iterator startIt, const MicroStorage::Iterator endIt, const MicroReg reg)
+    bool hasUseBeforeNextDef(const MicroPassContext& context, const MicroStorage::Iterator& startIt, const MicroStorage::Iterator& endIt, const MicroReg reg)
     {
         if (!reg.isValid())
             return true;
@@ -912,7 +912,7 @@ namespace
                     return true;
 
                 const uint32_t targetLabelId = static_cast<uint32_t>(scanOps[2].valueU64);
-                if (std::find(visitedJumpTargets.begin(), visitedJumpTargets.end(), targetLabelId) != visitedJumpTargets.end())
+                if (std::ranges::find(visitedJumpTargets, targetLabelId) != visitedJumpTargets.end())
                     return true;
                 visitedJumpTargets.push_back(targetLabelId);
 
@@ -1046,10 +1046,10 @@ namespace
         if (!binMutable || !binMutableOps)
             return false;
 
-        MicroInstr                       probeBinInst         = *binMutable;
-        std::array<MicroInstrOperand, 5> rewrittenBinOps      = {binMutableOps[0], binMutableOps[1], binMutableOps[2], binMutableOps[3], MicroInstrOperand{}};
-        auto                             rewrittenBinOpcode   = MicroInstrOpcode::End;
-        uint8_t                          rewrittenBinOperands = 5;
+        MicroInstr        probeBinInst         = *binMutable;
+        std::array        rewrittenBinOps      = {binMutableOps[0], binMutableOps[1], binMutableOps[2], binMutableOps[3], MicroInstrOperand{}};
+        auto              rewrittenBinOpcode   = MicroInstrOpcode::End;
+        constexpr uint8_t rewrittenBinOperands = 5;
 
         if (binInst.op == MicroInstrOpcode::OpBinaryRegImm)
         {
@@ -1145,7 +1145,7 @@ namespace
         const uint64_t slotOffset = ops[3].valueU64;
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
         {
-            MicroInstr&        scanInst = const_cast<MicroInstr&>(*scanIt);
+            auto&              scanInst = const_cast<MicroInstr&>(*scanIt);
             MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
             if (scanInst.op == MicroInstrOpcode::Label)
                 return false;
@@ -1787,7 +1787,7 @@ namespace
             return replacedUse;
         };
 
-        auto retargetSetCondToDst = [&]() {
+        auto retargetSetCondToDst = [&] {
             const MicroInstr*  setCondInst = context.instructions->ptr(instRef);
             MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*context.operands) : nullptr;
             if (!setCondOps)

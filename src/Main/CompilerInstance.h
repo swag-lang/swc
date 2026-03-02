@@ -22,6 +22,7 @@ class JITMemoryManager;
 class ExternalModuleManager;
 class Global;
 class SourceFile;
+class JITExecManager;
 struct CommandLine;
 
 class CompilerInstance
@@ -55,6 +56,8 @@ public:
     const Runtime::CompilerMessage& runtimeCompilerMessage() const { return runtimeCompilerMessage_; }
     JITMemoryManager&               jitMemMgr() { return *SWC_NOT_NULL(jitMemMgr_.get()); }
     const JITMemoryManager&         jitMemMgr() const { return *SWC_NOT_NULL(jitMemMgr_.get()); }
+    JITExecManager&                 jitExecMgr() { return *SWC_NOT_NULL(jitExecMgr_.get()); }
+    const JITExecManager&           jitExecMgr() const { return *SWC_NOT_NULL(jitExecMgr_.get()); }
     ExternalModuleManager&          externalModuleMgr() { return *SWC_NOT_NULL(externalModuleMgr_.get()); }
     const ExternalModuleManager&    externalModuleMgr() const { return *SWC_NOT_NULL(externalModuleMgr_.get()); }
 
@@ -133,6 +136,7 @@ private:
     Runtime::BuildCfg                        buildCfg_{};
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};
+    std::unique_ptr<JITExecManager>          jitExecMgr_;
     void*                                    runtimeCompilerITable_[3]{};
     mutable std::shared_mutex                mutex_;
     bool                                     changed_ = true;

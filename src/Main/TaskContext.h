@@ -30,6 +30,7 @@ enum class TaskStateKind : uint8_t
     SemaWaitSymCodeGenPreSolved,
     SemaWaitSymCodeGenCompleted,
     SemaWaitTypeCompleted,
+    SemaWaitMainThreadRunJit,
 };
 
 struct TaskState
@@ -74,6 +75,8 @@ struct TaskState
                 return "Wait symbol codegen completed";
             case TaskStateKind::SemaWaitTypeCompleted:
                 return "Wait type completed";
+            case TaskStateKind::SemaWaitMainThreadRunJit:
+                return "Wait main-thread JIT";
             default:
                 return "Unknown";
         }
@@ -126,6 +129,18 @@ struct TaskState
         kind            = TaskStateKind::CodeGenParsing;
         runJitFunction  = nullptr;
         codeGenFunction = function;
+        nodeRef         = currentNodeRef;
+        codeRef         = currentCodeRef;
+        idRef           = IdentifierRef::invalid();
+        symbol          = nullptr;
+        waiterSymbol    = nullptr;
+    }
+
+    void setSemaWaitMainThreadRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
+    {
+        kind            = TaskStateKind::SemaWaitMainThreadRunJit;
+        runJitFunction  = function;
+        codeGenFunction = nullptr;
         nodeRef         = currentNodeRef;
         codeRef         = currentCodeRef;
         idRef           = IdentifierRef::invalid();

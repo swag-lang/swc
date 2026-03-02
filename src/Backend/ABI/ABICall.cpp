@@ -95,7 +95,7 @@ namespace
 
         SWC_ASSERT(allowedIndex < argRegs.size());
         SmallVector<MicroReg> forbiddenRegs;
-        forbiddenRegs.reserve(argRegs.size() > 0 ? argRegs.size() - 1 : 0);
+        forbiddenRegs.reserve(!argRegs.empty() ? argRegs.size() - 1 : 0);
         for (uint32_t idx = 0; idx < argRegs.size(); ++idx)
         {
             if (idx == allowedIndex)

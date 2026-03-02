@@ -669,13 +669,14 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
-    TaskContext& ctx = sema.ctx();
-    auto&        sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
+
     auto frame                = sema.frame();
     frame.currentAttributes() = sym.attributes();
     frame.setCurrentFunction(&sym);
+
     sema.pushFramePopOnPostNode(frame);
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     sema.curScope().setSymMap(&sym);
@@ -684,10 +685,12 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 
 Result AstCompilerFunc::semaPostNode(Sema& sema) const
 {
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    sym.setSemaCompleted(sema.ctx());
+
     if (sema.token(codeRef()).id != TokenId::CompilerRun)
         return Result::Continue;
 
-    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     return SemaJIT::runStatement(sema, sym, sema.curNodeRef());
 }
 

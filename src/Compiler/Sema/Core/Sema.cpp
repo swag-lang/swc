@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/JIT/JITExecManager.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaJob.h"
@@ -632,6 +633,12 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     while (true)
     {
         jobMgr.waitAll(clientId);
+
+        if (compiler.jitExecMgr().executePendingMainThread())
+        {
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
 
         if (compiler.changed())
         {

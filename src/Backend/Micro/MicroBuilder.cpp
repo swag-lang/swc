@@ -209,7 +209,7 @@ const MicroControlFlowGraph& MicroBuilder::controlFlowGraph()
         if (!controlFlowGraphMaybeDirty_)
             return controlFlowGraph_;
 
-        const uint64_t hash = controlFlowGraph_.computeHash(instructions_, operands_);
+        const uint64_t hash = MicroControlFlowGraph::computeHash(instructions_, operands_);
 
         if (hash == controlFlowGraphHash_)
         {
@@ -220,7 +220,7 @@ const MicroControlFlowGraph& MicroBuilder::controlFlowGraph()
 
     controlFlowGraph_.build(instructions_, operands_);
     controlFlowGraphStorageRevision_ = storageRevision;
-    controlFlowGraphHash_            = controlFlowGraph_.computeHash(instructions_, operands_);
+    controlFlowGraphHash_            = MicroControlFlowGraph::computeHash(instructions_, operands_);
 
     hasControlFlowGraph_        = true;
     controlFlowGraphMaybeDirty_ = false;

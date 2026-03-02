@@ -24,7 +24,7 @@ void MicroControlFlowGraph::clear()
     supportsDeadCodeLiveness_                = true;
 }
 
-uint64_t MicroControlFlowGraph::computeHash(const MicroStorage& storage, const MicroOperandStorage& operands) const
+uint64_t MicroControlFlowGraph::computeHash(const MicroStorage& storage, const MicroOperandStorage& operands)
 {
     uint64_t hash = K_CFG_HASH_OFFSET_BASIS;
     for (const MicroInstr& inst : storage.view())

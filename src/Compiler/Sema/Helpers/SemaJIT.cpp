@@ -3,6 +3,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITExecManager.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -11,6 +12,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
 
@@ -78,11 +80,21 @@ namespace
 
         return ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
     }
+
+    std::optional<Result> consumeJitExecCompletion(Sema& sema, AstNodeRef nodeRef)
+    {
+        const JITExecManager::Completion completion = sema.compiler().jitExecMgr().consumeCompletion(sema.ctx(), nodeRef);
+        if (!completion.hasValue)
+            return std::nullopt;
+        return completion.result;
+    }
 }
 
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
 {
     SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+    if (const std::optional<Result> completion = consumeJitExecCompletion(sema, nodeExprRef))
+        return *completion;
     if (sema.viewConstant(nodeExprRef).hasConstant())
         return Result::Continue;
     const SemaNodeView initialView = sema.viewType(nodeExprRef);
@@ -114,8 +126,8 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     }
 
     SWC_ASSERT(resultSize > 0);
-    SmallVector<std::byte> resultStorage(resultSize);
-    const auto             resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
+    const auto     resultStorage        = std::make_shared<SmallVector<std::byte>>(resultSize);
+    const uint64_t resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage->data());
 
     // Call !
     SWC_RESULT_VERIFY(symFn.emit(ctx));
@@ -126,28 +138,33 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
         return Result::Error;
 
-    {
-        const TaskScopedState scopedState(ctx);
-        ctx.state().setRunJit(&symFn, nodeExprRef, sema.node(nodeExprRef).codeRef());
-
-        auto         callErrorKind = JITCallErrorKind::None;
-        const Result callResult    = JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress, &callErrorKind);
+    JITExecManager::Request request;
+    request.function     = &symFn;
+    request.nodeRef      = nodeExprRef;
+    request.codeRef      = sema.node(nodeExprRef).codeRef();
+    request.arg0         = resultStorageAddress;
+    request.hasArg0      = true;
+    request.runImmediate = false;
+    request.onCompleted  = [semaPtr = &sema, nodeExprRef, exprTypeRef, storageTypeRef, normalizedRet, resultStorage](Result callResult) {
         if (callResult != Result::Continue)
-            return Result::Error;
-    }
+            return;
 
-    ConstantValue   resultConstant;
-    const TypeInfo& exprType = sema.typeMgr().get(exprTypeRef);
-    if (!normalizedRet.isIndirect && exprType.isString())
-        resultConstant = makeRunExprPointerStringConstant(sema, resultStorage.data());
-    else
-        resultConstant = makeRunExprConstant(sema, exprTypeRef, storageTypeRef, resultStorage.data());
-    sema.setConstant(nodeExprRef, sema.cstMgr().addConstant(ctx, resultConstant));
-    return Result::Continue;
+        ConstantValue   resultConstant;
+        const TypeInfo& exprType = semaPtr->typeMgr().get(exprTypeRef);
+        if (!normalizedRet.isIndirect && exprType.isString())
+            resultConstant = makeRunExprPointerStringConstant(*semaPtr, resultStorage->data());
+        else
+            resultConstant = makeRunExprConstant(*semaPtr, exprTypeRef, storageTypeRef, resultStorage->data());
+        semaPtr->setConstant(nodeExprRef, semaPtr->cstMgr().addConstant(semaPtr->ctx(), resultConstant));
+    };
+    return sema.compiler().jitExecMgr().submit(ctx, std::move(request));
 }
 
 Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)
 {
+    if (const std::optional<Result> completion = consumeJitExecCompletion(sema, nodeRef))
+        return *completion;
+
     sema.ctx().state().jitEmissionError = false;
     scheduleCodeGen(sema, symFn);
     SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
@@ -164,17 +181,13 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
     if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
         return Result::Error;
 
-    {
-        const TaskScopedState scopedState(ctx);
-        ctx.state().setRunJit(&symFn, nodeRef, sema.node(nodeRef).codeRef());
-
-        auto         callErrorKind = JITCallErrorKind::None;
-        const Result callResult    = JIT::call(ctx, symFn.jitEntryAddress(), nullptr, &callErrorKind);
-        if (callResult != Result::Continue)
-            return Result::Error;
-    }
-
-    return Result::Continue;
+    JITExecManager::Request request;
+    request.function     = &symFn;
+    request.nodeRef      = nodeRef;
+    request.codeRef      = sema.node(nodeRef).codeRef();
+    request.hasArg0      = false;
+    request.runImmediate = false;
+    return sema.compiler().jitExecMgr().submit(ctx, std::move(request));
 }
 
 SWC_END_NAMESPACE();

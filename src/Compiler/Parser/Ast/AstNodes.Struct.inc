@@ -314,7 +314,7 @@ struct AstCompilerFunc : AstNodeT<AstNodeId::CompilerFunc>
     static Result semaPreNode(Sema& sema);
     Result        semaPostNode(Sema& sema) const;
     Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result        codeGenPostNode(CodeGen& codeGen) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------

@@ -159,6 +159,9 @@
     <ClCompile Include="src\Backend\JIT\JIT.cpp">
       <Filter>src\Backend\JIT</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\JIT\JITExecManager.cpp">
+      <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp">
       <Filter>src\Backend\JIT</Filter>
     </ClCompile>
@@ -864,6 +867,9 @@
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\JIT\JIT.h">
+      <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\JIT\JITExecManager.h">
       <Filter>src\Backend\JIT</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\JIT\JITMemory.h">

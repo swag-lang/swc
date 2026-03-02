@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -250,6 +251,83 @@ namespace
 
             auto& symVar = s->cast<SymbolVariable>();
             symVar.setCstRef(cstRef);
+        }
+    }
+
+    void storeDestructuringLetConstants(Sema& sema, const std::span<Symbol*>& symbols, const std::span<const SymbolVariable*>& fields, ConstantRef cstRef)
+    {
+        if (symbols.empty() || symbols.size() != fields.size() || cstRef.isInvalid())
+            return;
+
+        TaskContext&         ctx                 = sema.ctx();
+        const ConstantValue& cst                 = sema.cstMgr().get(cstRef);
+        const bool           fromAggregateStruct = cst.isAggregateStruct();
+        const bool           fromStructBytes     = cst.isStruct();
+        if (!fromAggregateStruct && !fromStructBytes)
+            return;
+
+        const std::vector<ConstantRef>* aggregateValues = fromAggregateStruct ? &cst.getAggregateStruct() : nullptr;
+        const ByteSpan                  structBytes     = fromStructBytes ? cst.getStruct() : ByteSpan{};
+
+        const size_t count = symbols.size();
+        for (size_t i = 0; i < count; ++i)
+        {
+            Symbol* const               sym   = symbols[i];
+            const SymbolVariable* const field = fields[i];
+            if (!sym || !field || !sym->isVariable())
+                continue;
+
+            ConstantRef fieldCstRef = ConstantRef::invalid();
+            if (aggregateValues)
+            {
+                if (i < aggregateValues->size())
+                    fieldCstRef = (*aggregateValues)[i];
+            }
+            else
+            {
+                const TypeRef   fieldTypeRef = field->typeRef();
+                const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
+                const uint64_t  fieldOffset  = field->offset();
+                const uint64_t  fieldSize    = fieldType.sizeOf(ctx);
+                if (fieldOffset + fieldSize > structBytes.size())
+                    continue;
+
+                const ByteSpan fieldBytes = ByteSpan{structBytes.data() + fieldOffset, fieldSize};
+                if (fieldType.isStruct())
+                {
+                    const ConstantValue fieldCst = ConstantValue::makeStructBorrowed(ctx, fieldTypeRef, fieldBytes);
+                    fieldCstRef                  = sema.cstMgr().addConstant(ctx, fieldCst);
+                }
+                else if (fieldType.isArray())
+                {
+                    const ConstantValue fieldCst = ConstantValue::makeArrayBorrowed(ctx, fieldTypeRef, fieldBytes);
+                    fieldCstRef                  = sema.cstMgr().addConstant(ctx, fieldCst);
+                }
+                else
+                {
+                    TypeRef valueTypeRef = fieldTypeRef;
+                    if (fieldType.isEnum())
+                        valueTypeRef = fieldType.payloadSymEnum().underlyingTypeRef();
+
+                    ConstantValue fieldCst = ConstantValue::make(ctx, fieldBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+                    if (!fieldCst.isValid())
+                        continue;
+
+                    fieldCstRef = sema.cstMgr().addConstant(ctx, fieldCst);
+                    if (fieldType.isEnum())
+                    {
+                        fieldCst = ConstantValue::makeEnumValue(ctx, fieldCstRef, fieldTypeRef);
+                        fieldCst.setTypeRef(fieldTypeRef);
+                        fieldCstRef = sema.cstMgr().addConstant(ctx, fieldCst);
+                    }
+                }
+            }
+
+            if (fieldCstRef.isValid())
+            {
+                auto& symVar = sym->cast<SymbolVariable>();
+                symVar.setCstRef(fieldCstRef);
+            }
         }
     }
 
@@ -553,7 +631,8 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         return Result::Error;
     }
 
-    SmallVector<Symbol*> symbols;
+    SmallVector<Symbol*>               symbols;
+    SmallVector<const SymbolVariable*> fieldsForSymbols;
     for (size_t i = 0; i < tokNames.size(); i++)
     {
         const auto& tokNameRef = tokNames[i];
@@ -571,13 +650,19 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         sym.setTypeRef(field->typeRef());
         sym.setTyped(sema.ctx());
         sym.setSemaCompleted(sema.ctx());
+        fieldsForSymbols.push_back(field);
 
         SWC_RESULT_VERIFY(Match::ghosting(sema, sym));
     }
 
     sema.setSymbolList(sema.curNodeRef(), symbols.span());
     const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags()};
-    return semaPostVarDeclCommon(sema, context, symbols.span());
+    SWC_RESULT_VERIFY(semaPostVarDeclCommon(sema, context, symbols.span()));
+
+    const SemaNodeView refreshedInitView = sema.viewNodeTypeConstant(nodeInitRef);
+    storeDestructuringLetConstants(sema, symbols.span(), fieldsForSymbols.span(), refreshedInitView.cstRef());
+
+    return Result::Continue;
 }
 
 Result AstInitializerExpr::semaPostNode(Sema& sema)

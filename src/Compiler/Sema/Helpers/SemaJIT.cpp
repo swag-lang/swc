@@ -275,26 +275,6 @@ namespace
         return false;
     }
 
-    bool supportsConstCallValueType(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeRef   valueTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        const TypeInfo& valueType    = sema.typeMgr().get(valueTypeRef);
-        if (valueType.isEnum() ||
-            valueType.isBool() ||
-            valueType.isChar() ||
-            valueType.isRune() ||
-            valueType.isInt() ||
-            valueType.isFloat())
-        {
-            return true;
-        }
-
-        return false;
-    }
-
     bool supportsConstCallJit(Sema& sema, const SymbolFunction& calledFn)
     {
         if (!calledFn.isPure() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
@@ -306,8 +286,6 @@ namespace
 
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
         if (returnType.isVoid())
-            return false;
-        if (!supportsConstCallValueType(sema, calledFn.returnTypeRef()))
             return false;
 
         return true;
@@ -339,8 +317,6 @@ namespace
             const SemaNodeView argTypeView  = sema.viewType(argRef);
             const SemaNodeView argConstView = sema.viewConstant(argRef);
             if (!argTypeView.typeRef().isValid() || !argConstView.cstRef().isValid())
-                return false;
-            if (!supportsConstCallValueType(sema, argTypeView.typeRef()))
                 return false;
 
             const TypeRef argValueTypeRef = sema.typeMgr().get(argTypeView.typeRef()).unwrap(ctx, argTypeView.typeRef(), TypeExpandE::Alias);

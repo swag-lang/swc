@@ -146,4 +146,35 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     return Result::Continue;
 }
 
+Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)
+{
+    sema.ctx().state().jitEmissionError = false;
+    scheduleCodeGen(sema, symFn);
+    SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
+    if (sema.ctx().state().jitEmissionError)
+        return Result::Error;
+
+    TaskContext& ctx = sema.ctx();
+
+    SWC_RESULT_VERIFY(symFn.emit(ctx));
+    if (ctx.state().jitEmissionError)
+        return Result::Error;
+
+    symFn.jit(ctx);
+    if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
+        return Result::Error;
+
+    {
+        const TaskScopedState scopedState(ctx);
+        ctx.state().setRunJit(&symFn, nodeRef, sema.node(nodeRef).codeRef());
+
+        auto         callErrorKind = JITCallErrorKind::None;
+        const Result callResult    = JIT::call(ctx, symFn.jitEntryAddress(), nullptr, &callErrorKind);
+        if (callResult != Result::Continue)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

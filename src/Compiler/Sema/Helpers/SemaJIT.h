@@ -8,6 +8,7 @@ class SymbolFunction;
 
 namespace SemaJIT
 {
+    Result runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef);
     Result runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef);
 }
 

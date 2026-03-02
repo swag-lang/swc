@@ -663,12 +663,14 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 
     auto& sym = SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, *this, name);
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
+    sym.setDeclNodeRef(sema.curNodeRef());
     return Result::SkipChildren;
 }
 
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
-    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    TaskContext& ctx = sema.ctx();
+    auto&        sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     auto frame                = sema.frame();
@@ -678,6 +680,15 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     sema.curScope().setSymMap(&sym);
     return Result::Continue;
+}
+
+Result AstCompilerFunc::semaPostNode(Sema& sema) const
+{
+    if (sema.token(codeRef()).id != TokenId::CompilerRun)
+        return Result::Continue;
+
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    return SemaJIT::runStatement(sema, sym, sema.curNodeRef());
 }
 
 Result AstCompilerRunExpr::semaPreNode(Sema& sema)

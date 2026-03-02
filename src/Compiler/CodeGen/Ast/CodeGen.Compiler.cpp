@@ -9,11 +9,68 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void buildCompilerFunctionStackLayout(CodeGen& codeGen)
+    {
+        const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
+        if (localSymbols.empty())
+            return;
+
+        const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
+        uint64_t        frameSize = 0;
+        for (SymbolVariable* symVar : localSymbols)
+        {
+            SWC_ASSERT(symVar != nullptr);
+            const TypeRef typeRef = symVar->typeRef();
+            SWC_ASSERT(typeRef.isValid());
+
+            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+            const auto      size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
+            SWC_ASSERT(size > 0);
+
+            const uint32_t symOffset = symVar->offset();
+            symVar->setCodeGenLocalSize(size);
+            symVar->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+            frameSize = std::max<uint64_t>(frameSize, symOffset + size);
+        }
+
+        const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
+        frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
+        SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+        codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
+    }
+
+    void emitCompilerFunctionStackPrologue(CodeGen& codeGen, CallConvKind callConvKind)
+    {
+        if (!codeGen.hasLocalStackFrame())
+            return;
+
+        const CallConv& callConv  = CallConv::get(callConvKind);
+        MicroBuilder&   builder   = codeGen.builder();
+        const uint32_t  frameSize = codeGen.localStackFrameSize();
+        SWC_ASSERT(frameSize != 0);
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
+
+        const MicroReg frameBaseReg = callConv.framePointer;
+        builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
+        codeGen.setLocalStackBaseReg(frameBaseReg);
+    }
+
+    void emitCompilerFunctionStackEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
+    {
+        if (!codeGen.hasLocalStackFrame())
+            return;
+
+        const CallConv& callConv = CallConv::get(callConvKind);
+        codeGen.builder().emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
+    }
+
     bool canUseDirectCallReturnWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
     {
         if (normalizedRet.isVoid || normalizedRet.isIndirect)
@@ -24,6 +81,25 @@ namespace
 
         return payload.isValue();
     }
+}
+
+Result AstCompilerFunc::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::SkipChildren;
+
+    const CallConvKind callConvKind = codeGen.function().callConvKind();
+    buildCompilerFunctionStackLayout(codeGen);
+    emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+    return Result::Continue;
+}
+
+Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen) const
+{
+    const CallConvKind callConvKind = codeGen.function().callConvKind();
+    emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+    codeGen.builder().emitRet();
+    return Result::Continue;
 }
 
 Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)

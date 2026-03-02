@@ -21,6 +21,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct JITCallResultMeta
+    {
+        TypeRef                          exprTypeRef;
+        TypeRef                          storageTypeRef;
+        ABITypeNormalize::NormalizedType normalizedRet;
+        uint64_t                         resultSize = 0;
+    };
+
     void scheduleCodeGen(Sema& sema, SymbolFunction& symFn)
     {
         if (symFn.tryMarkCodeGenJobScheduled())
@@ -28,6 +36,26 @@ namespace
             auto* job = heapNew<CodeGenJob>(sema.ctx(), sema, symFn, symFn.declNodeRef());
             sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
         }
+    }
+
+    Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
+    {
+        sema.ctx().state().jitEmissionError = false;
+        scheduleCodeGen(sema, symFn);
+        SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
+        if (sema.ctx().state().jitEmissionError)
+            return Result::Error;
+
+        TaskContext& ctx = sema.ctx();
+        SWC_RESULT_VERIFY(symFn.emit(ctx));
+        if (ctx.state().jitEmissionError)
+            return Result::Error;
+
+        symFn.jit(ctx);
+        if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
+            return Result::Error;
+
+        return Result::Continue;
     }
 
     TypeRef computeRunExprStorageTypeRef(Sema& sema, TypeRef exprTypeRef)
@@ -80,6 +108,43 @@ namespace
             return ConstantValue::makeString(ctx, std::string_view{});
 
         return ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
+    }
+
+    std::optional<JITCallResultMeta> computeJitCallResultMeta(Sema& sema, TypeRef exprTypeRef)
+    {
+        TaskContext&                           ctx            = sema.ctx();
+        const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
+        const TypeInfo&                        storageType    = sema.typeMgr().get(storageTypeRef);
+        const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), exprTypeRef, ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!storageType.isVoid());
+
+        uint64_t resultSize = storageType.sizeOf(ctx);
+        if (!normalizedRet.isIndirect)
+        {
+            if (normalizedRet.numBits)
+                resultSize = normalizedRet.numBits / 8;
+            else
+                resultSize = 8;
+        }
+
+        SWC_ASSERT(resultSize > 0);
+        if (!resultSize)
+            return std::nullopt;
+
+        JITCallResultMeta resultMeta;
+        resultMeta.exprTypeRef    = exprTypeRef;
+        resultMeta.storageTypeRef = storageTypeRef;
+        resultMeta.normalizedRet  = normalizedRet;
+        resultMeta.resultSize     = resultSize;
+        return resultMeta;
+    }
+
+    ConstantValue makeJitCallResultConstant(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
+    {
+        const TypeInfo& exprType = sema.typeMgr().get(resultMeta.exprTypeRef);
+        if (!resultMeta.normalizedRet.isIndirect && exprType.isString())
+            return makeRunExprPointerStringConstant(sema, storagePtr);
+        return makeRunExprConstant(sema, resultMeta.exprTypeRef, resultMeta.storageTypeRef, storagePtr);
     }
 
     std::optional<Result> consumeJitExecCompletion(Sema& sema, AstNodeRef nodeRef)
@@ -194,7 +259,7 @@ namespace
                 return false;
 
             auto& argStorage = outArgStorage.emplace_back();
-            argStorage.resize(static_cast<size_t>(argStorageSize));
+            argStorage.resize(argStorageSize);
             std::memset(argStorage.data(), 0, argStorage.size());
             ConstantLower::lowerToBytes(sema, ByteSpanRW{argStorage.data(), argStorage.size()}, argConstView.cstRef(), argValueTypeRef);
 
@@ -220,41 +285,15 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 
     const TypeRef exprTypeRef = sema.viewType(nodeExprRef).typeRef();
     SWC_ASSERT(exprTypeRef.isValid());
-
-    sema.ctx().state().jitEmissionError = false;
-    scheduleCodeGen(sema, symFn);
-    SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
-    if (sema.ctx().state().jitEmissionError)
+    const std::optional<JITCallResultMeta> resultMetaOpt = computeJitCallResultMeta(sema, exprTypeRef);
+    if (!resultMetaOpt.has_value())
         return Result::Error;
 
-    TaskContext&                           ctx            = sema.ctx();
-    const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
-    const TypeInfo&                        storageType    = sema.typeMgr().get(storageTypeRef);
-    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), exprTypeRef, ABITypeNormalize::Usage::Return);
-    SWC_ASSERT(!storageType.isVoid());
+    SWC_RESULT_VERIFY(prepareJitFunction(sema, symFn));
+    TaskContext& ctx = sema.ctx();
 
-    // Storage, to store the call result of the expression
-    uint64_t resultSize = storageType.sizeOf(ctx);
-    if (!normalizedRet.isIndirect)
-    {
-        if (normalizedRet.numBits)
-            resultSize = normalizedRet.numBits / 8;
-        else
-            resultSize = 8;
-    }
-
-    SWC_ASSERT(resultSize > 0);
-    const auto     resultStorage        = std::make_shared<SmallVector<std::byte>>(resultSize);
+    const auto     resultStorage        = std::make_shared<SmallVector<std::byte>>(resultMetaOpt->resultSize);
     const uint64_t resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage->data());
-
-    // Call !
-    SWC_RESULT_VERIFY(symFn.emit(ctx));
-    if (ctx.state().jitEmissionError)
-        return Result::Error;
-
-    symFn.jit(ctx);
-    if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
-        return Result::Error;
 
     JITExecManager::Request request;
     request.function     = &symFn;
@@ -264,16 +303,11 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     request.hasArg0      = true;
     request.runImmediate = false;
 
-    request.onCompleted = [semaPtr = &sema, nodeExprRef, exprTypeRef, storageTypeRef, normalizedRet, resultStorage](Result callResult) {
+    request.onCompleted = [semaPtr = &sema, nodeExprRef, resultMeta = *resultMetaOpt, resultStorage](Result callResult) {
         if (callResult != Result::Continue)
             return;
 
-        ConstantValue   resultConstant;
-        const TypeInfo& exprType = semaPtr->typeMgr().get(exprTypeRef);
-        if (!normalizedRet.isIndirect && exprType.isString())
-            resultConstant = makeRunExprPointerStringConstant(*semaPtr, resultStorage->data());
-        else
-            resultConstant = makeRunExprConstant(*semaPtr, exprTypeRef, storageTypeRef, resultStorage->data());
+        const ConstantValue resultConstant = makeJitCallResultConstant(*semaPtr, resultMeta, resultStorage->data());
         semaPtr->setConstant(nodeExprRef, semaPtr->cstMgr().addConstant(semaPtr->ctx(), resultConstant));
     };
     return sema.compiler().jitExecMgr().submit(ctx, request);
@@ -302,42 +336,16 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (!buildConstCallArguments(sema, resolvedArgs, argStorage, jitArgs))
         return Result::Continue;
 
-    sema.ctx().state().jitEmissionError = false;
-    scheduleCodeGen(sema, calledFn);
-    SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&calledFn, calledFn.codeRef()));
-    if (sema.ctx().state().jitEmissionError)
+    const TypeRef                          exprTypeRef   = calledFn.returnTypeRef();
+    const std::optional<JITCallResultMeta> resultMetaOpt = computeJitCallResultMeta(sema, exprTypeRef);
+    if (!resultMetaOpt.has_value())
         return Result::Error;
 
+    SWC_RESULT_VERIFY(prepareJitFunction(sema, calledFn));
     TaskContext& ctx = sema.ctx();
-    SWC_RESULT_VERIFY(calledFn.emit(ctx));
-    if (ctx.state().jitEmissionError)
-        return Result::Error;
-
-    calledFn.jit(ctx);
-    if (ctx.state().jitEmissionError || !calledFn.jitEntryAddress())
-        return Result::Error;
-
-    const TypeRef   exprTypeRef    = calledFn.returnTypeRef();
-    const TypeRef   storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
-    const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
-    const TypeInfo& exprType       = sema.typeMgr().get(exprTypeRef);
-
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, CallConv::host(), exprTypeRef, ABITypeNormalize::Usage::Return);
-    uint64_t                               resultSize    = storageType.sizeOf(ctx);
-    if (!normalizedRet.isIndirect)
-    {
-        if (normalizedRet.numBits)
-            resultSize = normalizedRet.numBits / 8;
-        else
-            resultSize = 8;
-    }
-
-    SWC_ASSERT(resultSize > 0);
-    if (!resultSize)
-        return Result::Error;
 
     SmallVector<std::byte> resultStorage;
-    resultStorage.resize(static_cast<size_t>(resultSize));
+    resultStorage.resize(resultMetaOpt->resultSize);
     std::memset(resultStorage.data(), 0, resultStorage.size());
 
     const JITReturn retMeta{
@@ -349,11 +357,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (callResult != Result::Continue)
         return callResult;
 
-    ConstantValue resultConstant;
-    if (!normalizedRet.isIndirect && exprType.isString())
-        resultConstant = makeRunExprPointerStringConstant(sema, resultStorage.data());
-    else
-        resultConstant = makeRunExprConstant(sema, exprTypeRef, storageTypeRef, resultStorage.data());
+    const ConstantValue resultConstant = makeJitCallResultConstant(sema, *resultMetaOpt, resultStorage.data());
 
     sema.setFoldedTypedConst(callRef);
     sema.setConstant(callRef, sema.cstMgr().addConstant(ctx, resultConstant));

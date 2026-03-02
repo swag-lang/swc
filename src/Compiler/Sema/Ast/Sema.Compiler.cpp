@@ -718,6 +718,7 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
     auto&     symFn           = sema.viewSymbol(nodeRef).sym()->cast<SymbolFunction>();
     frame.currentAttributes() = symFn.attributes();
     frame.setCurrentFunction(&symFn);
+    frame.addContextFlag(SemaFrameContextFlagsE::RunExpr);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }

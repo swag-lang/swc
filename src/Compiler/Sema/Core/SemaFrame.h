@@ -21,6 +21,13 @@ struct SemaCompilerIf
     }
 };
 
+enum class SemaFrameContextFlagsE
+{
+    Zero    = 0,
+    RunExpr = 1 << 0,
+};
+using SemaFrameContextFlags = EnumFlags<SemaFrameContextFlagsE>;
+
 class SemaFrame
 {
 public:
@@ -56,6 +63,10 @@ public:
     void                     setCurrentInterface(SymbolInterface* itf) { interface_ = itf; }
     SymbolFunction*          currentFunction() const { return function_; }
     void                     setCurrentFunction(SymbolFunction* func) { function_ = func; }
+    SemaFrameContextFlags    contextFlags() const { return contextFlags_; }
+    bool                     hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
+    void                     addContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.add(flag); }
+    void                     removeContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.remove(flag); }
     const SemaInlinePayload* currentInlinePayload() const { return inlinePayload_; }
     void                     setCurrentInlinePayload(const SemaInlinePayload* payload) { inlinePayload_ = payload; }
 
@@ -86,6 +97,7 @@ private:
     SymbolImpl*                   impl_          = nullptr;
     SymbolInterface*              interface_     = nullptr;
     SymbolFunction*               function_      = nullptr;
+    SemaFrameContextFlags         contextFlags_  = SemaFrameContextFlagsE::Zero;
     const SemaInlinePayload*      inlinePayload_ = nullptr;
     BreakContext                  breakable_;
     AstNodeRef                    currentSwitch_     = AstNodeRef::invalid();

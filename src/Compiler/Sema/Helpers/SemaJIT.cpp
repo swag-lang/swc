@@ -263,7 +263,8 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     request.arg0         = resultStorageAddress;
     request.hasArg0      = true;
     request.runImmediate = false;
-    request.onCompleted  = [semaPtr = &sema, nodeExprRef, exprTypeRef, storageTypeRef, normalizedRet, resultStorage](Result callResult) {
+
+    request.onCompleted = [semaPtr = &sema, nodeExprRef, exprTypeRef, storageTypeRef, normalizedRet, resultStorage](Result callResult) {
         if (callResult != Result::Continue)
             return;
 
@@ -275,18 +276,15 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
             resultConstant = makeRunExprConstant(*semaPtr, exprTypeRef, storageTypeRef, resultStorage->data());
         semaPtr->setConstant(nodeExprRef, semaPtr->cstMgr().addConstant(semaPtr->ctx(), resultConstant));
     };
-    return sema.compiler().jitExecMgr().submit(ctx, std::move(request));
+    return sema.compiler().jitExecMgr().submit(ctx, request);
 }
 
 Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs)
 {
     if (!supportsConstCallJit(sema, calledFn))
         return Result::Continue;
-    if (const SymbolFunction* currentFn = sema.frame().currentFunction();
-        currentFn && currentFn->decl() && currentFn->decl()->is(AstNodeId::CompilerRunExpr))
-    {
+    if (sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr))
         return Result::Continue;
-    }
     if (sema.viewConstant(callRef).hasConstant())
         return Result::Continue;
 

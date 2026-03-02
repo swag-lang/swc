@@ -110,7 +110,7 @@ namespace
         return ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
     }
 
-    std::optional<JITCallResultMeta> computeJitCallResultMeta(Sema& sema, TypeRef exprTypeRef)
+    JITCallResultMeta computeJitCallResultMeta(Sema& sema, TypeRef exprTypeRef)
     {
         TaskContext&                           ctx            = sema.ctx();
         const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
@@ -128,8 +128,6 @@ namespace
         }
 
         SWC_ASSERT(resultSize > 0);
-        if (!resultSize)
-            return std::nullopt;
 
         JITCallResultMeta resultMeta;
         resultMeta.exprTypeRef    = exprTypeRef;
@@ -175,9 +173,8 @@ namespace
 
         const TypeRef   valueTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
         const TypeInfo& valueType    = sema.typeMgr().get(valueTypeRef);
-        if (valueType.isEnum())
-            return true;
-        if (valueType.isBool() ||
+        if (valueType.isEnum() ||
+            valueType.isBool() ||
             valueType.isChar() ||
             valueType.isRune() ||
             valueType.isInt() ||
@@ -207,28 +204,13 @@ namespace
         return true;
     }
 
-    bool canBuildConstCallArguments(Sema& sema, const SymbolFunction& calledFn, std::span<const ResolvedCallArgument> resolvedArgs)
+    bool buildConstCallArguments(Sema& sema, const SymbolFunction& calledFn, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
     {
         if (resolvedArgs.size() != calledFn.parameters().size())
             return false;
         if (hasAnyVariadicParameter(sema, calledFn))
             return false;
 
-        for (const ResolvedCallArgument& resolvedArg : resolvedArgs)
-        {
-            if (resolvedArg.passKind != CallArgumentPassKind::Direct)
-                return false;
-            if (resolvedArg.argRef.isInvalid())
-                return false;
-            if (!sema.viewConstant(resolvedArg.argRef).hasConstant())
-                return false;
-        }
-
-        return true;
-    }
-
-    bool buildConstCallArguments(Sema& sema, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
-    {
         TaskContext& ctx = sema.ctx();
         outArgStorage.clear();
         outJitArgs.clear();
@@ -238,7 +220,13 @@ namespace
 
         for (const ResolvedCallArgument& resolvedArg : resolvedArgs)
         {
-            const AstNodeRef   argRef       = resolvedArg.argRef;
+            if (resolvedArg.passKind != CallArgumentPassKind::Direct)
+                return false;
+
+            const AstNodeRef argRef = resolvedArg.argRef;
+            if (argRef.isInvalid())
+                return false;
+
             const SemaNodeView argTypeView  = sema.viewType(argRef);
             const SemaNodeView argConstView = sema.viewConstant(argRef);
             if (!argTypeView.typeRef().isValid() || !argConstView.cstRef().isValid())
@@ -283,16 +271,12 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     const SemaNodeView initialView = sema.viewType(nodeExprRef);
     SWC_RESULT_VERIFY(sema.waitSemaCompleted(initialView.type(), nodeExprRef));
 
-    const TypeRef exprTypeRef = sema.viewType(nodeExprRef).typeRef();
-    SWC_ASSERT(exprTypeRef.isValid());
-    const std::optional<JITCallResultMeta> resultMetaOpt = computeJitCallResultMeta(sema, exprTypeRef);
-    if (!resultMetaOpt.has_value())
-        return Result::Error;
-
+    TaskContext&            ctx           = sema.ctx();
+    const TypeRef           exprTypeRef   = sema.viewType(nodeExprRef).typeRef();
+    const JITCallResultMeta resultMetaOpt = computeJitCallResultMeta(sema, exprTypeRef);
     SWC_RESULT_VERIFY(prepareJitFunction(sema, symFn));
-    TaskContext& ctx = sema.ctx();
 
-    const auto     resultStorage        = std::make_shared<SmallVector<std::byte>>(resultMetaOpt->resultSize);
+    const auto     resultStorage        = std::make_shared<SmallVector<std::byte>>(resultMetaOpt.resultSize);
     const uint64_t resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage->data());
 
     JITExecManager::Request request;
@@ -303,13 +287,13 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     request.hasArg0      = true;
     request.runImmediate = false;
 
-    request.onCompleted = [semaPtr = &sema, nodeExprRef, resultMeta = *resultMetaOpt, resultStorage](Result callResult) {
+    request.onCompleted = [semaPtr = &sema, nodeExprRef, resultMeta = resultMetaOpt, resultStorage](Result callResult) {
         if (callResult != Result::Continue)
             return;
-
         const ConstantValue resultConstant = makeJitCallResultConstant(*semaPtr, resultMeta, resultStorage->data());
         semaPtr->setConstant(nodeExprRef, semaPtr->cstMgr().addConstant(semaPtr->ctx(), resultConstant));
     };
+
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }
 
@@ -322,31 +306,24 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (sema.viewConstant(callRef).hasConstant())
         return Result::Continue;
 
-    if (!canBuildConstCallArguments(sema, calledFn, resolvedArgs))
-        return Result::Continue;
-
     const SymbolFunction* currentFn = sema.frame().currentFunction();
     if (currentFn == &calledFn)
         return Result::Continue;
-
     SWC_RESULT_VERIFY(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
 
+    // All argument must be constant
     SmallVector<SmallVector<std::byte>> argStorage;
     SmallVector<JITArgument>            jitArgs;
-    if (!buildConstCallArguments(sema, resolvedArgs, argStorage, jitArgs))
+    if (!buildConstCallArguments(sema, calledFn, resolvedArgs, argStorage, jitArgs))
         return Result::Continue;
 
-    const TypeRef                          exprTypeRef   = calledFn.returnTypeRef();
-    const std::optional<JITCallResultMeta> resultMetaOpt = computeJitCallResultMeta(sema, exprTypeRef);
-    if (!resultMetaOpt.has_value())
-        return Result::Error;
-
+    TaskContext&            ctx           = sema.ctx();
+    const TypeRef           exprTypeRef   = calledFn.returnTypeRef();
+    const JITCallResultMeta resultMetaOpt = computeJitCallResultMeta(sema, exprTypeRef);
     SWC_RESULT_VERIFY(prepareJitFunction(sema, calledFn));
-    TaskContext& ctx = sema.ctx();
 
     SmallVector<std::byte> resultStorage;
-    resultStorage.resize(resultMetaOpt->resultSize);
-    std::memset(resultStorage.data(), 0, resultStorage.size());
+    resultStorage.resize(resultMetaOpt.resultSize);
 
     const JITReturn retMeta{
         .typeRef  = exprTypeRef,
@@ -355,7 +332,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 
     SWC_RESULT_VERIFY(JIT::emitAndCall(ctx, calledFn.jitEntryAddress(), jitArgs.span(), retMeta));
 
-    const ConstantValue resultConstant = makeJitCallResultConstant(sema, *resultMetaOpt, resultStorage.data());
+    const ConstantValue resultConstant = makeJitCallResultConstant(sema, resultMetaOpt, resultStorage.data());
     sema.setFoldedTypedConst(callRef);
     sema.setConstant(callRef, sema.cstMgr().addConstant(ctx, resultConstant));
     return Result::Continue;

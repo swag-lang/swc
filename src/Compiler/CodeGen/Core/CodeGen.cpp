@@ -340,7 +340,7 @@ Result CodeGen::preNode(AstNode& node)
     const SemaInline::Payload* inlinePayload = nullptr;
     if (sema().hasCodeGenPayload(curNodeRef()))
         inlinePayload = sema().codeGenPayload<SemaInline::Payload>(curNodeRef());
-    if (SemaInline::isInlinePayload(inlinePayload) && inlinePayload->inlineRootRef == curNodeRef())
+    if (inlinePayload && inlinePayload->inlineRootRef == curNodeRef())
     {
         CodeGenFrame frame = this->frame();
         frame.setCurrentInlineContext(curNodeRef(), inlinePayload, builder().createLabel());
@@ -369,7 +369,7 @@ Result CodeGen::postNode(AstNode& node)
     if (frame().hasCurrentInlineContext() && frame().currentInlineContext().rootNodeRef == curNodeRef())
     {
         const CodeGenFrame::InlineContext inlineCtx = frame().currentInlineContext();
-        SWC_ASSERT(SemaInline::isInlinePayload(inlineCtx.payload));
+        SWC_ASSERT(inlineCtx.payload != nullptr);
 
         if (inlineCtx.doneLabel.isValid())
             builder().placeLabel(inlineCtx.doneLabel);

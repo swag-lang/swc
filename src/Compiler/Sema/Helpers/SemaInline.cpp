@@ -303,7 +303,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     }
 
     sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
-        SWC_ASSERT(SemaInline::isInlinePayload(inlinePayload));
+        SWC_ASSERT(inlinePayload != nullptr);
         SWC_RESULT_VERIFY(finalizeInlineBlock(inSema, nodeRef, *inlinePayload));
         inSema.setCodeGenPayload(nodeRef, inlinePayload);
         return Result::Continue;

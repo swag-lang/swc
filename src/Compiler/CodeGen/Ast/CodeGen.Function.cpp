@@ -386,7 +386,7 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
     if (codeGen.frame().hasCurrentInlineContext())
     {
         const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
-        if (SemaInline::isInlinePayload(inlineCtx.payload))
+        if (inlineCtx.payload)
             return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef, inlineCtx.doneLabel);
     }
 

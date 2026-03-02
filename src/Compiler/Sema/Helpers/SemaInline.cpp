@@ -179,193 +179,7 @@ namespace
         return false;
     }
 
-    bool isAutoInlineEnabled(const Sema& sema)
-    {
-        return sema.compiler().buildCfg().backend.optimize;
-    }
-
-    bool isAutoInlineScalarType(const TypeInfo& type)
-    {
-        return type.isBool() || type.isInt() || type.isFloat() || type.isRune() || type.isChar() || type.isEnum();
-    }
-
-    struct InlineExpressionScanEntry
-    {
-        AstNodeRef nodeRef = AstNodeRef::invalid();
-    };
-
-    void pushInlineExpressionChild(SmallVector<InlineExpressionScanEntry>& out, AstNodeRef nodeRef)
-    {
-        if (!nodeRef.isValid())
-            return;
-
-        out.push_back({.nodeRef = nodeRef});
-    }
-
-    bool appendInlineExpressionChildren(const AstNode& node, SmallVector<InlineExpressionScanEntry>& out)
-    {
-        switch (node.id())
-        {
-            case AstNodeId::BinaryExpr:
-            {
-                const auto& expr = node.cast<AstBinaryExpr>();
-                pushInlineExpressionChild(out, expr.nodeRightRef);
-                pushInlineExpressionChild(out, expr.nodeLeftRef);
-                return true;
-            }
-
-            case AstNodeId::LogicalExpr:
-            {
-                const auto& expr = node.cast<AstLogicalExpr>();
-                pushInlineExpressionChild(out, expr.nodeRightRef);
-                pushInlineExpressionChild(out, expr.nodeLeftRef);
-                return true;
-            }
-
-            case AstNodeId::RelationalExpr:
-            {
-                const auto& expr = node.cast<AstRelationalExpr>();
-                pushInlineExpressionChild(out, expr.nodeRightRef);
-                pushInlineExpressionChild(out, expr.nodeLeftRef);
-                return true;
-            }
-
-            case AstNodeId::NullCoalescingExpr:
-            {
-                const auto& expr = node.cast<AstNullCoalescingExpr>();
-                pushInlineExpressionChild(out, expr.nodeRightRef);
-                pushInlineExpressionChild(out, expr.nodeLeftRef);
-                return true;
-            }
-
-            case AstNodeId::ConditionalExpr:
-            {
-                const auto& expr = node.cast<AstConditionalExpr>();
-                pushInlineExpressionChild(out, expr.nodeFalseRef);
-                pushInlineExpressionChild(out, expr.nodeTrueRef);
-                pushInlineExpressionChild(out, expr.nodeCondRef);
-                return true;
-            }
-
-            case AstNodeId::IndexExpr:
-            {
-                const auto& expr = node.cast<AstIndexExpr>();
-                pushInlineExpressionChild(out, expr.nodeArgRef);
-                pushInlineExpressionChild(out, expr.nodeExprRef);
-                return true;
-            }
-
-            case AstNodeId::MemberAccessExpr:
-            {
-                const auto& expr = node.cast<AstMemberAccessExpr>();
-                pushInlineExpressionChild(out, expr.nodeRightRef);
-                pushInlineExpressionChild(out, expr.nodeLeftRef);
-                return true;
-            }
-
-            case AstNodeId::AutoMemberAccessExpr:
-            {
-                const auto& expr = node.cast<AstAutoMemberAccessExpr>();
-                pushInlineExpressionChild(out, expr.nodeIdentRef);
-                return true;
-            }
-
-            case AstNodeId::Identifier:
-                return true;
-
-            case AstNodeId::AncestorIdentifier:
-            {
-                const auto& expr = node.cast<AstAncestorIdentifier>();
-                pushInlineExpressionChild(out, expr.nodeIdentRef);
-                pushInlineExpressionChild(out, expr.nodeValueRef);
-                return true;
-            }
-
-            case AstNodeId::ParenExpr:
-            {
-                const auto& expr = node.cast<AstParenExpr>();
-                pushInlineExpressionChild(out, expr.nodeExprRef);
-                return true;
-            }
-
-            case AstNodeId::CastExpr:
-            {
-                const auto& expr = node.cast<AstCastExpr>();
-                pushInlineExpressionChild(out, expr.nodeExprRef);
-                pushInlineExpressionChild(out, expr.nodeTypeRef);
-                return true;
-            }
-
-            case AstNodeId::AutoCastExpr:
-            {
-                const auto& expr = node.cast<AstAutoCastExpr>();
-                pushInlineExpressionChild(out, expr.nodeExprRef);
-                return true;
-            }
-
-            case AstNodeId::AsCastExpr:
-            {
-                const auto& expr = node.cast<AstAsCastExpr>();
-                pushInlineExpressionChild(out, expr.nodeTypeRef);
-                pushInlineExpressionChild(out, expr.nodeExprRef);
-                return true;
-            }
-
-            case AstNodeId::IsTypeExpr:
-            {
-                const auto& expr = node.cast<AstIsTypeExpr>();
-                pushInlineExpressionChild(out, expr.nodeTypeRef);
-                pushInlineExpressionChild(out, expr.nodeExprRef);
-                return true;
-            }
-
-            case AstNodeId::SuffixLiteral:
-            {
-                const auto& expr = node.cast<AstSuffixLiteral>();
-                pushInlineExpressionChild(out, expr.nodeSuffixRef);
-                pushInlineExpressionChild(out, expr.nodeLiteralRef);
-                return true;
-            }
-
-            case AstNodeId::BoolLiteral:
-            case AstNodeId::CharacterLiteral:
-            case AstNodeId::FloatLiteral:
-            case AstNodeId::IntegerLiteral:
-            case AstNodeId::BinaryLiteral:
-            case AstNodeId::HexaLiteral:
-            case AstNodeId::NullLiteral:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
-    bool isPureInlineExpressionTree(const Sema& sema, AstNodeRef rootRef, uint32_t& budget)
-    {
-        if (rootRef.isInvalid())
-            return false;
-
-        SmallVector<InlineExpressionScanEntry> toScan;
-        pushInlineExpressionChild(toScan, rootRef);
-        while (!toScan.empty())
-        {
-            if (!budget)
-                return false;
-            budget--;
-
-            const InlineExpressionScanEntry entry = toScan.back();
-            toScan.pop_back();
-
-            const AstNode& node = sema.node(entry.nodeRef);
-            if (!appendInlineExpressionChildren(node, toScan))
-                return false;
-        }
-
-        return true;
-    }
-
-    bool canAutoInlineFunction(const Sema& sema, const SymbolFunction& fn)
+    bool canInlineFunction(const Sema& sema, const SymbolFunction& fn)
     {
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
             return false;
@@ -373,50 +187,7 @@ namespace
             return false;
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
             return true;
-        if (!isAutoInlineEnabled(sema))
-            return false;
-
-        if (!fn.isPureExpression() || fn.pureExpressionRef().isInvalid())
-            return false;
-
-        const TypeInfo& returnType = sema.typeMgr().get(fn.returnTypeRef());
-        if (!isAutoInlineScalarType(returnType))
-            return false;
-
-        for (const SymbolVariable* param : fn.parameters())
-        {
-            SWC_ASSERT(param != nullptr);
-            const TypeInfo& paramType = sema.typeMgr().get(param->typeRef());
-            if (!isAutoInlineScalarType(paramType))
-                return false;
-        }
-
-        return true;
-    }
-
-    bool canAutoInlineArguments(Sema& sema, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
-    {
-        if (ufcsArg.isValid())
-        {
-            const AstNodeRef ufcsNodeRef = sema.viewZero(ufcsArg).nodeRef();
-            uint32_t         argBudget   = 64;
-            if (ufcsNodeRef.isInvalid() || !isPureInlineExpressionTree(sema, ufcsNodeRef, argBudget))
-                return false;
-        }
-
-        for (const AstNodeRef argRef : args)
-        {
-            const AstNode& argNode = sema.node(argRef);
-            if (isNamedArgument(argNode))
-                continue;
-
-            const AstNodeRef argNodeRef = sema.viewZero(argRef).nodeRef();
-            uint32_t         argBudget  = 64;
-            if (argNodeRef.isInvalid() || !isPureInlineExpressionTree(sema, argNodeRef, argBudget))
-                return false;
-        }
-
-        return true;
+        return false;
     }
 }
 
@@ -426,14 +197,12 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
         return false;
     if (hasVariadicParam(sema, fn))
         return false;
-    return canAutoInlineFunction(sema, fn);
+    return canInlineFunction(sema, fn);
 }
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
     if (!canInlineCall(sema, fn))
-        return Result::Continue;
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) && !canAutoInlineArguments(sema, args, ufcsArg))
         return Result::Continue;
 
     // TODO

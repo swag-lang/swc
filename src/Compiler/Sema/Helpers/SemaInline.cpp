@@ -81,15 +81,8 @@ namespace
         const AstFunctionDecl* decl = nullptr;
         if (!resolveFunctionDeclInCurrentAst(sema, fn, decl))
             return AstNodeRef::invalid();
-
-        const AstNodeRef pureExprRef = fn.pureExpressionRef();
-        if (pureExprRef.isValid())
-            return pureExprRef;
-
-        // Explicit #[Inline] keeps previous behavior even when purity precompute is unavailable.
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
             return inlineExprRefFromDecl(sema, *decl);
-
         return AstNodeRef::invalid();
     }
 
@@ -178,26 +171,19 @@ namespace
 
         return false;
     }
-
-    bool canInlineFunction(const Sema& sema, const SymbolFunction& fn)
-    {
-        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
-            return false;
-        if (fn.isForeign())
-            return false;
-        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
-            return true;
-        return false;
-    }
 }
 
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 {
-    if (fn.isClosure() || fn.isEmpty())
+    if (fn.isClosure() || fn.isEmpty() || fn.isForeign())
         return false;
     if (hasVariadicParam(sema, fn))
         return false;
-    return canInlineFunction(sema, fn);
+    if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
+        return false;
+    if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
+        return true;
+    return false;
 }
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)

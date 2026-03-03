@@ -68,39 +68,68 @@ void Stats::print(const TaskContext& ctx) const
         size_t           value = 0;
     };
 
-    std::vector<MemoryStatLine> memoryStats;
-    memoryStats.push_back({.name = "mem.process.maxAllocated", .value = memMaxAllocated.load()});
-    const size_t frontendTotalKnown = memFrontendSource.load() +
-                                      memFrontendTokens.load() +
-                                      memFrontendLines.load() +
-                                      memFrontendTrivia.load() +
-                                      memFrontendIdentifiers.load() +
-                                      memFrontendAstReserved.load();
-    const size_t semaTotalKnown = memSymbols.load() +
-                                  memConstants.load() +
-                                  memTypes.load() +
-                                  memSemaNodePayloadReserved.load() +
-                                  memSemaIdentifiersReserved.load() +
-                                  memCompilerArenaReserved.load();
-    const size_t backendTotalKnown = memJitReserved.load() + memMicroStorageFinal.load();
+    const size_t memFrontendSourceValue      = memFrontendSource.load();
+    const size_t memFrontendTokensValue      = memFrontendTokens.load();
+    const size_t memFrontendLinesValue       = memFrontendLines.load();
+    const size_t memFrontendTriviaValue      = memFrontendTrivia.load();
+    const size_t memFrontendIdentifiersValue = memFrontendIdentifiers.load();
+    const size_t memFrontendAstReservedValue = memFrontendAstReserved.load();
+    const size_t memSemaSymbolsValue         = memSymbols.load();
+    const size_t memSemaConstantsValue       = memConstants.load();
+    const size_t memSemaTypesValue           = memTypes.load();
+    const size_t memSemaNodePayloadValue     = memSemaNodePayloadReserved.load();
+    const size_t memSemaIdentifiersValue     = memSemaIdentifiersReserved.load();
+    const size_t memCompilerArenaValue       = memCompilerArenaReserved.load();
+    const size_t memJitReservedValue         = memJitReserved.load();
+    const size_t memMicroStorageFinalValue   = memMicroStorageFinal.load();
 
-    memoryStats.push_back({.name = "mem.frontend.totalKnown", .value = frontendTotalKnown});
-    memoryStats.push_back({.name = "mem.sema.totalKnown", .value = semaTotalKnown});
-    memoryStats.push_back({.name = "mem.backend.totalKnown", .value = backendTotalKnown});
-    memoryStats.push_back({.name = "mem.sema.symbols", .value = memSymbols.load()});
-    memoryStats.push_back({.name = "mem.compiler.arena.reserved", .value = memCompilerArenaReserved.load()});
-    memoryStats.push_back({.name = "mem.frontend.ast.reserved", .value = memFrontendAstReserved.load()});
-    memoryStats.push_back({.name = "mem.frontend.tokens", .value = memFrontendTokens.load()});
-    memoryStats.push_back({.name = "mem.jit.reserved", .value = memJitReserved.load()});
-    memoryStats.push_back({.name = "mem.micro.storageFinal", .value = memMicroStorageFinal.load()});
-    memoryStats.push_back({.name = "mem.sema.nodePayload.reserved", .value = memSemaNodePayloadReserved.load()});
+    const size_t frontendTotalKnown = memFrontendSourceValue +
+                                      memFrontendTokensValue +
+                                      memFrontendLinesValue +
+                                      memFrontendTriviaValue +
+                                      memFrontendIdentifiersValue +
+                                      memFrontendAstReservedValue;
+    const size_t semaTotalKnown = memSemaSymbolsValue +
+                                  memSemaConstantsValue +
+                                  memSemaTypesValue +
+                                  memSemaNodePayloadValue +
+                                  memSemaIdentifiersValue +
+                                  memCompilerArenaValue;
+    const size_t codegenTotalKnown = memJitReservedValue + memMicroStorageFinalValue;
+    const size_t totalKnown        = frontendTotalKnown + semaTotalKnown + codegenTotalKnown;
 
-    std::ranges::sort(memoryStats, [](const MemoryStatLine& lhs, const MemoryStatLine& rhs) {
+    std::vector<MemoryStatLine> memoryStageSums;
+    memoryStageSums.push_back({.name = "mem.total.totalKnown", .value = totalKnown});
+    memoryStageSums.push_back({.name = "mem.frontend.totalKnown", .value = frontendTotalKnown});
+    memoryStageSums.push_back({.name = "mem.sema.totalKnown", .value = semaTotalKnown});
+    memoryStageSums.push_back({.name = "mem.codegen.totalKnown", .value = codegenTotalKnown});
+
+    std::vector<MemoryStatLine> memoryDetails;
+    memoryDetails.push_back({.name = "mem.frontend.source", .value = memFrontendSourceValue});
+    memoryDetails.push_back({.name = "mem.frontend.tokens", .value = memFrontendTokensValue});
+    memoryDetails.push_back({.name = "mem.frontend.lines", .value = memFrontendLinesValue});
+    memoryDetails.push_back({.name = "mem.frontend.trivia", .value = memFrontendTriviaValue});
+    memoryDetails.push_back({.name = "mem.frontend.identifiers", .value = memFrontendIdentifiersValue});
+    memoryDetails.push_back({.name = "mem.frontend.ast", .value = memFrontendAstReservedValue});
+    memoryDetails.push_back({.name = "mem.sema.symbols", .value = memSemaSymbolsValue});
+    memoryDetails.push_back({.name = "mem.sema.constants", .value = memSemaConstantsValue});
+    memoryDetails.push_back({.name = "mem.sema.types", .value = memSemaTypesValue});
+    memoryDetails.push_back({.name = "mem.sema.nodePayload", .value = memSemaNodePayloadValue});
+    memoryDetails.push_back({.name = "mem.sema.identifiers", .value = memSemaIdentifiersValue});
+    memoryDetails.push_back({.name = "mem.compiler.arena", .value = memCompilerArenaValue});
+    memoryDetails.push_back({.name = "mem.jit.reserved", .value = memJitReservedValue});
+    memoryDetails.push_back({.name = "mem.micro.storageFinal", .value = memMicroStorageFinalValue});
+
+    std::ranges::sort(memoryDetails, [](const MemoryStatLine& lhs, const MemoryStatLine& rhs) {
         return lhs.value > rhs.value;
     });
 
     Logger::print(ctx, "\n");
-    for (const MemoryStatLine& memoryStat : memoryStats)
+    for (const MemoryStatLine& memoryStat : memoryStageSums)
+        Logger::printHeaderDot(ctx, colorHeader, memoryStat.name, colorMsg, Utf8Helper::toNiceSize(memoryStat.value));
+
+    Logger::print(ctx, "\n");
+    for (const MemoryStatLine& memoryStat : memoryDetails)
         Logger::printHeaderDot(ctx, colorHeader, memoryStat.name, colorMsg, Utf8Helper::toNiceSize(memoryStat.value));
 #endif
 

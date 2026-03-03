@@ -12,6 +12,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef defaultArgumentExprRef(const SymbolVariable& param)
+    {
+        const AstNode* declNode = param.decl();
+        if (!declNode)
+            return AstNodeRef::invalid();
+
+        if (const auto* singleVar = declNode->safeCast<AstSingleVarDecl>())
+            return singleVar->nodeInitRef;
+
+        if (const auto* multiVar = declNode->safeCast<AstMultiVarDecl>())
+            return multiVar->nodeInitRef;
+
+        return AstNodeRef::invalid();
+    }
+
     bool tryGetSimpleInlineConstant(Sema& sema, AstNodeRef inlineRootRef, ConstantRef& outConstant)
     {
         outConstant = ConstantRef::invalid();
@@ -238,7 +253,17 @@ namespace
         for (size_t i = 0; i < params.size(); i++)
         {
             if (!bound[i].isValid())
-                return false;
+            {
+                const SymbolVariable* param = params[i];
+                SWC_ASSERT(param != nullptr);
+                if (!param->hasExtraFlag(SymbolVariableFlagsE::Initialized))
+                    return false;
+
+                const AstNodeRef defaultRef = sema.viewZero(defaultArgumentExprRef(*param)).nodeRef();
+                if (defaultRef.isInvalid())
+                    return false;
+                bound[i] = defaultRef;
+            }
 
             if (params[i]->idRef().isValid())
                 outBindings.push_back({params[i]->idRef(), bound[i], params[i]->typeRef()});

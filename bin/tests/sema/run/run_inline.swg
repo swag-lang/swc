@@ -130,7 +130,7 @@ func inlineSelect(flag: bool, a: s32, b: s32)->s32 => inlineBranch(flag, a, b)
     @assert(inlineNamedLocal(1, 1, 40) == 42)
     @assert(inlineNamedLocal(2, 2, 38) == 42)
 
-    // @assert(inlineDefault1(32) == 42)
+    @assert(inlineDefault1(32) == 42)
     @assert(inlineDefault1(2, 40) == 42)
     // @assert(inlineDefault2(32) == 142)
     // @assert(inlineDefault2(2, 40) == 142)

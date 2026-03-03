@@ -132,8 +132,8 @@ func inlineSelect(flag: bool, a: s32, b: s32)->s32 => inlineBranch(flag, a, b)
 
     @assert(inlineDefault1(32) == 42)
     @assert(inlineDefault1(2, 40) == 42)
-    // @assert(inlineDefault2(32) == 142)
-    // @assert(inlineDefault2(2, 40) == 142)
+    @assert(inlineDefault2(32) == 142)
+    @assert(inlineDefault2(2, 40) == 142)
     @assert(inlineDefault2(2, 20, 20) == 42)
     @assert(inlineDefault2(c: 30, a: 2, b: 10) == 42)
 
@@ -192,6 +192,6 @@ func inlineSelect(flag: bool, a: s32, b: s32)->s32 => inlineBranch(flag, a, b)
 
     @assert(inlineAdd(inlineBranch(true, 20, 0), inlineBranch(false, 0, 22)) == 42)
     @assert(inlineAdd(inlinePack4(0, 0, 2, 0), inlinePack4(0, 0, 2, 2)) == 42)
-    // @assert(inlineAdd(inlineDefault1(30), inlineDefault1(1, 1)) == 42)
+    @assert(inlineAdd(inlineDefault1(30), inlineDefault1(1, 1)) == 42)
     @assert(inlineAdd(inlineNamed(10, 10, 1), inlineNamed(a: 10, c: 10, b: 1)) == 42)
 }

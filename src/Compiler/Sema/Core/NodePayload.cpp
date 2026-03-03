@@ -74,6 +74,32 @@ namespace
     }
 }
 
+#if SWC_HAS_STATS
+size_t NodePayload::memStorageUsed() const
+{
+    size_t result = 0;
+    for (const Shard& shard : shards_)
+    {
+        const std::shared_lock lock(shard.mutex);
+        result += shard.store.size();
+    }
+
+    return result;
+}
+
+size_t NodePayload::memStorageReserved() const
+{
+    size_t result = 0;
+    for (const Shard& shard : shards_)
+    {
+        const std::shared_lock lock(shard.mutex);
+        result += static_cast<size_t>(shard.store.allocatedBytes());
+    }
+
+    return result;
+}
+#endif
+
 bool NodePayload::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())

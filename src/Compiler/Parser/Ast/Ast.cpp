@@ -130,6 +130,24 @@ void Ast::appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
     }
 }
 
+#if SWC_HAS_STATS
+size_t Ast::memStorageUsed() const
+{
+    size_t result = 0;
+    for (const Shard& shard : shards_)
+        result += shard.store.size();
+    return result;
+}
+
+size_t Ast::memStorageReserved() const
+{
+    size_t result = 0;
+    for (const Shard& shard : shards_)
+        result += static_cast<size_t>(shard.store.allocatedBytes());
+    return result;
+}
+#endif
+
 AstNodeRef Ast::findNodeRef(const AstNode* node) const
 {
     for (uint32_t i = 0; i < SHARD_COUNT; i++)

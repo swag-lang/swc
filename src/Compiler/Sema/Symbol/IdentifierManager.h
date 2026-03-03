@@ -109,6 +109,9 @@ public:
     IdentifierRef     addIdentifierOwned(std::string_view name);
     IdentifierRef     addIdentifierOwned(std::string_view name, uint32_t hash);
     const Identifier& get(IdentifierRef idRef) const;
+#if SWC_HAS_STATS
+    size_t memStorageReserved() const;
+#endif
 
     IdentifierRef predefined(PredefinedName name) const { return predefined_[static_cast<size_t>(name)]; }
 

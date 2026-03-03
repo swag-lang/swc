@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Thread/Job.h"
@@ -23,6 +24,9 @@ namespace Command
         const Global&     global   = ctx.global();
         JobManager&       jobMgr   = global.jobMgr();
         const JobClientId clientId = compiler.jobClientId();
+#if SWC_HAS_STATS
+        Stats& stats = Stats::get();
+#endif
 
         // Collect files
         if (compiler.collectFiles(ctx) == Result::Error)
@@ -36,6 +40,10 @@ namespace Command
         }
 
         jobMgr.waitAll(clientId);
+#if SWC_HAS_STATS
+        stats.memAllocatedAfterParser.store(stats.memAllocated.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        stats.memMaxAfterParser.store(stats.memMaxAllocated.load(std::memory_order_relaxed), std::memory_order_relaxed);
+#endif
 
         // Filter files
         std::vector<SourceFile*> files;
@@ -64,6 +72,10 @@ namespace Command
         }
 
         jobMgr.waitAll(clientId);
+#if SWC_HAS_STATS
+        stats.memAllocatedAfterSemaDecl.store(stats.memAllocated.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        stats.memMaxAfterSemaDecl.store(stats.memMaxAllocated.load(std::memory_order_relaxed), std::memory_order_relaxed);
+#endif
 
         for (SourceFile* f : files)
         {
@@ -72,6 +84,10 @@ namespace Command
         }
 
         Sema::waitDone(ctx, clientId);
+#if SWC_HAS_STATS
+        stats.memAllocatedAfterSema.store(stats.memAllocated.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        stats.memMaxAfterSema.store(stats.memMaxAllocated.load(std::memory_order_relaxed), std::memory_order_relaxed);
+#endif
     }
 }
 

@@ -4,6 +4,7 @@
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -244,11 +245,71 @@ void CompilerInstance::logAfter()
 
 void CompilerInstance::logStats()
 {
-    if (cmdLine().stats)
+    if (!cmdLine().stats)
+        return;
+
+#if SWC_HAS_STATS
+    size_t memFrontendSource          = 0;
+    size_t memFrontendTokens          = 0;
+    size_t memFrontendLines           = 0;
+    size_t memFrontendTrivia          = 0;
+    size_t memFrontendIdentifiers     = 0;
+    size_t memFrontendAstUsed         = 0;
+    size_t memFrontendAstReserved     = 0;
+    size_t memSemaNodePayloadUsed     = 0;
+    size_t memSemaNodePayloadReserved = 0;
+
     {
-        const TaskContext ctx(*this);
-        Stats::get().print(ctx);
+        const std::shared_lock lock(mutex_);
+
+        for (const std::unique_ptr<SourceFile>& file : files_)
+        {
+            const SourceFile* const srcFile = file.get();
+            SWC_ASSERT(srcFile != nullptr);
+            memFrontendSource += srcFile->content().capacity() * sizeof(char8_t);
+            memFrontendAstUsed += srcFile->ast().memStorageUsed();
+            memFrontendAstReserved += srcFile->ast().memStorageReserved();
+            memSemaNodePayloadUsed += srcFile->nodePayloadContext().memStorageUsed();
+            memSemaNodePayloadReserved += srcFile->nodePayloadContext().memStorageReserved();
+        }
+
+        for (const std::unique_ptr<SourceView>& srcViewPtr : srcViews_)
+        {
+            const SourceView* const srcView = srcViewPtr.get();
+            SWC_ASSERT(srcView != nullptr);
+            memFrontendTokens += srcView->tokens().capacity() * sizeof(Token);
+            memFrontendLines += srcView->lines().capacity() * sizeof(uint32_t);
+            memFrontendTrivia += srcView->trivia().capacity() * sizeof(SourceTrivia);
+            memFrontendTrivia += srcView->triviaStart().capacity() * sizeof(uint32_t);
+            memFrontendIdentifiers += srcView->identifiers().capacity() * sizeof(SourceIdentifier);
+        }
     }
+
+    size_t memCompilerArenaUsed     = 0;
+    size_t memCompilerArenaReserved = 0;
+    for (const PerThreadData& td : perThreadData_)
+    {
+        memCompilerArenaUsed += td.arena.usedBytes();
+        memCompilerArenaReserved += td.arena.reservedBytes();
+    }
+
+    Stats& stats = Stats::get();
+    stats.memFrontendSource.store(memFrontendSource, std::memory_order_relaxed);
+    stats.memFrontendTokens.store(memFrontendTokens, std::memory_order_relaxed);
+    stats.memFrontendLines.store(memFrontendLines, std::memory_order_relaxed);
+    stats.memFrontendTrivia.store(memFrontendTrivia, std::memory_order_relaxed);
+    stats.memFrontendIdentifiers.store(memFrontendIdentifiers, std::memory_order_relaxed);
+    stats.memFrontendAstUsed.store(memFrontendAstUsed, std::memory_order_relaxed);
+    stats.memFrontendAstReserved.store(memFrontendAstReserved, std::memory_order_relaxed);
+    stats.memSemaNodePayloadUsed.store(memSemaNodePayloadUsed, std::memory_order_relaxed);
+    stats.memSemaNodePayloadReserved.store(memSemaNodePayloadReserved, std::memory_order_relaxed);
+    stats.memSemaIdentifiersReserved.store(idMgr_ ? idMgr_->memStorageReserved() : 0, std::memory_order_relaxed);
+    stats.memCompilerArenaUsed.store(memCompilerArenaUsed, std::memory_order_relaxed);
+    stats.memCompilerArenaReserved.store(memCompilerArenaReserved, std::memory_order_relaxed);
+#endif
+
+    const TaskContext ctx(*this);
+    Stats::get().print(ctx);
 }
 
 void CompilerInstance::processCommand()

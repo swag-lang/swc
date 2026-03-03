@@ -27,6 +27,24 @@ Arena::~Arena()
     releaseAll();
 }
 
+#if SWC_HAS_STATS
+size_t Arena::usedBytes() const noexcept
+{
+    size_t result = 0;
+    for (const Block* block = head_; block; block = block->next)
+        result += block->used;
+    return result;
+}
+
+size_t Arena::reservedBytes() const noexcept
+{
+    size_t result = 0;
+    for (const Block* block = head_; block; block = block->next)
+        result += sizeof(Block) + block->size;
+    return result;
+}
+#endif
+
 void* Arena::allocate(std::size_t size, std::size_t alignment)
 {
     // Zero-size allocation is undefined; normalize to 1.

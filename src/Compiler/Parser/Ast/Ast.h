@@ -43,6 +43,10 @@ public:
     AstNodeRef     nthNode(SpanRef spanRef, size_t index) const;
     AstNodeRef     oneNode(SpanRef spanRef) const;
     void           appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
+#if SWC_HAS_STATS
+    size_t memStorageUsed() const;
+    size_t memStorageReserved() const;
+#endif
 
     template<AstNodeId ID>
     AstTypeOf<ID>::type* node(AstNodeRef nodeRef)

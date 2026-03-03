@@ -5,8 +5,10 @@
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
 #include <dbghelp.h>
+#include <psapi.h>
 
 #pragma comment(lib, "Dbghelp.lib")
+#pragma comment(lib, "Psapi.lib")
 
 SWC_BEGIN_NAMESPACE();
 
@@ -453,6 +455,15 @@ namespace Os
     uint32_t currentThreadId()
     {
         return static_cast<uint32_t>(GetCurrentThreadId());
+    }
+
+    size_t peakProcessMemoryUsage()
+    {
+        PROCESS_MEMORY_COUNTERS memoryCounters = {};
+        memoryCounters.cb                      = sizeof(memoryCounters);
+        if (!GetProcessMemoryInfo(GetCurrentProcess(), &memoryCounters, sizeof(memoryCounters)))
+            return 0;
+        return static_cast<size_t>(memoryCounters.PeakWorkingSetSize);
     }
 
     bool isHostIllegalInstructionException(const uint32_t exceptionCode)

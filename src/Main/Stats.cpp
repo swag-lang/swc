@@ -3,6 +3,7 @@
 #include "Main/Global.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"
@@ -60,17 +61,58 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
 
-    // Memory
-    Logger::print(ctx, "\n");
-    Logger::printHeaderDot(ctx, colorHeader, "mem.process.maxAllocated", colorMsg, Utf8Helper::toNiceSize(memMaxAllocated.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.sema.constants", colorMsg, Utf8Helper::toNiceSize(memConstants.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.sema.types", colorMsg, Utf8Helper::toNiceSize(memTypes.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.sema.symbols", colorMsg, Utf8Helper::toNiceSize(memSymbols.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.jit.used", colorMsg, Utf8Helper::toNiceSize(memJitUsed.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.jit.reserved", colorMsg, Utf8Helper::toNiceSize(memJitReserved.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.micro.storageNoOptim", colorMsg, Utf8Helper::toNiceSize(memMicroStorageNoOptim.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.micro.storageFinal", colorMsg, Utf8Helper::toNiceSize(memMicroStorageFinal.load()));
 #endif
+
+    struct MemoryStatLine
+    {
+        std::string_view name;
+        size_t           value = 0;
+    };
+
+    std::vector<MemoryStatLine> memoryStats;
+#if SWC_HAS_STATS
+    const size_t memCurrent   = memAllocated.load();
+    const size_t memPeak      = memMaxAllocated.load();
+    const size_t memTransient = memPeak > memCurrent ? memPeak - memCurrent : 0;
+    memoryStats.push_back({.name = "mem.process.currentAllocated", .value = memCurrent});
+    memoryStats.push_back({.name = "mem.process.maxAllocated", .value = memPeak});
+    memoryStats.push_back({.name = "mem.process.transientPeak", .value = memTransient});
+    memoryStats.push_back({.name = "mem.process.phase.parser.current", .value = memAllocatedAfterParser.load()});
+    memoryStats.push_back({.name = "mem.process.phase.parser.max", .value = memMaxAfterParser.load()});
+    memoryStats.push_back({.name = "mem.process.phase.semaDecl.current", .value = memAllocatedAfterSemaDecl.load()});
+    memoryStats.push_back({.name = "mem.process.phase.semaDecl.max", .value = memMaxAfterSemaDecl.load()});
+    memoryStats.push_back({.name = "mem.process.phase.sema.current", .value = memAllocatedAfterSema.load()});
+    memoryStats.push_back({.name = "mem.process.phase.sema.max", .value = memMaxAfterSema.load()});
+    memoryStats.push_back({.name = "mem.frontend.source", .value = memFrontendSource.load()});
+    memoryStats.push_back({.name = "mem.frontend.tokens", .value = memFrontendTokens.load()});
+    memoryStats.push_back({.name = "mem.frontend.lines", .value = memFrontendLines.load()});
+    memoryStats.push_back({.name = "mem.frontend.trivia", .value = memFrontendTrivia.load()});
+    memoryStats.push_back({.name = "mem.frontend.identifiers", .value = memFrontendIdentifiers.load()});
+    memoryStats.push_back({.name = "mem.frontend.ast.used", .value = memFrontendAstUsed.load()});
+    memoryStats.push_back({.name = "mem.frontend.ast.reserved", .value = memFrontendAstReserved.load()});
+    memoryStats.push_back({.name = "mem.sema.nodePayload.used", .value = memSemaNodePayloadUsed.load()});
+    memoryStats.push_back({.name = "mem.sema.nodePayload.reserved", .value = memSemaNodePayloadReserved.load()});
+    memoryStats.push_back({.name = "mem.sema.identifiers.reserved", .value = memSemaIdentifiersReserved.load()});
+    memoryStats.push_back({.name = "mem.compiler.arena.used", .value = memCompilerArenaUsed.load()});
+    memoryStats.push_back({.name = "mem.compiler.arena.reserved", .value = memCompilerArenaReserved.load()});
+    memoryStats.push_back({.name = "mem.sema.constants", .value = memConstants.load()});
+    memoryStats.push_back({.name = "mem.sema.types", .value = memTypes.load()});
+    memoryStats.push_back({.name = "mem.sema.symbols", .value = memSymbols.load()});
+    memoryStats.push_back({.name = "mem.jit.used", .value = memJitUsed.load()});
+    memoryStats.push_back({.name = "mem.jit.reserved", .value = memJitReserved.load()});
+    memoryStats.push_back({.name = "mem.micro.storageNoOptim", .value = memMicroStorageNoOptim.load()});
+    memoryStats.push_back({.name = "mem.micro.storageFinal", .value = memMicroStorageFinal.load()});
+#else
+    memoryStats.push_back({.name = "mem.process.maxAllocated", .value = Os::peakProcessMemoryUsage()});
+#endif
+
+    std::ranges::sort(memoryStats, [](const MemoryStatLine& lhs, const MemoryStatLine& rhs) {
+        return lhs.value > rhs.value;
+    });
+
+    Logger::print(ctx, "\n");
+    for (const MemoryStatLine& memoryStat : memoryStats)
+        Logger::printHeaderDot(ctx, colorHeader, memoryStat.name, colorMsg, Utf8Helper::toNiceSize(memoryStat.value));
 
     Logger::print(ctx, "\n");
 }

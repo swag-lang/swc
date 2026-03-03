@@ -75,9 +75,6 @@ bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
     SWC_ASSERT(targetBlock);
     std::byte* const dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
     targetBlock->allocated += requestSizeAlign;
-#if SWC_HAS_STATS
-    Stats::get().memJitUsed.fetch_add(requestSizeAlign, std::memory_order_relaxed);
-#endif
 
     outExecutableMemory.ptr_            = dst;
     outExecutableMemory.size_           = requestSize;

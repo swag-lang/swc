@@ -42,4 +42,16 @@ void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
     relocations_.push_back({.offset = offset, .targetOffset = targetOffset});
 }
 
+#if SWC_HAS_STATS
+size_t DataSegment::memStorageReserved() const
+{
+    const std::shared_lock lock(mutex_);
+    size_t                 result = static_cast<size_t>(store_.allocatedBytes());
+    result += relocations_.capacity() * sizeof(DataSegmentRelocation);
+    result += stringMap_.bucket_count() * sizeof(void*);
+    result += stringMap_.size() * (sizeof(std::pair<const std::string, std::pair<std::string_view, uint32_t>>) + sizeof(void*));
+    return result;
+}
+#endif
+
 SWC_END_NAMESPACE();

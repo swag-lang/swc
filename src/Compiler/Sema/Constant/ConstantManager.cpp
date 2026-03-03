@@ -203,6 +203,22 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     return *SWC_NOT_NULL(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
 }
 
+#if SWC_HAS_STATS
+size_t ConstantManager::memStorageReserved() const
+{
+    size_t result = 0;
+    for (const Shard& shard : shards_)
+    {
+        const std::shared_lock lk(shard.mutex);
+        result += shard.dataSegment.memStorageReserved();
+        result += shard.map.bucket_count() * sizeof(void*);
+        result += shard.map.size() * (sizeof(std::pair<const ConstantValue, ConstantRef>) + sizeof(void*));
+    }
+
+    return result;
+}
+#endif
+
 Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
     TaskContext&   ctx        = sema.ctx();

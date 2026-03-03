@@ -17,6 +17,9 @@ public:
     uint32_t                         addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
     void                             addRelocation(uint32_t offset, uint32_t targetOffset);
     Ref                              findRef(const void* ptr) const noexcept { return store_.findRef(ptr); }
+#if SWC_HAS_STATS
+    size_t memStorageReserved() const;
+#endif
 
     template<typename T>
     std::pair<uint32_t, T*> reserve()

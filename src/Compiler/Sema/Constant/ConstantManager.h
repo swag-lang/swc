@@ -24,6 +24,9 @@ public:
     ConstantRef          cstS32(int32_t value) const;
     ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
     const ConstantValue& get(ConstantRef constantRef) const;
+#if SWC_HAS_STATS
+    size_t memStorageReserved() const;
+#endif
 
     Result  makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
     TypeRef makeTypeValue(Sema& sema, ConstantRef cstRef) const;

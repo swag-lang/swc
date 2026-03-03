@@ -254,9 +254,7 @@ void CompilerInstance::logStats()
     size_t memFrontendLines           = 0;
     size_t memFrontendTrivia          = 0;
     size_t memFrontendIdentifiers     = 0;
-    size_t memFrontendAstUsed         = 0;
     size_t memFrontendAstReserved     = 0;
-    size_t memSemaNodePayloadUsed     = 0;
     size_t memSemaNodePayloadReserved = 0;
 
     {
@@ -267,9 +265,7 @@ void CompilerInstance::logStats()
             const SourceFile* const srcFile = file.get();
             SWC_ASSERT(srcFile != nullptr);
             memFrontendSource += srcFile->content().capacity() * sizeof(char8_t);
-            memFrontendAstUsed += srcFile->ast().memStorageUsed();
             memFrontendAstReserved += srcFile->ast().memStorageReserved();
-            memSemaNodePayloadUsed += srcFile->nodePayloadContext().memStorageUsed();
             memSemaNodePayloadReserved += srcFile->nodePayloadContext().memStorageReserved();
         }
 
@@ -285,13 +281,14 @@ void CompilerInstance::logStats()
         }
     }
 
-    size_t memCompilerArenaUsed     = 0;
     size_t memCompilerArenaReserved = 0;
     for (const PerThreadData& td : perThreadData_)
     {
-        memCompilerArenaUsed += td.arena.usedBytes();
         memCompilerArenaReserved += td.arena.reservedBytes();
     }
+
+    const size_t memSemaConstantsReserved = cstMgr_ ? cstMgr_->memStorageReserved() : 0;
+    const size_t memSemaTypesReserved     = typeMgr_ ? typeMgr_->memStorageReserved() : 0;
 
     Stats& stats = Stats::get();
     stats.memFrontendSource.store(memFrontendSource, std::memory_order_relaxed);
@@ -299,13 +296,12 @@ void CompilerInstance::logStats()
     stats.memFrontendLines.store(memFrontendLines, std::memory_order_relaxed);
     stats.memFrontendTrivia.store(memFrontendTrivia, std::memory_order_relaxed);
     stats.memFrontendIdentifiers.store(memFrontendIdentifiers, std::memory_order_relaxed);
-    stats.memFrontendAstUsed.store(memFrontendAstUsed, std::memory_order_relaxed);
     stats.memFrontendAstReserved.store(memFrontendAstReserved, std::memory_order_relaxed);
-    stats.memSemaNodePayloadUsed.store(memSemaNodePayloadUsed, std::memory_order_relaxed);
     stats.memSemaNodePayloadReserved.store(memSemaNodePayloadReserved, std::memory_order_relaxed);
     stats.memSemaIdentifiersReserved.store(idMgr_ ? idMgr_->memStorageReserved() : 0, std::memory_order_relaxed);
-    stats.memCompilerArenaUsed.store(memCompilerArenaUsed, std::memory_order_relaxed);
     stats.memCompilerArenaReserved.store(memCompilerArenaReserved, std::memory_order_relaxed);
+    stats.memConstantsReserved.store(memSemaConstantsReserved, std::memory_order_relaxed);
+    stats.memTypesReserved.store(memSemaTypesReserved, std::memory_order_relaxed);
 #endif
 
     const TaskContext ctx(*this);

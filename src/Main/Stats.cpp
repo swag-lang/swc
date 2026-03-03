@@ -69,6 +69,7 @@ void Stats::print(const TaskContext& ctx) const
     };
 
     const size_t memTotal                    = memMaxAllocated.load();
+    const size_t memCurrent                  = memAllocated.load();
     const size_t memFrontendSourceValue      = memFrontendSource.load();
     const size_t memFrontendTokensValue      = memFrontendTokens.load();
     const size_t memFrontendLinesValue       = memFrontendLines.load();
@@ -76,8 +77,11 @@ void Stats::print(const TaskContext& ctx) const
     const size_t memFrontendIdentifiersValue = memFrontendIdentifiers.load();
     const size_t memFrontendAstReservedValue = memFrontendAstReserved.load();
     const size_t memSemaSymbolsValue         = memSymbols.load();
+    const size_t memSemaSymbolMapsValue      = memSymbolMaps.load();
     const size_t memSemaConstantsValue       = memConstants.load();
+    const size_t memSemaConstantsReserved    = memConstantsReserved.load();
     const size_t memSemaTypesValue           = memTypes.load();
+    const size_t memSemaTypesReserved        = memTypesReserved.load();
     const size_t memSemaNodePayloadValue     = memSemaNodePayloadReserved.load();
     const size_t memSemaIdentifiersValue     = memSemaIdentifiersReserved.load();
     const size_t memCompilerArenaValue       = memCompilerArenaReserved.load();
@@ -91,17 +95,25 @@ void Stats::print(const TaskContext& ctx) const
                                       memFrontendIdentifiersValue +
                                       memFrontendAstReservedValue;
     const size_t semaTotalKnown = memSemaSymbolsValue +
-                                  memSemaConstantsValue +
-                                  memSemaTypesValue +
+                                  memSemaSymbolMapsValue +
+                                  memSemaConstantsReserved +
+                                  memSemaTypesReserved +
                                   memSemaNodePayloadValue +
                                   memSemaIdentifiersValue +
                                   memCompilerArenaValue;
     const size_t codegenTotalKnown = memJitReservedValue + memMicroStorageFinalValue;
     const size_t totalKnown        = frontendTotalKnown + semaTotalKnown + codegenTotalKnown;
+    const size_t unknownPeak       = memTotal > totalKnown ? memTotal - totalKnown : 0;
+    const size_t unknownCurrent    = memCurrent > totalKnown ? memCurrent - totalKnown : 0;
+    const size_t unknownTransient  = memTotal > memCurrent ? memTotal - memCurrent : 0;
 
     std::vector<MemoryStatLine> memoryStageSums;
     memoryStageSums.push_back({.name = "mem.total", .value = memTotal});
+    memoryStageSums.push_back({.name = "mem.current", .value = memCurrent});
     memoryStageSums.push_back({.name = "mem.totalKnown", .value = totalKnown});
+    memoryStageSums.push_back({.name = "mem.untracked.peak", .value = unknownPeak});
+    memoryStageSums.push_back({.name = "mem.untracked.current", .value = unknownCurrent});
+    memoryStageSums.push_back({.name = "mem.untracked.transient", .value = unknownTransient});
     memoryStageSums.push_back({.name = "mem.frontend.totalKnown", .value = frontendTotalKnown});
     memoryStageSums.push_back({.name = "mem.sema.totalKnown", .value = semaTotalKnown});
     memoryStageSums.push_back({.name = "mem.codegen.totalKnown", .value = codegenTotalKnown});
@@ -114,8 +126,11 @@ void Stats::print(const TaskContext& ctx) const
     memoryDetails.push_back({.name = "mem.frontend.identifiers", .value = memFrontendIdentifiersValue});
     memoryDetails.push_back({.name = "mem.frontend.ast", .value = memFrontendAstReservedValue});
     memoryDetails.push_back({.name = "mem.sema.symbols", .value = memSemaSymbolsValue});
+    memoryDetails.push_back({.name = "mem.sema.symbolMaps", .value = memSemaSymbolMapsValue});
     memoryDetails.push_back({.name = "mem.sema.constants", .value = memSemaConstantsValue});
+    memoryDetails.push_back({.name = "mem.sema.constantsStorage", .value = memSemaConstantsReserved});
     memoryDetails.push_back({.name = "mem.sema.types", .value = memSemaTypesValue});
+    memoryDetails.push_back({.name = "mem.sema.typesStorage", .value = memSemaTypesReserved});
     memoryDetails.push_back({.name = "mem.sema.nodePayload", .value = memSemaNodePayloadValue});
     memoryDetails.push_back({.name = "mem.sema.identifiers", .value = memSemaIdentifiersValue});
     memoryDetails.push_back({.name = "mem.compiler.arena", .value = memCompilerArenaValue});

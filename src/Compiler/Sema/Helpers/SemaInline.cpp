@@ -235,25 +235,13 @@ namespace
         return true;
     }
 
-    bool hasVariadicParam(Sema& sema, const SymbolFunction& fn)
-    {
-        for (const SymbolVariable* param : fn.parameters())
-        {
-            SWC_ASSERT(param != nullptr);
-            const TypeInfo& typeInfo = sema.typeMgr().get(param->typeRef());
-            if (typeInfo.isAnyVariadic())
-                return true;
-        }
-
-        return false;
-    }
 }
 
-bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
+bool SemaInline::canInlineCall(const SymbolFunction& fn)
 {
     if (fn.isClosure() || fn.isEmpty() || fn.isForeign())
         return false;
-    if (hasVariadicParam(sema, fn))
+    if (fn.hasVariadicParam())
         return false;
     if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
         return false;
@@ -264,7 +252,7 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
-    if (!canInlineCall(sema, fn))
+    if (!canInlineCall(fn))
         return Result::Continue;
 
     const AstFunctionDecl* decl = nullptr;

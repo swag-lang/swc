@@ -22,6 +22,7 @@ enum class SymbolFunctionFlagsE : uint8_t
     Empty     = 1 << 4,
     Attribute = 1 << 5,
     Pure      = 1 << 6,
+    Variadic  = 1 << 7,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
@@ -43,6 +44,7 @@ public:
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     void                                addParameter(SymbolVariable* sym);
+    void                                refreshVariadicParamFlag(TaskContext& ctx);
     void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
@@ -57,6 +59,7 @@ public:
     bool             isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
     bool             isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
     bool             isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
+    bool             hasVariadicParam() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Variadic); }
     void             setPure(bool value) noexcept;
     bool             isForeign() const noexcept { return attributes().hasForeign; }
     std::string_view foreignModuleName() const { return attributes().foreignModuleName; }

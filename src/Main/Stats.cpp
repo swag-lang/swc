@@ -19,7 +19,7 @@ void Stats::print(const TaskContext& ctx) const
 
     Logger::printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helper::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
     Logger::printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeTotal.load())));
-    Logger::printHeaderDot(ctx, colorHeader, "maxAllocated", colorMsg, Utf8Helper::toNiceSize(Os::peakProcessMemoryUsage()));
+    Logger::printHeaderDot(ctx, colorHeader, "osMaxAllocated", colorMsg, Utf8Helper::toNiceSize(Os::peakProcessMemoryUsage()));
 
 #if SWC_HAS_STATS
     // Frontend counts
@@ -68,6 +68,7 @@ void Stats::print(const TaskContext& ctx) const
         size_t           value = 0;
     };
 
+    const size_t memTotal                    = memMaxAllocated.load();
     const size_t memFrontendSourceValue      = memFrontendSource.load();
     const size_t memFrontendTokensValue      = memFrontendTokens.load();
     const size_t memFrontendLinesValue       = memFrontendLines.load();
@@ -99,6 +100,7 @@ void Stats::print(const TaskContext& ctx) const
     const size_t totalKnown        = frontendTotalKnown + semaTotalKnown + codegenTotalKnown;
 
     std::vector<MemoryStatLine> memoryStageSums;
+    memoryStageSums.push_back({.name = "mem.total", .value = memTotal});
     memoryStageSums.push_back({.name = "mem.total.totalKnown", .value = totalKnown});
     memoryStageSums.push_back({.name = "mem.frontend.totalKnown", .value = frontendTotalKnown});
     memoryStageSums.push_back({.name = "mem.sema.totalKnown", .value = semaTotalKnown});

@@ -122,15 +122,27 @@ namespace
         symVar->setTyped(ctx);
         symVar->setSemaCompleted(ctx);
 
-        if (SymbolFunction* currentFn = sema.frame().currentFunction())
+        if (SymbolFunction* const currentFn = sema.frame().currentFunction())
         {
             const TypeInfo& resultType = sema.typeMgr().get(typeRef);
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&resultType, callRef));
+            SWC_ASSERT(resultType.isCompleted(ctx));
             currentFn->addLocalVariable(ctx, symVar);
         }
 
         outResultVar = symVar;
         return Result::Continue;
+    }
+
+    Result waitInlineResultTypeIfNeeded(Sema& sema, AstNodeRef callRef, TypeRef returnTypeRef)
+    {
+        if (returnTypeRef.isInvalid() || returnTypeRef == sema.typeMgr().typeVoid())
+            return Result::Continue;
+
+        if (!sema.frame().currentFunction())
+            return Result::Continue;
+
+        const TypeInfo& resultType = sema.typeMgr().get(returnTypeRef);
+        return sema.waitSemaCompleted(&resultType, callRef);
     }
 
     Result finalizeInlineBlock(Sema& sema, AstNodeRef inlineRootRef, const SemaInlinePayload& payload)
@@ -252,6 +264,9 @@ bool SemaInline::canInlineCall(const SymbolFunction& fn)
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
+    if (sema.hasSubstitute(callRef))
+        return Result::Continue;
+
     if (!canInlineCall(fn))
         return Result::Continue;
 
@@ -263,26 +278,30 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!mapArguments(sema, fn, args, ufcsArg, bindings))
         return Result::Continue;
 
+    TypeRef returnTypeRef = fn.returnTypeRef();
+    if (!returnTypeRef.isValid())
+        returnTypeRef = sema.typeMgr().typeVoid();
+
+    SWC_RESULT_VERIFY(waitInlineResultTypeIfNeeded(sema, callRef, returnTypeRef));
+
     const SemaClone::CloneContext cloneContext{bindings.span()};
     const AstNodeRef              inlineRootRef = inlineBodyRef(sema, *decl, cloneContext);
     if (inlineRootRef.isInvalid())
         return Result::Continue;
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());
 
-    TypeRef returnTypeRef = fn.returnTypeRef();
-    if (!returnTypeRef.isValid())
-        returnTypeRef = sema.typeMgr().typeVoid();
+    SymbolVariable* resultVar = nullptr;
+    SWC_RESULT_VERIFY(createInlineResultVariable(sema, callRef, returnTypeRef, resultVar));
 
     // Create payload
     auto* inlinePayload           = sema.compiler().allocate<SemaInlinePayload>();
     inlinePayload->callRef        = callRef;
     inlinePayload->inlineRootRef  = inlineRootRef;
     inlinePayload->sourceFunction = &fn;
+    inlinePayload->resultVar      = resultVar;
     inlinePayload->returnTypeRef  = returnTypeRef;
     for (const SemaClone::ParamBinding& binding : bindings)
         inlinePayload->argMappings.push_back({binding.idRef, binding.exprRef});
-
-    SWC_RESULT_VERIFY(createInlineResultVariable(sema, callRef, returnTypeRef, inlinePayload->resultVar));
 
     auto frame = sema.frame();
     if (returnTypeRef != sema.typeMgr().typeVoid())

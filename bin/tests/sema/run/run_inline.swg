@@ -119,7 +119,7 @@ func inlineSelect(flag: bool, a: s32, b: s32)->s32 => inlineBranch(flag, a, b)
     @assert(inlineAdd(xa, ya) == 42)
     @assert(inlineAdd(10 * 2, 20 + 2) == 42)
     @assert(inlineSub(inlineMul(8, 8), 22) == 42)
-    // @assert(inlineCascade(5, 8, 2) == 42)
+    @assert(inlineCascade(5, 8, 2) == 42)
     @assert(inlineAdd(inlineSub(100, 58), 0) == 42)
     @assert(inlineAdd(inlineMul(4, 9), inlineDiv(24, 4)) == 42)
 

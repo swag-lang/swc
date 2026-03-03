@@ -311,7 +311,9 @@ namespace
 
 Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeBodyRef)
+    const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
+    const AstNodeRef resolvedBodyRef  = codeGen.viewZero(nodeBodyRef).nodeRef();
+    if (resolvedChildRef != resolvedBodyRef)
         return Result::SkipChildren;
 
     const SymbolFunction&                  symbolFunc    = codeGen.function();

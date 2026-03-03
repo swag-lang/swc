@@ -337,9 +337,7 @@ Result CodeGen::preNode(AstNode& node)
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     SWC_RESULT_VERIFY(info.codeGenPreNode(*this, node));
 
-    const SemaInlinePayload* inlinePayload = nullptr;
-    if (sema().hasCodeGenPayload(curNodeRef()))
-        inlinePayload = sema().codeGenPayload<SemaInlinePayload>(curNodeRef());
+    const SemaInlinePayload* inlinePayload = sema().semaPayload<SemaInlinePayload>(curNodeRef());
     if (inlinePayload && inlinePayload->inlineRootRef == curNodeRef())
     {
         CodeGenFrame frame = this->frame();

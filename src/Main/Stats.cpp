@@ -101,7 +101,7 @@ void Stats::print(const TaskContext& ctx) const
 
     std::vector<MemoryStatLine> memoryStageSums;
     memoryStageSums.push_back({.name = "mem.total", .value = memTotal});
-    memoryStageSums.push_back({.name = "mem.total.totalKnown", .value = totalKnown});
+    memoryStageSums.push_back({.name = "mem.totalKnown", .value = totalKnown});
     memoryStageSums.push_back({.name = "mem.frontend.totalKnown", .value = frontendTotalKnown});
     memoryStageSums.push_back({.name = "mem.sema.totalKnown", .value = semaTotalKnown});
     memoryStageSums.push_back({.name = "mem.codegen.totalKnown", .value = codegenTotalKnown});

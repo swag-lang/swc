@@ -422,6 +422,11 @@
         <ClInclude Include="src\Backend\Micro\MicroDenseRegIndex.h" />
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Cast.Payload.h" />
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Index.Payload.h" />
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Intrinsic.Payload.h" />
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Literal.Payload.h" />
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Member.Payload.h" />
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>

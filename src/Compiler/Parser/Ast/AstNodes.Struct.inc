@@ -478,6 +478,7 @@ struct AstStructInitializerList : AstNodeT<AstNodeId::StructInitializerList>
         AstNode::collectChildren(out, ast, spanArgsRef);
     }
 
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -618,6 +619,7 @@ struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
     AstNodeRef       nodeExprRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -700,6 +702,7 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
 // -----------------------------------------------------------------------------
 struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 {
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -707,6 +710,7 @@ struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 // -----------------------------------------------------------------------------
 struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 {
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

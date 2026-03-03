@@ -2,10 +2,14 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Literal.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Core/Utf8Helper.h"
@@ -86,6 +90,79 @@ namespace
             default:
                 SWC_UNREACHABLE();
         }
+    }
+
+    TypeRef literalRuntimeStorageTypeRef(const SemaNodeView& view)
+    {
+        if (!view.type())
+            return TypeRef::invalid();
+        if (view.hasConstant())
+            return TypeRef::invalid();
+        if (!view.type()->isAggregateStruct() && !view.type()->isAggregateArray())
+            return TypeRef::invalid();
+        return view.typeRef();
+    }
+
+    Result completeLiteralRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            currentFunc->addLocalVariable(sema.ctx(), &symVar);
+        }
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    SymbolVariable& registerUniqueLiteralRuntimeStorageSymbol(Sema& sema, const AstNode& node)
+    {
+        TaskContext&        ctx         = sema.ctx();
+        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, "__literal_runtime_storage");
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(symVariable);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(symMap != nullptr);
+            symMap->addSymbol(ctx, symVariable, true);
+        }
+
+        return *SWC_NOT_NULL(symVariable);
+    }
+
+    Result attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView)
+    {
+        const TypeRef runtimeStorageTypeRef = literalRuntimeStorageTypeRef(literalView);
+        if (runtimeStorageTypeRef.isInvalid())
+            return Result::Continue;
+        if (sema.frame().currentFunction() == nullptr)
+            return Result::Continue;
+
+        auto& storageSym = registerUniqueLiteralRuntimeStorageSymbol(sema, node);
+        storageSym.registerAttributes(sema);
+        storageSym.setDeclared(sema.ctx());
+        SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
+        SWC_RESULT_VERIFY(completeLiteralRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
+
+        auto* payload = sema.codeGenPayload<LiteralExprCodeGenPayload>(sema.curNodeRef());
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<LiteralExprCodeGenPayload>();
+            sema.setCodeGenPayload(sema.curNodeRef(), payload);
+        }
+
+        payload->runtimeStorageSym = &storageSym;
+        return Result::Continue;
     }
 }
 
@@ -458,7 +535,9 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    return SemaHelpers::finalizeAggregateStruct(sema, children);
+    SWC_RESULT_VERIFY(SemaHelpers::finalizeAggregateStruct(sema, children));
+    const SemaNodeView literalView = sema.curViewNodeTypeConstant();
+    return attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView);
 }
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)
@@ -497,6 +576,8 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     }
 
     sema.setIsValue(*this);
+    const SemaNodeView literalView = sema.curViewNodeTypeConstant();
+    SWC_RESULT_VERIFY(attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView));
     return Result::Continue;
 }
 

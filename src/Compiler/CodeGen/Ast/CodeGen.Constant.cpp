@@ -2,13 +2,161 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Literal.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct AggregateElementLayout
+    {
+        AstNodeRef valueRef = AstNodeRef::invalid();
+        TypeRef    typeRef  = TypeRef::invalid();
+        uint32_t   offset   = 0;
+    };
+
+    uint64_t alignUpTo(uint64_t value, uint32_t alignment)
+    {
+        SWC_ASSERT(alignment != 0);
+        const uint64_t align = alignment;
+        return ((value + align - 1) / align) * align;
+    }
+
+    CodeGenNodePayload resolveLiteralRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
+    {
+        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
+            return *symbolPayload;
+
+        SWC_ASSERT(storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+        CodeGenNodePayload localPayload;
+        localPayload.typeRef = storageSym.typeRef();
+        localPayload.setIsAddress();
+        if (!storageSym.offset())
+        {
+            localPayload.reg = codeGen.localStackBaseReg();
+        }
+        else
+        {
+            MicroBuilder& builder = codeGen.builder();
+            localPayload.reg      = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+        }
+
+        codeGen.setVariablePayload(storageSym, localPayload);
+        return localPayload;
+    }
+
+    MicroReg literalRuntimeStorageAddressReg(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        const auto* payload = codeGen.sema().codeGenPayload<LiteralExprCodeGenPayload>(nodeRef);
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
+        const CodeGenNodePayload storagePayload = resolveLiteralRuntimeStoragePayload(codeGen, *SWC_NOT_NULL(payload->runtimeStorageSym));
+        SWC_ASSERT(storagePayload.isAddress());
+        return storagePayload.reg;
+    }
+
+    bool computeAggregateLayout(CodeGen& codeGen, TypeRef aggregateTypeRef, std::span<const AstNodeRef> elementRefs, SmallVector<AggregateElementLayout>& outLayout, uint32_t& outTotalSize)
+    {
+        outLayout.clear();
+        outTotalSize = 0;
+        if (aggregateTypeRef.isInvalid())
+            return false;
+
+        const TypeInfo& aggregateType = codeGen.typeMgr().get(aggregateTypeRef);
+        if (!aggregateType.isAggregateStruct() && !aggregateType.isAggregateArray())
+            return false;
+
+        const auto& elementTypes = aggregateType.payloadAggregate().types;
+        if (elementTypes.size() != elementRefs.size())
+            return false;
+
+        outLayout.reserve(elementRefs.size());
+
+        uint32_t maxAlignment = 1;
+        uint64_t offset       = 0;
+        for (size_t i = 0; i < elementRefs.size(); ++i)
+        {
+            const TypeRef   elementTypeRef = elementTypes[i];
+            const TypeInfo& elementType    = codeGen.typeMgr().get(elementTypeRef);
+            uint32_t        alignment      = elementType.alignOf(codeGen.ctx());
+            if (!alignment)
+                alignment = 1;
+
+            offset = alignUpTo(offset, alignment);
+
+            const uint64_t elementSize = elementType.sizeOf(codeGen.ctx());
+            SWC_ASSERT(elementSize > 0 && elementSize <= std::numeric_limits<uint32_t>::max());
+            outLayout.push_back({
+                .valueRef = elementRefs[i],
+                .typeRef  = elementTypeRef,
+                .offset   = static_cast<uint32_t>(offset),
+            });
+            offset += elementSize;
+            maxAlignment = std::max(maxAlignment, alignment);
+        }
+
+        offset = alignUpTo(offset, maxAlignment);
+        SWC_ASSERT(offset > 0 && offset <= std::numeric_limits<uint32_t>::max());
+        outTotalSize = static_cast<uint32_t>(offset);
+        return true;
+    }
+
+    Result emitAggregateLiteralPayload(CodeGen& codeGen, AstNodeRef nodeRef, std::span<const AstNodeRef> elementRefs, TypeRef aggregateTypeRef)
+    {
+        SmallVector<AggregateElementLayout> layout;
+        uint32_t                            totalSize = 0;
+        const bool                          hasLayout = computeAggregateLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
+        SWC_INTERNAL_CHECK(hasLayout);
+        SWC_INTERNAL_CHECK(totalSize == codeGen.typeMgr().get(aggregateTypeRef).sizeOf(codeGen.ctx()));
+
+        const MicroReg dstBaseReg = literalRuntimeStorageAddressReg(codeGen, nodeRef);
+        for (const AggregateElementLayout& entry : layout)
+        {
+            const CodeGenNodePayload& elementPayload = codeGen.payload(entry.valueRef);
+            const uint64_t            elementSize    = codeGen.typeMgr().get(entry.typeRef).sizeOf(codeGen.ctx());
+            SWC_ASSERT(elementSize > 0 && elementSize <= std::numeric_limits<uint32_t>::max());
+
+            if (elementPayload.isAddress())
+            {
+                MicroReg dstElementReg = dstBaseReg;
+                if (entry.offset != 0)
+                {
+                    dstElementReg = codeGen.nextVirtualIntRegister();
+                    codeGen.builder().emitLoadRegReg(dstElementReg, dstBaseReg, MicroOpBits::B64);
+                    codeGen.builder().emitOpBinaryRegImm(dstElementReg, ApInt(entry.offset, 64), MicroOp::Add, MicroOpBits::B64);
+                }
+
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, dstElementReg, elementPayload.reg, static_cast<uint32_t>(elementSize));
+                continue;
+            }
+
+            const MicroOpBits storeBits = microOpBitsFromChunkSize(static_cast<uint32_t>(elementSize));
+            SWC_ASSERT(storeBits != MicroOpBits::Zero);
+            codeGen.builder().emitLoadMemReg(dstBaseReg, entry.offset, elementPayload.reg, storeBits);
+        }
+
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadAddress(nodeRef, aggregateTypeRef);
+        nodePayload.reg                 = dstBaseReg;
+        return Result::Continue;
+    }
+
+    TypeRef storedLiteralTypeRef(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        const TypeRef storedTypeRef = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Type).typeRef();
+        if (storedTypeRef.isValid())
+            return storedTypeRef;
+        return codeGen.viewType(nodeRef).typeRef();
+    }
+
     uint64_t addPayloadToConstantManagerAndGetAddress(CodeGen& codeGen, ByteSpan payload)
     {
         const std::string_view payloadView(reinterpret_cast<const char*>(payload.data()), payload.size());
@@ -202,6 +350,39 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
     const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
     codeGen.builder().emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
     return Result::Continue;
+}
+
+Result AstInitializerExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curViewType().typeRef());
+    return Result::Continue;
+}
+
+Result AstArrayLiteral::codeGenPostNode(CodeGen& codeGen) const
+{
+    SmallVector<AstNodeRef> elementRefs;
+    collectChildren(elementRefs, codeGen.ast());
+
+    const TypeRef aggregateTypeRef = storedLiteralTypeRef(codeGen, codeGen.curNodeRef());
+    return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
+}
+
+Result AstStructLiteral::codeGenPostNode(CodeGen& codeGen) const
+{
+    SmallVector<AstNodeRef> elementRefs;
+    collectChildren(elementRefs, codeGen.ast());
+
+    const TypeRef aggregateTypeRef = storedLiteralTypeRef(codeGen, codeGen.curNodeRef());
+    return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
+}
+
+Result AstStructInitializerList::codeGenPostNode(CodeGen& codeGen) const
+{
+    SmallVector<AstNodeRef> elementRefs;
+    codeGen.ast().appendNodes(elementRefs, spanArgsRef);
+
+    const TypeRef aggregateTypeRef = storedLiteralTypeRef(codeGen, codeGen.curNodeRef());
+    return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
 }
 
 SWC_END_NAMESPACE();

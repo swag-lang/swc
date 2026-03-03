@@ -118,17 +118,6 @@ protected:
     static void inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc);
 
 private:
-    struct ExternalStorage
-    {
-        void*           codeGenPayload    = nullptr;
-        void*           semaPayload       = nullptr;
-        const void*     semaPayloadTypeId = nullptr;
-        SpanRef         resolvedCallArgs  = SpanRef::invalid();
-        NodePayloadKind originalKind      = NodePayloadKind::Invalid;
-        uint32_t        originalRef       = 0;
-        uint32_t        originalShard     = 0;
-    };
-
     struct SubstituteStorage
     {
         AstNodeRef       substNodeRef  = AstNodeRef::invalid();
@@ -145,15 +134,30 @@ private:
         uint32_t        shardIdx = 0;
     };
 
+    struct SidePayload
+    {
+        void*       codeGenPayload    = nullptr;
+        void*       semaPayload       = nullptr;
+        const void* semaPayloadTypeId = nullptr;
+        SpanRef     resolvedCallArgs  = SpanRef::invalid();
+
+        bool isEmpty() const
+        {
+            return codeGenPayload == nullptr &&
+                   semaPayload == nullptr &&
+                   semaPayloadTypeId == nullptr &&
+                   resolvedCallArgs.isInvalid();
+        }
+    };
+
     std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
-    ExternalStorage*               ensureExternalStorage(AstNodeRef nodeRef);
+    SidePayload&                   ensureSidePayload(AstNodeRef nodeRef, uint32_t shardIdx);
+    void                           tryEraseSidePayload(AstNodeRef nodeRef, uint32_t shardIdx);
     PayloadInfo                    payloadInfo(const AstNode& node) const;
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
-    ExternalStorage*               externalStorage(const AstNode& node);
-    const ExternalStorage*         externalStorage(const AstNode& node) const;
     SubstituteStorage*             substituteStorage(const AstNode& node);
     const SubstituteStorage*       substituteStorage(const AstNode& node) const;
 
@@ -163,8 +167,9 @@ private:
 
     struct Shard
     {
-        mutable std::shared_mutex mutex;
-        PagedStore                store;
+        mutable std::shared_mutex                   mutex;
+        PagedStore                                  store;
+        std::unordered_map<AstNodeRef, SidePayload> sidePayloads;
     };
 
     Shard shards_[NODE_PAYLOAD_SHARD_NUM];

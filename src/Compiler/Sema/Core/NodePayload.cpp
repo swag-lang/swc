@@ -152,28 +152,8 @@ void NodePayload::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) == NodePayloadKind::ExternalStorage)
-    {
-        ExternalStorage* storage = externalStorage(node);
-        SWC_ASSERT(storage);
-        if (storage->semaPayload)
-        {
-            storage->originalKind  = NodePayloadKind::ConstantRef;
-            storage->originalRef   = ref.get();
-            storage->originalShard = 0;
-        }
-        else
-        {
-            setPayloadKind(node, NodePayloadKind::ConstantRef);
-            node.setPayloadRef(ref.get());
-        }
-    }
-    else
-    {
-        setPayloadKind(node, NodePayloadKind::ConstantRef);
-        node.setPayloadRef(ref.get());
-    }
-
+    setPayloadKind(node, NodePayloadKind::ConstantRef);
+    node.setPayloadRef(ref.get());
     addPayloadFlags(node, NodePayloadFlags::Value);
 }
 
@@ -183,25 +163,7 @@ bool NodePayload::hasSubstitute(AstNodeRef nodeRef) const
         return false;
 
     const AstNode& node = ast().node(nodeRef);
-    PayloadInfo    info = {
-           .kind     = payloadKind(node),
-           .ref      = node.payloadRef(),
-           .shardIdx = payloadShard(node),
-    };
-
-    while (info.kind == NodePayloadKind::ExternalStorage)
-    {
-        const Shard&           shard   = shards_[info.shardIdx];
-        const ExternalStorage* storage = shard.store.ptr<ExternalStorage>(info.ref);
-        SWC_ASSERT(storage);
-        info = {
-            .kind     = storage->originalKind,
-            .ref      = storage->originalRef,
-            .shardIdx = storage->originalShard,
-        };
-    }
-
-    return info.kind == NodePayloadKind::Substitute;
+    return payloadKind(node) == NodePayloadKind::Substitute;
 }
 
 void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
@@ -242,18 +204,6 @@ AstNodeRef NodePayload::getSubstituteRef(AstNodeRef nodeRef) const
                .ref      = node.payloadRef(),
                .shardIdx = payloadShard(node),
         };
-
-        while (info.kind == NodePayloadKind::ExternalStorage)
-        {
-            const Shard&           shard   = shards_[info.shardIdx];
-            const ExternalStorage* storage = shard.store.ptr<ExternalStorage>(info.ref);
-            SWC_ASSERT(storage);
-            info = {
-                .kind     = storage->originalKind,
-                .ref      = storage->originalRef,
-                .shardIdx = storage->originalShard,
-            };
-        }
 
         if (info.kind != NodePayloadKind::Substitute)
             break;
@@ -322,27 +272,8 @@ void NodePayload::setType(AstNodeRef nodeRef, TypeRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) == NodePayloadKind::ExternalStorage)
-    {
-        ExternalStorage* storage = externalStorage(node);
-        SWC_ASSERT(storage);
-        if (storage->semaPayload)
-        {
-            storage->originalKind  = NodePayloadKind::TypeRef;
-            storage->originalRef   = ref.get();
-            storage->originalShard = 0;
-        }
-        else
-        {
-            setPayloadKind(node, NodePayloadKind::TypeRef);
-            node.setPayloadRef(ref.get());
-        }
-    }
-    else
-    {
-        setPayloadKind(node, NodePayloadKind::TypeRef);
-        node.setPayloadRef(ref.get());
-    }
+    setPayloadKind(node, NodePayloadKind::TypeRef);
+    node.setPayloadRef(ref.get());
 }
 
 bool NodePayload::hasSymbol(AstNodeRef nodeRef) const
@@ -388,29 +319,9 @@ void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 
     AstNode&  node  = ast().node(nodeRef);
     const Ref value = shard.store.pushBack(symbol);
-    if (payloadKind(node) == NodePayloadKind::ExternalStorage)
-    {
-        ExternalStorage* storage = externalStorage(node);
-        SWC_ASSERT(storage);
-        if (storage->semaPayload)
-        {
-            storage->originalKind  = NodePayloadKind::SymbolRef;
-            storage->originalRef   = value;
-            storage->originalShard = shardIdx;
-        }
-        else
-        {
-            setPayloadKind(node, NodePayloadKind::SymbolRef);
-            setPayloadShard(node, shardIdx);
-            node.setPayloadRef(value);
-        }
-    }
-    else
-    {
-        setPayloadKind(node, NodePayloadKind::SymbolRef);
-        setPayloadShard(node, shardIdx);
-        node.setPayloadRef(value);
-    }
+    setPayloadKind(node, NodePayloadKind::SymbolRef);
+    setPayloadShard(node, shardIdx);
+    node.setPayloadRef(value);
 
     updatePayloadFlags(node, std::span{&symbol, 1});
 }
@@ -461,29 +372,9 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*>
 
     AstNode&  node  = ast().node(nodeRef);
     const Ref value = shard.store.pushSpan(symbols).get();
-    if (payloadKind(node) == NodePayloadKind::ExternalStorage)
-    {
-        ExternalStorage* storage = externalStorage(node);
-        SWC_ASSERT(storage);
-        if (storage->semaPayload)
-        {
-            storage->originalKind  = NodePayloadKind::SymbolList;
-            storage->originalRef   = value;
-            storage->originalShard = shardIdx;
-        }
-        else
-        {
-            setPayloadKind(node, NodePayloadKind::SymbolList);
-            setPayloadShard(node, shardIdx);
-            node.setPayloadRef(value);
-        }
-    }
-    else
-    {
-        setPayloadKind(node, NodePayloadKind::SymbolList);
-        setPayloadShard(node, shardIdx);
-        node.setPayloadRef(value);
-    }
+    setPayloadKind(node, NodePayloadKind::SymbolList);
+    setPayloadShard(node, shardIdx);
+    node.setPayloadRef(value);
 
     updatePayloadFlags(node, symbols);
 }
@@ -496,29 +387,9 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbo
 
     AstNode&  node  = ast().node(nodeRef);
     const Ref value = shard.store.pushSpan(symbols).get();
-    if (payloadKind(node) == NodePayloadKind::ExternalStorage)
-    {
-        ExternalStorage* storage = externalStorage(node);
-        SWC_ASSERT(storage);
-        if (storage->semaPayload)
-        {
-            storage->originalKind  = NodePayloadKind::SymbolList;
-            storage->originalRef   = value;
-            storage->originalShard = shardIdx;
-        }
-        else
-        {
-            setPayloadKind(node, NodePayloadKind::SymbolList);
-            setPayloadShard(node, shardIdx);
-            node.setPayloadRef(value);
-        }
-    }
-    else
-    {
-        setPayloadKind(node, NodePayloadKind::SymbolList);
-        setPayloadShard(node, shardIdx);
-        node.setPayloadRef(value);
-    }
+    setPayloadKind(node, NodePayloadKind::SymbolList);
+    setPayloadShard(node, shardIdx);
+    node.setPayloadRef(value);
 
     SmallVector<const Symbol*> tmp;
     tmp.reserve(symbols.size());
@@ -560,72 +431,54 @@ void NodePayload::updatePayloadFlags(AstNode& node, std::span<const Symbol*> sym
         removePayloadFlags(node, NodePayloadFlags::LValue);
 }
 
-NodePayload::ExternalStorage* NodePayload::ensureExternalStorage(AstNodeRef nodeRef)
+NodePayload::SidePayload& NodePayload::ensureSidePayload(AstNodeRef nodeRef, uint32_t shardIdx)
 {
     SWC_ASSERT(nodeRef.isValid());
-    AstNode& node = ast().node(nodeRef);
+    SWC_ASSERT(shardIdx < NODE_PAYLOAD_SHARD_NUM);
+    auto& sidePayloads     = shards_[shardIdx].sidePayloads;
+    const auto [it, added] = sidePayloads.try_emplace(nodeRef);
+    SWC_UNUSED(added);
+    return it->second;
+}
 
-    if (payloadKind(node) == NodePayloadKind::ExternalStorage)
-        return externalStorage(node);
-
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    auto&                  shard    = shards_[shardIdx];
-    const std::unique_lock lock(shard.mutex);
-
-    if (payloadKind(node) == NodePayloadKind::ExternalStorage)
-        return SWC_NOT_NULL(shard.store.ptr<ExternalStorage>(node.payloadRef()));
-
-    const NodePayloadKind originalKind  = payloadKind(node);
-    const uint32_t        originalRef   = node.payloadRef();
-    const uint32_t        originalShard = payloadShard(node);
-
-    const Ref value = shard.store.pushBack(ExternalStorage{
-        .codeGenPayload    = nullptr,
-        .semaPayload       = nullptr,
-        .semaPayloadTypeId = nullptr,
-        .resolvedCallArgs  = SpanRef::invalid(),
-        .originalKind      = originalKind,
-        .originalRef       = originalRef,
-        .originalShard     = originalShard,
-    });
-
-    setPayloadKind(node, NodePayloadKind::ExternalStorage);
-    setPayloadShard(node, shardIdx);
-    node.setPayloadRef(value);
-    return SWC_NOT_NULL(shard.store.ptr<ExternalStorage>(value));
+void NodePayload::tryEraseSidePayload(AstNodeRef nodeRef, uint32_t shardIdx)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    SWC_ASSERT(shardIdx < NODE_PAYLOAD_SHARD_NUM);
+    auto&      sidePayloads = shards_[shardIdx].sidePayloads;
+    const auto it           = sidePayloads.find(nodeRef);
+    if (it == sidePayloads.end())
+        return;
+    const SidePayload& payload = it->second;
+    if (payload.isEmpty())
+        sidePayloads.erase(it);
 }
 
 void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args)
 {
     SWC_ASSERT(nodeRef.isValid());
-
-    ExternalStorage* storage = ensureExternalStorage(nodeRef);
-    SWC_ASSERT(storage);
-
-    const AstNode&         node     = ast().node(nodeRef);
-    const uint32_t         shardIdx = payloadShard(node);
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&                  shard    = shards_[shardIdx];
     const std::unique_lock lock(shard.mutex);
-    storage->resolvedCallArgs = args.empty() ? SpanRef::invalid() : shard.store.pushSpan(args);
+    SidePayload&           payload = ensureSidePayload(nodeRef, shardIdx);
+    payload.resolvedCallArgs       = args.empty() ? SpanRef::invalid() : shard.store.pushSpan(args);
+    tryEraseSidePayload(nodeRef, shardIdx);
 }
 
 void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const
 {
     if (nodeRef.isInvalid())
         return;
-
-    const AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) != NodePayloadKind::ExternalStorage)
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const auto&            shard    = shards_[shardIdx];
+    const std::shared_lock lock(shard.mutex);
+    const auto             it = shard.sidePayloads.find(nodeRef);
+    if (it == shard.sidePayloads.end())
         return;
-
-    const ExternalStorage* storage = externalStorage(node);
-    SWC_ASSERT(storage);
-    if (storage->resolvedCallArgs.isInvalid())
+    const SidePayload& payload = it->second;
+    if (payload.resolvedCallArgs.isInvalid())
         return;
-
-    const uint32_t shardIdx = payloadShard(node);
-    const auto&    shard    = shards_[shardIdx];
-    const auto     spanView = shard.store.span<ResolvedCallArgument>(storage->resolvedCallArgs.get());
+    const auto spanView = shard.store.span<ResolvedCallArgument>(payload.resolvedCallArgs.get());
     for (PagedStore::SpanView::ChunkIterator it = spanView.chunksBegin(); it != spanView.chunksEnd(); ++it)
     {
         const PagedStore::SpanView::Chunk& chunk = *it;
@@ -637,45 +490,50 @@ bool NodePayload::hasCodeGenPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) != NodePayloadKind::ExternalStorage)
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const auto&            shard    = shards_[shardIdx];
+    const std::shared_lock lock(shard.mutex);
+    const auto             it = shard.sidePayloads.find(nodeRef);
+    if (it == shard.sidePayloads.end())
         return false;
-    const ExternalStorage* storage = externalStorage(node);
-    SWC_ASSERT(storage);
-    return storage->codeGenPayload != nullptr;
+    return it->second.codeGenPayload != nullptr;
 }
 
 void NodePayload::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
-    ExternalStorage* storage = ensureExternalStorage(nodeRef);
-    SWC_ASSERT(storage);
-    storage->codeGenPayload = payload;
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    auto&                  shard    = shards_[shardIdx];
+    const std::unique_lock lock(shard.mutex);
+    SidePayload&           sidePayload = ensureSidePayload(nodeRef, shardIdx);
+    sidePayload.codeGenPayload         = payload;
 }
 
 void* NodePayload::getCodeGenPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) != NodePayloadKind::ExternalStorage)
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const auto&            shard    = shards_[shardIdx];
+    const std::shared_lock lock(shard.mutex);
+    const auto             it = shard.sidePayloads.find(nodeRef);
+    if (it == shard.sidePayloads.end())
         return nullptr;
-    const ExternalStorage* storage = externalStorage(node);
-    SWC_ASSERT(storage);
-    return storage->codeGenPayload;
+    return it->second.codeGenPayload;
 }
 
 bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) != NodePayloadKind::ExternalStorage)
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const auto&            shard    = shards_[shardIdx];
+    const std::shared_lock lock(shard.mutex);
+    const auto             it = shard.sidePayloads.find(nodeRef);
+    if (it == shard.sidePayloads.end())
         return false;
-    const ExternalStorage* storage = externalStorage(node);
-    SWC_ASSERT(storage);
-    return storage->semaPayload != nullptr;
+    return it->second.semaPayload != nullptr;
 }
 
 void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload, const void* payloadTypeTag)
@@ -683,48 +541,55 @@ void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload, const void* 
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
     SWC_ASSERT(payloadTypeTag);
-    ExternalStorage* storage = ensureExternalStorage(nodeRef);
-    SWC_ASSERT(storage);
-    SWC_ASSERT(storage->semaPayload == nullptr);
-    storage->semaPayload       = payload;
-    storage->semaPayloadTypeId = payloadTypeTag;
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    auto&                  shard    = shards_[shardIdx];
+    const std::unique_lock lock(shard.mutex);
+    SidePayload&           sidePayload = ensureSidePayload(nodeRef, shardIdx);
+    SWC_ASSERT(sidePayload.semaPayload == nullptr);
+    sidePayload.semaPayload       = payload;
+    sidePayload.semaPayloadTypeId = payloadTypeTag;
 }
 
 void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) != NodePayloadKind::ExternalStorage)
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const auto&            shard    = shards_[shardIdx];
+    const std::shared_lock lock(shard.mutex);
+    const auto             it = shard.sidePayloads.find(nodeRef);
+    if (it == shard.sidePayloads.end())
         return nullptr;
-    const ExternalStorage* storage = externalStorage(node);
-    SWC_ASSERT(storage);
-    return storage->semaPayload;
+    return it->second.semaPayload;
 }
 
 const void* NodePayload::getSemaPayloadTypeTag(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) != NodePayloadKind::ExternalStorage)
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const auto&            shard    = shards_[shardIdx];
+    const std::shared_lock lock(shard.mutex);
+    const auto             it = shard.sidePayloads.find(nodeRef);
+    if (it == shard.sidePayloads.end())
         return nullptr;
-    const ExternalStorage* storage = externalStorage(node);
-    SWC_ASSERT(storage);
-    return storage->semaPayloadTypeId;
+    return it->second.semaPayloadTypeId;
 }
 
 void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return;
-    const AstNode& node = ast().node(nodeRef);
-    if (payloadKind(node) != NodePayloadKind::ExternalStorage)
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    auto&                  shard    = shards_[shardIdx];
+    const std::unique_lock lock(shard.mutex);
+    const auto             it = shard.sidePayloads.find(nodeRef);
+    if (it == shard.sidePayloads.end())
         return;
-    ExternalStorage* storage = externalStorage(node);
-    SWC_ASSERT(storage);
-    storage->semaPayload       = nullptr;
-    storage->semaPayloadTypeId = nullptr;
+    SidePayload& payload      = it->second;
+    payload.semaPayload       = nullptr;
+    payload.semaPayloadTypeId = nullptr;
+    tryEraseSidePayload(nodeRef, shardIdx);
 }
 
 void NodePayload::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
@@ -758,19 +623,6 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 
     while (true)
     {
-        if (info.kind == NodePayloadKind::ExternalStorage)
-        {
-            const auto& shard   = shards_[info.shardIdx];
-            const auto* storage = shard.store.ptr<ExternalStorage>(info.ref);
-            SWC_ASSERT(storage);
-            info = {
-                .kind     = storage->originalKind,
-                .ref      = storage->originalRef,
-                .shardIdx = storage->originalShard,
-            };
-            continue;
-        }
-
         if (info.kind == NodePayloadKind::Substitute)
         {
             const auto& shard   = shards_[info.shardIdx];
@@ -799,19 +651,6 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
     NodePayloadFlags flags = payloadFlags(node);
     while (true)
     {
-        if (info.kind == NodePayloadKind::ExternalStorage)
-        {
-            const auto& shard   = shards_[info.shardIdx];
-            const auto* storage = shard.store.ptr<ExternalStorage>(info.ref);
-            SWC_ASSERT(storage);
-            info = {
-                .kind     = storage->originalKind,
-                .ref      = storage->originalRef,
-                .shardIdx = storage->originalShard,
-            };
-            continue;
-        }
-
         if (info.kind == NodePayloadKind::Substitute)
         {
             const auto& shard   = shards_[info.shardIdx];
@@ -828,22 +667,6 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
 
         return flags;
     }
-}
-
-NodePayload::ExternalStorage* NodePayload::externalStorage(const AstNode& node)
-{
-    SWC_ASSERT(payloadKind(node) == NodePayloadKind::ExternalStorage);
-    const uint32_t shardIdx = payloadShard(node);
-    auto&          shard    = shards_[shardIdx];
-    return shard.store.ptr<ExternalStorage>(node.payloadRef());
-}
-
-const NodePayload::ExternalStorage* NodePayload::externalStorage(const AstNode& node) const
-{
-    SWC_ASSERT(payloadKind(node) == NodePayloadKind::ExternalStorage);
-    const uint32_t shardIdx = payloadShard(node);
-    const auto&    shard    = shards_[shardIdx];
-    return shard.store.ptr<ExternalStorage>(node.payloadRef());
 }
 
 NodePayload::SubstituteStorage* NodePayload::substituteStorage(const AstNode& node)

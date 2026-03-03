@@ -46,13 +46,13 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
 
     auto* payload       = sema.compiler().allocate<SwitchPayload>();
     payload->isComplete = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
-    sema.setPayload(sema.curNodeRef(), payload);
+    sema.setSemaPayload(sema.curNodeRef(), payload);
     return Result::Continue;
 }
 
 Result AstSwitchStmt::semaPostNode(Sema& sema)
 {
-    const SwitchPayload* payload = sema.payload<SwitchPayload>(sema.curNodeRef());
+    const SwitchPayload* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
     SWC_ASSERT(payload != nullptr);
     if (!payload->isComplete || payload->exprTypeRef.isInvalid())
         return Result::Continue;
@@ -116,7 +116,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isTypeInfo())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
-        sema.payload<SwitchPayload>(sema.curNodeRef())->exprTypeRef = exprView.typeRef();
+        sema.semaPayload<SwitchPayload>(sema.curNodeRef())->exprTypeRef = exprView.typeRef();
 
         if (type.isEnum())
         {
@@ -140,7 +140,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
-    const SwitchPayload* payload = sema.payload<SwitchPayload>(switchRef);
+    const SwitchPayload* payload = sema.semaPayload<SwitchPayload>(switchRef);
     SWC_ASSERT(payload != nullptr);
     const TypeRef switchTypeRef = payload->exprTypeRef;
     if (switchTypeRef.isInvalid())
@@ -149,7 +149,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)
     {
-        auto* switchPayload = sema.payload<SwitchPayload>(switchRef);
+        auto* switchPayload = sema.semaPayload<SwitchPayload>(switchRef);
         SWC_ASSERT(switchPayload);
 
         const AstNodeRef caseRef = sema.frame().currentSwitchCase();
@@ -249,7 +249,7 @@ namespace
                 return Result::Continue;
         }
 
-        auto* seenSet = sema.payload<SwitchPayload>(switchRef);
+        auto* seenSet = sema.semaPayload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
         const SemaNodeView exprView = sema.viewConstant(caseExprRef);
@@ -288,7 +288,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
-    const SwitchPayload* payload       = sema.payload<SwitchPayload>(switchRef);
+    const SwitchPayload* payload       = sema.semaPayload<SwitchPayload>(switchRef);
     const TypeRef        switchTypeRef = payload->exprTypeRef;
 
     // This is a switch without an expression

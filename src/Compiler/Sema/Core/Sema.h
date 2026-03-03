@@ -115,15 +115,6 @@ public:
     void setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
     void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
 
-    bool hasPayload(AstNodeRef n) const { return nodePayloadContext().hasPayload(n); }
-    void setPayload(AstNodeRef n, void* payload) { nodePayloadContext().setPayload(n, payload); }
-
-    template<typename T>
-    T* payload(AstNodeRef n) const
-    {
-        return static_cast<T*>(nodePayloadContext().getPayload(n));
-    }
-
     bool hasCodeGenPayload(AstNodeRef n) const { return nodePayloadContext().hasCodeGenPayload(n); }
     void setCodeGenPayload(AstNodeRef n, void* payload) { nodePayloadContext().setCodeGenPayload(n, payload); }
 
@@ -134,13 +125,23 @@ public:
     }
 
     bool hasSemaPayload(AstNodeRef n) const { return nodePayloadContext().hasSemaPayload(n); }
-    void setSemaPayload(AstNodeRef n, void* payload) { nodePayloadContext().setSemaPayload(n, payload); }
+    template<typename T>
+    void setSemaPayload(AstNodeRef n, T* payload)
+    {
+        nodePayloadContext().setSemaPayload(n, payload, NodePayload::semaPayloadTypeTag<T>());
+    }
+
     void clearSemaPayload(AstNodeRef n) { nodePayloadContext().clearSemaPayload(n); }
 
     template<typename T>
     T* semaPayload(AstNodeRef n) const
     {
-        return static_cast<T*>(nodePayloadContext().getSemaPayload(n));
+        void* payload = nodePayloadContext().getSemaPayload(n);
+        if (!payload)
+            return nullptr;
+        const void* payloadTypeTag = nodePayloadContext().getSemaPayloadTypeTag(n);
+        SWC_ASSERT(payloadTypeTag == NodePayload::semaPayloadTypeTag<T>());
+        return static_cast<T*>(payload);
     }
 
     void setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }

@@ -63,6 +63,12 @@ protected:
     static void             removePayloadFlags(AstNode& node, NodePayloadFlags value) { node.payloadBits() &= ~static_cast<uint16_t>(value); }
     static bool             hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
     static NodePayloadFlags payloadFlags(const AstNode& node) { return static_cast<NodePayloadFlags>(node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK); }
+    template<typename T>
+    static const void* semaPayloadTypeTag()
+    {
+        static const uint8_t tag = 0;
+        return &tag;
+    }
 
     const SymbolNamespace& moduleNamespace() const { return *SWC_NOT_NULL(moduleNamespace_); }
     SymbolNamespace&       moduleNamespace() { return *SWC_NOT_NULL(moduleNamespace_); }
@@ -96,18 +102,16 @@ protected:
     void                     setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                     setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols);
 
-    bool  hasPayload(AstNodeRef nodeRef) const;
-    void  setPayload(AstNodeRef nodeRef, void* payload);
-    void* getPayload(AstNodeRef nodeRef) const;
-    void  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
-    void  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
-    bool  hasCodeGenPayload(AstNodeRef nodeRef) const;
-    void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
-    void* getCodeGenPayload(AstNodeRef nodeRef) const;
-    bool  hasSemaPayload(AstNodeRef nodeRef) const;
-    void  setSemaPayload(AstNodeRef nodeRef, void* payload);
-    void* getSemaPayload(AstNodeRef nodeRef) const;
-    void  clearSemaPayload(AstNodeRef nodeRef);
+    void        setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
+    void        appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
+    bool        hasCodeGenPayload(AstNodeRef nodeRef) const;
+    void        setCodeGenPayload(AstNodeRef nodeRef, void* payload);
+    void*       getCodeGenPayload(AstNodeRef nodeRef) const;
+    bool        hasSemaPayload(AstNodeRef nodeRef) const;
+    void        setSemaPayload(AstNodeRef nodeRef, void* payload, const void* payloadTypeTag);
+    void*       getSemaPayload(AstNodeRef nodeRef) const;
+    const void* getSemaPayloadTypeTag(AstNodeRef nodeRef) const;
+    void        clearSemaPayload(AstNodeRef nodeRef);
 
     static void propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
     static void inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
@@ -116,13 +120,13 @@ protected:
 private:
     struct ExternalStorage
     {
-        void*           payload          = nullptr;
-        void*           codeGenPayload   = nullptr;
-        void*           semaPayload      = nullptr;
-        SpanRef         resolvedCallArgs = SpanRef::invalid();
-        NodePayloadKind originalKind     = NodePayloadKind::Invalid;
-        uint32_t        originalRef      = 0;
-        uint32_t        originalShard    = 0;
+        void*           codeGenPayload    = nullptr;
+        void*           semaPayload       = nullptr;
+        const void*     semaPayloadTypeId = nullptr;
+        SpanRef         resolvedCallArgs  = SpanRef::invalid();
+        NodePayloadKind originalKind      = NodePayloadKind::Invalid;
+        uint32_t        originalRef       = 0;
+        uint32_t        originalShard     = 0;
     };
 
     struct SubstituteStorage

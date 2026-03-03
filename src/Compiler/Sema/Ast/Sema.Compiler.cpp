@@ -55,7 +55,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
         ifFrame->parent          = parentIf;
 
         frame.setCurrentCompilerIf(ifFrame);
-        sema.setPayload(nodeIfBlockRef, ifFrame);
+        sema.setSemaPayload(nodeIfBlockRef, ifFrame);
         sema.pushFramePopOnPostChild(frame, childRef);
         return Result::Continue;
     }
@@ -69,7 +69,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
         elseFrame->parent         = parentIf;
 
         frame.setCurrentCompilerIf(elseFrame);
-        sema.setPayload(nodeElseBlockRef, elseFrame);
+        sema.setSemaPayload(nodeElseBlockRef, elseFrame);
         sema.pushFramePopOnPostChild(frame, childRef);
     }
 
@@ -108,9 +108,9 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     // Retrieve the SemaCompilerIf payload
-    if (sema.hasPayload(ignoredBlockRef))
+    if (sema.hasSemaPayload(ignoredBlockRef))
     {
-        const SemaCompilerIf* ignoredIfData = sema.payload<SemaCompilerIf>(ignoredBlockRef);
+        const SemaCompilerIf* ignoredIfData = sema.semaPayload<SemaCompilerIf>(ignoredBlockRef);
         if (!ignoredIfData)
             return Result::Continue;
 

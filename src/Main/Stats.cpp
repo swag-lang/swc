@@ -19,6 +19,7 @@ void Stats::print(const TaskContext& ctx) const
 
     Logger::printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helper::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
     Logger::printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeTotal.load())));
+    Logger::printHeaderDot(ctx, colorHeader, "maxAllocated", colorMsg, Utf8Helper::toNiceSize(Os::peakProcessMemoryUsage()));
 
 #if SWC_HAS_STATS
     // Frontend counts
@@ -61,8 +62,6 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
 
-#endif
-
     struct MemoryStatLine
     {
         std::string_view name;
@@ -70,10 +69,9 @@ void Stats::print(const TaskContext& ctx) const
     };
 
     std::vector<MemoryStatLine> memoryStats;
-#if SWC_HAS_STATS
-    const size_t memCurrent   = memAllocated.load();
-    const size_t memPeak      = memMaxAllocated.load();
-    const size_t memTransient = memPeak > memCurrent ? memPeak - memCurrent : 0;
+    const size_t                memCurrent   = memAllocated.load();
+    const size_t                memPeak      = memMaxAllocated.load();
+    const size_t                memTransient = memPeak > memCurrent ? memPeak - memCurrent : 0;
     memoryStats.push_back({.name = "mem.process.currentAllocated", .value = memCurrent});
     memoryStats.push_back({.name = "mem.process.maxAllocated", .value = memPeak});
     memoryStats.push_back({.name = "mem.process.transientPeak", .value = memTransient});
@@ -102,9 +100,6 @@ void Stats::print(const TaskContext& ctx) const
     memoryStats.push_back({.name = "mem.jit.reserved", .value = memJitReserved.load()});
     memoryStats.push_back({.name = "mem.micro.storageNoOptim", .value = memMicroStorageNoOptim.load()});
     memoryStats.push_back({.name = "mem.micro.storageFinal", .value = memMicroStorageFinal.load()});
-#else
-    memoryStats.push_back({.name = "mem.process.maxAllocated", .value = Os::peakProcessMemoryUsage()});
-#endif
 
     std::ranges::sort(memoryStats, [](const MemoryStatLine& lhs, const MemoryStatLine& rhs) {
         return lhs.value > rhs.value;
@@ -113,6 +108,7 @@ void Stats::print(const TaskContext& ctx) const
     Logger::print(ctx, "\n");
     for (const MemoryStatLine& memoryStat : memoryStats)
         Logger::printHeaderDot(ctx, colorHeader, memoryStat.name, colorMsg, Utf8Helper::toNiceSize(memoryStat.value));
+#endif
 
     Logger::print(ctx, "\n");
 }

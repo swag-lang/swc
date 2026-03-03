@@ -16,15 +16,13 @@ constexpr static uint32_t NODE_PAYLOAD_SHARD_NUM   = 1 << NODE_PAYLOAD_SHARD_SHI
 
 enum class NodePayloadKind : uint16_t
 {
-    Invalid          = 0,
-    ConstantRef      = 1,
-    TypeRef          = 2,
-    SymbolRef        = 3,
-    Substitute       = 4,
-    Payload          = 5,
-    SymbolList       = 6,
-    CodeGenPayload   = 7,
-    ResolvedCallArgs = 8,
+    Invalid         = 0,
+    ConstantRef     = 1,
+    TypeRef         = 2,
+    SymbolRef       = 3,
+    Substitute      = 4,
+    ExternalStorage = 5,
+    SymbolList      = 6,
 };
 
 enum class NodePayloadFlags : uint16_t
@@ -116,20 +114,15 @@ protected:
     static void inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc);
 
 private:
-    struct CodeGenPayloadStorage
+    struct ExternalStorage
     {
-        void*           payload       = nullptr;
-        NodePayloadKind originalKind  = NodePayloadKind::Invalid;
-        uint32_t        originalRef   = 0;
-        uint32_t        originalShard = 0;
-    };
-
-    struct ResolvedCallArgsStorage
-    {
-        SpanRef         argsSpan      = SpanRef::invalid();
-        NodePayloadKind originalKind  = NodePayloadKind::Invalid;
-        uint32_t        originalRef   = 0;
-        uint32_t        originalShard = 0;
+        void*           payload          = nullptr;
+        void*           codeGenPayload   = nullptr;
+        void*           semaPayload      = nullptr;
+        SpanRef         resolvedCallArgs = SpanRef::invalid();
+        NodePayloadKind originalKind     = NodePayloadKind::Invalid;
+        uint32_t        originalRef      = 0;
+        uint32_t        originalShard    = 0;
     };
 
     struct SubstituteStorage
@@ -152,12 +145,11 @@ private:
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
+    ExternalStorage*               ensureExternalStorage(AstNodeRef nodeRef);
     PayloadInfo                    payloadInfo(const AstNode& node) const;
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
-    CodeGenPayloadStorage*         codeGenPayloadStorage(const AstNode& node);
-    const CodeGenPayloadStorage*   codeGenPayloadStorage(const AstNode& node) const;
-    ResolvedCallArgsStorage*       resolvedCallArgsStorage(const AstNode& node);
-    const ResolvedCallArgsStorage* resolvedCallArgsStorage(const AstNode& node) const;
+    ExternalStorage*               externalStorage(const AstNode& node);
+    const ExternalStorage*         externalStorage(const AstNode& node) const;
     SubstituteStorage*             substituteStorage(const AstNode& node);
     const SubstituteStorage*       substituteStorage(const AstNode& node) const;
 
@@ -167,9 +159,8 @@ private:
 
     struct Shard
     {
-        mutable std::shared_mutex           mutex;
-        PagedStore                          store;
-        std::unordered_map<uint32_t, void*> semaPayloadByNode;
+        mutable std::shared_mutex mutex;
+        PagedStore                store;
     };
 
     Shard shards_[NODE_PAYLOAD_SHARD_NUM];

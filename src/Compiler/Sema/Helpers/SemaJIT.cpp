@@ -34,7 +34,7 @@ SWC_BEGIN_NAMESPACE();
 // - submit to JITExecManager,
 // - consume completion and apply result to AST node constant payload.
 //
-// Pending state is attached to the node through NodePayload's sema side-map
+// Pending state is attached to the node through NodePayload external storage
 // (not through global/static state), which is stable across payload rewrites.
 //
 namespace

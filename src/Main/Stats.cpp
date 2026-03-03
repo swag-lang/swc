@@ -69,37 +69,31 @@ void Stats::print(const TaskContext& ctx) const
     };
 
     std::vector<MemoryStatLine> memoryStats;
-    const size_t                memCurrent   = memAllocated.load();
-    const size_t                memPeak      = memMaxAllocated.load();
-    const size_t                memTransient = memPeak > memCurrent ? memPeak - memCurrent : 0;
-    memoryStats.push_back({.name = "mem.process.currentAllocated", .value = memCurrent});
-    memoryStats.push_back({.name = "mem.process.maxAllocated", .value = memPeak});
-    memoryStats.push_back({.name = "mem.process.transientPeak", .value = memTransient});
-    memoryStats.push_back({.name = "mem.process.phase.parser.current", .value = memAllocatedAfterParser.load()});
-    memoryStats.push_back({.name = "mem.process.phase.parser.max", .value = memMaxAfterParser.load()});
-    memoryStats.push_back({.name = "mem.process.phase.semaDecl.current", .value = memAllocatedAfterSemaDecl.load()});
-    memoryStats.push_back({.name = "mem.process.phase.semaDecl.max", .value = memMaxAfterSemaDecl.load()});
-    memoryStats.push_back({.name = "mem.process.phase.sema.current", .value = memAllocatedAfterSema.load()});
-    memoryStats.push_back({.name = "mem.process.phase.sema.max", .value = memMaxAfterSema.load()});
-    memoryStats.push_back({.name = "mem.frontend.source", .value = memFrontendSource.load()});
-    memoryStats.push_back({.name = "mem.frontend.tokens", .value = memFrontendTokens.load()});
-    memoryStats.push_back({.name = "mem.frontend.lines", .value = memFrontendLines.load()});
-    memoryStats.push_back({.name = "mem.frontend.trivia", .value = memFrontendTrivia.load()});
-    memoryStats.push_back({.name = "mem.frontend.identifiers", .value = memFrontendIdentifiers.load()});
-    memoryStats.push_back({.name = "mem.frontend.ast.used", .value = memFrontendAstUsed.load()});
-    memoryStats.push_back({.name = "mem.frontend.ast.reserved", .value = memFrontendAstReserved.load()});
-    memoryStats.push_back({.name = "mem.sema.nodePayload.used", .value = memSemaNodePayloadUsed.load()});
-    memoryStats.push_back({.name = "mem.sema.nodePayload.reserved", .value = memSemaNodePayloadReserved.load()});
-    memoryStats.push_back({.name = "mem.sema.identifiers.reserved", .value = memSemaIdentifiersReserved.load()});
-    memoryStats.push_back({.name = "mem.compiler.arena.used", .value = memCompilerArenaUsed.load()});
-    memoryStats.push_back({.name = "mem.compiler.arena.reserved", .value = memCompilerArenaReserved.load()});
-    memoryStats.push_back({.name = "mem.sema.constants", .value = memConstants.load()});
-    memoryStats.push_back({.name = "mem.sema.types", .value = memTypes.load()});
+    memoryStats.push_back({.name = "mem.process.maxAllocated", .value = memMaxAllocated.load()});
+    const size_t frontendTotalKnown = memFrontendSource.load() +
+                                      memFrontendTokens.load() +
+                                      memFrontendLines.load() +
+                                      memFrontendTrivia.load() +
+                                      memFrontendIdentifiers.load() +
+                                      memFrontendAstReserved.load();
+    const size_t semaTotalKnown = memSymbols.load() +
+                                  memConstants.load() +
+                                  memTypes.load() +
+                                  memSemaNodePayloadReserved.load() +
+                                  memSemaIdentifiersReserved.load() +
+                                  memCompilerArenaReserved.load();
+    const size_t backendTotalKnown = memJitReserved.load() + memMicroStorageFinal.load();
+
+    memoryStats.push_back({.name = "mem.frontend.totalKnown", .value = frontendTotalKnown});
+    memoryStats.push_back({.name = "mem.sema.totalKnown", .value = semaTotalKnown});
+    memoryStats.push_back({.name = "mem.backend.totalKnown", .value = backendTotalKnown});
     memoryStats.push_back({.name = "mem.sema.symbols", .value = memSymbols.load()});
-    memoryStats.push_back({.name = "mem.jit.used", .value = memJitUsed.load()});
+    memoryStats.push_back({.name = "mem.compiler.arena.reserved", .value = memCompilerArenaReserved.load()});
+    memoryStats.push_back({.name = "mem.frontend.ast.reserved", .value = memFrontendAstReserved.load()});
+    memoryStats.push_back({.name = "mem.frontend.tokens", .value = memFrontendTokens.load()});
     memoryStats.push_back({.name = "mem.jit.reserved", .value = memJitReserved.load()});
-    memoryStats.push_back({.name = "mem.micro.storageNoOptim", .value = memMicroStorageNoOptim.load()});
     memoryStats.push_back({.name = "mem.micro.storageFinal", .value = memMicroStorageFinal.load()});
+    memoryStats.push_back({.name = "mem.sema.nodePayload.reserved", .value = memSemaNodePayloadReserved.load()});
 
     std::ranges::sort(memoryStats, [](const MemoryStatLine& lhs, const MemoryStatLine& rhs) {
         return lhs.value > rhs.value;

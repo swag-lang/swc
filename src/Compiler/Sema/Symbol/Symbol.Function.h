@@ -44,7 +44,7 @@ public:
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     void                                addParameter(SymbolVariable* sym);
-    void                                refreshVariadicParamFlag(TaskContext& ctx);
+    void                                setVariadicParamFlag(TaskContext& ctx);
     void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;

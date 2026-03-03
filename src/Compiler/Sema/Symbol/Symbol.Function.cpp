@@ -186,16 +186,12 @@ void SymbolFunction::addParameter(SymbolVariable* sym)
     parameters_.push_back(sym);
 }
 
-void SymbolFunction::refreshVariadicParamFlag(TaskContext& ctx)
+void SymbolFunction::setVariadicParamFlag(TaskContext& ctx)
 {
-    removeExtraFlag(SymbolFunctionFlagsE::Variadic);
-    for (const SymbolVariable* const param : parameters_)
+    for (const SymbolVariable* param : parameters_)
     {
-        SWC_ASSERT(param != nullptr);
-
         const TypeRef typeRef = param->typeRef();
-        if (!typeRef.isValid())
-            continue;
+        SWC_ASSERT(typeRef.isValid());
 
         const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
         if (!typeInfo.isAnyVariadic())

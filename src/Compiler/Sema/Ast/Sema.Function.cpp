@@ -243,7 +243,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
     if (setIsTyped)
     {
-        sym.refreshVariadicParamFlag(sema.ctx());
+        sym.setVariadicParamFlag(sema.ctx());
 
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);

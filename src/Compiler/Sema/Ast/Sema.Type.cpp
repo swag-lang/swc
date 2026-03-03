@@ -410,7 +410,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
             symFunc->addSymbol(ctx, symVar, false);
     }
 
-    symFunc->refreshVariadicParamFlag(ctx);
+    symFunc->setVariadicParamFlag(ctx);
 
     TypeRef returnType = ctx.typeMgr().typeVoid();
     if (nodeReturnTypeRef.isValid())

@@ -14,7 +14,7 @@ namespace SemaInline
         AstNodeRef    argRef     = AstNodeRef::invalid();
     };
 
-    bool   canInlineCall(const SymbolFunction& fn);
+    bool   canInlineCall(Sema& sema, const SymbolFunction& fn);
     Result tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg);
 }
 

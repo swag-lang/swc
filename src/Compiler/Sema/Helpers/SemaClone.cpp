@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -89,7 +90,11 @@ namespace
         if (const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef))
         {
             const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
-            return SemaClone::cloneAst(sema, binding->exprRef, noBindings);
+            const AstNodeRef              clonedExprRef = SemaClone::cloneAst(sema, binding->exprRef, noBindings);
+            if (!binding->typeRef.isValid())
+                return clonedExprRef;
+
+            return Cast::createCast(sema, binding->typeRef, clonedExprRef);
         }
 
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());

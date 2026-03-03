@@ -146,11 +146,13 @@ namespace
         auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
+            const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
             if (currentFn->decl() &&
                 calledFn.decl() &&
                 calledFn.declNodeRef().isValid() &&
                 !calledFn.isForeign() &&
-                !calledFn.isEmpty())
+                !calledFn.isEmpty() &&
+                !isMixinCall)
             {
                 currentFn->addCallDependency(&calledFn);
             }
@@ -192,8 +194,15 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        auto& sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-        auto  frame = sema.frame();
+        auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        {
+            const bool shortWithoutExplicitReturnType = hasFlag(AstFunctionFlagsE::Short) && nodeReturnTypeRef.isInvalid();
+            if (!shortWithoutExplicitReturnType)
+                return Result::SkipChildren;
+        }
+
+        auto frame = sema.frame();
         if (sym.isMethod())
         {
             const auto& params = sym.parameters();

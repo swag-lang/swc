@@ -40,12 +40,21 @@ namespace
         if (inlineRootRef.isInvalid())
             return false;
 
-        const AstNode& rootNode = sema.node(inlineRootRef);
-        if (!rootNode.is(AstNodeId::EmbeddedBlock))
-            return false;
-
+        const AstNode&          rootNode = sema.node(inlineRootRef);
         SmallVector<AstNodeRef> statements;
-        sema.ast().appendNodes(statements, rootNode.cast<AstEmbeddedBlock>().spanChildrenRef);
+        if (rootNode.is(AstNodeId::EmbeddedBlock))
+        {
+            sema.ast().appendNodes(statements, rootNode.cast<AstEmbeddedBlock>().spanChildrenRef);
+        }
+        else if (rootNode.is(AstNodeId::FunctionBody))
+        {
+            sema.ast().appendNodes(statements, rootNode.cast<AstFunctionBody>().spanChildrenRef);
+        }
+        else
+        {
+            return false;
+        }
+
         if (statements.size() != 1)
             return false;
 
@@ -105,6 +114,25 @@ namespace
         return blockRef;
     }
 
+    AstNodeRef makeMixinBodyFromShort(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
+    {
+        if (decl.nodeBodyRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNodeRef clonedExprRef = SemaClone::cloneAst(sema, decl.nodeBodyRef, cloneContext);
+        if (clonedExprRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        auto [returnRef, returnPtr] = sema.ast().makeNode<AstNodeId::ReturnStmt>(decl.tokRef());
+        returnPtr->nodeExprRef      = clonedExprRef;
+
+        auto [bodyRef, bodyPtr] = sema.ast().makeNode<AstNodeId::FunctionBody>(decl.tokRef());
+        SmallVector<AstNodeRef> statements;
+        statements.push_back(returnRef);
+        bodyPtr->spanChildrenRef = sema.ast().pushSpan(statements.span());
+        return bodyRef;
+    }
+
     AstNodeRef inlineBodyRef(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
     {
         if (decl.hasFlag(AstFunctionFlagsE::Short))
@@ -125,6 +153,36 @@ namespace
         statements.push_back(clonedBodyRef);
         blockPtr->spanChildrenRef = sema.ast().pushSpan(statements.span());
         return blockRef;
+    }
+
+    AstNodeRef mixinBodyRef(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
+    {
+        if (decl.hasFlag(AstFunctionFlagsE::Short))
+            return makeMixinBodyFromShort(sema, decl, cloneContext);
+
+        if (decl.nodeBodyRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNodeRef clonedBodyRef = SemaClone::cloneAst(sema, decl.nodeBodyRef, cloneContext);
+        if (clonedBodyRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        if (sema.node(clonedBodyRef).is(AstNodeId::FunctionBody))
+            return clonedBodyRef;
+
+        if (sema.node(clonedBodyRef).is(AstNodeId::EmbeddedBlock))
+        {
+            const auto& embeddedBlock = sema.node(clonedBodyRef).cast<AstEmbeddedBlock>();
+            auto [bodyRef, bodyPtr]   = sema.ast().makeNode<AstNodeId::FunctionBody>(decl.tokRef());
+            bodyPtr->spanChildrenRef  = embeddedBlock.spanChildrenRef;
+            return bodyRef;
+        }
+
+        auto [bodyRef, bodyPtr] = sema.ast().makeNode<AstNodeId::FunctionBody>(decl.tokRef());
+        SmallVector<AstNodeRef> statements;
+        statements.push_back(clonedBodyRef);
+        bodyPtr->spanChildrenRef = sema.ast().pushSpan(statements.span());
+        return bodyRef;
     }
 
     Result createInlineResultVariable(Sema& sema, AstNodeRef callRef, TypeRef typeRef, SymbolVariable*& outResultVar)
@@ -384,9 +442,11 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     }
     if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
         return false;
-    if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
-        return true;
-    return false;
+
+    const AttributeList& attributes = fn.attributes();
+    return attributes.hasRtFlag(RtAttributeFlagsE::Inline) ||
+           attributes.hasRtFlag(RtAttributeFlagsE::Macro) ||
+           attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
 }
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
@@ -424,7 +484,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT_VERIFY(waitInlineResultTypeIfNeeded(sema, callRef, returnTypeRef));
 
     const SemaClone::CloneContext cloneContext{bindings.span()};
-    const AstNodeRef              inlineRootRef = inlineBodyRef(sema, *decl, cloneContext);
+    const bool                    isMixin       = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+    const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext) : inlineBodyRef(sema, *decl, cloneContext);
     if (inlineRootRef.isInvalid())
         return Result::Continue;
 
@@ -448,6 +509,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         frame.pushBindingType(returnTypeRef);
     frame.setCurrentInlinePayload(inlinePayload);
     sema.pushFramePopOnPostNode(frame, inlineRootRef);
+    if (!isMixin)
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
 
     sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
         SWC_ASSERT(inlinePayload != nullptr);

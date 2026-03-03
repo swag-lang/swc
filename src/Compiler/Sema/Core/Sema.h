@@ -128,7 +128,7 @@ public:
     template<typename T>
     void setSemaPayload(AstNodeRef n, T* payload)
     {
-        nodePayloadContext().setSemaPayload(n, payload, NodePayload::semaPayloadTypeTag<T>());
+        nodePayloadContext().setSemaPayload(n, payload);
     }
 
     void clearSemaPayload(AstNodeRef n) { nodePayloadContext().clearSemaPayload(n); }
@@ -139,8 +139,6 @@ public:
         void* payload = nodePayloadContext().getSemaPayload(n);
         if (!payload)
             return nullptr;
-        const void* payloadTypeTag = nodePayloadContext().getSemaPayloadTypeTag(n);
-        SWC_ASSERT(payloadTypeTag == NodePayload::semaPayloadTypeTag<T>());
         return static_cast<T*>(payload);
     }
 

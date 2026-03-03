@@ -198,13 +198,8 @@ AstNodeRef NodePayload::getSubstituteRef(AstNodeRef nodeRef) const
 
     while (true)
     {
-        const AstNode& node = ast().node(nodeRef);
-        PayloadInfo    info = {
-               .kind     = payloadKind(node),
-               .ref      = node.payloadRef(),
-               .shardIdx = payloadShard(node),
-        };
-
+        const AstNode&    node = ast().node(nodeRef);
+        const PayloadInfo info = {.kind = payloadKind(node), .ref = node.payloadRef(), .shardIdx = payloadShard(node)};
         if (info.kind != NodePayloadKind::Substitute)
             break;
 
@@ -431,38 +426,19 @@ void NodePayload::updatePayloadFlags(AstNode& node, std::span<const Symbol*> sym
         removePayloadFlags(node, NodePayloadFlags::LValue);
 }
 
-NodePayload::SidePayload& NodePayload::ensureSidePayload(AstNodeRef nodeRef, uint32_t shardIdx)
-{
-    SWC_ASSERT(nodeRef.isValid());
-    SWC_ASSERT(shardIdx < NODE_PAYLOAD_SHARD_NUM);
-    auto& sidePayloads     = shards_[shardIdx].sidePayloads;
-    const auto [it, added] = sidePayloads.try_emplace(nodeRef);
-    SWC_UNUSED(added);
-    return it->second;
-}
-
-void NodePayload::tryEraseSidePayload(AstNodeRef nodeRef, uint32_t shardIdx)
-{
-    SWC_ASSERT(nodeRef.isValid());
-    SWC_ASSERT(shardIdx < NODE_PAYLOAD_SHARD_NUM);
-    auto&      sidePayloads = shards_[shardIdx].sidePayloads;
-    const auto it           = sidePayloads.find(nodeRef);
-    if (it == sidePayloads.end())
-        return;
-    const SidePayload& payload = it->second;
-    if (payload.isEmpty())
-        sidePayloads.erase(it);
-}
-
 void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args)
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&                  shard    = shards_[shardIdx];
     const std::unique_lock lock(shard.mutex);
-    SidePayload&           payload = ensureSidePayload(nodeRef, shardIdx);
-    payload.resolvedCallArgs       = args.empty() ? SpanRef::invalid() : shard.store.pushSpan(args);
-    tryEraseSidePayload(nodeRef, shardIdx);
+    if (args.empty())
+    {
+        shard.resolvedCallArgsByNode.erase(nodeRef);
+        return;
+    }
+
+    shard.resolvedCallArgsByNode[nodeRef] = shard.store.pushSpan(args);
 }
 
 void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const
@@ -472,16 +448,14 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const auto&            shard    = shards_[shardIdx];
     const std::shared_lock lock(shard.mutex);
-    const auto             it = shard.sidePayloads.find(nodeRef);
-    if (it == shard.sidePayloads.end())
+    const auto             it = shard.resolvedCallArgsByNode.find(nodeRef);
+    if (it == shard.resolvedCallArgsByNode.end())
         return;
-    const SidePayload& payload = it->second;
-    if (payload.resolvedCallArgs.isInvalid())
-        return;
-    const auto spanView = shard.store.span<ResolvedCallArgument>(payload.resolvedCallArgs.get());
-    for (PagedStore::SpanView::ChunkIterator it = spanView.chunksBegin(); it != spanView.chunksEnd(); ++it)
+
+    const auto spanView = shard.store.span<ResolvedCallArgument>(it->second.get());
+    for (PagedStore::SpanView::ChunkIterator it1 = spanView.chunksBegin(); it1 != spanView.chunksEnd(); ++it1)
     {
-        const PagedStore::SpanView::Chunk& chunk = *it;
+        const PagedStore::SpanView::Chunk& chunk = *it1;
         out.append(static_cast<const ResolvedCallArgument*>(chunk.ptr), chunk.count);
     }
 }
@@ -493,10 +467,8 @@ bool NodePayload::hasCodeGenPayload(AstNodeRef nodeRef) const
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const auto&            shard    = shards_[shardIdx];
     const std::shared_lock lock(shard.mutex);
-    const auto             it = shard.sidePayloads.find(nodeRef);
-    if (it == shard.sidePayloads.end())
-        return false;
-    return it->second.codeGenPayload != nullptr;
+    const auto             it = shard.codeGenPayloads.find(nodeRef);
+    return it != shard.codeGenPayloads.end() && it->second != nullptr;
 }
 
 void NodePayload::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
@@ -506,8 +478,7 @@ void NodePayload::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&                  shard    = shards_[shardIdx];
     const std::unique_lock lock(shard.mutex);
-    SidePayload&           sidePayload = ensureSidePayload(nodeRef, shardIdx);
-    sidePayload.codeGenPayload         = payload;
+    shard.codeGenPayloads[nodeRef] = payload;
 }
 
 void* NodePayload::getCodeGenPayload(AstNodeRef nodeRef) const
@@ -517,10 +488,10 @@ void* NodePayload::getCodeGenPayload(AstNodeRef nodeRef) const
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const auto&            shard    = shards_[shardIdx];
     const std::shared_lock lock(shard.mutex);
-    const auto             it = shard.sidePayloads.find(nodeRef);
-    if (it == shard.sidePayloads.end())
+    const auto             it = shard.codeGenPayloads.find(nodeRef);
+    if (it == shard.codeGenPayloads.end())
         return nullptr;
-    return it->second.codeGenPayload;
+    return it->second;
 }
 
 bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
@@ -530,24 +501,19 @@ bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const auto&            shard    = shards_[shardIdx];
     const std::shared_lock lock(shard.mutex);
-    const auto             it = shard.sidePayloads.find(nodeRef);
-    if (it == shard.sidePayloads.end())
-        return false;
-    return it->second.semaPayload != nullptr;
+    const auto             it = shard.semaPayloads.find(nodeRef);
+    return it != shard.semaPayloads.end() && it->second != nullptr;
 }
 
-void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload, const void* payloadTypeTag)
+void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
-    SWC_ASSERT(payloadTypeTag);
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&                  shard    = shards_[shardIdx];
     const std::unique_lock lock(shard.mutex);
-    SidePayload&           sidePayload = ensureSidePayload(nodeRef, shardIdx);
-    SWC_ASSERT(sidePayload.semaPayload == nullptr);
-    sidePayload.semaPayload       = payload;
-    sidePayload.semaPayloadTypeId = payloadTypeTag;
+    SWC_ASSERT(!shard.semaPayloads.contains(nodeRef));
+    shard.semaPayloads[nodeRef] = payload;
 }
 
 void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
@@ -557,23 +523,10 @@ void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const auto&            shard    = shards_[shardIdx];
     const std::shared_lock lock(shard.mutex);
-    const auto             it = shard.sidePayloads.find(nodeRef);
-    if (it == shard.sidePayloads.end())
+    const auto             it = shard.semaPayloads.find(nodeRef);
+    if (it == shard.semaPayloads.end())
         return nullptr;
-    return it->second.semaPayload;
-}
-
-const void* NodePayload::getSemaPayloadTypeTag(AstNodeRef nodeRef) const
-{
-    if (nodeRef.isInvalid())
-        return nullptr;
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const auto&            shard    = shards_[shardIdx];
-    const std::shared_lock lock(shard.mutex);
-    const auto             it = shard.sidePayloads.find(nodeRef);
-    if (it == shard.sidePayloads.end())
-        return nullptr;
-    return it->second.semaPayloadTypeId;
+    return it->second;
 }
 
 void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
@@ -583,13 +536,7 @@ void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&                  shard    = shards_[shardIdx];
     const std::unique_lock lock(shard.mutex);
-    const auto             it = shard.sidePayloads.find(nodeRef);
-    if (it == shard.sidePayloads.end())
-        return;
-    SidePayload& payload      = it->second;
-    payload.semaPayload       = nullptr;
-    payload.semaPayloadTypeId = nullptr;
-    tryEraseSidePayload(nodeRef, shardIdx);
+    shard.semaPayloads.erase(nodeRef);
 }
 
 void NodePayload::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)

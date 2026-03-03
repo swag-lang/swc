@@ -63,12 +63,6 @@ protected:
     static void             removePayloadFlags(AstNode& node, NodePayloadFlags value) { node.payloadBits() &= ~static_cast<uint16_t>(value); }
     static bool             hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
     static NodePayloadFlags payloadFlags(const AstNode& node) { return static_cast<NodePayloadFlags>(node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK); }
-    template<typename T>
-    static const void* semaPayloadTypeTag()
-    {
-        static const uint8_t tag = 0;
-        return &tag;
-    }
 
     const SymbolNamespace& moduleNamespace() const { return *SWC_NOT_NULL(moduleNamespace_); }
     SymbolNamespace&       moduleNamespace() { return *SWC_NOT_NULL(moduleNamespace_); }
@@ -102,16 +96,15 @@ protected:
     void                     setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                     setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols);
 
-    void        setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
-    void        appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
-    bool        hasCodeGenPayload(AstNodeRef nodeRef) const;
-    void        setCodeGenPayload(AstNodeRef nodeRef, void* payload);
-    void*       getCodeGenPayload(AstNodeRef nodeRef) const;
-    bool        hasSemaPayload(AstNodeRef nodeRef) const;
-    void        setSemaPayload(AstNodeRef nodeRef, void* payload, const void* payloadTypeTag);
-    void*       getSemaPayload(AstNodeRef nodeRef) const;
-    const void* getSemaPayloadTypeTag(AstNodeRef nodeRef) const;
-    void        clearSemaPayload(AstNodeRef nodeRef);
+    void  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
+    void  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
+    bool  hasCodeGenPayload(AstNodeRef nodeRef) const;
+    void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
+    void* getCodeGenPayload(AstNodeRef nodeRef) const;
+    bool  hasSemaPayload(AstNodeRef nodeRef) const;
+    void  setSemaPayload(AstNodeRef nodeRef, void* payload);
+    void* getSemaPayload(AstNodeRef nodeRef) const;
+    void  clearSemaPayload(AstNodeRef nodeRef);
 
     static void propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
     static void inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
@@ -134,28 +127,10 @@ private:
         uint32_t        shardIdx = 0;
     };
 
-    struct SidePayload
-    {
-        void*       codeGenPayload    = nullptr;
-        void*       semaPayload       = nullptr;
-        const void* semaPayloadTypeId = nullptr;
-        SpanRef     resolvedCallArgs  = SpanRef::invalid();
-
-        bool isEmpty() const
-        {
-            return codeGenPayload == nullptr &&
-                   semaPayload == nullptr &&
-                   semaPayloadTypeId == nullptr &&
-                   resolvedCallArgs.isInvalid();
-        }
-    };
-
     std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
-    SidePayload&                   ensureSidePayload(AstNodeRef nodeRef, uint32_t shardIdx);
-    void                           tryEraseSidePayload(AstNodeRef nodeRef, uint32_t shardIdx);
     PayloadInfo                    payloadInfo(const AstNode& node) const;
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
     SubstituteStorage*             substituteStorage(const AstNode& node);
@@ -167,9 +142,11 @@ private:
 
     struct Shard
     {
-        mutable std::shared_mutex                   mutex;
-        PagedStore                                  store;
-        std::unordered_map<AstNodeRef, SidePayload> sidePayloads;
+        mutable std::shared_mutex               mutex;
+        PagedStore                              store;
+        std::unordered_map<AstNodeRef, void*>   codeGenPayloads;
+        std::unordered_map<AstNodeRef, void*>   semaPayloads;
+        std::unordered_map<AstNodeRef, SpanRef> resolvedCallArgsByNode;
     };
 
     Shard shards_[NODE_PAYLOAD_SHARD_NUM];

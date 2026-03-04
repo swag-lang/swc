@@ -15,7 +15,7 @@ public:
 
     void        allocateWithCodeSize(JITMemory& outExecutableMemory, uint32_t allocationSize, uint32_t codeSize);
     void        allocate(JITMemory& outExecutableMemory, uint32_t size);
-    void        registerUnwindInfo(const JITMemory& executableMemory);
+    static void registerUnwindInfo(const JITMemory& executableMemory);
     static void makeExecutable(const JITMemory& executableMemory);
     void        allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan bytes);
 
@@ -29,9 +29,8 @@ private:
 
     static constexpr uint32_t DEFAULT_BLOCK_SIZE = 64 * 1024;
 
-    std::mutex               mutex_;
-    std::vector<Block>       blocks_;
-    std::vector<const void*> registeredSehFunctions_;
+    std::mutex         mutex_;
+    std::vector<Block> blocks_;
 };
 
 SWC_END_NAMESPACE();

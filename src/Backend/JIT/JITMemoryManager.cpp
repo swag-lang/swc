@@ -27,15 +27,12 @@ namespace
 JITMemoryManager::~JITMemoryManager()
 {
     const std::unique_lock lock(mutex_);
-    for (const void* functionAddress : registeredSehFunctions_)
-        Os::removeHostJitFunctionTable(functionAddress);
-    registeredSehFunctions_.clear();
-
     for (const auto& block : blocks_)
     {
         if (block.ptr)
             Os::freeExecutableMemory(block.ptr);
     }
+
     blocks_.clear();
 }
 
@@ -95,12 +92,7 @@ void JITMemoryManager::registerUnwindInfo(const JITMemory& executableMemory)
 {
     if (!executableMemory.hasUnwindInfo())
         return;
-
-    const bool didRegister = Os::addHostJitFunctionTable(executableMemory.ptr_, executableMemory.size_, executableMemory.unwindInfoOffset_);
-    SWC_ASSERT(didRegister);
-
-    const std::unique_lock lock(mutex_);
-    registeredSehFunctions_.push_back(executableMemory.ptr_);
+    SWC_FORCE_ASSERT(Os::addHostJitFunctionTable(executableMemory.ptr_, executableMemory.size_, executableMemory.unwindInfoOffset_));
 }
 
 void JITMemoryManager::makeExecutable(const JITMemory& executableMemory)

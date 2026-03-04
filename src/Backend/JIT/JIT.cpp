@@ -271,11 +271,6 @@ namespace
             patchAbsolute64(writableCode, reloc, targetAddress);
         }
     }
-
-    bool shouldRegisterSehUnwindInfo(const TaskContext& ctx)
-    {
-        return ctx.compiler().buildCfg().jitEnableSehUnwind;
-    }
 }
 
 void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo)
@@ -285,7 +280,7 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
 
     JITMemoryManager& memoryManager     = ctx.compiler().jitMemMgr();
     const uint32_t    codeSize          = static_cast<uint32_t>(linearCode.size_bytes());
-    const bool        registerSehUnwind = shouldRegisterSehUnwindInfo(ctx);
+    const bool        registerSehUnwind = ctx.compiler().buildCfg().jitEnableSehUnwind;
     SWC_ASSERT(!registerSehUnwind || !unwindInfo.empty());
 
     const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;
@@ -299,7 +294,7 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
     std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
     patchRelocations(ctx, writableCode, relocations);
 
-    if (registerSehUnwind && !unwindInfo.empty())
+    if (registerSehUnwind)
     {
         std::byte* const unwindDest = static_cast<std::byte*>(outExecutableMemory.entryPoint()) + codeSize;
         std::memcpy(unwindDest, unwindInfo.data(), unwindInfo.size());
@@ -307,7 +302,7 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
         outExecutableMemory.unwindInfoSize_   = static_cast<uint32_t>(unwindInfo.size());
     }
 
-    memoryManager.makeExecutable(outExecutableMemory);
+    JITMemoryManager::makeExecutable(outExecutableMemory);
 
     if (registerSehUnwind)
         memoryManager.registerUnwindInfo(outExecutableMemory);

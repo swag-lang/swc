@@ -279,14 +279,13 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
     SWC_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
 
     JITMemoryManager& memoryManager     = ctx.compiler().jitMemMgr();
-    const uint32_t    codeSize          = static_cast<uint32_t>(linearCode.size_bytes());
+    const uint32_t    codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size_bytes()), sizeof(uint32_t));
     const bool        registerSehUnwind = ctx.compiler().buildCfg().jitEnableSehUnwind;
     SWC_ASSERT(!registerSehUnwind || !unwindInfo.empty());
 
     const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;
     const uint64_t allocationSizeU64 = static_cast<uint64_t>(codeSize) + unwindSizeU64;
-    SWC_ASSERT(allocationSizeU64 <= std::numeric_limits<uint32_t>::max());
-    const uint32_t allocationSize = static_cast<uint32_t>(allocationSizeU64);
+    const uint32_t allocationSize    = static_cast<uint32_t>(allocationSizeU64);
     memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize);
 
     ByteSpanRW writableCode;

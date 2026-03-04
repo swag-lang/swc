@@ -5,7 +5,7 @@
 #run
 {
     let x = 1
-//    @assert(false)
+    //@assert(false)
 }
 
 /*

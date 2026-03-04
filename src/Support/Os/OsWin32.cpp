@@ -63,23 +63,6 @@ namespace
         return state.initialized;
     }
 
-    struct JitFunctionTableEntry
-    {
-        RUNTIME_FUNCTION runtimeFunction{};
-    };
-
-    struct JitFunctionTableState
-    {
-        std::mutex                                                              mutex;
-        std::unordered_map<const void*, std::unique_ptr<JitFunctionTableEntry>> entries;
-    };
-
-    JitFunctionTableState& jitFunctionTableState()
-    {
-        static JitFunctionTableState state;
-        return state;
-    }
-
     const char* windowsExceptionCodeName(const uint32_t code)
     {
         switch (code)
@@ -622,6 +605,23 @@ namespace Os
         if (!ptr)
             return;
         (void) VirtualFree(ptr, 0, MEM_RELEASE);
+    }
+
+    struct JitFunctionTableEntry
+    {
+        RUNTIME_FUNCTION runtimeFunction{};
+    };
+
+    struct JitFunctionTableState
+    {
+        std::mutex                                                              mutex;
+        std::unordered_map<const void*, std::unique_ptr<JitFunctionTableEntry>> entries;
+    };
+
+    JitFunctionTableState& jitFunctionTableState()
+    {
+        static JitFunctionTableState state;
+        return state;
     }
 
     bool addHostJitFunctionTable(const void* functionAddress, const uint32_t codeSize, const uint32_t unwindInfoOffset)

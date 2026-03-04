@@ -237,8 +237,7 @@ namespace
                 return resolveForeignFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr);
 
             default:
-                SWC_FORCE_ASSERT(false);
-                return false;
+                SWC_UNREACHABLE();
         }
     }
 
@@ -246,19 +245,18 @@ namespace
     {
         auto*          basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
         const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
-        SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
+        SWC_ASSERT(patchEndOffset <= writableCode.size_bytes());
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
     void patchRelocations(TaskContext& ctx, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
     {
-        SWC_FORCE_ASSERT(!writableCode.empty());
-
+        SWC_ASSERT(!writableCode.empty());
         if (relocations.empty())
             return;
 
         const uint8_t* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
-        SWC_FORCE_ASSERT(basePtr != nullptr);
+        SWC_ASSERT(basePtr != nullptr);
 
         for (const MicroRelocation& reloc : relocations)
         {
@@ -268,7 +266,7 @@ namespace
             {
                 if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
                     continue;
-                SWC_FORCE_ASSERT(false);
+                SWC_UNREACHABLE();
             }
             patchAbsolute64(writableCode, reloc, targetAddress);
         }
@@ -282,21 +280,20 @@ namespace
 
 void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo)
 {
-    SWC_FORCE_ASSERT(!linearCode.empty());
-    SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
+    SWC_ASSERT(!linearCode.empty());
+    SWC_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
 
     JITMemoryManager& memoryManager     = ctx.compiler().jitMemMgr();
     const uint32_t    codeSize          = static_cast<uint32_t>(linearCode.size_bytes());
     const bool        registerSehUnwind = shouldRegisterSehUnwindInfo(ctx);
-    if (registerSehUnwind)
-        SWC_FORCE_ASSERT(!unwindInfo.empty());
+    SWC_ASSERT(!registerSehUnwind || !unwindInfo.empty());
 
     const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;
     const uint64_t allocationSizeU64 = static_cast<uint64_t>(codeSize) + unwindSizeU64;
-    SWC_FORCE_ASSERT(allocationSizeU64 <= std::numeric_limits<uint32_t>::max());
+    SWC_ASSERT(allocationSizeU64 <= std::numeric_limits<uint32_t>::max());
     const uint32_t allocationSize = static_cast<uint32_t>(allocationSizeU64);
+    memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize);
 
-    SWC_FORCE_ASSERT(memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize));
     ByteSpanRW writableCode;
     writableCode = asByteSpan(static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size());
     std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
@@ -310,10 +307,10 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
         outExecutableMemory.unwindInfoSize_   = static_cast<uint32_t>(unwindInfo.size());
     }
 
-    SWC_FORCE_ASSERT(memoryManager.makeExecutable(outExecutableMemory));
+    memoryManager.makeExecutable(outExecutableMemory);
 
     if (registerSehUnwind)
-        SWC_FORCE_ASSERT(memoryManager.registerUnwindInfo(outExecutableMemory));
+        memoryManager.registerUnwindInfo(outExecutableMemory);
 }
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)
@@ -406,8 +403,6 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     MachineCode  loweredCode;
     const Result lowerResult = loweredCode.emit(ctx, builder);
     SWC_ASSERT(lowerResult == Result::Continue);
-    if (lowerResult != Result::Continue)
-        return lowerResult;
 
     JITMemory executableMemory;
     emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, loweredCode.unwindInfo);

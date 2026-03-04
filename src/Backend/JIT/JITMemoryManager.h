@@ -13,11 +13,11 @@ public:
     JITMemoryManager(const JITMemoryManager&)            = delete;
     JITMemoryManager& operator=(const JITMemoryManager&) = delete;
 
-    bool        allocateWithCodeSize(JITMemory& outExecutableMemory, uint32_t allocationSize, uint32_t codeSize);
-    bool        allocate(JITMemory& outExecutableMemory, uint32_t size);
-    bool        registerUnwindInfo(const JITMemory& executableMemory);
-    static bool makeExecutable(const JITMemory& executableMemory);
-    bool        allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan bytes);
+    void        allocateWithCodeSize(JITMemory& outExecutableMemory, uint32_t allocationSize, uint32_t codeSize);
+    void        allocate(JITMemory& outExecutableMemory, uint32_t size);
+    void        registerUnwindInfo(const JITMemory& executableMemory);
+    static void makeExecutable(const JITMemory& executableMemory);
+    void        allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan bytes);
 
 private:
     struct Block

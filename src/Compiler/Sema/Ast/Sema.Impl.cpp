@@ -38,7 +38,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeIdentRef)
     {
         const SemaNodeView identView = sema.viewSymbol(nodeIdentRef);
-        Symbol&            sym       = *SWC_NOT_NULL(identView.sym());
+        Symbol&            sym       = *(identView.sym());
         if (hasFlag(AstImplFlagsE::Enum))
         {
             if (!sym.isEnum())

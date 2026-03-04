@@ -308,7 +308,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLiveness() con
 
     if (context_->builder)
     {
-        const MicroControlFlowGraph& controlFlowGraph = SWC_NOT_NULL(context_->builder)->controlFlowGraph();
+        const MicroControlFlowGraph& controlFlowGraph = (context_->builder)->controlFlowGraph();
         if (!controlFlowGraph.hasUnsupportedControlFlowForCfgLiveness() && controlFlowGraph.supportsDeadCodeLiveness())
         {
             if (eliminateDeadPureDefsByBackwardLivenessCfg(controlFlowGraph))

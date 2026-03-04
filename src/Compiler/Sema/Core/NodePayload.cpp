@@ -319,8 +319,8 @@ const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
     const PayloadInfo    info     = payloadInfo(node);
     const uint32_t       shardIdx = info.shardIdx;
     const Shard&         shard    = shards_[shardIdx];
-    const Symbol* const* slot     = SWC_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
-    const Symbol&        value    = *SWC_NOT_NULL(*slot);
+    const Symbol* const* slot     = (shard.store.ptr<Symbol*>(info.ref));
+    const Symbol&        value    = *(*slot);
     return value;
 }
 
@@ -332,8 +332,8 @@ Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
     const PayloadInfo info     = payloadInfo(node);
     const uint32_t    shardIdx = info.shardIdx;
     Shard&            shard    = shards_[shardIdx];
-    Symbol**          slot     = SWC_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
-    Symbol&           value    = *SWC_NOT_NULL(*slot);
+    Symbol**          slot     = (shard.store.ptr<Symbol*>(info.ref));
+    Symbol&           value    = *(*slot);
     return value;
 }
 

@@ -210,7 +210,7 @@ const Identifier& IdentifierManager::get(IdentifierRef idRef) const
     const auto shardIndex = idRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const auto localIndex = idRef.get() & LOCAL_MASK;
-    return *SWC_NOT_NULL(shards_[shardIndex].store.ptr<Identifier>(localIndex));
+    return *(shards_[shardIndex].store.ptr<Identifier>(localIndex));
 }
 
 SWC_END_NAMESPACE();

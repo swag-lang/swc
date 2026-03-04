@@ -64,7 +64,7 @@ bool MicroPeepholePass::isCopyDeadAfterInstruction(MicroStorage::Iterator scanIt
         bool hasDef = false;
         for (const MicroInstrRegOperandRef& ref : refs)
         {
-            if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
+            if (!ref.reg || *(ref.reg) != reg)
                 continue;
 
             hasUse |= ref.use;
@@ -120,7 +120,7 @@ bool MicroPeepholePass::isTempDeadForAddressFold(MicroStorage::Iterator scanIt, 
         bool hasDef = false;
         for (const MicroInstrRegOperandRef& ref : refs)
         {
-            if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
+            if (!ref.reg || *(ref.reg) != reg)
                 continue;
 
             hasUse |= ref.use;
@@ -168,7 +168,7 @@ bool MicroPeepholePass::isRegUnusedAfterInstruction(MicroStorage::Iterator scanI
 
         for (const MicroInstrRegOperandRef& ref : refs)
         {
-            if (!ref.use || !ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
+            if (!ref.use || !ref.reg || *(ref.reg) != reg)
                 continue;
 
             return false;

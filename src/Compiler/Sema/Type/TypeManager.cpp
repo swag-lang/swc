@@ -211,7 +211,7 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
     const uint32_t shardIndex = typeRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const uint32_t localIndex = typeRef.get() & LOCAL_MASK;
-    return *SWC_NOT_NULL(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
+    return *(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
 }
 
 #if SWC_HAS_STATS

@@ -200,7 +200,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     const uint32_t shardIndex = constantRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const uint32_t localIndex = constantRef.get() & LOCAL_MASK;
-    return *SWC_NOT_NULL(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
+    return *(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
 }
 
 #if SWC_HAS_STATS

@@ -75,8 +75,8 @@ public:
     virtual MicroReg    stackPointerReg() const = 0;
 
 protected:
-    TaskContext&       ctx() { return *SWC_NOT_NULL(ctx_); }
-    const TaskContext& ctx() const { return *SWC_NOT_NULL(ctx_); }
+    TaskContext&       ctx() { return *(ctx_); }
+    const TaskContext& ctx() const { return *(ctx_); }
 
     explicit Encoder(TaskContext& ctx);
     virtual ~Encoder()                     = default;

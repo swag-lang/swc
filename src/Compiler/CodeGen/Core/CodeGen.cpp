@@ -35,7 +35,7 @@ namespace
             sym.setCodeGenPayload(payload);
         }
 
-        return *SWC_NOT_NULL(payload);
+        return *(payload);
     }
 }
 
@@ -230,7 +230,7 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
-    return *SWC_NOT_NULL(safePayload(nodeRef));
+    return *(safePayload(nodeRef));
 }
 
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
@@ -278,7 +278,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodePayload->reg         = nextVirtualRegister();
     nodePayload->typeRef     = typeRef;
     nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
-    return *SWC_NOT_NULL(nodePayload);
+    return *(nodePayload);
 }
 
 CodeGenNodePayload& CodeGen::setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef)

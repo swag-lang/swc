@@ -26,16 +26,6 @@ constexpr T swcCheckNot(T value, const U& passValue, const char* expr, const cha
     return value;
 }
 
-template<typename T>
-constexpr T* swcCheckNotNull(T* value, const char* expr, const char* file, int line) noexcept
-{
-#if SWC_HAS_ASSERT
-    if (value == nullptr)
-        swcAssert(expr, file, line);
-#endif
-    return value;
-}
-
 // Only enable assertions in debug builds
 #if SWC_HAS_ASSERT
 #define SWC_ASSERT(__expr)                          \
@@ -89,6 +79,5 @@ constexpr T* swcCheckNotNull(T* value, const char* expr, const char* file, int l
 
 #define SWC_CHECK(__expr)                   swcCheck((__expr), #__expr, __FILE__, __LINE__)
 #define SWC_CHECK_NOT(__expr, __pass_value) swcCheckNot((__expr), (__pass_value), #__expr " != " #__pass_value, __FILE__, __LINE__)
-#define SWC_NOT_NULL(__expr)                swcCheckNotNull((__expr), #__expr " != nullptr", __FILE__, __LINE__)
 
 SWC_END_NAMESPACE();

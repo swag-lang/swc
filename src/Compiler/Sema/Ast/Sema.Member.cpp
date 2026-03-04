@@ -194,7 +194,7 @@ namespace
             symMap->addSymbol(ctx, sym, true);
         }
 
-        return *SWC_NOT_NULL(sym);
+        return *(sym);
     }
 }
 

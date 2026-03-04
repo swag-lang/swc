@@ -66,7 +66,7 @@ namespace
                 if (!microInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(microInstrRef.reg);
+                const MicroReg reg = *(microInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -97,7 +97,7 @@ namespace
                 if (!microInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(microInstrRef.reg);
+                const MicroReg reg = *(microInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual() || reg != conv.framePointer)
                     continue;
 
@@ -152,7 +152,7 @@ namespace
                 if (!microInstrRef.reg)
                     continue;
 
-                const MicroReg refReg = *SWC_NOT_NULL(microInstrRef.reg);
+                const MicroReg refReg = *(microInstrRef.reg);
                 if (refReg != reg)
                     continue;
 
@@ -272,7 +272,7 @@ namespace
                 if (!microInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(microInstrRef.reg);
+                const MicroReg reg = *(microInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -280,8 +280,8 @@ namespace
                 if (mapIt == remap.end())
                     continue;
 
-                *SWC_NOT_NULL(microInstrRef.reg) = mapIt->second;
-                remapped                         = true;
+                *(microInstrRef.reg) = mapIt->second;
+                remapped             = true;
             }
         }
 
@@ -374,7 +374,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
             if (!microInstrRef.reg)
                 continue;
 
-            const MicroReg reg = *SWC_NOT_NULL(microInstrRef.reg);
+            const MicroReg reg = *(microInstrRef.reg);
             if (!reg.isValid() || reg.isVirtual())
                 continue;
 

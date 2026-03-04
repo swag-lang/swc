@@ -46,7 +46,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *(ref.reg);
                 if (reg == copyDstReg)
                 {
                     hasUse |= ref.use;
@@ -131,7 +131,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *(ref.reg);
                 if (reg == copyDstReg)
                 {
                     hasUse |= ref.use;
@@ -229,7 +229,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *(ref.reg);
                 if (reg == copyDstReg)
                 {
                     hasUse |= ref.use;
@@ -252,7 +252,7 @@ namespace
                 if (!ref.reg || !ref.use)
                     continue;
 
-                MicroReg& reg = *SWC_NOT_NULL(ref.reg);
+                MicroReg& reg = *(ref.reg);
                 if (reg != copyDstReg)
                     continue;
 
@@ -263,7 +263,7 @@ namespace
             if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
             {
                 for (MicroReg* reg : replaced)
-                    *SWC_NOT_NULL(reg) = copyDstReg;
+                    *(reg) = copyDstReg;
                 return false;
             }
 
@@ -386,7 +386,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *(ref.reg);
                 if (reg == copyDstReg)
                 {
                     hasUse |= ref.use;
@@ -461,7 +461,7 @@ namespace
         inst.collectRegOperands(*context.operands, refs, context.encoder);
         for (const MicroInstrRegOperandRef& ref : refs)
         {
-            if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
+            if (!ref.reg || *(ref.reg) != reg)
                 continue;
 
             outUse |= ref.use;
@@ -589,7 +589,7 @@ namespace
         SmallVector<RewritePlan> rewritePlans;
         bool                     foundRootDef = false;
 
-        MicroStorage::Iterator scanIt{SWC_NOT_NULL(context.instructions), instRef};
+        MicroStorage::Iterator scanIt{(context.instructions), instRef};
         while (scanIt.current.isValid())
         {
             --scanIt;
@@ -695,7 +695,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *(ref.reg);
                 if (reg == copyDstReg)
                 {
                     usesCopyDst |= ref.use;
@@ -1005,7 +1005,7 @@ namespace
             bool hasDef = false;
             for (const MicroInstrRegOperandRef& refOp : refs)
             {
-                if (!refOp.reg || *SWC_NOT_NULL(refOp.reg) != reg)
+                if (!refOp.reg || *(refOp.reg) != reg)
                     continue;
 
                 hasUse |= refOp.use;
@@ -1271,7 +1271,7 @@ namespace
 
         const auto rollback = [&rewrites] {
             for (auto itRewrite = rewrites.rbegin(); itRewrite != rewrites.rend(); ++itRewrite)
-                SWC_NOT_NULL(itRewrite->reg)->packed = itRewrite->original.packed;
+                (itRewrite->reg)->packed = itRewrite->original.packed;
         };
 
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
@@ -1308,7 +1308,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                MicroReg& reg = *SWC_NOT_NULL(ref.reg);
+                MicroReg& reg = *(ref.reg);
                 if (reg == copySrcReg && !isBinaryMutation)
                 {
                     failed = true;
@@ -1396,7 +1396,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *(ref.reg);
                 if (reg == srcReg)
                 {
                     if (seenMutation || ref.def)
@@ -1423,7 +1423,7 @@ namespace
 
                     if (ref.use)
                     {
-                        MicroReg&      mutableReg  = *SWC_NOT_NULL(ref.reg);
+                        MicroReg&      mutableReg  = *(ref.reg);
                         const MicroReg originalReg = mutableReg;
                         mutableReg                 = srcReg;
                         if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
@@ -1465,7 +1465,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                MicroReg& reg = *SWC_NOT_NULL(ref.reg);
+                MicroReg& reg = *(ref.reg);
                 if (reg != dstReg || !ref.use)
                     continue;
 

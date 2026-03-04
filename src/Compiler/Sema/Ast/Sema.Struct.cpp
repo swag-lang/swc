@@ -48,7 +48,7 @@ namespace
             symMap->addSymbol(ctx, symVariable, true);
         }
 
-        return *SWC_NOT_NULL(symVariable);
+        return *(symVariable);
     }
 
     Result attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView)

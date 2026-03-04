@@ -114,7 +114,7 @@ Utf8 DiagnosticBuilder::build()
     gutterW_ = maxLine ? digits(maxLine) : 0;
 
     // Primary element: the first one
-    const DiagnosticElement& primary = *SWC_NOT_NULL(elements.front().get());
+    const DiagnosticElement& primary = *(elements.front().get());
 
     if (ctx_->cmdLine().diagOneLine)
     {
@@ -132,7 +132,7 @@ Utf8 DiagnosticBuilder::build()
     // Now render all secondary elements as part of the same diagnostic
     for (size_t i = 1; i < elements.size(); ++i)
     {
-        const DiagnosticElement& el = *SWC_NOT_NULL(elements[i].get());
+        const DiagnosticElement& el = *(elements[i].get());
         out_.append(gutterW_, ' ');
         writeLabelMsg(el);
         if (el.hasSpans())

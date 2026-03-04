@@ -33,17 +33,17 @@ public:
 
     ExitCode run();
 
-    const Global&                   global() const { return *SWC_NOT_NULL(global_); }
-    const CommandLine&              cmdLine() const { return *SWC_NOT_NULL(cmdLine_); }
+    const Global&                   global() const { return *(global_); }
+    const CommandLine&              cmdLine() const { return *(cmdLine_); }
     JobClientId                     jobClientId() const { return jobClientId_; }
-    TypeManager&                    typeMgr() { return *SWC_NOT_NULL(typeMgr_.get()); }
-    const TypeManager&              typeMgr() const { return *SWC_NOT_NULL(typeMgr_.get()); }
-    TypeGen&                        typeGen() { return *SWC_NOT_NULL(typeGen_.get()); }
-    const TypeGen&                  typeGen() const { return *SWC_NOT_NULL(typeGen_.get()); }
-    ConstantManager&                cstMgr() { return *SWC_NOT_NULL(cstMgr_.get()); }
-    const ConstantManager&          cstMgr() const { return *SWC_NOT_NULL(cstMgr_.get()); }
-    IdentifierManager&              idMgr() { return *SWC_NOT_NULL(idMgr_.get()); }
-    const IdentifierManager&        idMgr() const { return *SWC_NOT_NULL(idMgr_.get()); }
+    TypeManager&                    typeMgr() { return *(typeMgr_.get()); }
+    const TypeManager&              typeMgr() const { return *(typeMgr_.get()); }
+    TypeGen&                        typeGen() { return *(typeGen_.get()); }
+    const TypeGen&                  typeGen() const { return *(typeGen_.get()); }
+    ConstantManager&                cstMgr() { return *(cstMgr_.get()); }
+    const ConstantManager&          cstMgr() const { return *(cstMgr_.get()); }
+    IdentifierManager&              idMgr() { return *(idMgr_.get()); }
+    const IdentifierManager&        idMgr() const { return *(idMgr_.get()); }
     DataSegment&                    constantSegment() { return constantSegment_; }
     const DataSegment&              constantSegment() const { return constantSegment_; }
     DataSegment&                    compilerSegment() { return compilerSegment_; }
@@ -54,12 +54,12 @@ public:
     const Runtime::ICompiler&       runtimeCompiler() const { return runtimeCompiler_; }
     Runtime::CompilerMessage&       runtimeCompilerMessage() { return runtimeCompilerMessage_; }
     const Runtime::CompilerMessage& runtimeCompilerMessage() const { return runtimeCompilerMessage_; }
-    JITMemoryManager&               jitMemMgr() { return *SWC_NOT_NULL(jitMemMgr_.get()); }
-    const JITMemoryManager&         jitMemMgr() const { return *SWC_NOT_NULL(jitMemMgr_.get()); }
-    JITExecManager&                 jitExecMgr() { return *SWC_NOT_NULL(jitExecMgr_.get()); }
-    const JITExecManager&           jitExecMgr() const { return *SWC_NOT_NULL(jitExecMgr_.get()); }
-    ExternalModuleManager&          externalModuleMgr() { return *SWC_NOT_NULL(externalModuleMgr_.get()); }
-    const ExternalModuleManager&    externalModuleMgr() const { return *SWC_NOT_NULL(externalModuleMgr_.get()); }
+    JITMemoryManager&               jitMemMgr() { return *(jitMemMgr_.get()); }
+    const JITMemoryManager&         jitMemMgr() const { return *(jitMemMgr_.get()); }
+    JITExecManager&                 jitExecMgr() { return *(jitExecMgr_.get()); }
+    const JITExecManager&           jitExecMgr() const { return *(jitExecMgr_.get()); }
+    ExternalModuleManager&          externalModuleMgr() { return *(externalModuleMgr_.get()); }
+    const ExternalModuleManager&    externalModuleMgr() const { return *(externalModuleMgr_.get()); }
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -82,7 +82,7 @@ public:
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
 
     SourceFile& addFile(fs::path path, FileFlags flags);
-    SourceFile& file(FileRef ref) const { return *SWC_NOT_NULL(files_[ref.get()].get()); }
+    SourceFile& file(FileRef ref) const { return *(files_[ref.get()].get()); }
 
     SourceView&       addSourceView();
     SourceView&       addSourceView(FileRef fileRef);

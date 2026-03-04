@@ -21,8 +21,8 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
 {
     context_          = &context;
     conv_             = &CallConv::get(context.callConvKind);
-    instructions_     = SWC_NOT_NULL(context.instructions);
-    operands_         = SWC_NOT_NULL(context.operands);
+    instructions_     = (context.instructions);
+    operands_         = (context.operands);
     instructionCount_ = instructions_->count();
     spillFrameUsed_   = 0;
     hasControlFlow_   = false;
@@ -170,7 +170,7 @@ void MicroRegisterAllocationPass::prepareInstructionData()
 {
     usePositions_.clear();
 
-    const MicroControlFlowGraph&         controlFlowGraph = SWC_NOT_NULL(context_->builder)->controlFlowGraph();
+    const MicroControlFlowGraph&         controlFlowGraph = (context_->builder)->controlFlowGraph();
     const std::span<const MicroInstrRef> instructionRefs  = controlFlowGraph.instructionRefs();
     SWC_ASSERT(instructionRefs.size() == instructionCount_);
     if (instructionRefs.size() != instructionCount_)
@@ -1014,8 +1014,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (liveAcrossCall && !request.needsPersistent)
                 callSpillVregs_.insert(request.virtKey);
 
-            const auto physReg        = assignVirtReg(request, protectedKeys, stamp, stackDepth, pending);
-            *SWC_NOT_NULL(regRef.reg) = physReg;
+            const auto physReg = assignVirtReg(request, protectedKeys, stamp, stackDepth, pending);
+            *(regRef.reg)      = physReg;
 
             if (liveAcrossCall && !isPersistentPhysReg(physReg))
                 callSpillVregs_.insert(request.virtKey);

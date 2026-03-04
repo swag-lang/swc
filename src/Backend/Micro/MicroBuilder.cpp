@@ -26,7 +26,7 @@ std::pair<MicroInstrRef, MicroInstr&> MicroBuilder::addInstructionWithRef(MicroI
     }
 
     storeInstructionDebugInfo(instRef);
-    return {instRef, *SWC_NOT_NULL(inst)};
+    return {instRef, *(inst)};
 }
 
 MicroInstr& MicroBuilder::addInstruction(MicroInstrOpcode op, uint8_t numOperands)

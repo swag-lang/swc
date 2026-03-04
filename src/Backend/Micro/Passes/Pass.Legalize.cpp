@@ -74,7 +74,7 @@ namespace
         if (!isConcreteAllocatableReg(concreteReg))
             return;
 
-        SWC_NOT_NULL(context.builder)->addVirtualRegForbiddenPhysReg(virtualReg, concreteReg);
+        (context.builder)->addVirtualRegForbiddenPhysReg(virtualReg, concreteReg);
     }
 
     uint32_t computeNextVirtualIntRegIndex(const MicroPassContext& context)
@@ -84,7 +84,7 @@ namespace
 
         uint32_t nextIndex = 1;
         if (context.builder)
-            nextIndex = std::max(nextIndex, SWC_NOT_NULL(context.builder)->nextVirtualIntRegIndexHint());
+            nextIndex = std::max(nextIndex, (context.builder)->nextVirtualIntRegIndexHint());
 
         for (const MicroInstr& inst : context.instructions->view())
         {
@@ -862,7 +862,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.builder);
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
-    const auto& encoder                  = *SWC_NOT_NULL(context.encoder);
+    const auto& encoder                  = *(context.encoder);
     uint64_t    stackScratchFrameSize    = 0;
     uint32_t    nextVirtualIntRegIndex   = computeNextVirtualIntRegIndex(context);
     uint32_t    nextVirtualFloatRegIndex = computeNextVirtualFloatRegIndex(context);

@@ -68,7 +68,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
             if (!ref.reg || !ref.use || ref.def)
                 continue;
 
-            MicroReg&      reg         = *SWC_NOT_NULL(ref.reg);
+            MicroReg&      reg         = *(ref.reg);
             const MicroReg resolvedReg = resolveAlias(aliases_, reg);
             if (resolvedReg != reg && reg.isSameClass(resolvedReg))
             {

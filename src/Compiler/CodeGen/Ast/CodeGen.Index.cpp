@@ -44,7 +44,7 @@ namespace
         const auto* payload = codeGen.sema().codeGenPayload<IndexExprCodeGenPayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeStorageSym != nullptr);
-        const CodeGenNodePayload storagePayload = resolveIndexRuntimeStoragePayload(codeGen, *SWC_NOT_NULL(payload->runtimeStorageSym));
+        const CodeGenNodePayload storagePayload = resolveIndexRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
         SWC_ASSERT(storagePayload.isAddress());
         return storagePayload.reg;
     }

@@ -126,7 +126,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
     const Token&       tok     = sema.token(codeRef());
     const SemaNodeView argView = sema.viewConstant(nodeArgRef);
     SWC_ASSERT(argView.hasConstant());
-    const ConstantValue& constant = *SWC_NOT_NULL(argView.cst());
+    const ConstantValue& constant = *(argView.cst());
     switch (tok.id)
     {
         case TokenId::CompilerError:

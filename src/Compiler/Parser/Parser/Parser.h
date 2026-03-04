@@ -49,7 +49,7 @@ private:
     TokenRef           lastErrorToken_ = TokenRef::invalid();
 
     const Token* tokPtr() const { return curToken_; }
-    const Token& tok() const { return *SWC_NOT_NULL(curToken_); }
+    const Token& tok() const { return *(curToken_); }
     TokenId      id() const { return curToken_->id; }
     TokenId      nextId() const { return atEnd() ? TokenId::EndOfFile : curToken_[1].id; }
     bool         is(TokenId id0) const { return curToken_->id == id0; }

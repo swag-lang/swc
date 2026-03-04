@@ -85,7 +85,7 @@ bool MicroPeepholePass::applyOpcodeRules(const Cursor& cursor)
 {
     SWC_ASSERT(cursor.inst != nullptr);
 
-    const auto& rules = getRuleDispatch().rulesByOpcode[static_cast<size_t>(SWC_NOT_NULL(cursor.inst)->op)];
+    const auto& rules = getRuleDispatch().rulesByOpcode[static_cast<size_t>((cursor.inst)->op)];
     for (const Rule& rule : rules)
     {
         SWC_ASSERT(rule.applyMutable != nullptr || rule.applyConst != nullptr);

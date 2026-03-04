@@ -7,14 +7,14 @@ AstNode& Ast::node(AstNodeRef nodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t g = nodeRef.get();
-    return *SWC_NOT_NULL(nodePtr(g));
+    return *(nodePtr(g));
 }
 
 const AstNode& Ast::node(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t g = nodeRef.get();
-    return *SWC_NOT_NULL(nodePtr(g));
+    return *(nodePtr(g));
 }
 
 void Ast::captureParsedNodeBoundary()

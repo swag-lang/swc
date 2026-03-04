@@ -877,7 +877,7 @@ namespace
             scanInst.collectRegOperands(*context.operands, refs, context.encoder);
             for (const MicroInstrRegOperandRef& ref : refs)
             {
-                if (!ref.reg || *SWC_NOT_NULL(ref.reg) != dstReg)
+                if (!ref.reg || *(ref.reg) != dstReg)
                     continue;
 
                 if (ref.use || ref.def)
@@ -1607,7 +1607,7 @@ namespace
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
-        const MicroInstr&        inst    = *SWC_NOT_NULL(cursor.inst);
+        const MicroInstr&        inst    = *(cursor.inst);
         const MicroInstrOperand* ops     = cursor.ops;
         if (!MicroPassHelpers::isNoOpEncoderInstruction(inst, ops))
             return false;
@@ -1620,7 +1620,7 @@ namespace
     {
         const MicroPassContext&  context = pass.context();
         const MicroInstrRef      instRef = cursor.instRef;
-        const MicroInstr&        inst    = *SWC_NOT_NULL(cursor.inst);
+        const MicroInstr&        inst    = *(cursor.inst);
         const MicroInstrOperand* ops     = cursor.ops;
         if (inst.op != MicroInstrOpcode::CmpRegImm &&
             inst.op != MicroInstrOpcode::CmpRegReg &&
@@ -1669,7 +1669,7 @@ namespace
         const MicroInstrOperand*     ops     = cursor.ops;
         const MicroStorage::Iterator nextIt  = cursor.nextIt;
         const MicroStorage::Iterator endIt   = cursor.endIt;
-        if (SWC_NOT_NULL(cursor.inst)->op != MicroInstrOpcode::SetCondReg)
+        if ((cursor.inst)->op != MicroInstrOpcode::SetCondReg)
             return false;
         if (!ops || nextIt == endIt)
             return false;
@@ -1736,7 +1736,7 @@ namespace
                 bool hasDef = false;
                 for (const MicroInstrRegOperandRef& ref : refs)
                 {
-                    if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
+                    if (!ref.reg || *(ref.reg) != reg)
                         continue;
 
                     hasUse |= ref.use;
@@ -1782,7 +1782,7 @@ namespace
                     if (!ref.reg)
                         continue;
 
-                    const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                    const MicroReg reg = *(ref.reg);
                     if (reg == fromReg)
                     {
                         hasFromUse |= ref.use;
@@ -1802,7 +1802,7 @@ namespace
                         if (!ref.reg || !ref.use)
                             continue;
 
-                        MicroReg& reg = *SWC_NOT_NULL(ref.reg);
+                        MicroReg& reg = *(ref.reg);
                         if (reg != fromReg)
                             continue;
 
@@ -1932,7 +1932,7 @@ namespace
             bool hasDef = false;
             for (const MicroInstrRegOperandRef& ref : refs)
             {
-                if (!ref.reg || *SWC_NOT_NULL(ref.reg) != tmpReg)
+                if (!ref.reg || *(ref.reg) != tmpReg)
                     continue;
 
                 hasUse |= ref.use;

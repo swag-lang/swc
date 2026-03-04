@@ -156,7 +156,7 @@ namespace
             return sourcePayload.reg;
 
         SWC_ASSERT(loopState.sourceSpillSym != nullptr);
-        const CodeGenNodePayload spillPayload = resolveForeachVariablePayload(codeGen, *SWC_NOT_NULL(loopState.sourceSpillSym));
+        const CodeGenNodePayload spillPayload = resolveForeachVariablePayload(codeGen, *(loopState.sourceSpillSym));
         SWC_ASSERT(spillPayload.isAddress());
 
         MicroBuilder&  builder      = codeGen.builder();
@@ -224,7 +224,7 @@ namespace
     MicroReg emitForeachStateAddressReg(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
     {
         SWC_ASSERT(loopState.stateSym != nullptr);
-        const CodeGenNodePayload statePayload = resolveForeachVariablePayload(codeGen, *SWC_NOT_NULL(loopState.stateSym));
+        const CodeGenNodePayload statePayload = resolveForeachVariablePayload(codeGen, *(loopState.stateSym));
         SWC_ASSERT(statePayload.isAddress());
         return statePayload.reg;
     }
@@ -306,7 +306,7 @@ namespace
         const AstNodeRef          exprRef     = resolvedNodeRef(codeGen, node.nodeExprRef);
         const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
-        const TypeInfo&           exprType    = *SWC_NOT_NULL(exprView.type());
+        const TypeInfo&           exprType    = *(exprView.type());
         MicroBuilder&             builder     = codeGen.builder();
 
         loopState.baseReg  = MicroReg::invalid();

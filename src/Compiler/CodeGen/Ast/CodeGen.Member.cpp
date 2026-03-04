@@ -45,7 +45,7 @@ namespace
         const auto* payload = codeGen.sema().codeGenPayload<MemberAccessExprCodeGenPayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeStorageSym != nullptr);
-        const CodeGenNodePayload storagePayload = resolveMemberRuntimeStoragePayload(codeGen, *SWC_NOT_NULL(payload->runtimeStorageSym));
+        const CodeGenNodePayload storagePayload = resolveMemberRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
         SWC_ASSERT(storagePayload.isAddress());
         return storagePayload.reg;
     }
@@ -77,7 +77,7 @@ namespace
     {
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
         const SemaNodeView        rightView   = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*             rightSym    = SWC_NOT_NULL(rightView.sym());
+        const Symbol*             rightSym    = (rightView.sym());
         const auto&               symVar      = rightSym->cast<SymbolVariable>();
 
         const TypeRef             memberTypeRef = codeGen.curViewType().typeRef();
@@ -114,7 +114,7 @@ namespace
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
 
         const SemaNodeView rightView  = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*      methodSym  = SWC_NOT_NULL(rightView.sym());
+        const Symbol*      methodSym  = (rightView.sym());
         const auto&        methodFunc = methodSym->cast<SymbolFunction>();
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 

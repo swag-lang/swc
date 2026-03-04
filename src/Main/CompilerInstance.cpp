@@ -373,7 +373,7 @@ SourceView& CompilerInstance::srcView(SourceViewRef ref)
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     SourceView* const view = srcViews_[ref.get()].get();
-    return *SWC_NOT_NULL(view);
+    return *(view);
 }
 
 const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
@@ -382,7 +382,7 @@ const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     const SourceView* const view = srcViews_[ref.get()].get();
-    return *SWC_NOT_NULL(view);
+    return *(view);
 }
 
 bool CompilerInstance::setMainFunc(AstCompilerFunc* node)

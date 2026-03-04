@@ -108,8 +108,8 @@ public:
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
-    Sema&                    sema() { return *SWC_NOT_NULL(sema_); }
-    const Sema&              sema() const { return *SWC_NOT_NULL(sema_); }
+    Sema&                    sema() { return *(sema_); }
+    const Sema&              sema() const { return *(sema_); }
     TaskContext&             ctx();
     const TaskContext&       ctx() const;
     CompilerInstance&        compiler();
@@ -122,8 +122,8 @@ public:
     const TypeGen&           typeGen() const;
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
-    MicroBuilder&            builder() { return *SWC_NOT_NULL(builder_); }
-    const MicroBuilder&      builder() const { return *SWC_NOT_NULL(builder_); }
+    MicroBuilder&            builder() { return *(builder_); }
+    const MicroBuilder&      builder() const { return *(builder_); }
 
     Ast&                          ast();
     const Ast&                    ast() const;
@@ -173,8 +173,8 @@ public:
     SemaNodeView curViewNodeTypeConstantSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
 
     void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
-    SymbolFunction&       function() { return *SWC_NOT_NULL(function_); }
-    const SymbolFunction& function() const { return *SWC_NOT_NULL(function_); }
+    SymbolFunction&       function() { return *(function_); }
+    const SymbolFunction& function() const { return *(function_); }
 
     CodeGenNodePayload&              payload(AstNodeRef nodeRef);
     CodeGenNodePayload*              safePayload(AstNodeRef nodeRef);

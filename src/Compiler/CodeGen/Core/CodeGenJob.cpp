@@ -45,7 +45,7 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
         }
     }
 
-    codeGen_ = std::make_unique<CodeGen>(*SWC_NOT_NULL(codeGenSema));
+    codeGen_ = std::make_unique<CodeGen>(*(codeGenSema));
     func     = [this] {
         return exec();
     };

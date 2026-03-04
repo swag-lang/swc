@@ -36,7 +36,7 @@ namespace
             bool hasDef = false;
             for (const MicroInstrRegOperandRef& ref : refs)
             {
-                if (!ref.reg || *SWC_NOT_NULL(ref.reg) != tmpReg)
+                if (!ref.reg || *(ref.reg) != tmpReg)
                     continue;
 
                 hasUse |= ref.use;
@@ -110,7 +110,7 @@ namespace
             bool hasDef = false;
             for (const MicroInstrRegOperandRef& ref : refs)
             {
-                if (!ref.reg || *SWC_NOT_NULL(ref.reg) != tmpReg)
+                if (!ref.reg || *(ref.reg) != tmpReg)
                     continue;
 
                 hasUse |= ref.use;
@@ -365,7 +365,7 @@ namespace
             firstNextInst.collectRegOperands(*context.operands, firstRefs, context.encoder);
             for (const MicroInstrRegOperandRef& ref : firstRefs)
             {
-                if (!ref.reg || *SWC_NOT_NULL(ref.reg) != immReg)
+                if (!ref.reg || *(ref.reg) != immReg)
                     continue;
                 return false;
             }
@@ -605,7 +605,7 @@ namespace
             if (!ref.reg)
                 continue;
 
-            if (*SWC_NOT_NULL(ref.reg) == mergedReg)
+            if (*(ref.reg) == mergedReg)
                 return false;
         }
 

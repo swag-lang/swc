@@ -16,6 +16,7 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
+#pragma optimize("", off)
 
 SWC_BEGIN_NAMESPACE();
 
@@ -273,6 +274,11 @@ namespace
             patchAbsolute64(writableCode, reloc, targetAddress);
         }
     }
+
+    bool shouldRegisterSehUnwindInfo(const TaskContext& ctx)
+    {
+        return ctx.compiler().buildCfg().jitEnableSehUnwind;
+    }
 }
 
 void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations)
@@ -281,14 +287,38 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
     SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
 
     JITMemoryManager& memoryManager = ctx.compiler().jitMemMgr();
-    const auto        codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
-    ByteSpanRW        writableCode;
+    const uint32_t    codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
 
-    SWC_FORCE_ASSERT(memoryManager.allocate(outExecutableMemory, codeSize));
+    std::vector<std::byte> unwindInfo;
+    const bool             registerSehUnwind = shouldRegisterSehUnwindInfo(ctx);
+    if (registerSehUnwind)
+    {
+        const bool hasUnwindInfo = Os::buildHostJitUnwindInfo(unwindInfo, linearCode);
+        SWC_FORCE_ASSERT(hasUnwindInfo);
+    }
+
+    const uint64_t allocationSizeU64 = static_cast<uint64_t>(codeSize) + unwindInfo.size();
+    SWC_FORCE_ASSERT(allocationSizeU64 <= std::numeric_limits<uint32_t>::max());
+    const uint32_t allocationSize = static_cast<uint32_t>(allocationSizeU64);
+
+    SWC_FORCE_ASSERT(memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize));
+    ByteSpanRW writableCode;
     writableCode = asByteSpan(static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size());
     std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
     patchRelocations(ctx, writableCode, relocations);
+
+    if (!unwindInfo.empty())
+    {
+        std::byte* const unwindDest = static_cast<std::byte*>(outExecutableMemory.entryPoint()) + codeSize;
+        std::memcpy(unwindDest, unwindInfo.data(), unwindInfo.size());
+        outExecutableMemory.unwindInfoOffset_ = codeSize;
+        outExecutableMemory.unwindInfoSize_   = static_cast<uint32_t>(unwindInfo.size());
+    }
+
     SWC_FORCE_ASSERT(memoryManager.makeExecutable(outExecutableMemory));
+
+    if (registerSehUnwind)
+        SWC_FORCE_ASSERT(memoryManager.registerUnwindInfo(outExecutableMemory));
 }
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)

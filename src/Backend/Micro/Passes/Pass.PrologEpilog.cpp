@@ -361,7 +361,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
     pushedRegs_.clear();
     savedRegSlots_.clear();
     savedRegsStackSubSize_ = 0;
-    useFramePointer_       = false;
+    useFramePointer_       = context.forceFramePointer;
 
     // Scan concrete register operands and collect only ABI-persistent regs that are used.
     auto& storeOps = *context.operands;

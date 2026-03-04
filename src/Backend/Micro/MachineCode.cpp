@@ -3,6 +3,7 @@
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -43,6 +44,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     MicroPassContext passContext;
     passContext.callConvKind           = CallConvKind::Host;
     passContext.preservePersistentRegs = true;
+    passContext.forceFramePointer      = ctx.compiler().buildCfg().jitEnableSehUnwind;
 
 #ifdef _M_X64
     X64Encoder encoder(ctx);

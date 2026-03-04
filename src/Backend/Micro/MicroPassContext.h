@@ -22,6 +22,7 @@ struct MicroPassContext
     std::span<const Utf8> passPrintOptions       = {};
     CallConvKind          callConvKind           = CallConvKind::Host;
     bool                  preservePersistentRegs = false;
+    bool                  forceFramePointer      = false;
 
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).
     uint32_t optimizationIterationLimit = 0;

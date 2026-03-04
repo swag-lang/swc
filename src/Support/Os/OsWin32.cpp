@@ -63,6 +63,298 @@ namespace
         return state.initialized;
     }
 
+#ifdef _M_X64
+    constexpr uint8_t K_UWOP_PUSH_NONVOL = 0;
+    constexpr uint8_t K_UWOP_ALLOC_LARGE = 1;
+    constexpr uint8_t K_UWOP_ALLOC_SMALL = 2;
+    constexpr uint8_t K_UWOP_SET_FPREG   = 3;
+
+    enum class JitUnwindOpKind : uint8_t
+    {
+        PushNonVol,
+        SetFramePointer,
+        AllocateStack,
+    };
+
+    struct JitUnwindOp
+    {
+        JitUnwindOpKind kind       = JitUnwindOpKind::PushNonVol;
+        uint8_t         codeOffset = 0;
+        uint8_t         reg        = 0;
+        uint32_t        stackSize  = 0;
+    };
+
+    struct JitFunctionTableEntry
+    {
+        RUNTIME_FUNCTION runtimeFunction{};
+    };
+
+    struct JitFunctionTableState
+    {
+        std::mutex                                                              mutex;
+        std::unordered_map<const void*, std::unique_ptr<JitFunctionTableEntry>> entries;
+    };
+
+    JitFunctionTableState& jitFunctionTableState()
+    {
+        static JitFunctionTableState state;
+        return state;
+    }
+
+    bool isWindowsX64NonVolatileReg(const uint8_t reg)
+    {
+        switch (reg)
+        {
+            case 3:
+            case 5:
+            case 6:
+            case 7:
+            case 12:
+            case 13:
+            case 14:
+            case 15:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool parsePushNonVol(const ByteSpan functionCode, const size_t codeOffset, uint8_t& outReg, uint8_t& outLength)
+    {
+        outReg    = 0;
+        outLength = 0;
+        if (codeOffset >= functionCode.size())
+            return false;
+
+        const auto* bytes  = reinterpret_cast<const uint8_t*>(functionCode.data());
+        size_t      cursor = codeOffset;
+        uint8_t     rex    = 0;
+        if (bytes[cursor] >= 0x40 && bytes[cursor] <= 0x4F)
+        {
+            rex = bytes[cursor];
+            ++cursor;
+            if (cursor >= functionCode.size())
+                return false;
+        }
+
+        const uint8_t op = bytes[cursor];
+        if (op < 0x50 || op > 0x57)
+            return false;
+
+        const uint8_t lowReg = static_cast<uint8_t>(op - 0x50);
+        const uint8_t extReg = static_cast<uint8_t>((rex & 0x01) ? 8 : 0);
+        outReg               = static_cast<uint8_t>(lowReg + extReg);
+        outLength            = static_cast<uint8_t>(cursor - codeOffset + 1);
+        return true;
+    }
+
+    bool parseSetFramePointer(const ByteSpan functionCode, const size_t codeOffset, uint8_t& outLength)
+    {
+        outLength = 0;
+        if (codeOffset + 2 >= functionCode.size())
+            return false;
+
+        const auto* bytes = reinterpret_cast<const uint8_t*>(functionCode.data());
+        if (bytes[codeOffset] == 0x48 && bytes[codeOffset + 1] == 0x89 && bytes[codeOffset + 2] == 0xE5)
+        {
+            outLength = 3;
+            return true;
+        }
+
+        if (bytes[codeOffset] == 0x48 && bytes[codeOffset + 1] == 0x8B && bytes[codeOffset + 2] == 0xEC)
+        {
+            outLength = 3;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool parseSubRsp(const ByteSpan functionCode, const size_t codeOffset, uint32_t& outStackSize, uint8_t& outLength)
+    {
+        outStackSize = 0;
+        outLength    = 0;
+        if (codeOffset >= functionCode.size())
+            return false;
+
+        const auto* bytes = reinterpret_cast<const uint8_t*>(functionCode.data());
+        if (codeOffset + 3 < functionCode.size() && bytes[codeOffset] == 0x48 && bytes[codeOffset + 1] == 0x83 && bytes[codeOffset + 2] == 0xEC)
+        {
+            outStackSize = bytes[codeOffset + 3];
+            outLength    = 4;
+            return true;
+        }
+
+        if (codeOffset + 6 < functionCode.size() && bytes[codeOffset] == 0x48 && bytes[codeOffset + 1] == 0x81 && bytes[codeOffset + 2] == 0xEC)
+        {
+            const uint32_t imm0 = bytes[codeOffset + 3];
+            const uint32_t imm1 = bytes[codeOffset + 4];
+            const uint32_t imm2 = bytes[codeOffset + 5];
+            const uint32_t imm3 = bytes[codeOffset + 6];
+            outStackSize        = imm0 | (imm1 << 8) | (imm2 << 16) | (imm3 << 24);
+            outLength           = 7;
+            return true;
+        }
+
+        return false;
+    }
+
+    uint16_t packUnwindCodeSlot(const uint8_t codeOffset, const uint8_t unwindOp, const uint8_t opInfo)
+    {
+        const uint8_t  opByte = static_cast<uint8_t>(((opInfo & 0x0F) << 4) | (unwindOp & 0x0F));
+        const uint16_t value  = static_cast<uint16_t>(codeOffset) | (static_cast<uint16_t>(opByte) << 8);
+        return value;
+    }
+
+    bool buildWindowsX64JitUnwindInfo(std::vector<std::byte>& outUnwindInfo, const ByteSpan functionCode)
+    {
+        outUnwindInfo.clear();
+        if (functionCode.empty())
+            return false;
+
+        constexpr uint8_t REG_RBP = 5;
+
+        std::vector<JitUnwindOp> unwindOps;
+        unwindOps.reserve(8);
+
+        uint8_t frameReg    = 0;
+        uint8_t frameOffset = 0;
+        size_t  cursor      = 0;
+
+        uint8_t pushReg = 0;
+        uint8_t pushLen = 0;
+        if (parsePushNonVol(functionCode, cursor, pushReg, pushLen) && pushReg == REG_RBP)
+        {
+            uint8_t movLen = 0;
+            if (parseSetFramePointer(functionCode, cursor + pushLen, movLen))
+            {
+                unwindOps.push_back({
+                    .kind       = JitUnwindOpKind::PushNonVol,
+                    .codeOffset = static_cast<uint8_t>(cursor + pushLen),
+                    .reg        = pushReg,
+                });
+                unwindOps.push_back({
+                    .kind       = JitUnwindOpKind::SetFramePointer,
+                    .codeOffset = static_cast<uint8_t>(cursor + pushLen + movLen),
+                });
+                frameReg    = REG_RBP;
+                frameOffset = 0;
+                cursor += pushLen + movLen;
+            }
+        }
+
+        while (true)
+        {
+            uint8_t parsedReg    = 0;
+            uint8_t parsedLength = 0;
+            if (!parsePushNonVol(functionCode, cursor, parsedReg, parsedLength))
+                break;
+            if (!isWindowsX64NonVolatileReg(parsedReg))
+                break;
+
+            const size_t nextCursor = cursor + parsedLength;
+            if (nextCursor > std::numeric_limits<uint8_t>::max())
+                return false;
+
+            unwindOps.push_back({
+                .kind       = JitUnwindOpKind::PushNonVol,
+                .codeOffset = static_cast<uint8_t>(nextCursor),
+                .reg        = parsedReg,
+            });
+            cursor = nextCursor;
+        }
+
+        {
+            uint32_t stackSize  = 0;
+            uint8_t  stackInstr = 0;
+            if (parseSubRsp(functionCode, cursor, stackSize, stackInstr) && stackSize)
+            {
+                const size_t nextCursor = cursor + stackInstr;
+                if (nextCursor > std::numeric_limits<uint8_t>::max())
+                    return false;
+
+                unwindOps.push_back({
+                    .kind       = JitUnwindOpKind::AllocateStack,
+                    .codeOffset = static_cast<uint8_t>(nextCursor),
+                    .stackSize  = stackSize,
+                });
+                cursor = nextCursor;
+            }
+        }
+
+        if (cursor > std::numeric_limits<uint8_t>::max())
+            return false;
+
+        std::ranges::sort(unwindOps, [](const JitUnwindOp& left, const JitUnwindOp& right) {
+            return left.codeOffset > right.codeOffset;
+        });
+
+        std::vector<uint16_t> unwindSlots;
+        unwindSlots.reserve(unwindOps.size() + 4);
+        for (const JitUnwindOp& op : unwindOps)
+        {
+            switch (op.kind)
+            {
+                case JitUnwindOpKind::PushNonVol:
+                    unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_PUSH_NONVOL, op.reg));
+                    break;
+
+                case JitUnwindOpKind::SetFramePointer:
+                    unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_SET_FPREG, 0));
+                    break;
+
+                case JitUnwindOpKind::AllocateStack:
+                {
+                    if (op.stackSize >= 8 && op.stackSize <= 128 && (op.stackSize % 8) == 0)
+                    {
+                        const uint8_t opInfo = static_cast<uint8_t>(op.stackSize / 8 - 1);
+                        unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_SMALL, opInfo));
+                        break;
+                    }
+
+                    if ((op.stackSize % 8) == 0 && op.stackSize / 8 <= std::numeric_limits<uint16_t>::max())
+                    {
+                        unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_LARGE, 0));
+                        unwindSlots.push_back(static_cast<uint16_t>(op.stackSize / 8));
+                        break;
+                    }
+
+                    unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_LARGE, 1));
+                    unwindSlots.push_back(static_cast<uint16_t>(op.stackSize & 0xFFFF));
+                    unwindSlots.push_back(static_cast<uint16_t>((op.stackSize >> 16) & 0xFFFF));
+                    break;
+                }
+
+                default:
+                    SWC_FORCE_ASSERT(false);
+                    return false;
+            }
+        }
+
+        if (unwindSlots.size() > std::numeric_limits<uint8_t>::max())
+            return false;
+
+        const uint32_t unwindSlotCount        = static_cast<uint32_t>(unwindSlots.size());
+        const uint32_t unwindSlotCountAligned = (unwindSlotCount + 1u) & ~1u;
+
+        outUnwindInfo.resize(4 + unwindSlotCountAligned * sizeof(uint16_t));
+        auto* const outBytes = reinterpret_cast<uint8_t*>(outUnwindInfo.data());
+        outBytes[0]          = 1;
+        outBytes[1]          = static_cast<uint8_t>(cursor);
+        outBytes[2]          = static_cast<uint8_t>(unwindSlotCount);
+        outBytes[3]          = static_cast<uint8_t>(((frameOffset & 0x0F) << 4) | (frameReg & 0x0F));
+
+        for (uint32_t i = 0; i < unwindSlotCountAligned; ++i)
+        {
+            const uint16_t value    = i < unwindSlotCount ? unwindSlots[i] : 0;
+            outBytes[4 + i * 2 + 0] = static_cast<uint8_t>(value & 0xFF);
+            outBytes[4 + i * 2 + 1] = static_cast<uint8_t>((value >> 8) & 0xFF);
+        }
+
+        return true;
+    }
+#endif
+
     const char* windowsExceptionCodeName(const uint32_t code)
     {
         switch (code)
@@ -616,6 +908,70 @@ namespace Os
         if (!ptr)
             return;
         (void) VirtualFree(ptr, 0, MEM_RELEASE);
+    }
+
+    bool buildHostJitUnwindInfo(std::vector<std::byte>& outUnwindInfo, const ByteSpan functionCode)
+    {
+#ifdef _M_X64
+        return buildWindowsX64JitUnwindInfo(outUnwindInfo, functionCode);
+#else
+        SWC_UNUSED(outUnwindInfo);
+        SWC_UNUSED(functionCode);
+        return false;
+#endif
+    }
+
+    bool addHostJitFunctionTable(const void* functionAddress, const uint32_t codeSize, const uint32_t unwindInfoOffset)
+    {
+#ifdef _M_X64
+        if (!functionAddress || !codeSize)
+            return false;
+
+        JitFunctionTableState& state = jitFunctionTableState();
+        const std::scoped_lock lock(state.mutex);
+        auto                   it = state.entries.find(functionAddress);
+        if (it != state.entries.end())
+        {
+            (void) RtlDeleteFunctionTable(&it->second->runtimeFunction);
+            state.entries.erase(it);
+        }
+
+        auto newEntry                          = std::make_unique<JitFunctionTableEntry>();
+        newEntry->runtimeFunction.BeginAddress = 0;
+        newEntry->runtimeFunction.EndAddress   = codeSize;
+        newEntry->runtimeFunction.UnwindData   = unwindInfoOffset;
+
+        const DWORD64 baseAddress = reinterpret_cast<DWORD64>(functionAddress);
+        if (!RtlAddFunctionTable(&newEntry->runtimeFunction, 1, baseAddress))
+            return false;
+
+        state.entries[functionAddress] = std::move(newEntry);
+        return true;
+#else
+        SWC_UNUSED(functionAddress);
+        SWC_UNUSED(codeSize);
+        SWC_UNUSED(unwindInfoOffset);
+        return false;
+#endif
+    }
+
+    void removeHostJitFunctionTable(const void* functionAddress)
+    {
+#ifdef _M_X64
+        if (!functionAddress)
+            return;
+
+        JitFunctionTableState& state = jitFunctionTableState();
+        const std::scoped_lock lock(state.mutex);
+        const auto             it = state.entries.find(functionAddress);
+        if (it == state.entries.end())
+            return;
+
+        (void) RtlDeleteFunctionTable(&it->second->runtimeFunction);
+        state.entries.erase(it);
+#else
+        SWC_UNUSED(functionAddress);
+#endif
     }
 
     bool loadExternalModule(void*& outModuleHandle, std::string_view moduleName)

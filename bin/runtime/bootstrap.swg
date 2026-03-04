@@ -824,6 +824,7 @@ namespace Swag
         backendDebugInformations       = false                              // Output debug information if 'true'
         backendDebugInline             = false                              // Generate specific line information for inline code
         backendNumCU                   = 0'u32
+        jitEnableSehUnwind             = true                               // Generate unwind info for JIT code and register SEH function tables
 
         linkerArgs:                    string                               // Additional linker arguments
 

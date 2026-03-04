@@ -4,6 +4,7 @@
 #define NOMINMAX
 #include <windows.h>
 #endif
+#include "Support/Core/ByteSpan.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -33,6 +34,9 @@ namespace Os
     bool     makeWritableExecutableMemory(void* ptr, uint32_t size);
     bool     makeExecutableMemory(void* ptr, uint32_t size);
     void     freeExecutableMemory(void* ptr);
+    bool     buildHostJitUnwindInfo(std::vector<std::byte>& outUnwindInfo, ByteSpan functionCode);
+    bool     addHostJitFunctionTable(const void* functionAddress, uint32_t codeSize, uint32_t unwindInfoOffset);
+    void     removeHostJitFunctionTable(const void* functionAddress);
     bool     loadExternalModule(void*& outModuleHandle, std::string_view moduleName);
     bool     getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName);
 

@@ -13,7 +13,9 @@ public:
     JITMemoryManager(const JITMemoryManager&)            = delete;
     JITMemoryManager& operator=(const JITMemoryManager&) = delete;
 
+    bool        allocateWithCodeSize(JITMemory& outExecutableMemory, uint32_t allocationSize, uint32_t codeSize);
     bool        allocate(JITMemory& outExecutableMemory, uint32_t size);
+    bool        registerUnwindInfo(const JITMemory& executableMemory);
     static bool makeExecutable(const JITMemory& executableMemory);
     bool        allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan bytes);
 
@@ -27,8 +29,9 @@ private:
 
     static constexpr uint32_t DEFAULT_BLOCK_SIZE = 64 * 1024;
 
-    std::mutex         mutex_;
-    std::vector<Block> blocks_;
+    std::mutex               mutex_;
+    std::vector<Block>       blocks_;
+    std::vector<const void*> registeredSehFunctions_;
 };
 
 SWC_END_NAMESPACE();

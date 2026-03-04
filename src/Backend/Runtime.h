@@ -443,6 +443,7 @@ namespace Runtime
         bool                   backendDebugInformations = false;
         bool                   backendDebugInline       = false;
         uint32_t               backendNumCu             = 0;
+        bool                   jitEnableSehUnwind       = true;
 
         String          linkerArgs;
         BuildCfgBackend backend;

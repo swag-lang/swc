@@ -27,6 +27,10 @@ namespace
 JITMemoryManager::~JITMemoryManager()
 {
     const std::unique_lock lock(mutex_);
+    for (const void* functionAddress : registeredSehFunctions_)
+        Os::removeHostJitFunctionTable(functionAddress);
+    registeredSehFunctions_.clear();
+
     for (const auto& block : blocks_)
     {
         if (block.ptr)
@@ -35,15 +39,17 @@ JITMemoryManager::~JITMemoryManager()
     blocks_.clear();
 }
 
-bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
+bool JITMemoryManager::allocateWithCodeSize(JITMemory& outExecutableMemory, const uint32_t allocationSize, const uint32_t codeSize)
 {
     outExecutableMemory.reset();
-    if (!size)
+    if (!allocationSize)
         return false;
 
+    SWC_FORCE_ASSERT(codeSize <= allocationSize);
+
     const uint32_t pageSize = executablePageSize();
-    SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max() - (pageSize - 1));
-    const uint32_t requestSize      = size;
+    SWC_ASSERT(allocationSize <= std::numeric_limits<uint32_t>::max() - (pageSize - 1));
+    const uint32_t requestSize      = allocationSize;
     const uint32_t requestSizeAlign = alignUp(requestSize, pageSize);
 
     const std::unique_lock lock(mutex_);
@@ -76,9 +82,30 @@ bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
     std::byte* const dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
     targetBlock->allocated += requestSizeAlign;
 
-    outExecutableMemory.ptr_            = dst;
-    outExecutableMemory.size_           = requestSize;
-    outExecutableMemory.allocationSize_ = requestSizeAlign;
+    outExecutableMemory.ptr_              = dst;
+    outExecutableMemory.size_             = codeSize;
+    outExecutableMemory.allocationSize_   = requestSizeAlign;
+    outExecutableMemory.unwindInfoOffset_ = 0;
+    outExecutableMemory.unwindInfoSize_   = 0;
+    return true;
+}
+
+bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
+{
+    return allocateWithCodeSize(outExecutableMemory, size, size);
+}
+
+bool JITMemoryManager::registerUnwindInfo(const JITMemory& executableMemory)
+{
+    if (!executableMemory.hasUnwindInfo())
+        return true;
+
+    const bool didRegister = Os::addHostJitFunctionTable(executableMemory.ptr_, executableMemory.size_, executableMemory.unwindInfoOffset_);
+    if (!didRegister)
+        return false;
+
+    const std::unique_lock lock(mutex_);
+    registeredSehFunctions_.push_back(executableMemory.ptr_);
     return true;
 }
 
@@ -99,8 +126,8 @@ bool JITMemoryManager::allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan 
         return false;
 
     SWC_ASSERT(bytes.size() <= std::numeric_limits<uint32_t>::max());
-    const auto requestSize = static_cast<uint32_t>(bytes.size());
-    if (!allocate(outExecutableMemory, requestSize))
+    const uint32_t requestSize = static_cast<uint32_t>(bytes.size());
+    if (!allocateWithCodeSize(outExecutableMemory, requestSize, requestSize))
         return false;
 
     std::memcpy(outExecutableMemory.ptr_, bytes.data(), bytes.size());

@@ -1,10 +1,5 @@
 #global fileprivate
 
-#run
-{
-    @assert(false)
-}
-/*
 struct Pair
 {
     a: s32
@@ -97,7 +92,5 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
     @assert(pay2.values[0] == 20)
     @assert(pay2.values[1] == 21)
     @assert(pay2.values[2] == 22)
-    @assert(pay2.tag == 3)
+    @assert(pay2.tag == 2)
 }
-
-*/

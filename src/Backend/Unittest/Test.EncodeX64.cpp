@@ -436,6 +436,58 @@ SWC_TEST_BEGIN(EncodeX64_UnwindFromMicro)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(EncodeX64_UnwindStopsBeforeStackStoreBody)
+{
+    constexpr std::array<uint8_t, 12> expected = {
+        0x01,
+        0x08,
+        0x03,
+        0x05,
+        0x08,
+        0x32,
+        0x04,
+        0x03,
+        0x01,
+        0x50,
+        0x00,
+        0x00,
+    };
+
+    SWC_RESULT_VERIFY(runUnwindCase(ctx, [](MicroBuilder& b) {
+        b.emitPush(RBP);
+        b.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(RSP, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
+        b.emitLoadMemReg(RSP, 0x40, R12, MicroOpBits::B64);
+        b.emitRet(); }, expected));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_UnwindUpdatesFramePointerWhenAssignedTwice)
+{
+    constexpr std::array<uint8_t, 12> expected = {
+        0x01,
+        0x0B,
+        0x03,
+        0x05,
+        0x0B,
+        0x03,
+        0x08,
+        0x32,
+        0x01,
+        0x50,
+        0x00,
+        0x00,
+    };
+
+    SWC_RESULT_VERIFY(runUnwindCase(ctx, [](MicroBuilder& b) {
+        b.emitPush(RBP);
+        b.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(RSP, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
+        b.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+        b.emitRet(); }, expected));
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(EncodeX64_UnwindStopsAfterBodyStart)
 {
     constexpr std::array<uint8_t, 4> expected = {

@@ -15,31 +15,29 @@ private:
         PushNonVol,
         AllocateStack,
         SetFramePointer,
-        SaveNonVol,
     };
 
     struct UnwindOp
     {
-        UnwindOpKind kind        = UnwindOpKind::PushNonVol;
-        uint8_t      codeOffset  = 0;
-        uint8_t      reg         = 0;
-        uint32_t     stackSize   = 0;
-        uint32_t     stackOffset = 0;
+        UnwindOpKind kind       = UnwindOpKind::PushNonVol;
+        uint8_t      codeOffset = 0;
+        uint8_t      reg        = 0;
+        uint32_t     stackSize  = 0;
     };
 
     bool tryTrackPush(const MicroInstrOperand* ops, uint32_t codeEndOffset);
     bool tryTrackAllocateStack(const MicroInstrOperand* ops, uint32_t codeEndOffset);
     bool tryTrackSetFramePointer(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    bool tryTrackSaveNonVol(const MicroInstrOperand* ops, uint32_t codeEndOffset);
     void closeProlog();
     bool canTrackInstruction(uint32_t codeEndOffset);
 
     bool                  unwindPrologClosed_       = false;
-    bool                  unwindPrologInvalid_      = false;
+    bool                  unwindHasStackAllocation_ = false;
     bool                  unwindHasFrameRegister_   = false;
     uint8_t               unwindPrologSize_         = 0;
     uint8_t               unwindFrameRegister_      = 0;
     uint8_t               unwindFrameOffsetInSlots_ = 0;
+    uint16_t              unwindPushedRegMask_      = 0;
     std::vector<UnwindOp> unwindOps_;
 };
 

@@ -41,7 +41,7 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
 
 #run
 {
-    //@assert(false)
+    @assert(false)
 
 {
     var p0 = inlineMakePair(20, 22)

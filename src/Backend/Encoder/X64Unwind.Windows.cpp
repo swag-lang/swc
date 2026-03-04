@@ -25,12 +25,10 @@ namespace
         15,
     };
 
-    constexpr uint8_t K_UWOP_PUSH_NONVOL     = 0;
-    constexpr uint8_t K_UWOP_ALLOC_LARGE     = 1;
-    constexpr uint8_t K_UWOP_ALLOC_SMALL     = 2;
-    constexpr uint8_t K_UWOP_SET_FPREG       = 3;
-    constexpr uint8_t K_UWOP_SAVE_NONVOL     = 4;
-    constexpr uint8_t K_UWOP_SAVE_NONVOL_FAR = 5;
+    constexpr uint8_t K_UWOP_PUSH_NONVOL = 0;
+    constexpr uint8_t K_UWOP_ALLOC_LARGE = 1;
+    constexpr uint8_t K_UWOP_ALLOC_SMALL = 2;
+    constexpr uint8_t K_UWOP_SET_FPREG   = 3;
 
     bool isX64NonVolatileReg(const uint8_t reg)
     {
@@ -75,7 +73,6 @@ namespace
 void X64UnwindWindows::buildInfo(std::vector<std::byte>& outUnwindInfo, const uint32_t codeSize) const
 {
     SWC_ASSERT(codeSize != 0);
-    SWC_ASSERT(!unwindPrologInvalid_);
 
     SWC_UNUSED(codeSize);
     outUnwindInfo.clear();
@@ -121,23 +118,6 @@ void X64UnwindWindows::buildInfo(std::vector<std::byte>& outUnwindInfo, const ui
                 unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_SET_FPREG, 0));
                 break;
 
-            case UnwindOpKind::SaveNonVol:
-            {
-                SWC_ASSERT((op.stackOffset % 8) == 0);
-                const uint32_t stackOffsetInSlots = op.stackOffset / 8;
-                if (stackOffsetInSlots <= std::numeric_limits<uint16_t>::max())
-                {
-                    unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_SAVE_NONVOL, op.reg));
-                    unwindSlots.push_back(static_cast<uint16_t>(stackOffsetInSlots));
-                    break;
-                }
-
-                unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_SAVE_NONVOL_FAR, op.reg));
-                unwindSlots.push_back(static_cast<uint16_t>(op.stackOffset & 0xFFFF));
-                unwindSlots.push_back(static_cast<uint16_t>((op.stackOffset >> 16) & 0xFFFF));
-                break;
-            }
-
             default:
                 SWC_UNREACHABLE();
         }
@@ -166,7 +146,7 @@ void X64UnwindWindows::onInstructionEncoded(const MicroInstr& inst, const MicroI
     if (codeEndOffset <= codeStartOffset)
         return;
 
-    if (unwindPrologClosed_ || unwindPrologInvalid_)
+    if (unwindPrologClosed_)
         return;
 
     if (!canTrackInstruction(codeEndOffset))
@@ -182,10 +162,6 @@ void X64UnwindWindows::onInstructionEncoded(const MicroInstr& inst, const MicroI
         case MicroInstrOpcode::LoadRegReg:
         case MicroInstrOpcode::LoadAddrRegMem:
             didTrack = tryTrackSetFramePointer(inst, ops, codeEndOffset);
-            break;
-
-        case MicroInstrOpcode::LoadMemReg:
-            didTrack = tryTrackSaveNonVol(ops, codeEndOffset);
             break;
 
         case MicroInstrOpcode::OpBinaryRegImm:
@@ -210,11 +186,16 @@ bool X64UnwindWindows::tryTrackPush(const MicroInstrOperand* ops, const uint32_t
 {
     if (!ops)
         return false;
+    if (unwindHasStackAllocation_)
+        return false;
 
     uint8_t reg = 0;
     if (!tryMapUnwindReg(reg, ops[0].reg))
         return false;
     if (!isX64NonVolatileReg(reg))
+        return false;
+    const uint16_t regMask = static_cast<uint16_t>(1u << reg);
+    if (unwindPushedRegMask_ & regMask)
         return false;
 
     unwindOps_.push_back({
@@ -222,12 +203,15 @@ bool X64UnwindWindows::tryTrackPush(const MicroInstrOperand* ops, const uint32_t
         .codeOffset = static_cast<uint8_t>(codeEndOffset),
         .reg        = reg,
     });
+    unwindPushedRegMask_ |= regMask;
     return true;
 }
 
 bool X64UnwindWindows::tryTrackAllocateStack(const MicroInstrOperand* ops, const uint32_t codeEndOffset)
 {
     if (!ops)
+        return false;
+    if (unwindHasStackAllocation_)
         return false;
 
     if (ops[0].reg != MicroReg::intReg(4))
@@ -244,14 +228,13 @@ bool X64UnwindWindows::tryTrackAllocateStack(const MicroInstrOperand* ops, const
         .codeOffset = static_cast<uint8_t>(codeEndOffset),
         .stackSize  = static_cast<uint32_t>(ops[3].valueU64),
     });
+    unwindHasStackAllocation_ = true;
     return true;
 }
 
 bool X64UnwindWindows::tryTrackSetFramePointer(const MicroInstr& inst, const MicroInstrOperand* ops, const uint32_t codeEndOffset)
 {
     if (!ops)
-        return false;
-    if (unwindHasFrameRegister_)
         return false;
 
     MicroReg frameReg;
@@ -288,39 +271,28 @@ bool X64UnwindWindows::tryTrackSetFramePointer(const MicroInstr& inst, const Mic
     if (!isX64NonVolatileReg(reg))
         return false;
 
+    if (unwindHasFrameRegister_)
+    {
+        if (reg != unwindFrameRegister_)
+            return false;
+
+        unwindFrameOffsetInSlots_ = static_cast<uint8_t>(frameOffset / 16);
+        for (UnwindOp& op : unwindOps_)
+        {
+            if (op.kind == UnwindOpKind::SetFramePointer)
+            {
+                op.codeOffset = static_cast<uint8_t>(codeEndOffset);
+                return true;
+            }
+        }
+    }
+
     unwindHasFrameRegister_   = true;
     unwindFrameRegister_      = reg;
     unwindFrameOffsetInSlots_ = static_cast<uint8_t>(frameOffset / 16);
     unwindOps_.push_back({
         .kind       = UnwindOpKind::SetFramePointer,
         .codeOffset = static_cast<uint8_t>(codeEndOffset),
-    });
-    return true;
-}
-
-bool X64UnwindWindows::tryTrackSaveNonVol(const MicroInstrOperand* ops, const uint32_t codeEndOffset)
-{
-    if (!ops)
-        return false;
-
-    if (ops[0].reg != MicroReg::intReg(4))
-        return false;
-    if (ops[2].opBits != MicroOpBits::B64)
-        return false;
-    if (ops[3].valueU64 > std::numeric_limits<uint32_t>::max())
-        return false;
-
-    uint8_t reg = 0;
-    if (!tryMapUnwindReg(reg, ops[1].reg))
-        return false;
-    if (!isX64NonVolatileReg(reg))
-        return false;
-
-    unwindOps_.push_back({
-        .kind        = UnwindOpKind::SaveNonVol,
-        .codeOffset  = static_cast<uint8_t>(codeEndOffset),
-        .reg         = reg,
-        .stackOffset = static_cast<uint32_t>(ops[3].valueU64),
     });
     return true;
 }
@@ -335,7 +307,6 @@ bool X64UnwindWindows::canTrackInstruction(const uint32_t codeEndOffset)
     if (codeEndOffset <= std::numeric_limits<uint8_t>::max())
         return true;
 
-    unwindPrologInvalid_ = true;
     closeProlog();
     return false;
 }

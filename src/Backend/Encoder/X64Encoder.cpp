@@ -1494,14 +1494,18 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
 
 void X64Encoder::encodePush(MicroReg reg)
 {
-    emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
+    const auto x64Reg = microRegToX64Reg(reg);
+    if (isExtendedReg(x64Reg))
+        store_.pushU8(getRex(false, false, false, true));
     emitCpuOp(store_, 0x50, reg);
     return;
 }
 
 void X64Encoder::encodePop(MicroReg reg)
 {
-    emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
+    const auto x64Reg = microRegToX64Reg(reg);
+    if (isExtendedReg(x64Reg))
+        store_.pushU8(getRex(false, false, false, true));
     emitCpuOp(store_, 0x58, reg);
     return;
 }

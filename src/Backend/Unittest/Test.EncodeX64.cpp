@@ -22,6 +22,8 @@ namespace
     constexpr MicroReg RDX  = MicroReg::intReg(3);
     constexpr MicroReg RSP  = MicroReg::intReg(4);
     constexpr MicroReg RBP  = MicroReg::intReg(5);
+    constexpr MicroReg RSI  = MicroReg::intReg(6);
+    constexpr MicroReg RDI  = MicroReg::intReg(7);
     constexpr MicroReg R8   = MicroReg::intReg(8);
     constexpr MicroReg R9   = MicroReg::intReg(9);
     constexpr MicroReg R10  = MicroReg::intReg(10);
@@ -44,8 +46,16 @@ namespace
     Result buildFlow(const RunCaseFn& runCase)
     {
         ENCODE_CASE("nop", "90", b.emitNop(););
+        ENCODE_CASE("push_rsp", "54", b.emitPush(RSP););
+        ENCODE_CASE("push_rbp", "55", b.emitPush(RBP););
+        ENCODE_CASE("push_rsi", "56", b.emitPush(RSI););
+        ENCODE_CASE("push_rdi", "57", b.emitPush(RDI););
         ENCODE_CASE("push_r8", "41 50", b.emitPush(R8););
         ENCODE_CASE("push_r12", "41 54", b.emitPush(R12););
+        ENCODE_CASE("pop_rsp", "5C", b.emitPop(RSP););
+        ENCODE_CASE("pop_rbp", "5D", b.emitPop(RBP););
+        ENCODE_CASE("pop_rsi", "5E", b.emitPop(RSI););
+        ENCODE_CASE("pop_rdi", "5F", b.emitPop(RDI););
         ENCODE_CASE("pop_r15", "41 5F", b.emitPop(R15););
         ENCODE_CASE("pop_r12", "41 5C", b.emitPop(R12););
         ENCODE_CASE("call_local", "48 B8 00 00 00 00 00 00 00 00 FF D0",
@@ -402,16 +412,16 @@ SWC_TEST_BEGIN(EncodeX64_UnwindFromMicro)
 {
     constexpr std::array<uint8_t, 12> expected = {
         0x01,
-        0x0B,
+        0x0A,
         0x04,
         0x05,
-        0x0B,
+        0x0A,
         0x32,
-        0x07,
+        0x06,
         0xC0,
-        0x05,
+        0x04,
         0x03,
-        0x02,
+        0x01,
         0x50,
     };
 

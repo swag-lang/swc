@@ -221,7 +221,7 @@ size_t TypeManager::memStorageReserved() const
     for (const Shard& shard : shards_)
     {
         const std::shared_lock lk(shard.mutex);
-        result += static_cast<size_t>(shard.store.allocatedBytes());
+        result += shard.store.allocatedBytes();
         result += shard.map.bucket_count() * sizeof(void*);
         result += shard.map.size() * (sizeof(std::pair<const TypeInfo, TypeRef>) + sizeof(void*));
     }

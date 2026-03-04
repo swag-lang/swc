@@ -93,7 +93,7 @@ size_t NodePayload::memStorageReserved() const
     for (const Shard& shard : shards_)
     {
         const std::shared_lock lock(shard.mutex);
-        result += static_cast<size_t>(shard.store.allocatedBytes());
+        result += shard.store.allocatedBytes();
         result += shard.codeGenPayloads.bucket_count() * sizeof(void*);
         result += shard.codeGenPayloads.size() * (sizeof(std::pair<const AstNodeRef, void*>) + sizeof(void*));
         result += shard.semaPayloads.bucket_count() * sizeof(void*);

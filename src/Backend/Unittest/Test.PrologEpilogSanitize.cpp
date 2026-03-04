@@ -75,17 +75,17 @@ namespace
 
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
 {
-    constexpr MicroReg RSP = MicroReg::intReg(4);
-    constexpr MicroReg RBP = MicroReg::intReg(5);
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rbp = MicroReg::intReg(5);
     MicroBuilder       builder(ctx);
 
-    builder.emitPush(RBP);
-    builder.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(RSP, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(RSP, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitPush(rbp);
+    builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitNop();
-    builder.emitOpBinaryRegImm(RSP, ApInt(24, 64), MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(RSP, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(24, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
     SWC_RESULT_VERIFY(runPrologEpilogSanitizePass(builder));
@@ -99,25 +99,25 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
     if (!subInst || !addInst)
         return Result::Error;
 
-    if (!isStackAdjust(*subInst, subInst->ops(operands), RSP, MicroOp::Subtract, 48))
+    if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 48))
         return Result::Error;
-    if (!isStackAdjust(*addInst, addInst->ops(operands), RSP, MicroOp::Add, 32))
+    if (!isStackAdjust(*addInst, addInst->ops(operands), rsp, MicroOp::Add, 32))
         return Result::Error;
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
 {
-    constexpr MicroReg RSP = MicroReg::intReg(4);
-    constexpr MicroReg RBP = MicroReg::intReg(5);
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rbp = MicroReg::intReg(5);
     MicroBuilder       builder(ctx);
 
-    builder.emitPush(RBP);
-    builder.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(RSP, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitPush(rbp);
+    builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitNop();
-    builder.emitOpBinaryRegImm(RSP, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(RSP, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
     SWC_RESULT_VERIFY(runPrologEpilogSanitizePass(builder));
@@ -132,25 +132,25 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
     if (!firstSubInst || !secondSubInst || !epilogueAddIns)
         return Result::Error;
 
-    if (!isStackAdjust(*firstSubInst, firstSubInst->ops(operands), RSP, MicroOp::Subtract, 16))
+    if (!isStackAdjust(*firstSubInst, firstSubInst->ops(operands), rsp, MicroOp::Subtract, 16))
         return Result::Error;
-    if (!isStackAdjust(*secondSubInst, secondSubInst->ops(operands), RSP, MicroOp::Subtract, 32))
+    if (!isStackAdjust(*secondSubInst, secondSubInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
-    if (!isStackAdjust(*epilogueAddIns, epilogueAddIns->ops(operands), RSP, MicroOp::Add, 32))
+    if (!isStackAdjust(*epilogueAddIns, epilogueAddIns->ops(operands), rsp, MicroOp::Add, 32))
         return Result::Error;
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryProlog)
 {
-    constexpr MicroReg RSP = MicroReg::intReg(4);
-    constexpr MicroReg RBP = MicroReg::intReg(5);
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rbp = MicroReg::intReg(5);
     MicroBuilder       builder(ctx);
 
-    builder.emitPush(RBP);
-    builder.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(RSP, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+    builder.emitPush(rbp);
+    builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
     builder.emitRet();
 
     SWC_RESULT_VERIFY(runPrologEpilogSanitizePass(builder));
@@ -168,9 +168,9 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryPr
 
     if (firstInst->op != MicroInstrOpcode::Push)
         return Result::Error;
-    if (!isStackAdjust(*secondInst, secondInst->ops(operands), RSP, MicroOp::Subtract, 32))
+    if (!isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
-    if (!isFramePointerSetup(*thirdInst, thirdInst->ops(operands), RBP, RSP))
+    if (!isFramePointerSetup(*thirdInst, thirdInst->ops(operands), rbp, rsp))
         return Result::Error;
     if (fourthInst->op != MicroInstrOpcode::Ret)
         return Result::Error;
@@ -179,14 +179,14 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotTouchFramePointerSetupAfterBodyStarts)
 {
-    constexpr MicroReg RSP = MicroReg::intReg(4);
-    constexpr MicroReg RBP = MicroReg::intReg(5);
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rbp = MicroReg::intReg(5);
     MicroBuilder       builder(ctx);
 
-    builder.emitPush(RBP);
-    builder.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+    builder.emitPush(rbp);
+    builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
     builder.emitNop();
-    builder.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+    builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
     builder.emitRet();
 
     SWC_RESULT_VERIFY(runPrologEpilogSanitizePass(builder));
@@ -200,9 +200,9 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotTouchFramePointerSetupAfterBodyS
     if (!firstSetup || !secondSetup)
         return Result::Error;
 
-    if (!isFramePointerSetup(*firstSetup, firstSetup->ops(operands), RBP, RSP))
+    if (!isFramePointerSetup(*firstSetup, firstSetup->ops(operands), rbp, rsp))
         return Result::Error;
-    if (!isFramePointerSetup(*secondSetup, secondSetup->ops(operands), RBP, RSP))
+    if (!isFramePointerSetup(*secondSetup, secondSetup->ops(operands), rbp, rsp))
         return Result::Error;
 }
 SWC_TEST_END()

@@ -28,7 +28,7 @@ namespace
             return;
         }
 
-        const uint64_t signBitMask = uint64_t(1) << (numBits - 1);
+        const uint64_t signBitMask = static_cast<uint64_t>(1) << (numBits - 1);
         if (!(outValue & signBitMask))
         {
             outOp = MicroOp::Add;

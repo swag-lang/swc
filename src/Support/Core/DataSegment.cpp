@@ -46,7 +46,7 @@ void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 size_t DataSegment::memStorageReserved() const
 {
     const std::shared_lock lock(mutex_);
-    size_t                 result = static_cast<size_t>(store_.allocatedBytes());
+    size_t                 result = store_.allocatedBytes();
     result += relocations_.capacity() * sizeof(DataSegmentRelocation);
     result += stringMap_.bucket_count() * sizeof(void*);
     result += stringMap_.size() * (sizeof(std::pair<const std::string, std::pair<std::string_view, uint32_t>>) + sizeof(void*));

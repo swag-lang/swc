@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 

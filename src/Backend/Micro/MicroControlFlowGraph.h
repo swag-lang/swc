@@ -1,5 +1,4 @@
 #pragma once
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
 

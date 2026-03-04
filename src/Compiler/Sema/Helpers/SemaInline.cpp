@@ -319,8 +319,8 @@ namespace
             outVariadic.untypedVariadic = lastParamType.isVariadic();
         }
 
-        std::vector<AstNodeRef> bound(numFixed, AstNodeRef::invalid());
-        size_t                  nextParam = 0;
+        std::vector bound(numFixed, AstNodeRef::invalid());
+        size_t      nextParam = 0;
 
         if (ufcsArg.isValid())
         {

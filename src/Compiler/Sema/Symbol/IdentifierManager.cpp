@@ -195,8 +195,8 @@ size_t IdentifierManager::memStorageReserved() const
     for (const Shard& shard : shards_)
     {
         const std::shared_lock lk(shard.mutex);
-        result += static_cast<size_t>(shard.store.allocatedBytes());
-        result += static_cast<size_t>(shard.stringStore.allocatedBytes());
+        result += shard.store.allocatedBytes();
+        result += shard.stringStore.allocatedBytes();
         result += shard.map.allocatedBytes();
     }
 

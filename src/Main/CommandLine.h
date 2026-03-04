@@ -14,11 +14,12 @@ inline constexpr CommandInfo COMMANDS[] = {
     {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
     {"sema", "Perform semantic analysis on the source code, including type checking."},
 };
+
 enum class CommandKind
 {
+    Invalid = -1,
     Syntax,
     Sema,
-    Invalid = -1,
 };
 
 struct CommandLine

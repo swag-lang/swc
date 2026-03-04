@@ -143,7 +143,7 @@ size_t Ast::memStorageReserved() const
 {
     size_t result = 0;
     for (const Shard& shard : shards_)
-        result += static_cast<size_t>(shard.store.allocatedBytes());
+        result += shard.store.allocatedBytes();
     return result;
 }
 #endif

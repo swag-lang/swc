@@ -72,7 +72,7 @@ uint32_t PagedStore::size() const noexcept
 #if SWC_HAS_STATS
 uint64_t PagedStore::allocatedBytes() const noexcept
 {
-    return static_cast<uint64_t>(snapshotPages()->size()) * pageSizeValue_;
+    return snapshotPages()->size() * pageSizeValue_;
 }
 #endif
 

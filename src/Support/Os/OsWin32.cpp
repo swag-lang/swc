@@ -452,7 +452,7 @@ namespace Os
         memoryCounters.cb                      = sizeof(memoryCounters);
         if (!GetProcessMemoryInfo(GetCurrentProcess(), &memoryCounters, sizeof(memoryCounters)))
             return 0;
-        return static_cast<size_t>(memoryCounters.PeakWorkingSetSize);
+        return memoryCounters.PeakWorkingSetSize;
     }
 
     bool isHostIllegalInstructionException(const uint32_t exceptionCode)
@@ -607,21 +607,24 @@ namespace Os
         (void) VirtualFree(ptr, 0, MEM_RELEASE);
     }
 
-    struct JitFunctionTableEntry
+    namespace
     {
-        RUNTIME_FUNCTION runtimeFunction{};
-    };
+        struct JitFunctionTableEntry
+        {
+            RUNTIME_FUNCTION runtimeFunction{};
+        };
 
-    struct JitFunctionTableState
-    {
-        std::mutex                                                              mutex;
-        std::unordered_map<const void*, std::unique_ptr<JitFunctionTableEntry>> entries;
-    };
+        struct JitFunctionTableState
+        {
+            std::mutex                                                              mutex;
+            std::unordered_map<const void*, std::unique_ptr<JitFunctionTableEntry>> entries;
+        };
 
-    JitFunctionTableState& jitFunctionTableState()
-    {
-        static JitFunctionTableState state;
-        return state;
+        JitFunctionTableState& jitFunctionTableState()
+        {
+            static JitFunctionTableState state;
+            return state;
+        }
     }
 
     bool addHostJitFunctionTable(const void* functionAddress, const uint32_t codeSize, const uint32_t unwindInfoOffset)

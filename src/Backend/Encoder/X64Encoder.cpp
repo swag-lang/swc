@@ -716,18 +716,20 @@ std::string X64Encoder::formatRegisterName(MicroReg reg) const
 
 X64Encoder::X64Encoder(TaskContext& ctx) :
     Encoder(ctx),
-    unwind_(ctx.compiler().cmdLine().targetOs)
+    unwind_(X64Unwind::create(ctx.compiler().cmdLine().targetOs))
 {
 }
 
 void X64Encoder::buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
 {
-    unwind_.buildInfo(outUnwindInfo, size());
+    SWC_ASSERT(unwind_);
+    unwind_->buildInfo(outUnwindInfo, size());
 }
 
 void X64Encoder::onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, const uint32_t codeStartOffset, const uint32_t codeEndOffset)
 {
-    unwind_.onInstructionEncoded(inst, ops, codeStartOffset, codeEndOffset);
+    SWC_ASSERT(unwind_);
+    unwind_->onInstructionEncoded(inst, ops, codeStartOffset, codeEndOffset);
 }
 
 // ============================================================================

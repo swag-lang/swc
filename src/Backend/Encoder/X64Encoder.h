@@ -71,7 +71,7 @@ private:
     void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& valueInt, MicroOp op, MicroOpBits opBits) override;
     void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits) override;
 
-    X64Unwind unwind_;
+    std::unique_ptr<X64Unwind> unwind_;
 };
 
 SWC_END_NAMESPACE();

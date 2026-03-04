@@ -73,4 +73,6 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
     @assert(pay2.values[1] == 21)
     @assert(pay2.values[2] == 22)
     @assert(pay2.tag == 2)
+
+    @assert(pay2.tag == 3) // swc-expected-error {{sema_err_assert_failed}}
 }

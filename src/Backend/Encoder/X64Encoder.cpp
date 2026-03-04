@@ -1545,7 +1545,18 @@ void X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits 
     }
     else
     {
-        emitRex(store_, opBits, regSrc, regDst);
+        const auto x64Src = microRegToX64Reg(regSrc);
+        const auto x64Dst = microRegToX64Reg(regDst);
+
+        if (opBits == MicroOpBits::B16)
+            store_.pushU8(0x66);
+
+        const bool rexR         = isExtendedReg(x64Src);
+        const bool rexB         = isExtendedReg(x64Dst);
+        const bool needsByteRex = opBits == MicroOpBits::B8 && (needsRexForByteReg(x64Src) || needsRexForByteReg(x64Dst));
+        if (opBits == MicroOpBits::B64 || rexR || rexB || needsByteRex)
+            store_.pushU8(getRex(opBits == MicroOpBits::B64, rexR, false, rexB));
+
         emitSpecCpuOp(store_, getX64RegMemOpCode(MicroOp::Move), opBits);
         emitModRm(store_, regSrc, regDst);
     }

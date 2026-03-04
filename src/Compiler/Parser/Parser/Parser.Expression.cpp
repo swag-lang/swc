@@ -723,7 +723,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicArgs:
         case TokenId::IntrinsicModules:
         case TokenId::IntrinsicGvtd:
-        case TokenId::IntrinsicByteCode:
+        case TokenId::IntrinsicJit:
             return parseIntrinsicCallConstantExpr();
 
         case TokenId::IntrinsicDbgAlloc:

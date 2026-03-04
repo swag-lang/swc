@@ -321,7 +321,7 @@ SWC_TOKEN_DEF(IntrinsicSysAlloc, "@sysalloc",  TokenIdKindE::Intrinsic | TokenId
 
 SWC_TOKEN_DEF(IntrinsicErr, "@err",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicArgs, "@args",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicByteCode, "@bytecode",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicJit, "@jit",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicIndex, "@index",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicRtFlags, "@rtflags",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicProcessInfos, "@pinfos",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)

@@ -199,7 +199,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("@err", State.Intrinsic)
         .mapWords.add("@args", State.Intrinsic)
         .mapWords.add("@pinfos", State.Intrinsic)
-        .mapWords.add("@bytecode", State.Intrinsic)
+        .mapWords.add("@jit", State.Intrinsic)
         .mapWords.add("@compiler", State.Intrinsic)
         .mapWords.add("@modules", State.Intrinsic)
         .mapWords.add("@gvtd", State.Intrinsic)

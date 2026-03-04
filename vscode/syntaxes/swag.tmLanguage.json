@@ -136,7 +136,7 @@
       "patterns": [
         {
           "name": "constant.character.escape",
-          "match": "(@)(index|err|args|bytecode|compiler|pinfos|modules|gvtd|rtflags)\\b"
+          "match": "(@)(index|err|args|jit|compiler|pinfos|modules|gvtd|rtflags)\\b"
         }
       ]
     },

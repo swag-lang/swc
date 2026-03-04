@@ -929,8 +929,8 @@ func @pinfos()->*Swag.ProcessInfos;
 func @modules()->const [..] Swag.Module;
 // Returns the list of all global variables.
 func @gvtd()->const [..] Swag.Gvtd;
-// Returns 'true' is the current execution is bytecode.
-func @bytecode()->bool;
+// Returns 'true' if the current execution is JIT.
+func @jit()->bool;
 // Returns an [[ICompiler]] interface to communicate with the compiler.
 func @compiler()->Swag.ICompiler;
 

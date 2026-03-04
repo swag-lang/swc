@@ -148,9 +148,7 @@ func __stackTrace(loc: SourceCodeLocation)
 // Raise a compiler error at the given source location
 func @compilererror(message: string, loc: SourceCodeLocation)
 {
-    // If the compiler is around, just let it deal with the message
-    let cxt = @getcontext()
-    if cxt.flags & .Jit
+    if @jit
     {
         __raiseException666(message, loc, .Error)
         return
@@ -160,9 +158,7 @@ func @compilererror(message: string, loc: SourceCodeLocation)
 // Raise a compiler warning at the given source location
 func @compilerwarning(message: string, loc: SourceCodeLocation)
 {
-    // If the compiler is around, just let it deal with the message
-    let cxt = @getcontext()
-    if cxt.flags & .Jit
+    if @jit
     {
         __raiseException666(message, loc, .Warning)
         return
@@ -185,7 +181,7 @@ func @panic(message: string, loc: SourceCodeLocation)
     // If we are running bytecode, then just let the runner deal with the message,
     // we will have more usefull information
     let contextFlags = cxt.flags
-    if contextFlags & .Jit
+    if @jit
     {
         __raiseException666(message, loc, .Panic)
         return

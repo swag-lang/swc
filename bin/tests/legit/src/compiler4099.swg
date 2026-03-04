@@ -2,7 +2,7 @@
 #[Swag.Optimize(.All, false)]
 #test
 {
-    if @bytecode
+    if @jit
     {
         var cfg: *Swag.BuildCfg
         cfg = @compiler.getBuildCfg()

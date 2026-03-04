@@ -36,7 +36,7 @@ func toto()->{ x: AA }
 #[Swag.Optimize(.ByteCode, true)]
 #test
 {
-    if @bytecode and @compiler.getBuildCfg().backend.optimize
+    if @jit and @compiler.getBuildCfg().backend.optimize
     {
         //var x: AA
         var (x) = toto()

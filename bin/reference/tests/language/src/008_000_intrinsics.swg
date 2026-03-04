@@ -35,7 +35,7 @@ func @setcontext(context: const *Swag.Context);  // Set the current execution co
 
 @err:        any                  // The current raised error (null if none).
 @args:       const [..] string    // Command-line arguments passed to the program.
-@bytecode:   bool                 // True if the code is being executed as bytecode.
+@jit:   bool                 // True if the code is being executed as JIT.
 @pinfos:     *Swag.ProcessInfos   // Retrieve program information.
 @compiler:   Swag.ICompiler       // Retrieve the current compiler interface.
 @rtflags:

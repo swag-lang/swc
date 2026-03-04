@@ -208,7 +208,7 @@ or fileprivate state access.
 @index
 @args
 @pinfos
-@bytecode
+@jit
 @compiler
 @modules
 @gvtd

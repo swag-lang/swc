@@ -127,6 +127,12 @@ Result AstParenExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstEmbeddedBlock::semaPreNode(Sema& sema)
+{
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+    return Result::Continue;
+}
+
 Result AstNamedArgument::semaPostNode(Sema& sema)
 {
     sema.inheritPayload(*this, nodeArgRef);

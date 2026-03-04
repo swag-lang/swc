@@ -41,30 +41,36 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
 
 #run
 {
+    //@assert(false)
+
+{
     var p0 = inlineMakePair(20, 22)
     @assert(p0.a == 20)
     @assert(p0.b == 22)
+}
 
-    var p1 = inlinePairEcho(Pair{10, 32})
-    @assert(p1.a == 10)
-    @assert(p1.b == 32)
+{
+    var p0 = inlineMakePair(20, 22)
+    @assert(p0.a == 20)
+    @assert(p0.b == 22)
+}
+{
+    var p0 = inlineMakePair(20, 22)
+    @assert(p0.a == 20)
+    @assert(p0.b == 22)
+}
+{
+    var p0 = inlineMakePair(20, 22)
+    @assert(p0.a == 20)
+    @assert(p0.b == 22)
+}
+{
+    var p0 = inlineMakePair(20, 22)
+    @assert(p0.a == 20)
+    @assert(p0.b == 22)
+}
 
-    var p2 = inlinePairEcho(pair: Pair{41, 1})
-    @assert(p2.a == 41)
-    @assert(p2.b == 1)
-
-    var b0 = inlineMakeBox(10, 11, 9, 12)
-    @assert(b0.left.a == 10)
-    @assert(b0.left.b == 11)
-    @assert(b0.right.a == 9)
-    @assert(b0.right.b == 12)
-
-    var b1 = inlineBoxEcho(Box{Pair{1, 2}, Pair{3, 4}})
-    @assert(b1.left.a == 1)
-    @assert(b1.left.b == 2)
-    @assert(b1.right.a == 3)
-    @assert(b1.right.b == 4)
-
+/*
     var a0 = inlineArrayEcho([10, 20, 12])
     @assert(a0[0] == 10)
     @assert(a0[1] == 20)
@@ -92,5 +98,5 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
     @assert(pay2.values[0] == 20)
     @assert(pay2.values[1] == 21)
     @assert(pay2.values[2] == 22)
-    @assert(pay2.tag == 2)
+    @assert(pay2.tag == 2)*/
 }

@@ -91,11 +91,12 @@
     {
         var value = 1
         {
-            var value = 2 // swc-expected-error {{sema_err_already_defined}}
+            var value = 2
         }
 
         return value
     }
 
     const V = #run nestedRedeclaration()
+    #assert(V == 1)
 }

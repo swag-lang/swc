@@ -33,6 +33,7 @@ struct AstTopLevelBlock : AstCompoundT<AstNodeId::TopLevelBlock>
 struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    static Result semaPreNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

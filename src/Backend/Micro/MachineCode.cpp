@@ -71,6 +71,11 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 
     bytes.resize(codeSize);
     encoder.copyTo(bytes);
+    if (ctx.compiler().buildCfg().jitEnableSehUnwind)
+        SWC_FORCE_ASSERT(encoder.buildUnwindInfo(unwindInfo));
+    else
+        unwindInfo.clear();
+
     codeRelocations   = builder.codeRelocations();
     debugSourceRanges = encoder.debugSourceRanges();
     return Result::Continue;

@@ -69,8 +69,15 @@ public:
     const std::vector<EncoderDebugSourceRange>& debugSourceRanges() const { return debugSourceRanges_; }
     void                                        setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&             backendBuildCfg() const { return backendBuildCfg_; }
-    virtual std::string                         formatRegisterName(MicroReg reg) const;
-    virtual MicroReg                            stackPointerReg() const = 0;
+
+    virtual bool buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
+    {
+        outUnwindInfo.clear();
+        return false;
+    }
+
+    virtual std::string formatRegisterName(MicroReg reg) const;
+    virtual MicroReg    stackPointerReg() const = 0;
 
 protected:
     TaskContext&       ctx() { return *SWC_NOT_NULL(ctx_); }
@@ -141,6 +148,14 @@ public:
 
 protected:
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
+
+    virtual void onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeStartOffset, uint32_t codeEndOffset)
+    {
+        SWC_UNUSED(inst);
+        SWC_UNUSED(ops);
+        SWC_UNUSED(codeStartOffset);
+        SWC_UNUSED(codeEndOffset);
+    }
 
     TaskContext*                         ctx_ = nullptr;
     PagedStore                           store_;

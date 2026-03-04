@@ -210,6 +210,8 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             SWC_UNREACHABLE();
     }
 
+    encoder.onInstructionEncoded(inst, ops, instructionCodeStartOffset, encoder.size());
+
     if (emitDebugInfo)
         encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.sourceCodeRef);
 }

@@ -1,5 +1,10 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/Passes/Pass.Emit.h"
+#include "Backend/Micro/Passes/Pass.Legalize.h"
+#include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Unittest/UnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
 
@@ -303,6 +308,39 @@ namespace
         return buildFn(runOneCase);
     }
 
+    Result runUnwindCase(TaskContext& ctx, const BuilderCaseFn& fn, std::span<const uint8_t> expectedUnwindBytes)
+    {
+        X64Encoder   encoder(ctx);
+        MicroBuilder builder(ctx);
+        fn(builder);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroLegalizePass           legalizePass;
+        MicroEmitPass               encodePass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+        passes.addStartPass(legalizePass);
+        passes.addStartPass(regAllocPass);
+        passes.addStartPass(encodePass);
+
+        MicroPassContext passCtx;
+        SWC_RESULT_VERIFY(builder.runPasses(passes, &encoder, passCtx));
+
+        std::vector<std::byte> unwindInfo;
+        if (!encoder.buildUnwindInfo(unwindInfo))
+            return Result::Error;
+        if (unwindInfo.size() != expectedUnwindBytes.size())
+            return Result::Error;
+
+        for (size_t i = 0; i < unwindInfo.size(); ++i)
+        {
+            if (static_cast<uint8_t>(unwindInfo[i]) != expectedUnwindBytes[i])
+                return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+
 #undef ENCODE_CASE
 }
 
@@ -357,6 +395,49 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(EncodeX64_TernaryAndConvert)
 {
     SWC_RESULT_VERIFY(runCase(ctx, buildTernaryAndConvert));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_UnwindFromMicro)
+{
+    constexpr std::array<uint8_t, 12> expected = {
+        0x01,
+        0x0B,
+        0x04,
+        0x05,
+        0x0B,
+        0x32,
+        0x07,
+        0xC0,
+        0x05,
+        0x03,
+        0x02,
+        0x50,
+    };
+
+    SWC_RESULT_VERIFY(runUnwindCase(ctx, [](MicroBuilder& b) {
+        b.emitPush(RBP);
+        b.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+        b.emitPush(R12);
+        b.emitOpBinaryRegImm(RSP, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
+        b.emitNop();
+        b.emitRet(); }, expected));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_UnwindStopsAfterBodyStart)
+{
+    constexpr std::array<uint8_t, 4> expected = {
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+    };
+
+    SWC_RESULT_VERIFY(runUnwindCase(ctx, [](MicroBuilder& b) {
+        b.emitNop();
+        b.emitPush(R12);
+        b.emitRet(); }, expected));
 }
 SWC_TEST_END()
 

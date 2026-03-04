@@ -380,7 +380,7 @@ void SymbolFunction::jitEmit(TaskContext& ctx)
         return;
     }
 
-    JIT::emit(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations);
+    JIT::emit(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, loweredMicroCode_.unwindInfo);
     void* const entry = jitExecMemory_.entryPoint();
     if (!entry)
     {

@@ -11,6 +11,7 @@ struct MachineCode
     using DebugSourceRange = EncoderDebugSourceRange;
 
     std::vector<std::byte>        bytes;
+    std::vector<std::byte>        unwindInfo;
     std::vector<MicroRelocation>  codeRelocations;
     std::vector<DebugSourceRange> debugSourceRanges;
 

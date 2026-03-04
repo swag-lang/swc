@@ -24,7 +24,7 @@ namespace
         SWC_RESULT_VERIFY(loweredCode.emit(ctx, builder));
 
         JITMemory executableMemory;
-        JIT::emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);
+        JIT::emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, loweredCode.unwindInfo);
 
         using TestFn  = uint64_t (*)();
         const auto fn = reinterpret_cast<TestFn>(executableMemory.entryPoint());
@@ -62,7 +62,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     SWC_RESULT_VERIFY(loweredCalleeCode.emit(ctx, calleeBuilder));
 
     JITMemory calleeExecMemory;
-    JIT::emit(ctx, calleeExecMemory, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations);
+    JIT::emit(ctx, calleeExecMemory, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations, loweredCalleeCode.unwindInfo);
     using CalleeFnType  = uint64_t (*)();
     const auto calleeFn = reinterpret_cast<CalleeFnType>(calleeExecMemory.entryPoint());
     SWC_ASSERT(calleeFn != nullptr);
@@ -80,7 +80,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     SWC_RESULT_VERIFY(loweredCallerCode.emit(ctx, callerBuilder));
 
     JITMemory callerExecMemory;
-    JIT::emit(ctx, callerExecMemory, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations);
+    JIT::emit(ctx, callerExecMemory, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations, loweredCallerCode.unwindInfo);
     using CallerFnType  = uint64_t (*)();
     const auto callerFn = reinterpret_cast<CallerFnType>(callerExecMemory.entryPoint());
     SWC_ASSERT(callerFn != nullptr);

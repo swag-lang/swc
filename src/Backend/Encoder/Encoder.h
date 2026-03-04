@@ -70,12 +70,7 @@ public:
     void                                        setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&             backendBuildCfg() const { return backendBuildCfg_; }
 
-    virtual bool buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
-    {
-        outUnwindInfo.clear();
-        return false;
-    }
-
+    virtual void        buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const {}
     virtual std::string formatRegisterName(MicroReg reg) const;
     virtual MicroReg    stackPointerReg() const = 0;
 

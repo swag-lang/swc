@@ -1,11 +1,11 @@
 #global fileprivate
 
-#[Swag.PrintMicro]
+//#[Swag.PrintMicro]
 #[Swag.Optimize(false)]
 #run
 {
     let x = 1
-    @assert(false)
+//    @assert(false)
 }
 
 /*

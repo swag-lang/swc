@@ -744,14 +744,12 @@ std::string X64Encoder::formatRegisterName(MicroReg reg) const
     return std::format("reg#{}", reg.packed);
 }
 
-bool X64Encoder::buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
+void X64Encoder::buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
 {
-    outUnwindInfo.clear();
-    if (!size())
-        return false;
+    SWC_ASSERT(size());
+    SWC_ASSERT(!unwindPrologInvalid_);
 
-    if (unwindPrologInvalid_)
-        return false;
+    outUnwindInfo.clear();
 
     std::vector<UnwindOp> unwindOps = unwindOps_;
     std::ranges::sort(unwindOps, [](const UnwindOp& left, const UnwindOp& right) {
@@ -796,9 +794,7 @@ bool X64Encoder::buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
 
             case UnwindOpKind::SaveNonVol:
             {
-                if ((op.stackOffset % 8) != 0)
-                    return false;
-
+                SWC_ASSERT((op.stackOffset % 8) == 0);
                 const uint32_t stackOffsetInSlots = op.stackOffset / 8;
                 if (stackOffsetInSlots <= std::numeric_limits<uint16_t>::max())
                 {
@@ -814,13 +810,9 @@ bool X64Encoder::buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
             }
 
             default:
-                SWC_FORCE_ASSERT(false);
-                return false;
+                SWC_UNREACHABLE();
         }
     }
-
-    if (unwindSlots.size() > std::numeric_limits<uint8_t>::max())
-        return false;
 
     const uint32_t unwindSlotCount        = static_cast<uint32_t>(unwindSlots.size());
     const uint32_t unwindSlotCountAligned = (unwindSlotCount + 1u) & ~1u;
@@ -838,8 +830,6 @@ bool X64Encoder::buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
         outBytes[4 + i * 2 + 0] = static_cast<uint8_t>(value & 0xFF);
         outBytes[4 + i * 2 + 1] = static_cast<uint8_t>((value >> 8) & 0xFF);
     }
-
-    return true;
 }
 
 void X64Encoder::onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, const uint32_t codeStartOffset, const uint32_t codeEndOffset)

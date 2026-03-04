@@ -48,9 +48,10 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 
 #ifdef _M_X64
     X64Encoder encoder(ctx);
+#endif
+
     encoder.setBackendBuildCfg(builder.backendBuildCfg());
     encoder.clearDebugSourceRanges();
-#endif
 
 #if SWC_HAS_STATS
     const size_t numMicroInstrNoOptim = builder.instructions().count();
@@ -67,12 +68,12 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 #endif
 
     const auto codeSize = encoder.size();
-    SWC_FORCE_ASSERT(codeSize != 0);
+    SWC_ASSERT(codeSize != 0);
 
     bytes.resize(codeSize);
     encoder.copyTo(bytes);
     if (ctx.compiler().buildCfg().jitEnableSehUnwind)
-        SWC_FORCE_ASSERT(encoder.buildUnwindInfo(unwindInfo));
+        encoder.buildUnwindInfo(unwindInfo);
     else
         unwindInfo.clear();
 

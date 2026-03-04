@@ -339,8 +339,7 @@ namespace
         SWC_RESULT_VERIFY(builder.runPasses(passes, &encoder, passCtx));
 
         std::vector<std::byte> unwindInfo;
-        if (!encoder.buildUnwindInfo(unwindInfo))
-            return Result::Error;
+        encoder.buildUnwindInfo(unwindInfo);
         if (unwindInfo.size() != expectedUnwindBytes.size())
             return Result::Error;
 

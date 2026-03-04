@@ -20,7 +20,7 @@ public:
     {
     }
 
-    bool        buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const override;
+    void        buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const override;
     std::string formatRegisterName(MicroReg reg) const override;
     MicroReg    stackPointerReg() const override { return MicroReg::intReg(4); }
 

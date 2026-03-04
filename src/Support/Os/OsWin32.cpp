@@ -350,50 +350,6 @@ namespace
             appendWindowsStackFrame(outMsg, ctx, i, reinterpret_cast<uintptr_t>(frames[i]));
     }
 
-    Os::HostExceptionHandlerFn& hostExceptionHandler()
-    {
-        static Os::HostExceptionHandlerFn handler = nullptr;
-        return handler;
-    }
-
-    PVOID& vectoredExceptionHandle()
-    {
-        static PVOID handle = nullptr;
-        return handle;
-    }
-
-    int dispatchHostException(const void* platformExceptionPointers)
-    {
-        const Os::HostExceptionHandlerFn handler = hostExceptionHandler();
-        if (!handler)
-            return SWC_EXCEPTION_EXECUTE_HANDLER;
-        return handler(platformExceptionPointers);
-    }
-
-    // ReSharper disable once CppParameterMayBeConstPtrOrRef
-    LONG WINAPI onUnhandledExceptionFilter(_EXCEPTION_POINTERS* exceptionPointers)
-    {
-        (void) dispatchHostException(exceptionPointers);
-        return SWC_EXCEPTION_EXECUTE_HANDLER;
-    }
-
-    // ReSharper disable once CppParameterMayBeConstPtrOrRef
-    LONG CALLBACK onVectoredExceptionHandler(_EXCEPTION_POINTERS* exceptionPointers)
-    {
-        (void) exceptionPointers;
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-
-    void installHostExceptionHandlers(Os::HostExceptionHandlerFn exceptionHandler)
-    {
-        hostExceptionHandler() = exceptionHandler;
-
-        PVOID& handle = vectoredExceptionHandle();
-        if (!handle)
-            handle = AddVectoredExceptionHandler(1, onVectoredExceptionHandler);
-
-        SetUnhandledExceptionFilter(onUnhandledExceptionFilter);
-    }
 }
 
 namespace Os
@@ -417,23 +373,6 @@ namespace Os
     const char* hostExceptionBackendName()
     {
         return "windows seh";
-    }
-
-    int runMainWithHostExceptionBarrier(const MainEntryPoint mainEntryPoint, const HostExceptionHandlerFn exceptionHandler, const int argc, char* argv[])
-    {
-        SWC_ASSERT(mainEntryPoint);
-        SWC_ASSERT(exceptionHandler);
-
-        installHostExceptionHandlers(exceptionHandler);
-
-        SWC_TRY
-        {
-            return mainEntryPoint(argc, argv);
-        }
-        SWC_EXCEPT(dispatchHostException(SWC_GET_EXCEPTION_INFOS()))
-        {
-            return static_cast<int>(ExitCode::HardwareException);
-        }
     }
 
     uint32_t currentProcessId()

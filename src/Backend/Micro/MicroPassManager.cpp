@@ -13,6 +13,7 @@
 #include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
 #include "Backend/Micro/Passes/Pass.Peephole.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
+#include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Main/Global.h"
@@ -223,19 +224,20 @@ namespace
 
 MicroPassManager::MicroPassManager()
 {
-    cfgSimplifyPass_         = std::make_unique<MicroControlFlowSimplificationPass>();
-    instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
-    strengthReductionPass_   = std::make_unique<MicroStrengthReductionPass>();
-    copyPropagationPass_     = std::make_unique<MicroCopyPropagationPass>();
-    constantPropagationPass_ = std::make_unique<MicroConstantPropagationPass>();
-    deadCodePass_            = std::make_unique<MicroDeadCodeEliminationPass>();
-    branchFoldingPass_       = std::make_unique<MicroBranchFoldingPass>();
-    loadStoreForwardPass_    = std::make_unique<MicroLoadStoreForwardingPass>();
-    peepholePass_            = std::make_unique<MicroPeepholePass>();
-    regAllocPass_            = std::make_unique<MicroRegisterAllocationPass>();
-    prologEpilogPass_        = std::make_unique<MicroPrologEpilogPass>();
-    legalizePass_            = std::make_unique<MicroLegalizePass>();
-    emitPass_                = std::make_unique<MicroEmitPass>();
+    cfgSimplifyPass_          = std::make_unique<MicroControlFlowSimplificationPass>();
+    instructionCombinePass_   = std::make_unique<MicroInstructionCombinePass>();
+    strengthReductionPass_    = std::make_unique<MicroStrengthReductionPass>();
+    copyPropagationPass_      = std::make_unique<MicroCopyPropagationPass>();
+    constantPropagationPass_  = std::make_unique<MicroConstantPropagationPass>();
+    deadCodePass_             = std::make_unique<MicroDeadCodeEliminationPass>();
+    branchFoldingPass_        = std::make_unique<MicroBranchFoldingPass>();
+    loadStoreForwardPass_     = std::make_unique<MicroLoadStoreForwardingPass>();
+    peepholePass_             = std::make_unique<MicroPeepholePass>();
+    regAllocPass_             = std::make_unique<MicroRegisterAllocationPass>();
+    prologEpilogPass_         = std::make_unique<MicroPrologEpilogPass>();
+    prologEpilogSanitizePass_ = std::make_unique<MicroPrologEpilogSanitizePass>();
+    legalizePass_             = std::make_unique<MicroLegalizePass>();
+    emitPass_                 = std::make_unique<MicroEmitPass>();
 }
 
 MicroPassManager::~MicroPassManager()                                      = default;
@@ -272,6 +274,7 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 
     addLoopPass(*legalizePass_);
     addLoopPass(*regAllocPass_);
+    addFinalPass(*prologEpilogSanitizePass_);
     addFinalPass(*emitPass_);
 }
 

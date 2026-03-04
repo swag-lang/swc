@@ -198,6 +198,7 @@
         <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp"/>
         <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
@@ -244,6 +245,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Immediate.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Emit.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroPassManager.cpp"/>
@@ -454,6 +456,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Peephole.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Emit.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroPassManager.h"/>

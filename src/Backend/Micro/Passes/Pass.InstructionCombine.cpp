@@ -12,6 +12,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void canonicalizeAddSubImmediate(MicroOp& outOp, uint64_t& outValue, const MicroOpBits opBits)
+    {
+        outValue = MicroPassHelpers::normalizeToOpBits(outValue, opBits);
+        if (outValue == 0)
+        {
+            outOp = MicroOp::Add;
+            return;
+        }
+
+        const uint32_t numBits = getNumBits(opBits);
+        if (!numBits)
+        {
+            outOp = MicroOp::Add;
+            return;
+        }
+
+        const uint64_t signBitMask = uint64_t(1) << (numBits - 1);
+        if (!(outValue & signBitMask))
+        {
+            outOp = MicroOp::Add;
+            return;
+        }
+
+        outOp    = MicroOp::Subtract;
+        outValue = MicroPassHelpers::normalizeToOpBits((~outValue) + 1, opBits);
+    }
+
     bool combineArithmetic(MicroOp& outOp, uint64_t& outValue, MicroOp firstOp, uint64_t firstValue, MicroOp secondOp, uint64_t secondValue, MicroOpBits opBits)
     {
         const bool firstArithmetic  = firstOp == MicroOp::Add || firstOp == MicroOp::Subtract;
@@ -22,10 +49,8 @@ namespace
         uint64_t combined = 0;
         combined          = firstOp == MicroOp::Add ? combined + firstValue : combined - firstValue;
         combined          = secondOp == MicroOp::Add ? combined + secondValue : combined - secondValue;
-        combined          = MicroPassHelpers::normalizeToOpBits(combined, opBits);
-
-        outOp    = MicroOp::Add;
-        outValue = combined;
+        outValue          = combined;
+        canonicalizeAddSubImmediate(outOp, outValue, opBits);
         return true;
     }
 

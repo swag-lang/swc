@@ -1,3 +1,5 @@
+#include <ranges>
+
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
@@ -1270,8 +1272,8 @@ namespace
         bool                         failed      = false;
 
         const auto rollback = [&rewrites] {
-            for (auto itRewrite = rewrites.rbegin(); itRewrite != rewrites.rend(); ++itRewrite)
-                (itRewrite->reg)->packed = itRewrite->original.packed;
+            for (const auto& rewrite : std::ranges::reverse_view(rewrites))
+                (rewrite.reg)->packed = rewrite.original.packed;
         };
 
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)

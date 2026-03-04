@@ -1,6 +1,5 @@
 #include "pch.h"
 #ifdef _WIN32
-#include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"

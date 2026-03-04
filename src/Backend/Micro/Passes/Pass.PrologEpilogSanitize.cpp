@@ -104,7 +104,7 @@ namespace
         }
     }
 
-    bool tryMergeAdjacentStackAdjust(MicroPassContext& context, MicroInstrRef firstRef, MicroInstrRef secondRef, MicroReg stackPointer, MicroOp expectedOp)
+    bool tryMergeAdjacentStackAdjust(const MicroPassContext& context, MicroInstrRef firstRef, MicroInstrRef secondRef, MicroReg stackPointer, MicroOp expectedOp)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -114,7 +114,7 @@ namespace
         if (context.instructions->findPreviousInstructionRef(secondRef) != firstRef)
             return false;
 
-        MicroInstr*       firstInst  = context.instructions->ptr(firstRef);
+        const MicroInstr* firstInst  = context.instructions->ptr(firstRef);
         const MicroInstr* secondInst = context.instructions->ptr(secondRef);
         if (!firstInst || !secondInst)
             return false;
@@ -147,7 +147,7 @@ namespace
         return true;
     }
 
-    bool sanitizePrologueFramePointerSetups(MicroPassContext& context, const CallConv& conv)
+    bool sanitizePrologueFramePointerSetups(const MicroPassContext& context, const CallConv& conv)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -173,7 +173,7 @@ namespace
         return true;
     }
 
-    bool sanitizePrologueStackAdjustments(MicroPassContext& context, const CallConv& conv)
+    bool sanitizePrologueStackAdjustments(const MicroPassContext& context, const CallConv& conv)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -211,7 +211,7 @@ namespace
         return changedAny;
     }
 
-    bool sanitizeEpilogueStackAdjustments(MicroPassContext& context, const CallConv& conv)
+    bool sanitizeEpilogueStackAdjustments(const MicroPassContext& context, const CallConv& conv)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -250,7 +250,7 @@ namespace
                 if (epilogueRefs.size() < 2)
                     break;
 
-                std::reverse(epilogueRefs.begin(), epilogueRefs.end());
+                std::ranges::reverse(epilogueRefs);
                 for (size_t i = 0; i + 1 < epilogueRefs.size(); ++i)
                 {
                     if (tryMergeAdjacentStackAdjust(context, epilogueRefs[i], epilogueRefs[i + 1], conv.stackPointer, MicroOp::Add))

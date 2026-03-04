@@ -41,36 +41,10 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
 
 #run
 {
-    @assert(false)
+    var p0 = inlineMakePair(20, 22)
+    @assert(p0.a == 20)
+    @assert(p0.b == 22)
 
-{
-    var p0 = inlineMakePair(20, 22)
-    @assert(p0.a == 20)
-    @assert(p0.b == 22)
-}
-
-{
-    var p0 = inlineMakePair(20, 22)
-    @assert(p0.a == 20)
-    @assert(p0.b == 22)
-}
-{
-    var p0 = inlineMakePair(20, 22)
-    @assert(p0.a == 20)
-    @assert(p0.b == 22)
-}
-{
-    var p0 = inlineMakePair(20, 22)
-    @assert(p0.a == 20)
-    @assert(p0.b == 22)
-}
-{
-    var p0 = inlineMakePair(20, 22)
-    @assert(p0.a == 20)
-    @assert(p0.b == 22)
-}
-
-/*
     var a0 = inlineArrayEcho([10, 20, 12])
     @assert(a0[0] == 10)
     @assert(a0[1] == 20)
@@ -98,5 +72,5 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
     @assert(pay2.values[0] == 20)
     @assert(pay2.values[1] == 21)
     @assert(pay2.values[2] == 22)
-    @assert(pay2.tag == 2)*/
+    @assert(pay2.tag == 2)
 }

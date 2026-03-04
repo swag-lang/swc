@@ -647,6 +647,25 @@ namespace Os
         return true;
     }
 
+    uint64_t tlsAlloc()
+    {
+        const DWORD tlsId = TlsAlloc();
+        SWC_ASSERT(tlsId != TLS_OUT_OF_INDEXES);
+        return tlsId;
+    }
+
+    void tlsSetValue(uint64_t id, void* value)
+    {
+        SWC_ASSERT(id <= std::numeric_limits<DWORD>::max());
+        (void) TlsSetValue(static_cast<DWORD>(id), value);
+    }
+
+    void* tlsGetValue(uint64_t id)
+    {
+        SWC_ASSERT(id <= std::numeric_limits<DWORD>::max());
+        return TlsGetValue(static_cast<DWORD>(id));
+    }
+
     void appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers)
     {
         const auto* args   = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);

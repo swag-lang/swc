@@ -34,6 +34,9 @@ namespace Os
     void     removeHostJitFunctionTable(const void* functionAddress);
     bool     loadExternalModule(void*& outModuleHandle, std::string_view moduleName);
     bool     getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName);
+    uint64_t tlsAlloc();
+    void     tlsSetValue(uint64_t id, void* value);
+    void*    tlsGetValue(uint64_t id);
 
     const char* hostOsName();
     const char* hostCpuName();

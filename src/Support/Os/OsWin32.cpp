@@ -648,12 +648,6 @@ namespace
         return handler;
     }
 
-    volatile LONG& hasReportedVectoredException()
-    {
-        static volatile LONG hasReported = 0;
-        return hasReported;
-    }
-
     PVOID& vectoredExceptionHandle()
     {
         static PVOID handle = nullptr;
@@ -678,18 +672,13 @@ namespace
     // ReSharper disable once CppParameterMayBeConstPtrOrRef
     LONG CALLBACK onVectoredExceptionHandler(_EXCEPTION_POINTERS* exceptionPointers)
     {
-        volatile LONG& hasReported = hasReportedVectoredException();
-        if (InterlockedCompareExchange(&hasReported, 1, 0) != 0)
-            return EXCEPTION_CONTINUE_SEARCH;
-
-        (void) dispatchHostException(exceptionPointers);
+        (void) exceptionPointers;
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
     void installHostExceptionHandlers(Os::HostExceptionHandlerFn exceptionHandler)
     {
-        hostExceptionHandler()         = exceptionHandler;
-        hasReportedVectoredException() = 0;
+        hostExceptionHandler() = exceptionHandler;
 
         PVOID& handle = vectoredExceptionHandle();
         if (!handle)

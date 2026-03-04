@@ -26,6 +26,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool CompilerInstance::dbgDevMode = false;
+
 namespace
 {
     void applyPredefinedBuildCfg(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)

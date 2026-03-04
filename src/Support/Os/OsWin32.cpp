@@ -1,6 +1,7 @@
 #include "pch.h"
 #ifdef _WIN32
 #include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
@@ -494,7 +495,7 @@ namespace Os
         std::println(stderr, "panic: {}", expr ? expr : "<null>");
         (void) std::fflush(stderr);
 
-        if (!CommandLine::dbgDevMode)
+        if (!CompilerInstance::dbgDevMode)
             exit(ExitCode::PanicBox);
 
         char msg[2048];

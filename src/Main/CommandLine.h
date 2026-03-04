@@ -54,8 +54,6 @@ struct CommandLine
     bool verboseUnittest = false;
     bool runtime         = true;
 
-    static inline bool dbgDevMode = false;
-
 #ifdef SWC_DEV_MODE
     bool     randomize = false;
     uint32_t randSeed  = 0;

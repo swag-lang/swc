@@ -115,6 +115,8 @@ public:
         return ptr;
     }
 
+    static bool dbgDevMode;
+
 private:
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;

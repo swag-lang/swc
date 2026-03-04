@@ -262,7 +262,7 @@ void Diagnostic::report(TaskContext& ctx) const
             Logger::print(ctx, msg);
         }
 
-        if (CommandLine::dbgDevMode && !orgDismissed)
+        if (CompilerInstance::dbgDevMode && !orgDismissed)
             Os::panicBox("[DevMode] ERROR raised!");
     }
 }

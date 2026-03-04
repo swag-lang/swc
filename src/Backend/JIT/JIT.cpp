@@ -304,7 +304,7 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
     JITMemoryManager::makeExecutable(outExecutableMemory);
 
     if (registerSehUnwind)
-        memoryManager.registerUnwindInfo(outExecutableMemory);
+        JITMemoryManager::registerUnwindInfo(outExecutableMemory);
 }
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)

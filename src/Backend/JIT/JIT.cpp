@@ -355,32 +355,21 @@ namespace
 
     int exceptionHandler(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind& outErrorKind)
     {
-        if (JIT::tryHandleRuntimeException(ctx, platformExceptionPointers, &outErrorKind))
+        uint32_t    exceptionCode    = 0;
+        const void* exceptionAddress = nullptr;
+        Os::decodeHostException(exceptionCode, exceptionAddress, platformExceptionPointers);
+
+        if (tryHandleRunJitAssertTrap(ctx, exceptionCode, exceptionAddress, &outErrorKind))
             return SWC_EXCEPTION_EXECUTE_HANDLER;
+
+        if (!exceptionCode)
+            outErrorKind = JITCallErrorKind::None;
+        else
+            outErrorKind = JITCallErrorKind::HardwareException;
 
         HardwareException::log(ctx, "fatal error: hardware exception during jit call!", platformExceptionPointers);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
-}
-
-bool JIT::tryHandleRuntimeException(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind* outErrorKind)
-{
-    uint32_t    exceptionCode    = 0;
-    const void* exceptionAddress = nullptr;
-    Os::decodeHostException(exceptionCode, exceptionAddress, platformExceptionPointers);
-
-    if (tryHandleRunJitAssertTrap(ctx, exceptionCode, exceptionAddress, outErrorKind))
-        return true;
-
-    if (outErrorKind)
-    {
-        if (!exceptionCode)
-            *outErrorKind = JITCallErrorKind::None;
-        else
-            *outErrorKind = JITCallErrorKind::HardwareException;
-    }
-
-    return false;
 }
 
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)

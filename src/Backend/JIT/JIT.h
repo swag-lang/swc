@@ -35,7 +35,6 @@ public:
     static void   emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, std::span<const std::byte> unwindInfo = {});
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret);
     static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr);
-    static bool   tryHandleRuntimeException(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind* outErrorKind = nullptr);
 };
 
 SWC_END_NAMESPACE();

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Support/Thread/JobManager.h"
-#include "Backend/JIT/JIT.h"
 #include "Main/CommandLine.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
@@ -412,18 +411,9 @@ void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 
 namespace
 {
-    void exceptionMessage(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
-    {
-        HardwareException::log(job.ctx(), "hardware exception during job execution", args);
-    }
-
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
-        auto& ctx = const_cast<TaskContext&>(job.ctx());
-        if (JIT::tryHandleRuntimeException(ctx, args))
-            return SWC_EXCEPTION_EXECUTE_HANDLER;
-
-        exceptionMessage(job, args);
+        HardwareException::log(job.ctx(), "hardware exception during job execution", args);
         Os::panicBox("hardware exception raised!");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }

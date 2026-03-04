@@ -282,13 +282,6 @@ namespace Runtime
         uint32_t count;
     };
 
-    enum class ContextFlags : uint64_t
-    {
-        None = 0,
-        Test = 1,
-        Jit  = 2,
-    };
-
     struct ErrorValue
     {
         Any      value;
@@ -313,7 +306,6 @@ namespace Runtime
     struct Context
     {
         Interface          allocator;
-        ContextFlags       flags = ContextFlags::None;
         ScratchAllocator   tempAllocator;
         ScratchAllocator   errorAllocator;
         void*              debugAllocator;

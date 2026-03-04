@@ -6,7 +6,6 @@
     #assert(#defined(v.allocator))
     #assert(#defined(v.tempAllocator))
     #assert(#defined(v.errorAllocator))
-    #assert(#defined(v.flags))
 }
 
 #test
@@ -15,9 +14,8 @@
     #assert(#defined(v.panic))
 }
 
-#test
+/*#run
 {
-    var v = @getcontext()
-    var f = v.flags
-    var b = f & .Jit
+    @assert(@jit)
 }
+*/

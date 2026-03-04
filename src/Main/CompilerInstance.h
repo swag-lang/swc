@@ -60,8 +60,6 @@ public:
     const JITExecManager&           jitExecMgr() const { return *(jitExecMgr_.get()); }
     ExternalModuleManager&          externalModuleMgr() { return *(externalModuleMgr_.get()); }
     const ExternalModuleManager&    externalModuleMgr() const { return *(externalModuleMgr_.get()); }
-    Runtime::Context&               perThreadRuntimeContext();
-    const Runtime::Context&         perThreadRuntimeContext() const;
     void                            initPerThreadRuntimeContextForJit();
 
     SymbolModule*       symModule() { return symModule_; }

@@ -200,7 +200,7 @@ const __buildCfg = #run dref @compiler.getBuildCfg()
 func @rtflags()  => @getcontext().runtimeFlags
 func @dbgalloc() => cast(*DebugAllocator) @getcontext().debugAllocator
 func @sysalloc() => &__sysAlloc
-func @jit()->bool => @getcontext().flags & .Jit ? true : false
+func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
 
 func __setupRuntime(flags: RuntimeFlags)
 {

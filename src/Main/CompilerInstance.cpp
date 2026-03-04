@@ -335,24 +335,10 @@ void CompilerInstance::setupRuntimeCompiler()
     runtimeCompilerITable_[2] = reinterpret_cast<void*>(&runtimeCompilerCompileString);
 }
 
-Runtime::Context& CompilerInstance::perThreadRuntimeContext()
-{
-    PerThreadData& td = perThreadData_[JobManager::threadIndex()];
-    return td.runtimeContext;
-}
-
-const Runtime::Context& CompilerInstance::perThreadRuntimeContext() const
-{
-    const PerThreadData& td = perThreadData_[JobManager::threadIndex()];
-    return td.runtimeContext;
-}
-
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
-    Runtime::Context& runtimeContext = perThreadRuntimeContext();
-    runtimeContext.runtimeFlags      = Runtime::RuntimeFlags::FromCompiler;
-    const auto flags                 = static_cast<uint64_t>(runtimeContext.flags) | static_cast<uint64_t>(Runtime::ContextFlags::Jit);
-    runtimeContext.flags             = static_cast<Runtime::ContextFlags>(flags);
+    PerThreadData& td              = perThreadData_[JobManager::threadIndex()];
+    td.runtimeContext.runtimeFlags = Runtime::RuntimeFlags::FromCompiler;
 }
 
 ExitCode CompilerInstance::run()

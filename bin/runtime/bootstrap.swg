@@ -400,14 +400,6 @@ namespace Swag
     // Context
     // #########################################################
 
-    #[Swag.EnumFlags]
-    enum ContextFlags: u64
-    {
-        None     = 0x00000000_00000000
-        Test     = 0x00000000_00000001
-        Jit      = 0x00000000_00000002
-    }
-
     enum ExceptionKind
     {
         Panic
@@ -446,8 +438,7 @@ namespace Swag
     {
         // Must stay first, in that order, for backend generation
 
-        allocator:     IAllocator              // The current allocator interface
-        flags          = ContextFlags.None     // Context flags
+        allocator:          IAllocator  // The current allocator interface
 
         // Other fields, can be in any order
 
@@ -929,8 +920,6 @@ func @pinfos()->*Swag.ProcessInfos;
 func @modules()->const [..] Swag.Module;
 // Returns the list of all global variables.
 func @gvtd()->const [..] Swag.Gvtd;
-// Returns 'true' if the current execution is JIT.
-func @jit()->bool;
 // Returns an [[ICompiler]] interface to communicate with the compiler.
 func @compiler()->Swag.ICompiler;
 

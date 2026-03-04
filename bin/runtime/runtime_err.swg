@@ -180,7 +180,6 @@ func @panic(message: string, loc: SourceCodeLocation)
 
     // If we are running bytecode, then just let the runner deal with the message,
     // we will have more usefull information
-    let contextFlags = cxt.flags
     if @jit
     {
         __raiseException666(message, loc, .Panic)
@@ -226,8 +225,8 @@ func @panic(message: string, loc: SourceCodeLocation)
     @print("\n")
 
     // During tests just raise an error without a dialog box
-    if contextFlags & .Test do
-        __exitError()
+    //if contextFlags & .Test do
+    //    __exitError()
 
     // Build message
     var str: [1024] u8

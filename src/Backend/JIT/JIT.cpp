@@ -178,6 +178,7 @@ namespace
                     continue;
                 SWC_UNREACHABLE();
             }
+
             patchAbsolute64(writableCode, reloc, targetAddress);
         }
     }

@@ -375,6 +375,8 @@ namespace
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)
 {
     SWC_ASSERT(invoker != nullptr);
+    ctx.compiler().initPerThreadRuntimeContextForJit();
+
     bool hasException = false;
     auto callError    = JITCallErrorKind::None;
 

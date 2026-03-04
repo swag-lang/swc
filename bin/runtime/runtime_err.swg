@@ -150,7 +150,7 @@ func @compilererror(message: string, loc: SourceCodeLocation)
 {
     // If the compiler is around, just let it deal with the message
     let cxt = @getcontext()
-    if cxt.flags & .ByteCode
+    if cxt.flags & .Jit
     {
         __raiseException666(message, loc, .Error)
         return
@@ -162,7 +162,7 @@ func @compilerwarning(message: string, loc: SourceCodeLocation)
 {
     // If the compiler is around, just let it deal with the message
     let cxt = @getcontext()
-    if cxt.flags & .ByteCode
+    if cxt.flags & .Jit
     {
         __raiseException666(message, loc, .Warning)
         return
@@ -185,7 +185,7 @@ func @panic(message: string, loc: SourceCodeLocation)
     // If we are running bytecode, then just let the runner deal with the message,
     // we will have more usefull information
     let contextFlags = cxt.flags
-    if contextFlags & .ByteCode
+    if contextFlags & .Jit
     {
         __raiseException666(message, loc, .Panic)
         return

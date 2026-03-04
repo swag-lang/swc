@@ -405,7 +405,7 @@ namespace Swag
     {
         None     = 0x00000000_00000000
         Test     = 0x00000000_00000001
-        ByteCode = 0x00000000_00000002
+        Jit      = 0x00000000_00000002
     }
 
     enum ExceptionKind

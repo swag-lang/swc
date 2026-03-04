@@ -27,7 +27,7 @@ func toto()->A { return .R }
 
     var v = @getcontext()
     var v1 = v.flags
-    var v2 = v1 & .ByteCode
+    var v2 = v1 & .Jit
 
 }
 

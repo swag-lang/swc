@@ -60,6 +60,9 @@ public:
     const JITExecManager&           jitExecMgr() const { return *(jitExecMgr_.get()); }
     ExternalModuleManager&          externalModuleMgr() { return *(externalModuleMgr_.get()); }
     const ExternalModuleManager&    externalModuleMgr() const { return *(externalModuleMgr_.get()); }
+    Runtime::Context&               perThreadRuntimeContext();
+    const Runtime::Context&         perThreadRuntimeContext() const;
+    void                            initPerThreadRuntimeContextForJit();
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -145,7 +148,8 @@ private:
 
     struct PerThreadData
     {
-        Arena arena;
+        Arena            arena;
+        Runtime::Context runtimeContext{};
     };
 
     std::vector<PerThreadData> perThreadData_;

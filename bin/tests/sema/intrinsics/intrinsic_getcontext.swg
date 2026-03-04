@@ -19,5 +19,5 @@
 {
     var v = @getcontext()
     var f = v.flags
-    var b = f & .ByteCode
+    var b = f & .Jit
 }

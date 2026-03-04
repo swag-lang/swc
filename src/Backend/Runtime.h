@@ -284,9 +284,9 @@ namespace Runtime
 
     enum class ContextFlags : uint64_t
     {
-        None     = 0,
-        Test     = 1,
-        ByteCode = 2,
+        None = 0,
+        Test = 1,
+        Jit  = 2,
     };
 
     struct ErrorValue

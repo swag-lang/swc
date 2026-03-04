@@ -61,6 +61,9 @@ public:
     ExternalModuleManager&          externalModuleMgr() { return *(externalModuleMgr_.get()); }
     const ExternalModuleManager&    externalModuleMgr() const { return *(externalModuleMgr_.get()); }
     void                            initPerThreadRuntimeContextForJit();
+    static uint64_t*                runtimeContextTlsIdStorage();
+    static Runtime::Context*        runtimeContextFromTls();
+    static void                     setRuntimeContextForCurrentThread(Runtime::Context* context);
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }

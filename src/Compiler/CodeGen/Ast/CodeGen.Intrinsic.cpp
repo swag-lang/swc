@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
@@ -9,6 +12,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
 
@@ -990,6 +994,47 @@ namespace
         codeGen.builder().emitLoadRegPtrReloc(payload.reg, compilerIfAddress, compilerIfCstRef);
         return Result::Continue;
     }
+
+    Result codeGenGetContext(CodeGen& codeGen)
+    {
+        const auto* payload = codeGen.sema().codeGenPayload<IntrinsicCallCodeGenPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeTlsGetValueFunction != nullptr);
+
+        auto&                             tlsGetValueFunction = *payload->runtimeTlsGetValueFunction;
+        const CallConvKind                callConvKind        = tlsGetValueFunction.callConvKind();
+        const TypeRef                     resultType          = codeGen.curViewType().typeRef();
+        MicroBuilder&                     builder             = codeGen.builder();
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+
+        const uint64_t    tlsIdAddress   = reinterpret_cast<uint64_t>(CompilerInstance::runtimeContextTlsIdStorage());
+        const ConstantRef tlsIdAddressCf = codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU64(), tlsIdAddress, TypeInfoFlagsE::Const));
+        const MicroReg    tlsIdPtrReg    = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrReloc(tlsIdPtrReg, tlsIdAddress, tlsIdAddressCf);
+
+        const MicroReg tlsIdReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(tlsIdReg, tlsIdPtrReg, 0, MicroOpBits::B64);
+
+        ABICall::PreparedArg arg;
+        arg.srcReg      = tlsIdReg;
+        arg.kind        = ABICall::PreparedArgKind::Direct;
+        arg.isFloat     = false;
+        arg.isAddressed = false;
+        arg.numBits     = 64;
+        preparedArgs.push_back(arg);
+
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        ABICall::callLocal(builder, callConvKind, &tlsGetValueFunction, preparedCall);
+
+        const CallConv&                        callConv      = CallConv::get(callConvKind);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, resultType, ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!normalizedRet.isVoid);
+        SWC_ASSERT(!normalizedRet.isIndirect);
+
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultType);
+        ABICall::materializeReturnToReg(builder, resultPayload.reg, callConvKind, normalizedRet);
+        return Result::Continue;
+    }
 }
 
 Result AstCountOfExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -1076,6 +1121,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::IntrinsicAtomicCmpXchg:
             return codeGenAtomicCompareExchange(codeGen, *this);
 
+        case TokenId::IntrinsicGetContext:
+            return codeGenGetContext(codeGen);
         case TokenId::IntrinsicCompiler:
             return codeGenCompiler(codeGen);
         case TokenId::IntrinsicBreakpoint:

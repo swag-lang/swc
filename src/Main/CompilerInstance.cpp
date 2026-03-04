@@ -30,6 +30,20 @@ bool CompilerInstance::dbgDevMode = false;
 
 namespace
 {
+    uint64_t       g_RuntimeContextTlsId;
+    std::once_flag g_RuntimeContextTlsIdOnce;
+
+    void initRuntimeContextTlsId()
+    {
+        g_RuntimeContextTlsId = Os::tlsAlloc();
+    }
+
+    uint64_t runtimeContextTlsId()
+    {
+        std::call_once(g_RuntimeContextTlsIdOnce, initRuntimeContextTlsId);
+        return g_RuntimeContextTlsId;
+    }
+
     void applyPredefinedBuildCfg(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)
     {
         const std::string_view cfgName = cmdLine.buildCfg;
@@ -162,6 +176,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     cmdLine_(&cmdLine),
     global_(&global)
 {
+    (void) runtimeContextTlsId();
     applyPredefinedBuildCfg(buildCfg_, cmdLine);
 
     jobClientId_ = global.jobMgr().newClientId();
@@ -336,10 +351,27 @@ void CompilerInstance::setupRuntimeCompiler()
     runtimeCompilerITable_[2] = reinterpret_cast<void*>(&runtimeCompilerCompileString);
 }
 
+uint64_t* CompilerInstance::runtimeContextTlsIdStorage()
+{
+    (void) runtimeContextTlsId();
+    return &g_RuntimeContextTlsId;
+}
+
+Runtime::Context* CompilerInstance::runtimeContextFromTls()
+{
+    return static_cast<Runtime::Context*>(Os::tlsGetValue(runtimeContextTlsId()));
+}
+
+void CompilerInstance::setRuntimeContextForCurrentThread(Runtime::Context* context)
+{
+    Os::tlsSetValue(runtimeContextTlsId(), context);
+}
+
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
     PerThreadData& td              = perThreadData_[JobManager::threadIndex()];
     td.runtimeContext.runtimeFlags = Runtime::RuntimeFlags::FromCompiler;
+    setRuntimeContextForCurrentThread(&td.runtimeContext);
 }
 
 ExitCode CompilerInstance::run()

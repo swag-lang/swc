@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -111,6 +112,58 @@ namespace
             symMe->setDeclared(ctx);
             symMe->setTyped(ctx);
         }
+    }
+
+    // TODO
+    Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
+    {
+        MatchContext lookupCxt;
+        lookupCxt.codeRef = node.codeRef();
+
+        const IdentifierRef idRef = sema.idMgr().addIdentifier("__tlsGetValue");
+        SWC_RESULT_VERIFY(Match::match(sema, lookupCxt, idRef));
+
+        SymbolFunction* tlsGetValueFn = nullptr;
+        for (const Symbol* symbol : lookupCxt.symbols())
+        {
+            if (!symbol->isFunction())
+                continue;
+
+            auto* const candidate = const_cast<SymbolFunction*>(&symbol->cast<SymbolFunction>());
+            if (candidate->isForeign() || candidate->isEmpty())
+                continue;
+
+            if (tlsGetValueFn && tlsGetValueFn != candidate)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_ambiguous_symbol, sema.curNodeRef());
+                diag.addArgument(Diagnostic::ARG_SYM, idRef);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            tlsGetValueFn = candidate;
+        }
+
+        if (!tlsGetValueFn)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_SYM, idRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (SymbolFunction* currentFn = sema.frame().currentFunction())
+            currentFn->addCallDependency(tlsGetValueFn);
+
+        auto* payload = sema.codeGenPayload<IntrinsicCallCodeGenPayload>(sema.curNodeRef());
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<IntrinsicCallCodeGenPayload>();
+            sema.setCodeGenPayload(sema.curNodeRef(), payload);
+        }
+
+        payload->runtimeTlsGetValueFunction = tlsGetValueFn;
+        return Result::Continue;
     }
 
     template<typename T>
@@ -303,15 +356,20 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 
 Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 {
-    return semaCallExprCommon(sema, *this, true);
+    SWC_RESULT_VERIFY(semaCallExprCommon(sema, *this, true));
+
+    const Token& tok = sema.token(codeRef());
+    if (tok.id == TokenId::IntrinsicGetContext)
+        SWC_RESULT_VERIFY(setupIntrinsicGetContextRuntimeCall(sema, *this));
+
+    return Result::Continue;
 }
 
 Result AstReturnStmt::semaPostNode(Sema& sema) const
 {
-    TypeRef returnTypeRef = TypeRef::invalid();
-    if (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        inlinePayload &&
-        isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
+    TypeRef                  returnTypeRef = TypeRef::invalid();
+    const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+    if (inlinePayload && isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
     {
         returnTypeRef = inlinePayload->returnTypeRef;
     }

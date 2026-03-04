@@ -295,7 +295,7 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
 
     if (registerSehUnwind)
     {
-        std::byte* const unwindDest = static_cast<std::byte*>(outExecutableMemory.entryPoint()) + codeSize;
+        std::byte* unwindDest = static_cast<std::byte*>(outExecutableMemory.entryPoint()) + codeSize;
         std::memcpy(unwindDest, unwindInfo.data(), unwindInfo.size());
         outExecutableMemory.unwindInfoOffset_ = codeSize;
         outExecutableMemory.unwindInfoSize_   = static_cast<uint32_t>(unwindInfo.size());

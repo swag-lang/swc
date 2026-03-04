@@ -660,12 +660,15 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     SemaCycle sc;
     sc.check(ctx, clientId);
 
-    for (const auto& f : ctx.compiler().files())
+    if (Stats::get().numErrors.load() == 0)
     {
-        const SourceView& srcView = f->ast().srcView();
-        if (srcView.mustSkip())
-            continue;
-        f->unitTest().verifyUntouchedExpected(ctx, srcView);
+        for (const auto& f : ctx.compiler().files())
+        {
+            const SourceView& srcView = f->ast().srcView();
+            if (srcView.mustSkip())
+                continue;
+            f->unitTest().verifyUntouchedExpected(ctx, srcView);
+        }
     }
 }
 

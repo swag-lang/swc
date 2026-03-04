@@ -4,6 +4,7 @@
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Thread/Job.h"
 #include "Support/Thread/JobManager.h"
@@ -32,12 +33,15 @@ namespace Command
 
         jobMgr.waitAll(compiler.jobClientId());
 
-        for (SourceFile* f : compiler.files())
+        if (Stats::get().numErrors.load() == 0)
         {
-            const SourceView& srcView = f->ast().srcView();
-            if (srcView.mustSkip())
-                continue;
-            f->unitTest().verifyUntouchedExpected(ctx, srcView);
+            for (SourceFile* f : compiler.files())
+            {
+                const SourceView& srcView = f->ast().srcView();
+                if (srcView.mustSkip())
+                    continue;
+                f->unitTest().verifyUntouchedExpected(ctx, srcView);
+            }
         }
     }
 }

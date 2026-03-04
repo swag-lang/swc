@@ -292,7 +292,7 @@ namespace
                 if (fieldOffset + fieldSize > structBytes.size())
                     continue;
 
-                const ByteSpan fieldBytes = ByteSpan{structBytes.data() + fieldOffset, fieldSize};
+                const auto fieldBytes = ByteSpan{structBytes.data() + fieldOffset, fieldSize};
                 if (fieldType.isStruct())
                 {
                     const ConstantValue fieldCst = ConstantValue::makeStructBorrowed(ctx, fieldTypeRef, fieldBytes);

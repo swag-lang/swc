@@ -99,6 +99,10 @@ void JobManager::setup(const CommandLine& cmdLine)
 
     const size_t numThreads = singleThreaded_ ? 0 : count;
 
+    // Reserve a dedicated index for the setup/main thread when workers exist.
+    // Worker threads keep [0..numThreads-1], main thread gets numThreads.
+    threadIndex_ = singleThreaded_ ? 0 : numThreads;
+
     accepting_ = true;
     joined_    = false;
 

@@ -167,8 +167,9 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
 
-    const uint32_t numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
-    perThreadData_.resize(numWorkers);
+    const uint32_t numWorkers     = global.jobMgr().numWorkers();
+    const uint32_t perThreadSlots = global.jobMgr().isSingleThreaded() ? 1 : numWorkers + 1;
+    perThreadData_.resize(perThreadSlots);
     jitMemMgr_         = std::make_unique<JITMemoryManager>();
     jitExecMgr_        = std::make_unique<JITExecManager>();
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();

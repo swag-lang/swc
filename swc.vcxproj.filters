@@ -300,6 +300,9 @@
     <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp">
       <Filter>src\Backend\Encoder</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Encoder\X64Unwind.cpp">
+      <Filter>src\Backend\Encoder</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
@@ -891,6 +894,9 @@
       <Filter>src\Backend\Encoder</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Encoder\X64Encoder.h">
+      <Filter>src\Backend\Encoder</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Encoder\X64Unwind.h">
       <Filter>src\Backend\Encoder</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\MicroReg.h">

@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Encoder/X64Unwind.h"
 
 #ifndef IMAGE_REL_AMD64_ADDR64
 #define IMAGE_REL_AMD64_ADDR64 0x0001
@@ -15,45 +16,17 @@ struct MicroInstr;
 class X64Encoder : public Encoder
 {
 public:
-    explicit X64Encoder(TaskContext& ctx) :
-        Encoder(ctx)
-    {
-    }
+    explicit X64Encoder(TaskContext& ctx);
 
     void        buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const override;
     std::string formatRegisterName(MicroReg reg) const override;
     MicroReg    stackPointerReg() const override { return MicroReg::intReg(4); }
 
 private:
-    enum class UnwindOpKind : uint8_t
-    {
-        PushNonVol,
-        AllocateStack,
-        SetFramePointer,
-        SaveNonVol,
-    };
-
-    struct UnwindOp
-    {
-        UnwindOpKind kind        = UnwindOpKind::PushNonVol;
-        uint8_t      codeOffset  = 0;
-        uint8_t      reg         = 0;
-        uint32_t     stackSize   = 0;
-        uint32_t     stackOffset = 0;
-    };
-
     uint64_t currentOffset() const override { return store_.size(); }
     void     updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const override;
     bool     queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
     void     onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeStartOffset, uint32_t codeEndOffset) override;
-
-    bool        tryTrackUnwindPush(const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    bool        tryTrackUnwindAllocateStack(const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    bool        tryTrackUnwindSetFramePointer(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    bool        tryTrackUnwindSaveNonVol(const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    static bool tryMapWindowsUnwindReg(uint8_t& outReg, MicroReg reg);
-    void        closeUnwindProlog();
-    bool        canTrackUnwindInstruction(uint32_t codeEndOffset);
 
     void encodePush(MicroReg reg) override;
     void encodePop(MicroReg reg) override;
@@ -98,13 +71,7 @@ private:
     void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& valueInt, MicroOp op, MicroOpBits opBits) override;
     void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits) override;
 
-    bool                  unwindPrologClosed_       = false;
-    bool                  unwindPrologInvalid_      = false;
-    bool                  unwindHasFrameRegister_   = false;
-    uint8_t               unwindPrologSize_         = 0;
-    uint8_t               unwindFrameRegister_      = 0;
-    uint8_t               unwindFrameOffsetInSlots_ = 0;
-    std::vector<UnwindOp> unwindOps_;
+    X64Unwind unwind_;
 };
 
 SWC_END_NAMESPACE();

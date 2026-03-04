@@ -41,10 +41,12 @@ bool MachineCode::resolveSourceCodeRefAtOffset(SourceCodeRef& outSourceCodeRef, 
 
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 {
+    const bool computeUnwindInfo = ctx.compiler().buildCfg().jitEnableSehUnwind;
+
     MicroPassContext passContext;
     passContext.callConvKind           = CallConvKind::Host;
     passContext.preservePersistentRegs = true;
-    passContext.forceFramePointer      = ctx.compiler().buildCfg().jitEnableSehUnwind;
+    passContext.forceFramePointer      = computeUnwindInfo;
 
 #ifdef _M_X64
     X64Encoder encoder(ctx);
@@ -72,7 +74,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 
     bytes.resize(codeSize);
     encoder.copyTo(bytes);
-    if (ctx.compiler().buildCfg().jitEnableSehUnwind)
+    if (computeUnwindInfo)
         encoder.buildUnwindInfo(unwindInfo);
     else
         unwindInfo.clear();

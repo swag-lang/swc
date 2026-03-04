@@ -1,5 +1,14 @@
 #global fileprivate
 
+#[Swag.PrintMicro]
+#[Swag.Optimize(false)]
+#run
+{
+    let x = 1
+    @assert(false)
+}
+
+/*
 struct Pair
 {
     a: s32
@@ -94,3 +103,4 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
     @assert(pay2.values[2] == 22)
     @assert(pay2.tag == 2)
 }
+*/

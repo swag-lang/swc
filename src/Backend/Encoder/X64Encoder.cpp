@@ -254,7 +254,7 @@ namespace
     uint16_t packUnwindCodeSlot(const uint8_t codeOffset, const uint8_t unwindOp, const uint8_t opInfo)
     {
         const uint8_t  opByte = static_cast<uint8_t>(((opInfo & 0x0F) << 4) | (unwindOp & 0x0F));
-        const uint16_t value  = static_cast<uint16_t>(codeOffset) | (static_cast<uint16_t>(opByte) << 8);
+        const uint16_t value  = static_cast<uint16_t>(static_cast<uint16_t>(codeOffset) | (static_cast<uint16_t>(opByte) << 8));
         return value;
     }
 
@@ -1006,12 +1006,11 @@ bool X64Encoder::tryTrackUnwindSaveNonVol(const MicroInstrOperand* ops, const ui
     return true;
 }
 
-bool X64Encoder::tryMapWindowsUnwindReg(uint8_t& outReg, const MicroReg reg) const
+bool X64Encoder::tryMapWindowsUnwindReg(uint8_t& outReg, const MicroReg reg)
 {
     outReg = 0;
     if (!reg.isInt() || reg.isVirtual())
         return false;
-
     const X64Reg x64Reg = microRegToX64Reg(reg);
     outReg              = static_cast<uint8_t>(x64Reg) & 0x0F;
     return true;

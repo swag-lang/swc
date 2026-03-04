@@ -47,13 +47,13 @@ private:
     bool     queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
     void     onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeStartOffset, uint32_t codeEndOffset) override;
 
-    bool tryTrackUnwindPush(const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    bool tryTrackUnwindAllocateStack(const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    bool tryTrackUnwindSetFramePointer(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    bool tryTrackUnwindSaveNonVol(const MicroInstrOperand* ops, uint32_t codeEndOffset);
-    bool tryMapWindowsUnwindReg(uint8_t& outReg, MicroReg reg) const;
-    void closeUnwindProlog();
-    bool canTrackUnwindInstruction(uint32_t codeEndOffset);
+    bool        tryTrackUnwindPush(const MicroInstrOperand* ops, uint32_t codeEndOffset);
+    bool        tryTrackUnwindAllocateStack(const MicroInstrOperand* ops, uint32_t codeEndOffset);
+    bool        tryTrackUnwindSetFramePointer(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeEndOffset);
+    bool        tryTrackUnwindSaveNonVol(const MicroInstrOperand* ops, uint32_t codeEndOffset);
+    static bool tryMapWindowsUnwindReg(uint8_t& outReg, MicroReg reg);
+    void        closeUnwindProlog();
+    bool        canTrackUnwindInstruction(uint32_t codeEndOffset);
 
     void encodePush(MicroReg reg) override;
     void encodePop(MicroReg reg) override;
@@ -98,12 +98,12 @@ private:
     void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& valueInt, MicroOp op, MicroOpBits opBits) override;
     void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits) override;
 
-    bool                     unwindPrologClosed_       = false;
-    bool                     unwindPrologInvalid_      = false;
-    bool                     unwindHasFrameRegister_   = false;
-    uint8_t                  unwindPrologSize_         = 0;
-    uint8_t                  unwindFrameRegister_      = 0;
-    uint8_t                  unwindFrameOffsetInSlots_ = 0;
+    bool                  unwindPrologClosed_       = false;
+    bool                  unwindPrologInvalid_      = false;
+    bool                  unwindHasFrameRegister_   = false;
+    uint8_t               unwindPrologSize_         = 0;
+    uint8_t               unwindFrameRegister_      = 0;
+    uint8_t               unwindFrameOffsetInSlots_ = 0;
     std::vector<UnwindOp> unwindOps_;
 };
 

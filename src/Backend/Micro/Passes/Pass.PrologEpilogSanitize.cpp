@@ -8,6 +8,28 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isFramePointerSetupInstruction(const CallConv& conv, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackPointer)
+    {
+        if (!ops || !conv.framePointer.isValid())
+            return false;
+
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+                if (inst.numOperands < 3)
+                    return false;
+                return ops[0].reg == conv.framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64;
+
+            case MicroInstrOpcode::LoadAddrRegMem:
+                if (inst.numOperands < 4)
+                    return false;
+                return ops[0].reg == conv.framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64;
+
+            default:
+                return false;
+        }
+    }
+
     bool isStackAdjustWithOp(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroOp expectedOp, uint64_t& outImmediate)
     {
         outImmediate = 0;
@@ -37,18 +59,8 @@ namespace
                 return inst.numOperands >= 1;
 
             case MicroInstrOpcode::LoadRegReg:
-                if (inst.numOperands < 3)
-                    return false;
-                if (!conv.framePointer.isValid())
-                    return false;
-                return ops[0].reg == conv.framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64;
-
             case MicroInstrOpcode::LoadAddrRegMem:
-                if (inst.numOperands < 4)
-                    return false;
-                if (!conv.framePointer.isValid())
-                    return false;
-                return ops[0].reg == conv.framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64;
+                return isFramePointerSetupInstruction(conv, inst, ops, stackPointer);
 
             case MicroInstrOpcode::LoadMemReg:
                 if (inst.numOperands < 4)
@@ -132,6 +144,32 @@ namespace
         }
 
         context.instructions->erase(secondRef);
+        return true;
+    }
+
+    bool sanitizePrologueFramePointerSetups(MicroPassContext& context, const CallConv& conv)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        std::vector<MicroInstrRef> framePointerSetupRefs;
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        {
+            const MicroInstrOperand* ops = it->ops(*context.operands);
+            if (!isPrologueInstruction(conv, *it, ops, conv.stackPointer))
+                break;
+
+            if (isFramePointerSetupInstruction(conv, *it, ops, conv.stackPointer))
+                framePointerSetupRefs.push_back(it.current);
+        }
+
+        if (framePointerSetupRefs.size() < 2)
+            return false;
+
+        // Keep the last frame-pointer setup and remove older ones from the entry prologue.
+        for (size_t i = framePointerSetupRefs.size() - 1; i > 0; --i)
+            context.instructions->erase(framePointerSetupRefs[i - 1]);
+
         return true;
     }
 
@@ -234,11 +272,12 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
 
-    const CallConv& conv            = CallConv::get(context.callConvKind);
-    const bool      changedPrologue = sanitizePrologueStackAdjustments(context, conv);
-    const bool      changedEpilogue = sanitizeEpilogueStackAdjustments(context, conv);
-    const bool      changed         = changedPrologue || changedEpilogue;
-    context.passChanged             = changed;
+    const CallConv& conv                      = CallConv::get(context.callConvKind);
+    const bool      changedFramePointerProlog = sanitizePrologueFramePointerSetups(context, conv);
+    const bool      changedStackProlog        = sanitizePrologueStackAdjustments(context, conv);
+    const bool      changedStackEpilogue      = sanitizeEpilogueStackAdjustments(context, conv);
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackEpilogue;
+    context.passChanged                       = changed;
     return Result::Continue;
 }
 

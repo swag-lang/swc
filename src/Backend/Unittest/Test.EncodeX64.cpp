@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
+#include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Unittest/UnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
@@ -326,13 +327,15 @@ namespace
         MicroBuilder builder(ctx);
         fn(builder);
 
-        MicroRegisterAllocationPass regAllocPass;
-        MicroLegalizePass           legalizePass;
-        MicroEmitPass               encodePass;
-        MicroPassManager            passes;
+        MicroRegisterAllocationPass   regAllocPass;
+        MicroLegalizePass             legalizePass;
+        MicroPrologEpilogSanitizePass prologEpilogSanitizePass;
+        MicroEmitPass                 encodePass;
+        MicroPassManager              passes;
         passes.addStartPass(regAllocPass);
         passes.addStartPass(legalizePass);
         passes.addStartPass(regAllocPass);
+        passes.addStartPass(prologEpilogSanitizePass);
         passes.addStartPass(encodePass);
 
         MicroPassContext passCtx;
@@ -466,12 +469,12 @@ SWC_TEST_BEGIN(EncodeX64_UnwindUpdatesFramePointerWhenAssignedTwice)
 {
     constexpr std::array<uint8_t, 12> expected = {
         0x01,
-        0x0B,
+        0x08,
         0x03,
         0x05,
-        0x0B,
-        0x03,
         0x08,
+        0x03,
+        0x05,
         0x32,
         0x01,
         0x50,

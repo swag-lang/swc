@@ -236,6 +236,8 @@ bool X64UnwindWindows::tryTrackSetFramePointer(const MicroInstr& inst, const Mic
 {
     if (!ops)
         return false;
+    if (unwindHasFrameRegister_)
+        return false;
 
     MicroReg frameReg;
     uint64_t frameOffset = 0;
@@ -270,22 +272,6 @@ bool X64UnwindWindows::tryTrackSetFramePointer(const MicroInstr& inst, const Mic
         return false;
     if (!isX64NonVolatileReg(reg))
         return false;
-
-    if (unwindHasFrameRegister_)
-    {
-        if (reg != unwindFrameRegister_)
-            return false;
-
-        unwindFrameOffsetInSlots_ = static_cast<uint8_t>(frameOffset / 16);
-        for (UnwindOp& op : unwindOps_)
-        {
-            if (op.kind == UnwindOpKind::SetFramePointer)
-            {
-                op.codeOffset = static_cast<uint8_t>(codeEndOffset);
-                return true;
-            }
-        }
-    }
 
     unwindHasFrameRegister_   = true;
     unwindFrameRegister_      = reg;

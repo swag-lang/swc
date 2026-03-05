@@ -301,6 +301,50 @@ namespace
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, srcType);
         if (dstType.isSlice() && srcType.isArray())
             return emitArrayToSliceCast(codeGen, srcNodeRef, dstTypeRef, srcType, dstType);
+
+        if (dstType.isAny() && !srcType.isAny())
+        {
+            const auto* castPayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+            if (!castPayload || castPayload->runtimeStorageSym == nullptr)
+            {
+                codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+                return Result::Continue;
+            }
+
+            const MicroReg runtimeAnyReg = castRuntimeStorageAddressReg(codeGen);
+
+            MicroReg valuePtrReg = srcPayload.reg;
+            if (!srcPayload.isAddress())
+            {
+                auto srcValueBits = MicroOpBits::Zero;
+                if (!anyCastAsValueBits(codeGen, srcType, srcValueBits))
+                {
+                    codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+                    return Result::Continue;
+                }
+
+                valuePtrReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(valuePtrReg, runtimeAnyReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(valuePtrReg, ApInt(sizeof(Runtime::Any), 64), MicroOp::Add, MicroOpBits::B64);
+                builder.emitLoadMemReg(valuePtrReg, 0, srcPayload.reg, srcValueBits);
+            }
+
+            builder.emitLoadMemReg(runtimeAnyReg, offsetof(Runtime::Any, value), valuePtrReg, MicroOpBits::B64);
+
+            ConstantRef typeInfoCstRef = ConstantRef::invalid();
+            SWC_RESULT_VERIFY(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, sourceTypeRef, codeGen.curNodeRef()));
+            const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
+            SWC_ASSERT(typeInfoCst.isValuePointer());
+
+            const MicroReg typeInfoReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegPtrReloc(typeInfoReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
+            builder.emitLoadMemReg(runtimeAnyReg, offsetof(Runtime::Any, type), typeInfoReg, MicroOpBits::B64);
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = runtimeAnyReg;
+            return Result::Continue;
+        }
+
         const bool srcFloatType   = srcType.isFloat();
         const bool srcIntLikeType = isNumericIntLike(srcType);
         const bool dstFloatType   = dstType.isFloat();

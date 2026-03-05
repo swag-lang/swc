@@ -63,8 +63,22 @@ func sumAny(a: any, b: any)->s64
 
 #run
 {
-    const a: any = 100's64
-    const b: any = 23's64
+    var a: s64 = 100
+    var b: s64 = 23
     let d = sumAny(a, b)
     @assert(d == 123)
+}
+
+func s64Test(s: s64)
+{
+    @assert(s == 1)
+}
+
+enum A { B = 1 }
+#run
+{
+    const c: any = A.B
+    let d = cast(s64) c
+    @assert(d == 1)
+    //s64Test(c)
 }

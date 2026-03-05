@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -32,18 +33,26 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef castRuntimeStorageTypeRef(const SemaNodeView& srcView, const SemaNodeView& dstView)
+    TypeRef castRuntimeStorageTypeRef(Sema& sema, const SemaNodeView& srcView, const SemaNodeView& dstView)
     {
         if (!srcView.type() || !dstView.type())
-            return TypeRef::invalid();
-        if (!srcView.type()->isArray())
-            return TypeRef::invalid();
-        if (!dstView.type()->isSlice() && !dstView.type()->isString())
             return TypeRef::invalid();
         if (srcView.hasConstant())
             return TypeRef::invalid();
 
-        return dstView.typeRef();
+        if (srcView.type()->isArray() && (dstView.type()->isSlice() || dstView.type()->isString()))
+            return dstView.typeRef();
+
+        if (!srcView.type()->isAny() && dstView.type()->isAny())
+        {
+            constexpr uint64_t     anyStorageSize = sizeof(Runtime::Any);
+            const uint64_t         valueStorage   = srcView.type()->sizeOf(sema.ctx());
+            SmallVector4<uint64_t> dims;
+            dims.push_back(anyStorageSize + valueStorage);
+            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        }
+
+        return TypeRef::invalid();
     }
 }
 
@@ -100,9 +109,9 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     if (!hasFlag(AstCastExprFlagsE::Explicit))
         return Result::Continue;
 
-    const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
     const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
     const SemaNodeView srcTypeView  = sema.viewTypeConstant(nodeExprRef);
+    const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
     // Value-check
     SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
@@ -125,7 +134,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
 
     const SemaNodeView dstTypeView           = sema.curViewType();
-    const TypeRef      runtimeStorageTypeRef = castRuntimeStorageTypeRef(srcTypeView, dstTypeView);
+    const TypeRef      runtimeStorageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeView, dstTypeView);
     if (runtimeStorageTypeRef.isValid() && sema.frame().currentFunction() != nullptr)
     {
         auto& storageSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "cast_runtime_storage");

@@ -176,11 +176,41 @@ namespace
                 return;
             }
 
-            SWC_ASSERT(cst.isStruct());
-            const auto bytes = cst.getStruct();
-            SWC_ASSERT(bytes.size() == dstBytes.size());
-            if (!dstBytes.empty())
-                std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+            if (cst.isStruct())
+            {
+                const auto bytes = cst.getStruct();
+                SWC_ASSERT(bytes.size() == dstBytes.size());
+                if (!dstBytes.empty())
+                    std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+                return;
+            }
+
+            Runtime::Any anyValue{};
+
+            const TypeRef valueTypeRef = cst.typeRef();
+            SWC_ASSERT(valueTypeRef.isValid());
+            SWC_ASSERT(valueTypeRef != dstTypeRef);
+
+            ConstantRef  typeInfoCstRef = ConstantRef::invalid();
+            const Result typeInfoRes    = sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, AstNodeRef::invalid());
+            SWC_ASSERT(typeInfoRes == Result::Continue);
+            SWC_ASSERT(typeInfoCstRef.isValid());
+            const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
+            SWC_ASSERT(typeInfoCst.isValuePointer());
+            anyValue.type = reinterpret_cast<const Runtime::TypeInfo*>(typeInfoCst.getValuePointer());
+
+            const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(sema.ctx());
+            if (valueSize)
+            {
+                std::vector valueBytes(valueSize, std::byte{0});
+                lowerConstantToBytes(sema, valueBytes, valueTypeRef, cstRef);
+
+                const std::string_view rawValueView(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());
+                const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(rawValueView);
+                anyValue.value                      = const_cast<char*>(rawValueData.data());
+            }
+
+            std::memcpy(dstBytes.data(), &anyValue, sizeof(anyValue));
             return;
         }
 

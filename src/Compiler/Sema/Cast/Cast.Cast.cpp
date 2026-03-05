@@ -27,6 +27,8 @@ namespace
     {
         if (!srcType.isEnum() || dstType.isEnum())
             return false;
+        if (dstType.isAny())
+            return false;
 
         if (dstType.isBool() && castRequest.kind == CastKind::Condition)
             return false;
@@ -1035,7 +1037,12 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             if (castFlags.has(CastFlagsE::FromExplicitNode))
                 sema.setType(view.nodeRef(), dstTypeRef);
             else
-                view.nodeRef() = createCast(sema, dstTypeRef, view.nodeRef());
+            {
+                const TypeRef     srcTypeRef = view.typeRef();
+                const ConstantRef srcCstRef  = view.cstRef();
+                view.nodeRef()               = createCast(sema, dstTypeRef, view.nodeRef());
+                SWC_RESULT_VERIFY(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef));
+            }
         }
         else
             sema.setConstant(view.nodeRef(), castRequest.constantFoldingResult());

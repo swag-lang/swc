@@ -4,10 +4,11 @@ func anyToS64(v: any)->s64
 {
     return cast(s64) v
 }
-// func sumAny(a: any, b: any)->s64
-// {
-//     return cast(s64) a + cast(s64) b
-// }
+
+func sumAny(a: any, b: any)->s64
+{
+    return cast(s64) a + cast(s64) b
+}
 
 #run
 {
@@ -59,10 +60,11 @@ func anyToS64(v: any)->s64
     let d = anyToS64(c)
     @assert(d == 333)
 }
-// #run
-// {
-//     const a: any = 100's64
-//     const b: any = 23's64
-//     let d = sumAny(a, b)
-//     @assert(d == 123)
-// }
+
+#run
+{
+    const a: any = 100's64
+    const b: any = 23's64
+    let d = sumAny(a, b)
+    @assert(d == 123)
+}

@@ -347,7 +347,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     return preparedCall;
 }
 
-ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args, const ABITypeNormalize::NormalizedType& ret)
+ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args, const ABITypeNormalize::NormalizedType& ret, MicroReg hiddenRetStorageReg)
 {
     if (!ret.isIndirect)
         return prepareArgs(builder, callConvKind, args);
@@ -357,12 +357,16 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     SWC_ASSERT(!conv.intArgRegs.empty());
     SWC_ASSERT(ret.indirectSize != 0);
 
-    void* indirectRetStorage = builder.ctx().compiler().allocateArray<uint8_t>(ret.indirectSize);
+    MicroReg hiddenRetArgSrcReg = hiddenRetStorageReg;
+    if (!hiddenRetArgSrcReg.isValid())
+    {
+        void* indirectRetStorage = builder.ctx().compiler().allocateArray<uint8_t>(ret.indirectSize);
 
-    MicroReg   hiddenRetArgSrcReg, hiddenRetArgTmpReg;
-    const bool hasScratchRegs = conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg);
-    SWC_INTERNAL_CHECK(hasScratchRegs);
-    builder.emitLoadRegPtrImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage));
+        MicroReg   hiddenRetArgTmpReg;
+        const bool hasScratchRegs = conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg);
+        SWC_INTERNAL_CHECK(hasScratchRegs);
+        builder.emitLoadRegPtrImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage));
+    }
 
     SmallVector<PreparedArg> preparedArgsWithHiddenRetArg;
     preparedArgsWithHiddenRetArg.reserve(args.size() + 1);

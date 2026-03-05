@@ -6,7 +6,6 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -34,21 +33,6 @@ namespace
             return false;
 
         return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
-    }
-
-    MicroReg materializeAddressValueCopy(CodeGen& codeGen, MicroReg srcAddressReg, uint32_t copySize)
-    {
-        SWC_ASSERT(copySize > 0);
-        const auto* storage = codeGen.compiler().allocateArray<std::byte>(copySize);
-
-        MicroBuilder&       builder       = codeGen.builder();
-        const MicroReg      dstReg        = codeGen.nextVirtualIntRegister();
-        const auto          dstValue      = reinterpret_cast<uint64_t>(storage);
-        const ConstantValue storageCst    = ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU8(), dstValue, TypeInfoFlagsE::Const);
-        const ConstantRef   storageCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), storageCst);
-        builder.emitLoadRegPtrReloc(dstReg, dstValue, storageCstRef);
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, srcAddressReg, copySize);
-        return dstReg;
     }
 
     void buildLocalStackLayout(CodeGen& codeGen)
@@ -283,8 +267,22 @@ namespace
             SWC_ASSERT(fnPayload.isAddress());
 
             const MicroReg outputStorageReg = fnPayload.reg;
-            SWC_ASSERT(exprPayload.isAddress());
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+            if (exprPayload.isAddress())
+            {
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+            }
+            else
+            {
+                const uint32_t copySize = normalizedRet.indirectSize;
+                MicroOpBits    copyBits = MicroOpBits::Zero;
+                if (copySize == 1 || copySize == 2 || copySize == 4 || copySize == 8)
+                    copyBits = microOpBitsFromChunkSize(copySize);
+                if (copyBits != MicroOpBits::Zero)
+                    builder.emitLoadMemReg(outputStorageReg, 0, exprPayload.reg, copyBits);
+                else
+                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, copySize);
+            }
+
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
@@ -292,15 +290,8 @@ namespace
             // Direct returns are normalized to ABI return registers (int/float lane).
             const bool      isAddressed    = exprPayload.isAddress();
             const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
-            if (isAddressed && shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet))
-            {
-                const MicroReg copiedValueReg = materializeAddressValueCopy(codeGen, exprPayload.reg, checkedTypeSizeInBytes(codeGen, returnTypeInfo));
-                ABICall::materializeValueToReturnRegs(builder, callConvKind, copiedValueReg, false, normalizedRet);
-            }
-            else
-            {
-                ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload.reg, isAddressed, normalizedRet);
-            }
+            SWC_ASSERT(!shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet));
+            ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload.reg, isAddressed, normalizedRet);
         }
 
         emitLocalStackFrameEpilogue(codeGen, callConvKind);

@@ -7,6 +7,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/Sema/Ast/Sema.Function.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -36,19 +37,48 @@ namespace
         return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
     }
 
-    MicroReg materializeAddressValueCopy(CodeGen& codeGen, MicroReg srcAddressReg, uint32_t copySize)
+    CodeGenNodePayload resolveCallRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
     {
-        SWC_ASSERT(copySize > 0);
-        const auto* storage = codeGen.compiler().allocateArray<std::byte>(copySize);
+        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
+            return *symbolPayload;
 
-        MicroBuilder&       builder       = codeGen.builder();
-        const MicroReg      dstReg        = codeGen.nextVirtualIntRegister();
-        const auto          dstValue      = reinterpret_cast<uint64_t>(storage);
-        const ConstantValue storageCst    = ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU8(), dstValue, TypeInfoFlagsE::Const);
-        const ConstantRef   storageCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), storageCst);
-        builder.emitLoadRegPtrReloc(dstReg, dstValue, storageCstRef);
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, srcAddressReg, copySize);
-        return dstReg;
+        if (!storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            return {};
+        if (!codeGen.localStackBaseReg().isValid())
+            return {};
+
+        CodeGenNodePayload localPayload;
+        localPayload.typeRef = storageSym.typeRef();
+        localPayload.setIsAddress();
+        if (!storageSym.offset())
+        {
+            localPayload.reg = codeGen.localStackBaseReg();
+        }
+        else
+        {
+            MicroBuilder& builder = codeGen.builder();
+            localPayload.reg      = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+        }
+
+        codeGen.setVariablePayload(storageSym, localPayload);
+        return localPayload;
+    }
+
+    MicroReg callRuntimeStorageAddressReg(CodeGen& codeGen, AstNodeRef callExprRef)
+    {
+        const auto* payload = codeGen.sema().codeGenPayload<CallExprCodeGenPayload>(callExprRef);
+        if (!payload || payload->runtimeStorageSym == nullptr)
+            return MicroReg::invalid();
+
+        const CodeGenNodePayload storagePayload = resolveCallRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
+        if (!storagePayload.isAddress())
+            return MicroReg::invalid();
+        if (!storagePayload.reg.isValid())
+            return MicroReg::invalid();
+
+        return storagePayload.reg;
     }
 
     MicroOpBits functionParameterLoadBits(bool isFloat, uint8_t numBits)
@@ -106,15 +136,13 @@ namespace
         if (normalizedTypeRef.isInvalid())
             return;
 
-        const TypeInfo&                        normalizedType   = codeGen.ctx().typeMgr().get(normalizedTypeRef);
-        const ABITypeNormalize::NormalizedType normalizedArg    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-        const bool                             passAddressValue = shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg);
-        const bool                             passAddressRef   = normalizedType.isReference() || passAddressValue;
-        outPreparedArg.isFloat                                  = normalizedArg.isFloat;
-        outPreparedArg.numBits                                  = normalizedArg.numBits;
-        outPreparedArg.isAddressed                              = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
-        if (passAddressValue && argPayload.isAddress())
-            outPreparedArg.srcReg = materializeAddressValueCopy(codeGen, argPayload.reg, checkedTypeSizeInBytes(codeGen, normalizedType));
+        const TypeInfo&                        normalizedType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+        const ABITypeNormalize::NormalizedType normalizedArg  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
+        SWC_ASSERT(!shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg));
+        const bool passAddressRef  = normalizedType.isReference();
+        outPreparedArg.isFloat     = normalizedArg.isFloat;
+        outPreparedArg.numBits     = normalizedArg.numBits;
+        outPreparedArg.isAddressed = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
     }
 
     void appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const std::vector<SymbolVariable*>& params, size_t argIndex, const ResolvedCallArgument& arg)
@@ -555,9 +583,12 @@ Result CodeGenFunctionHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRe
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     uint32_t transientStackSize = 0;
     buildPreparedABIArguments(codeGen, calledFunction, args, preparedArgs, transientStackSize);
+    MicroReg hiddenRetStorageReg = MicroReg::invalid();
+    if (normalizedRet.isIndirect)
+        hiddenRetStorageReg = callRuntimeStorageAddressReg(codeGen, codeGen.curNodeRef());
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
-    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet, hiddenRetStorageReg);
     CodeGenNodePayload&         nodePayload  = codeGen.setPayload(codeGen.curNodeRef(), currentView.typeRef());
     emitFunctionCall(codeGen, calledFunction, calleeView.nodeRef(), preparedCall);
     if (transientStackSize)

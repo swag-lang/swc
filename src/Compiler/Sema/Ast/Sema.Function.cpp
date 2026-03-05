@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Function.Payload.h"
 #include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
@@ -150,6 +153,96 @@ namespace
         return Result::Continue;
     }
 
+    TypeRef callExprRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
+    {
+        if (sema.frame().currentFunction() == nullptr)
+            return TypeRef::invalid();
+
+        const TypeRef returnTypeRef = calledFn.returnTypeRef();
+        if (!returnTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
+        if (returnType.isVoid())
+            return TypeRef::invalid();
+
+        const CallConv&                        callConv      = CallConv::get(calledFn.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        if (!normalizedRet.isIndirect)
+            return TypeRef::invalid();
+
+        const TypeRef storageTypeRef = returnType.unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (storageTypeRef.isValid())
+            return storageTypeRef;
+
+        return returnTypeRef;
+    }
+
+    Result completeCallExprRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            currentFunc->addLocalVariable(sema.ctx(), &symVar);
+        }
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    SymbolVariable& registerUniqueCallExprRuntimeStorageSymbol(Sema& sema, const AstNode& node)
+    {
+        TaskContext&        ctx         = sema.ctx();
+        const Utf8          privateName = Utf8("__call_runtime_storage");
+        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+
+        auto* sym = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(sym);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(symMap != nullptr);
+            symMap->addSymbol(ctx, sym, true);
+        }
+
+        return *(sym);
+    }
+
+    Result attachCallExprRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SymbolFunction& calledFn)
+    {
+        auto* payload = sema.codeGenPayload<CallExprCodeGenPayload>(sema.curNodeRef());
+        if (payload && payload->runtimeStorageSym != nullptr)
+            return Result::Continue;
+
+        const TypeRef storageTypeRef = callExprRuntimeStorageTypeRef(sema, calledFn);
+        if (storageTypeRef.isInvalid())
+            return Result::Continue;
+
+        auto& storageSym = registerUniqueCallExprRuntimeStorageSymbol(sema, node);
+        storageSym.registerAttributes(sema);
+        storageSym.setDeclared(sema.ctx());
+        SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
+        SWC_RESULT_VERIFY(completeCallExprRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CallExprCodeGenPayload>();
+            sema.setCodeGenPayload(sema.curNodeRef(), payload);
+        }
+
+        payload->runtimeStorageSym = &storageSym;
+        return Result::Continue;
+    }
+
     template<typename T>
     Result semaCallExprCommon(Sema& sema, const T& node, bool tryIntrinsicFold)
     {
@@ -213,6 +306,7 @@ namespace
             if (sema.viewConstant(sema.curNodeRef()).hasConstant())
                 return Result::Continue;
             SWC_RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
+            SWC_RESULT_VERIFY(attachCallExprRuntimeStorageIfNeeded(sema, node, calledFn));
         }
 
         return Result::Continue;

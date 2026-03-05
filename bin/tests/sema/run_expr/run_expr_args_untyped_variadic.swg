@@ -585,6 +585,28 @@ enum VariadicKind: u16
 
 #test
 {
+    func variadicAnySinkU64(v: u64)->u64
+    {
+        return v
+    }
+
+    func variadicAnyPassToTyped(values: ...)->u64
+    {
+        foreach it in values
+        {
+            var v = it
+            return variadicAnySinkU64(cast(u64) v)
+        }
+
+        return 0'u64
+    }
+
+    const V0 = #run variadicAnyPassToTyped(1'u64)
+    #assert(V0 == 1'u64)
+}
+
+#test
+{
     func variadicAnyStressD(values: ...)->bool
     {
         if @countof(values) != 1 do

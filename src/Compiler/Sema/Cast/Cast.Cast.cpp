@@ -820,13 +820,12 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromAny(const Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFromAny(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     SWC_UNUSED(sema);
-    SWC_UNUSED(castRequest);
-    SWC_UNUSED(srcTypeRef);
-    SWC_UNUSED(dstTypeRef);
-    return Result::Continue;
+    if (castRequest.kind == CastKind::Explicit)
+        return Result::Continue;
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
 Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)

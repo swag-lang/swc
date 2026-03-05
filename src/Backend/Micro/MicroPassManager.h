@@ -21,6 +21,7 @@ class MicroPeepholePass;
 class MicroRegisterAllocationPass;
 class MicroPrologEpilogPass;
 class MicroPrologEpilogSanitizePass;
+class MicroStackAdjustNormalizePass;
 class MicroLegalizePass;
 class MicroEmitPass;
 
@@ -57,6 +58,7 @@ private:
     std::unique_ptr<MicroBranchFoldingPass>             branchFoldingPass_;
     std::unique_ptr<MicroLoadStoreForwardingPass>       loadStoreForwardPass_;
     std::unique_ptr<MicroPeepholePass>                  peepholePass_;
+    std::unique_ptr<MicroStackAdjustNormalizePass>      stackAdjustNormalizePass_;
     std::unique_ptr<MicroRegisterAllocationPass>        regAllocPass_;
     std::unique_ptr<MicroPrologEpilogPass>              prologEpilogPass_;
     std::unique_ptr<MicroPrologEpilogSanitizePass>      prologEpilogSanitizePass_;

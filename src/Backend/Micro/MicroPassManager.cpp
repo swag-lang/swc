@@ -15,6 +15,7 @@
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
@@ -233,6 +234,7 @@ MicroPassManager::MicroPassManager()
     branchFoldingPass_        = std::make_unique<MicroBranchFoldingPass>();
     loadStoreForwardPass_     = std::make_unique<MicroLoadStoreForwardingPass>();
     peepholePass_             = std::make_unique<MicroPeepholePass>();
+    stackAdjustNormalizePass_ = std::make_unique<MicroStackAdjustNormalizePass>();
     regAllocPass_             = std::make_unique<MicroRegisterAllocationPass>();
     prologEpilogPass_         = std::make_unique<MicroPrologEpilogPass>();
     prologEpilogSanitizePass_ = std::make_unique<MicroPrologEpilogSanitizePass>();
@@ -255,6 +257,7 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 {
     clear();
 
+    addStartPass(*stackAdjustNormalizePass_);
     addStartPass(*legalizePass_);
     addStartPass(*regAllocPass_);
     addStartPass(*prologEpilogPass_);

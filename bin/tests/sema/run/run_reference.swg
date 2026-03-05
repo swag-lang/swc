@@ -40,7 +40,6 @@ struct Vec2
     @assert(v == 42)
 }
 
-/*
 #run
 {
     func getPtr(x: &Vec2)->*Vec2 { return &x; }
@@ -54,22 +53,22 @@ struct Vec2
     writeThrough(p)
     @assert(v.x == -3)
     @assert(v.y == 99)
-}*/
+}
 
-//#run
-//{
-//    func choose(flag: bool, a: &Vec2, b: &Vec2)->*Vec2
-//    {
-//        if flag
-//            return &a
-//        return &b
-//    }
-//    var left: Vec2 = {x: 100, y: 200}
-//    var right: Vec2 = {x: 300, y: 400}
-//    var p0 = choose(true, &left, &right)
-//    var p1 = choose(false, &left, &right)
-//    @assert(p0.x == 100)
-//    @assert(p0.y == 200)
-//    @assert(p1.x == 300)
-//    @assert(p1.y == 400)
-//}
+#run
+{
+    func choose(flag: bool, a: &Vec2, b: &Vec2)->*Vec2
+    {
+        if flag do
+            return &a
+        return &b
+    }
+    var left: Vec2 = {x: 100, y: 200}
+    var right: Vec2 = {x: 300, y: 400}
+    var p0 = choose(true, &left, &right)
+    var p1 = choose(false, &left, &right)
+    @assert(p0.x == 100)
+    @assert(p0.y == 200)
+    @assert(p1.x == 300)
+    @assert(p1.y == 400)
+}

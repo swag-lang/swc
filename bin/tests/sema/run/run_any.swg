@@ -1,6 +1,5 @@
 #global fileprivate
 
-#[Swag.PrintMicro]
 #run
 {
     const c: any = 1

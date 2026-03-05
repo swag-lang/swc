@@ -1603,6 +1603,35 @@ namespace
         return true;
     }
 
+    bool removeAdjacentPushPopSameRegister(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    {
+        const MicroPassContext&      context = pass.context();
+        const MicroInstr*            inst    = cursor.inst;
+        const MicroInstrOperand*     ops     = cursor.ops;
+        const MicroStorage::Iterator nextIt  = cursor.nextIt;
+        const MicroStorage::Iterator endIt   = cursor.endIt;
+        if (!inst || inst->op != MicroInstrOpcode::Push || !ops || nextIt == endIt)
+            return false;
+
+        const MicroInstr&        nextInst = *nextIt;
+        const MicroInstrOperand* nextOps  = nextInst.ops(*context.operands);
+        if (nextInst.op != MicroInstrOpcode::Pop || !nextOps)
+            return false;
+
+        const MicroReg pushedReg = ops[0].reg;
+        if (!pushedReg.isValid() || pushedReg != nextOps[0].reg)
+            return false;
+
+        // "push rsp; pop rsp" is not a semantic no-op on x64.
+        const CallConv& conv = CallConv::get(context.callConvKind);
+        if (pushedReg == conv.stackPointer)
+            return false;
+
+        context.instructions->erase(nextIt.current);
+        context.instructions->erase(cursor.instRef);
+        return true;
+    }
+
     bool removeNoOpInstruction(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
@@ -2057,6 +2086,11 @@ void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
     // Purpose: remove clears of a destination register that is fully overwritten by cvtf2i.
     // Example: xor r10, r10; cvtf2i r10, xmm0 -> cvtf2i r10, xmm0
     outRules.emplace_back(RuleTarget::AnyInstruction, removeRedundantClearBeforeConvertFloatToInt);
+
+    // Rule: remove_adjacent_push_pop_same_register
+    // Purpose: remove adjacent push/pop pairs that save and restore the same non-stack register.
+    // Example: push rbp; pop rbp -> <removed>
+    outRules.emplace_back(RuleTarget::AnyInstruction, removeAdjacentPushPopSameRegister);
 
     // Rule: remove_no_op_instruction
     // Purpose: remove encoder-level no-op instructions.

@@ -162,6 +162,52 @@ SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Peephole_RemovesAdjacentPushPopSameRegister)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rbp = MicroReg::intReg(5);
+
+    builder.emitPush(rbp);
+    builder.emitPop(rbp);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    if (instructionCount(builder) != 1)
+        return Result::Error;
+    if (hasInstruction(builder, MicroInstrOpcode::Push))
+        return Result::Error;
+    if (hasInstruction(builder, MicroInstrOpcode::Pop))
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::Ret))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_KeepsAdjacentPushPopStackPointer)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+
+    builder.emitPush(rsp);
+    builder.emitPop(rsp);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    if (instructionCount(builder) != 3)
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::Push))
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::Pop))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Peephole_RemovesRedundantStackSaveRestoreAroundImmediateShift)
 {
     MicroBuilder builder(ctx);

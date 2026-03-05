@@ -369,6 +369,8 @@ namespace
             outErrorKind = JITCallErrorKind::HardwareException;
 
         HardwareException::log(ctx, "fatal error: hardware exception during jit call!", platformExceptionPointers);
+        Stats::get().numErrors.fetch_add(1);
+
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 }

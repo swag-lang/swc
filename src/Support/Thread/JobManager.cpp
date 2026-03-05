@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Support/Thread/JobManager.h"
 #include "Main/CommandLine.h"
+#include "Main/Stats.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
 
@@ -418,6 +419,7 @@ namespace
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
         HardwareException::log(job.ctx(), "hardware exception during job execution", args);
+        Stats::get().numErrors.fetch_add(1);
         Os::panicBox("hardware exception raised!");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }

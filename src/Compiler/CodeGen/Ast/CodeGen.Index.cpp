@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Index.Payload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -41,7 +40,7 @@ namespace
 
     MicroReg indexRuntimeStorageAddressReg(CodeGen& codeGen)
     {
-        const auto* payload = codeGen.sema().codeGenPayload<IndexExprCodeGenPayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeStorageSym != nullptr);
         const CodeGenNodePayload storagePayload = resolveIndexRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));

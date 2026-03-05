@@ -8,7 +8,6 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -157,7 +156,7 @@ namespace
 
     MicroReg intrinsicRuntimeStorageAddressReg(CodeGen& codeGen)
     {
-        const auto* payload = codeGen.sema().codeGenPayload<IntrinsicCallCodeGenPayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeStorageSym != nullptr);
         const CodeGenNodePayload storagePayload = resolveIntrinsicRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
@@ -997,7 +996,7 @@ namespace
 
     Result codeGenGetContext(CodeGen& codeGen)
     {
-        const auto* payload = codeGen.sema().codeGenPayload<IntrinsicCallCodeGenPayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
 

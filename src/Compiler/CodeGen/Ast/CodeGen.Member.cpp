@@ -4,7 +4,6 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Member.Payload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -42,7 +41,7 @@ namespace
 
     MicroReg memberRuntimeStorageAddressReg(CodeGen& codeGen)
     {
-        const auto* payload = codeGen.sema().codeGenPayload<MemberAccessExprCodeGenPayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeStorageSym != nullptr);
         const CodeGenNodePayload storagePayload = resolveMemberRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));

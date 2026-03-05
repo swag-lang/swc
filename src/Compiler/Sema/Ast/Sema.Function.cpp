@@ -2,9 +2,8 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Function.Payload.h"
-#include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -142,10 +141,10 @@ namespace
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
             currentFn->addCallDependency(tlsGetValueFn);
 
-        auto* payload = sema.codeGenPayload<IntrinsicCallCodeGenPayload>(sema.curNodeRef());
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
         {
-            payload = sema.compiler().allocate<IntrinsicCallCodeGenPayload>();
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
             sema.setCodeGenPayload(sema.curNodeRef(), payload);
         }
 
@@ -219,7 +218,7 @@ namespace
 
     Result attachCallExprRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SymbolFunction& calledFn)
     {
-        auto* payload = sema.codeGenPayload<CallExprCodeGenPayload>(sema.curNodeRef());
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (payload && payload->runtimeStorageSym != nullptr)
             return Result::Continue;
 
@@ -235,7 +234,7 @@ namespace
 
         if (!payload)
         {
-            payload = sema.compiler().allocate<CallExprCodeGenPayload>();
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
             sema.setCodeGenPayload(sema.curNodeRef(), payload);
         }
 

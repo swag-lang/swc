@@ -7,7 +7,6 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
-#include "Compiler/Sema/Ast/Sema.Function.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -68,7 +67,7 @@ namespace
 
     MicroReg callRuntimeStorageAddressReg(CodeGen& codeGen, AstNodeRef callExprRef)
     {
-        const auto* payload = codeGen.sema().codeGenPayload<CallExprCodeGenPayload>(callExprRef);
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(callExprRef);
         if (!payload || payload->runtimeStorageSym == nullptr)
             return MicroReg::invalid();
 

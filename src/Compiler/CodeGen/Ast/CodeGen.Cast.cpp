@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Cast.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -51,7 +50,7 @@ namespace
 
     MicroReg castRuntimeStorageAddressReg(CodeGen& codeGen)
     {
-        const auto* payload = codeGen.sema().codeGenPayload<CastExprCodeGenPayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeStorageSym != nullptr);
         const CodeGenNodePayload storagePayload = resolveCastRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));

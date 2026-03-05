@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Index.Payload.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -219,10 +219,10 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
         SWC_RESULT_VERIFY(completeIndexRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
 
-        auto* payload = sema.codeGenPayload<IndexExprCodeGenPayload>(sema.curNodeRef());
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
         {
-            payload = sema.compiler().allocate<IndexExprCodeGenPayload>();
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
             sema.setCodeGenPayload(sema.curNodeRef(), payload);
         }
 

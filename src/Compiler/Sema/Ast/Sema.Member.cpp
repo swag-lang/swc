@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Member.Payload.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -289,10 +289,10 @@ namespace
             SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
             SWC_RESULT_VERIFY(completeMemberRuntimeStorageSymbol(sema, storageSym, memberRuntimeStorageTypeRef(sema)));
 
-            auto* payload = sema.codeGenPayload<MemberAccessExprCodeGenPayload>(sema.curNodeRef());
+            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
             if (!payload)
             {
-                payload = sema.compiler().allocate<MemberAccessExprCodeGenPayload>();
+                payload = sema.compiler().allocate<CodeGenNodePayload>();
                 sema.setCodeGenPayload(sema.curNodeRef(), payload);
             }
 

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -160,10 +160,10 @@ namespace
             SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
             SWC_RESULT_VERIFY(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
 
-            auto* payload = sema.codeGenPayload<IntrinsicCallCodeGenPayload>(sema.curNodeRef());
+            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
             if (!payload)
             {
-                payload = sema.compiler().allocate<IntrinsicCallCodeGenPayload>();
+                payload = sema.compiler().allocate<CodeGenNodePayload>();
                 sema.setCodeGenPayload(sema.curNodeRef(), payload);
             }
 
@@ -211,10 +211,10 @@ namespace
             SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
             SWC_RESULT_VERIFY(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
 
-            auto* payload = sema.codeGenPayload<IntrinsicCallCodeGenPayload>(sema.curNodeRef());
+            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
             if (!payload)
             {
-                payload = sema.compiler().allocate<IntrinsicCallCodeGenPayload>();
+                payload = sema.compiler().allocate<CodeGenNodePayload>();
                 sema.setCodeGenPayload(sema.curNodeRef(), payload);
             }
 

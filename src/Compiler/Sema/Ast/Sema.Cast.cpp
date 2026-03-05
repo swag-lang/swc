@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Ast/Sema.Cast.Payload.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -134,10 +134,10 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
         SWC_RESULT_VERIFY(completeCastRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
 
-        auto* payload = sema.codeGenPayload<CastExprCodeGenPayload>(sema.curNodeRef());
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
         {
-            payload = sema.compiler().allocate<CastExprCodeGenPayload>();
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
             sema.setCodeGenPayload(sema.curNodeRef(), payload);
         }
 

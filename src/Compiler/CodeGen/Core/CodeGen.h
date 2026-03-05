@@ -30,6 +30,11 @@ struct CodeGenNodePayload
     MicroReg    reg;
     TypeRef     typeRef     = TypeRef::invalid();
     StorageKind storageKind = StorageKind::Value;
+    union
+    {
+        SymbolVariable* runtimeStorageSym = nullptr;
+        SymbolFunction* runtimeFunctionSymbol;
+    };
 
     void setIsValue() { storageKind = StorageKind::Value; }
     bool isValue() const { return storageKind == StorageKind::Value; }

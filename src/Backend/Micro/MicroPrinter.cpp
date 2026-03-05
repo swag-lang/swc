@@ -23,6 +23,8 @@ namespace
     {
         Instruction = 'I',
         Compiler    = 'C',
+        Function    = 'F',
+        Constant    = 'D',
     };
 
     uint32_t opcodeColumnWidth()
@@ -348,9 +350,19 @@ namespace
         return tagNaturalToken(NaturalTagKind::Instruction, token);
     }
 
+    Utf8 tagFunctionToken(std::string_view token)
+    {
+        return tagNaturalToken(NaturalTagKind::Function, token);
+    }
+
     Utf8 tagCompilerToken(std::string_view token)
     {
         return tagNaturalToken(NaturalTagKind::Compiler, token);
+    }
+
+    Utf8 tagConstantToken(std::string_view token)
+    {
+        return tagNaturalToken(NaturalTagKind::Constant, token);
     }
 
     bool isNaturalLogicToken(std::string_view token)
@@ -581,7 +593,7 @@ namespace
             case MicroInstrOpcode::LoadRegPtrImm:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::LoadRegPtrReloc:
-                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), relocValue.empty() ? "<reloc>" : tagCompilerToken(relocValue));
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), relocValue.empty() ? "<reloc>" : tagConstantToken(relocValue));
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadSignedExtRegMem:
@@ -673,7 +685,7 @@ namespace
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
-                return std::format("{} {}", tagInstructionToken("call"), relocValue.empty() ? "<reloc>" : tagCompilerToken(relocValue));
+                return std::format("{} {}", tagInstructionToken("call"), relocValue.empty() ? "<reloc>" : tagFunctionToken(relocValue));
             case MicroInstrOpcode::CallIndirect:
                 return std::format("{} {}", tagInstructionToken("call"), regName(ops[0].reg, regPrintMode, encoder));
 
@@ -805,6 +817,16 @@ namespace
 
                         case NaturalTagKind::Compiler:
                             appendColored(out, ctx, SyntaxColor::Compiler, token);
+                            expectCallTarget = false;
+                            break;
+
+                        case NaturalTagKind::Function:
+                            appendColored(out, ctx, SyntaxColor::Function, token);
+                            expectCallTarget = false;
+                            break;
+
+                        case NaturalTagKind::Constant:
+                            appendColored(out, ctx, SyntaxColor::Constant, token);
                             expectCallTarget = false;
                             break;
 
@@ -1121,7 +1143,7 @@ namespace
             if (cst.typeRef().isValid())
             {
                 const TypeInfo& typeInfo = ctx.typeMgr().get(cst.typeRef());
-                return std::format("{} : {}", cst.toString(ctx), typeInfo.toName(ctx));
+                return std::format("{}", typeInfo.toName(ctx));
             }
 
             return cst.toString(ctx);

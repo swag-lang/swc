@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -820,12 +821,82 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromAny(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    SWC_UNUSED(sema);
-    if (castRequest.kind == CastKind::Explicit)
+    if (castRequest.kind != CastKind::Explicit)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    if (!castRequest.isConstantFolding())
         return Result::Continue;
-    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    TaskContext&         ctx    = sema.ctx();
+    const ConstantValue& anyCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+    if (!anyCst.isStruct())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    const ByteSpan anyBytes = anyCst.getStruct();
+    if (anyBytes.size() != sizeof(Runtime::Any))
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    Runtime::Any runtimeAny{};
+    std::memcpy(&runtimeAny, anyBytes.data(), sizeof(runtimeAny));
+
+    const TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(runtimeAny.type);
+    if (!valueTypeRef.isValid())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    ConstantRef valueCstRef = ConstantRef::invalid();
+    if (!runtimeAny.value)
+    {
+        valueCstRef = sema.cstMgr().cstNull();
+    }
+    else
+    {
+        const TypeInfo& valueType = sema.typeMgr().get(valueTypeRef);
+
+        if (valueType.isEnum())
+        {
+            const TypeRef       underlyingTypeRef = valueType.payloadSymEnum().underlyingTypeRef();
+            const ConstantValue underlyingCst     = ConstantValue::make(ctx, runtimeAny.value, underlyingTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+            if (!underlyingCst.isValid())
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+            const ConstantRef   underlyingCstRef = sema.cstMgr().addConstant(ctx, underlyingCst);
+            const ConstantValue enumCst          = ConstantValue::makeEnumValue(ctx, underlyingCstRef, valueTypeRef);
+            valueCstRef                          = sema.cstMgr().addConstant(ctx, enumCst);
+        }
+        else if (valueType.isAnyTypeInfo(ctx))
+        {
+            const uint64_t ptrValue = reinterpret_cast<uint64_t>(runtimeAny.value);
+            ConstantValue  typeCst  = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
+            typeCst.setTypeRef(valueTypeRef);
+            valueCstRef = sema.cstMgr().addConstant(ctx, typeCst);
+        }
+        else
+        {
+            const ConstantValue valueCst = ConstantValue::make(ctx, runtimeAny.value, valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+            if (!valueCst.isValid())
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            valueCstRef = sema.cstMgr().addConstant(ctx, valueCst);
+        }
+    }
+
+    CastRequest castFromAnyRequest(CastKind::Explicit);
+    castFromAnyRequest.flags        = castRequest.flags;
+    castFromAnyRequest.errorNodeRef = castRequest.errorNodeRef;
+    castFromAnyRequest.errorCodeRef = castRequest.errorCodeRef;
+    castFromAnyRequest.setConstantFoldingSrc(valueCstRef);
+
+    const Result result = castAllowed(sema, castFromAnyRequest, valueTypeRef, dstTypeRef);
+    if (result != Result::Continue)
+    {
+        if (result == Result::Error)
+            castRequest.failure = castFromAnyRequest.failure;
+        return result;
+    }
+
+    castRequest.setConstantFoldingResult(castFromAnyRequest.constantFoldingResult());
+    return Result::Continue;
 }
 
 Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)

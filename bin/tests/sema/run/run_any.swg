@@ -1,10 +1,9 @@
 #global fileprivate
-/*
+
+#[Swag.PrintMicro]
 #run
 {
-    let b = 1
-    let c: any = b
+    const c: any = 1
     let d = cast(s64) c
     @assert(d == 1)
 }
-*/

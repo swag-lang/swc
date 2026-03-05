@@ -179,6 +179,6 @@ struct PtrWrap
     func test(x: &Vec2)->*Vec2 { return &x; }
     var v: Vec2 = {x: 5, y: 10}
     var p = test(&v)
-    //@assert(p.x == 5)
-    //@assert(p.y == 10)
+    @assert(p.x == 5)
+    @assert(p.y == 10)
 }

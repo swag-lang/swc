@@ -26,20 +26,35 @@ struct Vec2
     @assert(v.y == 11)
 }
 
-//#run
-//{
-//    func getPtr(x: &Vec2)->*Vec2 { return &x; }
-//    func writeThrough(p: *Vec2)
-//    {
-//        p.x = -3
-//        p.y = 99
-//    }
-//    var v: Vec2 = {x: 1, y: 2}
-//    var p = getPtr(&v)
-//    writeThrough(p)
-//    @assert(v.x == -3)
-//    @assert(v.y == 99)
-//}
+#run
+{
+    func getPtr(x: &s32)->*s32 { return &x; }
+    func writeThrough(p: *s32)
+    {
+        dref p = 42
+    }
+    var v: s32 = 10
+    var p = getPtr(&v)
+    @assert(dref p == 10)
+    writeThrough(p)
+    @assert(v == 42)
+}
+
+/*
+#run
+{
+    func getPtr(x: &Vec2)->*Vec2 { return &x; }
+    func writeThrough(p: *Vec2)
+    {
+        p.x = -3
+        p.y = 99
+    }
+    var v: Vec2 = {x: 1, y: 2}
+    var p = getPtr(&v)
+    writeThrough(p)
+    @assert(v.x == -3)
+    @assert(v.y == 99)
+}*/
 
 //#run
 //{

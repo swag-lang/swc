@@ -75,14 +75,28 @@ namespace
 
     Result codeGenStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
-        const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
-        const SemaNodeView        rightView   = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*             rightSym    = (rightView.sym());
-        const auto&               symVar      = rightSym->cast<SymbolVariable>();
+        const CodeGenNodePayload& leftPayload  = codeGen.payload(node.nodeLeftRef);
+        const SemaNodeView        leftTypeView = codeGen.viewType(node.nodeLeftRef);
+        const SemaNodeView        rightView    = codeGen.viewSymbol(node.nodeRightRef);
+        const Symbol*             rightSym     = (rightView.sym());
+        const auto&               symVar       = rightSym->cast<SymbolVariable>();
 
         const TypeRef             memberTypeRef = codeGen.curViewType().typeRef();
         const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
+
+        if (leftTypeView.type() && (leftTypeView.type()->isAnyPointer() || leftTypeView.type()->isReference()))
+        {
+            MicroReg baseAddressReg = leftPayload.reg;
+            if (leftPayload.isAddress())
+            {
+                baseAddressReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(baseAddressReg, leftPayload.reg, 0, MicroOpBits::B64);
+            }
+
+            builder.emitLoadAddressRegMem(payload.reg, baseAddressReg, symVar.offset(), MicroOpBits::B64);
+            return Result::Continue;
+        }
 
         if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, leftPayload))
         {

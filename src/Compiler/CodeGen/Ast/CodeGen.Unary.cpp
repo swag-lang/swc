@@ -145,15 +145,14 @@ namespace
 
     Result codeGenUnaryTakeAddress(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        MicroBuilder&             builder      = codeGen.builder();
         const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
 
         const SemaNodeView        view    = codeGen.curViewType();
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
         if (childPayload.isAddress())
-            builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
+            codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         else
-            builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
+            codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         return Result::Continue;
     }
 

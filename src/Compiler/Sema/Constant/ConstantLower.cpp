@@ -166,6 +166,24 @@ namespace
             return;
         }
 
+        if (dstType.isAny())
+        {
+            SWC_ASSERT(dstBytes.size() == sizeof(Runtime::Any));
+            if (cst.isNull())
+            {
+                if (!dstBytes.empty())
+                    std::memset(dstBytes.data(), 0, dstBytes.size());
+                return;
+            }
+
+            SWC_ASSERT(cst.isStruct());
+            const auto bytes = cst.getStruct();
+            SWC_ASSERT(bytes.size() == dstBytes.size());
+            if (!dstBytes.empty())
+                std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+            return;
+        }
+
         if (dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString())
         {
             SWC_ASSERT(dstBytes.size() == sizeof(uint64_t));
@@ -183,7 +201,7 @@ namespace
 
         SWC_ASSERT(dstType.isEnum() || dstType.isStruct() || dstType.isArray() || dstType.isBool() || dstType.isChar() ||
                    dstType.isRune() || dstType.isInt() || dstType.isFloat() || dstType.isString() || dstType.isSlice() ||
-                   dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString());
+                   dstType.isAny() || dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString());
         return;
     }
 }

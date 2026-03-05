@@ -274,7 +274,7 @@ namespace
             else
             {
                 const uint32_t copySize = normalizedRet.indirectSize;
-                MicroOpBits    copyBits = MicroOpBits::Zero;
+                auto           copyBits = MicroOpBits::Zero;
                 if (copySize == 1 || copySize == 2 || copySize == 4 || copySize == 8)
                     copyBits = microOpBitsFromChunkSize(copySize);
                 if (copyBits != MicroOpBits::Zero)

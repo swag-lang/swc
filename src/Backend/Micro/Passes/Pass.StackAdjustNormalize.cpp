@@ -255,8 +255,8 @@ namespace
             MicroInstrOperand* const ops = currentIt->ops(*context.operands);
             SWC_ASSERT(rebaseInstructionStackOffsets(*currentIt, ops, conv.stackPointer, delta, true));
 
-            MicroReg copiedStackReg = MicroReg::invalid();
-            const bool parseOk = parseStackPointerCopyForRebase(*currentIt, ops, conv.stackPointer, copiedStackReg);
+            MicroReg   copiedStackReg = MicroReg::invalid();
+            const bool parseOk        = parseStackPointerCopyForRebase(*currentIt, ops, conv.stackPointer, copiedStackReg);
             SWC_ASSERT(parseOk);
             if (!parseOk)
                 continue;

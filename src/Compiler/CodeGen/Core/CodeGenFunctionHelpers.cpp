@@ -313,8 +313,8 @@ namespace
             info.valueSize  = static_cast<uint32_t>(rawArgSize);
             info.valueAlign = std::max<uint32_t>(argType.alignOf(ctx), 1);
 
-            ConstantRef typeInfoCstRef = ConstantRef::invalid();
-            const Result typeInfoRes = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, info.argTypeRef, info.argRef);
+            ConstantRef  typeInfoCstRef = ConstantRef::invalid();
+            const Result typeInfoRes    = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, info.argTypeRef, info.argRef);
             SWC_ASSERT(typeInfoRes == Result::Continue);
             if (typeInfoRes != Result::Continue)
                 SWC_INTERNAL_ERROR();

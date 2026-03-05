@@ -120,6 +120,23 @@ namespace
         return tryAddOffset(ops[6].valueU64, delta, apply);
     }
 
+    bool parseStackPointerCopyForRebase(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroReg& outDstReg)
+    {
+        outDstReg = MicroReg::invalid();
+
+        if (!ops || inst.op != MicroInstrOpcode::LoadRegReg || inst.numOperands < 3)
+            return true;
+        if (ops[1].reg != stackPointer)
+            return true;
+        if (ops[0].reg == stackPointer)
+            return true;
+        if (ops[2].opBits != MicroOpBits::B64)
+            return false;
+
+        outDstReg = ops[0].reg;
+        return true;
+    }
+
     bool analyzeFunctionStackAdjustments(const MicroPassContext& context, const CallConv& conv, AnalyzeResult& outResult)
     {
         SWC_ASSERT(context.instructions);
@@ -194,8 +211,17 @@ namespace
             if (!delta)
                 continue;
 
+            auto nextIt = it;
+            ++nextIt;
+
             MicroInstrOperand* const ops = it->ops(*context.operands);
             if (!rebaseInstructionStackOffsets(*it, ops, conv.stackPointer, delta, false))
+                return false;
+
+            MicroReg copiedStackReg = MicroReg::invalid();
+            if (!parseStackPointerCopyForRebase(*it, ops, conv.stackPointer, copiedStackReg))
+                return false;
+            if (copiedStackReg.isValid() && nextIt == context.instructions->view().end())
                 return false;
         }
 
@@ -207,9 +233,16 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        auto it = context.instructions->view().begin();
+        while (it != context.instructions->view().end())
         {
-            const auto depthIt = analysisResult.depthBeforeByRef.find(it.current.get());
+            auto currentIt = it;
+            ++it;
+
+            auto nextIt = currentIt;
+            ++nextIt;
+
+            const auto depthIt = analysisResult.depthBeforeByRef.find(currentIt.current.get());
             if (depthIt == analysisResult.depthBeforeByRef.end())
                 continue;
             if (analysisResult.frameSize < depthIt->second)
@@ -219,8 +252,27 @@ namespace
             if (!delta)
                 continue;
 
-            MicroInstrOperand* const ops = it->ops(*context.operands);
-            SWC_ASSERT(rebaseInstructionStackOffsets(*it, ops, conv.stackPointer, delta, true));
+            MicroInstrOperand* const ops = currentIt->ops(*context.operands);
+            SWC_ASSERT(rebaseInstructionStackOffsets(*currentIt, ops, conv.stackPointer, delta, true));
+
+            MicroReg copiedStackReg = MicroReg::invalid();
+            const bool parseOk = parseStackPointerCopyForRebase(*currentIt, ops, conv.stackPointer, copiedStackReg);
+            SWC_ASSERT(parseOk);
+            if (!parseOk)
+                continue;
+            if (!copiedStackReg.isValid())
+                continue;
+
+            SWC_ASSERT(nextIt != context.instructions->view().end());
+            if (nextIt == context.instructions->view().end())
+                continue;
+
+            MicroInstrOperand addOps[4];
+            addOps[0].reg      = copiedStackReg;
+            addOps[1].opBits   = MicroOpBits::B64;
+            addOps[2].microOp  = MicroOp::Add;
+            addOps[3].valueU64 = delta;
+            context.instructions->insertBefore(*context.operands, nextIt.current, MicroInstrOpcode::OpBinaryRegImm, addOps);
         }
     }
 }

@@ -17,13 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo)
-    {
-        const uint64_t rawSize = typeInfo.sizeOf(codeGen.ctx());
-        SWC_ASSERT(rawSize > 0 && rawSize <= std::numeric_limits<uint32_t>::max());
-        return static_cast<uint32_t>(rawSize);
-    }
-
     bool shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, const ABITypeNormalize::NormalizedType& normalizedType)
     {
         if (normalizedType.isIndirect)
@@ -314,12 +307,18 @@ namespace
             SWC_ASSERT(rawArgSize > 0 && rawArgSize <= std::numeric_limits<uint32_t>::max());
 
             UntypedVariadicArgInfo info;
-            info.argRef         = resolvedArg.argRef;
-            info.argPayload     = argPayload;
-            info.argTypeRef     = argView.typeRef();
-            info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
-            info.valueSize      = static_cast<uint32_t>(rawArgSize);
-            info.valueAlign     = std::max<uint32_t>(argType.alignOf(ctx), 1);
+            info.argRef     = resolvedArg.argRef;
+            info.argPayload = argPayload;
+            info.argTypeRef = argView.typeRef();
+            info.valueSize  = static_cast<uint32_t>(rawArgSize);
+            info.valueAlign = std::max<uint32_t>(argType.alignOf(ctx), 1);
+
+            ConstantRef typeInfoCstRef = ConstantRef::invalid();
+            const Result typeInfoRes = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, info.argTypeRef, info.argRef);
+            SWC_ASSERT(typeInfoRes == Result::Continue);
+            if (typeInfoRes != Result::Continue)
+                SWC_INTERNAL_ERROR();
+            info.typeInfoCstRef = typeInfoCstRef;
             if (info.argPayload.reg == callConv.stackPointer)
             {
                 info.argPayload.reg = codeGen.nextVirtualIntRegister();

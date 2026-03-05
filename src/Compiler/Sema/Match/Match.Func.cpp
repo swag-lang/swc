@@ -1154,6 +1154,7 @@ namespace
             const AstNode& finalArgNode = sema.node(finalArgRef);
             if (finalArgNode.is(AstNodeId::NamedArgument))
                 finalArgRef = finalArgNode.cast<AstNamedArgument>().nodeArgRef;
+            finalArgRef = Match::resolveCallArgumentRef(sema, finalArgRef);
 
             auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
@@ -1182,6 +1183,7 @@ namespace
             const AstNode& finalArgNode = sema.node(finalArgRef);
             if (finalArgNode.is(AstNodeId::NamedArgument))
                 finalArgRef = finalArgNode.cast<AstNamedArgument>().nodeArgRef;
+            finalArgRef = Match::resolveCallArgumentRef(sema, finalArgRef);
             ResolvedCallArgument resolvedArg{
                 .argRef   = finalArgRef,
                 .passKind = CallArgumentPassKind::Direct,

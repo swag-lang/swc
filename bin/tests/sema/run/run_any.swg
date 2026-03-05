@@ -86,17 +86,17 @@ enum A { B = 1 }
 
 #run
 {
+    var a: any = 1.0
+    @assert(@kindof(a) == f32)
+    var b = cast(f32) a
+    @assert(b == 1.0'f32)
+}
+
+#run
+{
     var a: any = 1
     @assert(@kindof(a) == s32)
     var b = cast(s32) a
     @assert(b == 1)
     //@print(b)
-}
-
-#run
-{
-    var a: any = 1.0
-    @assert(@kindof(a) == f32)
-    var b = cast(f32) a
-    @assert(b == 1.0'f32)
 }

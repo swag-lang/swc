@@ -100,11 +100,6 @@ namespace
         return conditionOpBits(&typeInfo, ctx);
     }
 
-    bool switchUseUnsignedConditions(const TypeInfo& typeInfo)
-    {
-        return typeInfo.isFloat() || typeInfo.isIntLikeUnsigned() || typeInfo.isPointerLike() || typeInfo.isBool() || typeInfo.isEnum();
-    }
-
     void loadPayloadToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits)
     {
         outReg = codeGen.nextVirtualRegisterForType(regTypeRef);
@@ -284,7 +279,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         switchState->compareTypeRef  = compareTypeRef;
         switchState->switchValueReg  = switchValueReg;
         switchState->compareOpBits   = compareBits;
-        switchState->useUnsignedCond = switchUseUnsignedConditions(compareType);
+        switchState->useUnsignedCond = compareType.usesUnsignedConditions();
         return Result::Continue;
     }
 

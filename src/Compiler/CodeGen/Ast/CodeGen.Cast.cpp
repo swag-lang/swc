@@ -58,18 +58,6 @@ namespace
         return storagePayload.reg;
     }
 
-    bool isNumericIntLike(const TypeInfo& typeInfo)
-    {
-        return typeInfo.isIntLike() || typeInfo.isBool();
-    }
-
-    bool isNumericSigned(const TypeInfo& typeInfo)
-    {
-        if (typeInfo.isBool())
-            return false;
-        return typeInfo.isIntSigned();
-    }
-
     MicroOpBits castPayloadBits(const TypeInfo& typeInfo)
     {
         if (typeInfo.isFloat())
@@ -346,9 +334,9 @@ namespace
         }
 
         const bool srcFloatType   = srcType.isFloat();
-        const bool srcIntLikeType = isNumericIntLike(srcType);
+        const bool srcIntLikeType = srcType.isNumericIntLike();
         const bool dstFloatType   = dstType.isFloat();
-        const bool dstIntLikeType = isNumericIntLike(dstType);
+        const bool dstIntLikeType = dstType.isNumericIntLike();
 
         if (dstType.isBool() && (srcType.isPointerLike() || srcType.isReference() || srcType.isMoveReference() || srcType.isNull()))
         {
@@ -404,7 +392,7 @@ namespace
                 return Result::Continue;
             }
 
-            if (isNumericSigned(srcType))
+            if (srcType.isNumericSigned())
             {
                 builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
                 return Result::Continue;

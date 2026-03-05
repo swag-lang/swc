@@ -140,10 +140,13 @@ public:
     bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
+    bool isNumericIntLike() const noexcept { return isIntLike() || isBool(); }
+    bool isNumericSigned() const noexcept { return isIntSigned(); }
     bool isPointerLike() const noexcept { return isAnyPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction() || isTypeInfo(); }
     bool isConvertibleToBool() const noexcept { return isBool() || isPointerLike() || isIntLike() || isEnumFlags(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
+    bool usesUnsignedConditions() const noexcept { return isFloat() || isIntLikeUnsigned() || isPointerLike() || isBool() || isEnum(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
     bool isAnyPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }

@@ -114,11 +114,6 @@ namespace
         convertCompareOperand(outReg, codeGen, operandTypeRef, compareTypeRef);
     }
 
-    bool usesUnsignedConditions(const TypeInfo& typeInfo)
-    {
-        return typeInfo.isFloat() || typeInfo.isIntLikeUnsigned() || typeInfo.isPointerLike() || typeInfo.isBool() || typeInfo.isEnum();
-    }
-
     MicroCond relationalCondition(TokenId tokId, bool unsignedOrFloatCompare)
     {
         switch (tokId)
@@ -176,7 +171,7 @@ namespace
             case TokenId::SymLessEqual:
             case TokenId::SymGreater:
             case TokenId::SymGreaterEqual:
-                cond = relationalCondition(tokId, usesUnsignedConditions(compareType));
+                cond = relationalCondition(tokId, compareType.usesUnsignedConditions());
                 break;
 
             default:
@@ -210,7 +205,7 @@ namespace
 
         MicroBuilder& builder = codeGen.builder();
 
-        const bool      unsignedOrFloat = usesUnsignedConditions(compareType);
+        const bool      unsignedOrFloat = compareType.usesUnsignedConditions();
         const MicroCond lessCond        = unsignedOrFloat ? MicroCond::Below : MicroCond::Less;
         const MicroCond greatCond       = unsignedOrFloat ? MicroCond::Above : MicroCond::Greater;
 

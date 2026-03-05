@@ -1,19 +1,11 @@
 #global fileprivate
 
-/*
-#[Swag.PrintMicro]
-#[Swag.Optimize(false)]
 #run
 {
-    let a = cast(u64) @getcontext().runtimeFlags
-    if a & 1 do
-        @print(true)
-    else do
-        @print(false)
+    let a = @getcontext().runtimeFlags
+    @assert(a == .FromCompiler)
 }
-*/
 
-//#[Swag.PrintMicro]
 #run
 {
     var a: Swag.Context

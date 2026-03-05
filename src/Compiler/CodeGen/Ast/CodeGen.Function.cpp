@@ -311,6 +311,11 @@ namespace
 
 Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
+    const AstNodeRef currentFunctionDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+    const AstNodeRef activeFunctionDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+    if (currentFunctionDeclRef != activeFunctionDeclRef)
+        return Result::SkipChildren;
+
     const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
     const AstNodeRef resolvedBodyRef  = codeGen.viewZero(nodeBodyRef).nodeRef();
     if (resolvedChildRef != resolvedBodyRef)
@@ -341,6 +346,11 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstFunctionDecl::codeGenPostNode(CodeGen& codeGen) const
 {
+    const AstNodeRef currentFunctionDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+    const AstNodeRef activeFunctionDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+    if (currentFunctionDeclRef != activeFunctionDeclRef)
+        return Result::Continue;
+
     const SymbolFunction&                  symbolFunc    = codeGen.function();
     const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
     const CallConv&                        callConv      = CallConv::get(callConvKind);

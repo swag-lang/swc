@@ -72,6 +72,7 @@ func sumAny(a: any, b: any)->s64
 func s64Test(s: s64)
 {
     @assert(s == 1)
+    @assert(s == 0) // swc-expected-error {{sema_err_assert_failed}}
 }
 
 enum A { B = 1 }
@@ -80,5 +81,5 @@ enum A { B = 1 }
     const c: any = A.B
     let d = cast(s64) c
     @assert(d == 1)
-    //s64Test(c)
+    s64Test(cast(s64) c)
 }

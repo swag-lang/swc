@@ -513,7 +513,29 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
     }
 
     if (srcType.isAnyPointer())
+    {
+        const TypeInfo& srcPointeeType = sema.typeMgr().get(srcType.payloadTypeRef());
+        if (srcPointeeType.isReference() && srcPointeeType.payloadTypeRef() == dstType.payloadTypeRef())
+        {
+            bool ok = false;
+            if (srcType.kind() == dstType.kind())
+                ok = true;
+            else if (srcType.isBlockPointer() && dstType.isValuePointer())
+                ok = true;
+            else if (srcType.isValuePointer() && dstType.isBlockPointer() && castRequest.kind == CastKind::Explicit)
+                ok = true;
+
+            if (ok)
+            {
+                if ((srcType.isConst() || srcPointeeType.isConst()) && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                    return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+                return Result::Continue;
+            }
+        }
+
         return castPointerToPointer(sema, castRequest, srcTypeRef, dstTypeRef);
+    }
 
     if (srcType.isTypeInfo())
     {

@@ -114,6 +114,43 @@ func takes_f64(v: f64) {}
     var sl: [..] s32 = cast() null
 }
 
+#test
+{
+    struct A
+    {
+        v: s32
+    }
+
+    var x: A
+    var r: &A = &x
+    var p: *A = &r
+    #assert(#typeof(p) == *A)
+}
+
+#test
+{
+    struct A
+    {
+        v: s32
+    }
+
+    var x: A
+    var r: const &A = &x
+    var p: const *A = &r
+}
+
+#test
+{
+    struct A
+    {
+        v: s32
+    }
+
+    var x: A
+    var r: const &A = &x
+    var p: *A = &r // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
 #[Swag.Inline]
 func ret_u64_short() => cast(u64) 42
 func a_takes_s32(v: s32) {}

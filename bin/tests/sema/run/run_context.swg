@@ -8,6 +8,11 @@
 
 #run
 {
+    @assert(@jit)
+}
+
+#run
+{
     var a: Swag.Context
     a.runtimeFlags = .FromCompiler
     @assert(a.runtimeFlags == .FromCompiler)

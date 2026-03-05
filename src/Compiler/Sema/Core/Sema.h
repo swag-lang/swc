@@ -13,6 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct CastRequest;
 class SymbolNamespace;
+class SymbolFunction;
 class MatchContext;
 class IdentifierManager;
 
@@ -195,6 +196,7 @@ public:
 
     Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
+    Result      waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef);
     Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);

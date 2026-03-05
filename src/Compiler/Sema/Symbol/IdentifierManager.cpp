@@ -14,6 +14,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
 {
     SWC_UNUSED(ctx);
     predefined_.fill(IdentifierRef::invalid());
+    runtimeFunctions_.fill(IdentifierRef::invalid());
 
     struct PredefinedEntry
     {
@@ -104,10 +105,13 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::ProcessInfos, .str = "ProcessInfos"},
         {.name = PredefinedName::Gvtd, .str = "Gvtd"},
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
+        {.name = PredefinedName::RuntimeTlsGetValue, .str = "__tlsGetValue"},
     };
 
     for (const auto& it : PREDEFINED_NAMES)
         predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)] = predefined(PredefinedName::RuntimeTlsGetValue);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)
@@ -211,6 +215,20 @@ const Identifier& IdentifierManager::get(IdentifierRef idRef) const
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const auto localIndex = idRef.get() & LOCAL_MASK;
     return *(shards_[shardIndex].store.ptr<Identifier>(localIndex));
+}
+
+IdentifierManager::RuntimeFunctionKind IdentifierManager::runtimeFunctionKind(const IdentifierRef idRef) const
+{
+    if (!idRef.isValid())
+        return RuntimeFunctionKind::Count;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(RuntimeFunctionKind::Count); i++)
+    {
+        if (runtimeFunctions_[i] == idRef)
+            return static_cast<RuntimeFunctionKind>(i);
+    }
+
+    return RuntimeFunctionKind::Count;
 }
 
 SWC_END_NAMESPACE();

@@ -15,6 +15,12 @@ struct Identifier
 class IdentifierManager
 {
 public:
+    enum class RuntimeFunctionKind : uint8_t
+    {
+        TlsGetValue,
+        Count,
+    };
+
     enum class PredefinedName : uint8_t
     {
         Swag,
@@ -99,6 +105,7 @@ public:
         ProcessInfos,
         Gvtd,
         BuildCfg,
+        RuntimeTlsGetValue,
         Count,
     };
 
@@ -113,7 +120,9 @@ public:
     size_t memStorageReserved() const;
 #endif
 
-    IdentifierRef predefined(PredefinedName name) const { return predefined_[static_cast<size_t>(name)]; }
+    IdentifierRef       predefined(PredefinedName name) const { return predefined_[static_cast<size_t>(name)]; }
+    IdentifierRef       runtimeFunction(RuntimeFunctionKind kind) const { return runtimeFunctions_[static_cast<size_t>(kind)]; }
+    RuntimeFunctionKind runtimeFunctionKind(IdentifierRef idRef) const;
 
 private:
     IdentifierRef addIdentifierInternal(std::string_view name, uint32_t hash, bool copyName);
@@ -132,7 +141,8 @@ private:
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
     Shard                     shards_[SHARD_COUNT];
 
-    std::array<IdentifierRef, static_cast<size_t>(PredefinedName::Count)> predefined_ = {};
+    std::array<IdentifierRef, static_cast<size_t>(PredefinedName::Count)>      predefined_       = {};
+    std::array<IdentifierRef, static_cast<size_t>(RuntimeFunctionKind::Count)> runtimeFunctions_ = {};
 };
 
 SWC_END_NAMESPACE();

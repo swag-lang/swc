@@ -8,8 +8,8 @@ class SymbolFunction;
 
 struct IntrinsicCallCodeGenPayload : CodeGenNodePayload
 {
-    SymbolVariable* runtimeStorageSym           = nullptr;
-    SymbolFunction* runtimeTlsGetValueFunction  = nullptr;
+    SymbolVariable* runtimeStorageSym     = nullptr;
+    SymbolFunction* runtimeFunctionSymbol = nullptr;
 };
 
 SWC_END_NAMESPACE();

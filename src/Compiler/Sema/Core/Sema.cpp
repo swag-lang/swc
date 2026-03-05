@@ -280,6 +280,20 @@ Result Sema::waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typ
     return waitIdentifier(idMgr().predefined(name), codeRef);
 }
 
+Result Sema::waitRuntimeFunction(const IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef)
+{
+    const IdentifierRef idRef = idMgr().runtimeFunction(kind);
+    SWC_ASSERT(idRef.isValid());
+
+    symbol = compiler().runtimeFunctionSymbol(idRef);
+    if (!symbol)
+        return waitIdentifier(idRef, codeRef);
+
+    SWC_RESULT_VERIFY(waitDeclared(symbol, codeRef));
+    SWC_RESULT_VERIFY(waitTyped(symbol, codeRef));
+    return Result::Continue;
+}
+
 Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
     TaskState& wait = ctx().state();

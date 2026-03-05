@@ -999,9 +999,9 @@ namespace
     {
         const auto* payload = codeGen.sema().codeGenPayload<IntrinsicCallCodeGenPayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeTlsGetValueFunction != nullptr);
+        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
 
-        auto&                             tlsGetValueFunction = *payload->runtimeTlsGetValueFunction;
+        auto&                             tlsGetValueFunction = *payload->runtimeFunctionSymbol;
         const CallConvKind                callConvKind        = tlsGetValueFunction.callConvKind();
         const TypeRef                     resultType          = codeGen.curViewType().typeRef();
         MicroBuilder&                     builder             = codeGen.builder();

@@ -114,43 +114,27 @@ namespace
         }
     }
 
-    // TODO
+    void registerRuntimeFunctionSymbol(Sema& sema, SymbolFunction& sym)
+    {
+        const SourceFile* file = sema.file();
+        if (!file || !file->isRuntime())
+            return;
+
+        if (sym.isForeign() || sym.isEmpty())
+            return;
+
+        const auto kind = sema.idMgr().runtimeFunctionKind(sym.idRef());
+        if (kind == IdentifierManager::RuntimeFunctionKind::Count)
+            return;
+
+        sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
+    }
+
     Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
-        MatchContext lookupCxt;
-        lookupCxt.codeRef = node.codeRef();
-
-        const IdentifierRef idRef = sema.idMgr().addIdentifier("__tlsGetValue");
-        SWC_RESULT_VERIFY(Match::match(sema, lookupCxt, idRef));
-
         SymbolFunction* tlsGetValueFn = nullptr;
-        for (const Symbol* symbol : lookupCxt.symbols())
-        {
-            if (!symbol->isFunction())
-                continue;
-
-            auto* const candidate = const_cast<SymbolFunction*>(&symbol->cast<SymbolFunction>());
-            if (candidate->isForeign() || candidate->isEmpty())
-                continue;
-
-            if (tlsGetValueFn && tlsGetValueFn != candidate)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_ambiguous_symbol, sema.curNodeRef());
-                diag.addArgument(Diagnostic::ARG_SYM, idRef);
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-
-            tlsGetValueFn = candidate;
-        }
-
-        if (!tlsGetValueFn)
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, sema.curNodeRef());
-            diag.addArgument(Diagnostic::ARG_SYM, idRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
+        SWC_RESULT_VERIFY(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue, tlsGetValueFn, node.codeRef()));
+        SWC_ASSERT(tlsGetValueFn != nullptr);
 
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
             currentFn->addCallDependency(tlsGetValueFn);
@@ -162,7 +146,7 @@ namespace
             sema.setCodeGenPayload(sema.curNodeRef(), payload);
         }
 
-        payload->runtimeTlsGetValueFunction = tlsGetValueFn;
+        payload->runtimeFunctionSymbol = tlsGetValueFn;
         return Result::Continue;
     }
 
@@ -317,6 +301,8 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         SWC_RESULT_VERIFY(SemaSpecOp::validateSymbol(sema, sym));
         if (!sym.isEmpty())
             SWC_RESULT_VERIFY(Match::ghosting(sema, sym));
+
+        registerRuntimeFunctionSymbol(sema, sym);
     }
 
     return Result::Continue;

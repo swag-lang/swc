@@ -448,6 +448,38 @@ bool CompilerInstance::registerForeignLib(std::string_view name)
     return true;
 }
 
+void CompilerInstance::registerRuntimeFunctionSymbol(const IdentifierRef idRef, SymbolFunction* symbol)
+{
+    SWC_ASSERT(idRef.isValid());
+    SWC_ASSERT(symbol != nullptr);
+
+    bool                   inserted = false;
+    const std::unique_lock lock(mutex_);
+    const auto             it = runtimeFunctionSymbols_.find(idRef);
+    if (it == runtimeFunctionSymbols_.end())
+    {
+        runtimeFunctionSymbols_.emplace(idRef, symbol);
+        inserted = true;
+    }
+    else if (it->second == nullptr)
+    {
+        it->second = symbol;
+        inserted   = true;
+    }
+
+    if (inserted)
+        notifyAlive();
+}
+
+SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierRef idRef) const
+{
+    const std::shared_lock lock(mutex_);
+    const auto             it = runtimeFunctionSymbols_.find(idRef);
+    if (it == runtimeFunctionSymbols_.end())
+        return nullptr;
+    return it->second;
+}
+
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);

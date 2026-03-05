@@ -18,6 +18,7 @@ class TypeGen;
 class ConstantManager;
 class IdentifierManager;
 class SymbolModule;
+class SymbolFunction;
 class JITMemoryManager;
 class ExternalModuleManager;
 class Global;
@@ -84,6 +85,8 @@ public:
 
     bool                     registerForeignLib(std::string_view name);
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
+    void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
+    SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *(files_[ref.get()].get()); }
@@ -153,11 +156,12 @@ private:
         Runtime::Context runtimeContext{};
     };
 
-    std::vector<PerThreadData> perThreadData_;
-    std::atomic<uint32_t>      atomicId_                 = 0;
-    std::atomic<uint32_t>      pendingImplRegistrations_ = 0;
-    AstCompilerFunc*           mainFunc_                 = nullptr;
-    std::vector<Utf8>          foreignLibs_;
+    std::vector<PerThreadData>                         perThreadData_;
+    std::atomic<uint32_t>                              atomicId_                 = 0;
+    std::atomic<uint32_t>                              pendingImplRegistrations_ = 0;
+    AstCompilerFunc*                                   mainFunc_                 = nullptr;
+    std::vector<Utf8>                                  foreignLibs_;
+    std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

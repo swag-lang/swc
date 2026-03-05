@@ -12,7 +12,7 @@ func sumAny(a: any, b: any)->s64
 
 #run
 {
-    const c: any = 1
+    const c: any = 1's64
     let d = cast(s64) c
     @assert(d == 1)
 }
@@ -82,4 +82,21 @@ enum A { B = 1 }
     let d = cast(s64) c
     @assert(d == 1)
     s64Test(cast(s64) c)
+}
+
+#run
+{
+    var a: any = 1
+    @assert(@kindof(a) == s32)
+    var b = cast(s32) a
+    @assert(b == 1)
+    //@print(b)
+}
+
+#run
+{
+    var a: any = 1.0
+    @assert(@kindof(a) == f32)
+    var b = cast(f32) a
+    @assert(b == 1.0'f32)
 }

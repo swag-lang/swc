@@ -392,7 +392,7 @@ namespace
         else if (nodeInitView.cstRef().isValid())
         {
             ConstantRef newCstRef;
-            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown));
+            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown, !isConst));
             sema.setConstant(nodeInitView.nodeRef(), newCstRef);
             nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 

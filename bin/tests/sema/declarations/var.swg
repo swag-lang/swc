@@ -18,9 +18,25 @@ struct F
 {
     var D0 = 1.0
     var E0 = D0
+    #assert(#typeof(D0) == f32)
+    #assert(#typeof(E0) == f32)
 
     let L0: s32 // swc-expected-error {{sema_err_let_missing_init}}
     let L1 = 10
+}
+
+#test
+{
+    var a = 2
+    var b: s8 = a // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    let a = 2
+    var b = 2
+    #assert(#typeof(a) == s32)
+    #assert(#typeof(b) == s32)
 }
 
 #test

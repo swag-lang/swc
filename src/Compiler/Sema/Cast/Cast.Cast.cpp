@@ -749,7 +749,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     if (srcType->isIntUnsized() || srcType->isFloatUnsized())
     {
         ConstantRef concreteCstRef;
-        if (!concretizeConstant(sema, concreteCstRef, srcCstRef, TypeInfo::Sign::Unknown))
+        if (!concretizeConstant(sema, concreteCstRef, srcCstRef, TypeInfo::Sign::Unknown, true))
         {
             castRequest.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(srcCstRef).typeRef(), TypeRef::invalid());
             return Result::Error;

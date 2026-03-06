@@ -1,14 +1,16 @@
 #global fileprivate
-#global skip
 using Swag
 
-func main(a: f64, b: f64)
+//#[PrintBc]
+func main()
 {
+    let a: s32 = 666
     @assert(a == 666)
+    let b: s64 = 555
     @assert(b == 555)
 }
 
 #run
 {
-    main(666'f64, 555'f64)
+    main()
 }

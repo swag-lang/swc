@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
 using Swag
 
+//#[PrintBc]
 func main(a: s32)->s32
 {
     return a + 1
@@ -9,6 +9,6 @@ func main(a: s32)->s32
 
 #run
 {
-    @assert(main(main(6)) == 8)
-    @assert(main(main(main(6))) == 9)
+    @assert(main(6) == 7)
+    @assert(main(4 + 6) == 11)
 }

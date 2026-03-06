@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 using Swag
 
 var ga: u32 = 0

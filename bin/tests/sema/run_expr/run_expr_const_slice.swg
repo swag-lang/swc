@@ -25,11 +25,10 @@ func pick(values: const [..] s32, idx: s32)->s32
     #assert(v == 20)
 }
 
-// FAIL!
-// #test
-// {
-//     const a: [3] s32 = [1, 2, 3]
-//     const s: const [..] s32 = a
-//     #assert(@countof(s) == 3)
-//     #assert(s[1] == 2)
-// }
+#test
+{
+    const a: [3] s32 = [1, 2, 3]
+    const s: const [..] s32 = a
+    #assert(@countof(s) == 3)
+    #assert(s[1] == 2)
+}

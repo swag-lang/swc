@@ -636,6 +636,14 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
                     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             }
 
+            if (castRequest.isConstantFolding())
+            {
+                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                SWC_ASSERT(srcCst.isArray());
+                const ConstantValue sliceCst = ConstantValue::makeSlice(ctx, dstElemTypeRef, srcCst.getArray(), dstType.flags());
+                castRequest.outConstRef      = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
+            }
+
             return Result::Continue;
         }
     }

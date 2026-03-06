@@ -7,6 +7,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+static constexpr uint32_t DEFAULT_BLOCK_SIZE = 4 * 1024;
+
 namespace
 {
     uint32_t alignUp(uint32_t value, uint32_t alignment)

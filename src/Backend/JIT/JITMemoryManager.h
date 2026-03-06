@@ -27,8 +27,6 @@ private:
         uint32_t allocated = 0;
     };
 
-    static constexpr uint32_t DEFAULT_BLOCK_SIZE = 64 * 1024;
-
     std::mutex         mutex_;
     std::vector<Block> blocks_;
 };

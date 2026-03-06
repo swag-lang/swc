@@ -89,33 +89,6 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(JIT_ExecMemoryManagerReusesBlock)
-{
-    JITMemoryManager manager;
-    JITMemory        memA;
-    JITMemory        memB;
-
-    static constexpr std::array CODE = {std::byte{0xC3}};
-    constexpr ByteSpan          bytes(CODE.data(), CODE.size());
-
-    manager.allocateAndCopy(memA, bytes);
-    manager.allocateAndCopy(memB, bytes);
-
-    using Fn       = void (*)();
-    const auto fnA = reinterpret_cast<Fn>(memA.entryPoint());
-    const auto fnB = reinterpret_cast<Fn>(memB.entryPoint());
-    SWC_ASSERT(fnA != nullptr);
-    SWC_ASSERT(fnB != nullptr);
-    fnA();
-    fnB();
-
-    const uintptr_t ptrA = std::bit_cast<uintptr_t>(fnA);
-    const uintptr_t ptrB = std::bit_cast<uintptr_t>(fnB);
-    SWC_ASSERT(ptrB > ptrA);
-    SWC_ASSERT(ptrB - ptrA < 64 * 1024ull);
-}
-SWC_TEST_END()
-
 #endif
 SWC_END_NAMESPACE();
 

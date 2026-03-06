@@ -131,6 +131,25 @@ namespace
         return RtAttributeFlagsE::Zero;
     }
 
+    Result validateRtAttributeConstraints(Sema& sema, const AttributeList& currentAttributes, RtAttributeFlags attrFlags, AstNodeRef errorRef)
+    {
+        const bool hasInline   = currentAttributes.hasRtFlag(RtAttributeFlagsE::Inline);
+        const bool hasNoInline = currentAttributes.hasRtFlag(RtAttributeFlagsE::NoInline);
+        if ((attrFlags.has(RtAttributeFlagsE::Inline) && hasNoInline) ||
+            (attrFlags.has(RtAttributeFlagsE::NoInline) && hasInline))
+        {
+            return SemaError::raise(sema, DiagnosticId::sema_err_attribute_inline_noinline_conflict, errorRef);
+        }
+
+        const bool nextHasInline = hasInline || attrFlags.has(RtAttributeFlagsE::Inline);
+        const bool nextHasMacro  = currentAttributes.hasRtFlag(RtAttributeFlagsE::Macro) || attrFlags.has(RtAttributeFlagsE::Macro);
+        const bool nextHasMixin  = currentAttributes.hasRtFlag(RtAttributeFlagsE::Mixin) || attrFlags.has(RtAttributeFlagsE::Mixin);
+        if ((nextHasInline && nextHasMacro) || (nextHasInline && nextHasMixin) || (nextHasMacro && nextHasMixin))
+            return SemaError::raise(sema, DiagnosticId::sema_err_attribute_inline_macro_mixin_conflict, errorRef);
+
+        return Result::Continue;
+    }
+
     Result collectPrintMicroOptions(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
     {
         if (args.empty())
@@ -390,13 +409,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     if (attrFlags != RtAttributeFlagsE::Zero)
     {
         const AttributeList& currentAttributes = sema.frame().currentAttributes();
-        const bool           hasInline         = currentAttributes.hasRtFlag(RtAttributeFlagsE::Inline);
-        const bool           hasNoInline       = currentAttributes.hasRtFlag(RtAttributeFlagsE::NoInline);
-        if ((attrFlags.has(RtAttributeFlagsE::Inline) && hasNoInline) ||
-            (attrFlags.has(RtAttributeFlagsE::NoInline) && hasInline))
-        {
-            return SemaError::raise(sema, DiagnosticId::sema_err_attribute_inline_noinline_conflict, errorRef);
-        }
+        SWC_RESULT_VERIFY(validateRtAttributeConstraints(sema, currentAttributes, attrFlags, errorRef));
 
         sema.frame().currentAttributes().addRtFlag(attrFlags);
         return Result::Continue;

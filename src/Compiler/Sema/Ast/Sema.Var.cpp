@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -16,6 +17,110 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isGlobalStorageVariable(const SymbolVariable& symVar)
+    {
+        const SymbolMap* const owner = symVar.ownerSymMap();
+        if (!owner)
+            return false;
+
+        return owner->isModule() || owner->isNamespace();
+    }
+
+    bool isAllZeroBytes(ByteSpan bytes)
+    {
+        for (const std::byte value : bytes)
+        {
+            if (value != std::byte{})
+                return false;
+        }
+
+        return true;
+    }
+
+    DataSegment& globalStorageSegment(CompilerInstance& compiler, DataSegmentKind kind)
+    {
+        switch (kind)
+        {
+            case DataSegmentKind::GlobalZero:
+                return compiler.globalZeroSegment();
+            case DataSegmentKind::GlobalInit:
+                return compiler.globalInitSegment();
+            case DataSegmentKind::Compiler:
+                return compiler.compilerSegment();
+            case DataSegmentKind::Zero:
+                return compiler.constantSegment();
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    Result allocateGlobalStorage(Sema& sema, SymbolVariable& symVar)
+    {
+        if (symVar.hasGlobalStorage())
+            return Result::Continue;
+        if (!isGlobalStorageVariable(symVar))
+            return Result::Continue;
+
+        TaskContext&    ctx      = sema.ctx();
+        const TypeInfo& typeInfo = ctx.typeMgr().get(symVar.typeRef());
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
+        TypeRef storageTypeRef = symVar.typeRef();
+        if (typeInfo.isAlias())
+        {
+            const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, storageTypeRef, TypeExpandE::Alias);
+            if (unwrappedTypeRef.isValid())
+                storageTypeRef = unwrappedTypeRef;
+        }
+
+        const TypeInfo& storageTypeInfo = ctx.typeMgr().get(storageTypeRef);
+
+        const uint64_t sizeU64 = storageTypeInfo.sizeOf(ctx);
+        if (!sizeU64)
+            return Result::Continue;
+        SWC_ASSERT(sizeU64 <= std::numeric_limits<uint32_t>::max());
+        const uint32_t size      = static_cast<uint32_t>(sizeU64);
+        uint32_t       alignment = storageTypeInfo.alignOf(ctx);
+        if (!alignment)
+            alignment = 1;
+
+        const bool      isCompilerGlobal   = symVar.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
+        const bool      explicitUndefined  = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+        const bool      hasInitializerData = symVar.cstRef().isValid() && !explicitUndefined;
+        DataSegmentKind storageKind        = isCompilerGlobal ? DataSegmentKind::Compiler : DataSegmentKind::GlobalZero;
+        if (!isCompilerGlobal && explicitUndefined)
+            storageKind = DataSegmentKind::GlobalInit;
+
+        std::vector<std::byte> loweredBytes;
+        if (hasInitializerData)
+        {
+            loweredBytes.resize(size);
+            std::memset(loweredBytes.data(), 0, loweredBytes.size());
+            ConstantLower::lowerToBytes(sema, ByteSpanRW{loweredBytes.data(), loweredBytes.size()}, symVar.cstRef(), storageTypeRef);
+
+            if (!isCompilerGlobal && !isAllZeroBytes(loweredBytes))
+                storageKind = DataSegmentKind::GlobalInit;
+            else if (!isCompilerGlobal)
+                storageKind = DataSegmentKind::GlobalZero;
+        }
+
+        DataSegment& segment = globalStorageSegment(ctx.compiler(), storageKind);
+        uint32_t     offset  = 0;
+        if (hasInitializerData)
+        {
+            const std::pair<ByteSpan, Ref> addRes = segment.addSpan(ByteSpan{loweredBytes.data(), loweredBytes.size()}, alignment);
+            offset                                = addRes.second;
+        }
+        else
+        {
+            const bool                            zeroInit = !explicitUndefined;
+            const std::pair<uint32_t, std::byte*> res      = segment.reserveBytes(size, alignment, zeroInit);
+            offset                                         = res.first;
+        }
+
+        symVar.setGlobalStorage(storageKind, offset);
+        return Result::Continue;
+    }
+
     void completeConst(Sema& sema, const std::span<Symbol*>& symbols, ConstantRef cstRef, TypeRef typeRef)
     {
         for (Symbol* s : symbols)
@@ -45,6 +150,10 @@ namespace
                     const TypeInfo* symType = symVar.typeRef().isValid() ? &ctx.typeMgr().get(symVar.typeRef()) : nullptr;
                     SWC_RESULT_VERIFY(sema.waitSemaCompleted(symType, sema.curNodeRef()));
                     currentFunc->addLocalVariable(ctx, &symVar);
+                }
+                else
+                {
+                    SWC_RESULT_VERIFY(allocateGlobalStorage(sema, symVar));
                 }
             }
 
@@ -250,6 +359,23 @@ namespace
                 continue;
 
             auto& symVar = s->cast<SymbolVariable>();
+            symVar.setCstRef(cstRef);
+        }
+    }
+
+    void storeGlobalVariableConstants(const std::span<Symbol*>& symbols, ConstantRef cstRef)
+    {
+        if (cstRef.isInvalid())
+            return;
+
+        for (Symbol* s : symbols)
+        {
+            if (!s->isVariable())
+                continue;
+
+            auto& symVar = s->cast<SymbolVariable>();
+            if (!isGlobalStorageVariable(symVar))
+                continue;
             symVar.setCstRef(cstRef);
         }
     }
@@ -461,6 +587,7 @@ namespace
             return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
         storeLetConstants(symbols, isLet, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
+        storeGlobalVariableConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {

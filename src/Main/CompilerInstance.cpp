@@ -201,6 +201,40 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
 CompilerInstance::~CompilerInstance() = default;
 
+std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind, const uint32_t offset)
+{
+    switch (kind)
+    {
+        case DataSegmentKind::GlobalZero:
+            return globalZeroSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::GlobalInit:
+            return globalInitSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::Compiler:
+            return compilerSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::Zero:
+            return constantSegment_.ptr<std::byte>(offset);
+    }
+
+    SWC_UNREACHABLE();
+}
+
+const std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind, const uint32_t offset) const
+{
+    switch (kind)
+    {
+        case DataSegmentKind::GlobalZero:
+            return globalZeroSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::GlobalInit:
+            return globalInitSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::Compiler:
+            return compilerSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::Zero:
+            return constantSegment_.ptr<std::byte>(offset);
+    }
+
+    SWC_UNREACHABLE();
+}
+
 void CompilerInstance::setupSema(TaskContext& ctx)
 {
     typeMgr_ = std::make_unique<TypeManager>();

@@ -69,6 +69,24 @@ namespace
             return localPayload;
         }
 
+        if (symVar.hasGlobalStorage())
+        {
+            CodeGenNodePayload globalPayload;
+            globalPayload.typeRef = symVar.typeRef();
+            globalPayload.setIsAddress();
+            globalPayload.reg = codeGen.nextVirtualIntRegister();
+            if (symVar.globalStorageKind() == DataSegmentKind::Compiler)
+            {
+                const uint64_t address = reinterpret_cast<uint64_t>(codeGen.compiler().dataSegmentAddress(DataSegmentKind::Compiler, symVar.offset()));
+                codeGen.builder().emitLoadRegPtrImm(globalPayload.reg, address);
+            }
+            else
+            {
+                codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, symVar.globalStorageKind(), symVar.offset());
+            }
+            return globalPayload;
+        }
+
         SWC_UNREACHABLE();
     }
 
@@ -106,6 +124,9 @@ namespace
     {
         MicroBuilder& builder  = codeGen.builder();
         const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+        if (symVar.hasGlobalStorage())
+            return;
+
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid())
         {
             const uint32_t localSize = symVar.codeGenLocalSize();

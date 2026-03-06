@@ -8,6 +8,26 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    MicroRelocation::Kind dataSegmentRelocationKind(const DataSegmentKind kind)
+    {
+        switch (kind)
+        {
+            case DataSegmentKind::GlobalZero:
+                return MicroRelocation::Kind::GlobalZeroAddress;
+            case DataSegmentKind::GlobalInit:
+                return MicroRelocation::Kind::GlobalInitAddress;
+            case DataSegmentKind::Zero:
+                return MicroRelocation::Kind::ConstantAddress;
+            case DataSegmentKind::Compiler:
+                break;
+        }
+
+        SWC_UNREACHABLE();
+    }
+}
+
 std::pair<MicroInstrRef, MicroInstr&> MicroBuilder::addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands)
 {
     auto [instRef, inst] = instructions_.emplaceUninit();
@@ -77,6 +97,11 @@ void MicroBuilder::addRelocation(const MicroRelocation& relocation)
         case MicroRelocation::Kind::LocalFunctionAddress:
         case MicroRelocation::Kind::ForeignFunctionAddress:
             SWC_ASSERT(relocation.targetSymbol && relocation.targetSymbol->isFunction());
+            break;
+
+        case MicroRelocation::Kind::GlobalZeroAddress:
+        case MicroRelocation::Kind::GlobalInitAddress:
+            SWC_ASSERT(relocation.targetAddress <= std::numeric_limits<uint32_t>::max());
             break;
 
         default:
@@ -425,6 +450,25 @@ void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef
         .targetAddress  = value,
         .targetSymbol   = relocationTargetSymbol,
         .constantRef    = constantRef,
+    });
+}
+
+void MicroBuilder::emitLoadRegDataSegmentReloc(MicroReg reg, const DataSegmentKind kind, const uint32_t offset)
+{
+    SWC_ASSERT(kind == DataSegmentKind::GlobalZero || kind == DataSegmentKind::GlobalInit);
+
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::LoadRegPtrReloc, 3);
+    MicroInstrOperand* ops = inst.ops(operands_);
+    ops[0].reg             = reg;
+    ops[1].opBits          = MicroOpBits::B64;
+    ops[2].valueU64        = offset;
+
+    addRelocation({
+        .kind           = dataSegmentRelocationKind(kind),
+        .instructionRef = instRef,
+        .targetAddress  = offset,
+        .targetSymbol   = nullptr,
+        .constantRef    = ConstantRef::invalid(),
     });
 }
 

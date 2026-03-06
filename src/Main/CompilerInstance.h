@@ -47,8 +47,14 @@ public:
     const IdentifierManager&        idMgr() const { return *(idMgr_.get()); }
     DataSegment&                    constantSegment() { return constantSegment_; }
     const DataSegment&              constantSegment() const { return constantSegment_; }
+    DataSegment&                    globalZeroSegment() { return globalZeroSegment_; }
+    const DataSegment&              globalZeroSegment() const { return globalZeroSegment_; }
+    DataSegment&                    globalInitSegment() { return globalInitSegment_; }
+    const DataSegment&              globalInitSegment() const { return globalInitSegment_; }
     DataSegment&                    compilerSegment() { return compilerSegment_; }
     const DataSegment&              compilerSegment() const { return compilerSegment_; }
+    std::byte*                      dataSegmentAddress(DataSegmentKind kind, uint32_t offset);
+    const std::byte*                dataSegmentAddress(DataSegmentKind kind, uint32_t offset) const;
     Runtime::BuildCfg&              buildCfg() { return buildCfg_; }
     const Runtime::BuildCfg&        buildCfg() const { return buildCfg_; }
     Runtime::ICompiler&             runtimeCompiler() { return runtimeCompiler_; }
@@ -142,6 +148,8 @@ private:
     fs::path                                 modulePathFile_;
     fs::path                                 exeFullName_;
     DataSegment                              constantSegment_;
+    DataSegment                              globalZeroSegment_;
+    DataSegment                              globalInitSegment_;
     DataSegment                              compilerSegment_;
     Runtime::BuildCfg                        buildCfg_{};
     Runtime::ICompiler                       runtimeCompiler_{};

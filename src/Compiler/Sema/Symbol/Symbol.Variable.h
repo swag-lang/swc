@@ -19,7 +19,6 @@ class SymbolVariable : public SymbolT<SymbolKind::Variable, SymbolVariableFlagsE
 public:
     static constexpr auto     K                         = SymbolKind::Variable;
     static constexpr uint32_t K_INVALID_PARAMETER_INDEX = 0xFFFFFFFFu;
-
     explicit SymbolVariable(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolT(decl, tokRef, idRef, flags)
     {
@@ -38,14 +37,26 @@ public:
     void        setCodeGenLocalSize(uint32_t size) { codeGenLocalSize_ = size; }
     void*       codeGenPayload() const { return codeGenPayload_; }
     void        setCodeGenPayload(void* payload) const { codeGenPayload_ = payload; }
+    bool        hasGlobalStorage() const { return hasGlobalStorage_; }
+
+    void setGlobalStorage(DataSegmentKind kind, uint32_t offset)
+    {
+        globalStorageKind_ = kind;
+        offset_            = offset;
+        hasGlobalStorage_  = true;
+    }
+
+    DataSegmentKind globalStorageKind() const { return globalStorageKind_; }
 
 private:
-    uint32_t      offset_           = 0;
-    uint32_t      parameterIndex_   = K_INVALID_PARAMETER_INDEX;
-    ConstantRef   cstRef_           = ConstantRef::invalid();
-    ConstantRef   defaultValueRef_  = ConstantRef::invalid();
-    uint32_t      codeGenLocalSize_ = 0;
-    mutable void* codeGenPayload_   = nullptr;
+    uint32_t        offset_            = 0;
+    uint32_t        parameterIndex_    = K_INVALID_PARAMETER_INDEX;
+    ConstantRef     cstRef_            = ConstantRef::invalid();
+    ConstantRef     defaultValueRef_   = ConstantRef::invalid();
+    uint32_t        codeGenLocalSize_  = 0;
+    DataSegmentKind globalStorageKind_ = DataSegmentKind::Zero;
+    bool            hasGlobalStorage_  = false;
+    mutable void*   codeGenPayload_    = nullptr;
 };
 
 SWC_END_NAMESPACE();

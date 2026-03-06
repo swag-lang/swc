@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -29,6 +30,8 @@ struct MicroRelocation
         ForeignFunctionAddress,
         ConstantAddress,
         LocalFunctionAddress,
+        GlobalZeroAddress,
+        GlobalInitAddress,
     };
 
     Kind          kind           = Kind::ConstantAddress;
@@ -115,6 +118,7 @@ public:
     void emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits);
     void emitLoadRegPtrImm(MicroReg reg, uint64_t value);
     void emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr);
+    void emitLoadRegDataSegmentReloc(MicroReg reg, DataSegmentKind kind, uint32_t offset);
     void emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits);
     void emitLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
     void emitLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);

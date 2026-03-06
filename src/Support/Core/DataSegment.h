@@ -3,6 +3,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
+enum class DataSegmentKind : uint8_t
+{
+    Zero,
+    GlobalZero,
+    GlobalInit,
+    Compiler,
+};
+
 struct DataSegmentRelocation
 {
     uint32_t offset;
@@ -13,9 +21,11 @@ class DataSegment
 {
 public:
     std::pair<ByteSpan, Ref>         addSpan(ByteSpan value);
+    std::pair<ByteSpan, Ref>         addSpan(ByteSpan value, uint32_t align);
     std::pair<std::string_view, Ref> addString(const Utf8& value);
     uint32_t                         addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
     void                             addRelocation(uint32_t offset, uint32_t targetOffset);
+    std::pair<uint32_t, std::byte*>  reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
     Ref                              findRef(const void* ptr) const noexcept { return store_.findRef(ptr); }
 #if SWC_HAS_STATS
     size_t memStorageReserved() const;

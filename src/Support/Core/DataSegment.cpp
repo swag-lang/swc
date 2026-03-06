@@ -5,8 +5,13 @@ SWC_BEGIN_NAMESPACE();
 
 std::pair<ByteSpan, Ref> DataSegment::addSpan(ByteSpan value)
 {
+    return addSpan(value, alignof(std::byte));
+}
+
+std::pair<ByteSpan, Ref> DataSegment::addSpan(ByteSpan value, uint32_t align)
+{
     const std::unique_lock lock(mutex_);
-    return store_.pushCopySpan(value);
+    return store_.pushCopySpan(value, align);
 }
 
 std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
@@ -40,6 +45,16 @@ void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 {
     const std::unique_lock lock(mutex_);
     relocations_.push_back({.offset = offset, .targetOffset = targetOffset});
+}
+
+std::pair<uint32_t, std::byte*> DataSegment::reserveBytes(uint32_t size, uint32_t align, bool zeroInit)
+{
+    const std::unique_lock         lock(mutex_);
+    const std::pair<ByteSpan, Ref> res = store_.pushCopySpan(ByteSpan{static_cast<const std::byte*>(nullptr), size}, align);
+    std::byte* const               ptr = store_.ptr<std::byte>(res.second);
+    if (zeroInit && size)
+        std::memset(ptr, 0, size);
+    return {res.second, ptr};
 }
 
 #if SWC_HAS_STATS

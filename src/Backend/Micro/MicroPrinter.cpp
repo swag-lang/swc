@@ -1124,6 +1124,10 @@ namespace
                 return "constant";
             case MicroRelocation::Kind::LocalFunctionAddress:
                 return "local";
+            case MicroRelocation::Kind::GlobalZeroAddress:
+                return "global-zero";
+            case MicroRelocation::Kind::GlobalInitAddress:
+                return "global-init";
         }
         SWC_UNREACHABLE();
     }
@@ -1145,6 +1149,11 @@ namespace
         if (relocation.targetSymbol)
             return relocation.targetSymbol->name(ctx);
 
+        if (relocation.kind == MicroRelocation::Kind::GlobalZeroAddress)
+            return std::format("global_zero+0x{:X}", relocation.targetAddress);
+        if (relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
+            return std::format("global_init+0x{:X}", relocation.targetAddress);
+
         if (relocation.targetAddress == MicroRelocation::K_SELF_ADDRESS)
             return "<self>";
 
@@ -1161,6 +1170,11 @@ namespace
 
         if (relocation.targetSymbol)
             return relocation.targetSymbol->name(ctx);
+
+        if (relocation.kind == MicroRelocation::Kind::GlobalZeroAddress)
+            return std::format("global_zero+0x{:X}", relocation.targetAddress);
+        if (relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
+            return std::format("global_init+0x{:X}", relocation.targetAddress);
 
         if (relocation.targetAddress == MicroRelocation::K_SELF_ADDRESS)
             return "<self>";

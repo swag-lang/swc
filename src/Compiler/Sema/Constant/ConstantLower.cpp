@@ -44,6 +44,13 @@ namespace
             return;
 
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        if (dstType.isAlias())
+        {
+            const TypeRef unwrappedTypeRef = dstType.unwrap(sema.ctx(), dstTypeRef, TypeExpandE::Alias);
+            SWC_ASSERT(unwrappedTypeRef.isValid());
+            lowerConstantToBytes(sema, dstBytes, unwrappedTypeRef, cstRef);
+            return;
+        }
 
         if (dstType.isEnum())
         {
@@ -216,7 +223,7 @@ namespace
             return;
         }
 
-        if (dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString())
+        if (dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction())
         {
             SWC_ASSERT(dstBytes.size() == sizeof(uint64_t));
             uint64_t ptr = 0;
@@ -233,7 +240,7 @@ namespace
 
         SWC_ASSERT(dstType.isEnum() || dstType.isStruct() || dstType.isArray() || dstType.isBool() || dstType.isChar() ||
                    dstType.isRune() || dstType.isInt() || dstType.isFloat() || dstType.isString() || dstType.isSlice() ||
-                   dstType.isAny() || dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString());
+                   dstType.isAny() || dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction());
         return;
     }
 }

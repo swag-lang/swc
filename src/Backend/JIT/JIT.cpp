@@ -146,6 +146,14 @@ namespace
             case MicroRelocation::Kind::ForeignFunctionAddress:
                 return resolveForeignFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr);
 
+            case MicroRelocation::Kind::GlobalZeroAddress:
+                outTargetAddress = reinterpret_cast<uint64_t>(ctx.compiler().dataSegmentAddress(DataSegmentKind::GlobalZero, static_cast<uint32_t>(reloc.targetAddress)));
+                return true;
+
+            case MicroRelocation::Kind::GlobalInitAddress:
+                outTargetAddress = reinterpret_cast<uint64_t>(ctx.compiler().dataSegmentAddress(DataSegmentKind::GlobalInit, static_cast<uint32_t>(reloc.targetAddress)));
+                return true;
+
             default:
                 SWC_UNREACHABLE();
         }

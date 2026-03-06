@@ -191,7 +191,7 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
 
     JITMemoryManager& memoryManager     = ctx.compiler().jitMemMgr();
     const uint32_t    codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size_bytes()), sizeof(uint32_t));
-    const bool        registerSehUnwind = ctx.compiler().buildCfg().jitEnableSehUnwind;
+    const bool        registerSehUnwind = ctx.compiler().buildCfg().backend.enableExceptions;
     SWC_ASSERT(!registerSehUnwind || !unwindInfo.empty());
 
     const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;

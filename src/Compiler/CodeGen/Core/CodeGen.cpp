@@ -89,7 +89,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
         builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
         builder_->setBackendBuildCfg(backendBuildCfg);
-        if (compiler().buildCfg().backendDebugInformations)
+        if (compiler().buildCfg().backend.debugInfo)
             builderFlags.add(MicroBuilderFlagsE::DebugInfo);
         builder_->setFlags(builderFlags);
         builder_->setCurrentDebugSourceCodeRef(SourceCodeRef::invalid());

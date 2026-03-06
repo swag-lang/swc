@@ -717,6 +717,8 @@ namespace Swag
     struct BuildCfgBackend
     {
         optimize:               bool
+        debugInfo               = false    // Output debug information if 'true'
+        enableExceptions        = true     // Generate unwind info for JIT code and register SEH function tables
         fpMathFma:              bool     // true in 'release'
         fpMathNoNaN:            bool     // true in 'release'
         fpMathNoInf:            bool     // true in 'release'
@@ -811,10 +813,6 @@ namespace Swag
 
         backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, dynamic lib...)
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
-        backendDebugInformations       = false                              // Output debug information if 'true'
-        backendDebugInline             = false                              // Generate specific line information for inline code
-        backendNumCU                   = 0'u32
-        jitEnableSehUnwind             = true                               // Generate unwind info for JIT code and register SEH function tables
 
         linkerArgs:                    string                               // Additional linker arguments
 

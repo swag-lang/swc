@@ -344,6 +344,8 @@ namespace Runtime
     struct BuildCfgBackend
     {
         bool     optimize;
+        bool     debugInfo;
+        bool     enableExceptions;
         bool     fpMathFma;
         bool     fpMathNoNaN;
         bool     fpMathNoInf;
@@ -429,12 +431,8 @@ namespace Runtime
         bool   warnDefaultDisabled = false;
         bool   warnDefaultErrors   = false;
 
-        BuildCfgBackendKind    backendKind              = BuildCfgBackendKind::Executable;
-        BuildCfgBackendSubKind backendSubKind           = BuildCfgBackendSubKind::Console;
-        bool                   backendDebugInformations = false;
-        bool                   backendDebugInline       = false;
-        uint32_t               backendNumCu             = 0;
-        bool                   jitEnableSehUnwind       = true;
+        BuildCfgBackendKind    backendKind    = BuildCfgBackendKind::Executable;
+        BuildCfgBackendSubKind backendSubKind = BuildCfgBackendSubKind::Console;
 
         String          linkerArgs;
         BuildCfgBackend backend;

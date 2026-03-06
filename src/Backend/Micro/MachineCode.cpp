@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 {
-    const bool computeUnwindInfo = ctx.compiler().buildCfg().jitEnableSehUnwind;
+    const bool computeUnwindInfo = ctx.compiler().buildCfg().backend.enableExceptions;
 
     MicroPassContext passContext;
     passContext.callConvKind           = CallConvKind::Host;

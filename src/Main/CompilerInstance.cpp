@@ -59,32 +59,30 @@ namespace
 
         if (cfgName == "fast-compile")
         {
-            buildCfg.safetyGuards             = Runtime::SafetyWhat::None;
-            buildCfg.sanity                   = false;
-            buildCfg.errorStackTrace          = false;
-            buildCfg.debugAllocator           = true;
-            buildCfg.backend.optimize         = false;
-            buildCfg.backendDebugInformations = false;
-            buildCfg.backendDebugInline       = false;
+            buildCfg.safetyGuards      = Runtime::SafetyWhat::None;
+            buildCfg.sanity            = false;
+            buildCfg.errorStackTrace   = false;
+            buildCfg.debugAllocator    = true;
+            buildCfg.backend.optimize  = false;
+            buildCfg.backend.debugInfo = false;
         }
         else if (cfgName == "debug")
         {
-            buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
-            buildCfg.sanity                   = true;
-            buildCfg.errorStackTrace          = true;
-            buildCfg.debugAllocator           = true;
-            buildCfg.backend.optimize         = false;
-            buildCfg.backendDebugInformations = true;
-            buildCfg.backendDebugInline       = true;
+            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
+            buildCfg.sanity            = true;
+            buildCfg.errorStackTrace   = true;
+            buildCfg.debugAllocator    = true;
+            buildCfg.backend.optimize  = false;
+            buildCfg.backend.debugInfo = true;
         }
         else if (cfgName == "fast-debug")
         {
-            buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
-            buildCfg.sanity                   = true;
-            buildCfg.errorStackTrace          = true;
-            buildCfg.debugAllocator           = true;
-            buildCfg.backend.optimize         = true;
-            buildCfg.backendDebugInformations = true;
+            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
+            buildCfg.sanity            = true;
+            buildCfg.errorStackTrace   = true;
+            buildCfg.debugAllocator    = true;
+            buildCfg.backend.optimize  = true;
+            buildCfg.backend.debugInfo = true;
         }
         else if (cfgName == "release")
         {
@@ -93,7 +91,7 @@ namespace
             buildCfg.errorStackTrace            = false;
             buildCfg.debugAllocator             = false;
             buildCfg.backend.optimize           = true;
-            buildCfg.backendDebugInformations   = true;
+            buildCfg.backend.debugInfo          = true;
             buildCfg.backend.fpMathFma          = true;
             buildCfg.backend.fpMathNoNaN        = true;
             buildCfg.backend.fpMathNoInf        = true;
@@ -101,16 +99,22 @@ namespace
         }
         else
         {
-            buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
-            buildCfg.sanity                   = true;
-            buildCfg.errorStackTrace          = true;
-            buildCfg.debugAllocator           = true;
-            buildCfg.backend.optimize         = true;
-            buildCfg.backendDebugInformations = true;
+            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
+            buildCfg.sanity            = true;
+            buildCfg.errorStackTrace   = true;
+            buildCfg.debugAllocator    = true;
+            buildCfg.backend.optimize  = true;
+            buildCfg.backend.debugInfo = true;
         }
 
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+
+        if (cmdLine.verify)
+        {
+            buildCfg.backend.debugInfo        = true;
+            buildCfg.backend.enableExceptions = true;
+        }
     }
 
     void collectSwagFilesRec(const CommandLine& cmdLine, const fs::path& folder, std::vector<fs::path>& files, bool canFilter = true)

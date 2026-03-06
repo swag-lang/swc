@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func toto(x: s32)
 {
     @assert(x == 666)

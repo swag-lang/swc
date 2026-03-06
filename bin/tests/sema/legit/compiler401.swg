@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 var Table: [256] u64 = [
     0x0000000000000000'u64, 0x42f0e1eba9ea3693'u64, 0x85e1c3d753d46d26'u64, 0xc711223cfa3e5bb5'u64, 0x493366450e42ecdf'u64,
     0x0bc387aea7a8da4c'u64, 0xccd2a5925d9681f9'u64, 0x8e224479f47cb76a'u64, 0x9266cc8a1c85d9be'u64, 0xd0962d61b56fef2d'u64,

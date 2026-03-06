@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 #assert(cast(s8) cast(u8) 45 == 45)
 #assert(cast(s8) cast(u8) 45 == 45)
 #assert(cast #bit (s8) cast(u16) 0xFFFF == -1)

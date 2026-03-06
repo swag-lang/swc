@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func T(a: const [..] s32)
 {
     @assert(@countof(a) == 2)

@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 /*
 func compare (str1: string, str2: string)-> bool
 {

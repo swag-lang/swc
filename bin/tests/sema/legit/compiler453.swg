@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func F(a: string = null)
 {
     @assert(@countof(a) == 0)

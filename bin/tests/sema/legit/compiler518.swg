@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 var x, y = [1, 2, 3]
 

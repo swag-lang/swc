@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 alias ret = { a, b: s32 }
 
 func toto()->ret

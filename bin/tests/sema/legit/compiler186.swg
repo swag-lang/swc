@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 #assert(0xFF << 4 == 0xFF0)
 #assert(1 << 0x1 == 2)
 #assert(0b1001 << 0b1 == 0b10010)

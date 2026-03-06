@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 var g = "toto"
 
 //#[Swag.PrintBc]

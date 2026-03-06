@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 /*
 #version(donotdefinethisorthistestwillfail)
 	#assert(false);

@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 #run
 {
     @assert(#sizeof(*bool) == 8)

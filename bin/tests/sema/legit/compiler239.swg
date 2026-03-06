@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 using Swag
 
 func main1()->s32 { return 77; }

@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 #[Swag.ConstExpr]
 {
     func main()->bool { return true; }

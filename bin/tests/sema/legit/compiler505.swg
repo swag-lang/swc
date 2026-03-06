@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 func T(xx: bool, yy: string, a: ...)
 {

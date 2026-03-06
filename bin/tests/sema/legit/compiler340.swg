@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 #test
 {
     var a: [2, 2] s32 = [[1, 2], [3, 4]]

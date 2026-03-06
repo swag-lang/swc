@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func(T) valueof(x: any)->T
 {
     let ptr = cast(*T) @dataof(x)

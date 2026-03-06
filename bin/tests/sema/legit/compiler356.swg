@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 var a = ["0", "1.0"]
 
 //#[Swag.PrintBc]

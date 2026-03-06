@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 namespace toto
 {
     struct point

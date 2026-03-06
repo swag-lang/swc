@@ -1,6 +1,7 @@
-#global fileprivate
+// @FAIL
 #global skip
-#global skipfmt
+#global fileprivate
+fmt
 ;
 
 

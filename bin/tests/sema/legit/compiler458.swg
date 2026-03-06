@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func F()->s32
 {
     return 666

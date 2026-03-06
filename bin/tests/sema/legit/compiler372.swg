@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 var slice: const [..] s32
 
 //#[Swag.PrintBc]

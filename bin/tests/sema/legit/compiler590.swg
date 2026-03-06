@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 var c: s32 = 0
 
 //#[Swag.PrintBc]

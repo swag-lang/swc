@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func test(arr: const [..] s32)
 {
     @assert(arr[0] == 1)

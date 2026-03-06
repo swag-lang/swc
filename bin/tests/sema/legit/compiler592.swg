@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 var c: s32 = 0
 
 //#[Swag.PrintBc]

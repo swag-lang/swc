@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 const TOTO = 666
 
 //#[Swag.PrintBc]

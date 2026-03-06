@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 struct point1
 {
     x:     s32 = 10

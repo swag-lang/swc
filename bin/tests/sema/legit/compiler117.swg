@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 namespace A
 {
     func main() {}

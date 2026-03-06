@@ -1,5 +1,5 @@
+#global skip // @FAIL
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 #test
 {

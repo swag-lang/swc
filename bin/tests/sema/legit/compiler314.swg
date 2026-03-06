@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func len(str: string)->u32
 {
     var p = @dataof(str)

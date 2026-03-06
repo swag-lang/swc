@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 //#[Swag.PrintBc]
 func a(ptr: const [..] s32, cpt: s32)
 {

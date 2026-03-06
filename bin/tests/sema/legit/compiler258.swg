@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func test1(a: s32, b: s32)->s32
 {
     return a - b

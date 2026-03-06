@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 struct point { x, y: f32 }
 
 //#[Swag.PrintBc]

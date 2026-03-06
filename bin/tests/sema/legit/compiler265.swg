@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func test2(v: s32)->s32
 {
     if (v == 1) do

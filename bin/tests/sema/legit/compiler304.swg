@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 var g:  bool = true
 var g1: s32 = 666
 var g2: u64 = 0xF000_000F

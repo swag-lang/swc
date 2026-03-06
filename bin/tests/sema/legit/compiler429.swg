@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func T(color: COLOR)->s32
 {
     var res = 0

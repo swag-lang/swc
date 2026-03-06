@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 using Swag
 
 func fact(v: s32)->s32

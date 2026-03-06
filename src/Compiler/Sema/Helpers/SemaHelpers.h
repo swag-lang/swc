@@ -79,6 +79,7 @@ namespace SemaHelpers
     inline IdentifierRef resolveUniqIdentifier(Sema& sema, const TokenId tokenId)
     {
         SWC_ASSERT(Token::isCompilerUniq(tokenId));
+
         const uint32_t slot = uniqSlotIndex(tokenId);
         for (const SemaScope* scope = &sema.curScope(); scope; scope = scope->parent())
         {
@@ -87,7 +88,7 @@ namespace SemaHelpers
                 return idRef;
         }
 
-        if (auto* inlinePayload = mixinInlinePayloadForUniq(sema))
+        if (const auto* inlinePayload = mixinInlinePayloadForUniq(sema))
         {
             const IdentifierRef idRef = inlinePayload->uniqIdentifiers[slot];
             if (idRef.isValid())

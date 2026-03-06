@@ -1,0 +1,11 @@
+#global fileprivate
+#global skip
+//#global skip
+//#global testerror "Err0618"
+#test
+{
+    var a = 0
+    a = 66
+    @init(a)
+    @assert(a == 0)
+}

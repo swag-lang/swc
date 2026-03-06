@@ -1,0 +1,17 @@
+#global fileprivate
+#global skip
+using Swag
+
+func toto(ptr: func() throw) throw
+{
+    assume ptr()
+}
+
+func toto1() throw
+{
+}
+
+//#[Swag.PrintBc]
+#test
+{
+}

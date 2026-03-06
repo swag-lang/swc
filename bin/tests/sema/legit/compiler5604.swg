@@ -1,0 +1,11 @@
+#global fileprivate
+#global skip
+#global testwarning "Wrn0009"
+#global #[Swag.Warning("Wrn0009", Swag.WarningLevel.Enable)]
+
+const g: bool = true
+#if g == false do
+    const g1: bool = true
+#else do
+    #if g == true do
+        const g1: bool = true

@@ -1,0 +1,24 @@
+#global fileprivate
+#global skip
+//#global testerror "Err0604"
+//#global skip
+var g: s32 = 6
+
+func toto(a: s32...)
+{
+    @assert(a[0] == 6)
+    @assert(a[1] == 6)
+}
+
+func titi()->const &s32
+{
+    return &g
+}
+
+#[Swag.Optimize(.All, false), Swag.Safety(.All, .All, false)]
+//#[Swag.PrintBc]
+#test
+{
+
+    toto(titi(), titi())
+}

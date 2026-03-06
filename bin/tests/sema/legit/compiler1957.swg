@@ -1,0 +1,20 @@
+#global fileprivate
+#global skip
+struct A
+{
+    x:   s32
+}
+
+impl A
+{
+    func opPostCopy(me)
+    {
+        @assert(false)
+    }
+}
+
+//#[Swag.PrintBc]
+#test
+{
+    var x, y: A
+}

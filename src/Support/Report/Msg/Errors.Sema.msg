@@ -17,6 +17,7 @@ SWC_DIAG_DEF(sema_err_array_cast_expected_aggregate_constant, Error, "cannot cas
 SWC_DIAG_DEF(sema_err_cannot_cast_const, Error, "cannot cast from '{type}' to '{requested-type}'; const qualification mismatch")
 SWC_DIAG_DEF(sema_err_cannot_cast_to_interface, Error, "cannot cast from '{type}' to interface '{requested-type}'; struct does not implement it")
 SWC_DIAG_DEF(sema_err_enum_underlying_cast, Error, "enum cast uses wrong type; expected underlying type '{opt-type}'")
+SWC_DIAG_DEF(sema_err_compiler_panic, Error, "compiler panic: {because}")
 SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler error: {because}")
 SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")
 SWC_DIAG_DEF(sema_err_assert_failed, Error, "assertion failed")

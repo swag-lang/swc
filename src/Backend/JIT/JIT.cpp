@@ -319,7 +319,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 
 namespace
 {
-    constexpr uint32_t K_COMPILER_DIAGNOSTIC_EXCEPTION_CODE = 666;
+    constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
 
     enum class RuntimeExceptionKind : uint64_t
     {
@@ -335,7 +335,7 @@ namespace
         return {value.ptr, static_cast<size_t>(value.length)};
     }
 
-    bool buildSourceRangeFromRuntimeLocation(TaskContext& ctx, const Runtime::SourceCodeLocation& location, const SourceView& srcView, SourceCodeRange& outCodeRange)
+    bool buildSourceRangeFromRuntimeLocation(const TaskContext& ctx, const Runtime::SourceCodeLocation& location, const SourceView& srcView, SourceCodeRange& outCodeRange)
     {
         outCodeRange = {};
 
@@ -372,10 +372,8 @@ namespace
         return outCodeRange.srcView != nullptr && outCodeRange.len != 0;
     }
 
-    bool decodeCompilerDiagnosticException(const uint32_t exceptionCode, const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)
+    void decodeCompilerDiagnosticException(const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)
     {
-        if (exceptionCode != K_COMPILER_DIAGNOSTIC_EXCEPTION_CODE)
-            return false;
         Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
         SWC_ASSERT(runtimeContext != nullptr);
 
@@ -390,20 +388,45 @@ namespace
         runtimeContext->exceptionParams[1] = nullptr;
         runtimeContext->exceptionParams[2] = nullptr;
         runtimeContext->exceptionParams[3] = nullptr;
-
-        return true;
     }
 
-    bool tryReportRuntimeCompilerDiagnostic(TaskContext& ctx, const uint32_t exceptionCode, JITCallErrorKind* outErrorKind, int& outExceptionAction)
+    bool tryReportRuntimeException(TaskContext& ctx, const uint32_t exceptionCode, JITCallErrorKind* outErrorKind, int& outExceptionAction)
     {
+        if (exceptionCode != K_COMPILER_EXCEPTION_CODE)
+            return false;
+
         const Runtime::SourceCodeLocation* location = nullptr;
         std::string_view                   message;
         uint64_t                           kindRaw = 0;
-        if (!decodeCompilerDiagnosticException(exceptionCode, location, message, kindRaw))
-            return false;
+        decodeCompilerDiagnosticException(location, message, kindRaw);
 
-        const auto kind      = static_cast<RuntimeExceptionKind>(kindRaw);
-        const bool isWarning = kind == RuntimeExceptionKind::Warning;
+        const auto kind = static_cast<RuntimeExceptionKind>(kindRaw);
+
+        DiagnosticId       diagId;
+        DiagnosticSeverity severity;
+        switch (kind)
+        {
+            case RuntimeExceptionKind::Panic:
+                diagId             = DiagnosticId::sema_err_compiler_panic;
+                severity           = DiagnosticSeverity::Error;
+                *outErrorKind      = JITCallErrorKind::HardwareException;
+                outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
+                break;
+            case RuntimeExceptionKind::Error:
+                diagId             = DiagnosticId::sema_err_compiler_error;
+                severity           = DiagnosticSeverity::Error;
+                *outErrorKind      = JITCallErrorKind::HardwareException;
+                outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
+                break;
+            case RuntimeExceptionKind::Warning:
+                diagId             = DiagnosticId::sema_warn_compiler_warning;
+                severity           = DiagnosticSeverity::Warning;
+                *outErrorKind      = JITCallErrorKind::None;
+                outExceptionAction = SWC_EXCEPTION_CONTINUE_EXECUTION;
+                break;
+            default:
+                SWC_UNREACHABLE();
+        }
 
         SourceCodeRange range;
         FileRef         fileRef = FileRef::invalid();
@@ -421,39 +444,15 @@ namespace
             }
         }
 
-        const DiagnosticId diagId = isWarning ? DiagnosticId::sema_warn_compiler_warning : DiagnosticId::sema_err_compiler_error;
-        Diagnostic         diag   = Diagnostic::get(diagId, fileRef);
+        Diagnostic diag = Diagnostic::get(diagId, fileRef);
         if (range.srcView)
-        {
-            const auto severity = isWarning ? DiagnosticSeverity::Warning : DiagnosticSeverity::Error;
             diag.last().addSpan(range, "", severity);
-        }
 
-        Utf8 diagMessage;
-        if (!message.empty())
-            diagMessage.assign(message.data(), message.size());
+        Utf8 diagMessage = message;
+        if (!diagMessage.empty())
+            diag.addArgument(Diagnostic::ARG_BECAUSE, diagMessage);
 
-        if (diagMessage.empty())
-        {
-            if (isWarning)
-                diagMessage = "compiler warning";
-            else if (kind == RuntimeExceptionKind::Panic)
-                diagMessage = "panic";
-            else
-                diagMessage = "compiler error";
-        }
-        else if (kind == RuntimeExceptionKind::Panic)
-        {
-            diagMessage = Utf8{"panic: "} + diagMessage;
-        }
-
-        diag.addArgument(Diagnostic::ARG_BECAUSE, diagMessage);
         diag.report(ctx);
-
-        if (outErrorKind)
-            *outErrorKind = isWarning ? JITCallErrorKind::None : JITCallErrorKind::HardwareException;
-
-        outExceptionAction = isWarning ? SWC_EXCEPTION_CONTINUE_EXECUTION : SWC_EXCEPTION_EXECUTE_HANDLER;
         return true;
     }
 
@@ -499,9 +498,8 @@ namespace
         Os::decodeHostException(exceptionCode, exceptionAddress, platformExceptionPointers);
 
         int compilerDiagAction = SWC_EXCEPTION_EXECUTE_HANDLER;
-        if (tryReportRuntimeCompilerDiagnostic(ctx, exceptionCode, &outErrorKind, compilerDiagAction))
+        if (tryReportRuntimeException(ctx, exceptionCode, &outErrorKind, compilerDiagAction))
             return compilerDiagAction;
-
         if (tryHandleRunJitAssertTrap(ctx, exceptionCode, exceptionAddress, &outErrorKind))
             return SWC_EXCEPTION_EXECUTE_HANDLER;
 

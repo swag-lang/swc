@@ -98,11 +98,8 @@ namespace TypeGenInternal
         //
         // This is intentionally iterative to avoid recursion depth issues and to allow
         // pausing/resuming if needed by the compiler pipeline.
-        SmallVector<TypeRef>        stack;
-        std::unordered_set<TypeRef> inStack;
-
+        SmallVector<TypeRef> stack;
         stack.push_back(typeRef);
-        inStack.insert(typeRef);
 
         while (!stack.empty())
         {
@@ -157,7 +154,6 @@ namespace TypeGenInternal
             {
                 // Fully processed: pop and continue unwinding.
                 stack.pop_back();
-                inStack.erase(key);
                 continue;
             }
 
@@ -169,16 +165,11 @@ namespace TypeGenInternal
                     continue;
 
                 const auto depIt = cache.entries.find(depKey);
-                if (depIt != cache.entries.end() && depIt->second.state == TypeGen::TypeGenCache::State::Done)
+                if (depIt != cache.entries.end())
                     continue;
 
-                if (!inStack.contains(depKey))
-                {
-                    // Depth-first: process this dependency before completing 'key'.
-                    stack.push_back(depKey);
-                    inStack.insert(depKey);
-                }
-
+                // Depth-first: create this dependency payload before completing 'key'.
+                stack.push_back(depKey);
                 pushedDep = true;
                 break;
             }

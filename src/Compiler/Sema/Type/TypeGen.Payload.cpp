@@ -308,10 +308,9 @@ namespace TypeGenInternal
         const TaskContext& ctx     = sema.ctx();
         const TypeManager& typeMgr = sema.typeMgr();
 
-        const auto requireDone = [&cache](TypeRef depKey) -> const TypeGen::TypeGenCache::Entry& {
+        const auto requireEntry = [&cache](TypeRef depKey) -> const TypeGen::TypeGenCache::Entry& {
             const auto it = cache.entries.find(depKey);
             SWC_ASSERT(it != cache.entries.end() && "Missing TypeInfo dependency in cache");
-            SWC_ASSERT(it->second.state == TypeGen::TypeGenCache::State::Done && "TypeInfo dependency not marked Done");
             return it->second;
         };
 
@@ -320,7 +319,7 @@ namespace TypeGenInternal
             case LayoutKind::Pointer:
             {
                 const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-                const auto&   dep    = requireDone(depKey);
+                const auto&   dep    = requireEntry(depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
                 break;
             }
@@ -328,7 +327,7 @@ namespace TypeGenInternal
             case LayoutKind::Slice:
             {
                 const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-                const auto&   dep    = requireDone(depKey);
+                const auto&   dep    = requireEntry(depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), dep.offset);
                 break;
             }
@@ -336,11 +335,11 @@ namespace TypeGenInternal
             case LayoutKind::Array:
             {
                 const TypeRef elemTypeRef = typeMgr.get(key).payloadArrayElemTypeRef();
-                const auto&   dep         = requireDone(elemTypeRef);
+                const auto&   dep         = requireEntry(elemTypeRef);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
                 const TypeRef finalTypeRef = typeMgr.get(elemTypeRef).unwrap(ctx, elemTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-                const auto&   fin          = requireDone(finalTypeRef);
+                const auto&   fin          = requireEntry(finalTypeRef);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), fin.offset);
                 break;
             }
@@ -348,7 +347,7 @@ namespace TypeGenInternal
             case LayoutKind::Alias:
             {
                 const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-                const auto&   dep    = requireDone(depKey);
+                const auto&   dep    = requireEntry(depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), dep.offset);
                 break;
             }
@@ -356,7 +355,7 @@ namespace TypeGenInternal
             case LayoutKind::TypedVariadic:
             {
                 const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-                const auto&   dep    = requireDone(depKey);
+                const auto&   dep    = requireEntry(depKey);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), dep.offset);
                 break;
             }
@@ -371,7 +370,7 @@ namespace TypeGenInternal
                 for (uint32_t i = 0; i < entry.structFieldsCount; ++i)
                 {
                     const TypeRef  depKey     = entry.structFieldTypes[i];
-                    const auto&    dep        = requireDone(depKey);
+                    const auto&    dep        = requireEntry(depKey);
                     const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                     addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
                 }
@@ -387,7 +386,7 @@ namespace TypeGenInternal
                     for (uint32_t i = 0; i < entry.funcParamsCount; ++i)
                     {
                         const TypeRef  depKey     = entry.funcParamTypes[i];
-                        const auto&    dep        = requireDone(depKey);
+                        const auto&    dep        = requireEntry(depKey);
                         const uint32_t elemOffset = entry.funcParamsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                         addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
                     }
@@ -395,7 +394,7 @@ namespace TypeGenInternal
 
                 if (entry.funcReturnTypeRef.isValid())
                 {
-                    const auto& dep = requireDone(entry.funcReturnTypeRef);
+                    const auto& dep = requireEntry(entry.funcReturnTypeRef);
                     addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoFunc, returnType), dep.offset);
                 }
 

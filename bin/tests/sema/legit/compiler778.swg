@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 #if #os == Swag.TargetOs.Windows
 {
     namespace Windows

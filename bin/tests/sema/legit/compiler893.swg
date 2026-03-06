@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func toto(x: const [..] f32)
 {
     @assert(x[0] == 1)

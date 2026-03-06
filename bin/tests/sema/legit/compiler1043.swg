@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func new()->Point => {1, 2}
 
 struct Point { x, y: s32 }

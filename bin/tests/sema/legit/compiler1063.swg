@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func(T) add(value1: T, value2: T) {}
 
 //#[Swag.PrintBc]

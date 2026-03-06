@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 using Swag
 #[AttrUsage(AttributeUsage.StructVariable)]
 attr NC1(x: s32)

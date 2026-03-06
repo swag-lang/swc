@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func stepForward(input: s32)->s32
 {
     return input + 1

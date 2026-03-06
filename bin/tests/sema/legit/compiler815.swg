@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func toto(x: const [4] s32) {}
 
 //#[Swag.PrintBc]

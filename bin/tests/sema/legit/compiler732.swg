@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 /*func(T) toto(x: T)
 {
 	var d: T = x

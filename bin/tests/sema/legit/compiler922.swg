@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func average(x: any)
 {
     let t = cast(*f32) @dataof(x)

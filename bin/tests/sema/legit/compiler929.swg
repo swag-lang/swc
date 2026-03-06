@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 //#[Swag.PrintBc]
 func average(x: any)
 {

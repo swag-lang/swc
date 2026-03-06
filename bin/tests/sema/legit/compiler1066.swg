@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 struct Point { x, y, z = 4 }
 
 #test

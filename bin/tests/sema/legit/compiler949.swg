@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 using Swag
 
 func toto(x: s32, y: bool)->s32 => x

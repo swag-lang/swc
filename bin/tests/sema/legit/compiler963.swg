@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 struct XXX
 {
     rank:      s32

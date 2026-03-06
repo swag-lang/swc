@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 /*func(T) valueof(x: any)->T
 {
 	var ptr = cast(*T) @dataof(x)

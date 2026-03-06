@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 var g:  s32 = 666
 var gf: f32 = 666
 

@@ -1,5 +1,7 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global skip
+#global fileprivate
 struct(T) Point
 {
     x:     T

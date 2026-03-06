@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func arithmeticMean(numbers: const [..] f64)->f64
 {
     var total: f64 = 0

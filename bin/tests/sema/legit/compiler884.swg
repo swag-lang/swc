@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func stepForward(input: s32)            => input + 1
 func stepBackward(input: s32)           => input - 1
 func chooseStepFunction(backward: bool) => backward ? &stepBackward : &stepForward

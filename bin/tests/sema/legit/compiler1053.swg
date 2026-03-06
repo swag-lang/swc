@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func(T) delete(addr: *T)
 {
     @assert(dref addr == 666)

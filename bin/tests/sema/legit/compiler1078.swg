@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func toto()->const [..] string
 {
     return ["str0", "str1"]

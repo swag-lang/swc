@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 //#[Swag.PrintBc]
 func toString()->const [..] u8
 {

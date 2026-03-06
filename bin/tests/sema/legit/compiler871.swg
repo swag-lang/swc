@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func toto(x: #null string)
 {
     @assert(@countof(x) == 0)

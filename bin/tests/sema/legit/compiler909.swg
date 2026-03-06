@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func sum(x, y: f32 = 10) => x + y
 
 #test

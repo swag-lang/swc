@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func toto(x: { a: f32 })
 {
     @assert(x.item0 == 1.0)

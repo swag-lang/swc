@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func arithmeticMean(x: f64)
 {
     @assert(x == 1.0)

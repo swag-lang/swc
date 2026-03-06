@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func arithmeticMean(numbers: f32...)
 {
     @assert(@countof(numbers) == 3)

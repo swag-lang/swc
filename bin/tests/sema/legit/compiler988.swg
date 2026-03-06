@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 alias pair = { a: string, b: any }
 #test
 {

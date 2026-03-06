@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 //#global skip
 
 enum TOTO

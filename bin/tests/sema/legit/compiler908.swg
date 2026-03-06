@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func greater(x, y: f32) => x > y
 
 #test

@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 //#[Swag.PrintBc]
 func(T) sum(x: T, y: u32) => x >> y
 

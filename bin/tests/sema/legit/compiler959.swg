@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 #[Swag.AttrUsage(Swag.AttributeUsage.StructVariable)]
 attr PR(x: s32)
 

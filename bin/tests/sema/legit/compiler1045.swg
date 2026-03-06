@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func new() => {1, 2}
 
 //#[Swag.PrintBc]

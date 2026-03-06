@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 /*
 func toto(x: {a,b: s32})
 {

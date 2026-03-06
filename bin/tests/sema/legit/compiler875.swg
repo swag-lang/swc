@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func minMax(array: const [..] s32)->{ min: s32, max: s32 }
 {
     var currentMin, currentMax = array[0]

@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 struct(T) Array
 {
     buffer:     [*] T

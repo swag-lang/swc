@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func toto(x: f32) {}
 
 func toto1(x: f64) {}

@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 var x: [?] any = [6]
 
 //#[Swag.PrintBc]

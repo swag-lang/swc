@@ -1,5 +1,6 @@
-#global fileprivate
+// @FAIL
 #global skip
+#global fileprivate
 func(T, N: u32) new()->[*] T
 {
     var req: Swag.AllocatorRequest

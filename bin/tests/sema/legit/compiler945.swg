@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 func toto(x: f32, y: ...)
 {

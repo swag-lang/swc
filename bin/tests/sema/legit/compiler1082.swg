@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 alias HANDLE       = *void
 alias WORD         = u16
 alias DWORD        = u32

@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 //#[Swag.waitsem(100)]
 func toto(x: s32) {}
 

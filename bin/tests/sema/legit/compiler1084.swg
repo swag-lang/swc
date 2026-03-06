@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 struct U
 {
     y:     bool

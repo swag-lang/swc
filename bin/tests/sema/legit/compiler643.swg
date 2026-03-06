@@ -1,0 +1,23 @@
+#global fileprivate
+#global skip
+struct(T) Point
+{
+    x:   T
+}
+
+impl Point
+{
+    //#[Swag.PrintBc]
+    func toto(me)->T
+    {
+        return me.x
+    }
+}
+
+//#[Swag.PrintBc]
+#test
+{
+    var pt: Point's32
+    pt.x = 5
+    @assert(pt.toto() == 5)
+}

@@ -1,0 +1,14 @@
+#global fileprivate
+#global skip
+func C(value: const& bool)
+{
+    if value
+    {
+
+    }
+}
+
+#test
+{
+    C(true)
+}

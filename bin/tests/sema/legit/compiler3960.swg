@@ -1,0 +1,16 @@
+#global fileprivate
+#global skip
+var G: s32 = 0
+
+func toto()->&s32
+{
+    return &G
+}
+
+//#[Swag.PrintBc]
+#test
+{
+    @assert(G == 0)
+    toto() = 4
+    @assert(G == 4)
+}

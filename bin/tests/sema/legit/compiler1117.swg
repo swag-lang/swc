@@ -1,0 +1,9 @@
+#global fileprivate
+#global skip
+//#[Swag.PrintBc]
+#test
+{
+    let x = 5
+    let y = x % 2
+    @assert(y == 1)
+}

@@ -1,0 +1,21 @@
+#global fileprivate
+#global skip
+struct A
+{
+    x:   u32
+}
+
+//#[Swag.PrintBc]
+func toto()->A
+{
+    var result: retval
+    result.x = 10
+    return result
+}
+
+//#[Swag.PrintBc]
+#test
+{
+    let v = toto()
+    @assert(v.x == 10)
+}

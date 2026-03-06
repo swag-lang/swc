@@ -19,7 +19,6 @@ var CGZero: s32
 #[Swag.Compiler]
 var CGPair: Pair = {x: 1, y: 2}
 
-#[Swag.PrintMicro]
 #run
 {
     @assert(GZero == 0)

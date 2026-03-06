@@ -49,6 +49,27 @@ private:
         Completed,
     };
 
+    struct ItemKey
+    {
+        const TaskContext* ownerCtx = nullptr;
+        AstNodeRef         nodeRef  = AstNodeRef::invalid();
+
+        bool operator==(const ItemKey& other) const noexcept
+        {
+            return ownerCtx == other.ownerCtx && nodeRef == other.nodeRef;
+        }
+    };
+
+    struct ItemKeyHash
+    {
+        size_t operator()(const ItemKey& key) const noexcept
+        {
+            size_t h = std::hash<const TaskContext*>{}(key.ownerCtx);
+            h ^= std::hash<uint32_t>{}(key.nodeRef.get()) + 0x9e3779b9u + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+
     struct Item
     {
         TaskContext* ownerCtx = nullptr;
@@ -59,9 +80,9 @@ private:
 
     static Result executeItem(const Item& item);
 
-    mutable std::mutex                                            mutex_;
-    std::unordered_map<const TaskContext*, std::unique_ptr<Item>> items_;
-    Strategy                                                      strategy_ = Strategy::MainThreadQueued;
+    mutable std::mutex                                              mutex_;
+    std::unordered_map<ItemKey, std::unique_ptr<Item>, ItemKeyHash> items_;
+    Strategy                                                        strategy_ = Strategy::MainThreadQueued;
 };
 
 SWC_END_NAMESPACE();

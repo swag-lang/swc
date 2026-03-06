@@ -54,10 +54,11 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     const SymbolFunction* const function = request.function;
     const AstNodeRef            nodeRef  = request.nodeRef;
     const SourceCodeRef         codeRef  = request.codeRef;
+    const ItemKey               key      = {.ownerCtx = &ctx, .nodeRef = nodeRef};
 
     {
         const std::scoped_lock lock(mutex_);
-        auto&                  slot = items_[&ctx];
+        auto&                  slot = items_[key];
         if (!slot)
         {
             slot           = std::make_unique<Item>();
@@ -88,15 +89,13 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
 
 JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef)
 {
+    const ItemKey          key = {.ownerCtx = &ctx, .nodeRef = nodeRef};
     const std::scoped_lock lock(mutex_);
-    const auto             it = items_.find(&ctx);
+    const auto             it = items_.find(key);
     if (it == items_.end() || !it->second)
         return {};
 
     const Item& item = *it->second;
-    if (item.request.nodeRef != nodeRef)
-        return {};
-
     if (item.status != Status::Completed)
         return {};
 

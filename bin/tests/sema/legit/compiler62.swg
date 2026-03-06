@@ -1,2 +1,0 @@
-#global fileprivate
-#assert(1.0 + 4.5 > 1.0)

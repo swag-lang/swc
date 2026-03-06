@@ -1,9 +1,0 @@
-#global fileprivate
-#assert(1.0 / 2.0 == 0.5)
-#assert(1.0'f32 / 2.0'f32 == 0.5)
-#assert(1.0 / 2.0'f32 == 0.5)
-#assert(1.0'f32 / 2.0 == 0.5)
-#assert(1.0'f32 / 2.0'f64 == 0.5)
-#assert(1.0'f64 / 2.0'f32 == 0.5)
-#assert(1.0 / 2.0'f64 == 0.5)
-#assert(1.0'f64 / 2.0 == 0.5)

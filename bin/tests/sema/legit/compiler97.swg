@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 enum A
 {
     Red

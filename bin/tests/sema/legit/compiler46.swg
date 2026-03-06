@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 var a:   bool
 var b:   bool
 var c:   bool

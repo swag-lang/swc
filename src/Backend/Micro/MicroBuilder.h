@@ -30,6 +30,7 @@ struct MicroRelocation
         ForeignFunctionAddress,
         ConstantAddress,
         LocalFunctionAddress,
+        CompilerAddress,
         GlobalZeroAddress,
         GlobalInitAddress,
     };

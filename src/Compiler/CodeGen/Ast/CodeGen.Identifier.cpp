@@ -75,15 +75,7 @@ namespace
             globalPayload.typeRef = symVar.typeRef();
             globalPayload.setIsAddress();
             globalPayload.reg = codeGen.nextVirtualIntRegister();
-            if (symVar.globalStorageKind() == DataSegmentKind::Compiler)
-            {
-                const uint64_t address = reinterpret_cast<uint64_t>(codeGen.compiler().dataSegmentAddress(DataSegmentKind::Compiler, symVar.offset()));
-                codeGen.builder().emitLoadRegPtrImm(globalPayload.reg, address);
-            }
-            else
-            {
-                codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, symVar.globalStorageKind(), symVar.offset());
-            }
+            codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, symVar.globalStorageKind(), symVar.offset());
             return globalPayload;
         }
 

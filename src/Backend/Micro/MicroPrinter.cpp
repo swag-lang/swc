@@ -1124,6 +1124,8 @@ namespace
                 return "constant";
             case MicroRelocation::Kind::LocalFunctionAddress:
                 return "local";
+            case MicroRelocation::Kind::CompilerAddress:
+                return "compiler";
             case MicroRelocation::Kind::GlobalZeroAddress:
                 return "global-zero";
             case MicroRelocation::Kind::GlobalInitAddress:
@@ -1149,6 +1151,8 @@ namespace
         if (relocation.targetSymbol)
             return relocation.targetSymbol->name(ctx);
 
+        if (relocation.kind == MicroRelocation::Kind::CompilerAddress)
+            return std::format("compiler+0x{:X}", relocation.targetAddress);
         if (relocation.kind == MicroRelocation::Kind::GlobalZeroAddress)
             return std::format("global_zero+0x{:X}", relocation.targetAddress);
         if (relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
@@ -1171,6 +1175,8 @@ namespace
         if (relocation.targetSymbol)
             return relocation.targetSymbol->name(ctx);
 
+        if (relocation.kind == MicroRelocation::Kind::CompilerAddress)
+            return std::format("compiler+0x{:X}", relocation.targetAddress);
         if (relocation.kind == MicroRelocation::Kind::GlobalZeroAddress)
             return std::format("global_zero+0x{:X}", relocation.targetAddress);
         if (relocation.kind == MicroRelocation::Kind::GlobalInitAddress)

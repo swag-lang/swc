@@ -14,14 +14,14 @@ namespace
     {
         switch (kind)
         {
+            case DataSegmentKind::Compiler:
+                return MicroRelocation::Kind::CompilerAddress;
             case DataSegmentKind::GlobalZero:
                 return MicroRelocation::Kind::GlobalZeroAddress;
             case DataSegmentKind::GlobalInit:
                 return MicroRelocation::Kind::GlobalInitAddress;
             case DataSegmentKind::Zero:
                 return MicroRelocation::Kind::ConstantAddress;
-            case DataSegmentKind::Compiler:
-                break;
         }
 
         SWC_UNREACHABLE();
@@ -88,24 +88,20 @@ SourceCodeRef MicroBuilder::instructionSourceCodeRef(MicroInstrRef instructionRe
 
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)
 {
-    switch (relocation.kind)
+    if (relocation.constantRef.isValid())
     {
-        case MicroRelocation::Kind::ConstantAddress:
-            SWC_ASSERT(relocation.constantRef.isValid());
-            break;
-
-        case MicroRelocation::Kind::LocalFunctionAddress:
-        case MicroRelocation::Kind::ForeignFunctionAddress:
-            SWC_ASSERT(relocation.targetSymbol && relocation.targetSymbol->isFunction());
-            break;
-
-        case MicroRelocation::Kind::GlobalZeroAddress:
-        case MicroRelocation::Kind::GlobalInitAddress:
-            SWC_ASSERT(relocation.targetAddress <= std::numeric_limits<uint32_t>::max());
-            break;
-
-        default:
-            SWC_UNREACHABLE();
+        SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
+    }
+    else if (relocation.targetSymbol)
+    {
+        SWC_ASSERT((relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress) && relocation.targetSymbol->isFunction());
+    }
+    else
+    {
+        SWC_ASSERT(relocation.kind == MicroRelocation::Kind::CompilerAddress ||
+                   relocation.kind == MicroRelocation::Kind::GlobalZeroAddress ||
+                   relocation.kind == MicroRelocation::Kind::GlobalInitAddress);
+        SWC_ASSERT(relocation.targetAddress <= std::numeric_limits<uint32_t>::max());
     }
 
     relocations_.push_back(relocation);
@@ -455,7 +451,7 @@ void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef
 
 void MicroBuilder::emitLoadRegDataSegmentReloc(MicroReg reg, const DataSegmentKind kind, const uint32_t offset)
 {
-    SWC_ASSERT(kind == DataSegmentKind::GlobalZero || kind == DataSegmentKind::GlobalInit);
+    SWC_ASSERT(kind == DataSegmentKind::Compiler || kind == DataSegmentKind::GlobalZero || kind == DataSegmentKind::GlobalInit);
 
     auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::LoadRegPtrReloc, 3);
     MicroInstrOperand* ops = inst.ops(operands_);

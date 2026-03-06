@@ -59,3 +59,37 @@ var B: [..] void // swc-expected-error {{sema_err_bad_slice_element_type}}
 {
     var s: [..] s32 = [1, 2, 3] // swc-expected-error {{sema_err_cannot_cast_const}}
 }
+
+#test
+{
+    var a: [3] s32 = [1, 2, 3]
+    var s: const [..] s32 = a
+    @assert(@countof(s) == 3)
+    @assert(s[1] == 2)
+}
+
+#test
+{
+    var a: [3] s32 = [1, 2, 3]
+    var s: [..] s32 = a
+    @assert(@countof(s) == 3)
+    s[2] = 9
+    @assert(a[2] == 9)
+}
+
+#test
+{
+    const s: const [..] u16 = [1'u8, 2'u16, 3]
+    @assert(@countof(s) == 3)
+    @assert(s[0] == 1'u16)
+    @assert(s[2] == 3'u16)
+}
+
+// FAIL!
+// #test
+// {
+//     const a: [3] s32 = [1, 2, 3]
+//     const s: const [..] s32 = a
+//     @assert(@countof(s) == 3)
+//     @assert(s[1] == 2)
+// }

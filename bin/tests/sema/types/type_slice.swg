@@ -84,12 +84,3 @@ var B: [..] void // swc-expected-error {{sema_err_bad_slice_element_type}}
     @assert(s[0] == 1'u16)
     @assert(s[2] == 3'u16)
 }
-
-// FAIL!
-// #test
-// {
-//     const a: [3] s32 = [1, 2, 3]
-//     const s: const [..] s32 = a
-//     @assert(@countof(s) == 3)
-//     @assert(s[1] == 2)
-// }

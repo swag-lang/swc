@@ -1226,7 +1226,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     std::unordered_set<uint64_t>                              seenDebugLines;
     std::unordered_map<MicroLabelRef, MicroInstrRef>          labelInstructionIndexByRef;
     std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstructionRef;
-
     if (builder)
     {
         for (const auto& reloc : builder->codeRelocations())
@@ -1237,7 +1236,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             const MicroInstr* const inst = instructions.ptr(reloc.instructionRef);
             if (!inst)
                 continue;
-
             relocationByInstructionRef[reloc.instructionRef] = &reloc;
         }
     }
@@ -1255,7 +1253,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[0].valueU64));
         labelInstructionIndexByRef[labelRef] = it.current;
     }
-
     if (builder)
     {
         for (auto it = view.begin(); it != view.end(); ++it)
@@ -1338,6 +1335,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:
             case MicroInstrOpcode::Breakpoint:
+                break;
+
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:
             case MicroInstrOpcode::JumpReg:
@@ -1573,7 +1572,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             appendInstructionRelocationOrigin(out, ctx, instructionRelocation);
         out += '\n';
     }
-
     return out;
 }
 

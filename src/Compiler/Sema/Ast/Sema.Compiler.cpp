@@ -416,6 +416,25 @@ namespace
         return semaCompilerTypeOf(sema, node);
     }
 
+    Result semaCompilerDeclType(Sema& sema, const AstCompilerCallOne& node)
+    {
+        const AstNodeRef childRef = node.nodeArgRef;
+        SemaNodeView     view     = sema.viewTypeConstant(childRef);
+        if (!view.typeRef().isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
+
+        if (view.cstRef().isValid())
+        {
+            ConstantRef newCstRef;
+            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+            sema.setConstant(view.nodeRef(), newCstRef);
+            view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
+
+        sema.setType(sema.curNodeRef(), view.typeRef());
+        return Result::Continue;
+    }
+
     Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
@@ -563,6 +582,8 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerTypeOf(sema, *this);
         case TokenId::CompilerKindOf:
             return semaCompilerKindOf(sema, *this);
+        case TokenId::CompilerDeclType:
+            return semaCompilerDeclType(sema, *this);
         case TokenId::CompilerNameOf:
             return semaCompilerNameOf(sema, *this);
         case TokenId::CompilerFullNameOf:
@@ -583,7 +604,6 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerForeignLib(sema, *this);
 
         case TokenId::CompilerHasTag:
-        case TokenId::CompilerDeclType:
         case TokenId::CompilerRunes:
         case TokenId::CompilerIsConstExpr:
         case TokenId::CompilerSafety:

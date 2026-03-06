@@ -2,13 +2,13 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Unittest/UnittestHelpers.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Backend/Unittest/UnittestHelpers.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -355,11 +355,6 @@ namespace
         return tagNaturalToken(NaturalTagKind::Function, token);
     }
 
-    Utf8 tagCompilerToken(std::string_view token)
-    {
-        return tagNaturalToken(NaturalTagKind::Compiler, token);
-    }
-
     Utf8 tagConstantToken(std::string_view token)
     {
         return tagNaturalToken(NaturalTagKind::Constant, token);

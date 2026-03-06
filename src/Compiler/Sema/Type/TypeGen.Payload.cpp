@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Main/TaskContext.h"
@@ -196,10 +197,59 @@ namespace TypeGenInternal
         }
     }
 
-    void initFunc(const Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
+    void initFunc(Sema& sema, DataSegment& storage, Runtime::TypeInfoFunc& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry)
     {
-        SWC_UNUSED(rtType);
-        SWC_UNUSED(type);
+        const TaskContext&    ctx        = sema.ctx();
+        const SymbolFunction& symFunc    = type.payloadSymFunction();
+        const auto&           parameters = symFunc.parameters();
+
+        rtType.generics.ptr     = nullptr;
+        rtType.generics.count   = 0;
+        rtType.parameters.ptr   = nullptr;
+        rtType.parameters.count = 0;
+        rtType.returnType       = nullptr;
+        rtType.attributes.ptr   = nullptr;
+        rtType.attributes.count = 0;
+
+        entry.funcParamsOffset = 0;
+        entry.funcParamsCount  = static_cast<uint32_t>(parameters.size());
+        entry.funcParamTypes.clear();
+        entry.funcReturnTypeRef = TypeRef::invalid();
+
+        if (parameters.empty())
+        {
+            rtType.parameters.ptr = nullptr;
+        }
+        else
+        {
+            const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.funcParamsCount);
+            entry.funcParamsOffset               = paramsOffset;
+            rtType.parameters.ptr                = paramsPtr;
+            rtType.parameters.count              = entry.funcParamsCount;
+            storage.addRelocation(offset + offsetof(Runtime::TypeInfoFunc, parameters.ptr), paramsOffset);
+
+            for (uint32_t i = 0; i < entry.funcParamsCount; ++i)
+            {
+                const SymbolVariable* symParam = parameters[i];
+                SWC_ASSERT(symParam);
+
+                Runtime::TypeValue& tv = paramsPtr[i];
+
+                const auto&    id = ctx.idMgr().get(symParam->idRef());
+                const Utf8     paramName{id.name};
+                const uint32_t elemOffset = paramsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), paramName);
+
+                entry.funcParamTypes.push_back(symParam->typeRef());
+            }
+        }
+
+        if (symFunc.returnTypeRef().isValid())
+        {
+            const TypeRef returnTypeRef = symFunc.returnTypeRef();
+            if (!ctx.typeMgr().get(returnTypeRef).isVoid())
+                entry.funcReturnTypeRef = returnTypeRef;
+        }
     }
 
     std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind, const TypeInfo& type)
@@ -324,6 +374,29 @@ namespace TypeGenInternal
                     const auto&    dep        = requireDone(depKey);
                     const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                     addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
+                }
+
+                break;
+            }
+
+            case LayoutKind::Func:
+            {
+                if (entry.funcParamsCount && entry.funcParamsOffset)
+                {
+                    SWC_ASSERT(entry.funcParamTypes.size() == entry.funcParamsCount);
+                    for (uint32_t i = 0; i < entry.funcParamsCount; ++i)
+                    {
+                        const TypeRef  depKey     = entry.funcParamTypes[i];
+                        const auto&    dep        = requireDone(depKey);
+                        const uint32_t elemOffset = entry.funcParamsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                        addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
+                    }
+                }
+
+                if (entry.funcReturnTypeRef.isValid())
+                {
+                    const auto& dep = requireDone(entry.funcReturnTypeRef);
+                    addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoFunc, returnType), dep.offset);
                 }
 
                 break;

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -48,6 +49,26 @@ namespace TypeGenInternal
                         continue;
                     deps.push_back(field->typeRef());
                 }
+                break;
+            }
+
+            case LayoutKind::Func:
+            {
+                const SymbolFunction& symFunc = type.payloadSymFunction();
+                if (symFunc.returnTypeRef().isValid())
+                {
+                    const TypeRef returnTypeRef = symFunc.returnTypeRef();
+                    if (!tm.get(returnTypeRef).isVoid())
+                        deps.push_back(returnTypeRef);
+                }
+
+                for (const SymbolVariable* param : symFunc.parameters())
+                {
+                    if (!param)
+                        continue;
+                    deps.push_back(param->typeRef());
+                }
+
                 break;
             }
 
@@ -124,7 +145,7 @@ namespace TypeGenInternal
                 if (kind == LayoutKind::Struct)
                     initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(rtBase), offset, type, entry);
                 if (kind == LayoutKind::Func)
-                    initFunc(*reinterpret_cast<Runtime::TypeInfoFunc*>(rtBase), type);
+                    initFunc(sema, storage, *reinterpret_cast<Runtime::TypeInfoFunc*>(rtBase), offset, type, entry);
 
                 // Compute direct dependencies required to wire this payload.
                 entry.deps = computeDeps(tm, ctx, type, kind);

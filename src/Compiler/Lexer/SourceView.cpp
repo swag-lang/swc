@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Backend/Runtime.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Wmf/SourceFile.h"
@@ -88,6 +89,41 @@ std::pair<uint32_t, uint32_t> SourceView::triviaRangeForToken(TokenRef tok) cons
 SourceCodeRange SourceView::tokenCodeRange(const TaskContext& ctx, TokenRef tokRef) const
 {
     return token(tokRef).codeRange(ctx, *this);
+}
+
+void SourceView::codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runtime::SourceCodeLocation& location, SourceCodeRange& outCodeRange) const
+{
+    outCodeRange = {};
+    SWC_ASSERT(!stringView_.empty());
+    SWC_ASSERT(!lines_.empty());
+
+    uint32_t line = location.lineStart;
+    if (!line)
+        line = 1;
+    if (line > lines_.size())
+        line = static_cast<uint32_t>(lines_.size());
+
+    const uint32_t lineStartOffset = lines_[line - 1];
+    uint32_t       lineEndOffset   = static_cast<uint32_t>(stringView_.size());
+    if (line < lines_.size())
+        lineEndOffset = lines_[line];
+
+    if (lineEndOffset <= lineStartOffset)
+        lineEndOffset = lineStartOffset + 1;
+
+    uint32_t column = location.colStart;
+    if (!column)
+        column = 1;
+
+    const uint32_t maxColumnOffset = lineEndOffset - lineStartOffset - 1;
+    const uint32_t columnOffset    = std::min(column - 1, maxColumnOffset);
+    uint32_t       offset          = lineStartOffset + columnOffset;
+    if (offset >= stringView_.size())
+        offset = static_cast<uint32_t>(stringView_.size() - 1);
+
+    outCodeRange.fromOffset(ctx, *this, offset, 1);
+    SWC_ASSERT(outCodeRange.srcView != nullptr);
+    SWC_ASSERT(outCodeRange.len != 0);
 }
 
 std::string_view SourceView::tokenString(TokenRef tokRef) const

@@ -335,43 +335,6 @@ namespace
         return {value.ptr, static_cast<size_t>(value.length)};
     }
 
-    bool buildSourceRangeFromRuntimeLocation(const TaskContext& ctx, const Runtime::SourceCodeLocation& location, const SourceView& srcView, SourceCodeRange& outCodeRange)
-    {
-        outCodeRange = {};
-
-        const std::string_view sourceText = srcView.stringView();
-        const auto&            lines      = srcView.lines();
-        if (sourceText.empty() || lines.empty())
-            return false;
-
-        uint32_t line = location.lineStart;
-        if (!line)
-            line = 1;
-        if (line > lines.size())
-            line = static_cast<uint32_t>(lines.size());
-
-        const uint32_t lineStartOffset = lines[line - 1];
-        uint32_t       lineEndOffset   = static_cast<uint32_t>(sourceText.size());
-        if (line < lines.size())
-            lineEndOffset = lines[line];
-
-        if (lineEndOffset <= lineStartOffset)
-            lineEndOffset = lineStartOffset + 1;
-
-        uint32_t column = location.colStart;
-        if (!column)
-            column = 1;
-
-        const uint32_t maxColumnOffset = lineEndOffset - lineStartOffset - 1;
-        const uint32_t columnOffset    = std::min(column - 1, maxColumnOffset);
-        uint32_t       offset          = lineStartOffset + columnOffset;
-        if (offset >= sourceText.size())
-            offset = static_cast<uint32_t>(sourceText.size() - 1);
-
-        outCodeRange.fromOffset(ctx, srcView, offset, 1);
-        return outCodeRange.srcView != nullptr && outCodeRange.len != 0;
-    }
-
     void decodeCompilerDiagnosticException(const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)
     {
         Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
@@ -432,15 +395,12 @@ namespace
         FileRef         fileRef = FileRef::invalid();
         if (location)
         {
-            const std::string_view locationFileName = runtimeStringView(location->fileName);
-            if (!locationFileName.empty())
+            const std::string_view  locationFileName = runtimeStringView(location->fileName);
+            const SourceView* const srcView          = ctx.compiler().findSourceViewByFileName(locationFileName);
+            if (srcView)
             {
-                const SourceView* const srcView = ctx.compiler().findSourceViewByFileName(locationFileName);
-                if (srcView)
-                {
-                    fileRef = srcView->fileRef();
-                    (void) buildSourceRangeFromRuntimeLocation(ctx, *location, *srcView, range);
-                }
+                fileRef = srcView->fileRef();
+                srcView->codeRangeFromRuntimeLocation(ctx, *location, range);
             }
         }
 

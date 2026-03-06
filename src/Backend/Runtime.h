@@ -305,19 +305,19 @@ namespace Runtime
 
     struct Context
     {
-        Interface          allocator;
-        ScratchAllocator   tempAllocator;
-        ScratchAllocator   errorAllocator;
-        void*              debugAllocator;
-        RuntimeFlags       runtimeFlags;
-        uint64_t           user0;
-        uint64_t           user1;
-        uint64_t           user2;
-        uint64_t           user3;
-        SourceCodeLocation traces[32];
-        ErrorValue         errors[32];
-        SourceCodeLocation exceptionLoc;
-        const void*        exceptionParams[4];
+        Interface                 allocator;
+        ScratchAllocator          tempAllocator;
+        ScratchAllocator          errorAllocator;
+        void*                     debugAllocator;
+        RuntimeFlags              runtimeFlags;
+        uint64_t                  user0;
+        uint64_t                  user1;
+        uint64_t                  user2;
+        uint64_t                  user3;
+        const SourceCodeLocation* traces[32];
+        ErrorValue                errors[32];
+        SourceCodeLocation        exceptionLoc;
+        const void*               exceptionParams[4];
         void (*panic)(String, SourceCodeLocation);
         Any      curError;
         uint32_t errorIndex;

@@ -95,6 +95,7 @@ public:
     SourceView&       addSourceView(FileRef fileRef);
     SourceView&       srcView(SourceViewRef ref);
     const SourceView& srcView(SourceViewRef ref) const;
+    const SourceView* findSourceViewByFileName(std::string_view fileName) const;
 
     Result                   collectFiles(TaskContext& ctx);
     std::vector<SourceFile*> files() const;

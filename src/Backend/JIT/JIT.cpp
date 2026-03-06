@@ -319,6 +319,144 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 
 namespace
 {
+    constexpr uint32_t K_COMPILER_DIAGNOSTIC_EXCEPTION_CODE = 666;
+
+    enum class RuntimeExceptionKind : uint64_t
+    {
+        Panic   = 0,
+        Error   = 1,
+        Warning = 2,
+    };
+
+    std::string_view runtimeStringView(const Runtime::String& value)
+    {
+        if (!value.ptr || !value.length)
+            return {};
+        return {value.ptr, static_cast<size_t>(value.length)};
+    }
+
+    bool buildSourceRangeFromRuntimeLocation(TaskContext& ctx, const Runtime::SourceCodeLocation& location, const SourceView& srcView, SourceCodeRange& outCodeRange)
+    {
+        outCodeRange = {};
+
+        const std::string_view sourceText = srcView.stringView();
+        const auto&            lines      = srcView.lines();
+        if (sourceText.empty() || lines.empty())
+            return false;
+
+        uint32_t line = location.lineStart;
+        if (!line)
+            line = 1;
+        if (line > lines.size())
+            line = static_cast<uint32_t>(lines.size());
+
+        const uint32_t lineStartOffset = lines[line - 1];
+        uint32_t       lineEndOffset   = static_cast<uint32_t>(sourceText.size());
+        if (line < lines.size())
+            lineEndOffset = lines[line];
+
+        if (lineEndOffset <= lineStartOffset)
+            lineEndOffset = lineStartOffset + 1;
+
+        uint32_t column = location.colStart;
+        if (!column)
+            column = 1;
+
+        const uint32_t maxColumnOffset = lineEndOffset - lineStartOffset - 1;
+        const uint32_t columnOffset    = std::min(column - 1, maxColumnOffset);
+        uint32_t       offset          = lineStartOffset + columnOffset;
+        if (offset >= sourceText.size())
+            offset = static_cast<uint32_t>(sourceText.size() - 1);
+
+        outCodeRange.fromOffset(ctx, srcView, offset, 1);
+        return outCodeRange.srcView != nullptr && outCodeRange.len != 0;
+    }
+
+    bool decodeCompilerDiagnosticException(const uint32_t exceptionCode, const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)
+    {
+        if (exceptionCode != K_COMPILER_DIAGNOSTIC_EXCEPTION_CODE)
+            return false;
+        Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
+        SWC_ASSERT(runtimeContext != nullptr);
+
+        outLocation         = &runtimeContext->exceptionLoc;
+        auto       msgPtr   = static_cast<const char*>(runtimeContext->exceptionParams[1]);
+        const auto msgCount = reinterpret_cast<uintptr_t>(runtimeContext->exceptionParams[2]);
+        outKindRaw          = reinterpret_cast<uintptr_t>(runtimeContext->exceptionParams[3]);
+        if (msgPtr && msgCount)
+            outMessage = {msgPtr, msgCount};
+
+        runtimeContext->exceptionParams[0] = nullptr;
+        runtimeContext->exceptionParams[1] = nullptr;
+        runtimeContext->exceptionParams[2] = nullptr;
+        runtimeContext->exceptionParams[3] = nullptr;
+
+        return true;
+    }
+
+    bool tryReportRuntimeCompilerDiagnostic(TaskContext& ctx, const uint32_t exceptionCode, JITCallErrorKind* outErrorKind, int& outExceptionAction)
+    {
+        const Runtime::SourceCodeLocation* location = nullptr;
+        std::string_view                   message;
+        uint64_t                           kindRaw = 0;
+        if (!decodeCompilerDiagnosticException(exceptionCode, location, message, kindRaw))
+            return false;
+
+        const auto kind      = static_cast<RuntimeExceptionKind>(kindRaw);
+        const bool isWarning = kind == RuntimeExceptionKind::Warning;
+
+        SourceCodeRange range;
+        FileRef         fileRef = FileRef::invalid();
+        if (location)
+        {
+            const std::string_view locationFileName = runtimeStringView(location->fileName);
+            if (!locationFileName.empty())
+            {
+                const SourceView* const srcView = ctx.compiler().findSourceViewByFileName(locationFileName);
+                if (srcView)
+                {
+                    fileRef = srcView->fileRef();
+                    (void) buildSourceRangeFromRuntimeLocation(ctx, *location, *srcView, range);
+                }
+            }
+        }
+
+        const DiagnosticId diagId = isWarning ? DiagnosticId::sema_warn_compiler_warning : DiagnosticId::sema_err_compiler_error;
+        Diagnostic         diag   = Diagnostic::get(diagId, fileRef);
+        if (range.srcView)
+        {
+            const auto severity = isWarning ? DiagnosticSeverity::Warning : DiagnosticSeverity::Error;
+            diag.last().addSpan(range, "", severity);
+        }
+
+        Utf8 diagMessage;
+        if (!message.empty())
+            diagMessage.assign(message.data(), message.size());
+
+        if (diagMessage.empty())
+        {
+            if (isWarning)
+                diagMessage = "compiler warning";
+            else if (kind == RuntimeExceptionKind::Panic)
+                diagMessage = "panic";
+            else
+                diagMessage = "compiler error";
+        }
+        else if (kind == RuntimeExceptionKind::Panic)
+        {
+            diagMessage = Utf8{"panic: "} + diagMessage;
+        }
+
+        diag.addArgument(Diagnostic::ARG_BECAUSE, diagMessage);
+        diag.report(ctx);
+
+        if (outErrorKind)
+            *outErrorKind = isWarning ? JITCallErrorKind::None : JITCallErrorKind::HardwareException;
+
+        outExceptionAction = isWarning ? SWC_EXCEPTION_CONTINUE_EXECUTION : SWC_EXCEPTION_EXECUTE_HANDLER;
+        return true;
+    }
+
     bool tryHandleRunJitAssertTrap(TaskContext& ctx, const uint32_t exceptionCode, const void* exceptionAddress, JITCallErrorKind* outErrorKind)
     {
         if (ctx.state().kind != TaskStateKind::RunJit)
@@ -359,6 +497,10 @@ namespace
         uint32_t    exceptionCode    = 0;
         const void* exceptionAddress = nullptr;
         Os::decodeHostException(exceptionCode, exceptionAddress, platformExceptionPointers);
+
+        int compilerDiagAction = SWC_EXCEPTION_EXECUTE_HANDLER;
+        if (tryReportRuntimeCompilerDiagnostic(ctx, exceptionCode, &outErrorKind, compilerDiagAction))
+            return compilerDiagAction;
 
         if (tryHandleRunJitAssertTrap(ctx, exceptionCode, exceptionAddress, &outErrorKind))
             return SWC_EXCEPTION_EXECUTE_HANDLER;

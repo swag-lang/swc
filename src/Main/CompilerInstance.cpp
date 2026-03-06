@@ -44,6 +44,15 @@ namespace
         return g_RuntimeContextTlsId;
     }
 
+    Utf8 normalizePathForCompare(const fs::path& path)
+    {
+        Utf8 result{path.generic_string()};
+#ifdef _WIN32
+        result.make_lower();
+#endif
+        return result;
+    }
+
     void applyPredefinedBuildCfg(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)
     {
         const std::string_view cfgName = cmdLine.buildCfg;
@@ -424,6 +433,32 @@ const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
 
     const SourceView* const view = srcViews_[ref.get()].get();
     return *(view);
+}
+
+const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_view fileName) const
+{
+    if (fileName.empty())
+        return nullptr;
+
+    const fs::path wantedPath{std::string(fileName)};
+    const Utf8     wantedPathNormalized = normalizePathForCompare(wantedPath);
+
+    const std::shared_lock lock(mutex_);
+    for (const std::unique_ptr<SourceView>& srcViewPtr : srcViews_)
+    {
+        const SourceView* const srcView = srcViewPtr.get();
+        if (!srcView)
+            continue;
+
+        const SourceFile* const sourceFile = srcView->file();
+        if (!sourceFile)
+            continue;
+
+        if (normalizePathForCompare(sourceFile->path()) == wantedPathNormalized)
+            return srcView;
+    }
+
+    return nullptr;
 }
 
 bool CompilerInstance::setMainFunc(AstCompilerFunc* node)

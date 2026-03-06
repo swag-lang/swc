@@ -1,4 +1,7 @@
 #include "pch.h"
+
+#if SWC_HAS_UNITTEST
+
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
@@ -8,8 +11,6 @@
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-
-#if SWC_HAS_UNITTEST
 
 namespace
 {
@@ -573,6 +574,6 @@ SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
 }
 SWC_TEST_END()
 
-#endif
-
 SWC_END_NAMESPACE();
+
+#endif

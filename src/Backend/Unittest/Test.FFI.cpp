@@ -1,4 +1,7 @@
 #include "pch.h"
+
+#if SWC_HAS_UNITTEST
+
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -8,8 +11,6 @@
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-
-#if SWC_HAS_UNITTEST
 #ifdef _M_X64
 
 namespace
@@ -449,6 +450,6 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByReference)
 SWC_TEST_END()
 
 #endif
-#endif
-
 SWC_END_NAMESPACE();
+
+#endif

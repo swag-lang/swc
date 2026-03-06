@@ -28,6 +28,12 @@ namespace
         return reinterpret_cast<uint64_t>(stored.data());
     }
 
+    ByteSpan addIntrinsicPayloadToConstantManagerAndGetSpan(CodeGen& codeGen, ByteSpan payload)
+    {
+        const std::string_view stored = codeGen.cstMgr().addPayloadBuffer(asStringView(payload));
+        return asByteSpan(stored);
+    }
+
     CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
     {
         const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
@@ -623,9 +629,7 @@ namespace
 
     Result codeGenAssert(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        MicroBuilder&                   builder    = codeGen.builder();
-        const Runtime::BuildCfgBackend& backendCfg = builder.backendBuildCfg();
-
+        MicroBuilder&           builder = codeGen.builder();
         SmallVector<AstNodeRef> children;
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         if (children.empty())
@@ -645,16 +649,17 @@ namespace
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
 
-        auto&                      raiseExceptionFunction = *payload->runtimeFunctionSymbol;
-        const CallConvKind         callConvKind           = raiseExceptionFunction.callConvKind();
-        const CallConv&            callConv               = CallConv::get(callConvKind);
+        auto&                             raiseExceptionFunction = *payload->runtimeFunctionSymbol;
+        const CallConvKind                callConvKind           = raiseExceptionFunction.callConvKind();
+        const CallConv&                   callConv               = CallConv::get(callConvKind);
         SmallVector<ABICall::PreparedArg> preparedArgs;
         preparedArgs.reserve(3);
 
-        const Runtime::String nullRuntimeString{};
-        const ByteSpan        nullRuntimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&nullRuntimeString), sizeof(nullRuntimeString));
-        const ConstantRef     nullMessageRef         = codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStruct(codeGen.ctx(), codeGen.typeMgr().typeString(), nullRuntimeStringBytes));
-        const auto        nullMessage    = makeAddressPayloadFromConstant(codeGen, nullMessageRef);
+        constexpr Runtime::String nullRuntimeString{};
+        const ByteSpan            nullRuntimeStringBytes       = asByteSpan(reinterpret_cast<const std::byte*>(&nullRuntimeString), sizeof(nullRuntimeString));
+        const ByteSpan            storedNullRuntimeStringBytes = addIntrinsicPayloadToConstantManagerAndGetSpan(codeGen, nullRuntimeStringBytes);
+        const ConstantRef         nullMessageRef               = codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStructBorrowed(codeGen.ctx(), codeGen.typeMgr().typeString(), storedNullRuntimeStringBytes));
+        const auto                nullMessage                  = makeAddressPayloadFromConstant(codeGen, nullMessageRef);
 
         const ConstantRef sourceLocRef = ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), node);
         const auto        sourceLoc    = makeAddressPayloadFromConstant(codeGen, sourceLocRef);
@@ -663,10 +668,10 @@ namespace
         messageArg.srcReg = nullMessage.reg;
         {
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().typeString(), ABITypeNormalize::Usage::Argument);
-            messageArg.kind        = ABICall::PreparedArgKind::Direct;
-            messageArg.isFloat     = normalizedArg.isFloat;
-            messageArg.numBits     = normalizedArg.numBits;
-            messageArg.isAddressed = false;
+            messageArg.kind                                      = ABICall::PreparedArgKind::Direct;
+            messageArg.isFloat                                   = normalizedArg.isFloat;
+            messageArg.numBits                                   = normalizedArg.numBits;
+            messageArg.isAddressed                               = false;
         }
         preparedArgs.push_back(messageArg);
 
@@ -674,10 +679,10 @@ namespace
         locationArg.srcReg = sourceLoc.reg;
         {
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().structSourceCodeLocation(), ABITypeNormalize::Usage::Argument);
-            locationArg.kind        = ABICall::PreparedArgKind::Direct;
-            locationArg.isFloat     = normalizedArg.isFloat;
-            locationArg.numBits     = normalizedArg.numBits;
-            locationArg.isAddressed = false;
+            locationArg.kind                                     = ABICall::PreparedArgKind::Direct;
+            locationArg.isFloat                                  = normalizedArg.isFloat;
+            locationArg.numBits                                  = normalizedArg.numBits;
+            locationArg.isAddressed                              = false;
         }
         preparedArgs.push_back(locationArg);
 

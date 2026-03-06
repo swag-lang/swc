@@ -1,10 +1,9 @@
 #global fileprivate
-#global skip
 using Swag
 
-var g: s64 = 5
-var h  = 5555
-var i  = 1.5
+const g: s64 = 5
+const h  = 5555
+const i  = 1.5
 
 #run
 {

@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 enum A
 {
     Red   = cast(A) B.Red
@@ -14,4 +13,5 @@ enum B
     Blue
 }
 
+#assert(A.Red == 100)
 #assert(A.Blue == 102)

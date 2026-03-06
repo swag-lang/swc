@@ -25,7 +25,9 @@ namespace
 
     bool shouldRouteEnumViaUnderlying(const CastRequest& castRequest, const TypeInfo& srcType, const TypeInfo& dstType)
     {
-        if (!srcType.isEnum() || dstType.isEnum())
+        if (!srcType.isEnum())
+            return false;
+        if (dstType.isEnum() && castRequest.kind != CastKind::Explicit)
             return false;
         if (dstType.isAny())
             return false;
@@ -366,10 +368,12 @@ Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     if (castRequest.isConstantFolding())
     {
         const ConstantValue& cst = sema.cstMgr().get(castRequest.srcConstRef);
-        castRequest.srcConstRef  = cst.getEnumValue();
+        if (cst.isEnumValue())
+            castRequest.srcConstRef = cst.getEnumValue();
     }
 
-    const auto res = castAllowed(sema, castRequest, enumSym.underlyingTypeRef(), dstTypeRef);
+    const TypeRef dstUnderlyingTypeRef = dstType.isEnum() ? dstType.payloadSymEnum().underlyingTypeRef() : dstTypeRef;
+    const auto    res                  = castAllowed(sema, castRequest, enumSym.underlyingTypeRef(), dstUnderlyingTypeRef);
     if (res != Result::Continue)
     {
         setEnumUnderlyingCastNote(castRequest, srcTypeRef, enumSym.underlyingTypeRef());

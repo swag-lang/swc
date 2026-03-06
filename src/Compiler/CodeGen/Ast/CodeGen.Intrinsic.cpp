@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -19,6 +20,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_ASSERT = 3;
+
+    uint64_t addIntrinsicPayloadToConstantManagerAndGetAddress(CodeGen& codeGen, ByteSpan payload)
+    {
+        const std::string_view stored = codeGen.cstMgr().addPayloadBuffer(asStringView(payload));
+        return reinterpret_cast<uint64_t>(stored.data());
+    }
+
+    CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
+    {
+        const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
+        SWC_ASSERT(cst.isStruct() || cst.isArray());
+
+        const ByteSpan bytes = cst.isStruct() ? cst.getStruct() : cst.getArray();
+        const uint64_t addr  = cst.isStruct() ? reinterpret_cast<uint64_t>(bytes.data()) : addIntrinsicPayloadToConstantManagerAndGetAddress(codeGen, bytes);
+
+        CodeGenNodePayload payload;
+        payload.typeRef = cst.typeRef();
+        payload.reg     = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(payload.reg, addr, cstRef);
+        payload.setIsAddress();
+        return payload;
+    }
+
     enum class BitCountKind
     {
         Nz,
@@ -618,10 +643,60 @@ namespace
         else
             builder.emitLoadRegReg(condReg, exprPayload.reg, condBits);
 
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
+
+        auto&                      raiseExceptionFunction = *payload->runtimeFunctionSymbol;
+        const CallConvKind         callConvKind           = raiseExceptionFunction.callConvKind();
+        const CallConv&            callConv               = CallConv::get(callConvKind);
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(3);
+
+        const Runtime::String nullRuntimeString{};
+        const ByteSpan        nullRuntimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&nullRuntimeString), sizeof(nullRuntimeString));
+        const ConstantRef     nullMessageRef         = codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStruct(codeGen.ctx(), codeGen.typeMgr().typeString(), nullRuntimeStringBytes));
+        const auto        nullMessage    = makeAddressPayloadFromConstant(codeGen, nullMessageRef);
+
+        const ConstantRef sourceLocRef = ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), node);
+        const auto        sourceLoc    = makeAddressPayloadFromConstant(codeGen, sourceLocRef);
+
+        ABICall::PreparedArg messageArg;
+        messageArg.srcReg = nullMessage.reg;
+        {
+            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().typeString(), ABITypeNormalize::Usage::Argument);
+            messageArg.kind        = ABICall::PreparedArgKind::Direct;
+            messageArg.isFloat     = normalizedArg.isFloat;
+            messageArg.numBits     = normalizedArg.numBits;
+            messageArg.isAddressed = false;
+        }
+        preparedArgs.push_back(messageArg);
+
+        ABICall::PreparedArg locationArg;
+        locationArg.srcReg = sourceLoc.reg;
+        {
+            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().structSourceCodeLocation(), ABITypeNormalize::Usage::Argument);
+            locationArg.kind        = ABICall::PreparedArgKind::Direct;
+            locationArg.isFloat     = normalizedArg.isFloat;
+            locationArg.numBits     = normalizedArg.numBits;
+            locationArg.isAddressed = false;
+        }
+        preparedArgs.push_back(locationArg);
+
+        ABICall::PreparedArg kindArg;
+        kindArg.srcReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(kindArg.srcReg, ApInt(K_RUNTIME_EXCEPTION_KIND_ASSERT, 64), MicroOpBits::B64);
+        kindArg.kind        = ABICall::PreparedArgKind::Direct;
+        kindArg.isFloat     = false;
+        kindArg.numBits     = 64;
+        kindArg.isAddressed = false;
+        preparedArgs.push_back(kindArg);
+
         const MicroLabelRef doneLabel = builder.createLabel();
         builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doneLabel);
-        builder.emitAssertTrap();
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        ABICall::callLocal(builder, callConvKind, &raiseExceptionFunction, preparedCall);
         builder.placeLabel(doneLabel);
         return Result::Continue;
     }

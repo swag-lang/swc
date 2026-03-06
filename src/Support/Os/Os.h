@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -44,7 +44,6 @@ namespace Os
     uint32_t    currentProcessId();
     uint32_t    currentThreadId();
     size_t      peakProcessMemoryUsage();
-    bool        isHostIllegalInstructionException(uint32_t exceptionCode);
     void        decodeHostException(uint32_t& outExceptionCode, const void*& outExceptionAddress, const void* platformExceptionPointers);
     void        appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers);
     void        appendHostCpuContext(Utf8& outMsg, const void* platformExceptionPointers);

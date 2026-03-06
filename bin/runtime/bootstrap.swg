@@ -405,6 +405,7 @@ namespace Swag
         Panic
         Error
         Warning
+        Assert
     }
 
     const MaxErrors = 32     // Maximum nested errors

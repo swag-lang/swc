@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
@@ -261,60 +261,6 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
     out.reserve(out.size() + callDependencies_.size());
     for (SymbolFunction* dep : callDependencies_)
         out.push_back(dep);
-}
-
-bool SymbolFunction::resolveJitSourceCodeRefForAddress(SourceCodeRef& outSourceCodeRef, const void* address) const
-{
-    outSourceCodeRef = SourceCodeRef::invalid();
-    if (!address)
-        return false;
-
-    const auto                         addressU64 = reinterpret_cast<uint64_t>(address);
-    SmallVector<const SymbolFunction*> toScan;
-    toScan.push_back(this);
-
-    std::unordered_set<const SymbolFunction*> visited;
-    visited.reserve(32);
-
-    while (!toScan.empty())
-    {
-        const SymbolFunction* const function = toScan.back();
-        toScan.pop_back();
-        if (!function)
-            continue;
-
-        if (visited.contains(function))
-            continue;
-        visited.insert(function);
-
-        const void*    entry    = function->jitEntryAddress();
-        const uint32_t codeSize = function->jitExecMemory_.size();
-        if (entry && codeSize)
-        {
-            const auto     startAddress = reinterpret_cast<uint64_t>(entry);
-            const uint64_t endAddress   = startAddress + codeSize;
-            if (addressU64 >= startAddress && addressU64 < endAddress)
-            {
-                const auto codeOffset = static_cast<uint32_t>(addressU64 - startAddress);
-                if (function->loweredMicroCode_.resolveSourceCodeRefAtOffset(outSourceCodeRef, codeOffset))
-                    return true;
-
-                outSourceCodeRef = function->codeRef();
-                return outSourceCodeRef.isValid();
-            }
-        }
-
-        SmallVector<SymbolFunction*> dependencies;
-        function->appendCallDependencies(dependencies);
-        for (const SymbolFunction* const dep : dependencies)
-        {
-            if (!dep)
-                continue;
-            toScan.push_back(dep);
-        }
-    }
-
-    return false;
 }
 
 Result SymbolFunction::emit(TaskContext& ctx)

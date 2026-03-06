@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #ifdef _WIN32
 #include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
@@ -392,11 +392,6 @@ namespace Os
         if (!GetProcessMemoryInfo(GetCurrentProcess(), &memoryCounters, sizeof(memoryCounters)))
             return 0;
         return memoryCounters.PeakWorkingSetSize;
-    }
-
-    bool isHostIllegalInstructionException(const uint32_t exceptionCode)
-    {
-        return exceptionCode == EXCEPTION_ILLEGAL_INSTRUCTION;
     }
 
     void decodeHostException(uint32_t& outExceptionCode, const void*& outExceptionAddress, const void* platformExceptionPointers)

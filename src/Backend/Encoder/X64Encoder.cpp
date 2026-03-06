@@ -3258,12 +3258,4 @@ void X64Encoder::encodeBreakpoint()
     return;
 }
 
-void X64Encoder::encodeAssertTrap()
-{
-    // UD2 raises EXCEPTION_ILLEGAL_INSTRUCTION on x64/Windows.
-    emitCpuOp(store_, 0x0F);
-    emitCpuOp(store_, 0x0B);
-    return;
-}
-
 SWC_END_NAMESPACE();

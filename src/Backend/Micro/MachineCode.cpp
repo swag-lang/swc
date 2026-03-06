@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -7,37 +7,6 @@
 #include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();
-
-bool MachineCode::resolveSourceCodeRefAtOffset(SourceCodeRef& outSourceCodeRef, const uint32_t codeOffset) const
-{
-    const DebugSourceRange* bestBefore = nullptr;
-    for (const DebugSourceRange& range : debugSourceRanges)
-    {
-        if (!range.sourceCodeRef.isValid())
-            continue;
-
-        if (codeOffset >= range.codeStartOffset && codeOffset < range.codeEndOffset)
-        {
-            outSourceCodeRef = range.sourceCodeRef;
-            return true;
-        }
-
-        if (range.codeStartOffset > codeOffset)
-            continue;
-
-        if (!bestBefore || bestBefore->codeStartOffset < range.codeStartOffset)
-            bestBefore = &range;
-    }
-
-    if (bestBefore)
-    {
-        outSourceCodeRef = bestBefore->sourceCodeRef;
-        return true;
-    }
-
-    outSourceCodeRef = SourceCodeRef::invalid();
-    return false;
-}
 
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 {

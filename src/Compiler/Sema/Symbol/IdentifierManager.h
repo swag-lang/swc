@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/StringMap.h"
@@ -18,6 +18,7 @@ public:
     enum class RuntimeFunctionKind : uint8_t
     {
         TlsGetValue,
+        RaiseException,
         Count,
     };
 
@@ -106,6 +107,7 @@ public:
         Gvtd,
         BuildCfg,
         RuntimeTlsGetValue,
+        RuntimeRaiseException,
         Count,
     };
 

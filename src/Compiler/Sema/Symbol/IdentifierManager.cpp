@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Lexer/Token.h"
@@ -106,12 +106,14 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Gvtd, .str = "Gvtd"},
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
         {.name = PredefinedName::RuntimeTlsGetValue, .str = "__tlsGetValue"},
+        {.name = PredefinedName::RuntimeRaiseException, .str = "__raiseException666"},
     };
 
     for (const auto& it : PREDEFINED_NAMES)
         predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
 
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)] = predefined(PredefinedName::RuntimeTlsGetValue);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]    = predefined(PredefinedName::RuntimeTlsGetValue);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)] = predefined(PredefinedName::RuntimeRaiseException);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)

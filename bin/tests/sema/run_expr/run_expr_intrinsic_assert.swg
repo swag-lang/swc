@@ -14,21 +14,14 @@ const Cfg = #run dref @compiler.getBuildCfg()
     #assert(V == 42)
 }
 
-#if Cfg.backend.emitAssert {
-    #test
+#test
+{
+    func failAssert()->s32
     {
-        #assert(Cfg.backend.emitAssert == true)
+        @assert(false) // swc-expected-error {{sema_err_assert_failed}}
+        return 7
     }
-} #else {
-    #test
-    {
-        func failAssert()->s32
-        {
-            @assert(false)
-            return 7
-        }
 
-        const V = #run failAssert()
-        #assert(V == 7)
-    }
+    const V = #run failAssert()
+    #assert(V == 7)
 }

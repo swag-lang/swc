@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Backend/Micro/MicroBuilder.h"
 
@@ -15,7 +15,6 @@ struct MachineCode
     std::vector<MicroRelocation>  codeRelocations;
     std::vector<DebugSourceRange> debugSourceRanges;
 
-    bool   resolveSourceCodeRefAtOffset(SourceCodeRef& outSourceCodeRef, uint32_t codeOffset) const;
     Result emit(TaskContext& ctx, MicroBuilder& builder);
 };
 

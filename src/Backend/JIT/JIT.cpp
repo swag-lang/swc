@@ -326,6 +326,7 @@ namespace
         Panic   = 0,
         Error   = 1,
         Warning = 2,
+        Assert  = 3,
     };
 
     std::string_view runtimeStringView(const Runtime::String& value)
@@ -387,6 +388,12 @@ namespace
                 *outErrorKind      = JITCallErrorKind::None;
                 outExceptionAction = SWC_EXCEPTION_CONTINUE_EXECUTION;
                 break;
+            case RuntimeExceptionKind::Assert:
+                diagId             = DiagnosticId::sema_err_assert_failed;
+                severity           = DiagnosticSeverity::Error;
+                *outErrorKind      = JITCallErrorKind::HardwareException;
+                outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
+                break;
             default:
                 SWC_UNREACHABLE();
         }
@@ -416,52 +423,16 @@ namespace
         return true;
     }
 
-    bool tryHandleRunJitAssertTrap(TaskContext& ctx, const uint32_t exceptionCode, const void* exceptionAddress, JITCallErrorKind* outErrorKind)
-    {
-        if (ctx.state().kind != TaskStateKind::RunJit)
-            return false;
-
-        const SymbolFunction* const runJitFunction = ctx.state().runJitFunction;
-        if (!runJitFunction)
-            return false;
-
-        if (!Os::isHostIllegalInstructionException(exceptionCode))
-            return false;
-
-        SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-        if (!exceptionAddress)
-            return false;
-
-        if (!runJitFunction->resolveJitSourceCodeRefForAddress(sourceCodeRef, exceptionAddress))
-            return false;
-
-        if (!sourceCodeRef.isValid())
-            return false;
-
-        const SourceView& srcView = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
-        if (srcView.token(sourceCodeRef.tokRef).id != TokenId::IntrinsicAssert)
-            return false;
-
-        if (outErrorKind)
-            *outErrorKind = JITCallErrorKind::AssertTrap;
-
-        const Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_assert_failed, srcView.fileRef());
-        diag.last().addSpan(srcView.tokenCodeRange(ctx, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
-        diag.report(ctx);
-        return true;
-    }
-
     int exceptionHandler(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind& outErrorKind)
     {
         uint32_t    exceptionCode    = 0;
         const void* exceptionAddress = nullptr;
         Os::decodeHostException(exceptionCode, exceptionAddress, platformExceptionPointers);
+        SWC_UNUSED(exceptionAddress);
 
         int compilerDiagAction = SWC_EXCEPTION_EXECUTE_HANDLER;
         if (tryReportRuntimeException(ctx, exceptionCode, &outErrorKind, compilerDiagAction))
             return compilerDiagAction;
-        if (tryHandleRunJitAssertTrap(ctx, exceptionCode, exceptionAddress, &outErrorKind))
-            return SWC_EXCEPTION_EXECUTE_HANDLER;
 
         if (!exceptionCode)
             outErrorKind = JITCallErrorKind::None;

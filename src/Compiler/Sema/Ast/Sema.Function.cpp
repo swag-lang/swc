@@ -152,6 +152,26 @@ namespace
         return Result::Continue;
     }
 
+    Result setupIntrinsicAssertRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
+    {
+        SymbolFunction* raiseExceptionFn = nullptr;
+        SWC_RESULT_VERIFY(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::RaiseException, raiseExceptionFn, node.codeRef()));
+        SWC_ASSERT(raiseExceptionFn != nullptr);
+
+        if (SymbolFunction* currentFn = sema.frame().currentFunction())
+            currentFn->addCallDependency(raiseExceptionFn);
+
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
+            sema.setCodeGenPayload(sema.curNodeRef(), payload);
+        }
+
+        payload->runtimeFunctionSymbol = raiseExceptionFn;
+        return Result::Continue;
+    }
+
     TypeRef callExprRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
     {
         if (sema.frame().currentFunction() == nullptr)
@@ -439,7 +459,13 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::IntrinsicGetContext)
+    {
         SWC_RESULT_VERIFY(setupIntrinsicGetContextRuntimeCall(sema, *this));
+    }
+    else if (tok.id == TokenId::IntrinsicAssert)
+    {
+        SWC_RESULT_VERIFY(setupIntrinsicAssertRuntimeCall(sema, *this));
+    }
 
     return Result::Continue;
 }

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -104,7 +104,6 @@ public:
     void emitPop(MicroReg reg);
     void emitNop();
     void emitBreakpoint();
-    void emitAssertTrap();
     void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();
     void emitCallLocal(Symbol* targetSymbol, CallConvKind callConv);

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -499,7 +499,6 @@ bool MicroPassHelpers::isNoOpEncoderInstruction(const MicroInstr& inst, const Mi
         case MicroInstrOpcode::Pop:
         case MicroInstrOpcode::Ret:
         case MicroInstrOpcode::Breakpoint:
-        case MicroInstrOpcode::AssertTrap:
         case MicroInstrOpcode::CallLocal:
         case MicroInstrOpcode::CallExtern:
         case MicroInstrOpcode::CallIndirect:

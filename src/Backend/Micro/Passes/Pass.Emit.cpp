@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -83,9 +83,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             break;
         case MicroInstrOpcode::Breakpoint:
             encoder.encodeBreakpoint();
-            break;
-        case MicroInstrOpcode::AssertTrap:
-            encoder.encodeAssertTrap();
             break;
         case MicroInstrOpcode::Ret:
             encoder.encodeRet();

@@ -1,6 +1,0 @@
-#global fileprivate
-#global skip
-#test
-{
-    const O = [{1, dx: 1, dy: 0}, {0, 0, -1}, {1, -1, 0}, {0, 0, 1}]
-}

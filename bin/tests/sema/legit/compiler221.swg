@@ -1,8 +1,0 @@
-// @FAIL
-#global skip
-#global fileprivate
-var v = 50
-
-#run
-{
-    v = 6; v = (5 * 3) + 11; }

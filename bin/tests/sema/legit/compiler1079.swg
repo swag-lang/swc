@@ -1,4 +1,0 @@
-#global fileprivate
-#test
-{
-}

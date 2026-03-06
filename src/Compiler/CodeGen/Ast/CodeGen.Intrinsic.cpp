@@ -625,8 +625,6 @@ namespace
     {
         MicroBuilder&                   builder    = codeGen.builder();
         const Runtime::BuildCfgBackend& backendCfg = builder.backendBuildCfg();
-        if (!backendCfg.emitAssert)
-            return Result::Continue;
 
         SmallVector<AstNodeRef> children;
         codeGen.ast().appendNodes(children, node.spanChildrenRef);

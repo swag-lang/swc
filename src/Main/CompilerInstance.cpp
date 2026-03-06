@@ -64,7 +64,6 @@ namespace
             buildCfg.errorStackTrace          = false;
             buildCfg.debugAllocator           = true;
             buildCfg.backend.optimize         = false;
-            buildCfg.backend.emitAssert       = true;
             buildCfg.backendDebugInformations = false;
             buildCfg.backendDebugInline       = false;
         }
@@ -75,7 +74,6 @@ namespace
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
             buildCfg.backend.optimize         = false;
-            buildCfg.backend.emitAssert       = true;
             buildCfg.backendDebugInformations = true;
             buildCfg.backendDebugInline       = true;
         }
@@ -86,7 +84,6 @@ namespace
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
             buildCfg.backend.optimize         = true;
-            buildCfg.backend.emitAssert       = true;
             buildCfg.backendDebugInformations = true;
         }
         else if (cfgName == "release")
@@ -96,7 +93,6 @@ namespace
             buildCfg.errorStackTrace            = false;
             buildCfg.debugAllocator             = false;
             buildCfg.backend.optimize           = true;
-            buildCfg.backend.emitAssert         = true;
             buildCfg.backendDebugInformations   = true;
             buildCfg.backend.fpMathFma          = true;
             buildCfg.backend.fpMathNoNaN        = true;
@@ -110,7 +106,6 @@ namespace
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
             buildCfg.backend.optimize         = true;
-            buildCfg.backend.emitAssert       = true;
             buildCfg.backendDebugInformations = true;
         }
 

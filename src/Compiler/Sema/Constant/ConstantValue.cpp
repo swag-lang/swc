@@ -623,8 +623,11 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isSlice())
     {
-        const auto*    slice = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
-        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
+        const auto*    slice       = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
+        const TypeInfo elementType = ctx.typeMgr().get(ty.payloadTypeRef());
+        const uint64_t elementSize = elementType.sizeOf(ctx);
+        const uint64_t byteCount   = elementSize ? slice->count * elementSize : 0;
+        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), byteCount};
         if (ownership == PayloadOwnership::Borrowed)
             return makeSliceBorrowed(ctx, ty.payloadTypeRef(), span);
         return makeSlice(ctx, ty.payloadTypeRef(), span);

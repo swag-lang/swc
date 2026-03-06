@@ -160,8 +160,10 @@ namespace
         if (dstType.isSlice())
         {
             SWC_ASSERT(cst.isSlice() && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
-            const ByteSpan       bytes = cst.getSlice();
-            const Runtime::Slice rt    = {.ptr = reinterpret_cast<const uint8_t*>(bytes.data()), .count = bytes.size()};
+            const ByteSpan       bytes       = cst.getSlice();
+            const TypeInfo&      elementType = sema.typeMgr().get(dstType.payloadTypeRef());
+            const uint64_t       elementSize = elementType.sizeOf(sema.ctx());
+            const Runtime::Slice rt          = {.ptr = reinterpret_cast<const uint8_t*>(bytes.data()), .count = elementSize ? bytes.size() / elementSize : 0};
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
             return;
         }

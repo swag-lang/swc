@@ -320,6 +320,24 @@ namespace
                 return;
             }
 
+            case ConstantKind::Slice:
+            {
+                const ByteSpan  sliceBytes = cst.getSlice();
+                const TypeInfo& sliceType  = cst.type(codeGen.ctx());
+                SWC_ASSERT(sliceType.isSlice());
+                const TypeInfo&      elementType = codeGen.typeMgr().get(sliceType.payloadTypeRef());
+                const uint64_t       elementSize = elementType.sizeOf(codeGen.ctx());
+                const Runtime::Slice runtimeSlice{
+                    .ptr   = sliceBytes.data(),
+                    .count = elementSize ? sliceBytes.size() / elementSize : 0,
+                };
+                const ByteSpan runtimeSliceBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeSlice), sizeof(runtimeSlice));
+                const uint64_t storageAddress    = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeSliceBytes);
+                builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
+                payload.setIsValue();
+                return;
+            }
+
             default:
                 SWC_UNREACHABLE();
         }

@@ -171,7 +171,10 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
 
         if (view.cst()->isSlice())
         {
-            sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, view.cst()->getSlice().size()));
+            const TypeInfo& elementType = sema.typeMgr().get(view.type()->payloadTypeRef());
+            const uint64_t  elementSize = elementType.sizeOf(ctx);
+            const uint64_t  count       = elementSize ? view.cst()->getSlice().size() / elementSize : 0;
+            sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, count));
             return Result::Continue;
         }
 

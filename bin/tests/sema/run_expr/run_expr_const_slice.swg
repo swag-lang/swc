@@ -19,12 +19,11 @@ func pick(values: const [..] s32, idx: s32)->s32
     #assert(v == 6)
 }
 
-// FAIL!
-// #test
-// {
-//     const v = #run pick([10, 20, 30], 1)
-//     #assert(v == 20)
-// }
+#test
+{
+    const v = #run pick([10, 20, 30], 1)
+    #assert(v == 20)
+}
 
 // FAIL!
 // #test

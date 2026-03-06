@@ -260,9 +260,12 @@ namespace
 
     Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
     {
-        const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
-        const ByteSpan  bytes    = cst.getSlice();
-        return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, bytes.size(), nodeArgRef);
+        const TypeInfo& typeInfo  = sema.typeMgr().get(cst.typeRef());
+        const ByteSpan  bytes     = cst.getSlice();
+        const TypeInfo& elemType  = sema.typeMgr().get(typeInfo.payloadTypeRef());
+        const uint64_t  elemSize  = elemType.sizeOf(sema.ctx());
+        const uint64_t  elemCount = elemSize ? bytes.size() / elemSize : 0;
+        return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, elemCount, nodeArgRef);
     }
 }
 

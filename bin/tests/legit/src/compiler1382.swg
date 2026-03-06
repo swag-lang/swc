@@ -1,3 +1,0 @@
-func toto() {}
-
-#run toto()

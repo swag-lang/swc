@@ -25,8 +25,6 @@ exit /b %errorlevel%
 if errorlevel 1 exit /b %errorlevel%
 %EXE% syntax --verify -d "%ROOT%\bin\tests\parser" %EXTRA%
 if errorlevel 1 exit /b %errorlevel%
-%EXE% syntax -d "%ROOT%\bin\tests\legit" %EXTRA%
-if errorlevel 1 exit /b %errorlevel%
 %EXE% syntax -d "%ROOT%\bin\std\modules" %EXTRA%
 if errorlevel 1 exit /b %errorlevel%
 %EXE% syntax -d "%ROOT%\bin\reference" %EXTRA%

@@ -2,7 +2,7 @@
 #global skip
 enum A
 {
-    Red   = B.Red
+    Red   = cast(A) B.Red
     Green
     Blue
 }

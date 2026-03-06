@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 func main()->bool
 {
     return true

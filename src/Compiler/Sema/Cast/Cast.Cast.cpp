@@ -640,6 +640,73 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         }
     }
 
+    if (srcType.isAggregateArray())
+    {
+        const auto dstElemTypeRef = dstType.payloadTypeRef();
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+        const auto& srcElemTypes = srcType.payloadAggregate().types;
+        for (const TypeRef srcElemTypeRef : srcElemTypes)
+        {
+            CastRequest elemRequest(castRequest.kind);
+            elemRequest.flags        = castRequest.flags;
+            elemRequest.errorNodeRef = castRequest.errorNodeRef;
+            elemRequest.errorCodeRef = castRequest.errorCodeRef;
+            const Result res         = Cast::castAllowed(sema, elemRequest, srcElemTypeRef, dstElemTypeRef);
+            if (res != Result::Continue)
+            {
+                castRequest.failure = elemRequest.failure;
+                return res;
+            }
+        }
+
+        if (!castRequest.isConstantFolding())
+            return Result::Continue;
+
+        const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+        SWC_ASSERT(srcCst.isAggregateArray());
+
+        const auto& srcValues = srcCst.getAggregateArray();
+        SWC_ASSERT(srcValues.size() == srcElemTypes.size());
+
+        std::vector<ConstantRef> castedValues;
+        castedValues.reserve(srcValues.size());
+        for (size_t i = 0; i < srcValues.size(); ++i)
+        {
+            CastRequest elemRequest(castRequest.kind);
+            elemRequest.flags        = castRequest.flags;
+            elemRequest.errorNodeRef = castRequest.errorNodeRef;
+            elemRequest.errorCodeRef = castRequest.errorCodeRef;
+            elemRequest.setConstantFoldingSrc(srcValues[i]);
+            const Result res = Cast::castAllowed(sema, elemRequest, srcElemTypes[i], dstElemTypeRef);
+            if (res != Result::Continue)
+            {
+                castRequest.failure = elemRequest.failure;
+                return res;
+            }
+
+            ConstantRef castedRef = elemRequest.constantFoldingResult();
+            if (castedRef.isInvalid())
+                castedRef = srcValues[i];
+            castedValues.push_back(castedRef);
+        }
+
+        SmallVector4<uint64_t> arrayDims;
+        arrayDims.push_back(srcValues.size());
+        const TypeRef   arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(arrayDims, dstElemTypeRef));
+        const TypeInfo& arrayType    = sema.typeMgr().get(arrayTypeRef);
+
+        const uint64_t         arraySize = arrayType.sizeOf(ctx);
+        std::vector<std::byte> arrayData(arraySize);
+        const ByteSpanRW       arraySpan = asByteSpan(arrayData);
+        ConstantLower::lowerAggregateArrayToBytes(sema, arraySpan, arrayType, castedValues);
+
+        const ConstantValue sliceCst = ConstantValue::makeSlice(ctx, dstElemTypeRef, arraySpan, dstType.flags());
+        castRequest.outConstRef      = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
+        return Result::Continue;
+    }
+
     // void* -> slice (explicit only)
     if (srcType.isAnyPointer() && srcType.payloadTypeRef() == sema.typeMgr().typeVoid())
     {

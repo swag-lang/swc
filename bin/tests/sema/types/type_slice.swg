@@ -46,3 +46,16 @@ var B: [..] void // swc-expected-error {{sema_err_bad_slice_element_type}}
     @assert(c[0] == 'a')
     @assert(@countof(c) == 3)
 }
+
+#test
+{
+    const s: const [..] s32 = [1, 2, 3]
+    @assert(@countof(s) == 3)
+    @assert(s[0] == 1)
+    @assert(s[2] == 3)
+}
+
+#test
+{
+    var s: [..] s32 = [1, 2, 3] // swc-expected-error {{sema_err_cannot_cast_const}}
+}

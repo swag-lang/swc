@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
+#include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -20,12 +21,13 @@ namespace SemaInline
 
 struct SemaInlinePayload
 {
-    const SymbolFunction*                  sourceFunction = nullptr;
-    SymbolVariable*                        resultVar      = nullptr;
-    SmallVector<SemaInline::ArgMapping, 6> argMappings;
-    AstNodeRef                             callRef       = AstNodeRef::invalid();
-    AstNodeRef                             inlineRootRef = AstNodeRef::invalid();
-    TypeRef                                returnTypeRef = TypeRef::invalid();
+    const SymbolFunction*                            sourceFunction = nullptr;
+    SymbolVariable*                                  resultVar      = nullptr;
+    SmallVector<SemaInline::ArgMapping, 6>           argMappings;
+    std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers = {};
+    AstNodeRef                                       callRef         = AstNodeRef::invalid();
+    AstNodeRef                                       inlineRootRef   = AstNodeRef::invalid();
+    TypeRef                                          returnTypeRef   = TypeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

@@ -2,6 +2,7 @@
 
 SWC_BEGIN_NAMESPACE();
 class SymbolMap;
+class Symbol;
 
 enum class SemaScopeFlagsE
 {
@@ -18,6 +19,8 @@ using SemaScopeFlags = EnumFlags<SemaScopeFlagsE>;
 class SemaScope
 {
 public:
+    static constexpr uint32_t UNIQ_COUNT = 10;
+
     SemaScope() = default;
 
     SemaScope(SemaScopeFlags flags, SemaScope* parent) :
@@ -48,12 +51,25 @@ public:
     void                        addSymbol(Symbol* symbol) { symbols_.push_back(symbol); }
     const SmallVector<Symbol*>& symbols() const { return symbols_; }
 
+    IdentifierRef uniqIdentifier(const uint32_t index) const
+    {
+        SWC_ASSERT(index < UNIQ_COUNT);
+        return uniqIdentifiers_[index];
+    }
+
+    void setUniqIdentifier(const uint32_t index, const IdentifierRef idRef)
+    {
+        SWC_ASSERT(index < UNIQ_COUNT);
+        uniqIdentifiers_[index] = idRef;
+    }
+
 private:
-    SemaScope*              parent_ = nullptr;
-    SemaScopeFlags          flags_  = SemaScopeFlagsE::Zero;
-    SymbolMap*              symMap_ = nullptr;
-    SmallVector<SymbolMap*> usingSymMaps_;
-    SmallVector<Symbol*>    symbols_;
+    SemaScope*                            parent_ = nullptr;
+    SemaScopeFlags                        flags_  = SemaScopeFlagsE::Zero;
+    SymbolMap*                            symMap_ = nullptr;
+    SmallVector<SymbolMap*>               usingSymMaps_;
+    SmallVector<Symbol*>                  symbols_;
+    std::array<IdentifierRef, UNIQ_COUNT> uniqIdentifiers_ = {};
 };
 
 SWC_END_NAMESPACE();

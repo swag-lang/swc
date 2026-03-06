@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
@@ -9,6 +10,93 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaHelpers
 {
+    inline IdentifierRef getUniqueIdentifier(Sema& sema, const std::string_view& name)
+    {
+        const uint32_t id = sema.compiler().atomicId().fetch_add(1);
+        return sema.idMgr().addIdentifierOwned(std::format("{}_{}", name, id));
+    }
+
+    inline uint32_t uniqSlotIndex(const TokenId tokenId)
+    {
+        SWC_ASSERT(Token::isCompilerUniq(tokenId));
+        return static_cast<uint32_t>(tokenId) - static_cast<uint32_t>(TokenId::CompilerUniq0);
+    }
+
+    inline AstNodeRef uniqSyntaxScopeNodeRef(Sema& sema)
+    {
+        if (sema.curNode().is(AstNodeId::FunctionBody) || sema.curNode().is(AstNodeId::EmbeddedBlock))
+            return sema.curNodeRef();
+
+        for (size_t parentIndex = 0;; parentIndex++)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                return AstNodeRef::invalid();
+
+            const AstNodeId parentId = sema.node(parentRef).id();
+            if (parentId == AstNodeId::FunctionBody || parentId == AstNodeId::EmbeddedBlock)
+                return parentRef;
+        }
+    }
+
+    inline SemaInlinePayload* mixinInlinePayloadForUniq(Sema& sema)
+    {
+        auto* inlinePayload = const_cast<SemaInlinePayload*>(sema.frame().currentInlinePayload());
+        if (!inlinePayload || !inlinePayload->sourceFunction)
+            return nullptr;
+        if (!inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return nullptr;
+        if (uniqSyntaxScopeNodeRef(sema) != inlinePayload->inlineRootRef)
+            return nullptr;
+        return inlinePayload;
+    }
+
+    inline IdentifierRef ensureCurrentScopeUniqIdentifier(Sema& sema, const TokenId tokenId)
+    {
+        SWC_ASSERT(Token::isCompilerUniq(tokenId));
+        const uint32_t slot = uniqSlotIndex(tokenId);
+        if (auto* inlinePayload = mixinInlinePayloadForUniq(sema))
+        {
+            const IdentifierRef done = inlinePayload->uniqIdentifiers[slot];
+            if (done.isValid())
+                return done;
+
+            const IdentifierRef idRef            = getUniqueIdentifier(sema, std::format("__uniq{}", slot));
+            inlinePayload->uniqIdentifiers[slot] = idRef;
+            return idRef;
+        }
+
+        auto&               scope = sema.curScope();
+        const IdentifierRef done  = scope.uniqIdentifier(slot);
+        if (done.isValid())
+            return done;
+
+        const IdentifierRef idRef = getUniqueIdentifier(sema, std::format("__uniq{}", slot));
+        scope.setUniqIdentifier(slot, idRef);
+        return idRef;
+    }
+
+    inline IdentifierRef resolveUniqIdentifier(Sema& sema, const TokenId tokenId)
+    {
+        SWC_ASSERT(Token::isCompilerUniq(tokenId));
+        const uint32_t slot = uniqSlotIndex(tokenId);
+        for (const SemaScope* scope = &sema.curScope(); scope; scope = scope->parent())
+        {
+            const IdentifierRef idRef = scope->uniqIdentifier(slot);
+            if (idRef.isValid())
+                return idRef;
+        }
+
+        if (auto* inlinePayload = mixinInlinePayloadForUniq(sema))
+        {
+            const IdentifierRef idRef = inlinePayload->uniqIdentifiers[slot];
+            if (idRef.isValid())
+                return idRef;
+        }
+
+        return ensureCurrentScopeUniqIdentifier(sema, tokenId);
+    }
+
     Result checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView);
     Result castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind);
     Result intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
@@ -21,7 +109,8 @@ namespace SemaHelpers
     {
         TaskContext& ctx = sema.ctx();
 
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, {node.srcViewRef(), tokNameRef});
+        const Token&        tok   = sema.srcView(node.srcViewRef()).token(tokNameRef);
+        const IdentifierRef idRef = Token::isCompilerUniq(tok.id) ? ensureCurrentScopeUniqIdentifier(sema, tok.id) : sema.idMgr().addIdentifier(ctx, {node.srcViewRef(), tokNameRef});
         const SymbolFlags   flags = sema.frame().flagsForCurrentAccess();
 
         T*         sym       = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
@@ -37,12 +126,6 @@ namespace SemaHelpers
         sema.setSymbol(sema.curNodeRef(), sym);
 
         return *(sym);
-    }
-
-    inline IdentifierRef getUniqueIdentifier(Sema& sema, const std::string_view& name)
-    {
-        const uint32_t id = sema.compiler().atomicId().fetch_add(1);
-        return sema.idMgr().addIdentifierOwned(std::format("{}_{}", name, id));
     }
 
     template<typename T>

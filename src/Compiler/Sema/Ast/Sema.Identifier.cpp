@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -118,7 +119,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (view.cstRef().isValid())
         return Result::Continue;
 
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef());
+    const Token&        tok   = sema.token(codeRef());
+    const IdentifierRef idRef = Token::isCompilerUniq(tok.id) ? SemaHelpers::resolveUniqIdentifier(sema, tok.id) : sema.idMgr().addIdentifier(sema.ctx(), codeRef());
 
     // Parser tags the callee expression when building a call: `foo()`.
     const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee);

@@ -191,7 +191,7 @@ User-defined identifiers cannot start with '#', ensuring there are no naming con
 #alias2 // and more generally #aliasN
 #uniq0
 #uniq1
-#uniq2 // and more generally #mixinN
+#uniq2 // and more generally #uniqN
 ```
 
 */

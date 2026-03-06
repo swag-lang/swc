@@ -1,11 +1,10 @@
 #global fileprivate
-#global skip
 namespace A
 {
     namespace B
     {
-        alias tt1 = bool
+        var a: myType
     }
 }
 
-var a: A.B.tt1 = true
+alias myType = u32

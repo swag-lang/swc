@@ -1,7 +1,4 @@
 #global fileprivate
-#global skip
-//#global testerror;
-//#global testpass lexer;
 
 var x0 = 'A''rune
 var x1 = '0''rune

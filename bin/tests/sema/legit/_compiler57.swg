@@ -1,7 +1,4 @@
 #global fileprivate
-#global skip
-//#global testerror
-//#global testpass lexer;
 
 var x  = 21474838'f32
 var x1 = 21474837'f32

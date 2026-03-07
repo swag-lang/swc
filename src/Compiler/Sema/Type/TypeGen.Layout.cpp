@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type) const
+TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
 {
     if (type.isBool() || type.isInt() || type.isFloat() || type.isChar() || type.isString() || type.isCString() ||
         type.isRune() || type.isAny() || type.isVoid() || type.isUndefined())
@@ -31,11 +31,14 @@ TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type) const
     return LayoutKind::Base;
 }
 
-Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef) const
+Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef)
 {
     using Pn = IdentifierManager::PredefinedName;
 
-    Pn predefinedName = Pn::TypeInfo;
+    //SWC_RESULT_VERIFY(sema.waitPredefined(Pn::TypeInfo, typeRef, codeRef));
+    //SWC_RESULT_VERIFY(sema.waitPredefined(Pn::TypeValue, typeRef, codeRef));
+
+    auto predefinedName = Pn::TypeInfo;
     switch (kind)
     {
         case LayoutKind::Native: predefinedName = Pn::TypeInfoNative; break;

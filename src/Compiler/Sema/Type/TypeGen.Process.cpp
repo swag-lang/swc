@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SmallVector<TypeRef> TypeGen::computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind) const
+SmallVector<TypeRef> TypeGen::computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind)
 {
     SmallVector<TypeRef> deps;
 

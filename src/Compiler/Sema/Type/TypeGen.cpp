@@ -18,17 +18,21 @@ TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)
 {
-    auto&                  cache = cacheFor(storage);
-    const std::scoped_lock lk(cache.mutex);
+    auto& cache = cacheFor(storage);
 
     // Each call progresses as much as possible without relying on recursion.
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
-    SWC_RESULT_VERIFY(TypeGenInternal::processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
+    {
+        const std::scoped_lock lk(cache.mutex);
+        SWC_RESULT_VERIFY(TypeGenInternal::processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
+    }
 
-    // Now that we are done, store back reference
-    const std::scoped_lock lk2(ptrToTypeMutex_);
-    ptrToType_[result.span.data()] = typeRef;
-    
+    {
+        // Now that we are done, store back reference
+        const std::scoped_lock lk2(ptrToTypeMutex_);
+        ptrToType_[result.span.data()] = typeRef;
+    }
+
     return Result::Continue;
 }
 

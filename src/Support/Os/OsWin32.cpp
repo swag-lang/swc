@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #ifdef _WIN32
+#include "Backend/JIT/JITMemory.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
@@ -542,70 +543,27 @@ namespace Os
         (void) VirtualFree(ptr, 0, MEM_RELEASE);
     }
 
-    namespace
+    bool addHostJitFunctionTable(JITMemory& executableMemory)
     {
-        struct JitFunctionTableEntry
-        {
-            RUNTIME_FUNCTION runtimeFunction{};
-        };
-
-        struct JitFunctionTableState
-        {
-            std::mutex                                                              mutex;
-            std::unordered_map<const void*, std::unique_ptr<JitFunctionTableEntry>> entries;
-        };
-
-        JitFunctionTableState& jitFunctionTableState()
-        {
-            static JitFunctionTableState state;
-            return state;
-        }
-    }
-
-    bool addHostJitFunctionTable(const void* functionAddress, const uint32_t codeSize, const uint32_t unwindInfoOffset)
-    {
-        if (!functionAddress || !codeSize)
+        if (!executableMemory.ptr_ || !executableMemory.size_)
             return false;
 
-        JitFunctionTableState& state = jitFunctionTableState();
-        const std::scoped_lock lock(state.mutex);
-        const auto             it = state.entries.find(functionAddress);
-        if (it != state.entries.end())
+        SWC_ASSERT(executableMemory.hostRuntimeFunction_ == nullptr);
+        auto* const runtimeFunction = new RUNTIME_FUNCTION{};
+
+        runtimeFunction->BeginAddress = 0;
+        runtimeFunction->EndAddress   = executableMemory.size_;
+        runtimeFunction->UnwindData   = executableMemory.unwindInfoOffset_;
+
+        const DWORD64 baseAddress = reinterpret_cast<DWORD64>(executableMemory.ptr_);
+        if (!RtlAddFunctionTable(runtimeFunction, 1, baseAddress))
         {
-            (void) RtlDeleteFunctionTable(&it->second->runtimeFunction);
-            state.entries.erase(it);
+            delete runtimeFunction;
+            return false;
         }
 
-        auto newEntry                          = std::make_unique<JitFunctionTableEntry>();
-        newEntry->runtimeFunction.BeginAddress = 0;
-        newEntry->runtimeFunction.EndAddress   = codeSize;
-        newEntry->runtimeFunction.UnwindData   = unwindInfoOffset;
-
-        const DWORD64 baseAddress = reinterpret_cast<DWORD64>(functionAddress);
-        if (!RtlAddFunctionTable(&newEntry->runtimeFunction, 1, baseAddress))
-            return false;
-
-        state.entries[functionAddress] = std::move(newEntry);
+        executableMemory.hostRuntimeFunction_ = runtimeFunction;
         return true;
-    }
-
-    void removeHostJitFunctionTable(const void* functionAddress)
-    {
-#ifdef _M_X64
-        if (!functionAddress)
-            return;
-
-        JitFunctionTableState& state = jitFunctionTableState();
-        const std::scoped_lock lock(state.mutex);
-        const auto             it = state.entries.find(functionAddress);
-        if (it == state.entries.end())
-            return;
-
-        (void) RtlDeleteFunctionTable(&it->second->runtimeFunction);
-        state.entries.erase(it);
-#else
-        SWC_UNUSED(functionAddress);
-#endif
     }
 
     bool loadExternalModule(void*& outModuleHandle, std::string_view moduleName)
@@ -730,6 +688,7 @@ namespace Os
     void terminate()
     {
         TerminateProcess(GetCurrentProcess(), 0);
+        SWC_UNREACHABLE();
     }
 }
 

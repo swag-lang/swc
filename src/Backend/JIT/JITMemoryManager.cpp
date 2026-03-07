@@ -90,11 +90,11 @@ void JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
     allocateWithCodeSize(outExecutableMemory, size, size);
 }
 
-void JITMemoryManager::registerUnwindInfo(const JITMemory& executableMemory)
+void JITMemoryManager::registerUnwindInfo(JITMemory& executableMemory)
 {
     if (!executableMemory.hasUnwindInfo())
         return;
-    SWC_FORCE_ASSERT(Os::addHostJitFunctionTable(executableMemory.ptr_, executableMemory.size_, executableMemory.unwindInfoOffset_));
+    SWC_FORCE_ASSERT(Os::addHostJitFunctionTable(executableMemory));
 }
 
 void JITMemoryManager::makeExecutable(const JITMemory& executableMemory)

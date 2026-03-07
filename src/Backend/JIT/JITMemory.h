@@ -2,14 +2,21 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class JITMemory;
+
+namespace Os
+{
+    bool addHostJitFunctionTable(JITMemory& executableMemory);
+}
+
 class JITMemory
 {
 public:
-    JITMemory()  = default;
-    ~JITMemory() = default;
+    JITMemory() noexcept = default;
+    ~JITMemory();
 
-    JITMemory(const JITMemory&)            = default;
-    JITMemory& operator=(const JITMemory&) = default;
+    JITMemory(const JITMemory&)            = delete;
+    JITMemory& operator=(const JITMemory&) = delete;
     JITMemory(JITMemory&& other) noexcept;
     JITMemory& operator=(JITMemory&& other) noexcept;
 
@@ -20,14 +27,16 @@ public:
     bool     hasUnwindInfo() const { return unwindInfoSize_ != 0; }
 
 private:
+    friend bool Os::addHostJitFunctionTable(JITMemory& executableMemory);
     friend class JIT;
     friend class JITMemoryManager;
 
-    void*    ptr_              = nullptr;
-    uint32_t size_             = 0;
-    uint32_t allocationSize_   = 0;
-    uint32_t unwindInfoOffset_ = 0;
-    uint32_t unwindInfoSize_   = 0;
+    void*    ptr_                 = nullptr;
+    uint32_t size_                = 0;
+    uint32_t allocationSize_      = 0;
+    uint32_t unwindInfoOffset_    = 0;
+    uint32_t unwindInfoSize_      = 0;
+    void*    hostRuntimeFunction_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

@@ -15,7 +15,7 @@ public:
 
     void        allocateWithCodeSize(JITMemory& outExecutableMemory, uint32_t allocationSize, uint32_t codeSize);
     void        allocate(JITMemory& outExecutableMemory, uint32_t size);
-    static void registerUnwindInfo(const JITMemory& executableMemory);
+    static void registerUnwindInfo(JITMemory& executableMemory);
     static void makeExecutable(const JITMemory& executableMemory);
     void        allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan bytes);
 

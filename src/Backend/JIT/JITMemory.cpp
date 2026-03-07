@@ -3,34 +3,45 @@
 
 SWC_BEGIN_NAMESPACE();
 
+JITMemory::~JITMemory()
+{
+    reset();
+}
+
 JITMemory::JITMemory(JITMemory&& other) noexcept :
     ptr_(other.ptr_),
     size_(other.size_),
     allocationSize_(other.allocationSize_),
     unwindInfoOffset_(other.unwindInfoOffset_),
-    unwindInfoSize_(other.unwindInfoSize_)
+    unwindInfoSize_(other.unwindInfoSize_),
+    hostRuntimeFunction_(other.hostRuntimeFunction_)
 {
-    other.ptr_              = nullptr;
-    other.size_             = 0;
-    other.allocationSize_   = 0;
-    other.unwindInfoOffset_ = 0;
-    other.unwindInfoSize_   = 0;
+    other.ptr_                 = nullptr;
+    other.size_                = 0;
+    other.allocationSize_      = 0;
+    other.unwindInfoOffset_    = 0;
+    other.unwindInfoSize_      = 0;
+    other.hostRuntimeFunction_ = nullptr;
 }
 
 JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
 {
     if (this != &other)
     {
-        ptr_                    = other.ptr_;
-        size_                   = other.size_;
-        allocationSize_         = other.allocationSize_;
-        unwindInfoOffset_       = other.unwindInfoOffset_;
-        unwindInfoSize_         = other.unwindInfoSize_;
-        other.ptr_              = nullptr;
-        other.size_             = 0;
-        other.allocationSize_   = 0;
-        other.unwindInfoOffset_ = 0;
-        other.unwindInfoSize_   = 0;
+        reset();
+
+        ptr_                       = other.ptr_;
+        size_                      = other.size_;
+        allocationSize_            = other.allocationSize_;
+        unwindInfoOffset_          = other.unwindInfoOffset_;
+        unwindInfoSize_            = other.unwindInfoSize_;
+        hostRuntimeFunction_       = other.hostRuntimeFunction_;
+        other.ptr_                 = nullptr;
+        other.size_                = 0;
+        other.allocationSize_      = 0;
+        other.unwindInfoOffset_    = 0;
+        other.unwindInfoSize_      = 0;
+        other.hostRuntimeFunction_ = nullptr;
     }
 
     return *this;
@@ -38,11 +49,12 @@ JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
 
 void JITMemory::reset()
 {
-    ptr_              = nullptr;
-    size_             = 0;
-    allocationSize_   = 0;
-    unwindInfoOffset_ = 0;
-    unwindInfoSize_   = 0;
+    ptr_                 = nullptr;
+    size_                = 0;
+    allocationSize_      = 0;
+    unwindInfoOffset_    = 0;
+    unwindInfoSize_      = 0;
+    hostRuntimeFunction_ = nullptr;
 }
 
 SWC_END_NAMESPACE();

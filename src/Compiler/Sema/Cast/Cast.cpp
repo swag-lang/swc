@@ -15,6 +15,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
     Result completeCastRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
     {
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
@@ -88,23 +99,26 @@ namespace
         if (storageTypeRef.isInvalid())
             return Result::Continue;
 
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(castNodeRef);
-        if (payload && payload->runtimeStorageSym != nullptr)
-            return Result::Continue;
-
-        auto& storageSym = registerUniqueCastRuntimeStorageSymbol(sema, sema.node(castNodeRef));
-        storageSym.registerAttributes(sema);
-        storageSym.setDeclared(sema.ctx());
-        SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-        SWC_RESULT_VERIFY(completeCastRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
-
-        if (!payload)
+        auto& payload = ensureCodeGenNodePayload(sema, castNodeRef);
+        if (payload.runtimeStorageSym == nullptr)
         {
-            payload = sema.compiler().allocate<CodeGenNodePayload>();
-            sema.setCodeGenPayload(castNodeRef, payload);
+            auto& storageSym          = registerUniqueCastRuntimeStorageSymbol(sema, sema.node(castNodeRef));
+            payload.runtimeStorageSym = &storageSym;
         }
 
-        payload->runtimeStorageSym = &storageSym;
+        auto& storageSym = *payload.runtimeStorageSym;
+        if (!storageSym.isDeclared())
+        {
+            storageSym.registerAttributes(sema);
+            storageSym.setDeclared(sema.ctx());
+        }
+
+        if (!storageSym.isSemaCompleted())
+        {
+            SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
+            SWC_RESULT_VERIFY(completeCastRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+        }
+
         return Result::Continue;
     }
 }

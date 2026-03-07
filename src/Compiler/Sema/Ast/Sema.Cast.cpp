@@ -16,6 +16,28 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    SymbolVariable& getOrCreateCastRuntimeStorageSymbol(Sema& sema, const AstNode& node)
+    {
+        auto& payload = ensureCodeGenNodePayload(sema, sema.curNodeRef());
+        if (payload.runtimeStorageSym != nullptr)
+            return *payload.runtimeStorageSym;
+
+        auto& storageSym          = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, node, "cast_runtime_storage");
+        payload.runtimeStorageSym = &storageSym;
+        return storageSym;
+    }
+
     Result completeCastRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
     {
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
@@ -137,20 +159,18 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const TypeRef      runtimeStorageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeView, dstTypeView);
     if (runtimeStorageTypeRef.isValid() && sema.frame().currentFunction() != nullptr)
     {
-        auto& storageSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "cast_runtime_storage");
-        storageSym.registerAttributes(sema);
-        storageSym.setDeclared(sema.ctx());
-        SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-        SWC_RESULT_VERIFY(completeCastRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
-
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (!payload)
+        auto& storageSym = getOrCreateCastRuntimeStorageSymbol(sema, *this);
+        if (!storageSym.isDeclared())
         {
-            payload = sema.compiler().allocate<CodeGenNodePayload>();
-            sema.setCodeGenPayload(sema.curNodeRef(), payload);
+            storageSym.registerAttributes(sema);
+            storageSym.setDeclared(sema.ctx());
         }
 
-        payload->runtimeStorageSym = &storageSym;
+        if (!storageSym.isSemaCompleted())
+        {
+            SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
+            SWC_RESULT_VERIFY(completeCastRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
+        }
     }
 
     return Result::Continue;

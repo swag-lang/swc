@@ -36,6 +36,10 @@ struct Stats
     std::atomic<size_t> memSymbolMaps              = 0;
     std::atomic<size_t> memJitReserved             = 0;
     std::atomic<size_t> memMicroStorageFinal       = 0;
+    std::atomic<size_t> memDataSegmentConstant     = 0;
+    std::atomic<size_t> memDataSegmentGlobalZero   = 0;
+    std::atomic<size_t> memDataSegmentGlobalInit   = 0;
+    std::atomic<size_t> memDataSegmentCompiler     = 0;
 
     std::atomic<size_t> numFiles             = 0;
     std::atomic<size_t> numTokens            = 0;

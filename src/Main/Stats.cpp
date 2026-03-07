@@ -87,6 +87,10 @@ void Stats::print(const TaskContext& ctx) const
     const size_t memCompilerArenaValue       = memCompilerArenaReserved.load();
     const size_t memJitReservedValue         = memJitReserved.load();
     const size_t memMicroStorageFinalValue   = memMicroStorageFinal.load();
+    const size_t memDataSegmentConstantValue = memDataSegmentConstant.load();
+    const size_t memDataSegmentGlobalZeroValue = memDataSegmentGlobalZero.load();
+    const size_t memDataSegmentGlobalInitValue = memDataSegmentGlobalInit.load();
+    const size_t memDataSegmentCompilerValue = memDataSegmentCompiler.load();
 
     const size_t frontendTotalKnown = memFrontendSourceValue +
                                       memFrontendTokensValue +
@@ -100,7 +104,11 @@ void Stats::print(const TaskContext& ctx) const
                                   memSemaTypesReserved +
                                   memSemaNodePayloadValue +
                                   memSemaIdentifiersValue +
-                                  memCompilerArenaValue;
+                                  memCompilerArenaValue +
+                                  memDataSegmentConstantValue +
+                                  memDataSegmentGlobalZeroValue +
+                                  memDataSegmentGlobalInitValue +
+                                  memDataSegmentCompilerValue;
     const size_t codegenTotalKnown = memJitReservedValue + memMicroStorageFinalValue;
     const size_t totalKnown        = frontendTotalKnown + semaTotalKnown + codegenTotalKnown;
     const size_t unknownPeak       = memTotal > totalKnown ? memTotal - totalKnown : 0;
@@ -134,6 +142,10 @@ void Stats::print(const TaskContext& ctx) const
     memoryDetails.push_back({.name = "mem.sema.nodePayload", .value = memSemaNodePayloadValue});
     memoryDetails.push_back({.name = "mem.sema.identifiers", .value = memSemaIdentifiersValue});
     memoryDetails.push_back({.name = "mem.compiler.arena", .value = memCompilerArenaValue});
+    memoryDetails.push_back({.name = "mem.compiler.dataSegmentConstant", .value = memDataSegmentConstantValue});
+    memoryDetails.push_back({.name = "mem.compiler.dataSegmentGlobalZero", .value = memDataSegmentGlobalZeroValue});
+    memoryDetails.push_back({.name = "mem.compiler.dataSegmentGlobalInit", .value = memDataSegmentGlobalInitValue});
+    memoryDetails.push_back({.name = "mem.compiler.dataSegmentCompiler", .value = memDataSegmentCompilerValue});
     memoryDetails.push_back({.name = "mem.jit.reserved", .value = memJitReservedValue});
     memoryDetails.push_back({.name = "mem.micro.storageFinal", .value = memMicroStorageFinalValue});
 

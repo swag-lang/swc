@@ -349,6 +349,10 @@ void CompilerInstance::logStats()
 
     const size_t memSemaConstantsReserved = cstMgr_ ? cstMgr_->memStorageReserved() : 0;
     const size_t memSemaTypesReserved     = typeMgr_ ? typeMgr_->memStorageReserved() : 0;
+    const size_t memDataSegmentConstant   = constantSegment_.memStorageReserved();
+    const size_t memDataSegmentGlobalZero = globalZeroSegment_.memStorageReserved();
+    const size_t memDataSegmentGlobalInit = globalInitSegment_.memStorageReserved();
+    const size_t memDataSegmentCompiler   = compilerSegment_.memStorageReserved();
 
     Stats& stats = Stats::get();
     stats.memFrontendSource.store(memFrontendSource, std::memory_order_relaxed);
@@ -362,6 +366,10 @@ void CompilerInstance::logStats()
     stats.memCompilerArenaReserved.store(memCompilerArenaReserved, std::memory_order_relaxed);
     stats.memConstantsReserved.store(memSemaConstantsReserved, std::memory_order_relaxed);
     stats.memTypesReserved.store(memSemaTypesReserved, std::memory_order_relaxed);
+    stats.memDataSegmentConstant.store(memDataSegmentConstant, std::memory_order_relaxed);
+    stats.memDataSegmentGlobalZero.store(memDataSegmentGlobalZero, std::memory_order_relaxed);
+    stats.memDataSegmentGlobalInit.store(memDataSegmentGlobalInit, std::memory_order_relaxed);
+    stats.memDataSegmentCompiler.store(memDataSegmentCompiler, std::memory_order_relaxed);
 #endif
 
     const TaskContext ctx(*this);

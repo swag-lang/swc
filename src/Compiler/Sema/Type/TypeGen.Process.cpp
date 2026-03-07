@@ -166,7 +166,21 @@ namespace TypeGenInternal
 
                 const auto depIt = cache.entries.find(depKey);
                 if (depIt != cache.entries.end())
-                    continue;
+                {
+                    if (depIt->second.state == TypeGen::TypeGenCache::State::Done)
+                        continue;
+
+                    // A dependency can already exist in the cache but still be in
+                    // 'CommonInit' if a previous pass paused (for example waiting on
+                    // sema completion). In that case, we must revisit it now.
+                    //
+                    // If this dependency is already on the current DFS stack, we are in
+                    // a recursion cycle and keep unwinding. Relocations can still be
+                    // wired because payload offsets are already reserved during init.
+                    const bool depOnStack = std::ranges::find(stack, depKey) != stack.end();
+                    if (depOnStack)
+                        continue;
+                }
 
                 // Depth-first: create this dependency payload before completing 'key'.
                 stack.push_back(depKey);

@@ -239,6 +239,8 @@ void Verify::tokenize(TaskContext& ctx)
 
 bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const
 {
+    const std::scoped_lock lk(directivesMutex_);
+
     if (directives_.empty())
         return false;
 
@@ -267,6 +269,8 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
 
 void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
 {
+    const std::scoped_lock lk(directivesMutex_);
+
     for (const VerifyDirective& directive : directives_)
     {
         if (!directive.touched)

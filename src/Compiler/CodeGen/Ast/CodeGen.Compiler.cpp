@@ -104,6 +104,9 @@ Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen)
 
 Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 {
+    if (codeGen.curViewConstant().hasConstant())
+        return Result::Continue;
+
     const CallConvKind callConvKind = codeGen.function().callConvKind();
     const CallConv&    callConv     = CallConv::get(callConvKind);
     SWC_ASSERT(!callConv.intArgRegs.empty());

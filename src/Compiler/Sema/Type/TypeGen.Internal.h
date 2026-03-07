@@ -49,7 +49,7 @@ namespace TypeGenInternal
     void                 wireRelocations(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGen::TypeGenCache::Entry& entry, LayoutKind kind);
 
     std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind, const TypeInfo& type);
-    Result                                  processTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, TypeGen::TypeGenCache& cache);
+    Result                                  processTypeInfo(Sema& sema, TypeGen::TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenCache& cache);
 }
 
 SWC_END_NAMESPACE();

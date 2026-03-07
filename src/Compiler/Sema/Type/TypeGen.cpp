@@ -21,7 +21,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
     // Each call progresses as much as possible without relying on recursion.
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
-    const auto res = TypeGenInternal::processTypeInfo(sema, storage, typeRef, ownerNodeRef, result, cache);
+    const auto res = TypeGenInternal::processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache);
     if (res == Result::Continue)
     {
         const std::scoped_lock lk2(ptrToTypeMutex_);

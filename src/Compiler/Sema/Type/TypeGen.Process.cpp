@@ -79,7 +79,7 @@ namespace TypeGenInternal
         return deps;
     }
 
-    Result processTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, TypeGen::TypeGenCache& cache)
+    Result processTypeInfo(Sema& sema, TypeGen::TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenCache& cache)
     {
         TaskContext&       ctx  = sema.ctx();
         const TypeManager& tm   = ctx.typeMgr();
@@ -169,7 +169,7 @@ namespace TypeGenInternal
                         continue;
 
                     // A dependency can already exist in the cache but still be in
-                    // 'CommonInit' if a previous pass paused (for example waiting on
+                    // 'CommonInit' if a previous pass paused (for example, waiting on
                     // sema completion). In that case, we must revisit it now.
                     //
                     // If this dependency is already on the current DFS stack, we are in

@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 using Swag
 
 var b0: bool = true

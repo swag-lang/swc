@@ -196,8 +196,9 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
     {
         case TokenId::CompilerFile:
         {
-            const SourceFile*    file = sema.ast().srcView().file();
-            const ConstantValue& val  = ConstantValue::makeString(ctx, file ? file->path().string() : "");
+            const SourceFile*      file     = sema.ast().srcView().file();
+            const std::string_view nameView = sema.cstMgr().addString(ctx, file ? file->path().string() : "");
+            const ConstantValue    val      = ConstantValue::makeString(ctx, nameView);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }

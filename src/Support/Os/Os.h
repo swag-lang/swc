@@ -19,6 +19,8 @@ namespace Os
 
     [[noreturn]]
     void exit(ExitCode code);
+    [[noreturn]]
+    void terminate();
 
     fs::path getTemporaryPath();
     fs::path getExeFullName();

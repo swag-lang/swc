@@ -4,6 +4,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Logger.h"
 #include "Support/Unittest/Unittest.h"
 
@@ -30,5 +31,10 @@ int main(int argc, char* argv[])
 #endif
 
     swc::CompilerInstance compiler(global, cmdLine);
-    return static_cast<int>(compiler.run());
+
+    const auto result = static_cast<int>(compiler.run());
+    if (result == 0)
+        swc::Os::terminate();
+
+    return result;
 }

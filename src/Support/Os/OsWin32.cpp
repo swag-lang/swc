@@ -391,7 +391,7 @@ namespace Os
         memoryCounters.cb                      = sizeof(memoryCounters);
         if (!GetProcessMemoryInfo(GetCurrentProcess(), &memoryCounters, sizeof(memoryCounters)))
             return 0;
-        //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
         return memoryCounters.PeakWorkingSetSize;
     }
 
@@ -725,6 +725,11 @@ namespace Os
     void exit(ExitCode code)
     {
         ExitProcess(static_cast<int>(code));
+    }
+
+    void terminate()
+    {
+        TerminateProcess(GetCurrentProcess(), 0);
     }
 }
 

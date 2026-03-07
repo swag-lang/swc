@@ -119,11 +119,9 @@ namespace TypeGenInternal
                 // runtime payload, then compute its dependency list.
                 TypeGen::TypeGenCache::Entry entry;
 
-                entry.rtTypeRef = rtTypeRefFor(tm, kind);
-
                 // Make sure the runtime TypeInfo struct definition exists before we write
                 // an instance of it into the 'DataSegment'.
-                SWC_RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, kind, entry.rtTypeRef, node));
+                SWC_RESULT_VERIFY(rtTypeRefFor(sema, kind, entry.rtTypeRef, node.codeRef()));
 
                 // Allocate the concrete runtime payload (TypeInfoStruct/TypeInfoPtr/...) in
                 // the target storage and remember its offset.

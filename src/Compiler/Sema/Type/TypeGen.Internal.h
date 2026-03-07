@@ -37,8 +37,7 @@ namespace TypeGenInternal
     };
 
     LayoutKind layoutKindOf(const TypeInfo& type);
-    TypeRef    rtTypeRefFor(const TypeManager& tm, LayoutKind kind);
-    Result     ensureTypeInfoStructReady(Sema& sema, const TypeManager& tm, LayoutKind kind, TypeRef rtTypeRef, const AstNode& node);
+    Result     rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef);
 
     void initCommon(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenResult& result);
     void initNative(Runtime::TypeInfoNative& rtType, const TypeInfo& type);

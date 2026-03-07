@@ -584,7 +584,6 @@
         <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h"/>
-        <ClInclude Include="src\Compiler\Sema\Type\TypeGen.Internal.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeManager.h"/>
         <ClInclude Include="src\Support\Thread\Job.h"/>

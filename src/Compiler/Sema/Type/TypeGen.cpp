@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Type/TypeGen.Internal.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -24,7 +23,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
     {
         const std::scoped_lock lk(cache.mutex);
-        SWC_RESULT_VERIFY(TypeGenInternal::processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
+        SWC_RESULT_VERIFY(processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
     }
 
     {

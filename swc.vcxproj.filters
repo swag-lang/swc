@@ -1265,9 +1265,6 @@
     <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h">
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Type\TypeGen.Internal.h">
-      <Filter>src\Compiler\Sema\Type</Filter>
-    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Type\TypeInfo.h">
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClInclude>

@@ -2,7 +2,16 @@
 #include "Compiler/Parser/Ast/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();
+class Sema;
 class DataSegment;
+class TypeManager;
+class TaskContext;
+class TypeInfo;
+
+namespace Runtime
+{
+    struct TypeInfo;
+}
 
 class TypeGen
 {
@@ -45,7 +54,30 @@ public:
     TypeRef getBackTypeRef(const void* ptr) const;
 
 private:
-    TypeGenCache& cacheFor(const DataSegment& storage);
+    enum class LayoutKind
+    {
+        Base,
+        Native,
+        Enum,
+        Array,
+        Slice,
+        Pointer,
+        Struct,
+        Alias,
+        Variadic,
+        TypedVariadic,
+        Func,
+    };
+
+    TypeGenCache&                           cacheFor(const DataSegment& storage);
+    LayoutKind                              layoutKindOf(const TypeInfo& type) const;
+    Result                                  rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef) const;
+    void                                    initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeInfo& type, TypeGenCache::Entry& entry) const;
+    SmallVector<TypeRef>                    computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind) const;
+    void                                    wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGenCache::Entry& entry, LayoutKind kind) const;
+    std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind) const;
+
+    Result processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache) const;
 
     std::mutex                                                            cachesMutex_;
     std::unordered_map<const DataSegment*, std::unique_ptr<TypeGenCache>> caches_;

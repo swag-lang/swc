@@ -15,7 +15,8 @@ const NEXT = cast(const *Swag.TypeInfoPointer) NODE.fields[0].pointedType
 
 #test
 {
-    let node = cast(const *Swag.TypeInfoStruct) #typeof(Node)
-    let next = cast(const *Swag.TypeInfoPointer) node.fields[0].pointedType
-    let ok   = next.pointedType == Node
+    const node = cast(const *Swag.TypeInfoStruct) #typeof(Node)
+    #assert(@countof(node.fields) == 1)
+    const next = cast(const *Swag.TypeInfoPointer) node.fields[0].pointedType
+    const ok   = next.pointedType == Node
 }

@@ -16,7 +16,6 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
-#pragma optimize("", off)
 
 SWC_BEGIN_NAMESPACE();
 

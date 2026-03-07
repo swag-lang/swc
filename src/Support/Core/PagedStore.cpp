@@ -5,26 +5,30 @@
 SWC_BEGIN_NAMESPACE();
 
 PagedStore::PagedStore(uint32_t pageSize) :
-    publishedPages_(std::make_shared<const std::vector<Page*>>()),
     pageSizeValue_(pageSize)
 {
     SWC_ASSERT(pageSizeValue_ > 0 && (pageSizeValue_ & (pageSizeValue_ - 1)) == 0);
+    publishPages();
 }
 
 PagedStore::PagedStore(PagedStore&& other) noexcept :
     pagesStorage_(std::move(other.pagesStorage_)),
-    publishedPages_(other.publishedPages_.load(std::memory_order_acquire)),
+    publishedPagesStorage_(std::move(other.publishedPagesStorage_)),
     totalBytes_(other.totalBytes_),
     pageSizeValue_(other.pageSizeValue_),
     curPage_(other.curPage_),
     curPageIndex_(other.curPageIndex_),
     lastPtr_(other.lastPtr_)
 {
+    const auto* pages = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
+    publishedPages_.store(pages, std::memory_order_release);
+
     other.totalBytes_   = 0;
     other.curPage_      = nullptr;
     other.curPageIndex_ = 0;
     other.lastPtr_      = nullptr;
-    other.publishedPages_.store(std::make_shared<const std::vector<Page*>>(), std::memory_order_release);
+    other.publishedPagesStorage_.clear();
+    other.publishPages();
 }
 
 PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
@@ -32,10 +36,11 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
     if (this != &other)
     {
         std::swap(pagesStorage_, other.pagesStorage_);
-        const auto leftSnapshot  = publishedPages_.load(std::memory_order_acquire);
-        const auto rightSnapshot = other.publishedPages_.load(std::memory_order_acquire);
-        publishedPages_.store(rightSnapshot, std::memory_order_release);
-        other.publishedPages_.store(leftSnapshot, std::memory_order_release);
+        std::swap(publishedPagesStorage_, other.publishedPagesStorage_);
+        const auto* leftSnapshot  = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
+        const auto* rightSnapshot = other.publishedPagesStorage_.empty() ? nullptr : other.publishedPagesStorage_.back().get();
+        publishedPages_.store(leftSnapshot, std::memory_order_release);
+        other.publishedPages_.store(rightSnapshot, std::memory_order_release);
         std::swap(totalBytes_, other.totalBytes_);
         std::swap(pageSizeValue_, other.pageSizeValue_);
         std::swap(curPage_, other.curPage_);
@@ -396,18 +401,23 @@ std::pair<Ref, void*> PagedStore::allocate(uint32_t size, uint32_t align)
     return {r, static_cast<void*>(page->bytes() + offset)};
 }
 
-std::shared_ptr<const std::vector<PagedStore::Page*>> PagedStore::snapshotPages() const noexcept
+const std::vector<PagedStore::Page*>* PagedStore::snapshotPages() const noexcept
 {
-    return publishedPages_.load(std::memory_order_acquire);
+    const auto* pages = publishedPages_.load(std::memory_order_acquire);
+    SWC_ASSERT(pages != nullptr);
+    return pages;
 }
 
 void PagedStore::publishPages()
 {
-    std::vector<Page*> pages;
-    pages.reserve(pagesStorage_.size());
+    auto pages = std::make_unique<std::vector<Page*>>();
+    pages->reserve(pagesStorage_.size());
     for (const std::unique_ptr<Page>& page : pagesStorage_)
-        pages.push_back(page.get());
-    publishedPages_.store(std::make_shared<const std::vector<Page*>>(std::move(pages)), std::memory_order_release);
+        pages->push_back(page.get());
+
+    publishedPagesStorage_.push_back(std::move(pages));
+    const auto* published = publishedPagesStorage_.back().get();
+    publishedPages_.store(published, std::memory_order_release);
 }
 
 uint32_t PagedStore::publishedPageCount() const noexcept

@@ -159,7 +159,7 @@ private:
     std::pair<SpanRef, uint32_t> writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 
     template<class T>
-    static T* ptrImpl(const std::shared_ptr<const std::vector<Page*>>& pages, uint32_t pageSize, Ref ref)
+    static T* ptrImpl(const std::vector<Page*>* pages, uint32_t pageSize, Ref ref)
     {
         SWC_ASSERT(ref != INVALID_REF);
         uint32_t pageIndex = 0, offset = 0;
@@ -176,8 +176,8 @@ private:
         return reinterpret_cast<T*>((*pages)[pageIndex]->bytes() + offset);
     }
 
-    std::shared_ptr<const std::vector<Page*>> snapshotPages() const noexcept;
-    void                                      publishPages();
+    const std::vector<Page*>* snapshotPages() const noexcept;
+    void                      publishPages();
 
     uint32_t       publishedPageCount() const noexcept;
     uint32_t       publishedPageUsed(uint32_t index) const noexcept;
@@ -185,7 +185,8 @@ private:
     uint8_t*       publishedPageBytesMutable(uint32_t index) const noexcept;
 
     std::vector<std::unique_ptr<Page>>                     pagesStorage_;
-    std::atomic<std::shared_ptr<const std::vector<Page*>>> publishedPages_;
+    std::vector<std::unique_ptr<const std::vector<Page*>>> publishedPagesStorage_;
+    std::atomic<const std::vector<Page*>*>                 publishedPages_{nullptr};
     uint64_t                                               totalBytes_    = 0;
     uint32_t                                               pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
     Page*                                                  curPage_       = nullptr;

@@ -7,8 +7,19 @@
 #include "Backend/Native/NativeSymbolCollector.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Report/LogColor.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    void logArtifactAction(const TaskContext& ctx, std::string_view action, const fs::path& artifactPath)
+    {
+        const Logger::ScopedLock loggerLock(ctx.global().logger());
+        Logger::printHeaderCentered(ctx, LogColor::Green, action, LogColor::White, makeUtf8(artifactPath.filename()));
+    }
+}
 
 NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const bool runArtifact) :
     ctx_(compiler),
@@ -32,6 +43,7 @@ Result NativeBackendBuilder::run()
     if (!linker)
         return reportError(DiagnosticId::cmd_err_native_linker_not_implemented);
     SWC_RESULT_VERIFY(linker->link());
+    logArtifactAction(ctx_, "Build", state_.artifactPath);
 
     if (runArtifact_ && compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
         SWC_RESULT_VERIFY(runGeneratedArtifact());
@@ -119,6 +131,8 @@ Result NativeBackendBuilder::writeObjects()
 
 Result NativeBackendBuilder::runGeneratedArtifact() const
 {
+    logArtifactAction(ctx_, "Run", state_.artifactPath);
+
     uint32_t   exitCode = 0;
     const auto result   = Os::runProcess(exitCode, state_.artifactPath, {}, state_.workDir);
     switch (result)

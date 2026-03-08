@@ -4,10 +4,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class NativeLinkerWindows final : public NativeLinker
+class NativeLinkerCoff final : public NativeLinker
 {
 public:
-    explicit NativeLinkerWindows(NativeBackendBuilder& builder);
+    explicit NativeLinkerCoff(NativeBackendBuilder& builder);
 
     bool link() override;
 

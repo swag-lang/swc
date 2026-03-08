@@ -211,7 +211,7 @@
         <ClCompile Include="src\Backend\Native\NativeBackend.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeLinker.cpp"/>
-        <ClCompile Include="src\Backend\Native\NativeLinkerWindows.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeLinkerCoff.cpp" />
         <ClCompile Include="src\Backend\Native\NativeObjJob.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjectFileWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjectFileWriterWindowsCoff.cpp"/>
@@ -560,7 +560,7 @@
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackendTypes.h"/>
         <ClInclude Include="src\Backend\Native\NativeLinker.h"/>
-        <ClInclude Include="src\Backend\Native\NativeLinkerWindows.h"/>
+        <ClInclude Include="src\Backend\Native\NativeLinkerCoff.h" />
         <ClInclude Include="src\Backend\Native\NativeObjJob.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjectFileWriter.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjectFileWriterWindowsCoff.h"/>

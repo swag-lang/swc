@@ -1,22 +1,22 @@
 #include "pch.h"
-#include "Backend/Native/NativeLinkerWindows.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeLinkerCoff.h"
 
 SWC_BEGIN_NAMESPACE();
 
-NativeLinkerWindows::NativeLinkerWindows(NativeBackendBuilder& builder) :
+NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
     builder_(builder)
 {
 }
 
-bool NativeLinkerWindows::link()
+bool NativeLinkerCoff::link()
 {
     if (!discoverToolchain())
         return false;
     return linkArtifact();
 }
 
-bool NativeLinkerWindows::discoverToolchain()
+bool NativeLinkerCoff::discoverToolchain()
 {
     toolchain_ = {};
 
@@ -35,7 +35,7 @@ bool NativeLinkerWindows::discoverToolchain()
     SWC_UNREACHABLE();
 }
 
-bool NativeLinkerWindows::linkArtifact() const
+bool NativeLinkerCoff::linkArtifact() const
 {
     std::vector<Utf8> args;
     const fs::path*   exePath = nullptr;
@@ -82,7 +82,7 @@ bool NativeLinkerWindows::linkArtifact() const
     return true;
 }
 
-std::vector<Utf8> NativeLinkerWindows::buildLinkArguments(const bool dll) const
+std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
 {
     std::vector<Utf8> args;
     args.emplace_back("/NOLOGO");
@@ -124,7 +124,7 @@ std::vector<Utf8> NativeLinkerWindows::buildLinkArguments(const bool dll) const
     return args;
 }
 
-std::vector<Utf8> NativeLinkerWindows::buildLibArguments() const
+std::vector<Utf8> NativeLinkerCoff::buildLibArguments() const
 {
     std::vector<Utf8> args;
     args.emplace_back("/NOLOGO");
@@ -135,7 +135,7 @@ std::vector<Utf8> NativeLinkerWindows::buildLibArguments() const
     return args;
 }
 
-void NativeLinkerWindows::appendLinkSearchPaths(std::vector<Utf8>& args) const
+void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
 {
     if (!toolchain_.vcLibPath.empty())
         args.emplace_back(std::format("/LIBPATH:{}", makeUtf8(toolchain_.vcLibPath)));
@@ -145,7 +145,7 @@ void NativeLinkerWindows::appendLinkSearchPaths(std::vector<Utf8>& args) const
         args.emplace_back(std::format("/LIBPATH:{}", makeUtf8(toolchain_.sdkUcrtLibPath)));
 }
 
-void NativeLinkerWindows::collectLinkLibraries(std::set<Utf8>& out) const
+void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
 {
     for (const Utf8& library : builder_.compiler().foreignLibs())
         out.insert(normalizeLibraryName(library));
@@ -169,7 +169,7 @@ void NativeLinkerWindows::collectLinkLibraries(std::set<Utf8>& out) const
         collectFromCode(builder_.state().startup->code);
 }
 
-Utf8 NativeLinkerWindows::normalizeLibraryName(const std::string_view value)
+Utf8 NativeLinkerCoff::normalizeLibraryName(const std::string_view value)
 {
     Utf8 out(value);
     if (fs::path(std::string(out)).extension().empty())
@@ -178,7 +178,7 @@ Utf8 NativeLinkerWindows::normalizeLibraryName(const std::string_view value)
     return out;
 }
 
-void NativeLinkerWindows::appendUserLinkerArgs(std::vector<Utf8>& args) const
+void NativeLinkerCoff::appendUserLinkerArgs(std::vector<Utf8>& args) const
 {
     const Runtime::String& linkerArgs = builder_.compiler().buildCfg().linkerArgs;
     if (!linkerArgs.ptr || linkerArgs.length == 0)

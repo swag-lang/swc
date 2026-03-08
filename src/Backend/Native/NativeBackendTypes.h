@@ -124,7 +124,7 @@ struct NativeBackendState
 class NativeBackendBuilder;
 class NativeArtifactBuilder;
 class NativeLinker;
-class NativeLinkerWindows;
+class NativeLinkerCoff;
 class NativeObjJob;
 class NativeObjectFileWriter;
 class NativeObjectFileWriterWindowsCoff;

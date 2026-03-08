@@ -305,22 +305,41 @@ namespace
         outArgStorage.reserve(resolvedArgs.size());
         outJitArgs.reserve(resolvedArgs.size());
 
-        for (const ResolvedCallArgument& resolvedArg : resolvedArgs)
+        for (size_t i = 0; i < resolvedArgs.size(); ++i)
         {
+            const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
             if (resolvedArg.passKind != CallArgumentPassKind::Direct)
                 return false;
 
-            const AstNodeRef argRef = resolvedArg.argRef;
-            if (argRef.isInvalid())
-                return false;
+            TypeRef     argValueTypeRef = TypeRef::invalid();
+            ConstantRef argCstRef       = ConstantRef::invalid();
+            const AstNodeRef argRef     = resolvedArg.argRef;
+            if (argRef.isValid())
+            {
+                const SemaNodeView argTypeView  = sema.viewType(argRef);
+                const SemaNodeView argConstView = sema.viewConstant(argRef);
+                if (!argTypeView.typeRef().isValid() || !argConstView.cstRef().isValid())
+                    return false;
 
-            const SemaNodeView argTypeView  = sema.viewType(argRef);
-            const SemaNodeView argConstView = sema.viewConstant(argRef);
-            if (!argTypeView.typeRef().isValid() || !argConstView.cstRef().isValid())
-                return false;
+                argValueTypeRef = sema.typeMgr().get(argTypeView.typeRef()).unwrap(ctx, argTypeView.typeRef(), TypeExpandE::Alias);
+                argCstRef       = argConstView.cstRef();
+            }
+            else
+            {
+                if (!resolvedArg.defaultCstRef.isValid())
+                    return false;
+                if (i >= calledFn.parameters().size())
+                    return false;
 
-            const TypeRef argValueTypeRef = sema.typeMgr().get(argTypeView.typeRef()).unwrap(ctx, argTypeView.typeRef(), TypeExpandE::Alias);
+                const SymbolVariable* param = calledFn.parameters()[i];
+                SWC_ASSERT(param != nullptr);
+                argValueTypeRef = sema.typeMgr().get(param->typeRef()).unwrap(ctx, param->typeRef(), TypeExpandE::Alias);
+                argCstRef       = resolvedArg.defaultCstRef;
+            }
+
             if (!argValueTypeRef.isValid())
+                return false;
+            if (!argCstRef.isValid())
                 return false;
 
             const TypeInfo& argValueType   = sema.typeMgr().get(argValueTypeRef);
@@ -334,7 +353,7 @@ namespace
             auto& argStorage = outArgStorage.emplace_back();
             argStorage.resize(argStorageSize);
             std::memset(argStorage.data(), 0, argStorage.size());
-            ConstantLower::lowerToBytes(sema, ByteSpanRW{argStorage.data(), argStorage.size()}, argConstView.cstRef(), argValueTypeRef);
+            ConstantLower::lowerToBytes(sema, ByteSpanRW{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;

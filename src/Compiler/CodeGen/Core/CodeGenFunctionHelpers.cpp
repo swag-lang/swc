@@ -7,6 +7,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -123,6 +124,31 @@ namespace
         return normalizedTypeRef;
     }
 
+    bool materializeDefaultConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef defaultCstRef)
+    {
+        if (!targetTypeRef.isValid() || !defaultCstRef.isValid())
+            return false;
+
+        TaskContext&    ctx        = codeGen.ctx();
+        const TypeInfo& targetType = ctx.typeMgr().get(targetTypeRef);
+        const uint64_t  rawSize    = targetType.sizeOf(ctx);
+        if (rawSize == 0 || rawSize > std::numeric_limits<uint32_t>::max())
+            return false;
+
+        SmallVector<std::byte> rawBytes;
+        rawBytes.resize(rawSize);
+        std::memset(rawBytes.data(), 0, rawBytes.size());
+        ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, targetTypeRef);
+
+        const std::string_view payloadView(reinterpret_cast<const char*>(rawBytes.data()), rawBytes.size());
+        const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(payloadView);
+        outPayload.typeRef                   = targetTypeRef;
+        outPayload.setIsAddress();
+        outPayload.reg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(storedPayload.data()), defaultCstRef);
+        return true;
+    }
+
     void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef)
     {
         if (normalizedTypeRef.isInvalid())
@@ -139,17 +165,31 @@ namespace
 
     void appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const std::vector<SymbolVariable*>& params, size_t argIndex, const ResolvedCallArgument& arg)
     {
-        const AstNodeRef argRef = arg.argRef;
-        if (argRef.isInvalid())
-            return;
-
-        const CodeGenNodePayload& argPayload = codeGen.payload(argRef);
-        const SemaNodeView        argView    = codeGen.viewType(argRef);
+        CodeGenNodePayload argPayload;
+        TypeRef            normalizedTypeRef = TypeRef::invalid();
+        const AstNodeRef   argRef            = arg.argRef;
+        if (argRef.isValid())
+        {
+            argPayload = codeGen.payload(argRef);
+            const SemaNodeView argView = codeGen.viewType(argRef);
+            normalizedTypeRef          = resolveNormalizedArgTypeRef(codeGen, params, argIndex, argView);
+        }
+        else
+        {
+            if (arg.defaultCstRef.isInvalid())
+                return;
+            if (argIndex >= params.size())
+                return;
+            const SymbolVariable* param = params[argIndex];
+            SWC_ASSERT(param != nullptr);
+            normalizedTypeRef = param->typeRef();
+            if (!materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, arg.defaultCstRef))
+                return;
+        }
 
         ABICall::PreparedArg preparedArg;
         preparedArg.srcReg = argPayload.reg;
 
-        const TypeRef normalizedTypeRef = resolveNormalizedArgTypeRef(codeGen, params, argIndex, argView);
         fillPreparedDirectArgType(preparedArg, codeGen, callConv, argPayload, normalizedTypeRef);
         preparedArg.kind = abiPreparedArgKind(arg.passKind);
         outArgs.push_back(preparedArg);

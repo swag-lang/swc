@@ -1133,6 +1133,7 @@ namespace
         appendImplicitInterfaceReceiverArg(sema, outResolvedArgs, nodeCallee, selectedFn, mapping);
 
         const auto numParams          = static_cast<uint32_t>(selectedFn.parameters().size());
+        bool       hasAnyVariadic     = false;
         bool       hasUntypedVariadic = false;
         uint32_t   variadicParamIdx   = 0;
         if (numParams)
@@ -1140,6 +1141,7 @@ namespace
             const SymbolVariable* variadicParam = selectedFn.parameters().back();
             SWC_ASSERT(variadicParam != nullptr);
             const TypeInfo& variadicType = variadicParam->type(sema.ctx());
+            hasAnyVariadic               = variadicType.isAnyVariadic();
             hasUntypedVariadic           = variadicType.isVariadic();
             variadicParamIdx             = numParams - 1;
         }
@@ -1147,8 +1149,25 @@ namespace
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
             const CallArgEntry& entry = mapping.paramArgs[i];
+            const bool isVariadicSlot = hasAnyVariadic && numParams && i == numParams - 1;
             if (entry.argRef.isInvalid())
+            {
+                if (isVariadicSlot)
+                    continue;
+
+                ResolvedCallArgument resolvedArg;
+                resolvedArg.argRef   = AstNodeRef::invalid();
+                resolvedArg.passKind = CallArgumentPassKind::Direct;
+                if (i < numParams)
+                {
+                    const SymbolVariable* param = selectedFn.parameters()[i];
+                    SWC_ASSERT(param != nullptr);
+                    if (param->hasExtraFlag(SymbolVariableFlagsE::Initialized))
+                        resolvedArg.defaultCstRef = param->defaultValueRef();
+                }
+                outResolvedArgs.push_back(resolvedArg);
                 continue;
+            }
 
             AstNodeRef     finalArgRef  = entry.argRef;
             const AstNode& finalArgNode = sema.node(finalArgRef);

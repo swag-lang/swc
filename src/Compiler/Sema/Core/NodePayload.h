@@ -43,6 +43,7 @@ struct ResolvedCallArgument
     AstNodeRef           argRef         = AstNodeRef::invalid();
     CallArgumentPassKind passKind       = CallArgumentPassKind::Direct;
     ConstantRef          typeInfoCstRef = ConstantRef::invalid();
+    ConstantRef          defaultCstRef  = ConstantRef::invalid();
 };
 
 class NodePayload

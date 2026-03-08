@@ -348,6 +348,21 @@ namespace
         }
     }
 
+    void storeParameterDefaultConstants(const std::span<Symbol*>& symbols, bool isParameter, ConstantRef cstRef)
+    {
+        if (!isParameter || cstRef.isInvalid())
+            return;
+
+        for (Symbol* s : symbols)
+        {
+            if (!s->isVariable())
+                continue;
+
+            auto& symVar = s->cast<SymbolVariable>();
+            symVar.setDefaultValueRef(cstRef);
+        }
+    }
+
     void storeLetConstants(const std::span<Symbol*>& symbols, bool isLet, ConstantRef cstRef)
     {
         if (!isLet || cstRef.isInvalid())
@@ -588,6 +603,7 @@ namespace
 
         storeLetConstants(symbols, isLet, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
         storeGlobalVariableConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
+        storeParameterDefaultConstants(symbols, isParameter, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : ConstantRef::invalid());
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {

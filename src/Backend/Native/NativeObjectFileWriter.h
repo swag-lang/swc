@@ -1,22 +1,19 @@
 #pragma once
 
-#include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeBackendTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
-namespace NativeBackendDetail
+class NativeObjectFileWriter
 {
-    class NativeObjectFileWriter
-    {
-    public:
-        virtual ~NativeObjectFileWriter() = default;
+public:
+    virtual ~NativeObjectFileWriter() = default;
 
-        static std::unique_ptr<NativeObjectFileWriter> create(NativeBackendBuilder& builder, Runtime::TargetOs targetOs);
+    static std::unique_ptr<NativeObjectFileWriter> create(NativeBackendBuilder& builder);
 
-        virtual bool writeObjectFile(const NativeObjDescription& description) = 0;
-    };
+    virtual bool writeObjectFile(const NativeObjDescription& description) = 0;
+};
 
-    std::unique_ptr<NativeObjectFileWriter> createNativeObjectFileWriterWindowsCoff(NativeBackendBuilder& builder);
-}
+std::unique_ptr<NativeObjectFileWriter> createNativeObjectFileWriterWindowsCoff(NativeBackendBuilder& builder);
 
 SWC_END_NAMESPACE();

@@ -177,19 +177,31 @@
     <ClCompile Include="src\Backend\JIT\JITMemory.cpp">
       <Filter>src\Backend\JIT</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp">
+      <Filter>src\Backend\Native</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Native\NativeBackend.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Native\NativeBackend.Link.cpp">
+    <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp">
+      <Filter>src\Backend\Native</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Native\NativeLinker.cpp">
+      <Filter>src\Backend\Native</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Native\NativeLinkerWindows.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\Native\NativeObjJob.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Native\NativeBackend.Object.cpp">
+    <ClCompile Include="src\Backend\Native\NativeObjectFileWriter.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Native\NativeBackend.Object.Windows.cpp">
+    <ClCompile Include="src\Backend\Native\NativeObjectFileWriterWindowsCoff.cpp">
+      <Filter>src\Backend\Native</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Native\NativeSymbolCollector.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\ABI\CallConv.cpp">
@@ -812,10 +824,22 @@
     <ClInclude Include="src\Backend\Backend.h">
       <Filter>src\Backend</Filter>
     </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeArtifactBuilder.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeBackend.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeBackendTypes.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeLinker.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeLinkerWindows.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeObjJob.h">
@@ -824,10 +848,10 @@
     <ClInclude Include="src\Backend\Native\NativeObjectFileWriter.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\Native\NativeObjectFileWriter.WindowsCoff.h">
+    <ClInclude Include="src\Backend\Native\NativeObjectFileWriterWindowsCoff.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\Native\NativeBackend_Priv.h">
+    <ClInclude Include="src\Backend\Native\NativeSymbolCollector.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantPropagation.Private.h">

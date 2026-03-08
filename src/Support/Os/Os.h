@@ -13,6 +13,30 @@ class TaskContext;
 
 namespace Os
 {
+    enum class ProcessRunResult : uint8_t
+    {
+        Ok,
+        StartFailed,
+        WaitFailed,
+        ExitCodeFailed,
+    };
+
+    enum class WindowsToolchainDiscoveryResult : uint8_t
+    {
+        Ok,
+        MissingMsvcToolchain,
+        MissingWindowsSdk,
+    };
+
+    struct WindowsToolchainPaths
+    {
+        fs::path linkExe;
+        fs::path libExe;
+        fs::path vcLibPath;
+        fs::path sdkUmLibPath;
+        fs::path sdkUcrtLibPath;
+    };
+
     void initialize();
 
     void panicBox(const char* expr);
@@ -23,8 +47,10 @@ namespace Os
     [[noreturn]]
     void terminate();
 
-    fs::path getTemporaryPath();
-    fs::path getExeFullName();
+    fs::path                        getTemporaryPath();
+    fs::path                        getExeFullName();
+    ProcessRunResult                runProcess(uint32_t& outExitCode, const fs::path& exePath, std::span<const Utf8> args, const fs::path& workingDirectory);
+    WindowsToolchainDiscoveryResult discoverWindowsToolchainPaths(WindowsToolchainPaths& outToolchain);
 
     bool isDebuggerAttached();
 

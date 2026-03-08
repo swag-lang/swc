@@ -64,6 +64,78 @@ namespace
         return state.initialized;
     }
 
+    std::wstring toWide(const std::string_view value)
+    {
+        if (value.empty())
+            return {};
+
+        const int wideCount = MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()), nullptr, 0);
+        if (wideCount <= 0)
+            return {};
+
+        std::wstring result;
+        result.resize(static_cast<size_t>(wideCount));
+        MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()), result.data(), wideCount);
+        return result;
+    }
+
+    void appendQuotedCommandArg(std::wstring& out, const std::wstring_view arg)
+    {
+        const bool needsQuotes = arg.empty() || arg.find_first_of(L" \t\"") != std::wstring_view::npos;
+        if (!needsQuotes)
+        {
+            out.append(arg);
+            return;
+        }
+
+        out.push_back(L'"');
+        size_t pendingSlashes = 0;
+        for (const wchar_t c : arg)
+        {
+            if (c == L'\\')
+            {
+                pendingSlashes++;
+                continue;
+            }
+
+            if (c == L'"')
+            {
+                out.append(pendingSlashes * 2 + 1, L'\\');
+                out.push_back(L'"');
+                pendingSlashes = 0;
+                continue;
+            }
+
+            if (pendingSlashes)
+            {
+                out.append(pendingSlashes, L'\\');
+                pendingSlashes = 0;
+            }
+
+            out.push_back(c);
+        }
+
+        if (pendingSlashes)
+            out.append(pendingSlashes * 2, L'\\');
+        out.push_back(L'"');
+    }
+
+    std::optional<Utf8> readEnvUtf8(const char* name)
+    {
+        char*  value  = nullptr;
+        size_t length = 0;
+        if (_dupenv_s(&value, &length, name) != 0 || !value || !*value)
+        {
+            if (value)
+                std::free(value);
+            return std::nullopt;
+        }
+
+        Utf8 result(value);
+        std::free(value);
+        return result;
+    }
+
     const char* windowsExceptionCodeName(const uint32_t code)
     {
         switch (code)
@@ -502,6 +574,195 @@ namespace Os
         char az[_MAX_PATH];
         GetModuleFileNameA(nullptr, az, _MAX_PATH);
         return az;
+    }
+
+    ProcessRunResult runProcess(uint32_t& outExitCode, const fs::path& exePath, const std::span<const Utf8> args, const fs::path& workingDirectory)
+    {
+        outExitCode = 0;
+
+        std::wstring commandLine;
+        appendQuotedCommandArg(commandLine, exePath.wstring());
+        for (const Utf8& arg : args)
+        {
+            commandLine.push_back(L' ');
+            appendQuotedCommandArg(commandLine, toWide(arg));
+        }
+
+        STARTUPINFOW        startupInfo{};
+        PROCESS_INFORMATION processInfo{};
+        startupInfo.cb = sizeof(startupInfo);
+
+        std::wstring       mutableCommandLine = commandLine;
+        const std::wstring workingDirW        = workingDirectory.empty() ? std::wstring() : workingDirectory.wstring();
+        if (!CreateProcessW(exePath.wstring().c_str(),
+                            mutableCommandLine.data(),
+                            nullptr,
+                            nullptr,
+                            FALSE,
+                            0,
+                            nullptr,
+                            workingDirW.empty() ? nullptr : workingDirW.c_str(),
+                            &startupInfo,
+                            &processInfo))
+        {
+            return ProcessRunResult::StartFailed;
+        }
+
+        const DWORD waitResult = WaitForSingleObject(processInfo.hProcess, INFINITE);
+        if (waitResult != WAIT_OBJECT_0)
+        {
+            CloseHandle(processInfo.hThread);
+            CloseHandle(processInfo.hProcess);
+            return ProcessRunResult::WaitFailed;
+        }
+
+        DWORD exitCode = 0;
+        if (!GetExitCodeProcess(processInfo.hProcess, &exitCode))
+        {
+            CloseHandle(processInfo.hThread);
+            CloseHandle(processInfo.hProcess);
+            return ProcessRunResult::ExitCodeFailed;
+        }
+
+        CloseHandle(processInfo.hThread);
+        CloseHandle(processInfo.hProcess);
+        outExitCode = exitCode;
+        return ProcessRunResult::Ok;
+    }
+
+    WindowsToolchainDiscoveryResult discoverWindowsToolchainPaths(WindowsToolchainPaths& outToolchain)
+    {
+        outToolchain = {};
+
+        std::vector<fs::path> candidates;
+        if (const auto vctools = readEnvUtf8("VCToolsInstallDir"))
+            candidates.emplace_back(std::string(*vctools));
+
+        const auto appendRoots = [&](const fs::path& basePath) {
+            std::error_code ec;
+            if (!fs::exists(basePath, ec))
+                return;
+
+            std::vector<fs::path> versionRoots;
+            for (fs::directory_iterator it(basePath, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+            {
+                if (ec)
+                {
+                    ec.clear();
+                    continue;
+                }
+
+                if (!it->is_directory(ec))
+                {
+                    ec.clear();
+                    continue;
+                }
+
+                for (fs::directory_iterator skuIt(it->path(), fs::directory_options::skip_permission_denied, ec), skuEnd; skuIt != skuEnd; skuIt.increment(ec))
+                {
+                    if (ec)
+                    {
+                        ec.clear();
+                        continue;
+                    }
+
+                    if (!skuIt->is_directory(ec))
+                    {
+                        ec.clear();
+                        continue;
+                    }
+
+                    const fs::path toolsDir = skuIt->path() / "VC" / "Tools" / "MSVC";
+                    if (!fs::exists(toolsDir, ec))
+                        continue;
+
+                    for (fs::directory_iterator toolIt(toolsDir, fs::directory_options::skip_permission_denied, ec), toolEnd; toolIt != toolEnd; toolIt.increment(ec))
+                    {
+                        if (ec)
+                        {
+                            ec.clear();
+                            continue;
+                        }
+
+                        if (toolIt->is_directory(ec))
+                            versionRoots.push_back(toolIt->path());
+                    }
+                }
+            }
+
+            std::ranges::sort(versionRoots, std::greater{}, [](const fs::path& path) {
+                return path.filename().generic_string();
+            });
+            for (const auto& root : versionRoots)
+                candidates.push_back(root);
+        };
+
+        appendRoots("C:\\Program Files\\Microsoft Visual Studio");
+        appendRoots("C:\\Program Files (x86)\\Microsoft Visual Studio");
+
+        for (const auto& root : candidates)
+        {
+            std::error_code ec;
+            const fs::path  linkExe = root / "bin" / "Hostx64" / "x64" / "link.exe";
+            const fs::path  libExe  = root / "bin" / "Hostx64" / "x64" / "lib.exe";
+            const fs::path  vcLib   = root / "lib" / "x64";
+            if (!fs::exists(linkExe, ec) || !fs::exists(libExe, ec))
+                continue;
+
+            outToolchain.linkExe   = linkExe;
+            outToolchain.libExe    = libExe;
+            outToolchain.vcLibPath = vcLib;
+            break;
+        }
+
+        if (outToolchain.linkExe.empty() || outToolchain.libExe.empty())
+            return WindowsToolchainDiscoveryResult::MissingMsvcToolchain;
+
+        candidates.clear();
+        if (const auto sdkDir = readEnvUtf8("WindowsSdkDir"))
+        {
+            const fs::path libRoot = fs::path(std::string(*sdkDir)) / "Lib";
+            if (const auto sdkVersion = readEnvUtf8("WindowsSDKVersion"))
+                candidates.emplace_back(libRoot / std::string(*sdkVersion));
+        }
+
+        std::error_code ec;
+        const fs::path  sdkRoot = R"(C:\Program Files (x86)\Windows Kits\10\Lib)";
+        if (fs::exists(sdkRoot, ec))
+        {
+            std::vector<fs::path> versions;
+            for (fs::directory_iterator it(sdkRoot, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+            {
+                if (ec)
+                {
+                    ec.clear();
+                    continue;
+                }
+
+                if (it->is_directory(ec))
+                    versions.push_back(it->path());
+            }
+
+            std::ranges::sort(versions, std::greater{}, [](const fs::path& path) {
+                return path.filename().generic_string();
+            });
+            for (const auto& version : versions)
+                candidates.push_back(version);
+        }
+
+        for (const auto& root : candidates)
+        {
+            const fs::path umLib   = root / "um" / "x64";
+            const fs::path ucrtLib = root / "ucrt" / "x64";
+            if (!fs::exists(umLib, ec) || !fs::exists(ucrtLib, ec))
+                continue;
+
+            outToolchain.sdkUmLibPath   = umLib;
+            outToolchain.sdkUcrtLibPath = ucrtLib;
+            return WindowsToolchainDiscoveryResult::Ok;
+        }
+
+        return WindowsToolchainDiscoveryResult::MissingWindowsSdk;
     }
 
     bool isDebuggerAttached()

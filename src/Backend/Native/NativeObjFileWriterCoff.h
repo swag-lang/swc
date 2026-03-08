@@ -9,7 +9,7 @@ class NativeObjFileWriterCoff final : public NativeObjFileWriter
 public:
     explicit NativeObjFileWriterCoff(NativeBackendBuilder& builder);
 
-    bool writeObjectFile(const NativeObjDescription& description) override;
+    Result writeObjectFile(const NativeObjDescription& description) override;
 
 private:
     struct CoffSymbolRecord
@@ -33,11 +33,11 @@ private:
         uint32_t                             sizeOfRawData        = 0;
     };
 
-    bool        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
-    bool        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const;
-    bool        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const;
-    bool        appendSingleCodeRelocation(uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const;
-    bool        buildDataRelocations(CoffSectionBuild& section) const;
+    Result      buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
+    Result      appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const;
+    Result      appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const;
+    Result      appendSingleCodeRelocation(uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const;
+    Result      buildDataRelocations(CoffSectionBuild& section) const;
     static void writeU64(std::vector<std::byte>& bytes, uint32_t offset, uint64_t value);
     static void addDefinedSymbols(const NativeObjDescription&          description,
                                   const std::vector<CoffSectionBuild>& sections,
@@ -46,7 +46,7 @@ private:
     static void addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections,
                                     std::vector<CoffSymbolRecord>&       symbols,
                                     std::unordered_map<Utf8, uint32_t>&  symbolIndices);
-    bool        flushCoffFile(const fs::path&                           objPath,
+    Result      flushCoffFile(const fs::path&                           objPath,
                               std::vector<CoffSectionBuild>&            sections,
                               const std::vector<CoffSymbolRecord>&      symbols,
                               const std::unordered_map<Utf8, uint32_t>& symbolIndices) const;

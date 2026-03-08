@@ -17,35 +17,27 @@ NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const boo
 
 Result NativeBackendBuilder::run()
 {
-    if (!validateHost())
-        return Result::Error;
+    SWC_RESULT_VERIFY(validateHost());
 
     NativeSymbolCollector symbolCollector(*this);
-    if (!symbolCollector.prepare())
-        return Result::Error;
+    SWC_RESULT_VERIFY(symbolCollector.prepare());
 
     const NativeArtifactBuilder artifactBuilder(*this);
-    if (!artifactBuilder.build())
-        return Result::Error;
-    if (!writeObjects())
-        return Result::Error;
+    SWC_RESULT_VERIFY(artifactBuilder.build());
+    SWC_RESULT_VERIFY(writeObjects());
 
     const auto linker = NativeLinker::create(*this);
     if (!linker)
-        return reportError(DiagnosticId::cmd_err_native_linker_not_implemented) ? Result::Continue : Result::Error;
-    if (!linker->link())
-        return Result::Error;
+        return reportError(DiagnosticId::cmd_err_native_linker_not_implemented);
+    SWC_RESULT_VERIFY(linker->link());
 
     if (runArtifact_ && compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
-    {
-        if (!runGeneratedArtifact())
-            return Result::Error;
-    }
+        SWC_RESULT_VERIFY(runGeneratedArtifact());
 
     return Result::Continue;
 }
 
-bool NativeBackendBuilder::writeObject(const uint32_t objIndex)
+Result NativeBackendBuilder::writeObject(const uint32_t objIndex)
 {
     SWC_ASSERT(objIndex < state_.objectDescriptions.size());
 
@@ -85,16 +77,12 @@ const NativeBackendState& NativeBackendBuilder::state() const
     return state_;
 }
 
-bool NativeBackendBuilder::validateHost() const
+Result NativeBackendBuilder::validateHost() const
 {
     switch (ctx_.cmdLine().targetOs)
     {
         case Runtime::TargetOs::Windows:
             break;
-
-        case Runtime::TargetOs::Linux:
-            return reportError(DiagnosticId::cmd_err_native_target_windows_only);
-
         default:
             return reportError(DiagnosticId::cmd_err_native_target_os_not_supported);
     }
@@ -110,10 +98,10 @@ bool NativeBackendBuilder::validateHost() const
         return reportError(DiagnosticId::cmd_err_native_executable_subsystem_not_supported);
     }
 
-    return true;
+    return Result::Continue;
 }
 
-bool NativeBackendBuilder::writeObjects()
+Result NativeBackendBuilder::writeObjects()
 {
     state_.objWriteFailed.store(false, std::memory_order_release);
 
@@ -125,10 +113,10 @@ bool NativeBackendBuilder::writeObjects()
     }
 
     jobMgr.waitAll(compiler_.jobClientId());
-    return !state_.objWriteFailed.load(std::memory_order_acquire);
+    return state_.objWriteFailed.load(std::memory_order_acquire) ? Result::Error : Result::Continue;
 }
 
-bool NativeBackendBuilder::runGeneratedArtifact() const
+Result NativeBackendBuilder::runGeneratedArtifact() const
 {
     uint32_t   exitCode = 0;
     const auto result   = Os::runProcess(exitCode, state_.artifactPath, {}, state_.workDir);
@@ -136,31 +124,28 @@ bool NativeBackendBuilder::runGeneratedArtifact() const
     {
         case Os::ProcessRunResult::Ok:
             break;
-
         case Os::ProcessRunResult::StartFailed:
             return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
-
         case Os::ProcessRunResult::WaitFailed:
             return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath));
-
         case Os::ProcessRunResult::ExitCodeFailed:
             return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, exitCode);
-    return true;
+    return Result::Continue;
 }
 
-bool NativeBackendBuilder::reportError(DiagnosticId id) const
+Result NativeBackendBuilder::reportError(DiagnosticId id) const
 {
     return reportError(Diagnostic::get(id));
 }
 
-bool NativeBackendBuilder::reportError(Diagnostic diag) const
+Result NativeBackendBuilder::reportError(Diagnostic diag) const
 {
     diag.report(const_cast<TaskContext&>(ctx_));
-    return false;
+    return Result::Error;
 }
 
 SWC_END_NAMESPACE();

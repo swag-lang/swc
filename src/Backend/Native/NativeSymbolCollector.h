@@ -9,7 +9,7 @@ class NativeSymbolCollector
 public:
     explicit NativeSymbolCollector(NativeBackendBuilder& builder);
 
-    bool prepare();
+    Result prepare();
 
 private:
     enum class CompilerFunctionKind : uint8_t
@@ -26,10 +26,10 @@ private:
     template<typename T>
     void sortAndUnique(std::vector<T*>& values) const;
 
-    bool                 collectSymbols();
+    Result               collectSymbols();
     void                 collectSymbolsRec(const SymbolMap& symbolMap);
     void                 collectFunction(SymbolFunction& symbol) const;
-    bool                 scheduleCodeGen() const;
+    Result               scheduleCodeGen() const;
     CompilerFunctionKind classifyCompilerFunction(const SymbolFunction& symbol) const;
     static bool          isCompilerFunction(const SymbolFunction& symbol);
     Utf8                 makeSymbolSortKey(const SymbolFunction& symbol) const;

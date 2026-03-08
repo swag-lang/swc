@@ -11,7 +11,7 @@ public:
 
     static std::unique_ptr<NativeObjFileWriter> create(NativeBackendBuilder& builder);
 
-    virtual bool writeObjectFile(const NativeObjDescription& description) = 0;
+    virtual Result writeObjectFile(const NativeObjDescription& description) = 0;
 };
 
 SWC_END_NAMESPACE();

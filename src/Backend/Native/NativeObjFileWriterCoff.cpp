@@ -9,13 +9,12 @@ NativeObjFileWriterCoff::NativeObjFileWriterCoff(NativeBackendBuilder& builder) 
 {
 }
 
-bool NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
+Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
 {
     CoffSectionBuild textSection;
     textSection.data.name            = ".text";
     textSection.data.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
-    if (!buildTextSection(description, textSection))
-        return false;
+    SWC_RESULT_VERIFY(buildTextSection(description, textSection));
 
     std::vector<CoffSectionBuild> sections;
     sections.push_back(std::move(textSection));
@@ -25,8 +24,7 @@ bool NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& descri
     {
         CoffSectionBuild section;
         section.data = state.mergedRData;
-        if (!buildDataRelocations(section))
-            return false;
+        SWC_RESULT_VERIFY(buildDataRelocations(section));
         sections.push_back(std::move(section));
     }
 
@@ -55,7 +53,7 @@ bool NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& descri
     return flushCoffFile(description.objPath, sections, symbols, symbolIndices);
 }
 
-bool NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
+Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     const auto appendCode = [&](uint32_t& outOffset, const std::vector<std::byte>& bytes) {
         const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), 16);
@@ -73,40 +71,34 @@ bool NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& descr
             appendCode(info->textOffset, info->machineCode->bytes);
     }
 
-    if (description.startup && !appendCodeRelocations(*description.startup, description.startup->code, textSection))
-        return false;
+    if (description.startup)
+        SWC_RESULT_VERIFY(appendCodeRelocations(*description.startup, description.startup->code, textSection));
     for (const NativeFunctionInfo* info : description.functions)
     {
-        if (info && !appendCodeRelocations(*info, *info->machineCode, textSection))
-            return false;
+        if (info)
+            SWC_RESULT_VERIFY(appendCodeRelocations(*info, *info->machineCode, textSection));
     }
 
-    return true;
+    return Result::Continue;
 }
 
-bool NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const
+Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const
 {
     for (const auto& relocation : code.codeRelocations)
-    {
-        if (!appendSingleCodeRelocation(startup.textOffset, relocation, textSection))
-            return false;
-    }
+        SWC_RESULT_VERIFY(appendSingleCodeRelocation(startup.textOffset, relocation, textSection));
 
-    return true;
+    return Result::Continue;
 }
 
-bool NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const
+Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const
 {
     for (const auto& relocation : code.codeRelocations)
-    {
-        if (!appendSingleCodeRelocation(owner.textOffset, relocation, textSection))
-            return false;
-    }
+        SWC_RESULT_VERIFY(appendSingleCodeRelocation(owner.textOffset, relocation, textSection));
 
-    return true;
+    return Result::Continue;
 }
 
-bool NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const
+Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const
 {
     const uint32_t patchOffset = functionOffset + relocation.codeOffset;
     SWC_ASSERT(patchOffset + sizeof(uint64_t) <= textSection.data.bytes.size());
@@ -166,10 +158,10 @@ bool NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t function
     }
 
     textSection.relocations.push_back(record);
-    return true;
+    return Result::Continue;
 }
 
-bool NativeObjFileWriterCoff::buildDataRelocations(CoffSectionBuild& section) const
+Result NativeObjFileWriterCoff::buildDataRelocations(CoffSectionBuild& section) const
 {
     for (const auto& relocation : section.data.relocations)
     {
@@ -178,7 +170,7 @@ bool NativeObjFileWriterCoff::buildDataRelocations(CoffSectionBuild& section) co
         section.relocations.push_back(relocation);
     }
 
-    return true;
+    return Result::Continue;
 }
 
 void NativeObjFileWriterCoff::writeU64(std::vector<std::byte>& bytes, const uint32_t offset, const uint64_t value)
@@ -281,10 +273,10 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
     }
 }
 
-bool NativeObjFileWriterCoff::flushCoffFile(const fs::path&                           objPath,
-                                            std::vector<CoffSectionBuild>&            sections,
-                                            const std::vector<CoffSymbolRecord>&      symbols,
-                                            const std::unordered_map<Utf8, uint32_t>& symbolIndices) const
+Result NativeObjFileWriterCoff::flushCoffFile(const fs::path&                           objPath,
+                                              std::vector<CoffSectionBuild>&            sections,
+                                              const std::vector<CoffSymbolRecord>&      symbols,
+                                              const std::unordered_map<Utf8, uint32_t>& symbolIndices) const
 {
     struct CoffStringTable
     {
@@ -435,7 +427,7 @@ bool NativeObjFileWriterCoff::flushCoffFile(const fs::path&                     
     if (!file.good())
         return builder_.reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, makeUtf8(objPath));
 
-    return true;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

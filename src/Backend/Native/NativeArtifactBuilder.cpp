@@ -8,18 +8,15 @@ NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
 {
 }
 
-bool NativeArtifactBuilder::build() const
+Result NativeArtifactBuilder::build() const
 {
-    if (!validateNativeData())
-        return false;
-    if (!prepareDataSections())
-        return false;
-    if (!buildStartup())
-        return false;
+    SWC_RESULT_VERIFY(validateNativeData());
+    SWC_RESULT_VERIFY(prepareDataSections());
+    SWC_RESULT_VERIFY(buildStartup());
     return partitionObjects();
 }
 
-bool NativeArtifactBuilder::validateNativeData() const
+Result NativeArtifactBuilder::validateNativeData() const
 {
     const auto& compiler = builder_.compiler();
     const auto& state    = builder_.state();
@@ -51,11 +48,10 @@ bool NativeArtifactBuilder::validateNativeData() const
 
     for (const auto& info : state.functionInfos)
     {
-        if (!validateRelocations(*info.symbol, *info.machineCode))
-            return false;
+        SWC_RESULT_VERIFY(validateRelocations(*info.symbol, *info.machineCode));
     }
 
-    return true;
+    return Result::Continue;
 }
 
 bool NativeArtifactBuilder::isNativeStaticType(const TypeRef typeRef) const
@@ -107,7 +103,7 @@ bool NativeArtifactBuilder::isNativeStaticType(const TypeRef typeRef) const
     return false;
 }
 
-bool NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, const MachineCode& code) const
+Result NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, const MachineCode& code) const
 {
     const auto& state = builder_.state();
 
@@ -159,7 +155,7 @@ bool NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, con
         }
     }
 
-    return true;
+    return Result::Continue;
 }
 
 bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& relocation) const
@@ -191,7 +187,7 @@ bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& re
     }
 }
 
-bool NativeArtifactBuilder::prepareDataSections() const
+Result NativeArtifactBuilder::prepareDataSections() const
 {
     auto& state = builder_.state();
 
@@ -243,16 +239,16 @@ bool NativeArtifactBuilder::prepareDataSections() const
         builder_.compiler().globalInitSegment().copyTo(ByteSpanRW{state.mergedData.bytes.data(), dataSize});
     }
 
-    return true;
+    return Result::Continue;
 }
 
-bool NativeArtifactBuilder::buildStartup() const
+Result NativeArtifactBuilder::buildStartup() const
 {
     auto& state = builder_.state();
     state.startup.reset();
 
     if (builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
-        return true;
+        return Result::Continue;
 
     auto         startup = std::make_unique<NativeStartupInfo>();
     MicroBuilder builder(builder_.ctx());
@@ -290,10 +286,10 @@ bool NativeArtifactBuilder::buildStartup() const
         return builder_.reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
 
     state.startup = std::move(startup);
-    return true;
+    return Result::Continue;
 }
 
-bool NativeArtifactBuilder::partitionObjects() const
+Result NativeArtifactBuilder::partitionObjects() const
 {
     auto& state = builder_.state();
     state.objectDescriptions.clear();
@@ -309,8 +305,7 @@ bool NativeArtifactBuilder::partitionObjects() const
     state.objectDescriptions.resize(numJobs);
 
     const Utf8 baseName = artifactBaseName();
-    if (!createWorkDirectory(baseName))
-        return false;
+    SWC_RESULT_VERIFY(createWorkDirectory(baseName));
 
     for (uint32_t i = 0; i < numJobs; ++i)
     {
@@ -331,7 +326,7 @@ bool NativeArtifactBuilder::partitionObjects() const
     }
 
     state.artifactPath = state.workDir / std::format("{}{}", baseName, artifactExtension());
-    return true;
+    return Result::Continue;
 }
 
 Utf8 NativeArtifactBuilder::artifactBaseName() const
@@ -364,14 +359,14 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
     SWC_UNREACHABLE();
 }
 
-bool NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName) const
+Result NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName) const
 {
     std::error_code ec;
     builder_.state().workDir = Os::getTemporaryPath() / std::format("swc_native_{}_{}_{}", baseName, Os::currentProcessId(), builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed));
     fs::create_directories(builder_.state().workDir, ec);
     if (ec)
         return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, makeUtf8(builder_.state().workDir), Diagnostic::ARG_BECAUSE, ec.message());
-    return true;
+    return Result::Continue;
 }
 
 Utf8 NativeArtifactBuilder::sanitizeName(Utf8 value)

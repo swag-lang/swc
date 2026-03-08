@@ -11,7 +11,6 @@ SWC_DIAG_DEF(cmdline_err_invalid_file, Error, "invalid file path: '{path}'; {bec
 SWC_DIAG_DEF(cmd_err_no_input, Error, "no input file specified")
 SWC_DIAG_DEF(cmd_err_native_linker_not_implemented, Error, "native linker is not implemented for this target OS")
 SWC_DIAG_DEF(cmd_err_native_object_writer_not_implemented, Error, "native object file writer is not implemented for this target OS")
-SWC_DIAG_DEF(cmd_err_native_target_windows_only, Error, "native backend object and link emission is only implemented for Windows targets")
 SWC_DIAG_DEF(cmd_err_native_target_os_not_supported, Error, "native backend does not support this target OS")
 SWC_DIAG_DEF(cmd_err_native_target_arch_not_supported, Error, "native backend only supports x86_64 targets")
 SWC_DIAG_DEF(cmd_err_native_backend_kind_required, Error, "native backend requires an executable, library, or export backend kind")

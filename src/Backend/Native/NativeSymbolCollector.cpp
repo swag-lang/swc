@@ -8,14 +8,13 @@ NativeSymbolCollector::NativeSymbolCollector(NativeBackendBuilder& builder) :
 {
 }
 
-bool NativeSymbolCollector::prepare()
+Result NativeSymbolCollector::prepare()
 {
-    if (!collectSymbols())
-        return false;
+    SWC_RESULT_VERIFY(collectSymbols());
     return scheduleCodeGen();
 }
 
-bool NativeSymbolCollector::collectSymbols()
+Result NativeSymbolCollector::collectSymbols()
 {
     auto& compiler = builder_.compiler();
     auto& state    = builder_.state();
@@ -73,7 +72,7 @@ bool NativeSymbolCollector::collectSymbols()
     for (SymbolFunction* symbol : state.rawMainFunctions)
         compiler.addNativeMainFunction(symbol);
 
-    return true;
+    return Result::Continue;
 }
 
 void NativeSymbolCollector::collectSymbolsRec(const SymbolMap& symbolMap)
@@ -149,11 +148,11 @@ void NativeSymbolCollector::collectFunction(SymbolFunction& symbol) const
     }
 }
 
-bool NativeSymbolCollector::scheduleCodeGen() const
+Result NativeSymbolCollector::scheduleCodeGen() const
 {
     const auto& state = builder_.state();
     if (state.functionInfos.empty())
-        return true;
+        return Result::Continue;
 
     SourceFile* firstFile = nullptr;
     for (SourceFile* file : builder_.compiler().files())
@@ -189,7 +188,7 @@ bool NativeSymbolCollector::scheduleCodeGen() const
 
     Sema::waitDone(builder_.ctx(), builder_.compiler().jobClientId());
     if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
-        return false;
+        return Result::Error;
 
     for (const auto& info : state.functionInfos)
     {
@@ -197,7 +196,7 @@ bool NativeSymbolCollector::scheduleCodeGen() const
             return builder_.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, info.symbolName);
     }
 
-    return true;
+    return Result::Continue;
 }
 
 NativeSymbolCollector::CompilerFunctionKind NativeSymbolCollector::classifyCompilerFunction(const SymbolFunction& symbol) const

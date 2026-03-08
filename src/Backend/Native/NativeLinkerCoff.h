@@ -9,11 +9,11 @@ class NativeLinkerCoff final : public NativeLinker
 public:
     explicit NativeLinkerCoff(NativeBackendBuilder& builder);
 
-    bool link() override;
+    Result link() override;
 
 private:
-    bool              discoverToolchain();
-    bool              linkArtifact() const;
+    Result            discoverToolchain();
+    Result            linkArtifact() const;
     std::vector<Utf8> buildLinkArguments(bool dll) const;
     std::vector<Utf8> buildLibArguments() const;
     void              appendLinkSearchPaths(std::vector<Utf8>& args) const;

@@ -11,7 +11,7 @@ public:
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
 
     Result run();
-    bool   writeObject(uint32_t objIndex);
+    Result writeObject(uint32_t objIndex);
 
     TaskContext&              ctx();
     const TaskContext&        ctx() const;
@@ -20,10 +20,10 @@ public:
     NativeBackendState&       state();
     const NativeBackendState& state() const;
 
-    bool reportError(DiagnosticId id) const;
+    Result reportError(DiagnosticId id) const;
 
     template<typename T1>
-    bool reportError(DiagnosticId id, std::string_view name1, T1&& value1) const
+    Result reportError(DiagnosticId id, std::string_view name1, T1&& value1) const
     {
         Diagnostic diag = Diagnostic::get(id);
         diag.addArgument(name1, std::forward<T1>(value1));
@@ -31,7 +31,7 @@ public:
     }
 
     template<typename T1, typename T2>
-    bool reportError(DiagnosticId id, std::string_view name1, T1&& value1, std::string_view name2, T2&& value2) const
+    Result reportError(DiagnosticId id, std::string_view name1, T1&& value1, std::string_view name2, T2&& value2) const
     {
         Diagnostic diag = Diagnostic::get(id);
         diag.addArgument(name1, std::forward<T1>(value1));
@@ -40,10 +40,10 @@ public:
     }
 
 private:
-    bool reportError(Diagnostic diag) const;
-    bool validateHost() const;
-    bool writeObjects();
-    bool runGeneratedArtifact() const;
+    Result reportError(Diagnostic diag) const;
+    Result validateHost() const;
+    Result writeObjects();
+    Result runGeneratedArtifact() const;
 
     TaskContext        ctx_;
     CompilerInstance&  compiler_;

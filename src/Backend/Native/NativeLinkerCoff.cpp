@@ -9,21 +9,20 @@ NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
 {
 }
 
-bool NativeLinkerCoff::link()
+Result NativeLinkerCoff::link()
 {
-    if (!discoverToolchain())
-        return false;
+    SWC_RESULT_VERIFY(discoverToolchain());
     return linkArtifact();
 }
 
-bool NativeLinkerCoff::discoverToolchain()
+Result NativeLinkerCoff::discoverToolchain()
 {
     toolchain_ = {};
 
     switch (Os::discoverWindowsToolchainPaths(toolchain_))
     {
         case Os::WindowsToolchainDiscoveryResult::Ok:
-            return true;
+            return Result::Continue;
 
         case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
             return builder_.reportError(DiagnosticId::cmd_err_native_toolchain_msvc_missing);
@@ -35,7 +34,7 @@ bool NativeLinkerCoff::discoverToolchain()
     SWC_UNREACHABLE();
 }
 
-bool NativeLinkerCoff::linkArtifact() const
+Result NativeLinkerCoff::linkArtifact() const
 {
     std::vector<Utf8> args;
     const fs::path*   exePath = nullptr;
@@ -79,7 +78,7 @@ bool NativeLinkerCoff::linkArtifact() const
         return builder_.reportError(DiagnosticId::cmd_err_native_tool_failed, Diagnostic::ARG_TOOL, makeUtf8(exePath->filename()), Diagnostic::ARG_VALUE, exitCode);
     if (!fs::exists(builder_.state().artifactPath))
         return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, makeUtf8(builder_.state().artifactPath));
-    return true;
+    return Result::Continue;
 }
 
 std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const

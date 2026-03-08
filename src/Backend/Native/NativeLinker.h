@@ -11,7 +11,7 @@ public:
 
     static std::unique_ptr<NativeLinker> create(NativeBackendBuilder& builder);
 
-    virtual bool link() = 0;
+    virtual Result link() = 0;
 };
 
 SWC_END_NAMESPACE();

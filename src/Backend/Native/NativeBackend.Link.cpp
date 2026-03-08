@@ -114,7 +114,7 @@ namespace NativeBackendDetail
         }
 
         std::error_code ec;
-        const fs::path  sdkRoot = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib";
+        const fs::path  sdkRoot = R"(C:\Program Files (x86)\Windows Kits\10\Lib)";
         if (fs::exists(sdkRoot, ec))
         {
             std::vector<fs::path> versions;
@@ -152,7 +152,7 @@ namespace NativeBackendDetail
         return reportError("cannot find Windows SDK libraries for the native backend");
     }
 
-    bool NativeBackendBuilder::linkArtifact()
+    bool NativeBackendBuilder::linkArtifact() const
     {
         std::vector<Utf8> args;
         const fs::path*   exePath = nullptr;
@@ -187,22 +187,22 @@ namespace NativeBackendDetail
     std::vector<Utf8> NativeBackendBuilder::buildLinkArguments(const bool dll) const
     {
         std::vector<Utf8> args;
-        args.push_back("/NOLOGO");
-        args.push_back("/NODEFAULTLIB");
-        args.push_back("/INCREMENTAL:NO");
-        args.push_back("/MACHINE:X64");
+        args.emplace_back("/NOLOGO");
+        args.emplace_back("/NODEFAULTLIB");
+        args.emplace_back("/INCREMENTAL:NO");
+        args.emplace_back("/MACHINE:X64");
         if (dll)
         {
-            args.push_back("/DLL");
-            args.push_back("/NOENTRY");
+            args.emplace_back("/DLL");
+            args.emplace_back("/NOENTRY");
         }
         else
         {
-            args.push_back("/SUBSYSTEM:CONSOLE");
-            args.push_back("/ENTRY:mainCRTStartup");
+            args.emplace_back("/SUBSYSTEM:CONSOLE");
+            args.emplace_back("/ENTRY:mainCRTStartup");
         }
 
-        args.push_back(std::format("/OUT:{}", makeUtf8(artifactPath_)));
+        args.emplace_back(std::format("/OUT:{}", makeUtf8(artifactPath_)));
         appendLinkSearchPaths(args);
 
         for (const auto& object : objectDescriptions_)
@@ -218,7 +218,7 @@ namespace NativeBackendDetail
             for (const auto& info : functionInfos_)
             {
                 if (info.exported)
-                    args.push_back(std::format("/EXPORT:{}", info.symbolName));
+                    args.emplace_back(std::format("/EXPORT:{}", info.symbolName));
             }
         }
 
@@ -229,9 +229,9 @@ namespace NativeBackendDetail
     std::vector<Utf8> NativeBackendBuilder::buildLibArguments() const
     {
         std::vector<Utf8> args;
-        args.push_back("/NOLOGO");
-        args.push_back("/MACHINE:X64");
-        args.push_back(std::format("/OUT:{}", makeUtf8(artifactPath_)));
+        args.emplace_back("/NOLOGO");
+        args.emplace_back("/MACHINE:X64");
+        args.emplace_back(std::format("/OUT:{}", makeUtf8(artifactPath_)));
         for (const auto& object : objectDescriptions_)
             args.push_back(makeUtf8(object.objPath));
         return args;
@@ -240,11 +240,11 @@ namespace NativeBackendDetail
     void NativeBackendBuilder::appendLinkSearchPaths(std::vector<Utf8>& args) const
     {
         if (!toolchain_.vcLibPath.empty())
-            args.push_back(std::format("/LIBPATH:{}", makeUtf8(toolchain_.vcLibPath)));
+            args.emplace_back(std::format("/LIBPATH:{}", makeUtf8(toolchain_.vcLibPath)));
         if (!toolchain_.sdkUmLibPath.empty())
-            args.push_back(std::format("/LIBPATH:{}", makeUtf8(toolchain_.sdkUmLibPath)));
+            args.emplace_back(std::format("/LIBPATH:{}", makeUtf8(toolchain_.sdkUmLibPath)));
         if (!toolchain_.sdkUcrtLibPath.empty())
-            args.push_back(std::format("/LIBPATH:{}", makeUtf8(toolchain_.sdkUcrtLibPath)));
+            args.emplace_back(std::format("/LIBPATH:{}", makeUtf8(toolchain_.sdkUcrtLibPath)));
     }
 
     void NativeBackendBuilder::collectLinkLibraries(std::set<Utf8>& out) const
@@ -271,7 +271,7 @@ namespace NativeBackendDetail
             collectFromCode(startup_->code);
     }
 
-    Utf8 NativeBackendBuilder::normalizeLibraryName(const std::string_view value) const
+    Utf8 NativeBackendBuilder::normalizeLibraryName(const std::string_view value)
     {
         Utf8 out(value);
         if (fs::path(std::string(out)).extension().empty())
@@ -303,7 +303,7 @@ namespace NativeBackendDetail
         }
     }
 
-    bool NativeBackendBuilder::runGeneratedArtifact()
+    bool NativeBackendBuilder::runGeneratedArtifact() const
     {
         uint32_t exitCode = 0;
         if (!runProcess(artifactPath_, {}, workDir_, exitCode))

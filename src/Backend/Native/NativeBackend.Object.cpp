@@ -70,7 +70,7 @@ namespace NativeBackendDetail
 
         if (description.startup && !appendCodeRelocations(*description.startup, description.startup->code, textSection))
             return false;
-        for (NativeFunctionInfo* info : description.functions)
+        for (const NativeFunctionInfo* info : description.functions)
         {
             if (info && !appendCodeRelocations(*info, *info->machineCode, textSection))
                 return false;
@@ -192,7 +192,7 @@ namespace NativeBackendDetail
     void NativeBackendBuilder::addDefinedSymbols(const NativeObjDescription&          description,
                                                  const std::vector<CoffSectionBuild>& sections,
                                                  std::vector<CoffSymbolRecord>&       symbols,
-                                                 std::unordered_map<Utf8, uint32_t>&  symbolIndices) const
+                                                 std::unordered_map<Utf8, uint32_t>&  symbolIndices)
     {
         const auto add = [&](CoffSymbolRecord record) {
             symbolIndices.emplace(record.name, static_cast<uint32_t>(symbols.size()));
@@ -210,7 +210,7 @@ namespace NativeBackendDetail
             });
         }
 
-        for (NativeFunctionInfo* info : description.functions)
+        for (const NativeFunctionInfo* info : description.functions)
         {
             if (!info)
                 continue;
@@ -263,7 +263,7 @@ namespace NativeBackendDetail
 
     void NativeBackendBuilder::addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections,
                                                    std::vector<CoffSymbolRecord>&       symbols,
-                                                   std::unordered_map<Utf8, uint32_t>&  symbolIndices) const
+                                                   std::unordered_map<Utf8, uint32_t>&  symbolIndices)
     {
         for (const auto& section : sections)
         {

@@ -151,17 +151,17 @@ namespace NativeBackendDetail
         template<typename T>
         void sortAndUnique(std::vector<T*>& values) const;
 
-        bool                 validateHost();
+        bool                 validateHost() const;
         bool                 collectSymbols();
-        void                 collectSymbolsRec(SymbolMap& symbolMap);
+        void                 collectSymbolsRec(const SymbolMap& symbolMap);
         void                 collectFunction(SymbolFunction& symbol);
         CompilerFunctionKind classifyCompilerFunction(const SymbolFunction& symbol) const;
-        bool                 isCompilerFunction(const SymbolFunction& symbol) const;
+        static bool          isCompilerFunction(const SymbolFunction& symbol);
         Utf8                 makeSymbolSortKey(const SymbolFunction& symbol) const;
         Utf8                 makeSortKey(const SymbolFunction& symbol) const;
         Utf8                 makeSortKey(const SymbolVariable& symbol) const;
         bool                 scheduleCodeGen();
-        bool                 validateNativeData();
+        bool                 validateNativeData() const;
         bool                 isNativeStaticType(TypeRef typeRef) const;
         bool                 validateRelocations(const SymbolFunction& owner, const MachineCode& code) const;
         bool                 validateConstantRelocation(const MicroRelocation& relocation) const;
@@ -175,14 +175,14 @@ namespace NativeBackendDetail
         bool                 discoverToolchain();
         bool                 discoverMsvcToolchain();
         bool                 discoverWindowsSdk();
-        bool                 linkArtifact();
+        bool                 linkArtifact() const;
         std::vector<Utf8>    buildLinkArguments(bool dll) const;
         std::vector<Utf8>    buildLibArguments() const;
         void                 appendLinkSearchPaths(std::vector<Utf8>& args) const;
         void                 collectLinkLibraries(std::set<Utf8>& out) const;
-        Utf8                 normalizeLibraryName(std::string_view value) const;
+        static Utf8          normalizeLibraryName(std::string_view value);
         void                 appendUserLinkerArgs(std::vector<Utf8>& args) const;
-        bool                 runGeneratedArtifact();
+        bool                 runGeneratedArtifact() const;
         bool                 runProcess(const fs::path& exePath, const std::vector<Utf8>& args, const fs::path& workingDirectory, uint32_t& outExitCode) const;
         bool                 writeObjectFile(const NativeObjDescription& description);
         bool                 buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection);
@@ -191,8 +191,8 @@ namespace NativeBackendDetail
         bool                 appendSingleCodeRelocation(uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection);
         bool                 buildDataRelocations(CoffSectionBuild& section) const;
         static void          writeU64(std::vector<std::byte>& bytes, uint32_t offset, uint64_t value);
-        void                 addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
-        void                 addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
+        static void          addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
+        static void          addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
         bool                 flushCoffFile(const fs::path& objPath, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
         bool                 reportError(std::string_view because) const;
         static Utf8          sanitizeName(Utf8 value);

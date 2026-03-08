@@ -7,7 +7,7 @@ namespace NativeBackendDetail
 {
     Utf8 makeUtf8(const fs::path& path)
     {
-        return Utf8(path.generic_string());
+        return {path.generic_string()};
     }
 
     std::wstring toWide(const std::string_view value)
@@ -167,7 +167,7 @@ namespace NativeBackendDetail
         values.erase(std::unique(values.begin(), values.end()), values.end());
     }
 
-    bool NativeBackendBuilder::validateHost()
+    bool NativeBackendBuilder::validateHost() const
     {
         if (ctx_.cmdLine().targetOs != Runtime::TargetOs::Windows)
             return reportError("native backend only supports Windows targets");
@@ -198,7 +198,7 @@ namespace NativeBackendDetail
         functionInfos_.clear();
         functionBySymbol_.clear();
 
-        SymbolModule* const rootModule = compiler_.symModule();
+        const SymbolModule* rootModule = compiler_.symModule();
         if (!rootModule)
             return reportError("semantic analysis did not produce a root symbol module");
 
@@ -243,7 +243,7 @@ namespace NativeBackendDetail
         return true;
     }
 
-    void NativeBackendBuilder::collectSymbolsRec(SymbolMap& symbolMap)
+    void NativeBackendBuilder::collectSymbolsRec(const SymbolMap& symbolMap)
     {
         std::vector<const Symbol*> symbols;
         symbolMap.getAllSymbols(symbols);
@@ -342,7 +342,7 @@ namespace NativeBackendDetail
         }
     }
 
-    bool NativeBackendBuilder::isCompilerFunction(const SymbolFunction& symbol) const
+    bool NativeBackendBuilder::isCompilerFunction(const SymbolFunction& symbol)
     {
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
     }
@@ -430,7 +430,7 @@ namespace NativeBackendDetail
         return true;
     }
 
-    bool NativeBackendBuilder::validateNativeData()
+    bool NativeBackendBuilder::validateNativeData() const
     {
         if (compiler_.compilerSegment().size() != 0)
             return reportError("compiler data segment is not supported by the native backend");

@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 using Swag
 
 func value()->s32 { return 55; }

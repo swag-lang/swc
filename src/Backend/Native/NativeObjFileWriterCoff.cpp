@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -193,9 +193,9 @@ void NativeObjFileWriterCoff::writeU64(std::vector<std::byte>& bytes, const uint
 }
 
 void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription&          description,
-                                                          const std::vector<CoffSectionBuild>& sections,
-                                                          std::vector<CoffSymbolRecord>&       symbols,
-                                                          std::unordered_map<Utf8, uint32_t>&  symbolIndices)
+                                                const std::vector<CoffSectionBuild>& sections,
+                                                std::vector<CoffSymbolRecord>&       symbols,
+                                                std::unordered_map<Utf8, uint32_t>&  symbolIndices)
 {
     const auto add = [&](CoffSymbolRecord record) {
         symbolIndices.emplace(record.name, static_cast<uint32_t>(symbols.size()));
@@ -265,8 +265,8 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription&     
 }
 
 void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections,
-                                                            std::vector<CoffSymbolRecord>&       symbols,
-                                                            std::unordered_map<Utf8, uint32_t>&  symbolIndices)
+                                                  std::vector<CoffSymbolRecord>&       symbols,
+                                                  std::unordered_map<Utf8, uint32_t>&  symbolIndices)
 {
     for (const auto& section : sections)
     {
@@ -288,9 +288,9 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
 }
 
 bool NativeObjFileWriterCoff::flushCoffFile(const fs::path&                           objPath,
-                                                      std::vector<CoffSectionBuild>&            sections,
-                                                      const std::vector<CoffSymbolRecord>&      symbols,
-                                                      const std::unordered_map<Utf8, uint32_t>& symbolIndices) const
+                                            std::vector<CoffSectionBuild>&            sections,
+                                            const std::vector<CoffSymbolRecord>&      symbols,
+                                            const std::unordered_map<Utf8, uint32_t>& symbolIndices) const
 {
     struct CoffStringTable
     {

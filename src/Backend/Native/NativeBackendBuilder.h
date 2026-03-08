@@ -10,9 +10,6 @@ class NativeBackendBuilder
 public:
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
 
-    Result run();
-    Result writeObject(uint32_t objIndex);
-
     TaskContext&              ctx();
     const TaskContext&        ctx() const;
     CompilerInstance&         compiler();
@@ -20,6 +17,9 @@ public:
     NativeBackendState&       state();
     const NativeBackendState& state() const;
 
+    Result run();
+    Result writeObject(uint32_t objIndex);
+    
     Result reportError(DiagnosticId id) const;
 
     template<typename T1>

@@ -29,6 +29,36 @@ NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const boo
 {
 }
 
+TaskContext& NativeBackendBuilder::ctx()
+{
+    return ctx_;
+}
+
+const TaskContext& NativeBackendBuilder::ctx() const
+{
+    return ctx_;
+}
+
+CompilerInstance& NativeBackendBuilder::compiler()
+{
+    return compiler_;
+}
+
+const CompilerInstance& NativeBackendBuilder::compiler() const
+{
+    return compiler_;
+}
+
+NativeBackendState& NativeBackendBuilder::state()
+{
+    return state_;
+}
+
+const NativeBackendState& NativeBackendBuilder::state() const
+{
+    return state_;
+}
+
 Result NativeBackendBuilder::run()
 {
     SWC_RESULT_VERIFY(validateTarget());
@@ -61,53 +91,39 @@ Result NativeBackendBuilder::writeObject(const uint32_t objIndex)
     return objectWriter->writeObjectFile(state_.objectDescriptions[objIndex]);
 }
 
-TaskContext& NativeBackendBuilder::ctx()
+Result NativeBackendBuilder::reportError(DiagnosticId id) const
 {
-    return ctx_;
+    return reportError(Diagnostic::get(id));
 }
 
-const TaskContext& NativeBackendBuilder::ctx() const
+Result NativeBackendBuilder::reportError(const Diagnostic& diag) const
 {
-    return ctx_;
-}
-
-CompilerInstance& NativeBackendBuilder::compiler()
-{
-    return compiler_;
-}
-
-const CompilerInstance& NativeBackendBuilder::compiler() const
-{
-    return compiler_;
-}
-
-NativeBackendState& NativeBackendBuilder::state()
-{
-    return state_;
-}
-
-const NativeBackendState& NativeBackendBuilder::state() const
-{
-    return state_;
+    diag.report(const_cast<TaskContext&>(ctx_));
+    return Result::Error;
 }
 
 Result NativeBackendBuilder::validateTarget() const
 {
-    switch (ctx_.cmdLine().targetOs)
+    const CommandLine& commandLine = ctx_.cmdLine();
+    if (commandLine.targetOs != Runtime::TargetOs::Windows)
     {
-        case Runtime::TargetOs::Windows:
-            break;
-        default:
-            return reportError(DiagnosticId::cmd_err_native_target_os_not_supported);
+        return reportError(DiagnosticId::cmd_err_native_target_os_not_supported);
     }
 
-    if (ctx_.cmdLine().targetArch != Runtime::TargetArch::X86_64)
+    if (commandLine.targetArch != Runtime::TargetArch::X86_64)
+    {
         return reportError(DiagnosticId::cmd_err_native_target_arch_not_supported);
-    if (compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::None)
+    }
+
+    const Runtime::BuildCfg& buildCfg = compiler_.buildCfg();
+    if (buildCfg.backendKind == Runtime::BuildCfgBackendKind::None)
+    {
         return reportError(DiagnosticId::cmd_err_native_backend_kind_required);
-    if (compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable &&
-        compiler_.buildCfg().backendSubKind != Runtime::BuildCfgBackendSubKind::Default &&
-        compiler_.buildCfg().backendSubKind != Runtime::BuildCfgBackendSubKind::Console)
+    }
+
+    if (buildCfg.backendKind == Runtime::BuildCfgBackendKind::Executable &&
+        buildCfg.backendSubKind != Runtime::BuildCfgBackendSubKind::Default &&
+        buildCfg.backendSubKind != Runtime::BuildCfgBackendSubKind::Console)
     {
         return reportError(DiagnosticId::cmd_err_native_executable_subsystem_not_supported);
     }
@@ -151,17 +167,6 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
     if (exitCode != 0)
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, exitCode);
     return Result::Continue;
-}
-
-Result NativeBackendBuilder::reportError(DiagnosticId id) const
-{
-    return reportError(Diagnostic::get(id));
-}
-
-Result NativeBackendBuilder::reportError(const Diagnostic& diag) const
-{
-    diag.report(const_cast<TaskContext&>(ctx_));
-    return Result::Error;
 }
 
 SWC_END_NAMESPACE();

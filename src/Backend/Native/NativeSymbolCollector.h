@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Backend/Native/NativeBackendBuilder.h"
 
 SWC_BEGIN_NAMESPACE();

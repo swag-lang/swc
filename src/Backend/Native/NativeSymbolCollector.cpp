@@ -7,7 +7,6 @@
 
 SWC_BEGIN_NAMESPACE()
 class CodeGenJob;
-;
 
 NativeSymbolCollector::NativeSymbolCollector(NativeBackendBuilder& builder) :
     builder_(builder)

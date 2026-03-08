@@ -33,6 +33,27 @@ private:
         uint32_t                             sizeOfRawData        = 0;
     };
 
+    struct CoffStringTable
+    {
+        uint32_t add(const Utf8& name)
+        {
+            if (name.size() <= IMAGE_SIZEOF_SHORT_NAME)
+                return 0;
+            if (const auto it = offsets.find(name); it != offsets.end())
+                return it->second;
+
+            const uint32_t offset = size;
+            offsets.emplace(name, offset);
+            entries.push_back(name);
+            size += static_cast<uint32_t>(name.size()) + 1;
+            return offset;
+        }
+
+        uint32_t                           size = 4;
+        std::unordered_map<Utf8, uint32_t> offsets;
+        std::vector<Utf8>                  entries;
+    };
+
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
     Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const;
     Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const;

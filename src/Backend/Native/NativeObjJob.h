@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Backend/Native/NativeBackendBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -7,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 class NativeObjJob final : public Job
 {
 public:
-    static constexpr auto K = JobKind::NativeObj;
+    static constexpr JobKind K = JobKind::NativeObj;
 
     NativeObjJob(const TaskContext& ctx, NativeBackendBuilder& builder, uint32_t objIndex);
 

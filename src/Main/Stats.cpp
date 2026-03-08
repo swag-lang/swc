@@ -68,29 +68,29 @@ void Stats::print(const TaskContext& ctx) const
         size_t           value = 0;
     };
 
-    const size_t memTotal                    = memMaxAllocated.load();
-    const size_t memCurrent                  = memAllocated.load();
-    const size_t memFrontendSourceValue      = memFrontendSource.load();
-    const size_t memFrontendTokensValue      = memFrontendTokens.load();
-    const size_t memFrontendLinesValue       = memFrontendLines.load();
-    const size_t memFrontendTriviaValue      = memFrontendTrivia.load();
-    const size_t memFrontendIdentifiersValue = memFrontendIdentifiers.load();
-    const size_t memFrontendAstReservedValue = memFrontendAstReserved.load();
-    const size_t memSemaSymbolsValue         = memSymbols.load();
-    const size_t memSemaSymbolMapsValue      = memSymbolMaps.load();
-    const size_t memSemaConstantsValue       = memConstants.load();
-    const size_t memSemaConstantsReserved    = memConstantsReserved.load();
-    const size_t memSemaTypesValue           = memTypes.load();
-    const size_t memSemaTypesReserved        = memTypesReserved.load();
-    const size_t memSemaNodePayloadValue     = memSemaNodePayloadReserved.load();
-    const size_t memSemaIdentifiersValue     = memSemaIdentifiersReserved.load();
-    const size_t memCompilerArenaValue       = memCompilerArenaReserved.load();
-    const size_t memJitReservedValue         = memJitReserved.load();
-    const size_t memMicroStorageFinalValue   = memMicroStorageFinal.load();
-    const size_t memDataSegmentConstantValue = memDataSegmentConstant.load();
+    const size_t memTotal                      = memMaxAllocated.load();
+    const size_t memCurrent                    = memAllocated.load();
+    const size_t memFrontendSourceValue        = memFrontendSource.load();
+    const size_t memFrontendTokensValue        = memFrontendTokens.load();
+    const size_t memFrontendLinesValue         = memFrontendLines.load();
+    const size_t memFrontendTriviaValue        = memFrontendTrivia.load();
+    const size_t memFrontendIdentifiersValue   = memFrontendIdentifiers.load();
+    const size_t memFrontendAstReservedValue   = memFrontendAstReserved.load();
+    const size_t memSemaSymbolsValue           = memSymbols.load();
+    const size_t memSemaSymbolMapsValue        = memSymbolMaps.load();
+    const size_t memSemaConstantsValue         = memConstants.load();
+    const size_t memSemaConstantsReserved      = memConstantsReserved.load();
+    const size_t memSemaTypesValue             = memTypes.load();
+    const size_t memSemaTypesReserved          = memTypesReserved.load();
+    const size_t memSemaNodePayloadValue       = memSemaNodePayloadReserved.load();
+    const size_t memSemaIdentifiersValue       = memSemaIdentifiersReserved.load();
+    const size_t memCompilerArenaValue         = memCompilerArenaReserved.load();
+    const size_t memJitReservedValue           = memJitReserved.load();
+    const size_t memMicroStorageFinalValue     = memMicroStorageFinal.load();
+    const size_t memDataSegmentConstantValue   = memDataSegmentConstant.load();
     const size_t memDataSegmentGlobalZeroValue = memDataSegmentGlobalZero.load();
     const size_t memDataSegmentGlobalInitValue = memDataSegmentGlobalInit.load();
-    const size_t memDataSegmentCompilerValue = memDataSegmentCompiler.load();
+    const size_t memDataSegmentCompilerValue   = memDataSegmentCompiler.load();
 
     const size_t frontendTotalKnown = memFrontendSourceValue +
                                       memFrontendTokensValue +

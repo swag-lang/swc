@@ -243,7 +243,7 @@ namespace
     }
 }
 
-void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeInfo& type, TypeGenCache::Entry& entry) const
+void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeInfo& type, TypeGenCache::Entry& entry)
 {
     initCommon(sema, storage, rtType, offset, type);
 
@@ -270,7 +270,7 @@ void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::Typ
     }
 }
 
-std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind) const
+std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind)
 {
     switch (kind)
     {
@@ -313,7 +313,7 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
     }
 }
 
-void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGenCache::Entry& entry, LayoutKind kind) const
+void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGenCache::Entry& entry, LayoutKind kind)
 {
     const TaskContext& ctx     = sema.ctx();
     const TypeManager& typeMgr = sema.typeMgr();

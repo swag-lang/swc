@@ -665,7 +665,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             elemRequest.flags        = castRequest.flags;
             elemRequest.errorNodeRef = castRequest.errorNodeRef;
             elemRequest.errorCodeRef = castRequest.errorCodeRef;
-            const Result res         = Cast::castAllowed(sema, elemRequest, srcElemTypeRef, dstElemTypeRef);
+            const Result res         = castAllowed(sema, elemRequest, srcElemTypeRef, dstElemTypeRef);
             if (res != Result::Continue)
             {
                 castRequest.failure = elemRequest.failure;
@@ -691,7 +691,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             elemRequest.errorNodeRef = castRequest.errorNodeRef;
             elemRequest.errorCodeRef = castRequest.errorCodeRef;
             elemRequest.setConstantFoldingSrc(srcValues[i]);
-            const Result res = Cast::castAllowed(sema, elemRequest, srcElemTypes[i], dstElemTypeRef);
+            const Result res = castAllowed(sema, elemRequest, srcElemTypes[i], dstElemTypeRef);
             if (res != Result::Continue)
             {
                 castRequest.failure = elemRequest.failure;

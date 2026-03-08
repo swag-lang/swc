@@ -5,7 +5,6 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITMemory.h"
-#include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Support/Unittest/Unittest.h"
 

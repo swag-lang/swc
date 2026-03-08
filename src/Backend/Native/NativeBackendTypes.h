@@ -1,32 +1,16 @@
 #pragma once
-
-#include "Backend/ABI/ABICall.h"
-#include "Backend/Native/NativeBackend.h"
-#include "Compiler/CodeGen/Core/CodeGenJob.h"
-#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Constant/ConstantValue.h"
-#include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Global.h"
-#include "Main/Stats.h"
-#include "Support/Math/Hash.h"
-#include "Support/Math/Helpers.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/Diagnostic.h"
-#include "Support/Thread/JobManager.h"
-#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
-inline constexpr auto K_RDataBaseSymbol = "__swc_rdata_base";
-inline constexpr auto K_DataBaseSymbol  = "__swc_data_base";
-inline constexpr auto K_BssBaseSymbol   = "__swc_bss_base";
+inline constexpr auto K_R_DATA_BASE_SYMBOL = "__swc_rdata_base";
+inline constexpr auto K_DATA_BASE_SYMBOL   = "__swc_data_base";
+inline constexpr auto K_BSS_BASE_SYMBOL    = "__swc_bss_base";
 
 enum class NativeObjectFormat : uint8_t
 {
@@ -39,10 +23,6 @@ inline std::optional<NativeObjectFormat> getNativeObjFormat(const Runtime::Targe
     {
         case Runtime::TargetOs::Windows:
             return NativeObjectFormat::WindowsCoff;
-
-        case Runtime::TargetOs::Linux:
-            return std::nullopt;
-
         default:
             return std::nullopt;
     }

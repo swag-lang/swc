@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -135,20 +136,20 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
             uint32_t  shardIndex = 0;
             const Ref ref        = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
             SWC_ASSERT(ref != INVALID_REF);
-            record.symbolName = K_RDataBaseSymbol;
+            record.symbolName = K_R_DATA_BASE_SYMBOL;
             record.addend     = builder_.state().rdataShardBaseOffsets[shardIndex] + ref;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
             break;
         }
 
         case MicroRelocation::Kind::GlobalInitAddress:
-            record.symbolName = K_DataBaseSymbol;
+            record.symbolName = K_DATA_BASE_SYMBOL;
             record.addend     = relocation.targetAddress;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
             break;
 
         case MicroRelocation::Kind::GlobalZeroAddress:
-            record.symbolName = K_BssBaseSymbol;
+            record.symbolName = K_BSS_BASE_SYMBOL;
             record.addend     = relocation.targetAddress;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
             break;
@@ -161,7 +162,7 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::buildDataRelocations(CoffSectionBuild& section) const
+Result NativeObjFileWriterCoff::buildDataRelocations(CoffSectionBuild& section)
 {
     for (const auto& relocation : section.data.relocations)
     {
@@ -220,7 +221,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription&     
         if (section.data.name == ".rdata")
         {
             add({
-                .name          = K_RDataBaseSymbol,
+                .name          = K_R_DATA_BASE_SYMBOL,
                 .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                 .value         = 0,
                 .type          = 0,
@@ -230,7 +231,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription&     
         else if (section.data.name == ".data")
         {
             add({
-                .name          = K_DataBaseSymbol,
+                .name          = K_DATA_BASE_SYMBOL,
                 .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                 .value         = 0,
                 .type          = 0,
@@ -240,7 +241,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription&     
         else if (section.data.name == ".bss")
         {
             add({
-                .name          = K_BssBaseSymbol,
+                .name          = K_BSS_BASE_SYMBOL,
                 .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                 .value         = 0,
                 .type          = 0,

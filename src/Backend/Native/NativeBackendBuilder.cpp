@@ -5,6 +5,8 @@
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Backend/Native/NativeSymbolCollector.h"
+#include "Main/Global.h"
+#include "Support/Memory/Heap.h"
 
 SWC_BEGIN_NAMESPACE();
 

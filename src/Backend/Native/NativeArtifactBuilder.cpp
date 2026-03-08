@@ -1,5 +1,9 @@
 #include "pch.h"
+
+#include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
+#include "Main/Global.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -226,7 +230,7 @@ Result NativeArtifactBuilder::prepareDataSections() const
         {
             NativeSectionRelocation record;
             record.offset     = baseOffset + relocation.offset;
-            record.symbolName = K_RDataBaseSymbol;
+            record.symbolName = K_R_DATA_BASE_SYMBOL;
             record.addend     = baseOffset + relocation.targetOffset;
             state.mergedRData.relocations.push_back(record);
         }

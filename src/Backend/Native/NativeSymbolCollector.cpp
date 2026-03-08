@@ -1,7 +1,13 @@
 #include "pch.h"
 #include "Backend/Native/NativeSymbolCollector.h"
+#include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Main/Global.h"
+#include "Support/Math/Hash.h"
+#include "Support/Memory/Heap.h"
 
-SWC_BEGIN_NAMESPACE();
+SWC_BEGIN_NAMESPACE()
+class CodeGenJob;
+;
 
 NativeSymbolCollector::NativeSymbolCollector(NativeBackendBuilder& builder) :
     builder_(builder)

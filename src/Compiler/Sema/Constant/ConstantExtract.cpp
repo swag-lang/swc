@@ -267,6 +267,23 @@ namespace
         const uint64_t  elemCount = elemSize ? bytes.size() / elemSize : 0;
         return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, elemCount, nodeArgRef);
     }
+
+    Result extractAtIndexBlockPointer(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+    {
+        TaskContext&    ctx      = sema.ctx();
+        const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
+        const TypeRef   elemType = typeInfo.payloadTypeRef();
+        const uint64_t  elemSize = sema.typeMgr().get(elemType).sizeOf(ctx);
+        SWC_ASSERT(elemSize);
+
+        const uint64_t ptrValue = cst.getBlockPointer();
+        SWC_ASSERT(ptrValue);
+
+        const uint64_t byteOffset = static_cast<uint64_t>(constIndex) * elemSize;
+        const auto*    elemPtr    = reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptrValue + byteOffset));
+        const ByteSpan elemBytes{elemPtr, elemSize};
+        return extractAtIndexBytes(sema, elemBytes, elemType, 0, 1, nodeArgRef);
+    }
 }
 
 Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
@@ -281,6 +298,8 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
         return extractAtIndexString(sema, cst, constIndex, nodeArgRef);
     if (cst.isSlice())
         return extractAtIndexSlice(sema, cst, constIndex, nodeArgRef);
+    if (cst.isBlockPointer())
+        return extractAtIndexBlockPointer(sema, cst, constIndex, nodeArgRef);
 
     return SemaError::raiseTypeNotIndexable(sema, sema.curNodeRef(), cst.typeRef());
 }

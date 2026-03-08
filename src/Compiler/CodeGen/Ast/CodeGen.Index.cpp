@@ -165,6 +165,50 @@ namespace
 
         SWC_UNREACHABLE();
     }
+
+    TypeRef resolveIndexedResultTypeRef(CodeGen& codeGen, const TypeInfo& indexedType)
+    {
+        TypeManager& typeMgr = codeGen.sema().typeMgr();
+        if (indexedType.isArray())
+        {
+            const auto& dims = indexedType.payloadArrayDims();
+            if (dims.size() <= 1)
+                return indexedType.payloadArrayElemTypeRef();
+
+            SmallVector<uint64_t> remainingDims;
+            remainingDims.reserve(dims.size() - 1);
+            for (size_t i = 1; i < dims.size(); ++i)
+                remainingDims.push_back(dims[i]);
+
+            return typeMgr.addType(TypeInfo::makeArray(remainingDims.span(), indexedType.payloadArrayElemTypeRef(), indexedType.flags()));
+        }
+
+        if (indexedType.isBlockPointer() || indexedType.isValuePointer() || indexedType.isReference() || indexedType.isSlice() || indexedType.isTypedVariadic() || indexedType.isCString())
+            return indexedType.payloadTypeRef();
+        if (indexedType.isString())
+            return typeMgr.typeU8();
+        if (indexedType.isVariadic())
+            return typeMgr.typeAny();
+
+        SWC_UNREACHABLE();
+    }
+
+    CodeGenNodePayload emitIndexAddress(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, TypeRef resultTypeRef)
+    {
+        auto           indexBits = MicroOpBits::B64;
+        const MicroReg indexReg  = materializeIndexReg(codeGen, indexRef, indexBits);
+        const MicroReg baseReg   = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
+
+        const uint64_t resultSize = resolveIndexStrideSize(codeGen, indexedType);
+        SWC_ASSERT(resultSize > 0);
+
+        CodeGenNodePayload resultPayload;
+        resultPayload.typeRef = resultTypeRef;
+        resultPayload.setIsAddress();
+        resultPayload.reg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadAddressAmcRegMem(resultPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
+        return resultPayload;
+    }
 }
 
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -177,15 +221,33 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());
 
-    auto           indexBits = MicroOpBits::B64;
-    const MicroReg indexReg  = materializeIndexReg(codeGen, nodeArgRef, indexBits);
-    const MicroReg baseReg   = resolveIndexBaseAddress(codeGen, *indexedView.type(), indexedPayload);
+    const CodeGenNodePayload indexedResultPayload = emitIndexAddress(codeGen, nodeArgRef, *indexedView.type(), indexedPayload, resultTypeRef);
+    CodeGenNodePayload&      resultPayload        = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
+    resultPayload.reg                             = indexedResultPayload.reg;
+    return Result::Continue;
+}
 
-    const uint64_t resultSize = resolveIndexStrideSize(codeGen, *indexedView.type());
-    SWC_ASSERT(resultSize > 0);
+Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    SmallVector<AstNodeRef> indexRefs;
+    codeGen.ast().appendNodes(indexRefs, spanChildrenRef);
+    SWC_ASSERT(!indexRefs.empty());
 
-    const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
-    codeGen.builder().emitLoadAddressAmcRegMem(resultPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
+    TypeRef currentTypeRef = codeGen.viewType(nodeExprRef).typeRef();
+    SWC_ASSERT(currentTypeRef.isValid());
+
+    CodeGenNodePayload currentPayload = codeGen.payload(nodeExprRef);
+    for (const AstNodeRef indexRef : indexRefs)
+    {
+        const TypeInfo& currentType = codeGen.typeMgr().get(currentTypeRef);
+        const TypeRef   nextTypeRef = resolveIndexedResultTypeRef(codeGen, currentType);
+        currentPayload              = emitIndexAddress(codeGen, indexRef, currentType, currentPayload, nextTypeRef);
+        currentTypeRef              = nextTypeRef;
+    }
+
+    const TypeRef       resultTypeRef = codeGen.curViewType().typeRef();
+    CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
+    resultPayload.reg                 = currentPayload.reg;
     return Result::Continue;
 }
 

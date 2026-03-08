@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 func main()
 {
     var v: u32 = 0

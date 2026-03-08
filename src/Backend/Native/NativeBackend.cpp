@@ -124,7 +124,11 @@ namespace NativeBackendDetail
     {
         if (objIndex >= objectDescriptions_.size())
             return reportError("native backend object job index is out of range");
-        return writeObjectFile(objectDescriptions_[objIndex]);
+
+        auto objectWriter = NativeObjectFileWriter::create(*this, ctx_.cmdLine().targetOs);
+        if (!objectWriter)
+            return reportError("native object file writer is not implemented for this target OS");
+        return objectWriter->writeObjectFile(objectDescriptions_[objIndex]);
     }
 
     Utf8 NativeBackendBuilder::sanitizeName(Utf8 value)
@@ -169,8 +173,18 @@ namespace NativeBackendDetail
 
     bool NativeBackendBuilder::validateHost() const
     {
-        if (ctx_.cmdLine().targetOs != Runtime::TargetOs::Windows)
-            return reportError("native backend only supports Windows targets");
+        switch (ctx_.cmdLine().targetOs)
+        {
+            case Runtime::TargetOs::Windows:
+                break;
+
+            case Runtime::TargetOs::Linux:
+                return reportError("native backend object/link emission is only implemented for Windows targets");
+
+            default:
+                return reportError("native backend does not support this target OS");
+        }
+
         if (ctx_.cmdLine().targetArch != Runtime::TargetArch::X86_64)
             return reportError("native backend only supports x86_64 targets");
         if (compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::None)

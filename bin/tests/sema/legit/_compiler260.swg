@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 using Swag
 
 //#[PrintBc]
@@ -11,7 +10,7 @@ func fact(v: s32)->s32
     return res
 }
 
-#test
+#run
 {
     @assert(fact(5) == 120)
     @assert(fact(4) == 24)

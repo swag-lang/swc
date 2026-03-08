@@ -326,7 +326,20 @@ void SymbolFunction::jitEmit(TaskContext& ctx)
         return;
     }
 
-    JIT::emit(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, loweredMicroCode_.unwindInfo);
+    auto relocations = loweredMicroCode_.codeRelocations;
+    for (MicroRelocation& relocation : relocations)
+    {
+        if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress)
+            continue;
+        if (relocation.targetSymbol != this)
+            continue;
+        if (relocation.targetAddress != 0)
+            continue;
+
+        relocation.targetAddress = MicroRelocation::K_SELF_ADDRESS;
+    }
+
+    JIT::emit(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), relocations, loweredMicroCode_.unwindInfo);
     void* const entry = jitExecMemory_.entryPoint();
     if (!entry)
     {

@@ -25,28 +25,28 @@ bool NativeArtifactBuilder::validateNativeData() const
     const auto& state    = builder_.state();
 
     if (compiler.compilerSegment().size() != 0)
-        return builder_.reportError("compiler data segment is not supported by the native backend");
+        return builder_.reportError(DiagnosticId::cmd_err_native_compiler_segment_unsupported);
     if (compiler.constantSegment().size() != 0)
-        return builder_.reportError("legacy constant data segment is not supported by the native backend");
+        return builder_.reportError(DiagnosticId::cmd_err_native_constant_segment_unsupported);
     if (!compiler.globalZeroSegment().relocations().empty())
-        return builder_.reportError("global zero data relocations are not supported by the native backend");
+        return builder_.reportError(DiagnosticId::cmd_err_native_global_zero_relocations_unsupported);
     if (!compiler.globalInitSegment().relocations().empty())
-        return builder_.reportError("global init data relocations are not supported by the native backend");
+        return builder_.reportError(DiagnosticId::cmd_err_native_global_init_relocations_unsupported);
 
     for (const SymbolVariable* symbol : state.regularGlobals)
     {
         if (!symbol)
             continue;
         if (symbol->globalStorageKind() == DataSegmentKind::Compiler)
-            return builder_.reportError(std::format("compiler global [{}] is not supported by the native backend", symbol->getFullScopedName(builder_.ctx())));
+            return builder_.reportError(DiagnosticId::cmd_err_native_compiler_global_unsupported, Diagnostic::ARG_SYM, symbol->getFullScopedName(builder_.ctx()));
         if (symbol->globalStorageKind() != DataSegmentKind::GlobalInit)
             continue;
         if (symbol->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-            return builder_.reportError(std::format("undefined global [{}] is not supported by the native backend", symbol->getFullScopedName(builder_.ctx())));
+            return builder_.reportError(DiagnosticId::cmd_err_native_undefined_global_unsupported, Diagnostic::ARG_SYM, symbol->getFullScopedName(builder_.ctx()));
         if (!symbol->cstRef().isValid())
             continue;
         if (!isNativeStaticType(symbol->typeRef()))
-            return builder_.reportError(std::format("global [{}] has unsupported native static data", symbol->getFullScopedName(builder_.ctx())));
+            return builder_.reportError(DiagnosticId::cmd_err_native_static_data_unsupported, Diagnostic::ARG_SYM, symbol->getFullScopedName(builder_.ctx()));
     }
 
     for (const auto& info : state.functionInfos)
@@ -116,15 +116,15 @@ bool NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, con
         switch (relocation.kind)
         {
             case MicroRelocation::Kind::CompilerAddress:
-                return builder_.reportError(std::format("function [{}] uses compiler-only data", owner.getFullScopedName(builder_.ctx())));
+                return builder_.reportError(DiagnosticId::cmd_err_native_function_uses_compiler_data, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
 
             case MicroRelocation::Kind::LocalFunctionAddress:
             {
                 const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
                 if (!target)
-                    return builder_.reportError(std::format("function [{}] has an invalid local function relocation", owner.getFullScopedName(builder_.ctx())));
+                    return builder_.reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
                 if (!state.functionBySymbol.contains(const_cast<SymbolFunction*>(target)))
-                    return builder_.reportError(std::format("function [{}] references unsupported local function [{}]", owner.getFullScopedName(builder_.ctx()), target->getFullScopedName(builder_.ctx())));
+                    return builder_.reportError(DiagnosticId::cmd_err_native_unsupported_local_function, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()), Diagnostic::ARG_TARGET, target->getFullScopedName(builder_.ctx()));
                 break;
             }
 
@@ -132,18 +132,18 @@ bool NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, con
             {
                 const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
                 if (!target || !target->isForeign())
-                    return builder_.reportError(std::format("function [{}] has an invalid foreign function relocation", owner.getFullScopedName(builder_.ctx())));
+                    return builder_.reportError(DiagnosticId::cmd_err_native_invalid_foreign_function_relocation, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
                 break;
             }
 
             case MicroRelocation::Kind::GlobalZeroAddress:
                 if (builder_.compiler().globalZeroSegment().size() == 0)
-                    return builder_.reportError(std::format("function [{}] references an empty global zero segment", owner.getFullScopedName(builder_.ctx())));
+                    return builder_.reportError(DiagnosticId::cmd_err_native_empty_global_zero_segment, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
                 break;
 
             case MicroRelocation::Kind::GlobalInitAddress:
                 if (builder_.compiler().globalInitSegment().size() == 0)
-                    return builder_.reportError(std::format("function [{}] references an empty global init segment", owner.getFullScopedName(builder_.ctx())));
+                    return builder_.reportError(DiagnosticId::cmd_err_native_empty_global_init_segment, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
                 break;
 
             case MicroRelocation::Kind::ConstantAddress:
@@ -151,9 +151,9 @@ bool NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, con
                 uint32_t  shardIndex = 0;
                 const Ref ref        = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
                 if (ref == INVALID_REF)
-                    return builder_.reportError(std::format("function [{}] references unsupported constant storage", owner.getFullScopedName(builder_.ctx())));
+                    return builder_.reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
                 if (!validateConstantRelocation(relocation))
-                    return builder_.reportError(std::format("function [{}] references unsupported constant payload", owner.getFullScopedName(builder_.ctx())));
+                    return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
                 break;
             }
         }
@@ -287,7 +287,7 @@ bool NativeArtifactBuilder::buildStartup() const
     builder.emitRet();
 
     if (startup->code.emit(builder_.ctx(), builder) != Result::Continue)
-        return builder_.reportError("failed to lower native test entry point");
+        return builder_.reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
 
     state.startup = std::move(startup);
     return true;
@@ -370,7 +370,7 @@ bool NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName) const
     builder_.state().workDir = Os::getTemporaryPath() / std::format("swc_native_{}_{}_{}", baseName, Os::currentProcessId(), builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed));
     fs::create_directories(builder_.state().workDir, ec);
     if (ec)
-        return builder_.reportError(std::format("cannot create native backend work directory [{}]: {}", makeUtf8(builder_.state().workDir), ec.message()));
+        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, makeUtf8(builder_.state().workDir), Diagnostic::ARG_BECAUSE, ec.message());
     return true;
 }
 

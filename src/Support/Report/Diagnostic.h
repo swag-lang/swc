@@ -50,6 +50,8 @@ public:
     constexpr static std::string_view ARG_SYM                  = "{sym}";
     constexpr static std::string_view ARG_SYM_FAM              = "{sym-fam}";
     constexpr static std::string_view ARG_A_SYM_FAM            = "{a-sym-fam}";
+    constexpr static std::string_view ARG_TARGET               = "{target}";
+    constexpr static std::string_view ARG_TOOL                 = "{tool}";
 
     Diagnostic() = default;
     explicit Diagnostic(FileRef file);

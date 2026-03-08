@@ -32,7 +32,7 @@ Result NativeBackendBuilder::run()
 
     const auto linker = NativeLinker::create(*this);
     if (!linker)
-        return reportError("native linker is not implemented for this target OS") ? Result::Continue : Result::Error;
+        return reportError(DiagnosticId::cmd_err_native_linker_not_implemented) ? Result::Continue : Result::Error;
     if (!linker->link())
         return Result::Error;
 
@@ -47,12 +47,11 @@ Result NativeBackendBuilder::run()
 
 bool NativeBackendBuilder::writeObject(const uint32_t objIndex)
 {
-    if (objIndex >= state_.objectDescriptions.size())
-        return reportError("native backend object job index is out of range");
+    SWC_ASSERT(objIndex < state_.objectDescriptions.size());
 
     const auto objectWriter = NativeObjFileWriter::create(*this);
     if (!objectWriter)
-        return reportError("native object file writer is not implemented for this target OS");
+        return reportError(DiagnosticId::cmd_err_native_object_writer_not_implemented);
     return objectWriter->writeObjectFile(state_.objectDescriptions[objIndex]);
 }
 
@@ -94,21 +93,21 @@ bool NativeBackendBuilder::validateHost() const
             break;
 
         case Runtime::TargetOs::Linux:
-            return reportError("native backend object/link emission is only implemented for Windows targets");
+            return reportError(DiagnosticId::cmd_err_native_target_windows_only);
 
         default:
-            return reportError("native backend does not support this target OS");
+            return reportError(DiagnosticId::cmd_err_native_target_os_not_supported);
     }
 
     if (ctx_.cmdLine().targetArch != Runtime::TargetArch::X86_64)
-        return reportError("native backend only supports x86_64 targets");
+        return reportError(DiagnosticId::cmd_err_native_target_arch_not_supported);
     if (compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::None)
-        return reportError("native backend requires an executable, library, or export backend kind");
+        return reportError(DiagnosticId::cmd_err_native_backend_kind_required);
     if (compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable &&
         compiler_.buildCfg().backendSubKind != Runtime::BuildCfgBackendSubKind::Default &&
         compiler_.buildCfg().backendSubKind != Runtime::BuildCfgBackendSubKind::Console)
     {
-        return reportError("native backend only supports console executables");
+        return reportError(DiagnosticId::cmd_err_native_executable_subsystem_not_supported);
     }
 
     return true;
@@ -139,24 +138,27 @@ bool NativeBackendBuilder::runGeneratedArtifact() const
             break;
 
         case Os::ProcessRunResult::StartFailed:
-            return reportError(std::format("cannot start [{}]: {}", makeUtf8(state_.artifactPath), Os::systemError()));
+            return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
 
         case Os::ProcessRunResult::WaitFailed:
-            return reportError(std::format("waiting for [{}] failed", makeUtf8(state_.artifactPath)));
+            return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath));
 
         case Os::ProcessRunResult::ExitCodeFailed:
-            return reportError(std::format("cannot get exit code for [{}]: {}", makeUtf8(state_.artifactPath), Os::systemError()));
+            return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)
-        return reportError(std::format("generated executable exited with code {}", exitCode));
+        return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, exitCode);
     return true;
 }
 
-bool NativeBackendBuilder::reportError(const std::string_view because) const
+bool NativeBackendBuilder::reportError(DiagnosticId id) const
 {
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_backend);
-    diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+    return reportError(Diagnostic::get(id));
+}
+
+bool NativeBackendBuilder::reportError(Diagnostic diag) const
+{
     diag.report(const_cast<TaskContext&>(ctx_));
     return false;
 }

@@ -109,8 +109,7 @@ bool NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& ow
 bool NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const
 {
     const uint32_t patchOffset = functionOffset + relocation.codeOffset;
-    if (patchOffset + sizeof(uint64_t) > textSection.data.bytes.size())
-        return builder_.reportError("native backend text relocation offset is out of range");
+    SWC_ASSERT(patchOffset + sizeof(uint64_t) <= textSection.data.bytes.size());
 
     NativeSectionRelocation record;
     record.offset = patchOffset;
@@ -120,11 +119,9 @@ bool NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t function
         case MicroRelocation::Kind::LocalFunctionAddress:
         {
             const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
-            if (!target)
-                return builder_.reportError("native backend encountered an invalid local relocation target");
+            SWC_ASSERT(target != nullptr);
             const auto it = builder_.state().functionBySymbol.find(const_cast<SymbolFunction*>(target));
-            if (it == builder_.state().functionBySymbol.end())
-                return builder_.reportError(std::format("native backend cannot resolve local function [{}]", target->getFullScopedName(builder_.ctx())));
+            SWC_ASSERT(it != builder_.state().functionBySymbol.end());
             record.symbolName = it->second->symbolName;
             record.addend     = 0;
             writeU64(textSection.data.bytes, patchOffset, 0);
@@ -134,8 +131,7 @@ bool NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t function
         case MicroRelocation::Kind::ForeignFunctionAddress:
         {
             const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
-            if (!target)
-                return builder_.reportError("native backend encountered an invalid foreign relocation target");
+            SWC_ASSERT(target != nullptr);
             record.symbolName = target->resolveForeignFunctionName(builder_.ctx());
             record.addend     = 0;
             writeU64(textSection.data.bytes, patchOffset, 0);
@@ -146,8 +142,7 @@ bool NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t function
         {
             uint32_t  shardIndex = 0;
             const Ref ref        = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
-            if (ref == INVALID_REF)
-                return builder_.reportError("native backend cannot resolve constant relocation");
+            SWC_ASSERT(ref != INVALID_REF);
             record.symbolName = K_RDataBaseSymbol;
             record.addend     = builder_.state().rdataShardBaseOffsets[shardIndex] + ref;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
@@ -167,7 +162,7 @@ bool NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t function
             break;
 
         case MicroRelocation::Kind::CompilerAddress:
-            return builder_.reportError("native backend encountered a compiler segment relocation while emitting code");
+            SWC_UNREACHABLE();
     }
 
     textSection.relocations.push_back(record);
@@ -178,8 +173,7 @@ bool NativeObjFileWriterCoff::buildDataRelocations(CoffSectionBuild& section) co
 {
     for (const auto& relocation : section.data.relocations)
     {
-        if (relocation.offset + sizeof(uint64_t) > section.data.bytes.size())
-            return builder_.reportError("native backend data relocation offset is out of range");
+        SWC_ASSERT(relocation.offset + sizeof(uint64_t) <= section.data.bytes.size());
         writeU64(section.data.bytes, relocation.offset, relocation.addend);
         section.relocations.push_back(relocation);
     }
@@ -338,7 +332,7 @@ bool NativeObjFileWriterCoff::flushCoffFile(const fs::path&                     
         if (!section.relocations.empty())
         {
             if (section.relocations.size() > 0xFFFFu)
-                return builder_.reportError("native backend emitted too many COFF relocations in one section");
+                return builder_.reportError(DiagnosticId::cmd_err_native_too_many_coff_relocations);
             section.pointerToRelocations = fileOffset;
             section.numberOfRelocations  = static_cast<uint16_t>(section.relocations.size());
             fileOffset += static_cast<uint32_t>(section.relocations.size() * sizeof(IMAGE_RELOCATION));
@@ -390,8 +384,7 @@ bool NativeObjFileWriterCoff::flushCoffFile(const fs::path&                     
         for (const auto& relocation : section.relocations)
         {
             const auto it = symbolIndices.find(relocation.symbolName);
-            if (it == symbolIndices.end())
-                return builder_.reportError(std::format("native backend cannot resolve COFF symbol [{}]", relocation.symbolName));
+            SWC_ASSERT(it != symbolIndices.end());
 
             IMAGE_RELOCATION relocRecord{};
             relocRecord.VirtualAddress   = relocation.offset;
@@ -436,11 +429,11 @@ bool NativeObjFileWriterCoff::flushCoffFile(const fs::path&                     
 
     std::ofstream file(objPath, std::ios::binary | std::ios::trunc);
     if (!file.is_open())
-        return builder_.reportError(std::format("cannot open [{}] for writing", makeUtf8(objPath)));
+        return builder_.reportError(DiagnosticId::cmd_err_native_obj_open_failed, Diagnostic::ARG_PATH, makeUtf8(objPath));
 
     file.write(reinterpret_cast<const char*>(fileData.data()), static_cast<std::streamsize>(fileData.size()));
     if (!file.good())
-        return builder_.reportError(std::format("cannot write [{}]", makeUtf8(objPath)));
+        return builder_.reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, makeUtf8(objPath));
 
     return true;
 }

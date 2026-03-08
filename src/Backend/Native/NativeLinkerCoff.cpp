@@ -26,10 +26,10 @@ bool NativeLinkerCoff::discoverToolchain()
             return true;
 
         case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
-            return builder_.reportError("cannot find link.exe/lib.exe for the Windows native backend");
+            return builder_.reportError(DiagnosticId::cmd_err_native_toolchain_msvc_missing);
 
         case Os::WindowsToolchainDiscoveryResult::MissingWindowsSdk:
-            return builder_.reportError("cannot find Windows SDK libraries for the native backend");
+            return builder_.reportError(DiagnosticId::cmd_err_native_toolchain_sdk_missing);
     }
 
     SWC_UNREACHABLE();
@@ -55,7 +55,7 @@ bool NativeLinkerCoff::linkArtifact() const
             exePath = &toolchain_.libExe;
             break;
         case Runtime::BuildCfgBackendKind::None:
-            return builder_.reportError("invalid native backend kind");
+            SWC_UNREACHABLE();
     }
 
     uint32_t   exitCode = 0;
@@ -66,19 +66,19 @@ bool NativeLinkerCoff::linkArtifact() const
             break;
 
         case Os::ProcessRunResult::StartFailed:
-            return builder_.reportError(std::format("cannot start [{}]: {}", makeUtf8(*exePath), Os::systemError()));
+            return builder_.reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, makeUtf8(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
 
         case Os::ProcessRunResult::WaitFailed:
-            return builder_.reportError(std::format("waiting for [{}] failed", makeUtf8(*exePath)));
+            return builder_.reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, makeUtf8(*exePath));
 
         case Os::ProcessRunResult::ExitCodeFailed:
-            return builder_.reportError(std::format("cannot get exit code for [{}]: {}", makeUtf8(*exePath), Os::systemError()));
+            return builder_.reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, makeUtf8(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)
-        return builder_.reportError(std::format("{} exited with code {}", makeUtf8(exePath->filename()), exitCode));
+        return builder_.reportError(DiagnosticId::cmd_err_native_tool_failed, Diagnostic::ARG_TOOL, makeUtf8(exePath->filename()), Diagnostic::ARG_VALUE, exitCode);
     if (!fs::exists(builder_.state().artifactPath))
-        return builder_.reportError(std::format("native backend did not produce [{}]", makeUtf8(builder_.state().artifactPath)));
+        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, makeUtf8(builder_.state().artifactPath));
     return true;
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Backend/Native/NativeBackendTypes.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -19,9 +20,27 @@ public:
     NativeBackendState&       state();
     const NativeBackendState& state() const;
 
-    bool reportError(std::string_view because) const;
+    bool reportError(DiagnosticId id) const;
+
+    template<typename T1>
+    bool reportError(DiagnosticId id, std::string_view name1, T1&& value1) const
+    {
+        Diagnostic diag = Diagnostic::get(id);
+        diag.addArgument(name1, std::forward<T1>(value1));
+        return reportError(std::move(diag));
+    }
+
+    template<typename T1, typename T2>
+    bool reportError(DiagnosticId id, std::string_view name1, T1&& value1, std::string_view name2, T2&& value2) const
+    {
+        Diagnostic diag = Diagnostic::get(id);
+        diag.addArgument(name1, std::forward<T1>(value1));
+        diag.addArgument(name2, std::forward<T2>(value2));
+        return reportError(std::move(diag));
+    }
 
 private:
+    bool reportError(Diagnostic diag) const;
     bool validateHost() const;
     bool writeObjects();
     bool runGeneratedArtifact() const;

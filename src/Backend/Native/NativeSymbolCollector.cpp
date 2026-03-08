@@ -33,7 +33,7 @@ bool NativeSymbolCollector::collectSymbols()
 
     const SymbolModule* rootModule = compiler.symModule();
     if (!rootModule)
-        return builder_.reportError("semantic analysis did not produce a root symbol module");
+        return builder_.reportError(DiagnosticId::cmd_err_native_root_module_missing);
 
     collectSymbolsRec(*rootModule);
 
@@ -166,7 +166,7 @@ bool NativeSymbolCollector::scheduleCodeGen() const
     }
 
     if (!firstFile)
-        return builder_.reportError("native backend did not find a source file for code generation");
+        return builder_.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
 
     Sema        baseSema(builder_.ctx(), firstFile->nodePayloadContext(), false);
     JobManager& jobMgr = builder_.ctx().global().jobMgr();
@@ -181,7 +181,7 @@ bool NativeSymbolCollector::scheduleCodeGen() const
 
         const AstNodeRef root = info.symbol->declNodeRef();
         if (root.isInvalid())
-            return builder_.reportError(std::format("function [{}] has no declaration node for code generation", info.symbolName));
+            return builder_.reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, info.symbolName);
 
         auto* job = heapNew<CodeGenJob>(builder_.ctx(), baseSema, *info.symbol, root);
         jobMgr.enqueue(*job, JobPriority::Normal, builder_.compiler().jobClientId());
@@ -194,7 +194,7 @@ bool NativeSymbolCollector::scheduleCodeGen() const
     for (const auto& info : state.functionInfos)
     {
         if (!info.machineCode || info.machineCode->bytes.empty())
-            return builder_.reportError(std::format("function [{}] did not produce lowered machine code", info.symbolName));
+            return builder_.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, info.symbolName);
     }
 
     return true;

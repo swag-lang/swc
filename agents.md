@@ -3,7 +3,7 @@
 ## Hard Rules
 
 - After any change, always run a full build and full test; if either fails, fix it.
-- Once everything is working, run 'tools/all_dm.bat' and 'tools/all.bat' scripts to ensure no regression.
+- Once everything is working, run 'tools/full_dm.bat' and 'tools/full.bat' scripts to ensure no regression.
 - When doing a change in codegen, run it 10x times in a row, to detect non deterministic behavior.
 - If you add a new feature, add new tests in `Sema/` that cover it:
     - Verify expected successful behavior.
@@ -77,6 +77,13 @@
   ````bash
   tools/all_dm.bat
   tools/all.bat
+  `````
+
+- Run the full `--cfg` matrix:
+
+  ````bash
+  tools/full_dm.bat
+  tools/full.bat
   `````
 
 - Run all semantic tests:

@@ -1148,8 +1148,8 @@ namespace
 
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
-            const CallArgEntry& entry = mapping.paramArgs[i];
-            const bool isVariadicSlot = hasAnyVariadic && numParams && i == numParams - 1;
+            const CallArgEntry& entry          = mapping.paramArgs[i];
+            const bool          isVariadicSlot = hasAnyVariadic && numParams && i == numParams - 1;
             if (entry.argRef.isInvalid())
             {
                 if (isVariadicSlot)

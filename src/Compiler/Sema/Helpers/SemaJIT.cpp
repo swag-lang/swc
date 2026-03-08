@@ -311,9 +311,9 @@ namespace
             if (resolvedArg.passKind != CallArgumentPassKind::Direct)
                 return false;
 
-            TypeRef     argValueTypeRef = TypeRef::invalid();
-            ConstantRef argCstRef       = ConstantRef::invalid();
-            const AstNodeRef argRef     = resolvedArg.argRef;
+            TypeRef          argValueTypeRef = TypeRef::invalid();
+            ConstantRef      argCstRef       = ConstantRef::invalid();
+            const AstNodeRef argRef          = resolvedArg.argRef;
             if (argRef.isValid())
             {
                 const SemaNodeView argTypeView  = sema.viewType(argRef);

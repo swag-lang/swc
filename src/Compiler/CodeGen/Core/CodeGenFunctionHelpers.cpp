@@ -170,9 +170,18 @@ namespace
         const AstNodeRef   argRef            = arg.argRef;
         if (argRef.isValid())
         {
-            argPayload = codeGen.payload(argRef);
             const SemaNodeView argView = codeGen.viewType(argRef);
             normalizedTypeRef          = resolveNormalizedArgTypeRef(codeGen, params, argIndex, argView);
+            if (const CodeGenNodePayload* payload = codeGen.safePayload(argRef))
+            {
+                argPayload = *payload;
+            }
+            else
+            {
+                const SemaNodeView argConstView = codeGen.viewTypeConstant(argRef);
+                if (!materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()))
+                    return;
+            }
         }
         else
         {

@@ -21,26 +21,25 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     std::vector<CoffSectionBuild> sections;
     sections.push_back(std::move(textSection));
 
-    const auto& state = builder_.state();
-    if (description.includeData && !state.mergedRData.bytes.empty())
+    if (description.includeData && !builder_.mergedRData.bytes.empty())
     {
         CoffSectionBuild section;
-        section.data = state.mergedRData;
+        section.data = builder_.mergedRData;
         SWC_RESULT_VERIFY(buildDataRelocations(section));
         sections.push_back(std::move(section));
     }
 
-    if (description.includeData && !state.mergedData.bytes.empty())
+    if (description.includeData && !builder_.mergedData.bytes.empty())
     {
         CoffSectionBuild section;
-        section.data = state.mergedData;
+        section.data = builder_.mergedData;
         sections.push_back(std::move(section));
     }
 
-    if (description.includeData && state.mergedBss.bss)
+    if (description.includeData && builder_.mergedBss.bss)
     {
         CoffSectionBuild section;
-        section.data = state.mergedBss;
+        section.data = builder_.mergedBss;
         sections.push_back(std::move(section));
     }
 
@@ -114,8 +113,8 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
         {
             const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
             SWC_ASSERT(target != nullptr);
-            const auto it = builder_.state().functionBySymbol.find(const_cast<SymbolFunction*>(target));
-            SWC_ASSERT(it != builder_.state().functionBySymbol.end());
+            const auto it = builder_.functionBySymbol.find(const_cast<SymbolFunction*>(target));
+            SWC_ASSERT(it != builder_.functionBySymbol.end());
             record.symbolName = it->second->symbolName;
             record.addend     = 0;
             writeU64(textSection.data.bytes, patchOffset, 0);
@@ -138,7 +137,7 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
             const Ref ref        = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
             SWC_ASSERT(ref != INVALID_REF);
             record.symbolName = K_R_DATA_BASE_SYMBOL;
-            record.addend     = builder_.state().rdataShardBaseOffsets[shardIndex] + ref;
+            record.addend     = builder_.rdataShardBaseOffsets[shardIndex] + ref;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
             break;
         }

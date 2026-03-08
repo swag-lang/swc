@@ -23,18 +23,17 @@ Result NativeSymbolCollector::prepare()
 Result NativeSymbolCollector::collectSymbols()
 {
     auto& compiler = builder_.compiler();
-    auto& state    = builder_.state();
 
     compiler.resetNativeCodeSegment();
-    state.rawFunctions.clear();
-    state.rawTestFunctions.clear();
-    state.rawInitFunctions.clear();
-    state.rawPreMainFunctions.clear();
-    state.rawDropFunctions.clear();
-    state.rawMainFunctions.clear();
-    state.regularGlobals.clear();
-    state.functionInfos.clear();
-    state.functionBySymbol.clear();
+    builder_.rawFunctions.clear();
+    builder_.rawTestFunctions.clear();
+    builder_.rawInitFunctions.clear();
+    builder_.rawPreMainFunctions.clear();
+    builder_.rawDropFunctions.clear();
+    builder_.rawMainFunctions.clear();
+    builder_.regularGlobals.clear();
+    builder_.functionInfos.clear();
+    builder_.functionBySymbol.clear();
 
     const SymbolModule* rootModule = compiler.symModule();
     if (!rootModule)
@@ -42,15 +41,15 @@ Result NativeSymbolCollector::collectSymbols()
 
     collectSymbolsRec(*rootModule);
 
-    sortAndUnique(state.rawFunctions);
-    sortAndUnique(state.rawTestFunctions);
-    sortAndUnique(state.rawInitFunctions);
-    sortAndUnique(state.rawPreMainFunctions);
-    sortAndUnique(state.rawDropFunctions);
-    sortAndUnique(state.rawMainFunctions);
-    sortAndUnique(state.regularGlobals);
+    sortAndUnique(builder_.rawFunctions);
+    sortAndUnique(builder_.rawTestFunctions);
+    sortAndUnique(builder_.rawInitFunctions);
+    sortAndUnique(builder_.rawPreMainFunctions);
+    sortAndUnique(builder_.rawDropFunctions);
+    sortAndUnique(builder_.rawMainFunctions);
+    sortAndUnique(builder_.regularGlobals);
 
-    for (SymbolFunction* symbol : state.rawFunctions)
+    for (SymbolFunction* symbol : builder_.rawFunctions)
     {
         compiler.addNativeCodeFunction(symbol);
 
@@ -58,24 +57,24 @@ Result NativeSymbolCollector::collectSymbols()
         info.symbol      = symbol;
         info.machineCode = &symbol->loweredCode();
         info.sortKey     = makeSymbolSortKey(*symbol);
-        info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", state.functionInfos.size(), Math::hash(info.sortKey));
+        info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", builder_.functionInfos.size(), Math::hash(info.sortKey));
         info.exported    = symbol->isPublic() && !isCompilerFunction(*symbol);
         info.compilerFn  = isCompilerFunction(*symbol);
-        state.functionInfos.push_back(std::move(info));
+        builder_.functionInfos.push_back(std::move(info));
     }
 
-    for (const auto& info : state.functionInfos)
-        state.functionBySymbol.emplace(info.symbol, &info);
+    for (const auto& info : builder_.functionInfos)
+        builder_.functionBySymbol.emplace(info.symbol, &info);
 
-    for (SymbolFunction* symbol : state.rawTestFunctions)
+    for (SymbolFunction* symbol : builder_.rawTestFunctions)
         compiler.addNativeTestFunction(symbol);
-    for (SymbolFunction* symbol : state.rawInitFunctions)
+    for (SymbolFunction* symbol : builder_.rawInitFunctions)
         compiler.addNativeInitFunction(symbol);
-    for (SymbolFunction* symbol : state.rawPreMainFunctions)
+    for (SymbolFunction* symbol : builder_.rawPreMainFunctions)
         compiler.addNativePreMainFunction(symbol);
-    for (SymbolFunction* symbol : state.rawDropFunctions)
+    for (SymbolFunction* symbol : builder_.rawDropFunctions)
         compiler.addNativeDropFunction(symbol);
-    for (SymbolFunction* symbol : state.rawMainFunctions)
+    for (SymbolFunction* symbol : builder_.rawMainFunctions)
         compiler.addNativeMainFunction(symbol);
 
     return Result::Continue;
@@ -102,7 +101,7 @@ void NativeSymbolCollector::collectSymbolsRec(const SymbolMap& symbolMap)
         {
             auto* variable = const_cast<SymbolVariable*>(symbol->safeCast<SymbolVariable>());
             if (variable && variable->hasGlobalStorage())
-                builder_.state().regularGlobals.push_back(variable);
+                builder_.regularGlobals.push_back(variable);
             continue;
         }
 
@@ -128,25 +127,24 @@ void NativeSymbolCollector::collectFunction(SymbolFunction& symbol) const
     if (compilerKind == CompilerFunctionKind::Excluded)
         return;
 
-    auto& state = builder_.state();
-    state.rawFunctions.push_back(&symbol);
+    builder_.rawFunctions.push_back(&symbol);
 
     switch (compilerKind)
     {
         case CompilerFunctionKind::Test:
-            state.rawTestFunctions.push_back(&symbol);
+            builder_.rawTestFunctions.push_back(&symbol);
             break;
         case CompilerFunctionKind::Init:
-            state.rawInitFunctions.push_back(&symbol);
+            builder_.rawInitFunctions.push_back(&symbol);
             break;
         case CompilerFunctionKind::PreMain:
-            state.rawPreMainFunctions.push_back(&symbol);
+            builder_.rawPreMainFunctions.push_back(&symbol);
             break;
         case CompilerFunctionKind::Drop:
-            state.rawDropFunctions.push_back(&symbol);
+            builder_.rawDropFunctions.push_back(&symbol);
             break;
         case CompilerFunctionKind::Main:
-            state.rawMainFunctions.push_back(&symbol);
+            builder_.rawMainFunctions.push_back(&symbol);
             break;
         case CompilerFunctionKind::None:
         case CompilerFunctionKind::Excluded:
@@ -156,8 +154,7 @@ void NativeSymbolCollector::collectFunction(SymbolFunction& symbol) const
 
 Result NativeSymbolCollector::scheduleCodeGen() const
 {
-    const auto& state = builder_.state();
-    if (state.functionInfos.empty())
+    if (builder_.functionInfos.empty())
         return Result::Continue;
 
     SourceFile* firstFile = nullptr;
@@ -175,7 +172,7 @@ Result NativeSymbolCollector::scheduleCodeGen() const
 
     Sema        baseSema(builder_.ctx(), firstFile->nodePayloadContext(), false);
     JobManager& jobMgr = builder_.ctx().global().jobMgr();
-    for (const auto& info : state.functionInfos)
+    for (const auto& info : builder_.functionInfos)
     {
         if (!info.symbol)
             continue;
@@ -196,7 +193,7 @@ Result NativeSymbolCollector::scheduleCodeGen() const
     if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
         return Result::Error;
 
-    for (const auto& info : state.functionInfos)
+    for (const auto& info : builder_.functionInfos)
     {
         if (!info.machineCode || info.machineCode->bytes.empty())
             return builder_.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, info.symbolName);

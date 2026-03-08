@@ -24,7 +24,6 @@ Result NativeArtifactBuilder::build() const
 Result NativeArtifactBuilder::validateNativeData() const
 {
     const auto& compiler = builder_.compiler();
-    const auto& state    = builder_.state();
 
     if (compiler.compilerSegment().size() != 0)
         return builder_.reportError(DiagnosticId::cmd_err_native_compiler_segment_unsupported);
@@ -35,7 +34,7 @@ Result NativeArtifactBuilder::validateNativeData() const
     if (!compiler.globalInitSegment().relocations().empty())
         return builder_.reportError(DiagnosticId::cmd_err_native_global_init_relocations_unsupported);
 
-    for (const SymbolVariable* symbol : state.regularGlobals)
+    for (const SymbolVariable* symbol : builder_.regularGlobals)
     {
         if (!symbol)
             continue;
@@ -51,7 +50,7 @@ Result NativeArtifactBuilder::validateNativeData() const
             return builder_.reportError(DiagnosticId::cmd_err_native_static_data_unsupported, Diagnostic::ARG_SYM, symbol->getFullScopedName(builder_.ctx()));
     }
 
-    for (const auto& info : state.functionInfos)
+    for (const auto& info : builder_.functionInfos)
     {
         SWC_RESULT_VERIFY(validateRelocations(*info.symbol, *info.machineCode));
     }
@@ -110,8 +109,6 @@ bool NativeArtifactBuilder::isNativeStaticType(const TypeRef typeRef) const
 
 Result NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, const MachineCode& code) const
 {
-    const auto& state = builder_.state();
-
     for (const auto& relocation : code.codeRelocations)
     {
         switch (relocation.kind)
@@ -124,7 +121,7 @@ Result NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, c
                 const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
                 if (!target)
                     return builder_.reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
-                if (!state.functionBySymbol.contains(const_cast<SymbolFunction*>(target)))
+                if (!builder_.functionBySymbol.contains(const_cast<SymbolFunction*>(target)))
                     return builder_.reportError(DiagnosticId::cmd_err_native_unsupported_local_function, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()), Diagnostic::ARG_TARGET, target->getFullScopedName(builder_.ctx()));
                 break;
             }
@@ -194,22 +191,20 @@ bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& re
 
 Result NativeArtifactBuilder::prepareDataSections() const
 {
-    auto& state = builder_.state();
+    builder_.mergedRData.name            = ".rdata";
+    builder_.mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
+    builder_.mergedData.name             = ".data";
+    builder_.mergedData.characteristics  = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+    builder_.mergedBss.name              = ".bss";
+    builder_.mergedBss.characteristics   = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
 
-    state.mergedRData.name            = ".rdata";
-    state.mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
-    state.mergedData.name             = ".data";
-    state.mergedData.characteristics  = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
-    state.mergedBss.name              = ".bss";
-    state.mergedBss.characteristics   = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
-
-    state.mergedRData.bytes.clear();
-    state.mergedRData.relocations.clear();
-    state.mergedData.bytes.clear();
-    state.mergedData.relocations.clear();
-    state.mergedBss.bssSize = builder_.compiler().globalZeroSegment().size();
-    state.mergedBss.bss     = state.mergedBss.bssSize != 0;
-    state.rdataShardBaseOffsets.fill(0);
+    builder_.mergedRData.bytes.clear();
+    builder_.mergedRData.relocations.clear();
+    builder_.mergedData.bytes.clear();
+    builder_.mergedData.relocations.clear();
+    builder_.mergedBss.bssSize = builder_.compiler().globalZeroSegment().size();
+    builder_.mergedBss.bss     = builder_.mergedBss.bssSize != 0;
+    builder_.rdataShardBaseOffsets.fill(0);
 
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
@@ -218,14 +213,14 @@ Result NativeArtifactBuilder::prepareDataSections() const
         if (!segmentSize)
             continue;
 
-        const uint32_t baseOffset = Math::alignUpU32(static_cast<uint32_t>(state.mergedRData.bytes.size()), 16);
-        if (state.mergedRData.bytes.size() < baseOffset)
-            state.mergedRData.bytes.resize(baseOffset, std::byte{0});
-        state.rdataShardBaseOffsets[shardIndex] = baseOffset;
+        const uint32_t baseOffset = Math::alignUpU32(static_cast<uint32_t>(builder_.mergedRData.bytes.size()), 16);
+        if (builder_.mergedRData.bytes.size() < baseOffset)
+            builder_.mergedRData.bytes.resize(baseOffset, std::byte{0});
+        builder_.rdataShardBaseOffsets[shardIndex] = baseOffset;
 
-        const uint32_t insertOffset = static_cast<uint32_t>(state.mergedRData.bytes.size());
-        state.mergedRData.bytes.resize(insertOffset + segmentSize);
-        segment.copyTo(ByteSpanRW{state.mergedRData.bytes.data() + insertOffset, segmentSize});
+        const uint32_t insertOffset = static_cast<uint32_t>(builder_.mergedRData.bytes.size());
+        builder_.mergedRData.bytes.resize(insertOffset + segmentSize);
+        segment.copyTo(ByteSpanRW{builder_.mergedRData.bytes.data() + insertOffset, segmentSize});
 
         for (const auto& relocation : segment.relocations())
         {
@@ -233,15 +228,15 @@ Result NativeArtifactBuilder::prepareDataSections() const
             record.offset     = baseOffset + relocation.offset;
             record.symbolName = K_R_DATA_BASE_SYMBOL;
             record.addend     = baseOffset + relocation.targetOffset;
-            state.mergedRData.relocations.push_back(record);
+            builder_.mergedRData.relocations.push_back(record);
         }
     }
 
     const uint32_t dataSize = builder_.compiler().globalInitSegment().size();
     if (dataSize)
     {
-        state.mergedData.bytes.resize(dataSize);
-        builder_.compiler().globalInitSegment().copyTo(ByteSpanRW{state.mergedData.bytes.data(), dataSize});
+        builder_.mergedData.bytes.resize(dataSize);
+        builder_.compiler().globalInitSegment().copyTo(ByteSpanRW{builder_.mergedData.bytes.data(), dataSize});
     }
 
     return Result::Continue;
@@ -249,8 +244,7 @@ Result NativeArtifactBuilder::prepareDataSections() const
 
 Result NativeArtifactBuilder::buildStartup() const
 {
-    auto& state = builder_.state();
-    state.startup.reset();
+    builder_.startup.reset();
 
     if (builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
@@ -290,16 +284,15 @@ Result NativeArtifactBuilder::buildStartup() const
     if (startup->code.emit(builder_.ctx(), builder) != Result::Continue)
         return builder_.reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
 
-    state.startup = std::move(startup);
+    builder_.startup = std::move(startup);
     return Result::Continue;
 }
 
 Result NativeArtifactBuilder::partitionObjects() const
 {
-    auto& state = builder_.state();
-    state.objectDescriptions.clear();
+    builder_.objectDescriptions.clear();
 
-    const size_t functionCount = state.functionInfos.size();
+    const size_t functionCount = builder_.functionInfos.size();
     uint32_t     maxJobs       = builder_.ctx().cmdLine().numCores;
     if (!maxJobs)
         maxJobs = std::max<uint32_t>(1, builder_.ctx().global().jobMgr().numWorkers());
@@ -307,30 +300,30 @@ Result NativeArtifactBuilder::partitionObjects() const
         maxJobs = 1;
 
     const uint32_t numJobs = std::max<uint32_t>(1, static_cast<uint32_t>(functionCount ? std::min<size_t>(functionCount, maxJobs) : 1));
-    state.objectDescriptions.resize(numJobs);
+    builder_.objectDescriptions.resize(numJobs);
 
     const Utf8 baseName = artifactBaseName();
     SWC_RESULT_VERIFY(createWorkDirectory(baseName));
 
     for (uint32_t i = 0; i < numJobs; ++i)
     {
-        state.objectDescriptions[i].index       = i;
-        state.objectDescriptions[i].includeData = i == 0;
-        state.objectDescriptions[i].objPath     = state.workDir / std::format("{}_{:02}.obj", baseName, i);
+        builder_.objectDescriptions[i].index       = i;
+        builder_.objectDescriptions[i].includeData = i == 0;
+        builder_.objectDescriptions[i].objPath     = builder_.workDir / std::format("{}_{:02}.obj", baseName, i);
     }
 
-    if (state.startup)
-        state.objectDescriptions[0].startup = state.startup.get();
+    if (builder_.startup)
+        builder_.objectDescriptions[0].startup = builder_.startup.get();
 
-    for (size_t i = 0; i < state.functionInfos.size(); ++i)
+    for (size_t i = 0; i < builder_.functionInfos.size(); ++i)
     {
-        NativeFunctionInfo& info     = state.functionInfos[i];
+        NativeFunctionInfo& info     = builder_.functionInfos[i];
         const uint32_t      objIndex = static_cast<uint32_t>(i % numJobs);
         info.jobIndex                = objIndex;
-        state.objectDescriptions[objIndex].functions.push_back(&info);
+        builder_.objectDescriptions[objIndex].functions.push_back(&info);
     }
 
-    state.artifactPath = state.workDir / std::format("{}{}", baseName, artifactExtension());
+    builder_.artifactPath = builder_.workDir / std::format("{}{}", baseName, artifactExtension());
     return Result::Continue;
 }
 
@@ -373,10 +366,10 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
 Result NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName) const
 {
     std::error_code ec;
-    builder_.state().workDir = Os::getTemporaryPath() / std::format("swc_native_{}_{}_{}", baseName, Os::currentProcessId(), builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed));
-    fs::create_directories(builder_.state().workDir, ec);
+    builder_.workDir = Os::getTemporaryPath() / std::format("swc_native_{}_{}_{}", baseName, Os::currentProcessId(), builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed));
+    fs::create_directories(builder_.workDir, ec);
     if (ec)
-        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(builder_.state().workDir), Diagnostic::ARG_BECAUSE, ec.message());
+        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(builder_.workDir), Diagnostic::ARG_BECAUSE, ec.message());
     return Result::Continue;
 }
 

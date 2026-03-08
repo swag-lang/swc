@@ -57,7 +57,7 @@ Result NativeLinkerCoff::linkArtifact() const
     }
 
     uint32_t   exitCode = 0;
-    const auto result   = Os::runProcess(exitCode, *exePath, args, builder_.state().workDir);
+    const auto result   = Os::runProcess(exitCode, *exePath, args, builder_.workDir);
     switch (result)
     {
         case Os::ProcessRunResult::Ok:
@@ -72,8 +72,8 @@ Result NativeLinkerCoff::linkArtifact() const
 
     if (exitCode != 0)
         return builder_.reportError(DiagnosticId::cmd_err_native_tool_failed, Diagnostic::ARG_TOOL, FileSystem::toUtf8Path(exePath->filename()), Diagnostic::ARG_VALUE, exitCode);
-    if (!fs::exists(builder_.state().artifactPath))
-        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(builder_.state().artifactPath));
+    if (!fs::exists(builder_.artifactPath))
+        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(builder_.artifactPath));
     return Result::Continue;
 }
 
@@ -95,10 +95,10 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
         args.emplace_back("/ENTRY:mainCRTStartup");
     }
 
-    args.emplace_back(std::format("/OUT:{}", FileSystem::toUtf8Path(builder_.state().artifactPath)));
+    args.emplace_back(std::format("/OUT:{}", FileSystem::toUtf8Path(builder_.artifactPath)));
     appendLinkSearchPaths(args);
 
-    for (const auto& object : builder_.state().objectDescriptions)
+    for (const auto& object : builder_.objectDescriptions)
         args.push_back(FileSystem::toUtf8Path(object.objPath));
 
     std::set<Utf8> libraries;
@@ -108,7 +108,7 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
 
     if (dll)
     {
-        for (const auto& info : builder_.state().functionInfos)
+        for (const auto& info : builder_.functionInfos)
         {
             if (info.exported)
                 args.emplace_back(std::format("/EXPORT:{}", info.symbolName));
@@ -124,8 +124,8 @@ std::vector<Utf8> NativeLinkerCoff::buildLibArguments() const
     std::vector<Utf8> args;
     args.emplace_back("/NOLOGO");
     args.emplace_back("/MACHINE:X64");
-    args.emplace_back(std::format("/OUT:{}", FileSystem::toUtf8Path(builder_.state().artifactPath)));
-    for (const auto& object : builder_.state().objectDescriptions)
+    args.emplace_back(std::format("/OUT:{}", FileSystem::toUtf8Path(builder_.artifactPath)));
+    for (const auto& object : builder_.objectDescriptions)
         args.push_back(FileSystem::toUtf8Path(object.objPath));
     return args;
 }
@@ -158,10 +158,10 @@ void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
         }
     };
 
-    for (const auto& info : builder_.state().functionInfos)
+    for (const auto& info : builder_.functionInfos)
         collectFromCode(*info.machineCode);
-    if (builder_.state().startup)
-        collectFromCode(builder_.state().startup->code);
+    if (builder_.startup)
+        collectFromCode(builder_.startup->code);
 }
 
 void NativeLinkerCoff::appendUserLinkerArgs(std::vector<Utf8>& args) const

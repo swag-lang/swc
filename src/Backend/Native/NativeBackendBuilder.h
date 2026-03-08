@@ -10,16 +10,14 @@ class NativeBackendBuilder
 public:
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
 
-    TaskContext&              ctx();
-    const TaskContext&        ctx() const;
-    CompilerInstance&         compiler();
-    const CompilerInstance&   compiler() const;
-    NativeBackendState&       state();
-    const NativeBackendState& state() const;
+    TaskContext&            ctx();
+    const TaskContext&      ctx() const;
+    CompilerInstance&       compiler();
+    const CompilerInstance& compiler() const;
 
     Result run();
     Result writeObject(uint32_t objIndex);
-    
+
     Result reportError(DiagnosticId id) const;
 
     template<typename T1>
@@ -39,6 +37,25 @@ public:
         return reportError(std::move(diag));
     }
 
+    std::vector<SymbolFunction*>                                   rawFunctions;
+    std::vector<SymbolFunction*>                                   rawTestFunctions;
+    std::vector<SymbolFunction*>                                   rawInitFunctions;
+    std::vector<SymbolFunction*>                                   rawPreMainFunctions;
+    std::vector<SymbolFunction*>                                   rawDropFunctions;
+    std::vector<SymbolFunction*>                                   rawMainFunctions;
+    std::vector<SymbolVariable*>                                   regularGlobals;
+    std::vector<NativeFunctionInfo>                                functionInfos;
+    std::unordered_map<SymbolFunction*, const NativeFunctionInfo*> functionBySymbol;
+    std::unique_ptr<NativeStartupInfo>                             startup;
+    NativeSectionData                                              mergedRData;
+    NativeSectionData                                              mergedData;
+    NativeSectionData                                              mergedBss;
+    std::array<uint32_t, ConstantManager::SHARD_COUNT>             rdataShardBaseOffsets{};
+    std::vector<NativeObjDescription>                              objectDescriptions;
+    fs::path                                                       workDir;
+    fs::path                                                       artifactPath;
+    std::atomic<bool>                                              objWriteFailed = false;
+
 private:
     Result reportError(const Diagnostic& diag) const;
     Result validateTarget() const;
@@ -48,7 +65,6 @@ private:
     TaskContext        ctx_;
     CompilerInstance&  compiler_;
     bool               runArtifact_ = false;
-    NativeBackendState state_;
 };
 
 SWC_END_NAMESPACE();

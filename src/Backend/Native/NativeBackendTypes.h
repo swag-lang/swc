@@ -74,28 +74,6 @@ struct NativeObjDescription
     bool                             includeData = false;
 };
 
-struct NativeBackendState
-{
-    std::vector<SymbolFunction*>                                   rawFunctions;
-    std::vector<SymbolFunction*>                                   rawTestFunctions;
-    std::vector<SymbolFunction*>                                   rawInitFunctions;
-    std::vector<SymbolFunction*>                                   rawPreMainFunctions;
-    std::vector<SymbolFunction*>                                   rawDropFunctions;
-    std::vector<SymbolFunction*>                                   rawMainFunctions;
-    std::vector<SymbolVariable*>                                   regularGlobals;
-    std::vector<NativeFunctionInfo>                                functionInfos;
-    std::unordered_map<SymbolFunction*, const NativeFunctionInfo*> functionBySymbol;
-    std::unique_ptr<NativeStartupInfo>                             startup;
-    NativeSectionData                                              mergedRData;
-    NativeSectionData                                              mergedData;
-    NativeSectionData                                              mergedBss;
-    std::array<uint32_t, ConstantManager::SHARD_COUNT>             rdataShardBaseOffsets{};
-    std::vector<NativeObjDescription>                              objectDescriptions;
-    fs::path                                                       workDir;
-    fs::path                                                       artifactPath;
-    std::atomic<bool>                                              objWriteFailed = false;
-};
-
 class NativeBackendBuilder;
 class NativeArtifactBuilder;
 class NativeLinker;

@@ -19,7 +19,7 @@ JobResult NativeObjJob::exec()
     if (!builder_)
         return JobResult::Done;
     if (builder_->writeObject(objIndex_) != Result::Continue)
-        builder_->state().objWriteFailed.store(true, std::memory_order_release);
+        builder_->objWriteFailed.store(true, std::memory_order_release);
     return JobResult::Done;
 }
 

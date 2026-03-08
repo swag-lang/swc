@@ -1,9 +1,8 @@
 #global fileprivate
-#global skip
 using Swag
 
 //#[PrintBc]
-#test
+#run
 {
     let b = "abcd"
     @assert(b[0] == cast(u8) 'a''rune)

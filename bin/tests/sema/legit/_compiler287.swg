@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
+
 //#[Swag.PrintBc]
-#test
+#run
 {
     var a: bool = true
     let b  = &a
@@ -9,7 +9,7 @@
     @assert(c == true)
 }
 
-#test
+#run
 {
     var a: s32 = 666
     let b  = &a

@@ -67,18 +67,12 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
     if (description.startup)
         appendCode(description.startup->textOffset, description.startup->code.bytes);
     for (NativeFunctionInfo* info : description.functions)
-    {
-        if (info)
-            appendCode(info->textOffset, info->machineCode->bytes);
-    }
+        appendCode(info->textOffset, info->machineCode->bytes);
 
     if (description.startup)
         SWC_RESULT_VERIFY(appendCodeRelocations(*description.startup, description.startup->code, textSection));
     for (const NativeFunctionInfo* info : description.functions)
-    {
-        if (info)
-            SWC_RESULT_VERIFY(appendCodeRelocations(*info, *info->machineCode, textSection));
-    }
+        SWC_RESULT_VERIFY(appendCodeRelocations(*info, *info->machineCode, textSection));
 
     return Result::Continue;
 }
@@ -87,7 +81,6 @@ Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& s
 {
     for (const auto& relocation : code.codeRelocations)
         SWC_RESULT_VERIFY(appendSingleCodeRelocation(startup.textOffset, relocation, textSection));
-
     return Result::Continue;
 }
 
@@ -95,7 +88,6 @@ Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& 
 {
     for (const auto& relocation : code.codeRelocations)
         SWC_RESULT_VERIFY(appendSingleCodeRelocation(owner.textOffset, relocation, textSection));
-
     return Result::Continue;
 }
 

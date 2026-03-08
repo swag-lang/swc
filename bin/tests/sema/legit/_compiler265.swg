@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 func test2(v: s32)->s32
 {
     if (v == 1) do
@@ -15,7 +15,7 @@ func test1(v: s32)->s32
     return v * test2(v - 1)
 }
 
-#test
+#run
 {
     @assert(test2(5) == 120)
     @assert(test2(4) == 24)

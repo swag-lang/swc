@@ -303,28 +303,67 @@ void SymbolFunction::jit(TaskContext& ctx)
 
     SmallVector<SymbolFunction*> jitOrder;
     appendDepOrder(jitOrder, *this);
+
+    SmallVector<SymbolFunction*> preparedFunctions;
+    preparedFunctions.reserve(jitOrder.size());
     for (SymbolFunction* function : jitOrder)
     {
         if (ctx.state().jitEmissionError)
             return;
-        function->jitEmit(ctx);
+        if (function->jitPrepare(ctx))
+            preparedFunctions.push_back(function);
+    }
+
+    for (SymbolFunction* function : preparedFunctions)
+    {
+        if (ctx.state().jitEmissionError)
+            return;
+        function->jitPatch(ctx);
+    }
+
+    for (SymbolFunction* function : preparedFunctions)
+    {
+        if (ctx.state().jitEmissionError)
+            return;
+        function->jitFinalize(ctx);
     }
 }
 
-void SymbolFunction::jitEmit(TaskContext& ctx)
+bool SymbolFunction::jitPrepare(TaskContext& ctx)
+{
+    const std::scoped_lock lock(emitMutex_);
+    if (ctx.state().jitEmissionError)
+        return false;
+
+    if (hasJitEntryAddress())
+        return false;
+
+    if (!hasLoweredCode())
+    {
+        ctx.state().jitEmissionError = true;
+        return false;
+    }
+
+    JIT::prepare(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.unwindInfo);
+    void* const entry = jitExecMemory_.entryPoint();
+    if (!entry)
+    {
+        ctx.state().jitEmissionError = true;
+        return false;
+    }
+
+    jitEntryAddress_.store(entry, std::memory_order_release);
+    return true;
+}
+
+void SymbolFunction::jitPatch(TaskContext& ctx)
 {
     const std::scoped_lock lock(emitMutex_);
     if (ctx.state().jitEmissionError)
         return;
 
-    if (hasJitEntryAddress())
+    if (!hasJitEntryAddress())
         return;
-
-    if (!hasLoweredCode())
-    {
-        ctx.state().jitEmissionError = true;
-        return;
-    }
 
     auto relocations = loweredMicroCode_.codeRelocations;
     for (MicroRelocation& relocation : relocations)
@@ -339,16 +378,19 @@ void SymbolFunction::jitEmit(TaskContext& ctx)
         relocation.targetAddress = MicroRelocation::K_SELF_ADDRESS;
     }
 
-    JIT::emit(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), relocations, loweredMicroCode_.unwindInfo);
-    void* const entry = jitExecMemory_.entryPoint();
-    if (!entry)
-    {
-        ctx.state().jitEmissionError = true;
+    JIT::patch(ctx, jitExecMemory_, relocations);
+}
+
+void SymbolFunction::jitFinalize(TaskContext& ctx)
+{
+    const std::scoped_lock lock(emitMutex_);
+    if (ctx.state().jitEmissionError)
         return;
-    }
 
-    jitEntryAddress_.store(entry, std::memory_order_release);
+    if (!hasJitEntryAddress())
+        return;
 
+    JIT::finalize(jitExecMemory_);
     ctx.compiler().notifyAlive();
 }
 

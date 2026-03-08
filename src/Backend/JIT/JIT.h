@@ -31,6 +31,9 @@ enum class JITCallErrorKind : uint8_t
 class JIT final
 {
 public:
+    static void   prepare(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const std::byte> unwindInfo = {});
+    static void   patch(TaskContext& ctx, const JITMemory& executableMemory, std::span<const MicroRelocation> relocations);
+    static void   finalize(JITMemory& executableMemory);
     static void   emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, std::span<const std::byte> unwindInfo = {});
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret);
     static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr);

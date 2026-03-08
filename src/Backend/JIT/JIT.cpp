@@ -195,7 +195,7 @@ namespace
     }
 }
 
-void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo)
+void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteSpan linearCode, const std::span<const std::byte> unwindInfo)
 {
     SWC_ASSERT(!linearCode.empty());
     SWC_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
@@ -213,7 +213,6 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
     ByteSpanRW writableCode;
     writableCode = asByteSpan(static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size());
     std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
-    patchRelocations(ctx, writableCode, relocations);
 
     if (registerSehUnwind)
     {
@@ -222,11 +221,27 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
         outExecutableMemory.unwindInfoOffset_ = codeSize;
         outExecutableMemory.unwindInfoSize_   = static_cast<uint32_t>(unwindInfo.size());
     }
+}
 
-    JITMemoryManager::makeExecutable(outExecutableMemory);
+void JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std::span<const MicroRelocation> relocations)
+{
+    SWC_ASSERT(!executableMemory.empty());
+    ByteSpanRW writableCode;
+    writableCode = asByteSpan(static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size());
+    patchRelocations(ctx, writableCode, relocations);
+}
 
-    if (registerSehUnwind)
-        JITMemoryManager::registerUnwindInfo(outExecutableMemory);
+void JIT::finalize(JITMemory& executableMemory)
+{
+    JITMemoryManager::makeExecutable(executableMemory);
+    JITMemoryManager::registerUnwindInfo(executableMemory);
+}
+
+void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo)
+{
+    prepare(ctx, outExecutableMemory, linearCode, unwindInfo);
+    patch(ctx, outExecutableMemory, relocations);
+    finalize(outExecutableMemory);
 }
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)

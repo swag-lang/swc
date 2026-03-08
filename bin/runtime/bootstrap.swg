@@ -708,9 +708,7 @@ namespace Swag
     // The 'OS' to target when generating native code
     enum TargetOs
     {
-        Windows     // Windows 10/11
-        Linux       // Linux (**unsupported**)
-        MaxOSX      // MacOS (**unsupported**)
+        Windows // Windows
     }
 
     // Backend options

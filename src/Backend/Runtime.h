@@ -16,7 +16,6 @@ namespace Runtime
     enum class TargetOs
     {
         Windows,
-        Linux,
     };
 
     struct TypeInfo;

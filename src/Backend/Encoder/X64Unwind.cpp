@@ -32,10 +32,6 @@ std::unique_ptr<X64Unwind> X64Unwind::create(const Runtime::TargetOs targetOs)
     {
         case Runtime::TargetOs::Windows:
             return std::make_unique<X64UnwindWindows>();
-
-        case Runtime::TargetOs::Linux:
-            return std::make_unique<X64UnwindUnsupported>();
-
         default:
             return std::make_unique<X64UnwindUnsupported>();
     }

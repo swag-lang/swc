@@ -348,15 +348,21 @@ Utf8 NativeArtifactBuilder::artifactBaseName() const
 
 Utf8 NativeArtifactBuilder::artifactExtension() const
 {
-    switch (builder_.compiler().buildCfg().backendKind)
+    switch (builder_.ctx().cmdLine().targetOs)
     {
-        case Runtime::BuildCfgBackendKind::Executable:
-            return ".exe";
-        case Runtime::BuildCfgBackendKind::Library:
-            return ".dll";
-        case Runtime::BuildCfgBackendKind::Export:
-            return ".lib";
-        case Runtime::BuildCfgBackendKind::None:
+        case Runtime::TargetOs::Windows:
+            switch (builder_.compiler().buildCfg().backendKind)
+            {
+                case Runtime::BuildCfgBackendKind::Executable:
+                    return ".exe";
+                case Runtime::BuildCfgBackendKind::Library:
+                    return ".dll";
+                case Runtime::BuildCfgBackendKind::Export:
+                    return ".lib";
+                case Runtime::BuildCfgBackendKind::None:
+                    break;
+            }
+            
             break;
     }
 

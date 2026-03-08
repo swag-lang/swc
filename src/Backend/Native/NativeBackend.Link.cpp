@@ -74,7 +74,7 @@ namespace NativeBackendDetail
                 }
             }
 
-            std::ranges::sort(versionRoots, std::greater<>{}, [](const fs::path& path) {
+            std::ranges::sort(versionRoots, std::greater{}, [](const fs::path& path) {
                 return path.filename().generic_string();
             });
             for (const auto& one : versionRoots)
@@ -130,7 +130,7 @@ namespace NativeBackendDetail
                     versions.push_back(it->path());
             }
 
-            std::ranges::sort(versions, std::greater<>{}, [](const fs::path& path) {
+            std::ranges::sort(versions, std::greater{}, [](const fs::path& path) {
                 return path.filename().generic_string();
             });
             for (const auto& version : versions)

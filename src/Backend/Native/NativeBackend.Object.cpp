@@ -346,7 +346,7 @@ namespace NativeBackendDetail
         const uint32_t stringTableOffset = fileOffset;
         fileOffset += stringTable.size;
 
-        std::vector<std::byte> fileData(fileOffset, std::byte{0});
+        std::vector fileData(fileOffset, std::byte{0});
 
         IMAGE_FILE_HEADER header{};
         header.Machine              = IMAGE_FILE_MACHINE_AMD64;

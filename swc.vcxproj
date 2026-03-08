@@ -208,6 +208,8 @@
         <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemory.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackend.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeBackend.Link.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeBackend.Object.cpp"/>
         <ClCompile Include="src\Backend\\ABI\CallConv.cpp"/>
         <ClCompile Include="src\Backend\\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\\ABI\ABICall.cpp"/>
@@ -548,6 +550,7 @@
         <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc"/>
         <ClInclude Include="src\\Backend\\Runtime.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackend.h"/>
+        <ClInclude Include="src\Backend\Native\NativeBackend_Priv.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h"/>

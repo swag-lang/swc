@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 func len(str: string)->u32
 {
     var p = @dataof(str)
@@ -12,7 +12,7 @@ func len(str: string)->u32
     return l
 }
 
-#test
+#run
 {
     @assert(len("toto") == 4)
     @assert(len("tonton") == 6)

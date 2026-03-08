@@ -1,9 +1,9 @@
 #global fileprivate
-#global skip
+
 var g: string
 
 //#[Swag.PrintBc]
-#test
+#run
 {
     g = "toto"; @assert(g == "toto")
     g = "titi"; @assert(g == "titi")

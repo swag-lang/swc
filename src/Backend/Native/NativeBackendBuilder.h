@@ -40,8 +40,8 @@ public:
     }
 
 private:
-    Result reportError(Diagnostic diag) const;
-    Result validateHost() const;
+    Result reportError(const Diagnostic& diag) const;
+    Result validateTarget() const;
     Result writeObjects();
     Result runGeneratedArtifact() const;
 

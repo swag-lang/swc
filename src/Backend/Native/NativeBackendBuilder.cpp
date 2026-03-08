@@ -17,7 +17,7 @@ NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const boo
 
 Result NativeBackendBuilder::run()
 {
-    SWC_RESULT_VERIFY(validateHost());
+    SWC_RESULT_VERIFY(validateTarget());
 
     NativeSymbolCollector symbolCollector(*this);
     SWC_RESULT_VERIFY(symbolCollector.prepare());
@@ -40,7 +40,6 @@ Result NativeBackendBuilder::run()
 Result NativeBackendBuilder::writeObject(const uint32_t objIndex)
 {
     SWC_ASSERT(objIndex < state_.objectDescriptions.size());
-
     const auto objectWriter = NativeObjFileWriter::create(*this);
     if (!objectWriter)
         return reportError(DiagnosticId::cmd_err_native_object_writer_not_implemented);
@@ -77,7 +76,7 @@ const NativeBackendState& NativeBackendBuilder::state() const
     return state_;
 }
 
-Result NativeBackendBuilder::validateHost() const
+Result NativeBackendBuilder::validateTarget() const
 {
     switch (ctx_.cmdLine().targetOs)
     {
@@ -142,7 +141,7 @@ Result NativeBackendBuilder::reportError(DiagnosticId id) const
     return reportError(Diagnostic::get(id));
 }
 
-Result NativeBackendBuilder::reportError(Diagnostic diag) const
+Result NativeBackendBuilder::reportError(const Diagnostic& diag) const
 {
     diag.report(const_cast<TaskContext&>(ctx_));
     return Result::Error;

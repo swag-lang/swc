@@ -1,8 +1,7 @@
 #global fileprivate
-#global skip
 using Swag
 
-#test
+#run
 {
     var i = 5
     while i > 0

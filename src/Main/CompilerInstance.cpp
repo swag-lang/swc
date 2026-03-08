@@ -299,15 +299,15 @@ void CompilerInstance::logAfter()
     const Utf8               timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
     const Logger::ScopedLock loggerLock(ctx.global().logger());
     if (Stats::get().numErrors.load() == 1)
-        Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::BrightRed, "1 error");
+        Logger::printAction(ctx, "Done", "1 error");
     else if (Stats::get().numErrors.load() > 1)
-        Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::BrightRed, std::format("{} errors", Stats::get().numErrors.load()));
+        Logger::printAction(ctx, "Done", std::format("{} errors", Stats::get().numErrors.load()));
     else if (Stats::get().numWarnings.load() == 1)
-        Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::Magenta, std::format("{} (1 warning)", timeSrc));
+        Logger::printAction(ctx, "Done", std::format("{} (1 warning)", timeSrc));
     else if (Stats::get().numWarnings.load() > 1)
-        Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::Magenta, std::format("{} ({} warnings)", timeSrc, Stats::get().numWarnings.load()));
+        Logger::printAction(ctx, "Done", std::format("{} ({} warnings)", timeSrc, Stats::get().numWarnings.load()));
     else
-        Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::White, timeSrc);
+        Logger::printAction(ctx, "Done", timeSrc);
 }
 
 void CompilerInstance::logStats()

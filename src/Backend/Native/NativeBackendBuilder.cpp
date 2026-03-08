@@ -18,7 +18,7 @@ namespace
     void logArtifactAction(const TaskContext& ctx, std::string_view action, const fs::path& artifactPath)
     {
         const Logger::ScopedLock loggerLock(ctx.global().logger());
-        Logger::printHeaderCentered(ctx, LogColor::Green, action, LogColor::White, FileSystem::toUtf8Path(artifactPath.filename()));
+        Logger::printAction(ctx, action, FileSystem::toUtf8Path(artifactPath.filename()));
     }
 }
 

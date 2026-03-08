@@ -85,4 +85,15 @@ void Logger::printHeaderCentered(const TaskContext& ctx,
     print(ctx, "\n");
 }
 
+void Logger::printAction(const TaskContext& ctx, std::string_view left, std::string_view right)
+{
+    LogColor rightColor = LogColor::White;
+    if (right.contains("error"))
+        rightColor = LogColor::BrightRed;
+    else if (right.contains("warning"))
+        rightColor = LogColor::Magenta;
+
+    printHeaderCentered(ctx, LogColor::Green, left, rightColor, right);
+}
+
 SWC_END_NAMESPACE();

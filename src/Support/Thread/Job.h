@@ -15,6 +15,7 @@ enum class JobKind
     Parser,
     Sema,
     CodeGen,
+    NativeObj,
 };
 
 enum class JobPriority : std::uint8_t

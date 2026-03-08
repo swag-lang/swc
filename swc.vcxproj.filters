@@ -16,6 +16,9 @@
     <Filter Include="src\Backend\JIT">
       <UniqueIdentifier>{89C8AF00-175F-FFEC-A7C3-CB670F61F359}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Backend\Native">
+      <UniqueIdentifier>{D3FB39C8-C0A6-4B7F-90C2-2C9CA80D3D28}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Backend\Micro">
       <UniqueIdentifier>{E108B75C-05FF-2D5A-2A66-1839B9A66629}</UniqueIdentifier>
     </Filter>
@@ -173,6 +176,9 @@
     </ClCompile>
     <ClCompile Include="src\Backend\JIT\JITMemory.cpp">
       <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Native\NativeBackend.cpp">
+      <Filter>src\Backend\Native</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\ABI\CallConv.cpp">
       <Filter>src\Backend\ABI</Filter>
@@ -436,6 +442,9 @@
       <Filter>src\Main</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\Command.Syntax.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Command.Test.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\CommandLineParser.cpp">
@@ -790,6 +799,9 @@
   <ItemGroup>
     <ClInclude Include="src\Backend\Backend.h">
       <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeBackend.h">
+      <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantPropagation.Private.h">
       <Filter>src\Backend\Micro\Passes</Filter>

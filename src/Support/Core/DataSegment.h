@@ -20,13 +20,16 @@ struct DataSegmentRelocation
 class DataSegment
 {
 public:
-    std::pair<ByteSpan, Ref>         addSpan(ByteSpan value);
-    std::pair<ByteSpan, Ref>         addSpan(ByteSpan value, uint32_t align);
-    std::pair<std::string_view, Ref> addString(const Utf8& value);
-    uint32_t                         addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
-    void                             addRelocation(uint32_t offset, uint32_t targetOffset);
-    std::pair<uint32_t, std::byte*>  reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
-    Ref                              findRef(const void* ptr) const noexcept { return store_.findRef(ptr); }
+    std::pair<ByteSpan, Ref>                  addSpan(ByteSpan value);
+    std::pair<ByteSpan, Ref>                  addSpan(ByteSpan value, uint32_t align);
+    std::pair<std::string_view, Ref>          addString(const Utf8& value);
+    uint32_t                                  addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
+    void                                      addRelocation(uint32_t offset, uint32_t targetOffset);
+    std::pair<uint32_t, std::byte*>           reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
+    Ref                                       findRef(const void* ptr) const noexcept { return store_.findRef(ptr); }
+    uint32_t                                  size() const noexcept;
+    void                                      copyTo(ByteSpanRW dst) const;
+    const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
 #if SWC_HAS_STATS
     size_t memStorageReserved() const;
 #endif

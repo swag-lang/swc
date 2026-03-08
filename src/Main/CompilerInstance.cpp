@@ -110,6 +110,13 @@ namespace
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
 
+        if (cmdLine.backendKindName == "exe")
+            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Executable;
+        else if (cmdLine.backendKindName == "dll")
+            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Library;
+        else if (cmdLine.backendKindName == "lib")
+            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Export;
+
         if (cmdLine.verify)
         {
             buildCfg.backend.debugInfo        = true;
@@ -387,6 +394,9 @@ void CompilerInstance::processCommand()
         case CommandKind::Sema:
             Command::sema(*this);
             break;
+        case CommandKind::Test:
+            Command::test(*this);
+            break;
         default:
             SWC_UNREACHABLE();
     }
@@ -422,6 +432,52 @@ void CompilerInstance::initPerThreadRuntimeContextForJit()
     PerThreadData& td              = perThreadData_[JobManager::threadIndex()];
     td.runtimeContext.runtimeFlags = Runtime::RuntimeFlags::FromCompiler;
     setRuntimeContextForCurrentThread(&td.runtimeContext);
+}
+
+void CompilerInstance::resetNativeCodeSegment()
+{
+    nativeCodeSegment_.clear();
+    nativeTestFunctions_.clear();
+    nativeInitFunctions_.clear();
+    nativePreMainFunctions_.clear();
+    nativeDropFunctions_.clear();
+    nativeMainFunctions_.clear();
+}
+
+void CompilerInstance::addNativeCodeFunction(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+    nativeCodeSegment_.push_back(symbol);
+}
+
+void CompilerInstance::addNativeTestFunction(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+    nativeTestFunctions_.push_back(symbol);
+}
+
+void CompilerInstance::addNativeInitFunction(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+    nativeInitFunctions_.push_back(symbol);
+}
+
+void CompilerInstance::addNativePreMainFunction(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+    nativePreMainFunctions_.push_back(symbol);
+}
+
+void CompilerInstance::addNativeDropFunction(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+    nativeDropFunctions_.push_back(symbol);
+}
+
+void CompilerInstance::addNativeMainFunction(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+    nativeMainFunctions_.push_back(symbol);
 }
 
 ExitCode CompilerInstance::run()

@@ -47,6 +47,18 @@ void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
     relocations_.push_back({.offset = offset, .targetOffset = targetOffset});
 }
 
+uint32_t DataSegment::size() const noexcept
+{
+    const std::shared_lock lock(mutex_);
+    return store_.size();
+}
+
+void DataSegment::copyTo(ByteSpanRW dst) const
+{
+    const std::shared_lock lock(mutex_);
+    store_.copyTo(dst);
+}
+
 std::pair<uint32_t, std::byte*> DataSegment::reserveBytes(uint32_t size, uint32_t align, bool zeroInit)
 {
     const std::unique_lock         lock(mutex_);

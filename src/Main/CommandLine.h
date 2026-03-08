@@ -13,6 +13,7 @@ struct CommandInfo
 inline constexpr CommandInfo COMMANDS[] = {
     {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
     {"sema", "Perform semantic analysis on the source code, including type checking."},
+    {"test", "Generate native objects, link a real executable or library, and run collected #test functions for executables."},
 };
 
 enum class CommandKind
@@ -20,6 +21,7 @@ enum class CommandKind
     Invalid = -1,
     Syntax,
     Sema,
+    Test,
 };
 
 struct CommandLine
@@ -37,8 +39,9 @@ struct CommandLine
     Utf8 targetCpu = "unknown-cpu";
 #endif
 
-    Utf8                buildCfg       = "fast-debug";
-    Utf8                targetArchName = "x86_64";
+    Utf8                buildCfg        = "fast-debug";
+    Utf8                targetArchName  = "x86_64";
+    Utf8                backendKindName = "exe";
     std::optional<bool> backendOptimize;
 
     bool logColor        = true;

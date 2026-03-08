@@ -9,3 +9,4 @@ SWC_DIAG_DEF(cmdline_err_invalid_folder, Error, "invalid folder path: '{path}'; 
 SWC_DIAG_DEF(cmdline_err_invalid_file, Error, "invalid file path: '{path}'; {because}")
 
 SWC_DIAG_DEF(cmd_err_no_input, Error, "no input file specified")
+SWC_DIAG_DEF(cmd_err_native_backend, Error, "native backend failed; {because}")

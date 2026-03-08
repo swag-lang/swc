@@ -85,6 +85,7 @@ public:
     void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     Result              emit(TaskContext& ctx);
     void                jit(TaskContext& ctx);
+    const MachineCode&  loweredCode() const noexcept { return loweredMicroCode_; }
 
 private:
     bool hasLoweredCode() const noexcept;
@@ -113,7 +114,7 @@ private:
     std::vector<SymbolFunction*> callDependencies_;
     std::mutex                   emitMutex_;
     JITMemory                    jitExecMemory_;
-    std::atomic<void*>           jitPreparedAddress_ = nullptr;
+    std::atomic<void*>           jitPreparedAddress_  = nullptr;
     std::atomic<void*>           jitEntryAddress_     = nullptr;
     std::atomic<bool>            codeGenJobScheduled_ = false;
 };

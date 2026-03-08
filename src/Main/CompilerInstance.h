@@ -74,6 +74,21 @@ public:
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
+    void                setSymModule(SymbolModule* symModule) { symModule_ = symModule; }
+
+    void                                resetNativeCodeSegment();
+    void                                addNativeCodeFunction(SymbolFunction* symbol);
+    void                                addNativeTestFunction(SymbolFunction* symbol);
+    void                                addNativeInitFunction(SymbolFunction* symbol);
+    void                                addNativePreMainFunction(SymbolFunction* symbol);
+    void                                addNativeDropFunction(SymbolFunction* symbol);
+    void                                addNativeMainFunction(SymbolFunction* symbol);
+    const std::vector<SymbolFunction*>& nativeCodeSegment() const { return nativeCodeSegment_; }
+    const std::vector<SymbolFunction*>& nativeTestFunctions() const { return nativeTestFunctions_; }
+    const std::vector<SymbolFunction*>& nativeInitFunctions() const { return nativeInitFunctions_; }
+    const std::vector<SymbolFunction*>& nativePreMainFunctions() const { return nativePreMainFunctions_; }
+    const std::vector<SymbolFunction*>& nativeDropFunctions() const { return nativeDropFunctions_; }
+    const std::vector<SymbolFunction*>& nativeMainFunctions() const { return nativeMainFunctions_; }
 
     void setupSema(TaskContext& ctx);
     void notifyAlive() { changed_ = true; }
@@ -171,6 +186,12 @@ private:
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;
     std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
+    std::vector<SymbolFunction*>                       nativeCodeSegment_;
+    std::vector<SymbolFunction*>                       nativeTestFunctions_;
+    std::vector<SymbolFunction*>                       nativeInitFunctions_;
+    std::vector<SymbolFunction*>                       nativePreMainFunctions_;
+    std::vector<SymbolFunction*>                       nativeDropFunctions_;
+    std::vector<SymbolFunction*>                       nativeMainFunctions_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

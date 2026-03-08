@@ -55,6 +55,7 @@ namespace Command
         const IdentifierRef idRef           = ctx.idMgr().addIdentifier("test", Math::hash("test"));
         auto*               moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
         symModule->addSingleSymbol(ctx, moduleNamespace);
+        compiler.setSymModule(symModule);
 
         for (SourceFile* f : files)
         {

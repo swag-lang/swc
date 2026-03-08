@@ -263,4 +263,29 @@ TypeRef ConstantManager::makeTypeValue(Sema& sema, ConstantRef cstRef) const
     return cst.typeRef();
 }
 
+const DataSegment& ConstantManager::shardDataSegment(const uint32_t index) const
+{
+    SWC_ASSERT(index < SHARD_COUNT);
+    return shards_[index].dataSegment;
+}
+
+Ref ConstantManager::findDataSegmentRef(uint32_t& outShardIndex, const void* ptr) const noexcept
+{
+    outShardIndex = 0;
+    if (!ptr)
+        return INVALID_REF;
+
+    for (uint32_t i = 0; i < SHARD_COUNT; ++i)
+    {
+        const Ref ref = shards_[i].dataSegment.findRef(ptr);
+        if (ref == INVALID_REF)
+            continue;
+
+        outShardIndex = i;
+        return ref;
+    }
+
+    return INVALID_REF;
+}
+
 SWC_END_NAMESPACE();

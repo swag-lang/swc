@@ -12,8 +12,9 @@ set "EXTRA=%3 %4 %5 %6 %7 %8 %9"
 
 if /I "%SUITE%"=="sema" goto :sema
 if /I "%SUITE%"=="syntax" goto :syntax
+if /I "%SUITE%"=="test" goto :test
 
-echo Unknown suite "%SUITE%". Expected "sema" or "syntax".
+echo Unknown suite "%SUITE%". Expected "sema", "syntax", or "test".
 exit /b 2
 
 :sema
@@ -34,6 +35,14 @@ if errorlevel 1 exit /b %errorlevel%
 %EXE% syntax -d "%ROOT%\bin\examples" %EXTRA%
 exit /b %errorlevel%
 
+:test
+%EXE% test --no-runtime --no-verify --backend-kind exe --num-cores 2 -d "%ROOT%\bin\tests\test" %EXTRA%
+if errorlevel 1 exit /b %errorlevel%
+%EXE% test --no-runtime --no-verify --backend-kind dll --num-cores 2 -d "%ROOT%\bin\tests\test" %EXTRA%
+if errorlevel 1 exit /b %errorlevel%
+%EXE% test --no-runtime --no-verify --backend-kind lib --num-cores 2 -d "%ROOT%\bin\tests\test" %EXTRA%
+exit /b %errorlevel%
+
 :usage
-echo Usage: _suite.bat ^<sema^|syntax^> ^<exe^> [extra args...]
+echo Usage: _suite.bat ^<sema^|syntax^|test^> ^<exe^> [extra args...]
 exit /b 2

@@ -9,3 +9,4 @@ SWC_DIAG_DEF(cmdline_err_invalid_folder)
 SWC_DIAG_DEF(cmdline_err_invalid_file)
 
 SWC_DIAG_DEF(cmd_err_no_input)
+SWC_DIAG_DEF(cmd_err_native_backend)

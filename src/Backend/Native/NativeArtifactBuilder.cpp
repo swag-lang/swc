@@ -2,8 +2,8 @@
 
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
-#include "Main/Global.h"
 #include "Main/FileSystem.h"
+#include "Main/Global.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -356,7 +356,7 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
                 case Runtime::BuildCfgBackendKind::None:
                     break;
             }
-            
+
             break;
     }
 

@@ -62,9 +62,9 @@ private:
     Result writeObjects();
     Result runGeneratedArtifact() const;
 
-    TaskContext        ctx_;
-    CompilerInstance&  compiler_;
-    bool               runArtifact_ = false;
+    TaskContext       ctx_;
+    CompilerInstance& compiler_;
+    bool              runArtifact_ = false;
 };
 
 SWC_END_NAMESPACE();

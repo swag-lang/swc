@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
+
 //#[Swag.PrintBc]
-#test
+#run
 {
     var a: [2, 2] s32
     //@assert(#sizeof(a) == 2'u32 * 2'u32 * #sizeof(s32));

@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
+
 //#[Swag.PrintBc]
-#test
+#run
 {
     var a: s32 = 1
     var b  = &a

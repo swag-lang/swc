@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 var a: [6] s32
 #assert(#sizeof(a) == 24)
 

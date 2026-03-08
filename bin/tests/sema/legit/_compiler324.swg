@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
-//#[Swag.PrintBc]
-#test
+
+//#[Swag.PrintMicro]
+#run
 {
     var a: [4] s32
     a[0] = 1; a[1] = 2; a[2] = 20; a[3] = 30; @assert(a[0] == 1)

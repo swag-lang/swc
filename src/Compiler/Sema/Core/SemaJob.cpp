@@ -17,7 +17,7 @@ SemaJob::SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool d
     };
 }
 
-SemaJob::SemaJob(const TaskContext& ctx, const Sema& parentSema, AstNodeRef root) :
+SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root) :
     Job(ctx, JobKind::Sema),
     sema_(Job::ctx(), parentSema, root)
 {

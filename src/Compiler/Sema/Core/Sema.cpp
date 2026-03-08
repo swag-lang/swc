@@ -28,10 +28,10 @@ Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass) :
     pushFrame({});
 }
 
-Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
+Sema::Sema(TaskContext& ctx, Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
     nodePayloadContext_(parent.nodePayloadContext_),
-    startSymMap_(parent.curScope_ ? parent.curScope_->symMap() : parent.startSymMap_)
+    startSymMap_(parent.curScope_ ? (parent.curScope_->isTopLevel() ? SemaFrame::currentSymMap(parent) : parent.curScope_->symMap()) : parent.startSymMap_)
 {
     visit_.start(nodePayloadContext_->ast(), root);
     pushFrame(parent.frame());
@@ -48,6 +48,8 @@ Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     }
 
     curScope_ = scopes_.empty() ? nullptr : scopes_.back().get();
+    if (curScope_ && curScope_->isTopLevel())
+        curScope_->setSymMap(startSymMap_);
 }
 
 Sema::~Sema() = default;

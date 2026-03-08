@@ -21,7 +21,7 @@ class Sema
 {
 public:
     Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass);
-    Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
+    Sema(TaskContext& ctx, Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();
     Result    execResult();

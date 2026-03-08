@@ -1,8 +1,7 @@
 #global fileprivate
-#global skip
 func test1()->s32 { return 666; }
 
-#test
+#run
 {
     @assert(test1() == 666)
 }

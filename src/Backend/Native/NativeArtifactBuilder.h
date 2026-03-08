@@ -22,7 +22,6 @@ private:
     Utf8        artifactBaseName() const;
     Utf8        artifactExtension() const;
     Result      createWorkDirectory(const Utf8& baseName) const;
-    static Utf8 sanitizeName(Utf8 value);
 
     NativeBackendBuilder& builder_;
 };

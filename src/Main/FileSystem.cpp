@@ -166,6 +166,42 @@ Utf8 FileSystem::formatFileLocation(const TaskContext* ctx, const fs::path& file
     return out;
 }
 
+Utf8 FileSystem::toUtf8Path(const fs::path& path)
+{
+    return {path.generic_string()};
+}
+
+Utf8 FileSystem::sanitizeFileName(Utf8 value)
+{
+    if (value.empty())
+        return "native";
+
+    for (char& c : value)
+    {
+        if ((c >= 'a' && c <= 'z') ||
+            (c >= 'A' && c <= 'Z') ||
+            (c >= '0' && c <= '9') ||
+            c == '_' ||
+            c == '-')
+        {
+            continue;
+        }
+
+        c = '_';
+    }
+
+    return value;
+}
+
+Utf8 FileSystem::normalizeLibraryFileName(const std::string_view value)
+{
+    Utf8 out(value);
+    if (fs::path(std::string(out)).extension().empty())
+        out += ".lib";
+    out.make_lower();
+    return out;
+}
+
 Utf8 FileSystem::normalizeSystemMessage(const Utf8& msg)
 {
     Utf8 result = msg;

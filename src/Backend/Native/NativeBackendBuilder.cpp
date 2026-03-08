@@ -5,6 +5,7 @@
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Backend/Native/NativeSymbolCollector.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/LogColor.h"
@@ -17,7 +18,7 @@ namespace
     void logArtifactAction(const TaskContext& ctx, std::string_view action, const fs::path& artifactPath)
     {
         const Logger::ScopedLock loggerLock(ctx.global().logger());
-        Logger::printHeaderCentered(ctx, LogColor::Green, action, LogColor::White, makeUtf8(artifactPath.filename()));
+        Logger::printHeaderCentered(ctx, LogColor::Green, action, LogColor::White, FileSystem::toUtf8Path(artifactPath.filename()));
     }
 }
 
@@ -140,11 +141,11 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
         case Os::ProcessRunResult::Ok:
             break;
         case Os::ProcessRunResult::StartFailed:
-            return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(state_.artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
         case Os::ProcessRunResult::WaitFailed:
-            return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath));
+            return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(state_.artifactPath));
         case Os::ProcessRunResult::ExitCodeFailed:
-            return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, makeUtf8(state_.artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(state_.artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)

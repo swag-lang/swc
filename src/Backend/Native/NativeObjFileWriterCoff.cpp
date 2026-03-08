@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Main/FileSystem.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -393,11 +394,11 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
 
     std::ofstream file(objPath, std::ios::binary | std::ios::trunc);
     if (!file.is_open())
-        return builder_.reportError(DiagnosticId::cmd_err_native_obj_open_failed, Diagnostic::ARG_PATH, makeUtf8(objPath));
+        return builder_.reportError(DiagnosticId::cmd_err_native_obj_open_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(objPath));
 
     file.write(reinterpret_cast<const char*>(fileData.data()), static_cast<std::streamsize>(fileData.size()));
     if (!file.good())
-        return builder_.reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, makeUtf8(objPath));
+        return builder_.reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(objPath));
 
     return Result::Continue;
 }

@@ -3,6 +3,7 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Main/Global.h"
+#include "Main/FileSystem.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -338,11 +339,11 @@ Utf8 NativeArtifactBuilder::artifactBaseName() const
     const auto& cmdLine = builder_.ctx().cmdLine();
 
     if (!cmdLine.modulePath.empty())
-        return sanitizeName(Utf8(cmdLine.modulePath.filename().string()));
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.modulePath.filename().string()));
     if (cmdLine.files.size() == 1)
-        return sanitizeName(Utf8(cmdLine.files.begin()->stem().string()));
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.files.begin()->stem().string()));
     if (cmdLine.directories.size() == 1)
-        return sanitizeName(Utf8(cmdLine.directories.begin()->filename().string()));
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.directories.begin()->filename().string()));
     return "native_test";
 }
 
@@ -375,30 +376,8 @@ Result NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName) const
     builder_.state().workDir = Os::getTemporaryPath() / std::format("swc_native_{}_{}_{}", baseName, Os::currentProcessId(), builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed));
     fs::create_directories(builder_.state().workDir, ec);
     if (ec)
-        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, makeUtf8(builder_.state().workDir), Diagnostic::ARG_BECAUSE, ec.message());
+        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(builder_.state().workDir), Diagnostic::ARG_BECAUSE, ec.message());
     return Result::Continue;
-}
-
-Utf8 NativeArtifactBuilder::sanitizeName(Utf8 value)
-{
-    if (value.empty())
-        return "native";
-
-    for (char& c : value)
-    {
-        if ((c >= 'a' && c <= 'z') ||
-            (c >= 'A' && c <= 'Z') ||
-            (c >= '0' && c <= '9') ||
-            c == '_' ||
-            c == '-')
-        {
-            continue;
-        }
-
-        c = '_';
-    }
-
-    return value;
 }
 
 SWC_END_NAMESPACE();

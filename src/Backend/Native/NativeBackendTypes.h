@@ -28,11 +28,6 @@ inline std::optional<NativeObjectFormat> getNativeObjFormat(const Runtime::Targe
     }
 }
 
-inline Utf8 makeUtf8(const fs::path& path)
-{
-    return {path.generic_string()};
-}
-
 struct NativeFunctionInfo
 {
     SymbolFunction*    symbol      = nullptr;

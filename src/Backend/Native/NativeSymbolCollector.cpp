@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeSymbolCollector.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
@@ -246,7 +247,7 @@ Utf8 NativeSymbolCollector::makeSymbolSortKey(const SymbolFunction& symbol) cons
     if (const SourceFile* file = builder_.compiler().srcView(symbol.srcViewRef()).file())
     {
         key += "|";
-        key += makeUtf8(file->path());
+        key += FileSystem::toUtf8Path(file->path());
     }
 
     key += "|";
@@ -264,7 +265,7 @@ Utf8 NativeSymbolCollector::makeSortKey(const SymbolVariable& symbol) const
     Utf8 key = symbol.getFullScopedName(builder_.ctx());
     key += "|";
     if (const SourceFile* file = builder_.compiler().srcView(symbol.srcViewRef()).file())
-        key += makeUtf8(file->path());
+        key += FileSystem::toUtf8Path(file->path());
     key += "|";
     key += std::to_string(symbol.tokRef().get());
     return key;

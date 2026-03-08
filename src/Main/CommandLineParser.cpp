@@ -1,5 +1,4 @@
 #include "pch.h"
-
 #include "CompilerInstance.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"

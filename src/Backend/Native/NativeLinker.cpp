@@ -11,10 +11,6 @@ std::unique_ptr<NativeLinker> NativeLinker::create(NativeBackendBuilder& builder
     {
         case Runtime::TargetOs::Windows:
             return std::make_unique<NativeLinkerCoff>(builder);
-
-        case Runtime::TargetOs::Linux:
-            return {};
-
         default:
             return {};
     }

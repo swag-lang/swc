@@ -23,10 +23,8 @@ Result NativeLinkerCoff::discoverToolchain()
     {
         case Os::WindowsToolchainDiscoveryResult::Ok:
             return Result::Continue;
-
         case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
             return builder_.reportError(DiagnosticId::cmd_err_native_toolchain_msvc_missing);
-
         case Os::WindowsToolchainDiscoveryResult::MissingWindowsSdk:
             return builder_.reportError(DiagnosticId::cmd_err_native_toolchain_sdk_missing);
     }
@@ -63,13 +61,10 @@ Result NativeLinkerCoff::linkArtifact() const
     {
         case Os::ProcessRunResult::Ok:
             break;
-
         case Os::ProcessRunResult::StartFailed:
             return builder_.reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, makeUtf8(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
-
         case Os::ProcessRunResult::WaitFailed:
             return builder_.reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, makeUtf8(*exePath));
-
         case Os::ProcessRunResult::ExitCodeFailed:
             return builder_.reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, makeUtf8(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
@@ -183,7 +178,7 @@ void NativeLinkerCoff::appendUserLinkerArgs(std::vector<Utf8>& args) const
     if (!linkerArgs.ptr || linkerArgs.length == 0)
         return;
 
-    const std::string_view raw(linkerArgs.ptr, static_cast<size_t>(linkerArgs.length));
+    const std::string_view raw(linkerArgs.ptr, linkerArgs.length);
     size_t                 index = 0;
     while (index < raw.size())
     {

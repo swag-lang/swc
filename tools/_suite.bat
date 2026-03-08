@@ -19,7 +19,7 @@ exit /b 2
 :sema
 %EXE% sema --verify --runtime -d "%ROOT%\bin\tests\sema" %EXTRA%
 if errorlevel 1 exit /b %errorlevel%
-%EXE% sema --verify --runtime -d "%ROOT%\bin\tests\codegen" %EXTRA%
+%EXE% sema --verify --runtime -d "%ROOT%\bin\tests\jit" %EXTRA%
 exit /b %errorlevel%
 
 :syntax

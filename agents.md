@@ -5,9 +5,7 @@
 - After any change, always run a full build and full test; if either fails, fix it.
 - Once everything is working, run 'tools/full_dm.bat' and 'tools/full.bat' scripts to ensure no regression.
 - When doing a change in codegen, run it 10x times in a row, to detect non deterministic behavior.
-- If you add a new feature, add new tests in `Sema/` that cover it:
-    - Verify expected successful behavior.
-    - Verify expected failures by asserting the correct errors are raised.
+- If you add a new feature, write new tests in the most appropriate bin/tests folder and file to cover it
 - Do not hack or make workarounds, always find the root cause of each problem.
 - Do not run a test for more than 40 seconds, as it can hang in case of failure (this timeout does not include compiling time which can be longer).
 

@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -285,6 +286,30 @@ namespace
 
         const TypeInfo& srcType = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        if (srcType.isNull() && dstType.isPointerLike())
+        {
+            const uint64_t dstSize = dstType.sizeOf(codeGen.ctx());
+            if (dstSize <= sizeof(uint64_t))
+            {
+                codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+                return Result::Continue;
+            }
+
+            SWC_ASSERT(dstSize <= std::numeric_limits<uint32_t>::max());
+            SmallVector<std::byte> typedNullBytes;
+            typedNullBytes.resize(static_cast<size_t>(dstSize));
+            std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
+
+            const SemaNodeView srcConstView = codeGen.viewTypeConstant(srcNodeRef);
+            const ConstantRef  nullCstRef   = srcConstView.cstRef().isValid() ? srcConstView.cstRef() : codeGen.cstMgr().cstNull();
+            ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, nullCstRef, dstTypeRef);
+
+            const uint64_t      storageAddress = addPayloadToConstantManagerAndGetAddress(codeGen, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+            const CodeGenNodePayload& dstPayload     = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            builder.emitLoadRegPtrReloc(dstPayload.reg, storageAddress, nullCstRef);
+            return Result::Continue;
+        }
+
         if (dstType.isString() && srcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, srcType);
         if (dstType.isSlice() && srcType.isArray())

@@ -4,6 +4,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -248,6 +249,25 @@ namespace
 
             case ConstantKind::Null:
             {
+                if (targetTypeRef.isValid())
+                {
+                    const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
+                    const uint64_t  sizeOfType = targetType.sizeOf(codeGen.ctx());
+                    if (sizeOfType > sizeof(uint64_t))
+                    {
+                        SWC_ASSERT(sizeOfType <= std::numeric_limits<uint32_t>::max());
+                        SmallVector<std::byte> typedNullBytes;
+                        typedNullBytes.resize(static_cast<size_t>(sizeOfType));
+                        std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
+                        ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef);
+
+                        const uint64_t storageAddress = addPayloadToConstantManagerAndGetAddress(codeGen, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+                        builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
+                        payload.setIsValue();
+                        return;
+                    }
+                }
+
                 builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
                 payload.setIsValue();
                 return;
@@ -364,6 +384,9 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
 
 Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
 {
+    if (codeGen.safePayload(codeGen.curNodeRef()))
+        return Result::Continue;
+
     const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
     codeGen.builder().emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
     return Result::Continue;

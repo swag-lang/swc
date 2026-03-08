@@ -8,6 +8,7 @@ enum class ExitCode
     HardwareException = -2,
     PanicBox          = -3,
     ErrorCommand      = -4,
+    CompileError      = -5,
 };
 
 SWC_END_NAMESPACE();

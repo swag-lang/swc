@@ -121,7 +121,7 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
     @assert(floatDefault(b: 4.5, a: 0.5) == 5.0)
 }
 
-/*#run
+#run
 {
     @assert(stringDefaultTag() == 1)
     @assert(stringDefaultTag("hello") == 2)
@@ -131,7 +131,7 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
     var local: s32 = 10
     @assert(!pointerDefaultIsNull(&local))
     @assert(pointerDefaultIsNull(ptr: null))
-}*/
+}
 
 #run
 {
@@ -150,3 +150,5 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
     @assert(arrayDefaultSum([5, 6, 7]) == 18)
     @assert(arrayDefaultSum(values: [9, 0, 1]) == 10)
 }
+
+

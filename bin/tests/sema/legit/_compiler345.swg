@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
+
 //#[Swag.PrintBc]
-#test
+#run
 {
     var a: s32 = undefined
     var b: *s32 = undefined

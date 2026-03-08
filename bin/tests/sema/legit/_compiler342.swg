@@ -1,6 +1,6 @@
 #global fileprivate
-#global skip
-#test
+
+#run
 {
     var a   = 0
     var b   = 0

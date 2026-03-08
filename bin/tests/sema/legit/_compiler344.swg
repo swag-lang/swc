@@ -1,7 +1,6 @@
 #global fileprivate
-#global skip
-//#[Swag.PrintBc]
-#test
+
+#run
 {
     var a: s32
     @assert(a == 0)

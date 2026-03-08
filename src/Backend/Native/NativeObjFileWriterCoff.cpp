@@ -1,15 +1,15 @@
 #include "pch.h"
-#include "Backend/Native/NativeObjectFileWriterWindowsCoff.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeObjFileWriterCoff.h"
 
 SWC_BEGIN_NAMESPACE();
 
-NativeObjectFileWriterWindowsCoff::NativeObjectFileWriterWindowsCoff(NativeBackendBuilder& builder) :
+NativeObjFileWriterCoff::NativeObjFileWriterCoff(NativeBackendBuilder& builder) :
     builder_(builder)
 {
 }
 
-bool NativeObjectFileWriterWindowsCoff::writeObjectFile(const NativeObjDescription& description)
+bool NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
 {
     CoffSectionBuild textSection;
     textSection.data.name            = ".text";
@@ -55,7 +55,7 @@ bool NativeObjectFileWriterWindowsCoff::writeObjectFile(const NativeObjDescripti
     return flushCoffFile(description.objPath, sections, symbols, symbolIndices);
 }
 
-bool NativeObjectFileWriterWindowsCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
+bool NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     const auto appendCode = [&](uint32_t& outOffset, const std::vector<std::byte>& bytes) {
         const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), 16);
@@ -84,7 +84,7 @@ bool NativeObjectFileWriterWindowsCoff::buildTextSection(const NativeObjDescript
     return true;
 }
 
-bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const
+bool NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const
 {
     for (const auto& relocation : code.codeRelocations)
     {
@@ -95,7 +95,7 @@ bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeStartu
     return true;
 }
 
-bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const
+bool NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const
 {
     for (const auto& relocation : code.codeRelocations)
     {
@@ -106,7 +106,7 @@ bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeFuncti
     return true;
 }
 
-bool NativeObjectFileWriterWindowsCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const
+bool NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const
 {
     const uint32_t patchOffset = functionOffset + relocation.codeOffset;
     if (patchOffset + sizeof(uint64_t) > textSection.data.bytes.size())
@@ -174,7 +174,7 @@ bool NativeObjectFileWriterWindowsCoff::appendSingleCodeRelocation(const uint32_
     return true;
 }
 
-bool NativeObjectFileWriterWindowsCoff::buildDataRelocations(CoffSectionBuild& section) const
+bool NativeObjFileWriterCoff::buildDataRelocations(CoffSectionBuild& section) const
 {
     for (const auto& relocation : section.data.relocations)
     {
@@ -187,12 +187,12 @@ bool NativeObjectFileWriterWindowsCoff::buildDataRelocations(CoffSectionBuild& s
     return true;
 }
 
-void NativeObjectFileWriterWindowsCoff::writeU64(std::vector<std::byte>& bytes, const uint32_t offset, const uint64_t value)
+void NativeObjFileWriterCoff::writeU64(std::vector<std::byte>& bytes, const uint32_t offset, const uint64_t value)
 {
     std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
 
-void NativeObjectFileWriterWindowsCoff::addDefinedSymbols(const NativeObjDescription&          description,
+void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription&          description,
                                                           const std::vector<CoffSectionBuild>& sections,
                                                           std::vector<CoffSymbolRecord>&       symbols,
                                                           std::unordered_map<Utf8, uint32_t>&  symbolIndices)
@@ -264,7 +264,7 @@ void NativeObjectFileWriterWindowsCoff::addDefinedSymbols(const NativeObjDescrip
     }
 }
 
-void NativeObjectFileWriterWindowsCoff::addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections,
+void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections,
                                                             std::vector<CoffSymbolRecord>&       symbols,
                                                             std::unordered_map<Utf8, uint32_t>&  symbolIndices)
 {
@@ -287,7 +287,7 @@ void NativeObjectFileWriterWindowsCoff::addUndefinedSymbols(const std::vector<Co
     }
 }
 
-bool NativeObjectFileWriterWindowsCoff::flushCoffFile(const fs::path&                           objPath,
+bool NativeObjFileWriterCoff::flushCoffFile(const fs::path&                           objPath,
                                                       std::vector<CoffSectionBuild>&            sections,
                                                       const std::vector<CoffSymbolRecord>&      symbols,
                                                       const std::unordered_map<Utf8, uint32_t>& symbolIndices) const
@@ -443,11 +443,6 @@ bool NativeObjectFileWriterWindowsCoff::flushCoffFile(const fs::path&           
         return builder_.reportError(std::format("cannot write [{}]", makeUtf8(objPath)));
 
     return true;
-}
-
-std::unique_ptr<NativeObjectFileWriter> createNativeObjectFileWriterWindowsCoff(NativeBackendBuilder& builder)
-{
-    return std::make_unique<NativeObjectFileWriterWindowsCoff>(builder);
 }
 
 SWC_END_NAMESPACE();

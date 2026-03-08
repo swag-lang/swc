@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Backend/Native/NativeObjectFileWriter.h"
+#include "Backend/Native/NativeObjFileWriter.h"
 
 SWC_BEGIN_NAMESPACE();
 
-class NativeObjectFileWriterWindowsCoff final : public NativeObjectFileWriter
+class NativeObjFileWriterCoff final : public NativeObjFileWriter
 {
 public:
-    explicit NativeObjectFileWriterWindowsCoff(NativeBackendBuilder& builder);
+    explicit NativeObjFileWriterCoff(NativeBackendBuilder& builder);
 
     bool writeObjectFile(const NativeObjDescription& description) override;
 

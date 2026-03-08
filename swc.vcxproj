@@ -213,8 +213,8 @@
         <ClCompile Include="src\Backend\Native\NativeLinker.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeLinkerCoff.cpp" />
         <ClCompile Include="src\Backend\Native\NativeObjJob.cpp"/>
-        <ClCompile Include="src\Backend\Native\NativeObjectFileWriter.cpp"/>
-        <ClCompile Include="src\Backend\Native\NativeObjectFileWriterWindowsCoff.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp" />
+        <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp" />
         <ClCompile Include="src\Backend\Native\NativeSymbolCollector.cpp"/>
         <ClCompile Include="src\Backend\\ABI\CallConv.cpp"/>
         <ClCompile Include="src\Backend\\Encoder\Encoder.cpp"/>
@@ -562,8 +562,8 @@
         <ClInclude Include="src\Backend\Native\NativeLinker.h"/>
         <ClInclude Include="src\Backend\Native\NativeLinkerCoff.h" />
         <ClInclude Include="src\Backend\Native\NativeObjJob.h"/>
-        <ClInclude Include="src\Backend\Native\NativeObjectFileWriter.h"/>
-        <ClInclude Include="src\Backend\Native\NativeObjectFileWriterWindowsCoff.h"/>
+        <ClInclude Include="src\Backend\Native\NativeObjFileWriter.h" />
+        <ClInclude Include="src\Backend\Native\NativeObjFileWriterCoff.h" />
         <ClInclude Include="src\Backend\Native\NativeSymbolCollector.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h"/>

@@ -33,7 +33,7 @@ enum class NativeObjectFormat : uint8_t
     WindowsCoff,
 };
 
-inline std::optional<NativeObjectFormat> getNativeObjectFormat(const Runtime::TargetOs targetOs)
+inline std::optional<NativeObjectFormat> getNativeObjFormat(const Runtime::TargetOs targetOs)
 {
     switch (targetOs)
     {
@@ -126,8 +126,8 @@ class NativeArtifactBuilder;
 class NativeLinker;
 class NativeLinkerCoff;
 class NativeObjJob;
-class NativeObjectFileWriter;
-class NativeObjectFileWriterWindowsCoff;
+class NativeObjFileWriter;
+class NativeObjFileWriterCoff;
 class NativeSymbolCollector;
 
 SWC_END_NAMESPACE();

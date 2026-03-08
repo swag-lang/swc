@@ -2,8 +2,8 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeLinker.h"
+#include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
-#include "Backend/Native/NativeObjectFileWriter.h"
 #include "Backend/Native/NativeSymbolCollector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -50,7 +50,7 @@ bool NativeBackendBuilder::writeObject(const uint32_t objIndex)
     if (objIndex >= state_.objectDescriptions.size())
         return reportError("native backend object job index is out of range");
 
-    const auto objectWriter = NativeObjectFileWriter::create(*this);
+    const auto objectWriter = NativeObjFileWriter::create(*this);
     if (!objectWriter)
         return reportError("native object file writer is not implemented for this target OS");
     return objectWriter->writeObjectFile(state_.objectDescriptions[objIndex]);

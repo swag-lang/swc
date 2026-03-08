@@ -1,17 +1,65 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef unwrapAliasEnumTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return typeRef;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        const TypeRef   unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
+    bool isStringCompareOperands(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        if (!nodeLeftView.type() || !nodeRightView.type())
+            return false;
+
+        const TypeRef   leftTypeRef  = unwrapAliasEnumTypeRef(sema, nodeLeftView.typeRef());
+        const TypeRef   rightTypeRef = unwrapAliasEnumTypeRef(sema, nodeRightView.typeRef());
+        const TypeInfo& leftType     = sema.typeMgr().get(leftTypeRef);
+        const TypeInfo& rightType    = sema.typeMgr().get(rightTypeRef);
+        return leftType.isString() && rightType.isString();
+    }
+
+    Result setupStringCompareRuntimeCall(Sema& sema, const AstRelationalExpr& node)
+    {
+        SymbolFunction* stringCmpFn = nullptr;
+        SWC_RESULT_VERIFY(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::StringCmp, stringCmpFn, node.codeRef()));
+        SWC_ASSERT(stringCmpFn != nullptr);
+
+        if (SymbolFunction* currentFn = sema.frame().currentFunction())
+            currentFn->addCallDependency(stringCmpFn);
+
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
+            sema.setCodeGenPayload(sema.curNodeRef(), payload);
+        }
+
+        payload->runtimeFunctionSymbol = stringCmpFn;
+        return Result::Continue;
+    }
+
     Result constantFoldEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeLeftView.cstRef() == nodeRightView.cstRef())
@@ -354,12 +402,16 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
     // Constant folding
-    if (nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid())
+    const bool canConstantFold = nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid();
+    if (canConstantFold)
     {
         ConstantRef result;
         SWC_RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
         sema.setConstant(sema.curNodeRef(), result);
     }
+
+    if (!canConstantFold && (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual) && isStringCompareOperands(sema, nodeLeftView, nodeRightView))
+        SWC_RESULT_VERIFY(setupStringCompareRuntimeCall(sema, *this));
 
     return Result::Continue;
 }

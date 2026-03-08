@@ -105,6 +105,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::ProcessInfos, .str = "ProcessInfos"},
         {.name = PredefinedName::Gvtd, .str = "Gvtd"},
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
+        {.name = PredefinedName::RuntimeStringCmp, .str = "@stringcmp"},
         {.name = PredefinedName::RuntimeTlsGetValue, .str = "__tlsGetValue"},
         {.name = PredefinedName::RuntimeRaiseException, .str = "__raiseException666"},
     };
@@ -114,6 +115,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]    = predefined(PredefinedName::RuntimeTlsGetValue);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)] = predefined(PredefinedName::RuntimeRaiseException);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::StringCmp)]      = predefined(PredefinedName::RuntimeStringCmp);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)

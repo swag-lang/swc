@@ -19,6 +19,7 @@ public:
     {
         TlsGetValue,
         RaiseException,
+        StringCmp,
         Count,
     };
 
@@ -106,6 +107,7 @@ public:
         ProcessInfos,
         Gvtd,
         BuildCfg,
+        RuntimeStringCmp,
         RuntimeTlsGetValue,
         RuntimeRaiseException,
         Count,

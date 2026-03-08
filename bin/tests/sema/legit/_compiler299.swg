@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
+
 //#[PrintBc]
-#test
+#run
 {
     @assert(@countof("toto") == 4)
     @assert(@countof("totototo") == 8)

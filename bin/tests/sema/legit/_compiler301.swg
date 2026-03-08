@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
+
 //#[Swag.PrintBc]
-#test
+#run
 {
     var str = "toto"
     var c   = @countof(str)

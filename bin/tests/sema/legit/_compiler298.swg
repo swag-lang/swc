@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 using Swag
 
 //#[PrintBc]
@@ -9,7 +8,7 @@ func test2()->string
 }
 
 //#[PrintBc]
-#test
+#run
 {
     var res = test2()
     //@op(res, count) == 5;

@@ -1,9 +1,9 @@
 #global fileprivate
-#global skip
+
 var g = "toto"
 
 //#[Swag.PrintBc]
-#test
+#run
 {
     let c = @countof(g)
     @assert(c == 4)

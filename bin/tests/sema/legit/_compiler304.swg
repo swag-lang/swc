@@ -1,7 +1,11 @@
 #global fileprivate
-#global skip
+
+var g:  bool = true
+var g1: s32 = 666
+var g2: u64 = 0xF000_000F
+
 /*
-func compare (str1: string, str2: string)-> bool
+func compare: (str1: string, str2: string)-> bool
 {
 	var count1 = @countof(str1);
 	var count2 = @countof(str2);
@@ -23,14 +27,9 @@ func compare (str1: string, str2: string)-> bool
 }*/
 
 //#[Swag.PrintBc]
-func compare(str: string)
+#run
 {
-    let count = @countof(str)
-    @assert(count == 4)
-}
-
-//#[Swag.PrintBc]
-#test
-{
-    compare("toto")
+    @assert(g == true)
+    @assert(g1 == 666)
+    @assert(g2 == 0xF000_000F)
 }

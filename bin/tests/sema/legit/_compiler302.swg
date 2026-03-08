@@ -1,7 +1,7 @@
 #global fileprivate
-#global skip
+
 //#[Swag.PrintBc]
-#test
+#run
 {
     let str = "ABCD"
     let p:  const [*] u8 = @dataof(str)

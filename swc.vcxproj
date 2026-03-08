@@ -558,7 +558,6 @@
         <ClInclude Include="src\Backend\Native\NativeArtifactBuilder.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackend.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>
-        <ClInclude Include="src\Backend\Native\NativeBackendTypes.h"/>
         <ClInclude Include="src\Backend\Native\NativeLinker.h"/>
         <ClInclude Include="src\Backend\Native\NativeLinkerCoff.h" />
         <ClInclude Include="src\Backend\Native\NativeObjJob.h"/>

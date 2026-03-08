@@ -39,7 +39,7 @@ namespace NativeBackendDetail
             sections.push_back(std::move(section));
         }
 
-        for (uint16_t i = 0; i < sections.size(); ++i)
+        for (size_t i = 0; i < sections.size(); ++i)
             sections[i].sectionNumber = static_cast<uint16_t>(i + 1);
 
         std::vector<CoffSymbolRecord>      symbols;
@@ -101,10 +101,8 @@ namespace NativeBackendDetail
         return true;
     }
 
-    bool NativeBackendBuilder::appendSingleCodeRelocation(const uint32_t         functionOffset,
-                                                          const MicroRelocation& relocation,
-                                                          CoffSectionBuild&      textSection)
-    {
+    bool NativeBackendBuilder::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection)
+    {        
         const uint32_t patchOffset = functionOffset + relocation.codeOffset;
         if (patchOffset + sizeof(uint64_t) > textSection.data.bytes.size())
             return reportError("native backend text relocation offset is out of range");

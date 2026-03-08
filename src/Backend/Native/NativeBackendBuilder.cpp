@@ -8,7 +8,6 @@
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();

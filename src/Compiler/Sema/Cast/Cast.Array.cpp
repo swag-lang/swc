@@ -139,6 +139,58 @@ namespace
         const TypeRef dstElemTypeRef = args.dstType->payloadArrayElemTypeRef();
         const auto&   srcTypes       = args.srcType->payloadAggregate().types;
 
+        const bool hasNestedSource = dstDims.size() > 1 &&
+                                     std::ranges::all_of(srcTypes, [&](const TypeRef srcElemTypeRef) {
+                                         const TypeInfo& srcElemType = args.sema->typeMgr().get(srcElemTypeRef);
+                                         return srcElemType.isAggregateArray() || srcElemType.isArray();
+                                     });
+
+        if (hasNestedSource)
+        {
+            const uint64_t dstTopDim = dstDims[0];
+            if (srcTypes.size() > dstTopDim)
+                return failArrayTooManyValues(args, srcTypes.size(), dstTopDim);
+
+            SmallVector<uint64_t> subDims;
+            subDims.reserve(dstDims.size() - 1);
+            for (size_t i = 1; i < dstDims.size(); ++i)
+                subDims.push_back(dstDims[i]);
+
+            TypeManager&  typeMgr         = args.sema->typeMgr();
+            const TypeRef dstSubArrayType = typeMgr.addType(TypeInfo::makeArray(subDims.span(), dstElemTypeRef, args.dstType->flags()));
+
+            for (const auto srcElemTypeRef : srcTypes)
+            {
+                SWC_RESULT_VERIFY(checkElemCast(args, srcElemTypeRef, dstSubArrayType));
+            }
+
+            if (!args.castRequest->isConstantFolding())
+                return Result::Continue;
+
+            const ConstantValue& cst = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
+            if (!cst.isAggregateArray())
+                return failArrayConst(args, DiagnosticId::sema_err_array_cast_expected_aggregate_constant);
+
+            const auto&            values    = cst.getAggregateArray();
+            TaskContext&           ctx       = args.sema->ctx();
+            const uint64_t         arraySize = args.dstType->sizeOf(ctx);
+            std::vector<std::byte> buffer(arraySize);
+            const ByteSpanRW       bytes        = asByteSpan(buffer);
+            const uint64_t         subArraySize = typeMgr.get(dstSubArrayType).sizeOf(ctx);
+
+            for (size_t i = 0; i < values.size(); ++i)
+            {
+                ConstantRef castedRef;
+                SWC_RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstSubArrayType, values[i], castedRef));
+                const ByteSpanRW dstChunk{bytes.data() + (i * subArraySize), subArraySize};
+                ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType);
+            }
+
+            const ConstantValue result    = ConstantValue::makeArray(ctx, args.dstTypeRef, bytes);
+            args.castRequest->outConstRef = args.sema->cstMgr().addConstant(ctx, result);
+            return Result::Continue;
+        }
+
         uint64_t totalCount = 1;
         for (const auto dim : dstDims)
             totalCount *= dim;

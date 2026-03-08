@@ -257,7 +257,7 @@ namespace
                     {
                         SWC_ASSERT(sizeOfType <= std::numeric_limits<uint32_t>::max());
                         SmallVector<std::byte> typedNullBytes;
-                        typedNullBytes.resize(static_cast<size_t>(sizeOfType));
+                        typedNullBytes.resize(sizeOfType);
                         std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
                         ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef);
 

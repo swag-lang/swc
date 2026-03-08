@@ -297,7 +297,7 @@ namespace
 
             SWC_ASSERT(dstSize <= std::numeric_limits<uint32_t>::max());
             SmallVector<std::byte> typedNullBytes;
-            typedNullBytes.resize(static_cast<size_t>(dstSize));
+            typedNullBytes.resize(dstSize);
             std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
 
             const SemaNodeView srcConstView = codeGen.viewTypeConstant(srcNodeRef);

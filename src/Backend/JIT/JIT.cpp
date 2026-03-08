@@ -226,8 +226,7 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteSp
 void JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std::span<const MicroRelocation> relocations)
 {
     SWC_ASSERT(!executableMemory.empty());
-    ByteSpanRW writableCode;
-    writableCode = asByteSpan(static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size());
+    const ByteSpanRW writableCode = asByteSpan(static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size());
     patchRelocations(ctx, writableCode, relocations);
 }
 

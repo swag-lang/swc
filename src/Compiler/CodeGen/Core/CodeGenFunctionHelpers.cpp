@@ -185,7 +185,7 @@ namespace
                 bool requiresTypedConstMaterialization = false;
                 if (normalizedTypeRef.isValid() && argPayload.typeRef.isValid())
                 {
-                    TaskContext&  ctx                 = codeGen.ctx();
+                    const TaskContext&  ctx           = codeGen.ctx();
                     const TypeRef expectedTypeRef     = codeGen.ctx().typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
                     const TypeRef payloadTypeRef      = codeGen.ctx().typeMgr().get(argPayload.typeRef).unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
                     requiresTypedConstMaterialization = expectedTypeRef.isValid() && payloadTypeRef.isValid() && expectedTypeRef != payloadTypeRef;

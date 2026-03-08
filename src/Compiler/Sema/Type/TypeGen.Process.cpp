@@ -77,7 +77,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(const TypeManager& tm, const TaskConte
     return deps;
 }
 
-Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache) const
+Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache)
 {
     TaskContext&       ctx  = sema.ctx();
     const TypeManager& tm   = ctx.typeMgr();

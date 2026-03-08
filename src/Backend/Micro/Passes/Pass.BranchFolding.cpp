@@ -98,7 +98,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
                 compareValid_ = false;
             }
         }
-        else
+        else if (MicroInstrInfo::definesCpuFlags(inst))
         {
             compareValid_ = false;
         }

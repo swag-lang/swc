@@ -6,7 +6,7 @@ func main1()->s32 { return 77; }
 #[ConstExpr]
 func main2()->s32 { return 666; }
 
-//#[Swag.PrintMicro]
+#[Swag.PrintMicro]
 func main()
 {
     let a = #run main1()

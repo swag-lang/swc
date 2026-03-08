@@ -81,12 +81,14 @@ public:
     bool                tryMarkCodeGenJobScheduled() noexcept;
     void                addCallDependency(SymbolFunction* sym);
     void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    void*               jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
     void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     Result              emit(TaskContext& ctx);
     void                jit(TaskContext& ctx);
 
 private:
     bool hasLoweredCode() const noexcept;
+    bool hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
     bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
     bool jitPrepare(TaskContext& ctx);
     void jitPatch(TaskContext& ctx);
@@ -111,6 +113,7 @@ private:
     std::vector<SymbolFunction*> callDependencies_;
     std::mutex                   emitMutex_;
     JITMemory                    jitExecMemory_;
+    std::atomic<void*>           jitPreparedAddress_ = nullptr;
     std::atomic<void*>           jitEntryAddress_     = nullptr;
     std::atomic<bool>            codeGenJobScheduled_ = false;
 };

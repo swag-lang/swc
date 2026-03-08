@@ -87,7 +87,7 @@ namespace
             return false;
 
         const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
-        void* const           entryAddress   = targetFunction.jitEntryAddress();
+        void* const           entryAddress   = targetFunction.jitPatchAddress();
         if (!entryAddress)
             return false;
 

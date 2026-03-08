@@ -337,6 +337,8 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
 
     if (hasJitEntryAddress())
         return false;
+    if (hasJitPreparedAddress())
+        return true;
 
     if (!hasLoweredCode())
     {
@@ -352,7 +354,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
         return false;
     }
 
-    jitEntryAddress_.store(entry, std::memory_order_release);
+    jitPreparedAddress_.store(entry, std::memory_order_release);
     return true;
 }
 
@@ -362,7 +364,9 @@ void SymbolFunction::jitPatch(TaskContext& ctx)
     if (ctx.state().jitEmissionError)
         return;
 
-    if (!hasJitEntryAddress())
+    if (hasJitEntryAddress())
+        return;
+    if (!hasJitPreparedAddress())
         return;
 
     auto relocations = loweredMicroCode_.codeRelocations;
@@ -387,10 +391,15 @@ void SymbolFunction::jitFinalize(TaskContext& ctx)
     if (ctx.state().jitEmissionError)
         return;
 
-    if (!hasJitEntryAddress())
+    if (hasJitEntryAddress())
+        return;
+    if (!hasJitPreparedAddress())
         return;
 
     JIT::finalize(jitExecMemory_);
+    void* const entry = jitPatchAddress();
+    SWC_ASSERT(entry != nullptr);
+    jitEntryAddress_.store(entry, std::memory_order_release);
     ctx.compiler().notifyAlive();
 }
 

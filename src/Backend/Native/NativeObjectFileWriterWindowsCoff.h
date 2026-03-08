@@ -33,10 +33,10 @@ private:
         uint32_t                             sizeOfRawData        = 0;
     };
 
-    bool        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection);
-    bool        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection);
-    bool        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection);
-    bool        appendSingleCodeRelocation(uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection);
+    bool        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
+    bool        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const;
+    bool        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const;
+    bool        appendSingleCodeRelocation(uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const;
     bool        buildDataRelocations(CoffSectionBuild& section) const;
     static void writeU64(std::vector<std::byte>& bytes, uint32_t offset, uint64_t value);
     static void addDefinedSymbols(const NativeObjDescription&          description,

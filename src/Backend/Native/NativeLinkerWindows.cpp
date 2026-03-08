@@ -35,7 +35,7 @@ bool NativeLinkerWindows::discoverToolchain()
     SWC_UNREACHABLE();
 }
 
-bool NativeLinkerWindows::linkArtifact()
+bool NativeLinkerWindows::linkArtifact() const
 {
     std::vector<Utf8> args;
     const fs::path*   exePath = nullptr;

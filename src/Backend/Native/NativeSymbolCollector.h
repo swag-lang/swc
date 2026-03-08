@@ -28,8 +28,8 @@ private:
 
     bool                 collectSymbols();
     void                 collectSymbolsRec(const SymbolMap& symbolMap);
-    void                 collectFunction(SymbolFunction& symbol);
-    bool                 scheduleCodeGen();
+    void                 collectFunction(SymbolFunction& symbol) const;
+    bool                 scheduleCodeGen() const;
     CompilerFunctionKind classifyCompilerFunction(const SymbolFunction& symbol) const;
     static bool          isCompilerFunction(const SymbolFunction& symbol);
     Utf8                 makeSymbolSortKey(const SymbolFunction& symbol) const;

@@ -55,7 +55,7 @@ bool NativeObjectFileWriterWindowsCoff::writeObjectFile(const NativeObjDescripti
     return flushCoffFile(description.objPath, sections, symbols, symbolIndices);
 }
 
-bool NativeObjectFileWriterWindowsCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection)
+bool NativeObjectFileWriterWindowsCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     const auto appendCode = [&](uint32_t& outOffset, const std::vector<std::byte>& bytes) {
         const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), 16);
@@ -84,7 +84,7 @@ bool NativeObjectFileWriterWindowsCoff::buildTextSection(const NativeObjDescript
     return true;
 }
 
-bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection)
+bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const
 {
     for (const auto& relocation : code.codeRelocations)
     {
@@ -95,7 +95,7 @@ bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeStartu
     return true;
 }
 
-bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection)
+bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const
 {
     for (const auto& relocation : code.codeRelocations)
     {
@@ -106,7 +106,7 @@ bool NativeObjectFileWriterWindowsCoff::appendCodeRelocations(const NativeFuncti
     return true;
 }
 
-bool NativeObjectFileWriterWindowsCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection)
+bool NativeObjectFileWriterWindowsCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const
 {
     const uint32_t patchOffset = functionOffset + relocation.codeOffset;
     if (patchOffset + sizeof(uint64_t) > textSection.data.bytes.size())

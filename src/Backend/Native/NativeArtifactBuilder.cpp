@@ -8,7 +8,7 @@ NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
 {
 }
 
-bool NativeArtifactBuilder::build()
+bool NativeArtifactBuilder::build() const
 {
     if (!validateNativeData())
         return false;
@@ -191,7 +191,7 @@ bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& re
     }
 }
 
-bool NativeArtifactBuilder::prepareDataSections()
+bool NativeArtifactBuilder::prepareDataSections() const
 {
     auto& state = builder_.state();
 
@@ -246,7 +246,7 @@ bool NativeArtifactBuilder::prepareDataSections()
     return true;
 }
 
-bool NativeArtifactBuilder::buildStartup()
+bool NativeArtifactBuilder::buildStartup() const
 {
     auto& state = builder_.state();
     state.startup.reset();
@@ -293,7 +293,7 @@ bool NativeArtifactBuilder::buildStartup()
     return true;
 }
 
-bool NativeArtifactBuilder::partitionObjects()
+bool NativeArtifactBuilder::partitionObjects() const
 {
     auto& state = builder_.state();
     state.objectDescriptions.clear();
@@ -364,7 +364,7 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
     SWC_UNREACHABLE();
 }
 
-bool NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName)
+bool NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName) const
 {
     std::error_code ec;
     builder_.state().workDir = Os::getTemporaryPath() / std::format("swc_native_{}_{}_{}", baseName, Os::currentProcessId(), builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed));

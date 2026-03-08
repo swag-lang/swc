@@ -24,13 +24,13 @@ Result NativeBackendBuilder::run()
     if (!symbolCollector.prepare())
         return Result::Error;
 
-    NativeArtifactBuilder artifactBuilder(*this);
+    const NativeArtifactBuilder artifactBuilder(*this);
     if (!artifactBuilder.build())
         return Result::Error;
     if (!writeObjects())
         return Result::Error;
 
-    auto linker = NativeLinker::create(*this);
+    const auto linker = NativeLinker::create(*this);
     if (!linker)
         return reportError("native linker is not implemented for this target OS") ? Result::Continue : Result::Error;
     if (!linker->link())
@@ -50,7 +50,7 @@ bool NativeBackendBuilder::writeObject(const uint32_t objIndex)
     if (objIndex >= state_.objectDescriptions.size())
         return reportError("native backend object job index is out of range");
 
-    auto objectWriter = NativeObjectFileWriter::create(*this);
+    const auto objectWriter = NativeObjectFileWriter::create(*this);
     if (!objectWriter)
         return reportError("native object file writer is not implemented for this target OS");
     return objectWriter->writeObjectFile(state_.objectDescriptions[objIndex]);

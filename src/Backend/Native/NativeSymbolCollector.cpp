@@ -112,7 +112,7 @@ void NativeSymbolCollector::collectSymbolsRec(const SymbolMap& symbolMap)
     }
 }
 
-void NativeSymbolCollector::collectFunction(SymbolFunction& symbol)
+void NativeSymbolCollector::collectFunction(SymbolFunction& symbol) const
 {
     if (symbol.isForeign() || symbol.isEmpty() || symbol.isAttribute())
         return;
@@ -149,9 +149,9 @@ void NativeSymbolCollector::collectFunction(SymbolFunction& symbol)
     }
 }
 
-bool NativeSymbolCollector::scheduleCodeGen()
+bool NativeSymbolCollector::scheduleCodeGen() const
 {
-    auto& state = builder_.state();
+    const auto& state = builder_.state();
     if (state.functionInfos.empty())
         return true;
 

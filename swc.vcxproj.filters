@@ -183,6 +183,9 @@
     <ClCompile Include="src\Backend\Native\NativeBackend.Link.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\Native\NativeObjJob.cpp">
+      <Filter>src\Backend\Native</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Native\NativeBackend.Object.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
@@ -810,6 +813,18 @@
       <Filter>src\Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeBackend.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeObjJob.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeObjectFileWriter.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeObjectFileWriter.WindowsCoff.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeBackend_Priv.h">

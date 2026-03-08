@@ -1,5 +1,7 @@
 #include "pch.h"
-#include "Backend/Native/NativeBackend_Priv.h"
+#include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeObjJob.h"
+#include "Backend/Native/NativeObjectFileWriter.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -809,25 +811,6 @@ namespace NativeBackendDetail
         return false;
     }
 
-    NativeObjJob::NativeObjJob(const TaskContext& ctx, NativeBackendBuilder& builder, const uint32_t objIndex) :
-        Job(ctx, JobKind::NativeObj),
-        builder_(&builder),
-        objIndex_(objIndex)
-    {
-        func = [this] {
-            return exec();
-        };
-    }
-
-    JobResult NativeObjJob::exec()
-    {
-        ctx().state().reset();
-        if (!builder_)
-            return JobResult::Done;
-        if (!builder_->writeObject(objIndex_))
-            builder_->objWriteFailed_.store(true, std::memory_order_release);
-        return JobResult::Done;
-    }
 }
 
 namespace NativeBackend

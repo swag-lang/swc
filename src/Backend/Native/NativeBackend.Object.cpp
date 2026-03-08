@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Native/NativeBackend_Priv.h"
+#include "Backend/Native/NativeObjectFileWriter.h"
 
 SWC_BEGIN_NAMESPACE();
 

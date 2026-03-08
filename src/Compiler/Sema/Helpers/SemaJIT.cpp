@@ -310,35 +310,33 @@ namespace
             const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
             if (resolvedArg.passKind != CallArgumentPassKind::Direct)
                 return false;
+            if (i >= calledFn.parameters().size())
+                return false;
 
-            TypeRef          argValueTypeRef = TypeRef::invalid();
-            ConstantRef      argCstRef       = ConstantRef::invalid();
-            const AstNodeRef argRef          = resolvedArg.argRef;
+            const SymbolVariable* param = calledFn.parameters()[i];
+            SWC_ASSERT(param != nullptr);
+
+            TypeRef argValueTypeRef = sema.typeMgr().get(param->typeRef()).unwrap(ctx, param->typeRef(), TypeExpandE::Alias);
+            if (!argValueTypeRef.isValid())
+                return false;
+
+            ConstantRef      argCstRef = ConstantRef::invalid();
+            const AstNodeRef argRef    = resolvedArg.argRef;
             if (argRef.isValid())
             {
-                const SemaNodeView argTypeView  = sema.viewType(argRef);
                 const SemaNodeView argConstView = sema.viewConstant(argRef);
-                if (!argTypeView.typeRef().isValid() || !argConstView.cstRef().isValid())
+                if (!argConstView.cstRef().isValid())
                     return false;
 
-                argValueTypeRef = sema.typeMgr().get(argTypeView.typeRef()).unwrap(ctx, argTypeView.typeRef(), TypeExpandE::Alias);
-                argCstRef       = argConstView.cstRef();
+                argCstRef = argConstView.cstRef();
             }
             else
             {
                 if (!resolvedArg.defaultCstRef.isValid())
                     return false;
-                if (i >= calledFn.parameters().size())
-                    return false;
-
-                const SymbolVariable* param = calledFn.parameters()[i];
-                SWC_ASSERT(param != nullptr);
-                argValueTypeRef = sema.typeMgr().get(param->typeRef()).unwrap(ctx, param->typeRef(), TypeExpandE::Alias);
-                argCstRef       = resolvedArg.defaultCstRef;
+                argCstRef = resolvedArg.defaultCstRef;
             }
 
-            if (!argValueTypeRef.isValid())
-                return false;
             if (!argCstRef.isValid())
                 return false;
 

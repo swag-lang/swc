@@ -157,20 +157,29 @@ namespace
 
         if (dstType.isString())
         {
-            SWC_ASSERT(cst.isString() && dstBytes.size() == sizeof(Runtime::String));
-            const std::string_view str = cst.getString();
-            const Runtime::String  rt  = {.ptr = str.data(), .length = str.size()};
+            SWC_ASSERT((cst.isNull() || cst.isString()) && dstBytes.size() == sizeof(Runtime::String));
+            Runtime::String rt = {};
+            if (cst.isString())
+            {
+                const std::string_view str = cst.getString();
+                rt                         = {.ptr = str.data(), .length = str.size()};
+            }
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
             return;
         }
 
         if (dstType.isSlice())
         {
-            SWC_ASSERT(cst.isSlice() && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
-            const ByteSpan       bytes       = cst.getSlice();
-            const TypeInfo&      elementType = sema.typeMgr().get(dstType.payloadTypeRef());
-            const uint64_t       elementSize = elementType.sizeOf(sema.ctx());
-            const Runtime::Slice rt          = {.ptr = reinterpret_cast<const uint8_t*>(bytes.data()), .count = elementSize ? bytes.size() / elementSize : 0};
+            SWC_ASSERT((cst.isNull() || cst.isSlice()) && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
+            Runtime::Slice<uint8_t> rt = {};
+            if (cst.isSlice())
+            {
+                const ByteSpan  bytes       = cst.getSlice();
+                const TypeInfo& elementType = sema.typeMgr().get(dstType.payloadTypeRef());
+                const uint64_t  elementSize = elementType.sizeOf(sema.ctx());
+                rt.ptr                      = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(bytes.data()));
+                rt.count                    = elementSize ? bytes.size() / elementSize : 0;
+            }
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
             return;
         }

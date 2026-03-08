@@ -129,16 +129,22 @@ namespace
         if (!targetTypeRef.isValid() || !defaultCstRef.isValid())
             return false;
 
-        TaskContext&    ctx        = codeGen.ctx();
-        const TypeInfo& targetType = ctx.typeMgr().get(targetTypeRef);
-        const uint64_t  rawSize    = targetType.sizeOf(ctx);
+        TaskContext&    ctx              = codeGen.ctx();
+        const TypeInfo& targetType       = ctx.typeMgr().get(targetTypeRef);
+        TypeRef         storageTypeRef   = targetTypeRef;
+        const TypeRef   unaliasedTypeRef = targetType.unwrap(ctx, targetTypeRef, TypeExpandE::Alias);
+        if (unaliasedTypeRef.isValid())
+            storageTypeRef = unaliasedTypeRef;
+
+        const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
+        const uint64_t  rawSize     = storageType.sizeOf(ctx);
         if (rawSize == 0 || rawSize > std::numeric_limits<uint32_t>::max())
             return false;
 
         SmallVector<std::byte> rawBytes;
         rawBytes.resize(rawSize);
         std::memset(rawBytes.data(), 0, rawBytes.size());
-        ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, targetTypeRef);
+        ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef);
 
         const std::string_view payloadView(reinterpret_cast<const char*>(rawBytes.data()), rawBytes.size());
         const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(payloadView);
@@ -175,6 +181,24 @@ namespace
             if (const CodeGenNodePayload* payload = codeGen.safePayload(argRef))
             {
                 argPayload = *payload;
+
+                bool requiresTypedConstMaterialization = false;
+                if (normalizedTypeRef.isValid() && argPayload.typeRef.isValid())
+                {
+                    TaskContext&  ctx                 = codeGen.ctx();
+                    const TypeRef expectedTypeRef     = codeGen.ctx().typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
+                    const TypeRef payloadTypeRef      = codeGen.ctx().typeMgr().get(argPayload.typeRef).unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
+                    requiresTypedConstMaterialization = expectedTypeRef.isValid() && payloadTypeRef.isValid() && expectedTypeRef != payloadTypeRef;
+                }
+
+                if (requiresTypedConstMaterialization)
+                {
+                    const SemaNodeView argConstView = codeGen.viewTypeConstant(argRef);
+                    if (!argConstView.cstRef().isValid())
+                        return;
+                    if (!materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()))
+                        return;
+                }
             }
             else
             {

@@ -230,7 +230,6 @@ namespace Command
 
         printGroupHeader(ctx, "Native Paths");
         printInfoLine(ctx, "native.baseName", nativePaths.baseName, LogColor::Yellow);
-        printInfoLine(ctx, "native.workDirRootName", nativePaths.workDirRootName, LogColor::Yellow);
         printInfoLine(ctx, "native.workDirRoot", nativePaths.workDirRoot, LogColor::Yellow);
         printInfoLine(ctx, "native.outputDir", nativePaths.artifactOutputDir, LogColor::Yellow);
         printInfoLine(ctx, "native.artifactPath", nativePaths.artifactPath, LogColor::Yellow);

@@ -53,77 +53,6 @@ namespace
         return result;
     }
 
-    void applyPredefinedBuildCfg(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)
-    {
-        const std::string_view cfgName = cmdLine.buildCfg;
-
-        if (cfgName == "fast-compile")
-        {
-            buildCfg.safetyGuards      = Runtime::SafetyWhat::None;
-            buildCfg.sanity            = false;
-            buildCfg.errorStackTrace   = false;
-            buildCfg.debugAllocator    = true;
-            buildCfg.backend.optimize  = false;
-            buildCfg.backend.debugInfo = false;
-        }
-        else if (cfgName == "debug")
-        {
-            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
-            buildCfg.sanity            = true;
-            buildCfg.errorStackTrace   = true;
-            buildCfg.debugAllocator    = true;
-            buildCfg.backend.optimize  = false;
-            buildCfg.backend.debugInfo = true;
-        }
-        else if (cfgName == "fast-debug")
-        {
-            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
-            buildCfg.sanity            = true;
-            buildCfg.errorStackTrace   = true;
-            buildCfg.debugAllocator    = true;
-            buildCfg.backend.optimize  = true;
-            buildCfg.backend.debugInfo = true;
-        }
-        else if (cfgName == "release")
-        {
-            buildCfg.safetyGuards               = Runtime::SafetyWhat::None;
-            buildCfg.sanity                     = false;
-            buildCfg.errorStackTrace            = false;
-            buildCfg.debugAllocator             = false;
-            buildCfg.backend.optimize           = true;
-            buildCfg.backend.debugInfo          = true;
-            buildCfg.backend.fpMathFma          = true;
-            buildCfg.backend.fpMathNoNaN        = true;
-            buildCfg.backend.fpMathNoInf        = true;
-            buildCfg.backend.fpMathNoSignedZero = true;
-        }
-        else
-        {
-            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
-            buildCfg.sanity            = true;
-            buildCfg.errorStackTrace   = true;
-            buildCfg.debugAllocator    = true;
-            buildCfg.backend.optimize  = true;
-            buildCfg.backend.debugInfo = true;
-        }
-
-        if (cmdLine.backendOptimize.has_value())
-            buildCfg.backend.optimize = cmdLine.backendOptimize.value();
-
-        if (cmdLine.backendKindName == "exe")
-            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Executable;
-        else if (cmdLine.backendKindName == "dll")
-            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Library;
-        else if (cmdLine.backendKindName == "lib")
-            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Export;
-
-        if (cmdLine.verify)
-        {
-            buildCfg.backend.debugInfo        = true;
-            buildCfg.backend.enableExceptions = true;
-        }
-    }
-
     void collectSwagFilesRec(const CommandLine& cmdLine, const fs::path& folder, std::vector<fs::path>& files, bool canFilter = true)
     {
         std::error_code ec;
@@ -189,10 +118,10 @@ namespace
 
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
-    global_(&global)
+    global_(&global),
+    buildCfg_(cmdLine.defaultBuildCfg)
 {
     (void) runtimeContextTlsId();
-    applyPredefinedBuildCfg(buildCfg_, cmdLine);
 
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
@@ -290,7 +219,6 @@ void CompilerInstance::logBefore()
     if (ctx.cmdLine().randomize)
         Logger::printHeaderCentered(ctx, LogColor::Blue, "[Randomize]", LogColor::Blue, std::format("seed is {}", ctx.global().jobMgr().randSeed()));
 #endif
-
 }
 
 void CompilerInstance::logAfter()

@@ -22,13 +22,6 @@ namespace
         return value ? "true" : "false";
     }
 
-    Utf8 optionalBoolToUtf8(const std::optional<bool> value)
-    {
-        if (!value.has_value())
-            return "<unset>";
-        return boolToUtf8(value.value());
-    }
-
     Utf8 targetOsName(const Runtime::TargetOs value)
     {
         switch (value)
@@ -49,6 +42,31 @@ namespace
         }
 
         SWC_UNREACHABLE();
+    }
+
+    Utf8 buildCfgBackendKindName(const Runtime::BuildCfgBackendKind value)
+    {
+        switch (value)
+        {
+            case Runtime::BuildCfgBackendKind::Executable:
+                return "exe";
+            case Runtime::BuildCfgBackendKind::Library:
+                return "dll";
+            case Runtime::BuildCfgBackendKind::Export:
+                return "lib";
+            case Runtime::BuildCfgBackendKind::None:
+                return "none";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    Utf8 runtimeStringToUtf8(const Runtime::String& value)
+    {
+        if (!value.ptr || !value.length)
+            return {};
+
+        return Utf8(std::string_view(value.ptr, value.length));
     }
 
     Utf8 filePathDisplayModeName(const FileSystem::FilePathDisplayMode value)
@@ -138,7 +156,8 @@ namespace
 
     void printCommandLineOptions(const TaskContext& ctx)
     {
-        const CommandLine& cmdLine = ctx.cmdLine();
+        const CommandLine&       cmdLine  = ctx.cmdLine();
+        const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
 
         printInfoLine(ctx, "command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::Yellow);
         printInfoLine(ctx, "targetOs", targetOsName(cmdLine.targetOs));
@@ -146,10 +165,10 @@ namespace
         printInfoLine(ctx, "targetCpu", cmdLine.targetCpu);
         printInfoLine(ctx, "buildCfg", cmdLine.buildCfg);
         printInfoLine(ctx, "targetArchName", cmdLine.targetArchName);
-        printInfoLine(ctx, "backendKindName", cmdLine.backendKindName);
-        printInfoLine(ctx, "nativeArtifactBaseName", cmdLine.nativeArtifactBaseName);
-        printInfoLine(ctx, "nativeWorkDirName", cmdLine.nativeWorkDirName);
-        printInfoLine(ctx, "backendOptimize", optionalBoolToUtf8(cmdLine.backendOptimize));
+        printInfoLine(ctx, "backendKind", buildCfgBackendKindName(buildCfg.backendKind));
+        printInfoLine(ctx, "nativeArtifactBaseName", runtimeStringToUtf8(buildCfg.nativeArtifactBaseName));
+        printInfoLine(ctx, "nativeWorkDirName", runtimeStringToUtf8(buildCfg.nativeWorkDirName));
+        printInfoLine(ctx, "backendOptimize", boolToUtf8(buildCfg.backend.optimize));
         printInfoLine(ctx, "logColor", boolToUtf8(cmdLine.logColor));
         printInfoLine(ctx, "logAscii", boolToUtf8(cmdLine.logAscii));
         printInfoLine(ctx, "syntaxColor", boolToUtf8(cmdLine.syntaxColor));
@@ -176,7 +195,7 @@ namespace
         printPathSet(ctx, "directories", cmdLine.directories);
         printPathSet(ctx, "files", cmdLine.files);
         printInfoLine(ctx, "modulePath", cmdLine.modulePath);
-        printInfoLine(ctx, "nativeArtifactOutputDir", cmdLine.nativeArtifactOutputDir);
+        printInfoLine(ctx, "nativeArtifactOutputDir", runtimeStringToUtf8(buildCfg.nativeArtifactOutputDir));
     }
 }
 

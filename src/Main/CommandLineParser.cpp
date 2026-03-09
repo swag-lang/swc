@@ -17,6 +17,102 @@ constexpr size_t           SHORT_PREFIX_LEN    = 1;
 constexpr size_t           LONG_NO_PREFIX_LEN  = 5;
 constexpr size_t           SHORT_NO_PREFIX_LEN = 4;
 
+namespace
+{
+    Runtime::String runtimeStringFromUtf8(const Utf8& value)
+    {
+        if (value.empty())
+            return {};
+
+        return {
+            .ptr    = value.c_str(),
+            .length = value.length(),
+        };
+    }
+
+    void applyBuildCfgPreset(Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
+    {
+        if (cfgName == "fast-compile")
+        {
+            buildCfg.safetyGuards      = Runtime::SafetyWhat::None;
+            buildCfg.sanity            = false;
+            buildCfg.errorStackTrace   = false;
+            buildCfg.debugAllocator    = true;
+            buildCfg.backend.optimize  = false;
+            buildCfg.backend.debugInfo = false;
+        }
+        else if (cfgName == "debug")
+        {
+            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
+            buildCfg.sanity            = true;
+            buildCfg.errorStackTrace   = true;
+            buildCfg.debugAllocator    = true;
+            buildCfg.backend.optimize  = false;
+            buildCfg.backend.debugInfo = true;
+        }
+        else if (cfgName == "fast-debug")
+        {
+            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
+            buildCfg.sanity            = true;
+            buildCfg.errorStackTrace   = true;
+            buildCfg.debugAllocator    = true;
+            buildCfg.backend.optimize  = true;
+            buildCfg.backend.debugInfo = true;
+        }
+        else if (cfgName == "release")
+        {
+            buildCfg.safetyGuards               = Runtime::SafetyWhat::None;
+            buildCfg.sanity                     = false;
+            buildCfg.errorStackTrace            = false;
+            buildCfg.debugAllocator             = false;
+            buildCfg.backend.optimize           = true;
+            buildCfg.backend.debugInfo          = true;
+            buildCfg.backend.fpMathFma          = true;
+            buildCfg.backend.fpMathNoNaN        = true;
+            buildCfg.backend.fpMathNoInf        = true;
+            buildCfg.backend.fpMathNoSignedZero = true;
+        }
+        else
+        {
+            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
+            buildCfg.sanity            = true;
+            buildCfg.errorStackTrace   = true;
+            buildCfg.debugAllocator    = true;
+            buildCfg.backend.optimize  = true;
+            buildCfg.backend.debugInfo = true;
+        }
+    }
+
+    void updateDefaultBuildCfg(CommandLine& cmdLine)
+    {
+        Runtime::BuildCfg buildCfg{};
+        applyBuildCfgPreset(buildCfg, cmdLine.buildCfg.view());
+
+        if (cmdLine.backendOptimize.has_value())
+            buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+
+        if (cmdLine.backendKindName == "exe")
+            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Executable;
+        else if (cmdLine.backendKindName == "dll")
+            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Library;
+        else if (cmdLine.backendKindName == "lib")
+            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Export;
+        else
+            SWC_UNREACHABLE();
+
+        if (cmdLine.verify)
+        {
+            buildCfg.backend.debugInfo        = true;
+            buildCfg.backend.enableExceptions = true;
+        }
+
+        buildCfg.nativeArtifactBaseName  = runtimeStringFromUtf8(cmdLine.nativeArtifactBaseName);
+        buildCfg.nativeArtifactOutputDir = runtimeStringFromUtf8(cmdLine.nativeArtifactOutputDirStorage);
+        buildCfg.nativeWorkDirName       = runtimeStringFromUtf8(cmdLine.nativeWorkDirName);
+        cmdLine.defaultBuildCfg          = buildCfg;
+    }
+}
+
 // Pipe-delimited list of allowed command names.
 // Adjust to match your tool's commands.
 CommandKind CommandLineParser::isAllowedCommand(const Utf8& cmd)
@@ -434,8 +530,15 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
             return Result::Error;
         }
 
-        cmdLine_->nativeArtifactOutputDir = std::move(temp);
+        cmdLine_->nativeArtifactOutputDir        = std::move(temp);
+        cmdLine_->nativeArtifactOutputDirStorage = FileSystem::toUtf8Path(cmdLine_->nativeArtifactOutputDir);
     }
+    else
+    {
+        cmdLine_->nativeArtifactOutputDirStorage.clear();
+    }
+
+    updateDefaultBuildCfg(*cmdLine_);
 
     return Result::Continue;
 }
@@ -444,6 +547,8 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global)
 {
+    updateDefaultBuildCfg(*cmdLine_);
+
     addArg(HelpOptionGroup::Input, "all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
     addArg(HelpOptionGroup::Input, "all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
     addArg(HelpOptionGroup::Input, "all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to select specific files by name.");

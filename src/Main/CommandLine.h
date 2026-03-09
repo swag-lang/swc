@@ -46,6 +46,7 @@ struct CommandLine
     Utf8                backendKindName = "exe";
     Utf8                nativeArtifactBaseName;
     Utf8                nativeWorkDirName;
+    Utf8                nativeArtifactOutputDirStorage;
     std::optional<bool> backendOptimize;
 
     bool logColor        = true;
@@ -78,8 +79,9 @@ struct CommandLine
     std::set<fs::path> directories;
     std::set<fs::path> files;
 
-    fs::path modulePath;
-    fs::path nativeArtifactOutputDir;
+    fs::path          modulePath;
+    fs::path          nativeArtifactOutputDir;
+    Runtime::BuildCfg defaultBuildCfg{};
 };
 
 SWC_END_NAMESPACE();

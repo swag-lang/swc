@@ -139,8 +139,9 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
 {
     logArtifactAction(ctx_, "Run", artifactPath);
 
-    uint32_t   exitCode = 0;
-    const auto result   = Os::runProcess(exitCode, artifactPath, {}, workDir);
+    uint32_t       exitCode    = 0;
+    const fs::path artifactDir = artifactPath.parent_path();
+    const auto     result      = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? workDir : artifactDir);
     switch (result)
     {
         case Os::ProcessRunResult::Ok:

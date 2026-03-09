@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Main/Command.h"
-#include "Backend/Native/NativeBackend.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 
@@ -14,8 +14,9 @@ namespace Command
         if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
             return;
 
-        const bool runArtifact = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
-        (void) NativeBackend::run(compiler, runArtifact);
+        const bool           runArtifact = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
+        NativeBackendBuilder builder(compiler, runArtifact);
+        builder.run();
     }
 }
 

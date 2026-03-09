@@ -22,6 +22,12 @@
     check(Counter == 7, 6)
 }
 
+#test
+{
+    check(pointer_step_delta() == 1, 8)
+    check(subtract_int_from_float(10.5, 2) == 8.5, 9)
+}
+
 #drop
 {
     DropCheck = Counter + Seed

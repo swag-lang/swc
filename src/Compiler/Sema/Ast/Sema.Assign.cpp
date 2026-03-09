@@ -65,7 +65,7 @@ namespace
 
     Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        const TokenId binOp          = Token::assignToBinary(op);
+        const TokenId binOp          = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
         const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView);
         SWC_RESULT_VERIFY(SemaHelpers::castBinaryRightToLeft(sema, binOp, sema.curNodeRef(), targetLeftView, nodeRightView, CastKind::Assignment));
         return Result::Continue;

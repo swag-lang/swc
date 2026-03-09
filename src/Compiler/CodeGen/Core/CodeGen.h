@@ -50,6 +50,14 @@ struct CodeGenNodePayload
     }
 };
 
+struct CodeGenGvtdEntry
+{
+    SymbolVariable* variable = nullptr;
+    SymbolFunction* opDrop   = nullptr;
+    uint32_t        sizeOf   = 0;
+    uint32_t        count    = 0;
+};
+
 class CodeGenFrame
 {
 public:
@@ -81,14 +89,21 @@ public:
     }
     BreakContextKind currentBreakableKind() const { return breakable_.kind; }
 
-    AstNodeRef           currentSwitch() const { return currentSwitch_; }
-    void                 setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-    AstNodeRef           currentSwitchCase() const { return currentSwitchCase_; }
-    void                 setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
-    MicroLabelRef        currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
-    void                 setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
-    MicroLabelRef        currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
-    void                 setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
+    AstNodeRef    currentSwitch() const { return currentSwitch_; }
+    void          setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef    currentSwitchCase() const { return currentSwitchCase_; }
+    void          setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+    MicroLabelRef currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
+    void          setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
+    MicroLabelRef currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
+    void          setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
+    MicroReg      currentLoopIndexReg() const { return currentLoopIndexReg_; }
+    void          setCurrentLoopIndex(MicroReg reg, TypeRef typeRef)
+    {
+        currentLoopIndexReg_     = reg;
+        currentLoopIndexTypeRef_ = typeRef;
+    }
+    TypeRef              currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
     const InlineContext& currentInlineContext() const { return inlineContext_; }
     void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel)
     {
@@ -104,6 +119,8 @@ private:
     AstNodeRef    currentSwitchCase_        = AstNodeRef::invalid();
     MicroLabelRef currentLoopContinueLabel_ = MicroLabelRef::invalid();
     MicroLabelRef currentLoopBreakLabel_    = MicroLabelRef::invalid();
+    MicroReg      currentLoopIndexReg_      = MicroReg::invalid();
+    TypeRef       currentLoopIndexTypeRef_  = TypeRef::invalid();
     InlineContext inlineContext_;
 };
 
@@ -194,8 +211,27 @@ public:
     CodeGenNodePayload&              setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&              setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&              setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    void                             pushFrame(const CodeGenFrame& frame);
-    void                             popFrame();
+    void                             clearGvtdScratchLayout()
+    {
+        gvtdScratchEntries_.clear();
+        gvtdScratchOffset_ = 0;
+        gvtdScratchSize_   = 0;
+    }
+    void setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries)
+    {
+        gvtdScratchOffset_ = offset;
+        gvtdScratchSize_   = size;
+        gvtdScratchEntries_.clear();
+        gvtdScratchEntries_.reserve(entries.size());
+        for (const auto& entry : entries)
+            gvtdScratchEntries_.push_back(entry);
+    }
+    bool                              hasGvtdScratchLayout() const { return gvtdScratchSize_ != 0; }
+    uint32_t                          gvtdScratchOffset() const { return gvtdScratchOffset_; }
+    uint32_t                          gvtdScratchSize() const { return gvtdScratchSize_; }
+    std::span<const CodeGenGvtdEntry> gvtdScratchEntries() const { return gvtdScratchEntries_; }
+    void                              pushFrame(const CodeGenFrame& frame);
+    void                              popFrame();
 
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
@@ -211,17 +247,20 @@ private:
     Result     postNodeChild(AstNode& node, AstNodeRef& childRef);
     Result     emitConstant(AstNodeRef nodeRef);
 
-    Sema*                     sema_ = nullptr;
-    AstVisit                  visit_;
-    std::vector<CodeGenFrame> frames_;
-    SymbolFunction*           function_            = nullptr;
-    MicroBuilder*             builder_             = nullptr;
-    uint32_t                  nextVirtualRegister_ = 1;
-    uint32_t                  localStackFrameSize_ = 0;
-    MicroReg                  localStackBaseReg_;
-    AstNodeRef                root_      = AstNodeRef::invalid();
-    bool                      started_   = false;
-    bool                      completed_ = false;
+    Sema*                         sema_ = nullptr;
+    AstVisit                      visit_;
+    std::vector<CodeGenFrame>     frames_;
+    SymbolFunction*               function_            = nullptr;
+    MicroBuilder*                 builder_             = nullptr;
+    uint32_t                      nextVirtualRegister_ = 1;
+    uint32_t                      localStackFrameSize_ = 0;
+    MicroReg                      localStackBaseReg_;
+    uint32_t                      gvtdScratchOffset_ = 0;
+    uint32_t                      gvtdScratchSize_   = 0;
+    SmallVector<CodeGenGvtdEntry> gvtdScratchEntries_;
+    AstNodeRef                    root_      = AstNodeRef::invalid();
+    bool                          started_   = false;
+    bool                          completed_ = false;
 };
 
 SWC_END_NAMESPACE();

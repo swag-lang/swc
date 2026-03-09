@@ -41,6 +41,20 @@ namespace
         bool            reverse          = false;
     };
 
+    struct ForStmtCodeGenPayload
+    {
+        MicroLabelRef   loopLabel     = MicroLabelRef::invalid();
+        MicroLabelRef   continueLabel = MicroLabelRef::invalid();
+        MicroLabelRef   doneLabel     = MicroLabelRef::invalid();
+        MicroReg        indexReg      = MicroReg::invalid();
+        MicroReg        boundReg      = MicroReg::invalid();
+        SymbolVariable* indexSym      = nullptr;
+        TypeRef         indexTypeRef  = TypeRef::invalid();
+        bool            reverse       = false;
+        bool            inclusive     = false;
+        bool            unsignedCmp   = false;
+    };
+
     AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return codeGen.viewZero(nodeRef).nodeRef();
@@ -108,6 +122,37 @@ namespace
             *payload = {};
     }
 
+    ForStmtCodeGenPayload* forStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        nodeRef = resolvedNodeRef(codeGen, nodeRef);
+        if (nodeRef.isInvalid())
+            return nullptr;
+        return codeGen.sema().codeGenPayload<ForStmtCodeGenPayload>(nodeRef);
+    }
+
+    ForStmtCodeGenPayload& setForStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const ForStmtCodeGenPayload& payloadValue)
+    {
+        nodeRef = resolvedNodeRef(codeGen, nodeRef);
+        SWC_ASSERT(nodeRef.isValid());
+
+        auto* payload = codeGen.sema().codeGenPayload<ForStmtCodeGenPayload>(nodeRef);
+        if (!payload)
+        {
+            payload = codeGen.compiler().allocate<ForStmtCodeGenPayload>();
+            codeGen.sema().setCodeGenPayload(nodeRef, payload);
+        }
+
+        *payload = payloadValue;
+        return *payload;
+    }
+
+    void eraseForStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        ForStmtCodeGenPayload* payload = forStmtCodeGenPayload(codeGen, nodeRef);
+        if (payload)
+            *payload = {};
+    }
+
     MicroOpBits conditionOpBits(const TypeInfo* typeInfo, TaskContext& ctx)
     {
         if (!typeInfo)
@@ -142,6 +187,58 @@ namespace
 
         builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
+    }
+
+    MicroCond loopLessCond(bool unsignedCompare)
+    {
+        return unsignedCompare ? MicroCond::Below : MicroCond::Less;
+    }
+
+    MicroCond loopLessEqualCond(bool unsignedCompare)
+    {
+        return unsignedCompare ? MicroCond::BelowOrEqual : MicroCond::LessOrEqual;
+    }
+
+    MicroCond loopGreaterCond(bool unsignedCompare)
+    {
+        return unsignedCompare ? MicroCond::Above : MicroCond::Greater;
+    }
+
+    MicroCond loopGreaterEqualCond(bool unsignedCompare)
+    {
+        return unsignedCompare ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual;
+    }
+
+    MicroReg materializeLoopValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef)
+    {
+        const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
+        const MicroOpBits opBits   = conditionOpBits(&typeInfo, codeGen.ctx());
+        const MicroReg    outReg   = codeGen.nextVirtualIntRegister();
+
+        if (payload.isAddress())
+            codeGen.builder().emitLoadRegMem(outReg, payload.reg, 0, opBits);
+        else
+            codeGen.builder().emitLoadRegReg(outReg, payload.reg, opBits);
+
+        return outReg;
+    }
+
+    MicroReg materializeLoopZeroReg(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
+        const MicroOpBits opBits   = conditionOpBits(&typeInfo, codeGen.ctx());
+        const MicroReg    outReg   = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegImm(outReg, ApInt(0, 64), opBits);
+        return outReg;
+    }
+
+    void emitLoopVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar, MicroReg valueReg)
+    {
+        CodeGenNodePayload symbolPayload;
+        symbolPayload.typeRef = symVar.typeRef();
+        symbolPayload.setIsValue();
+        symbolPayload.reg = valueReg;
+        codeGen.setVariablePayload(symVar, symbolPayload);
     }
 
     CodeGenNodePayload resolveForeachVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
@@ -208,6 +305,74 @@ namespace
         regPayload.reg = codeGen.nextVirtualRegisterForType(symVar.typeRef());
         codeGen.setVariablePayload(symVar, regPayload);
         return regPayload;
+    }
+
+    void emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)
+    {
+        const AstNodeRef   exprRef   = resolvedNodeRef(codeGen, node.nodeExprRef);
+        const SemaNodeView exprView  = codeGen.viewType(exprRef);
+        const TypeInfo&    indexType = *(exprView.type());
+        const MicroOpBits  opBits    = conditionOpBits(&indexType, codeGen.ctx());
+        MicroBuilder&      builder   = codeGen.builder();
+
+        loopState.indexTypeRef = exprView.typeRef();
+        loopState.unsignedCmp  = indexType.isIntUnsigned();
+        loopState.indexReg     = codeGen.nextVirtualIntRegister();
+
+        MicroReg lowerReg = MicroReg::invalid();
+        MicroReg upperReg = MicroReg::invalid();
+        if (codeGen.node(exprRef).is(AstNodeId::RangeExpr))
+        {
+            const AstRangeExpr& rangeExpr = codeGen.node(exprRef).cast<AstRangeExpr>();
+            loopState.inclusive           = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
+
+            if (rangeExpr.nodeExprDownRef.isValid())
+            {
+                const AstNodeRef downRef = resolvedNodeRef(codeGen, rangeExpr.nodeExprDownRef);
+                lowerReg                 = materializeLoopValueReg(codeGen, codeGen.payload(downRef), loopState.indexTypeRef);
+            }
+            else
+            {
+                lowerReg = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
+            }
+
+            const AstNodeRef upRef = resolvedNodeRef(codeGen, rangeExpr.nodeExprUpRef);
+            upperReg               = materializeLoopValueReg(codeGen, codeGen.payload(upRef), loopState.indexTypeRef);
+        }
+        else
+        {
+            lowerReg = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
+            upperReg = materializeLoopValueReg(codeGen, codeGen.payload(exprRef), loopState.indexTypeRef);
+        }
+
+        if (loopState.reverse)
+        {
+            loopState.boundReg = lowerReg;
+            builder.emitCmpRegReg(upperReg, lowerReg, opBits);
+            if (loopState.inclusive)
+            {
+                builder.emitJumpToLabel(loopLessCond(loopState.unsignedCmp), MicroOpBits::B32, loopState.doneLabel);
+                builder.emitLoadRegReg(loopState.indexReg, upperReg, opBits);
+            }
+            else
+            {
+                builder.emitJumpToLabel(loopLessEqualCond(loopState.unsignedCmp), MicroOpBits::B32, loopState.doneLabel);
+                builder.emitLoadRegReg(loopState.indexReg, upperReg, opBits);
+                builder.emitOpBinaryRegImm(loopState.indexReg, ApInt(1, 64), MicroOp::Subtract, opBits);
+            }
+        }
+        else
+        {
+            loopState.boundReg = upperReg;
+            builder.emitLoadRegReg(loopState.indexReg, lowerReg, opBits);
+            builder.emitCmpRegReg(loopState.indexReg, upperReg, opBits);
+            builder.emitJumpToLabel(loopState.inclusive ? loopGreaterCond(loopState.unsignedCmp) : loopGreaterEqualCond(loopState.unsignedCmp),
+                                    MicroOpBits::B32,
+                                    loopState.doneLabel);
+        }
+
+        if (loopState.indexSym != nullptr)
+            emitLoopVariablePayload(codeGen, *loopState.indexSym, loopState.indexReg);
     }
 
     MicroReg emitForeachElementAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
@@ -360,6 +525,108 @@ namespace
     }
 }
 
+Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const
+{
+    ForStmtCodeGenPayload loopState;
+    loopState.loopLabel     = codeGen.builder().createLabel();
+    loopState.continueLabel = codeGen.builder().createLabel();
+    loopState.doneLabel     = codeGen.builder().createLabel();
+    loopState.reverse       = modifierFlags.has(AstModifierFlagsE::Reverse);
+
+    if (tokNameRef.isValid())
+    {
+        const SemaNodeView symbolView = codeGen.curViewSymbol();
+        if (symbolView.sym() != nullptr)
+            loopState.indexSym = &symbolView.sym()->cast<SymbolVariable>();
+    }
+
+    setForStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    return Result::Continue;
+}
+
+Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    const AstNodeRef whereRef = resolvedNodeRef(codeGen, nodeWhereRef);
+    const AstNodeRef bodyRef  = resolvedNodeRef(codeGen, nodeBodyRef);
+    if (childRef != whereRef && !(childRef == bodyRef && whereRef.isInvalid()))
+        return Result::Continue;
+
+    CodeGenFrame frame = codeGen.frame();
+    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
+    frame.setCurrentLoopContinueLabel(loopState->continueLabel);
+    frame.setCurrentLoopBreakLabel(loopState->doneLabel);
+    frame.setCurrentLoopIndex(loopState->indexReg, loopState->indexTypeRef);
+    codeGen.pushFrame(frame);
+    return Result::Continue;
+}
+
+Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    const AstNodeRef exprRef  = resolvedNodeRef(codeGen, nodeExprRef);
+    const AstNodeRef whereRef = resolvedNodeRef(codeGen, nodeWhereRef);
+    const AstNodeRef bodyRef  = resolvedNodeRef(codeGen, nodeBodyRef);
+
+    if (childRef == exprRef)
+    {
+        emitForInit(codeGen, *this, *loopState);
+        codeGen.builder().placeLabel(loopState->loopLabel);
+        return Result::Continue;
+    }
+
+    if (childRef == whereRef)
+    {
+        const CodeGenNodePayload& wherePayload = codeGen.payload(whereRef);
+        const SemaNodeView        whereView    = codeGen.viewType(whereRef);
+        emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), loopState->continueLabel);
+        return Result::Continue;
+    }
+
+    if (childRef == bodyRef)
+    {
+        const TypeInfo&   indexType = codeGen.typeMgr().get(loopState->indexTypeRef);
+        const MicroOpBits opBits    = conditionOpBits(&indexType, codeGen.ctx());
+        MicroBuilder&     builder   = codeGen.builder();
+
+        builder.placeLabel(loopState->continueLabel);
+        if (loopState->reverse)
+        {
+            builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
+            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Subtract, opBits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
+        }
+        else
+        {
+            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
+            builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
+            builder.emitJumpToLabel(loopState->inclusive ? loopLessEqualCond(loopState->unsignedCmp) : loopLessCond(loopState->unsignedCmp),
+                                    MicroOpBits::B32,
+                                    loopState->loopLabel);
+        }
+
+        codeGen.popFrame();
+        return Result::Continue;
+    }
+
+    return Result::Continue;
+}
+
+Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
+{
+    const ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    codeGen.builder().placeLabel(loopState->doneLabel);
+    eraseForStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    return Result::Continue;
+}
+
 Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
 {
     ForeachStmtCodeGenPayload loopState;
@@ -388,14 +655,16 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
     const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef bodyRef = resolvedNodeRef(codeGen, nodeBodyRef);
-    if (childRef != bodyRef)
+    const AstNodeRef whereRef = resolvedNodeRef(codeGen, nodeWhereRef);
+    const AstNodeRef bodyRef  = resolvedNodeRef(codeGen, nodeBodyRef);
+    if (childRef != whereRef && !(childRef == bodyRef && whereRef.isInvalid()))
         return Result::Continue;
 
     CodeGenFrame frame = codeGen.frame();
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
     frame.setCurrentLoopContinueLabel(loopState->continueLabel);
     frame.setCurrentLoopBreakLabel(loopState->doneLabel);
+    frame.setCurrentLoopIndex(loopState->indexReg, codeGen.typeMgr().typeU64());
     codeGen.pushFrame(frame);
     return Result::Continue;
 }

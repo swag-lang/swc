@@ -368,6 +368,19 @@ Result Sema::waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& cod
     return Result::Pause;
 }
 
+Result Sema::waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& codeRef)
+{
+    if (!symbol || symbol->isCodeGenPreSolved() || symbol->isCodeGenCompleted())
+        return Result::Continue;
+    TaskState& wait   = ctx().state();
+    wait.kind         = TaskStateKind::SemaWaitSymCodeGenPreSolved;
+    wait.nodeRef      = curNodeRef();
+    wait.codeRef      = codeRef;
+    wait.symbol       = symbol;
+    wait.waiterSymbol = guessCurrentSymbol(*this);
+    return Result::Pause;
+}
+
 Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
     if (!type || type->isCompleted(ctx()))

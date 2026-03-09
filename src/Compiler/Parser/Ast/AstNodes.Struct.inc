@@ -173,6 +173,7 @@ struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 {
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -597,6 +598,8 @@ struct AstNullCoalescingExpr : AstNodeT<AstNodeId::NullCoalescingExpr>
     AstNodeRef nodeRightRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1414,6 +1417,10 @@ struct AstForStmt : AstNamedNodeT<AstNodeId::ForStmt>
     AstNodeRef       nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
+    Result     codeGenPreNode(CodeGen& codeGen) const;
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
     Result     semaPreNode(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;

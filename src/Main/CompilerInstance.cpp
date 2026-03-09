@@ -359,11 +359,30 @@ void CompilerInstance::setRuntimeContextForCurrentThread(Runtime::Context* conte
     Os::tlsSetValue(runtimeContextTlsId(), context);
 }
 
+uint32_t CompilerInstance::nativeRuntimeContextTlsIdOffset()
+{
+    std::call_once(nativeRuntimeContextTlsIdOffsetOnce_, [this] {
+        const auto [offset, storage]     = globalZeroSegment_.reserve<uint64_t>();
+        nativeRuntimeContextTlsIdOffset_ = offset;
+        *storage                         = runtimeContextTlsId() + 1;
+    });
+
+    SWC_ASSERT(nativeRuntimeContextTlsIdOffset_ != UINT32_MAX);
+    return nativeRuntimeContextTlsIdOffset_;
+}
+
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
     PerThreadData& td              = perThreadData_[JobManager::threadIndex()];
     td.runtimeContext.runtimeFlags = Runtime::RuntimeFlags::FromCompiler;
     setRuntimeContextForCurrentThread(&td.runtimeContext);
+
+    if (nativeRuntimeContextTlsIdOffset_ != UINT32_MAX)
+    {
+        uint64_t* const tlsStorage = globalZeroSegment_.ptr<uint64_t>(nativeRuntimeContextTlsIdOffset_);
+        SWC_ASSERT(tlsStorage != nullptr);
+        *tlsStorage = runtimeContextTlsId() + 1;
+    }
 }
 
 void CompilerInstance::resetNativeCodeSegment()

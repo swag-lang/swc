@@ -113,6 +113,7 @@ namespace
 
         return true;
     }
+
 }
 
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
@@ -261,6 +262,11 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
     out.reserve(out.size() + callDependencies_.size());
     for (SymbolFunction* dep : callDependencies_)
         out.push_back(dep);
+}
+
+void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
+{
+    appendDepOrder(out, *const_cast<SymbolFunction*>(this));
 }
 
 Result SymbolFunction::emit(TaskContext& ctx)

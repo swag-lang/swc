@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Helpers.h"
 
@@ -35,14 +36,166 @@ namespace
         return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
     }
 
+    bool functionUsesGvtdIntrinsic(const CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return false;
+
+        const AstNode& node = codeGen.node(nodeRef);
+        if (node.is(AstNodeId::IntrinsicCallExpr) && codeGen.token(node.codeRef()).id == TokenId::IntrinsicGvtd)
+            return true;
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, codeGen.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (functionUsesGvtdIntrinsic(codeGen, childRef))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool tryBuildGvtdEntry(CodeGen& codeGen, TypeRef typeRef, SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
+    {
+        outOpDrop = nullptr;
+        outSizeOf = 0;
+        outCount  = 0;
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& originalType = codeGen.typeMgr().get(typeRef);
+        const TypeRef   rawTypeRef   = originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid() && rawTypeRef != typeRef)
+            typeRef = rawTypeRef;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isArray())
+        {
+            uint64_t multiplier = 1;
+            for (const uint64_t dim : typeInfo.payloadArrayDims())
+                multiplier *= dim;
+            if (!multiplier)
+                return false;
+
+            SymbolFunction* elemOpDrop = nullptr;
+            uint32_t        elemSizeOf = 0;
+            uint32_t        elemCount  = 0;
+            if (!tryBuildGvtdEntry(codeGen, typeInfo.payloadArrayElemTypeRef(), elemOpDrop, elemSizeOf, elemCount))
+                return false;
+
+            const uint64_t totalCount = multiplier * elemCount;
+            SWC_ASSERT(totalCount <= std::numeric_limits<uint32_t>::max());
+            if (totalCount > std::numeric_limits<uint32_t>::max())
+                return false;
+
+            outOpDrop = elemOpDrop;
+            outSizeOf = elemSizeOf;
+            outCount  = static_cast<uint32_t>(totalCount);
+            return outCount != 0;
+        }
+
+        if (!typeInfo.isStruct())
+            return false;
+
+        const SymbolFunction* opDrop = typeInfo.payloadSymStruct().opDrop();
+        if (!opDrop)
+            return false;
+
+        const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
+        SWC_ASSERT(sizeOf <= std::numeric_limits<uint32_t>::max());
+        if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
+            return false;
+
+        outOpDrop = const_cast<SymbolFunction*>(opDrop);
+        outSizeOf = static_cast<uint32_t>(sizeOf);
+        outCount  = 1;
+        return true;
+    }
+
+    void collectGvtdEntriesRec(CodeGen& codeGen, const SymbolMap& symbolMap, SmallVector<CodeGenGvtdEntry>& outEntries)
+    {
+        std::vector<const Symbol*> symbols;
+        symbolMap.getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            if (!symbol)
+                continue;
+
+            if (symbol->isVariable())
+            {
+                auto* symVar = const_cast<SymbolVariable*>(symbol->safeCast<SymbolVariable>());
+                if (!symVar || !symVar->hasGlobalStorage())
+                    continue;
+
+                const DataSegmentKind storageKind = symVar->globalStorageKind();
+                if (storageKind != DataSegmentKind::GlobalZero && storageKind != DataSegmentKind::GlobalInit)
+                    continue;
+
+                SymbolFunction* opDrop = nullptr;
+                uint32_t        sizeOf = 0;
+                uint32_t        count  = 0;
+                if (!tryBuildGvtdEntry(codeGen, symVar->typeRef(), opDrop, sizeOf, count))
+                    continue;
+
+                outEntries.push_back({
+                    .variable = symVar,
+                    .opDrop   = opDrop,
+                    .sizeOf   = sizeOf,
+                    .count    = count,
+                });
+                continue;
+            }
+
+            if (symbol->isModule() || symbol->isNamespace())
+                collectGvtdEntriesRec(codeGen, *symbol->asSymMap(), outEntries);
+        }
+    }
+
+    void configureGvtdScratchLayout(CodeGen& codeGen, uint64_t& frameSize)
+    {
+        codeGen.clearGvtdScratchLayout();
+
+        const AstNodeRef functionDeclRef = codeGen.function().declNodeRef();
+        if (!functionDeclRef.isValid())
+            return;
+
+        const auto* functionDecl = codeGen.node(functionDeclRef).safeCast<AstFunctionDecl>();
+        if (!functionDecl || !functionDecl->nodeBodyRef.isValid())
+            return;
+        if (!functionUsesGvtdIntrinsic(codeGen, functionDecl->nodeBodyRef))
+            return;
+
+        SmallVector<CodeGenGvtdEntry> entries;
+        if (const SymbolModule* rootModule = codeGen.compiler().symModule())
+            collectGvtdEntriesRec(codeGen, *rootModule, entries);
+
+        for (const auto& entry : entries)
+            codeGen.function().addCallDependency(entry.opDrop);
+
+        constexpr uint32_t sliceSize      = sizeof(Runtime::Slice<Runtime::Gvtd>);
+        constexpr uint32_t sliceAlignment = alignof(Runtime::Slice<Runtime::Gvtd>);
+        constexpr uint32_t entrySize      = sizeof(Runtime::Gvtd);
+        constexpr uint32_t entryAlignment = alignof(Runtime::Gvtd);
+        const uint32_t     scratchAlign   = std::max(sliceAlignment, entryAlignment);
+        const uint32_t     entriesOffset  = Math::alignUpU32(sliceSize, entryAlignment);
+        const uint64_t     scratchBase    = Math::alignUpU64(frameSize, scratchAlign);
+        const uint64_t     scratchSize    = entriesOffset + static_cast<uint64_t>(entries.size()) * entrySize;
+        const uint64_t     scratchEnd     = scratchBase + scratchSize;
+        SWC_ASSERT(scratchSize <= std::numeric_limits<uint32_t>::max());
+        SWC_ASSERT(scratchEnd <= std::numeric_limits<uint32_t>::max());
+        if (!scratchSize || scratchSize > std::numeric_limits<uint32_t>::max() || scratchEnd > std::numeric_limits<uint32_t>::max())
+            return;
+
+        frameSize = scratchEnd;
+        codeGen.setGvtdScratchLayout(static_cast<uint32_t>(scratchBase), static_cast<uint32_t>(scratchSize), entries.span());
+    }
+
     void buildLocalStackLayout(CodeGen& codeGen)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
-        if (localSymbols.empty())
-            return;
-
-        const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
-        uint64_t        frameSize = 0;
+        const CallConv&                     callConv     = CallConv::get(codeGen.function().callConvKind());
+        uint64_t                            frameSize    = 0;
         for (SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
@@ -59,6 +212,7 @@ namespace
             frameSize = std::max<uint64_t>(frameSize, symOffset + size);
         }
 
+        configureGvtdScratchLayout(codeGen, frameSize);
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
         SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());

@@ -200,6 +200,7 @@ public:
     Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);

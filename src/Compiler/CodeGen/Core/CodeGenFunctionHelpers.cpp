@@ -9,6 +9,7 @@
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -124,6 +125,90 @@ namespace
         return normalizedTypeRef;
     }
 
+    bool emitMaterializedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef cstRef)
+    {
+        if (!cstRef.isValid())
+            return false;
+
+        const ConstantValue& cst     = codeGen.cstMgr().get(cstRef);
+        MicroBuilder&        builder = codeGen.builder();
+
+        outPayload.typeRef = targetTypeRef;
+        outPayload.reg     = codeGen.nextVirtualIntRegister();
+
+        switch (cst.kind())
+        {
+            case ConstantKind::Bool:
+                builder.emitLoadRegImm(outPayload.reg, ApInt(cst.getBool() ? 1 : 0, 64), MicroOpBits::B64);
+                outPayload.setIsValue();
+                return true;
+
+            case ConstantKind::Int:
+            {
+                const ApsInt& val = cst.getInt();
+                if (!val.fits64())
+                    return false;
+
+                builder.emitLoadRegImm(outPayload.reg, ApInt(static_cast<uint64_t>(val.asI64()), 64), MicroOpBits::B64);
+                outPayload.setIsValue();
+                return true;
+            }
+
+            case ConstantKind::Float:
+            {
+                const ApFloat& value = cst.getFloat();
+                if (value.bitWidth() == 32)
+                {
+                    const auto bits = std::bit_cast<uint32_t>(value.asFloat());
+                    builder.emitLoadRegImm(outPayload.reg, ApInt(bits, 64), MicroOpBits::B32);
+                    outPayload.setIsValue();
+                    return true;
+                }
+
+                if (value.bitWidth() == 64)
+                {
+                    const auto bits = std::bit_cast<uint64_t>(value.asDouble());
+                    builder.emitLoadRegImm(outPayload.reg, ApInt(bits, 64), MicroOpBits::B64);
+                    outPayload.setIsValue();
+                    return true;
+                }
+
+                return false;
+            }
+
+            case ConstantKind::ValuePointer:
+                builder.emitLoadRegPtrReloc(outPayload.reg, cst.getValuePointer(), cstRef);
+                outPayload.setIsValue();
+                return true;
+
+            case ConstantKind::BlockPointer:
+                builder.emitLoadRegPtrReloc(outPayload.reg, cst.getBlockPointer(), cstRef);
+                outPayload.setIsValue();
+                return true;
+
+            case ConstantKind::Null:
+                builder.emitLoadRegImm(outPayload.reg, ApInt(0, 64), MicroOpBits::B64);
+                outPayload.setIsValue();
+                return true;
+
+            case ConstantKind::EnumValue:
+                return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, cst.getEnumValue());
+
+            case ConstantKind::Struct:
+                builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(cst.getStruct().data()), cstRef);
+                outPayload.setIsAddress();
+                return true;
+
+            case ConstantKind::Array:
+                builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(cst.getArray().data()), cstRef);
+                outPayload.setIsAddress();
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     bool materializeDefaultConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef defaultCstRef)
     {
         if (!targetTypeRef.isValid() || !defaultCstRef.isValid())
@@ -136,6 +221,14 @@ namespace
         if (unaliasedTypeRef.isValid())
             storageTypeRef = unaliasedTypeRef;
 
+        const ConstantValue& defaultCst = codeGen.cstMgr().get(defaultCstRef);
+        if (defaultCst.typeRef().isValid())
+        {
+            const TypeRef defaultTypeRef = ctx.typeMgr().get(defaultCst.typeRef()).unwrap(ctx, defaultCst.typeRef(), TypeExpandE::Alias);
+            if (defaultTypeRef.isValid() && defaultTypeRef == storageTypeRef && emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, defaultCstRef))
+                return true;
+        }
+
         const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
         const uint64_t  rawSize     = storageType.sizeOf(ctx);
         if (rawSize == 0 || rawSize > std::numeric_limits<uint32_t>::max())
@@ -146,13 +239,12 @@ namespace
         std::memset(rawBytes.data(), 0, rawBytes.size());
         ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef);
 
-        const std::string_view payloadView(reinterpret_cast<const char*>(rawBytes.data()), rawBytes.size());
-        const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(payloadView);
-        outPayload.typeRef                   = targetTypeRef;
-        outPayload.setIsAddress();
-        outPayload.reg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(storedPayload.data()), defaultCstRef);
-        return true;
+        const ConstantValue materializedCst = ConstantValue::make(ctx, rawBytes.data(), storageTypeRef);
+        if (materializedCst.kind() == ConstantKind::Invalid)
+            return false;
+
+        const ConstantRef materializedCstRef = codeGen.cstMgr().addConstant(ctx, materializedCst);
+        return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, materializedCstRef);
     }
 
     void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef)
@@ -185,10 +277,10 @@ namespace
                 bool requiresTypedConstMaterialization = false;
                 if (normalizedTypeRef.isValid() && argPayload.typeRef.isValid())
                 {
-                    const TaskContext&  ctx           = codeGen.ctx();
-                    const TypeRef expectedTypeRef     = codeGen.ctx().typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
-                    const TypeRef payloadTypeRef      = codeGen.ctx().typeMgr().get(argPayload.typeRef).unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
-                    requiresTypedConstMaterialization = expectedTypeRef.isValid() && payloadTypeRef.isValid() && expectedTypeRef != payloadTypeRef;
+                    const TaskContext& ctx             = codeGen.ctx();
+                    const TypeRef      expectedTypeRef = codeGen.ctx().typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
+                    const TypeRef      payloadTypeRef  = codeGen.ctx().typeMgr().get(argPayload.typeRef).unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
+                    requiresTypedConstMaterialization  = expectedTypeRef.isValid() && payloadTypeRef.isValid() && expectedTypeRef != payloadTypeRef;
                 }
 
                 if (requiresTypedConstMaterialization)

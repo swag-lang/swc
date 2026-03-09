@@ -71,6 +71,7 @@ public:
     static uint64_t*                runtimeContextTlsIdStorage();
     static Runtime::Context*        runtimeContextFromTls();
     static void                     setRuntimeContextForCurrentThread(Runtime::Context* context);
+    uint32_t                        nativeRuntimeContextTlsIdOffset();
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -186,6 +187,8 @@ private:
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;
     std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
+    std::once_flag                                     nativeRuntimeContextTlsIdOffsetOnce_;
+    uint32_t                                           nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     std::vector<SymbolFunction*>                       nativeCodeSegment_;
     std::vector<SymbolFunction*>                       nativeTestFunctions_;
     std::vector<SymbolFunction*>                       nativeInitFunctions_;

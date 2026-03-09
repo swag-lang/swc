@@ -13,6 +13,17 @@ namespace
 {
     constexpr std::string_view K_NATIVE_TEMP_FOLDER = "swc_native";
 
+    bool isZeroFilled(const ByteSpan bytes)
+    {
+        for (const auto byte : bytes)
+        {
+            if (byte != std::byte{0})
+                return false;
+        }
+
+        return true;
+    }
+
     Utf8 runtimeStringToUtf8(const Runtime::String& value)
     {
         if (!value.ptr || !value.length)
@@ -208,21 +219,25 @@ bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& re
     if (!relocation.constantRef.isValid())
         return false;
 
+    uint32_t  shardIndex = 0;
+    const Ref baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
+    if (baseOffset == INVALID_REF)
+        return false;
+
     const ConstantValue& constant = builder_.compiler().cstMgr().get(relocation.constantRef);
     switch (constant.kind())
     {
         case ConstantKind::Struct:
-            return relocation.targetAddress == reinterpret_cast<uint64_t>(constant.getStruct().data()) && isNativeStaticType(constant.typeRef());
+            return relocation.targetAddress == reinterpret_cast<uint64_t>(constant.getStruct().data()) &&
+                   validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, constant.getStruct());
 
         case ConstantKind::Array:
-            return relocation.targetAddress == reinterpret_cast<uint64_t>(constant.getArray().data()) && isNativeStaticType(constant.typeRef());
+            return relocation.targetAddress == reinterpret_cast<uint64_t>(constant.getArray().data()) &&
+                   validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, constant.getArray());
 
         case ConstantKind::ValuePointer:
         case ConstantKind::BlockPointer:
-        {
-            uint32_t shardIndex = 0;
-            return builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress)) != INVALID_REF;
-        }
+            return true;
 
         case ConstantKind::Null:
             return true;
@@ -230,6 +245,158 @@ bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& re
         default:
             return false;
     }
+}
+
+bool NativeArtifactBuilder::validateNativeStaticPayload(TypeRef typeRef, const uint32_t shardIndex, const Ref baseOffset, const ByteSpan bytes) const
+{
+    if (typeRef.isInvalid())
+        return false;
+
+    const DataSegment& segment  = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+    const TypeInfo&    typeInfo = builder_.ctx().typeMgr().get(typeRef);
+    if (typeInfo.isAlias())
+    {
+        const TypeRef unwrapped = typeInfo.unwrap(builder_.ctx(), typeRef, TypeExpandE::Alias);
+        return unwrapped.isValid() && validateNativeStaticPayload(unwrapped, shardIndex, baseOffset, bytes);
+    }
+
+    if (typeInfo.isEnum())
+        return validateNativeStaticPayload(typeInfo.payloadSymEnum().underlyingTypeRef(), shardIndex, baseOffset, bytes);
+
+    if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
+        return true;
+
+    if (typeInfo.isInterface() || typeInfo.isAny())
+        return isZeroFilled(bytes);
+
+    if (typeInfo.isString())
+    {
+        if (bytes.size() != sizeof(Runtime::String))
+            return false;
+
+        const auto* value = reinterpret_cast<const Runtime::String*>(bytes.data());
+        if (!value->ptr)
+            return value->length == 0;
+
+        uint32_t targetOffset = 0;
+        return findDataSegmentRelocation(shardIndex, baseOffset + offsetof(Runtime::String, ptr), targetOffset) && targetOffset < segment.size();
+    }
+
+    if (typeInfo.isSlice())
+    {
+        if (bytes.size() != sizeof(Runtime::Slice<uint8_t>))
+            return false;
+
+        const auto* slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(bytes.data());
+        if (!slice->ptr)
+            return slice->count == 0;
+
+        const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
+        const TypeInfo& elementType    = builder_.ctx().typeMgr().get(elementTypeRef);
+        const uint64_t  elementSize    = elementType.sizeOf(builder_.ctx());
+        if (!elementSize)
+            return false;
+
+        uint32_t targetOffset = 0;
+        if (!findDataSegmentRelocation(shardIndex, baseOffset + offsetof(Runtime::Slice<uint8_t>, ptr), targetOffset))
+            return false;
+
+        const uint64_t byteCount = slice->count * elementSize;
+        if (targetOffset + byteCount > segment.size())
+            return false;
+
+        if (elementType.isBool() || elementType.isChar() || elementType.isRune() || elementType.isInt() || elementType.isFloat())
+            return true;
+
+        const auto* segmentBytes = segment.ptr<std::byte>(targetOffset);
+        if (!segmentBytes)
+            return false;
+
+        for (uint64_t offset = 0; offset < byteCount; offset += elementSize)
+        {
+            const auto elementBytes = ByteSpan{segmentBytes + offset, static_cast<size_t>(elementSize)};
+            if (!validateNativeStaticPayload(elementTypeRef, shardIndex, targetOffset + static_cast<uint32_t>(offset), elementBytes))
+                return false;
+        }
+
+        return true;
+    }
+
+    if (typeInfo.isArray())
+    {
+        const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
+        const TypeInfo& elementType    = builder_.ctx().typeMgr().get(elementTypeRef);
+        const uint64_t  elementSize    = elementType.sizeOf(builder_.ctx());
+        if (!elementSize)
+            return false;
+
+        uint64_t totalCount = 1;
+        for (const uint64_t dim : typeInfo.payloadArrayDims())
+            totalCount *= dim;
+
+        for (uint64_t idx = 0; idx < totalCount; ++idx)
+        {
+            const uint64_t elementOffset = idx * elementSize;
+            const auto     elementBytes  = ByteSpan{bytes.data() + elementOffset, static_cast<size_t>(elementSize)};
+            if (!validateNativeStaticPayload(elementTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(elementOffset), elementBytes))
+                return false;
+        }
+
+        return true;
+    }
+
+    if (typeInfo.isStruct())
+    {
+        for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+        {
+            if (!field)
+                continue;
+
+            const TypeRef   fieldTypeRef = field->typeRef();
+            const TypeInfo& fieldType    = builder_.ctx().typeMgr().get(fieldTypeRef);
+            const uint64_t  fieldSize    = fieldType.sizeOf(builder_.ctx());
+            const uint64_t  fieldOffset  = field->offset();
+            if (fieldOffset + fieldSize > bytes.size())
+                return false;
+
+            const auto fieldBytes = ByteSpan{bytes.data() + fieldOffset, static_cast<size_t>(fieldSize)};
+            if (!validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(fieldOffset), fieldBytes))
+                return false;
+        }
+
+        return true;
+    }
+
+    if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isTypeInfo() || typeInfo.isCString() || typeInfo.isFunction())
+    {
+        if (bytes.size() != sizeof(uint64_t))
+            return false;
+
+        const uint64_t ptr = *reinterpret_cast<const uint64_t*>(bytes.data());
+        if (!ptr)
+            return true;
+
+        uint32_t targetOffset = 0;
+        return findDataSegmentRelocation(shardIndex, baseOffset, targetOffset) && targetOffset < segment.size();
+    }
+
+    return false;
+}
+
+bool NativeArtifactBuilder::findDataSegmentRelocation(const uint32_t shardIndex, const uint32_t offset, uint32_t& outTargetOffset) const
+{
+    outTargetOffset         = 0;
+    const auto& relocations = builder_.compiler().cstMgr().shardDataSegment(shardIndex).relocations();
+    for (const auto& relocation : relocations)
+    {
+        if (relocation.offset != offset)
+            continue;
+
+        outTargetOffset = relocation.targetOffset;
+        return true;
+    }
+
+    return false;
 }
 
 Result NativeArtifactBuilder::prepareDataSections() const

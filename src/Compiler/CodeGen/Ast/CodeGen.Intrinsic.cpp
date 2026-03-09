@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
@@ -21,6 +22,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_ASSERT = 3;
+    ConstantRef        makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef);
 
     uint64_t addIntrinsicPayloadToConstantManagerAndGetAddress(CodeGen& codeGen, ByteSpan payload)
     {
@@ -655,11 +657,8 @@ namespace
         SmallVector<ABICall::PreparedArg> preparedArgs;
         preparedArgs.reserve(3);
 
-        constexpr Runtime::String nullRuntimeString{};
-        const ByteSpan            nullRuntimeStringBytes       = asByteSpan(reinterpret_cast<const std::byte*>(&nullRuntimeString), sizeof(nullRuntimeString));
-        const ByteSpan            storedNullRuntimeStringBytes = addIntrinsicPayloadToConstantManagerAndGetSpan(codeGen, nullRuntimeStringBytes);
-        const ConstantRef         nullMessageRef               = codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStructBorrowed(codeGen.ctx(), codeGen.typeMgr().typeString(), storedNullRuntimeStringBytes));
-        const auto                nullMessage                  = makeAddressPayloadFromConstant(codeGen, nullMessageRef);
+        const ConstantRef nullMessageRef = makeZeroStructConstant(codeGen, codeGen.typeMgr().typeString());
+        const auto        nullMessage    = makeAddressPayloadFromConstant(codeGen, nullMessageRef);
 
         const ConstantRef sourceLocRef = ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), node);
         const auto        sourceLoc    = makeAddressPayloadFromConstant(codeGen, sourceLocRef);
@@ -1072,8 +1071,192 @@ namespace
         return Result::Continue;
     }
 
+    SymbolFunction* runtimeFunctionByName(CodeGen& codeGen, const std::string_view name)
+    {
+        const IdentifierRef idRef = codeGen.idMgr().addIdentifier(name);
+        if (idRef.isInvalid())
+            return nullptr;
+
+        return codeGen.compiler().runtimeFunctionSymbol(idRef);
+    }
+
+    ConstantRef makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeInfo& type   = codeGen.typeMgr().get(typeRef);
+        const uint64_t  sizeOf = type.sizeOf(codeGen.ctx());
+
+        std::vector<std::byte> bytes;
+        bytes.resize(sizeOf);
+        return codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStruct(codeGen.ctx(), typeRef, ByteSpan{bytes.data(), bytes.size()}));
+    }
+
+    Result codeGenProcessInfos(CodeGen& codeGen)
+    {
+        const TypeRef             processInfosTypeRef = codeGen.typeMgr().structProcessInfos();
+        const ConstantRef         processInfosCstRef  = makeZeroStructConstant(codeGen, processInfosTypeRef);
+        const CodeGenNodePayload  addressPayload      = makeAddressPayloadFromConstant(codeGen, processInfosCstRef);
+        const CodeGenNodePayload& resultPayload       = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        codeGen.builder().emitLoadRegReg(resultPayload.reg, addressPayload.reg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
+    MicroReg gvtdScratchAddressReg(CodeGen& codeGen)
+    {
+        SWC_ASSERT(codeGen.hasGvtdScratchLayout());
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+        if (!codeGen.gvtdScratchOffset())
+            return codeGen.localStackBaseReg();
+
+        MicroBuilder&  builder    = codeGen.builder();
+        const MicroReg addressReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(addressReg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(addressReg, ApInt(codeGen.gvtdScratchOffset(), 64), MicroOp::Add, MicroOpBits::B64);
+        return addressReg;
+    }
+
+    Result codeGenGvtd(CodeGen& codeGen)
+    {
+        constexpr uint32_t slicePtrOffset   = offsetof(Runtime::Slice<Runtime::Gvtd>, ptr);
+        constexpr uint32_t sliceCountOffset = offsetof(Runtime::Slice<Runtime::Gvtd>, count);
+        constexpr uint32_t entriesOffset    = (sizeof(Runtime::Slice<Runtime::Gvtd>) + alignof(Runtime::Gvtd) - 1) & ~(alignof(Runtime::Gvtd) - 1);
+
+        SWC_ASSERT(codeGen.hasGvtdScratchLayout());
+        if (!codeGen.hasGvtdScratchLayout())
+            return Result::Error;
+
+        const MicroReg scratchReg = gvtdScratchAddressReg(codeGen);
+        MicroBuilder&  builder    = codeGen.builder();
+        const auto     entries    = codeGen.gvtdScratchEntries();
+
+        if (entries.empty())
+        {
+            builder.emitLoadMemImm(scratchReg, slicePtrOffset, ApInt(0, 64), MicroOpBits::B64);
+        }
+        else
+        {
+            const MicroReg entriesReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(entriesReg, scratchReg, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(entriesReg, ApInt(entriesOffset, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadMemReg(scratchReg, slicePtrOffset, entriesReg, MicroOpBits::B64);
+
+            for (size_t i = 0; i < entries.size(); ++i)
+            {
+                const auto&    entry   = entries[i];
+                const uint64_t baseOff = entriesOffset + i * sizeof(Runtime::Gvtd);
+
+                const MicroReg ptrReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegDataSegmentReloc(ptrReg, entry.variable->globalStorageKind(), entry.variable->offset());
+                builder.emitLoadMemReg(scratchReg, baseOff + offsetof(Runtime::Gvtd, ptr), ptrReg, MicroOpBits::B64);
+
+                const MicroReg opDropReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegPtrReloc(opDropReg, 0, ConstantRef::invalid(), entry.opDrop);
+                builder.emitLoadMemReg(scratchReg, baseOff + offsetof(Runtime::Gvtd, opDrop), opDropReg, MicroOpBits::B64);
+                builder.emitLoadMemImm(scratchReg, baseOff + offsetof(Runtime::Gvtd, sizeOf), ApInt(entry.sizeOf, 32), MicroOpBits::B32);
+                builder.emitLoadMemImm(scratchReg, baseOff + offsetof(Runtime::Gvtd, count), ApInt(entry.count, 32), MicroOpBits::B32);
+            }
+        }
+
+        builder.emitLoadMemImm(scratchReg, sliceCountOffset, ApInt(entries.size(), 64), MicroOpBits::B64);
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        resultPayload.reg                 = scratchReg;
+        return Result::Continue;
+    }
+
+    Result codeGenGetContextNative(CodeGen& codeGen)
+    {
+        SymbolFunction* tlsAllocFunction  = runtimeFunctionByName(codeGen, "__tlsAlloc");
+        SymbolFunction* tlsGetPtrFunction = runtimeFunctionByName(codeGen, "__tlsGetPtr");
+        SWC_ASSERT(tlsAllocFunction != nullptr);
+        SWC_ASSERT(tlsGetPtrFunction != nullptr);
+        if (!tlsAllocFunction || !tlsGetPtrFunction)
+            return Result::Error;
+
+        codeGen.function().addCallDependency(tlsAllocFunction);
+        codeGen.function().addCallDependency(tlsGetPtrFunction);
+
+        MicroBuilder&  builder       = codeGen.builder();
+        const uint32_t tlsIdOffset   = codeGen.compiler().nativeRuntimeContextTlsIdOffset();
+        const MicroReg tlsStorageReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegDataSegmentReloc(tlsStorageReg, DataSegmentKind::GlobalZero, tlsIdOffset);
+
+        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(tlsIdPlusOneReg, tlsStorageReg, 0, MicroOpBits::B64);
+
+        const MicroLabelRef haveTlsIdLabel = builder.createLabel();
+        builder.emitCmpRegImm(tlsIdPlusOneReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, haveTlsIdLabel);
+
+        const CallConvKind          tlsAllocCallConvKind = tlsAllocFunction->callConvKind();
+        const ABICall::PreparedCall preparedTlsAllocCall = ABICall::prepareArgs(builder, tlsAllocCallConvKind, {});
+        ABICall::callLocal(builder, tlsAllocCallConvKind, tlsAllocFunction, preparedTlsAllocCall);
+
+        const CallConv&                        tlsAllocCallConv = CallConv::get(tlsAllocCallConvKind);
+        const ABITypeNormalize::NormalizedType tlsAllocRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsAllocCallConv, tlsAllocFunction->returnTypeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!tlsAllocRet.isVoid);
+        SWC_ASSERT(!tlsAllocRet.isIndirect);
+
+        ABICall::materializeReturnToReg(builder, tlsIdPlusOneReg, tlsAllocCallConvKind, tlsAllocRet);
+        builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(tlsStorageReg, 0, tlsIdPlusOneReg, MicroOpBits::B64);
+        builder.placeLabel(haveTlsIdLabel);
+
+        const MicroReg tlsIdReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(tlsIdReg, tlsIdPlusOneReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(tlsIdReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+
+        const TypeRef      contextTypeRef     = codeGen.typeMgr().structContext();
+        const TypeInfo&    contextType        = codeGen.typeMgr().get(contextTypeRef);
+        const ConstantRef  initContextCstRef  = makeZeroStructConstant(codeGen, contextTypeRef);
+        CodeGenNodePayload initContextPayload = makeAddressPayloadFromConstant(codeGen, initContextCstRef);
+        initContextPayload.setIsValue();
+
+        const MicroReg contextSizeReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(contextSizeReg, ApInt(contextType.sizeOf(codeGen.ctx()), 64), MicroOpBits::B64);
+
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.push_back({
+            .srcReg      = tlsIdReg,
+            .kind        = ABICall::PreparedArgKind::Direct,
+            .isFloat     = false,
+            .isAddressed = false,
+            .numBits     = 64,
+        });
+        preparedArgs.push_back({
+            .srcReg      = contextSizeReg,
+            .kind        = ABICall::PreparedArgKind::Direct,
+            .isFloat     = false,
+            .isAddressed = false,
+            .numBits     = 64,
+        });
+        preparedArgs.push_back({
+            .srcReg      = initContextPayload.reg,
+            .kind        = ABICall::PreparedArgKind::Direct,
+            .isFloat     = false,
+            .isAddressed = false,
+            .numBits     = 64,
+        });
+
+        const CallConvKind          tlsGetPtrCallConvKind = tlsGetPtrFunction->callConvKind();
+        const ABICall::PreparedCall preparedTlsGetPtrCall = ABICall::prepareArgs(builder, tlsGetPtrCallConvKind, preparedArgs.span());
+        ABICall::callLocal(builder, tlsGetPtrCallConvKind, tlsGetPtrFunction, preparedTlsGetPtrCall);
+
+        const CallConv&                        tlsGetPtrCallConv = CallConv::get(tlsGetPtrCallConvKind);
+        const ABITypeNormalize::NormalizedType tlsGetPtrRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsGetPtrCallConv, codeGen.curViewType().typeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!tlsGetPtrRet.isVoid);
+        SWC_ASSERT(!tlsGetPtrRet.isIndirect);
+
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        ABICall::materializeReturnToReg(builder, resultPayload.reg, tlsGetPtrCallConvKind, tlsGetPtrRet);
+        return Result::Continue;
+    }
+
     Result codeGenGetContext(CodeGen& codeGen)
     {
+        if (codeGen.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::None)
+            return codeGenGetContextNative(codeGen);
+
         const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
@@ -1111,6 +1294,38 @@ namespace
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultType);
         ABICall::materializeReturnToReg(builder, resultPayload.reg, callConvKind, normalizedRet);
         return Result::Continue;
+    }
+}
+
+Result AstIntrinsicValue::codeGenPostNode(CodeGen& codeGen) const
+{
+    const Token& tok = codeGen.token(codeRef());
+    switch (tok.id)
+    {
+        case TokenId::IntrinsicIndex:
+        {
+            const MicroReg indexReg = codeGen.frame().currentLoopIndexReg();
+            SWC_ASSERT(indexReg.isValid());
+
+            TypeRef indexTypeRef = codeGen.frame().currentLoopIndexTypeRef();
+            if (indexTypeRef.isInvalid())
+                indexTypeRef = codeGen.curViewType().typeRef();
+
+            const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), indexTypeRef);
+            MicroOpBits               opBits  = MicroOpBits::B64;
+            if (indexTypeRef.isValid())
+            {
+                const uint64_t sizeOfType = codeGen.typeMgr().get(indexTypeRef).sizeOf(codeGen.ctx());
+                if (sizeOfType == 1 || sizeOfType == 2 || sizeOfType == 4 || sizeOfType == 8)
+                    opBits = microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfType));
+            }
+
+            codeGen.builder().emitLoadRegReg(payload.reg, indexReg, opBits);
+            return Result::Continue;
+        }
+
+        default:
+            SWC_UNREACHABLE();
     }
 }
 
@@ -1200,6 +1415,10 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
         case TokenId::IntrinsicGetContext:
             return codeGenGetContext(codeGen);
+        case TokenId::IntrinsicProcessInfos:
+            return codeGenProcessInfos(codeGen);
+        case TokenId::IntrinsicGvtd:
+            return codeGenGvtd(codeGen);
         case TokenId::IntrinsicCompiler:
             return codeGenCompiler(codeGen);
         case TokenId::IntrinsicBreakpoint:

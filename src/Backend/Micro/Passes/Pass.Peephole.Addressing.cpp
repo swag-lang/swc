@@ -1000,6 +1000,8 @@ namespace
             return false;
 
         const MicroReg tmpReg = ops[0].reg;
+        if (tmpReg == ops[1].reg)
+            return false;
         if (nextOps[1].reg != tmpReg)
             return false;
         if (ops[2].opBits != nextOps[2].opBits)
@@ -1136,6 +1138,8 @@ namespace
 
         const MicroReg tmpReg  = ops[0].reg;
         const MicroReg baseReg = ops[1].reg;
+        if (tmpReg == baseReg)
+            return false;
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
         {
             const MicroInstr&  scanInst = *scanIt;
@@ -1326,6 +1330,8 @@ namespace
         const MicroReg tmpReg    = ops[0].reg;
         const MicroReg baseReg   = ops[1].reg;
         const uint64_t baseExtra = ops[3].valueU64;
+        if (tmpReg == baseReg)
+            return false;
 
         struct RewriteCandidate
         {

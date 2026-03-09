@@ -60,6 +60,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         nextVirtualRegister_ = 1;
         localStackFrameSize_ = 0;
         localStackBaseReg_   = MicroReg::invalid();
+        clearGvtdScratchLayout();
         frames_.clear();
         frames_.emplace_back();
 

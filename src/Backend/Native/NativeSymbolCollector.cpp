@@ -41,6 +41,23 @@ Result NativeSymbolCollector::collectSymbols()
 
     collectSymbolsRec(*rootModule);
 
+    for (size_t idx = 0; idx < builder_.rawFunctions.size(); ++idx)
+    {
+        SymbolFunction* function = builder_.rawFunctions[idx];
+        if (!function)
+            continue;
+
+        SmallVector<SymbolFunction*> deps;
+        function->appendCallDependencies(deps);
+        for (SymbolFunction* dep : deps)
+        {
+            if (!dep)
+                continue;
+
+            collectFunction(*dep);
+        }
+    }
+
     sortAndUnique(builder_.rawFunctions);
     sortAndUnique(builder_.rawTestFunctions);
     sortAndUnique(builder_.rawInitFunctions);

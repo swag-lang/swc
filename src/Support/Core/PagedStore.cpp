@@ -386,16 +386,18 @@ std::pair<Ref, void*> PagedStore::allocate(uint32_t size, uint32_t align)
 {
     SWC_ASSERT(size <= pageSizeValue_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
 
-    Page*    page   = curPage_ ? curPage_ : newPage();
-    uint32_t offset = (page->used.load(std::memory_order_relaxed) + (align - 1)) & ~(align - 1);
+    Page*    page     = curPage_ ? curPage_ : newPage();
+    uint32_t prevUsed = page->used.load(std::memory_order_relaxed);
+    uint32_t offset   = (prevUsed + (align - 1)) & ~(align - 1);
     if (offset + size > pageSizeValue_)
     {
-        page   = newPage();
-        offset = 0;
+        page     = newPage();
+        prevUsed = page->used.load(std::memory_order_relaxed);
+        offset   = 0;
     }
 
     page->used.store(offset + size, std::memory_order_relaxed);
-    totalBytes_ += size;
+    totalBytes_ += offset + size - prevUsed;
 
     const Ref r = makeRef(pageSizeValue_, curPageIndex_, offset);
     return {r, static_cast<void*>(page->bytes() + offset)};

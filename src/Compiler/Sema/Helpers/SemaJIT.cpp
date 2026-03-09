@@ -169,18 +169,69 @@ namespace
 
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
-        sema.ctx().state().jitEmissionError = false;
+        TaskContext& ctx             = sema.ctx();
+        ctx.state().jitEmissionError = false;
         if (symFn.tryMarkCodeGenJobScheduled())
         {
-            auto* job = heapNew<CodeGenJob>(sema.ctx(), sema, symFn, symFn.declNodeRef());
+            auto* job = heapNew<CodeGenJob>(ctx, sema, symFn, symFn.declNodeRef());
             sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
         }
         SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
-        if (sema.ctx().state().jitEmissionError)
+        if (ctx.state().jitEmissionError)
             return Result::Error;
 
-        TaskContext& ctx = sema.ctx();
-        SWC_RESULT_VERIFY(symFn.emit(ctx));
+        std::unordered_set<SymbolFunction*> knownFunctions;
+        size_t                              knownFunctionCount = 0;
+        while (true)
+        {
+            SmallVector<SymbolFunction*> jitOrder;
+            symFn.appendJitOrder(jitOrder);
+
+            for (SymbolFunction* function : jitOrder)
+            {
+                if (!function)
+                    continue;
+
+                knownFunctions.insert(function);
+                if (!function->tryMarkCodeGenJobScheduled())
+                    continue;
+
+                const AstNodeRef depRoot = function->declNodeRef();
+                SWC_ASSERT(depRoot.isValid());
+                auto* job = heapNew<CodeGenJob>(ctx, sema, *function, depRoot);
+                sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
+            }
+
+            for (SymbolFunction* function : jitOrder)
+            {
+                if (!function)
+                    continue;
+                SWC_RESULT_VERIFY(sema.waitCodeGenPreSolved(function, function->codeRef()));
+            }
+
+            SmallVector<SymbolFunction*> expandedOrder;
+            symFn.appendJitOrder(expandedOrder);
+            for (SymbolFunction* function : expandedOrder)
+            {
+                if (function)
+                    knownFunctions.insert(function);
+            }
+
+            if (knownFunctions.size() == knownFunctionCount)
+                break;
+
+            knownFunctionCount = knownFunctions.size();
+        }
+
+        SmallVector<SymbolFunction*> jitOrder;
+        symFn.appendJitOrder(jitOrder);
+        for (SymbolFunction* function : jitOrder)
+        {
+            if (!function)
+                continue;
+            SWC_RESULT_VERIFY(function->emit(ctx));
+        }
+
         if (ctx.state().jitEmissionError)
             return Result::Error;
 

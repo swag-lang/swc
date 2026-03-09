@@ -340,6 +340,10 @@ namespace
                 outSignedLeft = true;
                 return true;
             case MicroOp::MultiplySigned:
+                outOp          = Math::FoldBinaryOp::Multiply;
+                outSignedLeft  = true;
+                outSignedRight = true;
+                return true;
             case MicroOp::MultiplyUnsigned:
                 outOp = Math::FoldBinaryOp::Multiply;
                 return true;

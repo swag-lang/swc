@@ -81,6 +81,7 @@ public:
     bool                tryMarkCodeGenJobScheduled() noexcept;
     void                addCallDependency(SymbolFunction* sym);
     void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    void                appendJitOrder(SmallVector<SymbolFunction*>& out) const;
     void*               jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
     void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     Result              emit(TaskContext& ctx);

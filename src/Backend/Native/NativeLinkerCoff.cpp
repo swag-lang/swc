@@ -5,6 +5,25 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    void addLinkLibraryForModule(std::set<Utf8>& out, const std::string_view moduleName)
+    {
+        const Utf8 normalized = FileSystem::normalizeLibraryFileName(moduleName);
+        if (!normalized.empty())
+            out.insert(normalized);
+
+        Utf8 lowered(moduleName);
+        lowered.make_lower();
+
+        // MSVC splits ucrtbase imports across multiple import libraries.
+        if (lowered == "ucrtbase" || lowered == "ucrtbase.lib")
+            out.insert("vcruntime.lib");
+        else if (lowered == "ucrtbased" || lowered == "ucrtbased.lib")
+            out.insert("vcruntimed.lib");
+    }
+}
+
 NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
     builder_(builder)
 {
@@ -147,7 +166,7 @@ void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
 void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
 {
     for (const Utf8& library : builder_.compiler().foreignLibs())
-        out.insert(FileSystem::normalizeLibraryFileName(library));
+        addLinkLibraryForModule(out, library);
 
     const auto collectFromCode = [&](const MachineCode& code) {
         for (const auto& relocation : code.codeRelocations)
@@ -158,7 +177,7 @@ void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
             if (!function)
                 continue;
             if (!function->foreignModuleName().empty())
-                out.insert(FileSystem::normalizeLibraryFileName(function->foreignModuleName()));
+                addLinkLibraryForModule(out, function->foreignModuleName());
         }
     };
 

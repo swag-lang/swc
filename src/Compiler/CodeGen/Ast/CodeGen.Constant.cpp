@@ -164,6 +164,29 @@ namespace
         return reinterpret_cast<uint64_t>(storedPayload.data());
     }
 
+    ConstantRef makeBorrowedRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
+    {
+        uint32_t targetShardIndex = 0;
+        Ref      targetOffset     = INVALID_REF;
+        if (targetPtr)
+            targetOffset = codeGen.cstMgr().findDataSegmentRef(targetShardIndex, targetPtr);
+
+        if (targetPtr && targetOffset == INVALID_REF)
+            return ConstantRef::invalid();
+
+        DataSegment& segment         = codeGen.cstMgr().shardDataSegment(targetOffset == INVALID_REF ? 0 : targetShardIndex);
+        const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
+        auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
+        runtimeValue->ptr            = const_cast<std::byte*>(reinterpret_cast<const std::byte*>(targetPtr));
+        runtimeValue->count          = count;
+
+        if (targetOffset != INVALID_REF)
+            segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetOffset);
+
+        const ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
+        return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
+    }
+
     void emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -224,11 +247,11 @@ namespace
 
             case ConstantKind::String:
             {
-                const std::string_view value              = cst.getString();
-                const Runtime::String  runtimeString      = {.ptr = value.data(), .length = value.size()};
-                const ByteSpan         runtimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString));
-                const uint64_t         storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
-                builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
+                const std::string_view value               = cst.getString();
+                const ConstantRef      runtimeStringCstRef = makeBorrowedRuntimeBufferConstant(codeGen, codeGen.typeMgr().typeString(), value.data(), value.size());
+                SWC_ASSERT(runtimeStringCstRef.isValid());
+                const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
+                builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
                 payload.setIsValue();
                 return;
             }
@@ -306,28 +329,22 @@ namespace
                     const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
                     if (targetType.isString())
                     {
-                        const Runtime::String runtimeString{
-                            .ptr    = reinterpret_cast<const char*>(arrayBytes.data()),
-                            .length = arrayBytes.size(),
-                        };
-                        const ByteSpan runtimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString));
-                        const uint64_t storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
-                        builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
+                        const ConstantRef runtimeStringCstRef = makeBorrowedRuntimeBufferConstant(codeGen, targetTypeRef, arrayBytes.data(), arrayBytes.size());
+                        SWC_ASSERT(runtimeStringCstRef.isValid());
+                        const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
+                        builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
                         payload.setIsValue();
                         return;
                     }
 
                     if (targetType.isSlice())
                     {
-                        const TypeInfo&      elementType = codeGen.typeMgr().get(targetType.payloadTypeRef());
-                        const uint64_t       elementSize = elementType.sizeOf(codeGen.ctx());
-                        const Runtime::Slice runtimeSlice{
-                            .ptr   = arrayBytes.data(),
-                            .count = elementSize ? arrayBytes.size() / elementSize : 0,
-                        };
-                        const ByteSpan runtimeSliceBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeSlice), sizeof(runtimeSlice));
-                        const uint64_t storageAddress    = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeSliceBytes);
-                        builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
+                        const TypeInfo&   elementType        = codeGen.typeMgr().get(targetType.payloadTypeRef());
+                        const uint64_t    elementSize        = elementType.sizeOf(codeGen.ctx());
+                        const ConstantRef runtimeSliceCstRef = makeBorrowedRuntimeBufferConstant(codeGen, targetTypeRef, arrayBytes.data(), elementSize ? arrayBytes.size() / elementSize : 0);
+                        SWC_ASSERT(runtimeSliceCstRef.isValid());
+                        const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
+                        builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
                         payload.setIsValue();
                         return;
                     }
@@ -345,15 +362,12 @@ namespace
                 const ByteSpan  sliceBytes = cst.getSlice();
                 const TypeInfo& sliceType  = cst.type(codeGen.ctx());
                 SWC_ASSERT(sliceType.isSlice());
-                const TypeInfo&      elementType = codeGen.typeMgr().get(sliceType.payloadTypeRef());
-                const uint64_t       elementSize = elementType.sizeOf(codeGen.ctx());
-                const Runtime::Slice runtimeSlice{
-                    .ptr   = sliceBytes.data(),
-                    .count = elementSize ? sliceBytes.size() / elementSize : 0,
-                };
-                const ByteSpan runtimeSliceBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeSlice), sizeof(runtimeSlice));
-                const uint64_t storageAddress    = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeSliceBytes);
-                builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
+                const TypeInfo&   elementType        = codeGen.typeMgr().get(sliceType.payloadTypeRef());
+                const uint64_t    elementSize        = elementType.sizeOf(codeGen.ctx());
+                const ConstantRef runtimeSliceCstRef = makeBorrowedRuntimeBufferConstant(codeGen, cst.typeRef(), sliceBytes.data(), elementSize ? sliceBytes.size() / elementSize : 0);
+                SWC_ASSERT(runtimeSliceCstRef.isValid());
+                const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
+                builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
                 payload.setIsValue();
                 return;
             }

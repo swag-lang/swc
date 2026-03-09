@@ -184,6 +184,14 @@ namespace
             return;
         }
 
+        if (dstType.isInterface())
+        {
+            SWC_ASSERT(cst.isNull() && dstBytes.size() == sizeof(Runtime::Interface));
+            Runtime::Interface rt = {};
+            std::memcpy(dstBytes.data(), &rt, sizeof(rt));
+            return;
+        }
+
         if (dstType.isAny())
         {
             SWC_ASSERT(dstBytes.size() == sizeof(Runtime::Any));

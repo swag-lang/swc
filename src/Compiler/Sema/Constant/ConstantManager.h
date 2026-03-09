@@ -30,6 +30,7 @@ public:
 
     Result             makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
     TypeRef            makeTypeValue(Sema& sema, ConstantRef cstRef) const;
+    DataSegment&       shardDataSegment(uint32_t index);
     const DataSegment& shardDataSegment(uint32_t index) const;
     Ref                findDataSegmentRef(uint32_t& outShardIndex, const void* ptr) const noexcept;
 

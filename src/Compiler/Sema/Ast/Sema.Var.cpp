@@ -363,6 +363,21 @@ namespace
         }
     }
 
+    void storeVariableDefaultConstants(const std::span<Symbol*>& symbols, ConstantRef cstRef)
+    {
+        if (cstRef.isInvalid())
+            return;
+
+        for (Symbol* s : symbols)
+        {
+            if (!s->isVariable())
+                continue;
+
+            auto& symVar = s->cast<SymbolVariable>();
+            symVar.setDefaultValueRef(cstRef);
+        }
+    }
+
     void storeLetConstants(const std::span<Symbol*>& symbols, bool isLet, ConstantRef cstRef)
     {
         if (!isLet || cstRef.isInvalid())
@@ -571,7 +586,7 @@ namespace
         }
 
         ConstantRef implicitStructCstRef = ConstantRef::invalid();
-        if (context.nodeInitRef.isInvalid() && explicitTypeRef.isValid() && explicitType && explicitType->isStruct() && (isConst || isLet))
+        if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
             SWC_RESULT_VERIFY(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
             implicitStructCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
@@ -604,6 +619,7 @@ namespace
         storeLetConstants(symbols, isLet, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
         storeGlobalVariableConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
         storeParameterDefaultConstants(symbols, isParameter, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : ConstantRef::invalid());
+        storeVariableDefaultConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {

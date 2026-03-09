@@ -21,7 +21,7 @@ const D1: s32 = D2 + 1
 const D2: s32 = D3 + 1
 const D3: s32 = D1
 
-struct DD { a: DD } // swc-expected-error {{sema_err_struct_circular_reference}}
+struct DD { a: DD } // swc-expected-error {{sema_err_cyclic_dependency}}
 
 // swc-expected-error@(+1,+2) {{sema_err_cyclic_dependency}}
 struct EE { a: FF }

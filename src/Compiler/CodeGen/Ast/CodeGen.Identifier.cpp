@@ -4,7 +4,10 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -13,6 +16,34 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isFunctionLocalVariable(const CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        const auto& locals = codeGen.function().localVariables();
+        return std::ranges::find(locals, const_cast<SymbolVariable*>(&symVar)) != locals.end();
+    }
+
+    CodeGenNodePayload makeLocalStackPayload(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+        CodeGenNodePayload localPayload;
+        localPayload.typeRef = symVar.typeRef();
+        localPayload.setIsAddress();
+        if (!symVar.offset())
+        {
+            localPayload.reg = codeGen.localStackBaseReg();
+        }
+        else
+        {
+            MicroBuilder& builder = codeGen.builder();
+            localPayload.reg      = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+        }
+
+        return localPayload;
+    }
+
     MicroOpBits identifierPayloadCopyBits(CodeGen& codeGen, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -48,23 +79,14 @@ namespace
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
-            SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+            CodeGenNodePayload localPayload = makeLocalStackPayload(codeGen, symVar);
+            codeGen.setVariablePayload(symVar, localPayload);
+            return localPayload;
+        }
 
-            CodeGenNodePayload localPayload;
-            localPayload.typeRef = symVar.typeRef();
-            localPayload.setIsAddress();
-            if (!symVar.offset())
-            {
-                localPayload.reg = codeGen.localStackBaseReg();
-            }
-            else
-            {
-                MicroBuilder& builder = codeGen.builder();
-                localPayload.reg      = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(localPayload.reg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-            }
-
+        if (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar))
+        {
+            CodeGenNodePayload localPayload = makeLocalStackPayload(codeGen, symVar);
             codeGen.setVariablePayload(symVar, localPayload);
             return localPayload;
         }
@@ -80,6 +102,30 @@ namespace
         }
 
         SWC_UNREACHABLE();
+    }
+
+    bool emitDefaultValueToLocalStack(CodeGen& codeGen, const SymbolVariable& symVar, const MicroReg dstReg, uint32_t localSize)
+    {
+        const ConstantRef defaultValueRef = symVar.defaultValueRef();
+        if (defaultValueRef.isInvalid())
+            return false;
+
+        const ConstantValue& defaultValue = codeGen.cstMgr().get(defaultValueRef);
+
+        ByteSpan payloadBytes;
+        if (defaultValue.isStruct())
+            payloadBytes = defaultValue.getStruct();
+        else if (defaultValue.isArray())
+            payloadBytes = defaultValue.getArray();
+        else
+            return false;
+
+        SWC_ASSERT(payloadBytes.size() == localSize);
+        MicroBuilder&  builder    = codeGen.builder();
+        const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), defaultValueRef);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, payloadReg, localSize);
+        return true;
     }
 
     void codeGenIdentifierVariable(CodeGen& codeGen, const SymbolVariable& symVar)
@@ -170,7 +216,8 @@ namespace
                 }
                 else
                 {
-                    CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
+                    if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
+                        CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
                 }
             }
 

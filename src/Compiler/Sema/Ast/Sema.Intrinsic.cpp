@@ -16,6 +16,29 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    TypeRef currentLoopIndexTypeRef(Sema& sema)
+    {
+        const SemaFrame::BreakContext& breakContext = sema.frame().currentBreakContext();
+        if (breakContext.kind != SemaFrame::BreakContextKind::Loop || breakContext.nodeRef.isInvalid())
+            return TypeRef::invalid();
+
+        const AstNode& breakNode = sema.node(breakContext.nodeRef);
+        if (breakNode.is(AstNodeId::ForeachStmt))
+            return sema.typeMgr().typeU64();
+
+        if (breakNode.is(AstNodeId::ForStmt))
+        {
+            const auto&        forNode  = breakNode.cast<AstForStmt>();
+            const SemaNodeView exprView = sema.viewType(forNode.nodeExprRef);
+            return exprView.typeRef();
+        }
+
+        return TypeRef::invalid();
+    }
+}
+
 Result AstIntrinsicValue::semaPostNode(Sema& sema)
 {
     sema.setIsValue(*this);
@@ -24,7 +47,14 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
     switch (tok.id)
     {
         case TokenId::IntrinsicIndex:
+        {
+            const TypeRef indexTypeRef = currentLoopIndexTypeRef(sema);
+            if (!indexTypeRef.isValid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_index_outside_loop, sema.curNodeRef());
+
+            sema.setType(sema.curNodeRef(), indexTypeRef);
             return Result::Continue;
+        }
 
         default:
             SWC_INTERNAL_ERROR();

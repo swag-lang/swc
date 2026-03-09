@@ -123,6 +123,7 @@ SWC_DIAG_DEF(sema_err_spec_op_signature, Error, "invalid signature for special f
 SWC_DIAG_DEF(sema_err_break_outside_breakable, Error, "'break' is used outside a loop or switch statement")
 SWC_DIAG_DEF(sema_err_continue_outside_breakable, Error, "'continue' is used outside a loop statement")
 SWC_DIAG_DEF(sema_err_continue_not_in_loop, Error, "'continue' is used inside a switch statement")
+SWC_DIAG_DEF(sema_err_index_outside_loop, Error, "'@index' is used outside a loop statement")
 SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "invalid switch expression type '{type}'; expected int-like, float, bool, or string")
 SWC_DIAG_DEF(sema_err_switch_case_not_const, Error, "switch case value is not constant")
 SWC_DIAG_DEF(sema_err_switch_case_duplicate, Error, "duplicate constant case value '{value}'")

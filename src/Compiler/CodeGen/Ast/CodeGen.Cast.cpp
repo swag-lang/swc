@@ -91,8 +91,6 @@ namespace
 
         const bool pointerLikeValue =
             dstType.isAnyPointer() ||
-            dstType.isReference() ||
-            dstType.isMoveReference() ||
             dstType.isEnum() ||
             dstType.isTypeInfo() ||
             dstType.isFunction() ||
@@ -245,6 +243,14 @@ namespace
             return Result::Continue;
         }
 
+        if (dstType.isReference() || dstType.isMoveReference())
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(dstPayload.reg, valueAddrReg, MicroOpBits::B64);
+            return Result::Continue;
+        }
+
         auto valueBits = MicroOpBits::Zero;
         if (anyCastAsValueBits(codeGen, dstType, valueBits))
         {
@@ -304,7 +310,7 @@ namespace
             const ConstantRef  nullCstRef   = srcConstView.cstRef().isValid() ? srcConstView.cstRef() : codeGen.cstMgr().cstNull();
             ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, nullCstRef, dstTypeRef);
 
-            const uint64_t      storageAddress = addPayloadToConstantManagerAndGetAddress(codeGen, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+            const uint64_t            storageAddress = addPayloadToConstantManagerAndGetAddress(codeGen, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
             const CodeGenNodePayload& dstPayload     = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             builder.emitLoadRegPtrReloc(dstPayload.reg, storageAddress, nullCstRef);
             return Result::Continue;

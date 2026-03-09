@@ -17,6 +17,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SymbolVariable* getVariableSymbol(Symbol* symbol)
+    {
+        return symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+    }
+
     bool isGlobalStorageVariable(const SymbolVariable& symVar)
     {
         const SymbolMap* const owner = symVar.ownerSymMap();
@@ -337,14 +342,14 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            if (!s->isVariable())
+            auto* const symVar = getVariableSymbol(s);
+            if (!symVar)
                 continue;
 
-            auto&            symVar = s->cast<SymbolVariable>();
-            const SymbolMap* owner  = symVar.ownerSymMap();
+            const SymbolMap* const owner = symVar->ownerSymMap();
             if (!owner || !owner->isStruct())
                 continue;
-            symVar.setDefaultValueRef(cstRef);
+            symVar->setDefaultValueRef(cstRef);
         }
     }
 
@@ -355,11 +360,11 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            if (!s->isVariable())
+            auto* const symVar = getVariableSymbol(s);
+            if (!symVar)
                 continue;
 
-            auto& symVar = s->cast<SymbolVariable>();
-            symVar.setDefaultValueRef(cstRef);
+            symVar->setDefaultValueRef(cstRef);
         }
     }
 
@@ -370,11 +375,11 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            if (!s->isVariable())
+            auto* const symVar = getVariableSymbol(s);
+            if (!symVar)
                 continue;
 
-            auto& symVar = s->cast<SymbolVariable>();
-            symVar.setDefaultValueRef(cstRef);
+            symVar->setDefaultValueRef(cstRef);
         }
     }
 
@@ -385,11 +390,11 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            if (!s->isVariable())
+            auto* const symVar = getVariableSymbol(s);
+            if (!symVar)
                 continue;
 
-            auto& symVar = s->cast<SymbolVariable>();
-            symVar.setCstRef(cstRef);
+            symVar->setCstRef(cstRef);
         }
     }
 
@@ -400,13 +405,13 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            if (!s->isVariable())
+            auto* const symVar = getVariableSymbol(s);
+            if (!symVar)
                 continue;
 
-            auto& symVar = s->cast<SymbolVariable>();
-            if (!isGlobalStorageVariable(symVar))
+            if (!isGlobalStorageVariable(*symVar))
                 continue;
-            symVar.setCstRef(cstRef);
+            symVar->setCstRef(cstRef);
         }
     }
 
@@ -430,7 +435,8 @@ namespace
         {
             Symbol* const               sym   = symbols[i];
             const SymbolVariable* const field = fields[i];
-            if (!sym || !field || !sym->isVariable())
+            auto* const                 symVar = getVariableSymbol(sym);
+            if (!symVar || !field)
                 continue;
 
             ConstantRef fieldCstRef = ConstantRef::invalid();
@@ -480,10 +486,7 @@ namespace
             }
 
             if (fieldCstRef.isValid())
-            {
-                auto& symVar = sym->cast<SymbolVariable>();
-                symVar.setCstRef(fieldCstRef);
-            }
+                symVar->setCstRef(fieldCstRef);
         }
     }
 

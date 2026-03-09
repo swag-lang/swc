@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
+#include "Main/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Math/Helpers.h"
@@ -10,6 +11,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr std::string_view K_NATIVE_TEMP_FOLDER = "swc_native";
+
     Utf8 runtimeStringToUtf8(const Runtime::String& value)
     {
         if (!value.ptr || !value.length)
@@ -38,7 +41,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const std:
     if (outPaths.workDirRootName.empty())
         outPaths.workDirRootName = automaticWorkDirectoryName(outPaths.baseName);
 
-    outPaths.workDirRoot       = Os::getTemporaryPath() / outPaths.workDirRootName.c_str();
+    outPaths.workDirRoot       = Os::getTemporaryPath() / K_NATIVE_TEMP_FOLDER / outPaths.workDirRootName.c_str();
     outPaths.artifactExtension = artifactExtension();
     outPaths.artifactOutputDir = configuredArtifactOutputDirectory(outPaths.workDirRoot);
     outPaths.artifactPath      = outPaths.artifactOutputDir / std::format("{}{}", outPaths.baseName, outPaths.artifactExtension);
@@ -474,7 +477,7 @@ Utf8 NativeArtifactBuilder::automaticWorkDirectoryName(const Utf8& baseName) con
     }
 
     const uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(key.view()));
-    return std::format("swc_native_{}_{:08x}", FileSystem::sanitizeFileName(baseName), hash);
+    return std::format("{}_{:08x}", FileSystem::sanitizeFileName(baseName), hash);
 }
 
 fs::path NativeArtifactBuilder::workDirectory(const fs::path& workDirRoot, const uint32_t workDirIndex)
@@ -490,5 +493,93 @@ Result NativeArtifactBuilder::createWorkDirectory(const fs::path& workDir) const
         return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(workDir), Diagnostic::ARG_BECAUSE, ec.message());
     return Result::Continue;
 }
+
+#if SWC_HAS_UNITTEST
+
+SWC_TEST_BEGIN(NativeArtifactBuilder_QueryPathsUsesSwcNativeTempSubFolder)
+CommandLine cmdLine;
+Global&     global = const_cast<Global&>(ctx.global());
+{
+    CommandLineParser parser(global, cmdLine);
+    char              arg0[]  = "swc";
+    char              arg1[]  = "test";
+    char              arg2[]  = "--cfg";
+    char              arg3[]  = "debug";
+    char              arg4[]  = "--backend-kind";
+    char              arg5[]  = "dll";
+    char              arg6[]  = "--no-optimize";
+    char              arg7[]  = "--native-artifact-base-name";
+    char              arg8[]  = "hello";
+    char              arg9[]  = "--native-artifact-output-dir";
+    char              arg10[] = "native_out";
+    char              arg11[] = "--native-work-dir-name";
+    char              arg12[] = "tmp_native";
+    char              arg13[] = "--no-verify";
+    char*             argv[]  = {
+        arg0,
+        arg1,
+        arg2,
+        arg3,
+        arg4,
+        arg5,
+        arg6,
+        arg7,
+        arg8,
+        arg9,
+        arg10,
+        arg11,
+        arg12,
+        arg13,
+    };
+
+    if (parser.parse(static_cast<int>(std::size(argv)), argv) != Result::Continue)
+        return Result::Error;
+}
+
+CompilerInstance            compiler(global, cmdLine);
+NativeBackendBuilder        backendBuilder(compiler, false);
+const NativeArtifactBuilder artifactBuilder(backendBuilder);
+NativeArtifactPaths         paths;
+artifactBuilder.queryPaths(paths, 7, 2);
+
+const Runtime::BuildCfg& buildCfg = compiler.buildCfg();
+if (buildCfg.backendKind != Runtime::BuildCfgBackendKind::Library)
+    return Result::Error;
+if (buildCfg.backend.optimize)
+    return Result::Error;
+if (!buildCfg.backend.debugInfo)
+    return Result::Error;
+if (buildCfg.backend.enableExceptions)
+    return Result::Error;
+if (std::string_view(buildCfg.nativeArtifactBaseName.ptr, buildCfg.nativeArtifactBaseName.length) != "hello")
+    return Result::Error;
+if (std::string_view(buildCfg.nativeWorkDirName.ptr, buildCfg.nativeWorkDirName.length) != "tmp_native")
+    return Result::Error;
+if (paths.baseName != "hello")
+    return Result::Error;
+if (paths.workDirRootName != "tmp_native")
+    return Result::Error;
+if (paths.artifactExtension != ".dll")
+    return Result::Error;
+if (paths.artifactOutputDir != cmdLine.nativeArtifactOutputDir)
+    return Result::Error;
+if (paths.artifactPath != cmdLine.nativeArtifactOutputDir / "hello.dll")
+    return Result::Error;
+
+const fs::path expectedWorkDirRoot = Os::getTemporaryPath() / "swc_native" / "tmp_native";
+const fs::path expectedWorkDir     = expectedWorkDirRoot / std::format("{:08x}_{:08x}", Os::currentProcessId(), 7u);
+if (paths.workDirRoot != expectedWorkDirRoot)
+    return Result::Error;
+if (paths.workDir != expectedWorkDir)
+    return Result::Error;
+if (paths.objectPaths.size() != 2)
+    return Result::Error;
+if (paths.objectPaths[0] != expectedWorkDir / "hello_00.obj")
+    return Result::Error;
+if (paths.objectPaths[1] != expectedWorkDir / "hello_01.obj")
+    return Result::Error;
+SWC_TEST_END()
+
+#endif
 
 SWC_END_NAMESPACE();

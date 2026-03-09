@@ -13,6 +13,19 @@ NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
 {
 }
 
+void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths) const
+{
+    outPaths.baseName        = artifactBaseName();
+    outPaths.workDirRootName = configuredWorkDirectoryName();
+    if (outPaths.workDirRootName.empty())
+        outPaths.workDirRootName = automaticWorkDirectoryName(outPaths.baseName);
+
+    outPaths.workDirRoot       = workDirectoryRoot(outPaths.baseName);
+    outPaths.artifactExtension = artifactExtension();
+    outPaths.artifactOutputDir = configuredArtifactOutputDirectory(outPaths.workDirRoot);
+    outPaths.artifactPath      = outPaths.artifactOutputDir / std::format("{}{}", outPaths.baseName, outPaths.artifactExtension);
+}
+
 Result NativeArtifactBuilder::build() const
 {
     SWC_RESULT_VERIFY(validateNativeData());
@@ -305,7 +318,7 @@ Result NativeArtifactBuilder::partitionObjects() const
     const Utf8 baseName = artifactBaseName();
     SWC_RESULT_VERIFY(createWorkDirectory(baseName));
 
-    const fs::path artifactOutputDir = configuredArtifactOutputDirectory();
+    const fs::path artifactOutputDir = configuredArtifactOutputDirectory(builder_.workDir);
     SWC_RESULT_VERIFY(createArtifactOutputDirectory(artifactOutputDir));
 
     for (uint32_t i = 0; i < numJobs; ++i)
@@ -345,7 +358,7 @@ Utf8 NativeArtifactBuilder::configuredArtifactBaseName() const
 
 Utf8 NativeArtifactBuilder::artifactBaseName() const
 {
-    const Utf8 configuredName = configuredArtifactBaseName();
+    Utf8 configuredName = configuredArtifactBaseName();
     if (!configuredName.empty())
         return configuredName;
 
@@ -383,7 +396,7 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
     SWC_UNREACHABLE();
 }
 
-fs::path NativeArtifactBuilder::configuredArtifactOutputDirectory() const
+fs::path NativeArtifactBuilder::configuredArtifactOutputDirectory(const fs::path& defaultOutputDir) const
 {
     const fs::path& cmdLineDir = builder_.ctx().cmdLine().nativeArtifactOutputDir;
     if (!cmdLineDir.empty())
@@ -393,7 +406,7 @@ fs::path NativeArtifactBuilder::configuredArtifactOutputDirectory() const
     if (buildCfgDir.ptr && buildCfgDir.length)
         return fs::path(std::string(buildCfgDir.ptr, buildCfgDir.length));
 
-    return builder_.workDir;
+    return defaultOutputDir;
 }
 
 Result NativeArtifactBuilder::createArtifactOutputDirectory(const fs::path& outputDir) const
@@ -450,15 +463,24 @@ Utf8 NativeArtifactBuilder::automaticWorkDirectoryName(const Utf8& baseName) con
     return std::format("swc_native_{}_{:08x}", FileSystem::sanitizeFileName(baseName), hash);
 }
 
+fs::path NativeArtifactBuilder::workDirectoryRoot(const Utf8& baseName) const
+{
+    Utf8 workDirRootName = configuredWorkDirectoryName();
+    if (workDirRootName.empty())
+        workDirRootName = automaticWorkDirectoryName(baseName);
+    return Os::getTemporaryPath() / workDirRootName.c_str();
+}
+
+fs::path NativeArtifactBuilder::workDirectory(const Utf8& baseName, const uint32_t workDirIndex) const
+{
+    return workDirectoryRoot(baseName) / std::format("{:08x}_{:08x}", Os::currentProcessId(), workDirIndex);
+}
+
 Result NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName) const
 {
     std::error_code ec;
-    Utf8            workDirRootName = configuredWorkDirectoryName();
-    if (workDirRootName.empty())
-        workDirRootName = automaticWorkDirectoryName(baseName);
-
-    const uint32_t workDirIndex = builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    builder_.workDir            = Os::getTemporaryPath() / workDirRootName.c_str() / std::format("{:08x}", workDirIndex);
+    const uint32_t  workDirIndex = builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+    builder_.workDir             = workDirectory(baseName, workDirIndex);
     fs::create_directories(builder_.workDir, ec);
     if (ec)
         return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(builder_.workDir), Diagnostic::ARG_BECAUSE, ec.message());

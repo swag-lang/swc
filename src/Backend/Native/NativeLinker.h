@@ -9,7 +9,8 @@ class NativeLinker
 public:
     virtual ~NativeLinker() = default;
 
-    static std::unique_ptr<NativeLinker> create(NativeBackendBuilder& builder);
+    static std::unique_ptr<NativeLinker>       create(NativeBackendBuilder& builder);
+    static Os::WindowsToolchainDiscoveryResult queryToolchainPaths(const NativeBackendBuilder& builder, Os::WindowsToolchainPaths& outToolchain);
 
     virtual Result link() = 0;
 };

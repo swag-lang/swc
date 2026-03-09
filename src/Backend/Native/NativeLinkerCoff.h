@@ -9,6 +9,8 @@ class NativeLinkerCoff final : public NativeLinker
 public:
     explicit NativeLinkerCoff(NativeBackendBuilder& builder);
 
+    static Os::WindowsToolchainDiscoveryResult queryToolchainPaths(Os::WindowsToolchainPaths& outToolchain);
+
     Result link() override;
 
 private:

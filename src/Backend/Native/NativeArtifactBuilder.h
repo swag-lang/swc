@@ -4,12 +4,23 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct NativeArtifactPaths
+{
+    Utf8     baseName;
+    Utf8     workDirRootName;
+    Utf8     artifactExtension;
+    fs::path workDirRoot;
+    fs::path artifactOutputDir;
+    fs::path artifactPath;
+};
+
 class NativeArtifactBuilder
 {
 public:
     explicit NativeArtifactBuilder(NativeBackendBuilder& builder);
 
     Result build() const;
+    void   queryPaths(NativeArtifactPaths& outPaths) const;
 
 private:
     Result   validateNativeData() const;
@@ -22,10 +33,12 @@ private:
     Utf8     configuredArtifactBaseName() const;
     Utf8     artifactBaseName() const;
     Utf8     artifactExtension() const;
-    fs::path configuredArtifactOutputDirectory() const;
+    fs::path configuredArtifactOutputDirectory(const fs::path& defaultOutputDir) const;
     Result   createArtifactOutputDirectory(const fs::path& outputDir) const;
     Utf8     configuredWorkDirectoryName() const;
     Utf8     automaticWorkDirectoryName(const Utf8& baseName) const;
+    fs::path workDirectoryRoot(const Utf8& baseName) const;
+    fs::path workDirectory(const Utf8& baseName, uint32_t workDirIndex) const;
     Result   createWorkDirectory(const Utf8& baseName) const;
 
     NativeBackendBuilder& builder_;

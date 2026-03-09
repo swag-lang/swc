@@ -10,6 +10,12 @@ NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
 {
 }
 
+Os::WindowsToolchainDiscoveryResult NativeLinkerCoff::queryToolchainPaths(Os::WindowsToolchainPaths& outToolchain)
+{
+    outToolchain = {};
+    return Os::discoverWindowsToolchainPaths(outToolchain);
+}
+
 Result NativeLinkerCoff::link()
 {
     SWC_RESULT_VERIFY(discoverToolchain());
@@ -18,9 +24,7 @@ Result NativeLinkerCoff::link()
 
 Result NativeLinkerCoff::discoverToolchain()
 {
-    toolchain_ = {};
-
-    switch (Os::discoverWindowsToolchainPaths(toolchain_))
+    switch (queryToolchainPaths(toolchain_))
     {
         case Os::WindowsToolchainDiscoveryResult::Ok:
             return Result::Continue;

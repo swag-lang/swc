@@ -290,6 +290,7 @@ void CompilerInstance::logBefore()
     if (ctx.cmdLine().randomize)
         Logger::printHeaderCentered(ctx, LogColor::Blue, "[Randomize]", LogColor::Blue, std::format("seed is {}", ctx.global().jobMgr().randSeed()));
 #endif
+
 }
 
 void CompilerInstance::logAfter()
@@ -388,6 +389,9 @@ void CompilerInstance::processCommand()
     const Timer time(&Stats::get().timeTotal);
     switch (cmdLine().command)
     {
+        case CommandKind::Info:
+            Command::info(*this);
+            break;
         case CommandKind::Syntax:
             Command::syntax(*this);
             break;

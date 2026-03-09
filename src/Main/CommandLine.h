@@ -11,6 +11,7 @@ struct CommandInfo
 };
 
 inline constexpr CommandInfo COMMANDS[] = {
+    {"info", "Print computed environment, toolchain and native artifact information."},
     {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
     {"sema", "Perform semantic analysis on the source code, including type checking."},
     {"test", "Generate native objects, link a real executable or library, and run collected #test functions for executables."},
@@ -19,6 +20,7 @@ inline constexpr CommandInfo COMMANDS[] = {
 enum class CommandKind
 {
     Invalid = -1,
+    Info,
     Syntax,
     Sema,
     Test,

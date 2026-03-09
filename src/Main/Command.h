@@ -6,6 +6,7 @@ class CompilerInstance;
 
 namespace Command
 {
+    void info(CompilerInstance& compiler);
     void syntax(CompilerInstance& compiler);
     void sema(CompilerInstance& compiler);
     void test(CompilerInstance& compiler);

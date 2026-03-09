@@ -303,6 +303,7 @@
         <ClCompile Include="src\Support\Report\SyntaxColor.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
+        <ClCompile Include="src\Main\Command.Info.cpp"/>
         <ClCompile Include="src\Main\Command.Sema.cpp"/>
         <ClCompile Include="src\Main\Command.Syntax.cpp"/>
         <ClCompile Include="src\Main\Command.Test.cpp"/>

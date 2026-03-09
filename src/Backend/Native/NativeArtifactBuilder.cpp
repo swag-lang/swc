@@ -363,10 +363,59 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
     SWC_UNREACHABLE();
 }
 
+Utf8 NativeArtifactBuilder::configuredWorkDirectoryName() const
+{
+    const Utf8& cmdLineName = builder_.ctx().cmdLine().nativeWorkDirName;
+    if (!cmdLineName.empty())
+        return FileSystem::sanitizeFileName(cmdLineName);
+
+    const Runtime::String& buildCfgName = builder_.compiler().buildCfg().nativeWorkDirName;
+    if (buildCfgName.ptr && buildCfgName.length)
+        return FileSystem::sanitizeFileName(Utf8(std::string_view(buildCfgName.ptr, buildCfgName.length)));
+
+    return {};
+}
+
+Utf8 NativeArtifactBuilder::automaticWorkDirectoryName(const Utf8& baseName) const
+{
+    const CommandLine& cmdLine = builder_.ctx().cmdLine();
+    Utf8               key;
+
+    key += std::format("cmd={};os={};arch={};backend={};sub={};base={};", static_cast<int>(cmdLine.command), static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), static_cast<int>(builder_.compiler().buildCfg().backendKind), static_cast<int>(builder_.compiler().buildCfg().backendSubKind), baseName);
+
+    if (!cmdLine.modulePath.empty())
+    {
+        key += "module=";
+        key += FileSystem::toUtf8Path(cmdLine.modulePath);
+        key += ";";
+    }
+
+    for (const fs::path& file : cmdLine.files)
+    {
+        key += "file=";
+        key += FileSystem::toUtf8Path(file);
+        key += ";";
+    }
+
+    for (const fs::path& directory : cmdLine.directories)
+    {
+        key += "directory=";
+        key += FileSystem::toUtf8Path(directory);
+        key += ";";
+    }
+
+    const uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(key.view()));
+    return std::format("swc_native_{}_{:08x}", FileSystem::sanitizeFileName(baseName), hash);
+}
+
 Result NativeArtifactBuilder::createWorkDirectory(const Utf8& baseName) const
 {
     std::error_code ec;
-    builder_.workDir = Os::getTemporaryPath() / std::format("swc_native_{}_{}_{}", baseName, Os::currentProcessId(), builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed));
+    Utf8            workDirName = configuredWorkDirectoryName();
+    if (workDirName.empty())
+        workDirName = automaticWorkDirectoryName(baseName);
+
+    builder_.workDir = Os::getTemporaryPath() / workDirName.c_str();
     fs::create_directories(builder_.workDir, ec);
     if (ec)
         return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(builder_.workDir), Diagnostic::ARG_BECAUSE, ec.message());

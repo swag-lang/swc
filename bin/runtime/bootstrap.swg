@@ -813,8 +813,9 @@ namespace Swag
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
 
         linkerArgs:                    string                               // Additional linker arguments
+        nativeWorkDirName:             string                               // Temporary native work directory name
 
-        backend:                       BuildCfgBackend                        // Backend options
+        backend:                       BuildCfgBackend                      // Backend options
 
         repoPath:                      string                               // Repository access path to the module
         resAppIcoFileName:             string                               // For an executable, the associated icon file name

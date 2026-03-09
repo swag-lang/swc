@@ -42,6 +42,7 @@ struct CommandLine
     Utf8                buildCfg        = "fast-debug";
     Utf8                targetArchName  = "x86_64";
     Utf8                backendKindName = "exe";
+    Utf8                nativeWorkDirName;
     std::optional<bool> backendOptimize;
 
     bool logColor        = true;

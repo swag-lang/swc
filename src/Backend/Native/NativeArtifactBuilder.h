@@ -12,16 +12,18 @@ public:
     Result build() const;
 
 private:
-    Result      validateNativeData() const;
-    bool        isNativeStaticType(TypeRef typeRef) const;
-    Result      validateRelocations(const SymbolFunction& owner, const MachineCode& code) const;
-    bool        validateConstantRelocation(const MicroRelocation& relocation) const;
-    Result      prepareDataSections() const;
-    Result      buildStartup() const;
-    Result      partitionObjects() const;
-    Utf8        artifactBaseName() const;
-    Utf8        artifactExtension() const;
-    Result      createWorkDirectory(const Utf8& baseName) const;
+    Result validateNativeData() const;
+    bool   isNativeStaticType(TypeRef typeRef) const;
+    Result validateRelocations(const SymbolFunction& owner, const MachineCode& code) const;
+    bool   validateConstantRelocation(const MicroRelocation& relocation) const;
+    Result prepareDataSections() const;
+    Result buildStartup() const;
+    Result partitionObjects() const;
+    Utf8   artifactBaseName() const;
+    Utf8   artifactExtension() const;
+    Utf8   configuredWorkDirectoryName() const;
+    Utf8   automaticWorkDirectoryName(const Utf8& baseName) const;
+    Result createWorkDirectory(const Utf8& baseName) const;
 
     NativeBackendBuilder& builder_;
 };

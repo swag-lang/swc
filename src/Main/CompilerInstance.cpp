@@ -315,11 +315,11 @@ void CompilerInstance::logStats()
 void CompilerInstance::processCommand()
 {
     const Timer time(&Stats::get().timeTotal);
+    if (cmdLine().verboseInfo)
+        Command::verboseInfo(*this);
+
     switch (cmdLine().command)
     {
-        case CommandKind::Info:
-            Command::info(*this);
-            break;
         case CommandKind::Syntax:
             Command::syntax(*this);
             break;

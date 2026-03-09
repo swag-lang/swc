@@ -3,8 +3,10 @@
 #include "CompilerInstance.h"
 #include "Main/CommandLine.h"
 #include "Main/FileSystem.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -566,6 +568,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
 
     addArg(HelpOptionGroup::Compiler, "all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg(HelpOptionGroup::Compiler, "all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
+    addArg(HelpOptionGroup::Compiler, "all", "--verbose-info", nullptr, CommandLineType::Bool, &cmdLine_->verboseInfo, nullptr, "Print computed environment, toolchain and native artifact information before running the command.");
 
     addArg(HelpOptionGroup::Diagnostics, "all", "--file-path-display", "-fpd", CommandLineType::EnumInt, &cmdLine_->filePathDisplay, "as-is|basename|absolute", "Control file path display style for diagnostics, stack traces and file locations.");
     addArg(HelpOptionGroup::Diagnostics, "all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
@@ -589,5 +592,30 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Development, "all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior. Forces --randomize and --num-cores=1.");
 #endif
 }
+
+#if SWC_HAS_UNITTEST
+
+SWC_TEST_BEGIN(CommandLineParser_ParsesVerboseInfoFlag)
+Global            global;
+CommandLine       cmdLine;
+CommandLineParser parser(global, cmdLine);
+char              arg0[] = "swc";
+char              arg1[] = "syntax";
+char              arg2[] = "--verbose-info";
+char*             argv[] = {
+    arg0,
+    arg1,
+    arg2,
+};
+
+if (parser.parse(static_cast<int>(std::size(argv)), argv) != Result::Continue)
+    return Result::Error;
+if (cmdLine.command != CommandKind::Syntax)
+    return Result::Error;
+if (!cmdLine.verboseInfo)
+    return Result::Error;
+SWC_TEST_END()
+
+#endif
 
 SWC_END_NAMESPACE();

@@ -7,9 +7,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Utf8 normalizeLibraryFileName(const std::string_view value)
+    {
+        Utf8 out(value);
+        out.make_lower();
+
+        if (out == "ucrtbase" || out == "ucrtbase.lib")
+            return "ucrt.lib";
+        if (out == "ucrtbased" || out == "ucrtbased.lib")
+            return "ucrtd.lib";
+
+        if (fs::path(std::string(out)).extension().empty())
+            out += ".lib";
+        return out;
+    }
+
     void addLinkLibraryForModule(std::set<Utf8>& out, const std::string_view moduleName)
     {
-        const Utf8 normalized = FileSystem::normalizeLibraryFileName(moduleName);
+        const Utf8 normalized = normalizeLibraryFileName(moduleName);
         if (!normalized.empty())
             out.insert(normalized);
 

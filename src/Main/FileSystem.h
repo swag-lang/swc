@@ -19,7 +19,6 @@ namespace FileSystem
     Utf8   formatFileLocation(const TaskContext* ctx, const fs::path& filePath, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0);
     Utf8   toUtf8Path(const fs::path& path);
     Utf8   sanitizeFileName(Utf8 value);
-    Utf8   normalizeLibraryFileName(std::string_view value);
     Utf8   normalizeSystemMessage(const Utf8& msg);
     Utf8   normalizeSystemMessage(std::error_code ec);
 }

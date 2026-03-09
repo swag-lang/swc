@@ -193,21 +193,6 @@ Utf8 FileSystem::sanitizeFileName(Utf8 value)
     return value;
 }
 
-Utf8 FileSystem::normalizeLibraryFileName(const std::string_view value)
-{
-    Utf8 out(value);
-    out.make_lower();
-
-    if (out == "ucrtbase" || out == "ucrtbase.lib")
-        return "ucrt.lib";
-    if (out == "ucrtbased" || out == "ucrtbased.lib")
-        return "ucrtd.lib";
-
-    if (fs::path(std::string(out)).extension().empty())
-        out += ".lib";
-    return out;
-}
-
 Utf8 FileSystem::normalizeSystemMessage(const Utf8& msg)
 {
     Utf8 result = msg;

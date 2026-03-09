@@ -42,6 +42,7 @@ struct CommandLine
     Utf8                buildCfg        = "fast-debug";
     Utf8                targetArchName  = "x86_64";
     Utf8                backendKindName = "exe";
+    Utf8                nativeArtifactBaseName;
     Utf8                nativeWorkDirName;
     std::optional<bool> backendOptimize;
 
@@ -76,6 +77,7 @@ struct CommandLine
     std::set<fs::path> files;
 
     fs::path modulePath;
+    fs::path nativeArtifactOutputDir;
 };
 
 SWC_END_NAMESPACE();

@@ -813,6 +813,8 @@ namespace Swag
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
 
         linkerArgs:                    string                               // Additional linker arguments
+        nativeArtifactBaseName:        string                               // Native artifact base name
+        nativeArtifactOutputDir:       string                               // Native artifact output directory
         nativeWorkDirName:             string                               // Temporary native work directory name
 
         backend:                       BuildCfgBackend                      // Backend options

@@ -14,6 +14,63 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Utf8 boolToUtf8(const bool value)
+    {
+        return value ? "true" : "false";
+    }
+
+    Utf8 optionalBoolToUtf8(const std::optional<bool> value)
+    {
+        if (!value.has_value())
+            return "<unset>";
+        return boolToUtf8(value.value());
+    }
+
+    Utf8 targetOsName(const Runtime::TargetOs value)
+    {
+        switch (value)
+        {
+            case Runtime::TargetOs::Windows:
+                return "Windows";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    Utf8 targetArchName(const Runtime::TargetArch value)
+    {
+        switch (value)
+        {
+            case Runtime::TargetArch::X86_64:
+                return "X86_64";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    Utf8 filePathDisplayModeName(const FileSystem::FilePathDisplayMode value)
+    {
+        switch (value)
+        {
+            case FileSystem::FilePathDisplayMode::AsIs:
+                return "AsIs";
+            case FileSystem::FilePathDisplayMode::BaseName:
+                return "BaseName";
+            case FileSystem::FilePathDisplayMode::Absolute:
+                return "Absolute";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    void printGroupHeader(const TaskContext& ctx, const char* title)
+    {
+        Logger::print(ctx, "\n");
+        Logger::print(ctx, "[Info] ");
+        Logger::print(ctx, title);
+        Logger::print(ctx, "\n");
+    }
+
     Utf8 configuredArtifactBaseName(const CompilerInstance& compiler, const TaskContext& ctx)
     {
         const Utf8& cmdLineName = ctx.cmdLine().nativeArtifactBaseName;
@@ -29,7 +86,7 @@ namespace
 
     Utf8 artifactBaseName(const CompilerInstance& compiler, const TaskContext& ctx)
     {
-        const Utf8 configuredName = configuredArtifactBaseName(compiler, ctx);
+        Utf8 configuredName = configuredArtifactBaseName(compiler, ctx);
         if (!configuredName.empty())
             return configuredName;
 
@@ -125,7 +182,22 @@ namespace
         Logger::printHeaderDot(ctx, LogColor::Cyan, name, color, value.empty() ? "<empty>" : value);
     }
 
+    void printInfoLine(const TaskContext& ctx, const Utf8& name, const Utf8& value, const LogColor color = LogColor::White)
+    {
+        Logger::printHeaderDot(ctx, LogColor::Cyan, name, color, value.empty() ? "<empty>" : value);
+    }
+
+    void printInfoLine(const TaskContext& ctx, const Utf8& name, const fs::path& value, const LogColor color = LogColor::White)
+    {
+        printInfoLine(ctx, name, FileSystem::toUtf8Path(value), color);
+    }
+
     void printInfoLine(const TaskContext& ctx, const char* name, const char* value, const LogColor color = LogColor::White)
+    {
+        printInfoLine(ctx, name, Utf8(value), color);
+    }
+
+    void printInfoLine(const TaskContext& ctx, const char* name, const std::string& value, const LogColor color = LogColor::White)
     {
         printInfoLine(ctx, name, Utf8(value), color);
     }
@@ -134,13 +206,88 @@ namespace
     {
         printInfoLine(ctx, name, FileSystem::toUtf8Path(value), color);
     }
+
+    void printStringSet(const TaskContext& ctx, const char* name, const std::set<Utf8>& values)
+    {
+        if (values.empty())
+        {
+            printInfoLine(ctx, name, "<empty>");
+            return;
+        }
+
+        uint32_t index = 0;
+        for (const Utf8& value : values)
+        {
+            const Utf8 label = std::format("{}[{}]", name, index++);
+            printInfoLine(ctx, label, value);
+        }
+    }
+
+    void printPathSet(const TaskContext& ctx, const char* name, const std::set<fs::path>& values)
+    {
+        if (values.empty())
+        {
+            printInfoLine(ctx, name, "<empty>");
+            return;
+        }
+
+        uint32_t index = 0;
+        for (const fs::path& value : values)
+        {
+            const Utf8 label = std::format("{}[{}]", name, index++);
+            printInfoLine(ctx, label, value);
+        }
+    }
+
+    void printCommandLineOptions(const TaskContext& ctx)
+    {
+        const CommandLine& cmdLine = ctx.cmdLine();
+
+        printInfoLine(ctx, "command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::Yellow);
+        printInfoLine(ctx, "targetOs", targetOsName(cmdLine.targetOs));
+        printInfoLine(ctx, "targetArch", targetArchName(cmdLine.targetArch));
+        printInfoLine(ctx, "targetCpu", cmdLine.targetCpu);
+        printInfoLine(ctx, "buildCfg", cmdLine.buildCfg);
+        printInfoLine(ctx, "targetArchName", cmdLine.targetArchName);
+        printInfoLine(ctx, "backendKindName", cmdLine.backendKindName);
+        printInfoLine(ctx, "nativeArtifactBaseName", cmdLine.nativeArtifactBaseName);
+        printInfoLine(ctx, "nativeWorkDirName", cmdLine.nativeWorkDirName);
+        printInfoLine(ctx, "backendOptimize", optionalBoolToUtf8(cmdLine.backendOptimize));
+        printInfoLine(ctx, "logColor", boolToUtf8(cmdLine.logColor));
+        printInfoLine(ctx, "logAscii", boolToUtf8(cmdLine.logAscii));
+        printInfoLine(ctx, "syntaxColor", boolToUtf8(cmdLine.syntaxColor));
+        printInfoLine(ctx, "diagOneLine", boolToUtf8(cmdLine.diagOneLine));
+        printInfoLine(ctx, "errorId", boolToUtf8(cmdLine.errorId));
+        printInfoLine(ctx, "silent", boolToUtf8(cmdLine.silent));
+        printInfoLine(ctx, "stats", boolToUtf8(cmdLine.stats));
+        printInfoLine(ctx, "verboseVerify", boolToUtf8(cmdLine.verboseVerify));
+        printInfoLine(ctx, "verify", boolToUtf8(cmdLine.verify));
+        printInfoLine(ctx, "unittest", boolToUtf8(cmdLine.unittest));
+        printInfoLine(ctx, "verboseUnittest", boolToUtf8(cmdLine.verboseUnittest));
+        printInfoLine(ctx, "runtime", boolToUtf8(cmdLine.runtime));
+#ifdef SWC_DEV_MODE
+        printInfoLine(ctx, "randomize", boolToUtf8(cmdLine.randomize));
+        printInfoLine(ctx, "randSeed", std::to_string(cmdLine.randSeed));
+#endif
+        printInfoLine(ctx, "syntaxColorLum", std::to_string(cmdLine.syntaxColorLum));
+        printInfoLine(ctx, "numCores", std::to_string(cmdLine.numCores));
+        printInfoLine(ctx, "tabSize", std::to_string(cmdLine.tabSize));
+        printInfoLine(ctx, "diagMaxColumn", std::to_string(cmdLine.diagMaxColumn));
+        printInfoLine(ctx, "filePathDisplay", filePathDisplayModeName(cmdLine.filePathDisplay));
+        printInfoLine(ctx, "verboseVerifyFilter", cmdLine.verboseVerifyFilter);
+        printStringSet(ctx, "fileFilter", cmdLine.fileFilter);
+        printPathSet(ctx, "directories", cmdLine.directories);
+        printPathSet(ctx, "files", cmdLine.files);
+        printInfoLine(ctx, "modulePath", cmdLine.modulePath);
+        printInfoLine(ctx, "nativeArtifactOutputDir", cmdLine.nativeArtifactOutputDir);
+    }
 }
 
 namespace Command
 {
     void info(CompilerInstance& compiler)
     {
-        const TaskContext ctx(compiler);
+        const TaskContext        ctx(compiler);
         const Logger::ScopedLock loggerLock{ctx.global().logger()};
 
         std::error_code ec;
@@ -150,10 +297,10 @@ namespace Command
         if (workDirRootName.empty())
             workDirRootName = automaticWorkDirectoryName(compiler, ctx, baseName);
 
-        const fs::path tempPath             = Os::getTemporaryPath();
-        const fs::path workDirRoot          = tempPath / workDirRootName.c_str();
-        const fs::path workDirSample        = workDirRoot / "00000000";
-        fs::path       outputDir            = artifactOutputDirectory(compiler, ctx);
+        const fs::path tempPath      = Os::getTemporaryPath();
+        const fs::path workDirRoot   = tempPath / workDirRootName.c_str();
+        const fs::path workDirSample = workDirRoot / "00000000";
+        fs::path       outputDir     = artifactOutputDirectory(compiler, ctx);
         if (outputDir.empty())
             outputDir = workDirSample;
         const fs::path artifactPath = outputDir / std::format("{}{}", baseName, artifactExtension(compiler, ctx));
@@ -161,30 +308,25 @@ namespace Command
         Os::WindowsToolchainPaths toolchain;
         const auto                toolchainResult = Os::discoverWindowsToolchainPaths(toolchain);
 
-        Logger::print(ctx, "\n");
-        printInfoLine(ctx, "command", COMMANDS[static_cast<int>(ctx.cmdLine().command)].name, LogColor::Yellow);
+        printGroupHeader(ctx, "Command Line");
+        printCommandLineOptions(ctx);
+
+        printGroupHeader(ctx, "Process");
         printInfoLine(ctx, "hostOs", Os::hostOsName());
         printInfoLine(ctx, "hostCpu", Os::hostCpuName());
-        printInfoLine(ctx, "targetCpu", ctx.cmdLine().targetCpu);
         printInfoLine(ctx, "exePath", Os::getExeFullName());
         printInfoLine(ctx, "tempPath", tempPath);
         if (!ec)
             printInfoLine(ctx, "currentDir", currentDir);
-        if (!ctx.cmdLine().modulePath.empty())
-            printInfoLine(ctx, "modulePath", ctx.cmdLine().modulePath);
-        for (const fs::path& directory : ctx.cmdLine().directories)
-            printInfoLine(ctx, "inputDir", directory);
-        for (const fs::path& file : ctx.cmdLine().files)
-            printInfoLine(ctx, "inputFile", file);
 
-        Logger::print(ctx, "\n");
+        printGroupHeader(ctx, "Native Paths");
         printInfoLine(ctx, "native.baseName", baseName, LogColor::Yellow);
         printInfoLine(ctx, "native.workDirRoot", workDirRoot, LogColor::Yellow);
         printInfoLine(ctx, "native.workDirSample", workDirSample, LogColor::Yellow);
         printInfoLine(ctx, "native.outputDir", outputDir, LogColor::Yellow);
         printInfoLine(ctx, "native.artifactPath", artifactPath, LogColor::Yellow);
 
-        Logger::print(ctx, "\n");
+        printGroupHeader(ctx, "Native Toolchain");
         switch (toolchainResult)
         {
             case Os::WindowsToolchainDiscoveryResult::Ok:

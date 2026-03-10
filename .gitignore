@@ -1,6 +1,7 @@
 bin/*.exe
 bin/*.pdb
 .tmp/
+.output/
 .vs/
 .idea/
 /packages/

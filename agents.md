@@ -3,7 +3,7 @@
 ## Hard Rules
 
 - After any change, always run a full build and full test; if either fails, fix it.
-- Once everything is working, run 'tools/full_dm.bat' and 'tools/full.bat' scripts to ensure no regression.
+- Once everything is working, run 'tools/all_dm.bat' and 'tools/all.bat' scripts to ensure no regression.
 - When doing a change in codegen, run it 10x times in a row, to detect non deterministic behavior.
 - If you add a new feature, write new tests in the most appropriate bin/tests folder and file to cover it
 - Do not hack or make workarounds, always find the root cause of each problem.
@@ -70,18 +70,11 @@
 
 ## Test Instructions
 
-- Run all tests:
+- Run all tests across the 4 `--cfg` configurations:
 
   ````bash
   tools/all_dm.bat
   tools/all.bat
-  `````
-
-- Run the full `--cfg` matrix:
-
-  ````bash
-  tools/full_dm.bat
-  tools/full.bat
   `````
 
 - Run all semantic tests:

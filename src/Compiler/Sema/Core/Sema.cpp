@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
@@ -689,7 +690,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     SemaCycle sc;
     sc.check(ctx, clientId);
 
-    if (Stats::get().numErrors.load() == 0)
+    if (Stats::get().numErrors.load() == 0 && ctx.cmdLine().command != CommandKind::Test)
     {
         for (const auto& f : ctx.compiler().files())
         {

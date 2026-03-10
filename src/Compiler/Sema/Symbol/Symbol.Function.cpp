@@ -388,7 +388,8 @@ void SymbolFunction::jitPatch(TaskContext& ctx)
         relocation.targetAddress = MicroRelocation::K_SELF_ADDRESS;
     }
 
-    JIT::patch(ctx, jitExecMemory_, relocations);
+    if (JIT::patch(ctx, jitExecMemory_, relocations) != Result::Continue)
+        ctx.state().jitEmissionError = true;
 }
 
 void SymbolFunction::jitFinalize(TaskContext& ctx)

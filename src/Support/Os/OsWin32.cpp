@@ -423,6 +423,23 @@ namespace
             appendWindowsStackFrame(outMsg, ctx, i, reinterpret_cast<uintptr_t>(frames[i]));
     }
 
+    bool tryLoadExternalModulePath(void*& outModuleHandle, const fs::path& modulePath)
+    {
+        const Utf8    moduleFileName = modulePath.string();
+        const HMODULE moduleHandle   = LoadLibraryA(moduleFileName.c_str());
+        if (!moduleHandle)
+            return false;
+
+        outModuleHandle = moduleHandle;
+        return true;
+    }
+
+    bool tryLoadExternalModuleAlias(void*& outModuleHandle, const fs::path& requestedPath, const char* aliasStem)
+    {
+        fs::path aliasPath = requestedPath.parent_path() / aliasStem;
+        aliasPath.replace_extension(".dll");
+        return tryLoadExternalModulePath(outModuleHandle, aliasPath);
+    }
 }
 
 namespace Os
@@ -832,18 +849,30 @@ namespace Os
         if (moduleName.empty())
             return false;
 
-        const Utf8 moduleNameUtf8{moduleName};
-        fs::path   modulePath{moduleNameUtf8.c_str()};
-        if (!modulePath.has_extension())
-            modulePath += ".dll";
+        const Utf8     moduleNameUtf8{moduleName};
+        const fs::path requestedPath{moduleNameUtf8.c_str()};
+        if (requestedPath.has_extension())
+            return tryLoadExternalModulePath(outModuleHandle, requestedPath);
 
-        const Utf8    moduleFileName = modulePath.string();
-        const HMODULE moduleHandle   = LoadLibraryA(moduleFileName.c_str());
-        if (!moduleHandle)
-            return false;
+        fs::path dllPath = requestedPath;
+        dllPath.replace_extension(".dll");
+        if (tryLoadExternalModulePath(outModuleHandle, dllPath))
+            return true;
 
-        outModuleHandle = moduleHandle;
-        return true;
+        // Some Windows import library names differ from the actual DLL name used by LoadLibrary.
+        Utf8 requestedStem = requestedPath.filename().string();
+        requestedStem.make_lower();
+        if (requestedStem == "ucrt")
+            return tryLoadExternalModuleAlias(outModuleHandle, requestedPath, "ucrtbase");
+        if (requestedStem == "vcruntime")
+            return tryLoadExternalModuleAlias(outModuleHandle, requestedPath, "vcruntime140") ||
+                   tryLoadExternalModuleAlias(outModuleHandle, requestedPath, "vcruntime140_1");
+        if (requestedStem == "xinput")
+            return tryLoadExternalModuleAlias(outModuleHandle, requestedPath, "xinput1_4") ||
+                   tryLoadExternalModuleAlias(outModuleHandle, requestedPath, "xinput9_1_0") ||
+                   tryLoadExternalModuleAlias(outModuleHandle, requestedPath, "xinput1_3");
+
+        return false;
     }
 
     bool getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName)

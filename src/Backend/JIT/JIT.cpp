@@ -162,6 +162,81 @@ namespace
         }
     }
 
+    Utf8 relocationKindName(const MicroRelocation::Kind kind)
+    {
+        switch (kind)
+        {
+            case MicroRelocation::Kind::ConstantAddress:
+                return "constant";
+            case MicroRelocation::Kind::LocalFunctionAddress:
+                return "local function";
+            case MicroRelocation::Kind::ForeignFunctionAddress:
+                return "foreign function";
+            case MicroRelocation::Kind::CompilerAddress:
+                return "compiler";
+            case MicroRelocation::Kind::GlobalZeroAddress:
+                return "global zero";
+            case MicroRelocation::Kind::GlobalInitAddress:
+                return "global init";
+            default:
+                return "unknown";
+        }
+    }
+
+    Utf8 relocationTargetName(const TaskContext& ctx, const MicroRelocation& reloc)
+    {
+        if (reloc.targetSymbol)
+            return reloc.targetSymbol->getFullScopedName(ctx);
+        if (reloc.targetAddress == MicroRelocation::K_SELF_ADDRESS)
+            return "<self>";
+        if (reloc.targetAddress != 0)
+            return std::format("0x{:X}", reloc.targetAddress);
+        return "<unknown>";
+    }
+
+    Utf8 relocationFailureReason(const TaskContext& ctx, const MicroRelocation& reloc)
+    {
+        switch (reloc.kind)
+        {
+            case MicroRelocation::Kind::LocalFunctionAddress:
+                if (!reloc.targetSymbol)
+                    return "target symbol is missing";
+                if (!reloc.targetSymbol->isFunction())
+                    return "target symbol is not a function";
+                if (!reloc.targetSymbol->cast<SymbolFunction>().jitPatchAddress())
+                    return "target function has no prepared JIT address";
+                return "target address is unavailable";
+
+            case MicroRelocation::Kind::ForeignFunctionAddress:
+            {
+                if (!reloc.targetSymbol)
+                    return "target symbol is missing";
+                if (!reloc.targetSymbol->isFunction())
+                    return "target symbol is not a function";
+
+                const auto& targetFunction = reloc.targetSymbol->cast<SymbolFunction>();
+                if (!targetFunction.isForeign())
+                    return "target function is not foreign";
+                if (targetFunction.foreignModuleName().empty())
+                    return "foreign module name is missing";
+
+                const Utf8 functionName = targetFunction.resolveForeignFunctionName(ctx);
+                if (functionName.empty())
+                    return "foreign function name is missing";
+
+                Utf8 out = "cannot load module '";
+                out += Utf8(targetFunction.foreignModuleName());
+                out += "' or resolve symbol '";
+                out += functionName;
+                out += "'";
+                return out;
+            }
+
+            default:
+                return "target address is unavailable";
+        }
+    }
+
     void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
         auto*          basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
@@ -170,11 +245,11 @@ namespace
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
-    void patchRelocations(TaskContext& ctx, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
+    Result patchRelocations(TaskContext& ctx, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
     {
         SWC_ASSERT(!writableCode.empty());
         if (relocations.empty())
-            return;
+            return Result::Continue;
 
         const uint8_t* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         SWC_ASSERT(basePtr != nullptr);
@@ -187,11 +262,19 @@ namespace
             {
                 if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
                     continue;
-                SWC_UNREACHABLE();
+
+                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_jit_relocation_unresolved);
+                diag.addArgument(Diagnostic::ARG_VALUE, relocationKindName(reloc.kind));
+                diag.addArgument(Diagnostic::ARG_TARGET, relocationTargetName(ctx, reloc));
+                diag.addArgument(Diagnostic::ARG_BECAUSE, relocationFailureReason(ctx, reloc));
+                diag.report(ctx);
+                return Result::Error;
             }
 
             patchAbsolute64(writableCode, reloc, targetAddress);
         }
+
+        return Result::Continue;
     }
 }
 
@@ -223,11 +306,11 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteSp
     }
 }
 
-void JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std::span<const MicroRelocation> relocations)
+Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std::span<const MicroRelocation> relocations)
 {
     SWC_ASSERT(!executableMemory.empty());
     const ByteSpanRW writableCode = asByteSpan(static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size());
-    patchRelocations(ctx, writableCode, relocations);
+    return patchRelocations(ctx, writableCode, relocations);
 }
 
 void JIT::finalize(JITMemory& executableMemory)
@@ -236,11 +319,12 @@ void JIT::finalize(JITMemory& executableMemory)
     JITMemoryManager::registerUnwindInfo(executableMemory);
 }
 
-void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo)
+Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo)
 {
     prepare(ctx, outExecutableMemory, linearCode, unwindInfo);
-    patch(ctx, outExecutableMemory, relocations);
+    SWC_RESULT_VERIFY(patch(ctx, outExecutableMemory, relocations));
     finalize(outExecutableMemory);
+    return Result::Continue;
 }
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)

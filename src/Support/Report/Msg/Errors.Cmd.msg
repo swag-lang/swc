@@ -50,3 +50,4 @@ SWC_DIAG_DEF(cmd_err_native_tool_wait_failed, Error, "waiting for '{path}' faile
 SWC_DIAG_DEF(cmd_err_native_tool_exit_code_failed, Error, "cannot get exit code for '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_tool_failed, Error, "'{tool}' exited with code {value}")
 SWC_DIAG_DEF(cmd_err_native_artifact_missing, Error, "native backend did not produce '{path}'")
+SWC_DIAG_DEF(cmd_err_jit_relocation_unresolved, Error, "cannot resolve JIT {value} relocation target '{target}': {because}")

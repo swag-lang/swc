@@ -14,14 +14,16 @@ JITMemory::JITMemory(JITMemory&& other) noexcept :
     allocationSize_(other.allocationSize_),
     unwindInfoOffset_(other.unwindInfoOffset_),
     unwindInfoSize_(other.unwindInfoSize_),
-    hostRuntimeFunction_(other.hostRuntimeFunction_)
+    hostRuntimeFunction_(other.hostRuntimeFunction_),
+    hostSymbolModuleBase_(other.hostSymbolModuleBase_)
 {
-    other.ptr_                 = nullptr;
-    other.size_                = 0;
-    other.allocationSize_      = 0;
-    other.unwindInfoOffset_    = 0;
-    other.unwindInfoSize_      = 0;
-    other.hostRuntimeFunction_ = nullptr;
+    other.ptr_                  = nullptr;
+    other.size_                 = 0;
+    other.allocationSize_       = 0;
+    other.unwindInfoOffset_     = 0;
+    other.unwindInfoSize_       = 0;
+    other.hostRuntimeFunction_  = nullptr;
+    other.hostSymbolModuleBase_ = 0;
 }
 
 JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
@@ -30,18 +32,20 @@ JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
     {
         reset();
 
-        ptr_                       = other.ptr_;
-        size_                      = other.size_;
-        allocationSize_            = other.allocationSize_;
-        unwindInfoOffset_          = other.unwindInfoOffset_;
-        unwindInfoSize_            = other.unwindInfoSize_;
-        hostRuntimeFunction_       = other.hostRuntimeFunction_;
-        other.ptr_                 = nullptr;
-        other.size_                = 0;
-        other.allocationSize_      = 0;
-        other.unwindInfoOffset_    = 0;
-        other.unwindInfoSize_      = 0;
-        other.hostRuntimeFunction_ = nullptr;
+        ptr_                        = other.ptr_;
+        size_                       = other.size_;
+        allocationSize_             = other.allocationSize_;
+        unwindInfoOffset_           = other.unwindInfoOffset_;
+        unwindInfoSize_             = other.unwindInfoSize_;
+        hostRuntimeFunction_        = other.hostRuntimeFunction_;
+        hostSymbolModuleBase_       = other.hostSymbolModuleBase_;
+        other.ptr_                  = nullptr;
+        other.size_                 = 0;
+        other.allocationSize_       = 0;
+        other.unwindInfoOffset_     = 0;
+        other.unwindInfoSize_       = 0;
+        other.hostRuntimeFunction_  = nullptr;
+        other.hostSymbolModuleBase_ = 0;
     }
 
     return *this;
@@ -49,12 +53,16 @@ JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
 
 void JITMemory::reset()
 {
-    ptr_                 = nullptr;
-    size_                = 0;
-    allocationSize_      = 0;
-    unwindInfoOffset_    = 0;
-    unwindInfoSize_      = 0;
-    hostRuntimeFunction_ = nullptr;
+    Os::unloadJitSymbolFile(*this);
+    Os::removeHostJitFunctionTable(*this);
+
+    ptr_                  = nullptr;
+    size_                 = 0;
+    allocationSize_       = 0;
+    unwindInfoOffset_     = 0;
+    unwindInfoSize_       = 0;
+    hostRuntimeFunction_  = nullptr;
+    hostSymbolModuleBase_ = 0;
 }
 
 SWC_END_NAMESPACE();

@@ -89,6 +89,12 @@ Result NativeLinkerCoff::linkArtifact() const
         return builder_.reportError(DiagnosticId::cmd_err_native_tool_failed, Diagnostic::ARG_TOOL, Utf8(exePath->filename()), Diagnostic::ARG_VALUE, exitCode);
     if (!fs::exists(builder_.artifactPath))
         return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.artifactPath));
+    if (builder_.compiler().buildCfg().backend.debugInfo &&
+        builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Export &&
+        !fs::exists(builder_.pdbPath))
+    {
+        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.pdbPath));
+    }
     return Result::Continue;
 }
 
@@ -99,6 +105,11 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
     args.emplace_back("/NODEFAULTLIB");
     args.emplace_back("/INCREMENTAL:NO");
     args.emplace_back("/MACHINE:X64");
+    if (builder_.compiler().buildCfg().backend.debugInfo)
+    {
+        args.emplace_back("/DEBUG:FULL");
+        args.emplace_back(std::format("/PDB:{}", Utf8(builder_.pdbPath)));
+    }
     if (dll)
     {
         args.emplace_back("/DLL");

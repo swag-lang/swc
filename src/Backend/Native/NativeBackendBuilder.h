@@ -35,6 +35,7 @@ struct NativeFunctionInfo
     const MachineCode* machineCode = nullptr;
     Utf8               sortKey;
     Utf8               symbolName;
+    Utf8               debugName;
     uint32_t           jobIndex   = 0;
     uint32_t           textOffset = 0;
     bool               exported   = false;
@@ -45,6 +46,7 @@ struct NativeStartupInfo
 {
     MachineCode code;
     Utf8        symbolName = "mainCRTStartup";
+    Utf8        debugName  = "mainCRTStartup";
     uint32_t    textOffset = 0;
 };
 
@@ -71,8 +73,9 @@ struct NativeObjDescription
     uint32_t                         index = 0;
     fs::path                         objPath;
     std::vector<NativeFunctionInfo*> functions;
-    NativeStartupInfo*               startup     = nullptr;
-    bool                             includeData = false;
+    NativeStartupInfo*               startup                = nullptr;
+    bool                             includeData            = false;
+    bool                             allowUnresolvedSymbols = false;
 };
 
 class NativeBackendBuilder
@@ -124,6 +127,7 @@ public:
     std::vector<NativeObjDescription>                              objectDescriptions;
     fs::path                                                       workDir;
     fs::path                                                       artifactPath;
+    fs::path                                                       pdbPath;
     std::atomic<bool>                                              objWriteFailed = false;
 
 private:

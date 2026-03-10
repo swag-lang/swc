@@ -16,6 +16,9 @@
     <Filter Include="src\Backend\JIT">
       <UniqueIdentifier>{89C8AF00-175F-FFEC-A7C3-CB670F61F359}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Backend\Debug">
+      <UniqueIdentifier>{8B0B989D-DA95-4A3A-9E65-9A1A44D53B4C}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Backend\Native">
       <UniqueIdentifier>{D3FB39C8-C0A6-4B7F-90C2-2C9CA80D3D28}</UniqueIdentifier>
     </Filter>
@@ -176,6 +179,12 @@
     </ClCompile>
     <ClCompile Include="src\Backend\JIT\JITMemory.cpp">
       <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Debug\DebugInfo.cpp">
+      <Filter>src\Backend\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Debug\DebugInfo.Windows.cpp">
+      <Filter>src\Backend\Debug</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp">
       <Filter>src\Backend\Native</Filter>
@@ -967,6 +976,9 @@
     </ClInclude>
     <ClInclude Include="src\Backend\JIT\JITMemoryManager.h">
       <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Debug\DebugInfo.h">
+      <Filter>src\Backend\Debug</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Encoder\Encoder.h">
       <Filter>src\Backend\Encoder</Filter>

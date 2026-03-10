@@ -54,11 +54,12 @@ private:
     void initState(MicroPassContext& context);
 
     bool            isLiveOut(MicroReg key, uint32_t stamp) const;
-    bool            isConcreteLiveOut(MicroReg reg, uint32_t stamp) const;
     static bool     containsKey(MicroRegSpan keys, MicroReg key);
     bool            isPersistentPhysReg(MicroReg reg) const;
     bool            isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
-    bool            tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t stamp, bool allowConcreteLive, MicroReg& outPhys) const;
+    bool            isLiveInAt(MicroReg key, uint32_t instructionIndex) const;
+    bool            hasFutureConcreteTouchConflict(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const;
+    bool            tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t instructionIndex, bool allowConcreteLive, MicroReg& outPhys) const;
     void            returnToFreePool(MicroReg reg);
     uint32_t        distanceToNextUse(MicroReg key, uint32_t instructionIndex) const;
     void            prepareInstructionData();
@@ -73,12 +74,13 @@ private:
     bool            isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const;
     bool            selectEvictionCandidate(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, MicroRegSpan protectedKeys, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;
     FreePools       pickFreePools(const AllocRequest& request);
-    bool            tryTakeFreePhysical(const AllocRequest& request, uint32_t stamp, bool allowConcreteLive, MicroReg& outPhys);
+    bool            tryTakeFreePhysical(const AllocRequest& request, bool allowConcreteLive, MicroReg& outPhys);
     void            unmapVirtReg(MicroReg virtKey);
     void            mapVirtReg(MicroReg virtKey, MicroReg physReg);
     bool            selectEvictionCandidateWithFallback(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool preferPersistentPool, MicroRegSpan protectedKeys, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;
     MicroReg        allocatePhysical(const AllocRequest& request, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     MicroReg        assignVirtReg(const AllocRequest& request, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void            spillMappedVirtualsForConcreteTouches(const MicroInstrUseDef& useDef, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void            spillCallLiveOut(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void            flushAllMappedVirtuals(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void            clearAllMappedVirtuals();
@@ -99,6 +101,7 @@ private:
     std::vector<std::vector<MicroReg>>                  concreteLiveOut_;
     std::unordered_set<MicroReg>                        vregsLiveAcrossCall_;
     std::unordered_map<MicroReg, std::vector<uint32_t>> usePositions_;
+    std::unordered_map<MicroReg, std::vector<uint32_t>> concreteTouchPositions_;
     std::vector<MicroInstrUseDef>                       instructionUseDefs_;
     MicroDenseRegIndex                                  denseVirtualRegs_;
     MicroDenseRegIndex                                  denseConcreteRegs_;
@@ -127,7 +130,6 @@ private:
     std::unordered_map<MicroReg, VRegState> states_;
     std::unordered_map<MicroReg, MicroReg>  mapping_;
     std::unordered_map<MicroReg, uint32_t>  liveStamp_;
-    std::unordered_map<MicroReg, uint32_t>  concreteLiveStamp_;
     std::unordered_set<MicroReg>            callSpillVregs_;
 };
 

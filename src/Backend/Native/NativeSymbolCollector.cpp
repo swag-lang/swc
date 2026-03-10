@@ -40,7 +40,7 @@ Result NativeSymbolCollector::collectSymbols()
 
     collectSymbolsRec(*rootModule);
 
-    for (size_t idx = 0; idx < builder_.rawFunctions.size(); ++idx)  // NOLINT(modernize-loop-convert)
+    for (size_t idx = 0; idx < builder_.rawFunctions.size(); ++idx) // NOLINT(modernize-loop-convert)
     {
         const SymbolFunction* function = builder_.rawFunctions[idx];
         SWC_ASSERT(function != nullptr);
@@ -71,6 +71,7 @@ Result NativeSymbolCollector::collectSymbols()
         info.machineCode = &symbol->loweredCode();
         info.sortKey     = makeSymbolSortKey(*symbol);
         info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", builder_.functionInfos.size(), Math::hash(info.sortKey));
+        info.debugName   = symbol->getFullScopedName(builder_.ctx());
         info.exported    = symbol->isPublic() && !isCompilerFunction(*symbol);
         info.compilerFn  = isCompilerFunction(*symbol);
         builder_.functionInfos.push_back(std::move(info));

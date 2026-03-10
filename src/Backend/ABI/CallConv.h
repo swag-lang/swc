@@ -71,6 +71,7 @@ struct CallConv
     bool                 isIntArgReg(MicroReg reg) const;
     bool                 isIntPersistentReg(MicroReg reg) const;
     bool                 isFloatPersistentReg(MicroReg reg) const;
+    MicroReg             preferredLocalStackBaseReg() const;
     bool                 tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, MicroRegSpan forbidden = {}) const;
 
     static void            setup();

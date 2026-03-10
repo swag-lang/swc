@@ -8,6 +8,15 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool shouldPreserveFramePointerBase(const MicroPassContext& context, MicroReg baseReg)
+    {
+        const CallConv& conv = CallConv::get(context.callConvKind);
+        return conv.framePointer.isValid() && conv.framePointer != conv.stackPointer && baseReg == conv.framePointer;
+    }
+}
+
 void MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const
 {
     SWC_ASSERT(context_ != nullptr);
@@ -22,15 +31,8 @@ void MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInst
     const MicroReg baseReg = ops[memBaseIndex].reg;
     if (!baseReg.isInt() || baseReg == stackPointerReg_)
         return;
-
-    // Keep load-address canonicalization stable with peephole, which normalizes stack-based LEA
-    // instructions to frame-pointer form when FP mirrors SP.
-    if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
-    {
-        const CallConv& conv = CallConv::get(context_->callConvKind);
-        if (conv.framePointer.isValid() && conv.framePointer != conv.stackPointer && baseReg == conv.framePointer)
-            return;
-    }
+    if (shouldPreserveFramePointerBase(*context_, baseReg))
+        return;
 
     uint64_t stackOffset = 0;
     if (!tryResolveStackOffset(stackOffset, baseReg, ops[memOffsetIndex].valueU64))
@@ -97,6 +99,8 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInst
         case MicroInstrOpcode::LoadAmcRegMem:
         {
             if (!stackPointerReg_.isValid() || !ops[0].reg.isInt() || !ops[1].reg.isInt() || !ops[2].reg.isInt())
+                break;
+            if (shouldPreserveFramePointerBase(*context_, ops[1].reg))
                 break;
 
             uint64_t stackOffset = 0;

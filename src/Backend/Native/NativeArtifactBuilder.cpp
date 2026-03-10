@@ -56,6 +56,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const std:
     outPaths.artifactExtension = artifactExtension();
     outPaths.artifactOutputDir = configuredArtifactOutputDirectory(outPaths.workDirRoot);
     outPaths.artifactPath      = outPaths.artifactOutputDir / std::format("{}{}", outPaths.baseName, outPaths.artifactExtension);
+    outPaths.pdbPath           = outPaths.artifactOutputDir / std::format("{}.pdb", outPaths.baseName);
 
     if (!workDirIndex.has_value())
         return;
@@ -519,6 +520,7 @@ Result NativeArtifactBuilder::partitionObjects() const
     SWC_RESULT_VERIFY(createArtifactOutputDirectory(paths.artifactOutputDir));
     builder_.workDir      = paths.workDir;
     builder_.artifactPath = paths.artifactPath;
+    builder_.pdbPath      = paths.pdbPath;
 
     for (uint32_t i = 0; i < numJobs; ++i)
     {
@@ -731,6 +733,8 @@ if (paths.artifactExtension != ".dll")
 if (paths.artifactOutputDir != cmdLine.nativeArtifactOutputDir)
     return Result::Error;
 if (paths.artifactPath != cmdLine.nativeArtifactOutputDir / "hello.dll")
+    return Result::Error;
+if (paths.pdbPath != cmdLine.nativeArtifactOutputDir / "hello.pdb")
     return Result::Error;
 
 const fs::path expectedWorkDirRoot = Os::getTemporaryPath() / "swc_native" / "tmp_native";

@@ -13,6 +13,7 @@ struct NativeArtifactPaths
     fs::path              workDir;
     fs::path              artifactOutputDir;
     fs::path              artifactPath;
+    fs::path              pdbPath;
     std::vector<fs::path> objectPaths;
 };
 

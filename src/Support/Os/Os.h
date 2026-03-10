@@ -60,6 +60,9 @@ namespace Os
     bool     makeExecutableMemory(void* ptr, uint32_t size);
     void     freeExecutableMemory(void* ptr);
     bool     addHostJitFunctionTable(JITMemory& executableMemory);
+    void     removeHostJitFunctionTable(JITMemory& executableMemory);
+    bool     loadJitSymbolFile(JITMemory& executableMemory, const fs::path& imagePath, std::string_view moduleName, uint64_t imageBase, uint32_t imageSize);
+    void     unloadJitSymbolFile(JITMemory& executableMemory);
     bool     loadExternalModule(void*& outModuleHandle, std::string_view moduleName);
     bool     getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName);
     uint64_t tlsAlloc();

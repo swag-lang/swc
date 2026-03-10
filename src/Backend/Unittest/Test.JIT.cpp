@@ -41,11 +41,40 @@ namespace
         builder.emitLoadRegImm(callConv.intReturn, ApInt(42, 64), MicroOpBits::B64);
         builder.emitRet();
     }
+
+    void buildReturnVirtualAcrossConcreteClobber(MicroBuilder& builder, const CallConv& callConv)
+    {
+        constexpr MicroReg v0  = MicroReg::virtualIntReg(0);
+        constexpr MicroReg r10 = MicroReg::intReg(10);
+        constexpr MicroReg r11 = MicroReg::intReg(11);
+
+        SmallVector<MicroReg> forbiddenRegs;
+        for (const auto reg : callConv.intRegs)
+        {
+            if (reg == r10 || reg == r11)
+                continue;
+
+            forbiddenRegs.push_back(reg);
+        }
+
+        builder.addVirtualRegForbiddenPhysRegs(v0, forbiddenRegs.span());
+        builder.emitLoadRegImm(v0, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(r11, ApInt(0x11, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(r11, ApInt(0x22, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(callConv.intReturn, v0, MicroOpBits::B64);
+        builder.emitRet();
+    }
 }
 
 SWC_TEST_BEGIN(JIT_Return42)
 {
     SWC_RESULT_VERIFY(runCase(ctx, &buildReturn42, 42));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_RegAllocAvoidsFutureConcreteClobber)
+{
+    SWC_RESULT_VERIFY(runCase(ctx, &buildReturnVirtualAcrossConcreteClobber, 3));
 }
 SWC_TEST_END()
 

@@ -3,6 +3,7 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Debug/DebugInfo.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
@@ -36,9 +37,9 @@ namespace
     struct RelocationResolveFailure
     {
         RelocationResolveFailureKind kind         = RelocationResolveFailureKind::None;
-        const Symbol*               targetSymbol = nullptr;
-        Utf8                        moduleName;
-        Utf8                        functionName;
+        const Symbol*                targetSymbol = nullptr;
+        Utf8                         moduleName;
+        Utf8                         functionName;
     };
 
     Utf8 relocationSymbolName(const TaskContext& ctx, const Symbol* symbol)
@@ -333,7 +334,7 @@ namespace
 
         for (const MicroRelocation& reloc : relocations)
         {
-            uint64_t                 targetAddress    = 0;
+            uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
             const bool               hasTargetAddress = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr, &failure);
             if (!hasTargetAddress)
@@ -341,9 +342,7 @@ namespace
                 if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
                     continue;
 
-                const DiagnosticId diagId = reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress ?
-                                                DiagnosticId::cmd_err_native_invalid_foreign_function_relocation :
-                                                DiagnosticId::cmd_err_native_invalid_local_function_relocation;
+                const DiagnosticId diagId = reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
                 Diagnostic         diag   = Diagnostic::get(diagId);
                 if (ownerFunction)
                     diag.addArgument(Diagnostic::ARG_SYM, ownerFunction->getFullScopedName(ctx));
@@ -368,8 +367,7 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteSp
 
     JITMemoryManager& memoryManager     = ctx.compiler().jitMemMgr();
     const uint32_t    codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size_bytes()), sizeof(uint32_t));
-    const bool        registerSehUnwind = ctx.compiler().buildCfg().backend.enableExceptions;
-    SWC_ASSERT(!registerSehUnwind || !unwindInfo.empty());
+    const bool        registerSehUnwind = !unwindInfo.empty();
 
     const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;
     const uint64_t allocationSizeU64 = static_cast<uint64_t>(codeSize) + unwindSizeU64;
@@ -396,17 +394,49 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
     return patchRelocations(ctx, ownerFunction, writableCode, relocations);
 }
 
-void JIT::finalize(JITMemory& executableMemory)
+void JIT::finalize(TaskContext& ctx, JITMemory& executableMemory, const SymbolFunction* ownerFunction, const MachineCode* machineCode)
 {
     JITMemoryManager::makeExecutable(executableMemory);
     JITMemoryManager::registerUnwindInfo(executableMemory);
+
+    if (!ctx.compiler().buildCfg().backend.debugInfo)
+        return;
+    if (!Os::isDebuggerAttached())
+        return;
+
+    const MachineCode* debugMachineCode = machineCode;
+    if (!debugMachineCode && ownerFunction)
+    {
+        const MachineCode& loweredCode = ownerFunction->loweredCode();
+        if (!loweredCode.bytes.empty())
+            debugMachineCode = &loweredCode;
+    }
+
+    if (!ownerFunction || !debugMachineCode)
+        return;
+
+    JitDebugArtifact      artifact;
+    const JitDebugRequest request = {
+        .ctx         = &ctx,
+        .targetOs    = ctx.compiler().cmdLine().targetOs,
+        .function    = ownerFunction,
+        .symbolName  = ownerFunction->getFullScopedName(ctx),
+        .debugName   = ownerFunction->getFullScopedName(ctx),
+        .machineCode = debugMachineCode,
+        .codeAddress = executableMemory.entryPoint(),
+    };
+
+    if (!DebugInfo::emitJitArtifact(request, artifact))
+        return;
+
+    (void) Os::loadJitSymbolFile(executableMemory, artifact.imagePath, artifact.moduleName, artifact.imageBase, artifact.imageSize);
 }
 
 Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo, const SymbolFunction* ownerFunction)
 {
     prepare(ctx, outExecutableMemory, linearCode, unwindInfo);
     SWC_RESULT_VERIFY(patch(ctx, outExecutableMemory, relocations, ownerFunction));
-    finalize(outExecutableMemory);
+    finalize(ctx, outExecutableMemory, ownerFunction);
     return Result::Continue;
 }
 

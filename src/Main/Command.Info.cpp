@@ -233,6 +233,7 @@ namespace Command
         printInfoLine(ctx, "native.workDirRoot", nativePaths.workDirRoot, LogColor::Yellow);
         printInfoLine(ctx, "native.outputDir", nativePaths.artifactOutputDir, LogColor::Yellow);
         printInfoLine(ctx, "native.artifactPath", nativePaths.artifactPath, LogColor::Yellow);
+        printInfoLine(ctx, "native.pdbPath", nativePaths.pdbPath, LogColor::Yellow);
 
         printGroupHeader(ctx, "Native Toolchain");
         switch (toolchainResult)

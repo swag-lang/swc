@@ -125,7 +125,6 @@ bool JITExecManager::executePendingMainThread()
 
         if (!itemToRun)
             break;
-
         const Result result = executeItem(*itemToRun);
 
         {

@@ -739,6 +739,21 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
     if (!ops)
         return;
 
+    const MicroReg stackReg = stackPointerReg();
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::Push:
+            info.addUseDef(stackReg);
+            return;
+
+        case MicroInstrOpcode::Pop:
+            info.addUseDef(stackReg);
+            return;
+
+        default:
+            break;
+    }
+
     auto microOp             = MicroOp::Add;
     bool shiftUsesFixedCount = false;
     switch (inst.op)

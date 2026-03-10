@@ -403,7 +403,7 @@ void SymbolFunction::jitFinalize(TaskContext& ctx)
     if (!hasJitPreparedAddress())
         return;
 
-    JIT::finalize(jitExecMemory_);
+    JIT::finalize(ctx, jitExecMemory_, this, &loweredMicroCode_);
     void* const entry = jitPatchAddress();
     SWC_ASSERT(entry != nullptr);
     jitEntryAddress_.store(entry, std::memory_order_release);

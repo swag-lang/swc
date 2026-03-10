@@ -196,6 +196,19 @@ bool CallConv::isFloatPersistentReg(MicroReg reg) const
     return false;
 }
 
+MicroReg CallConv::preferredLocalStackBaseReg() const
+{
+    for (const auto reg : intPersistentRegs)
+    {
+        if (!reg.isValid() || reg == stackPointer || reg == framePointer)
+            continue;
+
+        return reg;
+    }
+
+    return MicroReg::invalid();
+}
+
 bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, MicroRegSpan forbidden) const
 {
     // Scratch regs are needed for ABI shuffles; avoid reserved/argument registers first.
@@ -230,18 +243,18 @@ bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, Micro
         }
     };
 
-    pickFrom(intPersistentRegs);
+    pickFrom(intTransientRegs);
     if (!outReg0.isValid())
-        pickFrom(intTransientRegs);
+        pickFrom(intPersistentRegs);
     if (!outReg0.isValid())
         pickFrom(intRegs);
 
     if (!outReg0.isValid())
         return false;
 
-    pickSecondFrom(intPersistentRegs);
+    pickSecondFrom(intTransientRegs);
     if (!outReg1.isValid())
-        pickSecondFrom(intTransientRegs);
+        pickSecondFrom(intPersistentRegs);
     if (!outReg1.isValid())
         pickSecondFrom(intRegs);
 

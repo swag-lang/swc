@@ -86,7 +86,6 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         if (attributes.backendOptimize.has_value())
             backendBuildCfg.optimize = attributes.backendOptimize.value();
 
-        builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
         builder_->setBackendBuildCfg(backendBuildCfg);
         if (compiler().buildCfg().backend.debugInfo)
             builderFlags.add(MicroBuilderFlagsE::DebugInfo);
@@ -97,6 +96,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
         const SourceFile*     file      = srcView.file();
         const Utf8            fileName  = file ? FileSystem::formatFileName(&ctx(), file->path()) : Utf8{};
+        builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
         builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), fileName, codeRange.line);
 
         started_ = true;

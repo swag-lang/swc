@@ -292,7 +292,6 @@ namespace
         const std::optional<JITPendingNodeData> pendingEntry = takePendingJitNode(sema, nodeRef);
         if (pendingEntry && *completion == Result::Continue)
             applyPendingJitResult(sema, nodeRef, pendingEntry.value());
-
         return completion;
     }
 

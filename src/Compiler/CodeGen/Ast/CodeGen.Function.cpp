@@ -226,7 +226,8 @@ namespace
         SWC_ASSERT(frameSize != 0);
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
 
-        const MicroReg frameBaseReg = callConv.framePointer;
+        const MicroReg frameBaseReg = callConv.preferredLocalStackBaseReg();
+        SWC_ASSERT(frameBaseReg.isValid());
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
         codeGen.setLocalStackBaseReg(frameBaseReg);
     }

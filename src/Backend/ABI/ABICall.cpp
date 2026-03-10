@@ -464,11 +464,11 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
     const auto      numArgs     = static_cast<uint32_t>(args.size());
     const uint32_t  stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
 
+    emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Subtract);
     MicroReg   regBase, regTmp;
     const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
     SWC_INTERNAL_CHECK(hasScratchRegs);
 
-    emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Subtract);
     emitCallArgs(builder, conv, args, regBase, regTmp);
     builder.emitLoadRegPtrImm(regTmp, targetAddress);
     builder.emitCallReg(regTmp, callConvKind);

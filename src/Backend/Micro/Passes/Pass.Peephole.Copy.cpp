@@ -9,6 +9,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool classifyRegUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg reg, bool& outUse, bool& outDef);
+    void classifyCopyRegsUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg copyDstReg, MicroReg copySrcReg, bool& outHasUse, bool& outHasDef, bool& outSrcDef);
+
     bool forwardCopyIntoNextBinarySource(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
@@ -35,28 +38,10 @@ namespace
             if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return false;
 
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
             bool hasUse = false;
             bool hasDef = false;
             bool srcDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *(ref.reg);
-                if (reg == copyDstReg)
-                {
-                    hasUse |= ref.use;
-                    hasDef |= ref.def;
-                }
-                else if (reg == copySrcReg && ref.def)
-                {
-                    srcDef = true;
-                }
-            }
+            classifyCopyRegsUseDef(context, scanInst, copyDstReg, copySrcReg, hasUse, hasDef, srcDef);
 
             if (srcDef)
                 return false;
@@ -120,28 +105,10 @@ namespace
             if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return false;
 
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
             bool hasUse = false;
             bool hasDef = false;
             bool srcDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *(ref.reg);
-                if (reg == copyDstReg)
-                {
-                    hasUse |= ref.use;
-                    hasDef |= ref.def;
-                }
-                else if (reg == copySrcReg && ref.def)
-                {
-                    srcDef = true;
-                }
-            }
+            classifyCopyRegsUseDef(context, scanInst, copyDstReg, copySrcReg, hasUse, hasDef, srcDef);
 
             if (srcDef)
                 return false;
@@ -224,22 +191,7 @@ namespace
             bool hasUse = false;
             bool hasDef = false;
             bool srcDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *(ref.reg);
-                if (reg == copyDstReg)
-                {
-                    hasUse |= ref.use;
-                    hasDef |= ref.def;
-                }
-                else if (reg == copySrcReg && ref.def)
-                {
-                    srcDef = true;
-                }
-            }
+            classifyCopyRegsUseDef(context, scanInst, copyDstReg, copySrcReg, hasUse, hasDef, srcDef);
 
             if (srcDef || hasDef)
                 return false;
@@ -375,28 +327,10 @@ namespace
             if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return false;
 
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
             bool hasUse = false;
             bool hasDef = false;
             bool srcDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *(ref.reg);
-                if (reg == copyDstReg)
-                {
-                    hasUse |= ref.use;
-                    hasDef |= ref.def;
-                }
-                else if (reg == copySrcReg && ref.def)
-                {
-                    srcDef = true;
-                }
-            }
+            classifyCopyRegsUseDef(context, scanInst, copyDstReg, copySrcReg, hasUse, hasDef, srcDef);
 
             if (srcDef)
                 return false;
@@ -457,18 +391,27 @@ namespace
         outUse = false;
         outDef = false;
 
-        SmallVector<MicroInstrRegOperandRef> refs;
-        inst.collectRegOperands(*context.operands, refs, context.encoder);
-        for (const MicroInstrRegOperandRef& ref : refs)
-        {
-            if (!ref.reg || *(ref.reg) != reg)
-                continue;
+        if (!reg.isValid() || reg.isNoBase())
+            return false;
 
-            outUse |= ref.use;
-            outDef |= ref.def;
-        }
+        const MicroInstrUseDef useDef = inst.collectUseDef(*context.operands, context.encoder);
+        outUse                        = microRegSpanContains(useDef.uses, reg);
+        outDef                        = microRegSpanContains(useDef.defs, reg);
 
         return outUse || outDef;
+    }
+
+    void classifyCopyRegsUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg copyDstReg, MicroReg copySrcReg, bool& outHasUse, bool& outHasDef, bool& outSrcDef)
+    {
+        outHasUse = false;
+        outHasDef = false;
+        outSrcDef = false;
+
+        classifyRegUseDef(context, inst, copyDstReg, outHasUse, outHasDef);
+
+        bool srcUse = false;
+        classifyRegUseDef(context, inst, copySrcReg, srcUse, outSrcDef);
+        SWC_UNUSED(srcUse);
     }
 
     bool rewriteAccumulatorInstruction(const MicroInstr& inst, MicroInstrOperand* instOps, MicroReg fromReg, MicroReg toReg)
@@ -684,27 +627,10 @@ namespace
             if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return false;
 
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
             bool usesCopyDst = false;
             bool defsCopyDst = false;
             bool defsCopySrc = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *(ref.reg);
-                if (reg == copyDstReg)
-                {
-                    usesCopyDst |= ref.use;
-                    defsCopyDst |= ref.def;
-                }
-
-                if (reg == copySrcReg && ref.def)
-                    defsCopySrc = true;
-            }
+            classifyCopyRegsUseDef(context, scanInst, copyDstReg, copySrcReg, usesCopyDst, defsCopyDst, defsCopySrc);
 
             if (defsCopySrc)
                 return false;
@@ -1391,6 +1317,17 @@ namespace
 
             SmallVector<MicroInstrRegOperandRef> refs;
             scanInst.collectRegOperands(*context.operands, refs, context.encoder);
+
+            bool usesSrcReg = false;
+            bool defsSrcReg = false;
+            classifyRegUseDef(context, scanInst, srcReg, usesSrcReg, defsSrcReg);
+            SWC_UNUSED(usesSrcReg);
+            if (seenMutation || defsSrcReg)
+            {
+                canCoalesce = false;
+                break;
+            }
+
             for (const MicroInstrRegOperandRef& ref : refs)
             {
                 if (!ref.reg)
@@ -1399,7 +1336,7 @@ namespace
                 const MicroReg reg = *(ref.reg);
                 if (reg == srcReg)
                 {
-                    if (seenMutation || ref.def)
+                    if (ref.def)
                     {
                         canCoalesce = false;
                         break;

@@ -1,5 +1,5 @@
 #pragma once
-
+#include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -55,12 +55,14 @@ private:
     };
 
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
-    Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const;
-    Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const;
-    Result        appendSingleCodeRelocation(uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const;
-    static Result buildDataRelocations(CoffSectionBuild& section);
+    Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
+    Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
+    Result        appendSingleCodeRelocation(uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
+    static Result applySectionRelocations(CoffSectionBuild& section);
+    static void   writeU16(std::vector<std::byte>& bytes, uint32_t offset, uint16_t value);
+    static void   writeU32(std::vector<std::byte>& bytes, uint32_t offset, uint32_t value);
     static void   writeU64(std::vector<std::byte>& bytes, uint32_t offset, uint64_t value);
-    static void   addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
+    static void   addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
     static void   addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
     Result        flushCoffFile(const fs::path& objPath, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
 

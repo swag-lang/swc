@@ -1,9 +1,22 @@
 #include "pch.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
+#include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
+    {
+        Utf8 key = function.getFullScopedName(ctx);
+        key += "|";
+        key += std::to_string(function.tokRef().get());
+        return std::format("__swc_ext_fn_{:08x}", Math::hash(key.view()));
+    }
+}
 
 NativeObjFileWriterCoff::NativeObjFileWriterCoff(NativeBackendBuilder& builder) :
     builder_(builder)
@@ -24,7 +37,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     {
         CoffSectionBuild section;
         section.data = builder_.mergedRData;
-        SWC_RESULT_VERIFY(buildDataRelocations(section));
+        SWC_RESULT_VERIFY(applySectionRelocations(section));
         sections.push_back(std::move(section));
     }
 
@@ -42,12 +55,54 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
         sections.push_back(std::move(section));
     }
 
+    std::vector<DebugInfoFunctionRecord> debugFunctions;
+    if (description.startup)
+    {
+        debugFunctions.push_back({
+            .symbolName  = description.startup->symbolName,
+            .debugName   = description.startup->debugName,
+            .textOffset  = description.startup->textOffset,
+            .machineCode = &description.startup->code,
+        });
+    }
+
+    for (const NativeFunctionInfo* info : description.functions)
+    {
+        if (!info)
+            continue;
+
+        debugFunctions.push_back({
+            .symbolName  = info->symbolName,
+            .debugName   = info->debugName,
+            .textOffset  = info->textOffset,
+            .machineCode = info->machineCode,
+        });
+    }
+
+    DebugInfoObjectResult        debugInfoResult;
+    const DebugInfoObjectRequest debugInfoRequest = {
+        .ctx               = &builder_.ctx(),
+        .targetOs          = builder_.ctx().cmdLine().targetOs,
+        .objectPath        = description.objPath,
+        .textSectionNumber = 1,
+        .functions         = debugFunctions,
+        .emitCodeView      = builder_.compiler().buildCfg().backend.debugInfo,
+    };
+    SWC_RESULT_VERIFY(DebugInfo::buildObject(debugInfoRequest, debugInfoResult));
+    for (auto& debugSectionData : debugInfoResult.sections)
+    {
+        CoffSectionBuild section;
+        section.data = std::move(debugSectionData);
+        SWC_RESULT_VERIFY(applySectionRelocations(section));
+        sections.push_back(std::move(section));
+    }
+
     for (size_t i = 0; i < sections.size(); ++i)
         sections[i].sectionNumber = static_cast<uint16_t>(i + 1);
 
     std::vector<CoffSymbolRecord>      symbols;
     std::unordered_map<Utf8, uint32_t> symbolIndices;
-    addDefinedSymbols(description, sections, symbols, symbolIndices);
+    addDefinedSymbols(description, sections, debugInfoResult.symbols, symbols, symbolIndices);
     addUndefinedSymbols(sections, symbols, symbolIndices);
 
     return flushCoffFile(description.objPath, sections, symbols, symbolIndices);
@@ -69,28 +124,28 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
         appendCode(info->textOffset, info->machineCode->bytes);
 
     if (description.startup)
-        SWC_RESULT_VERIFY(appendCodeRelocations(*description.startup, description.startup->code, textSection));
+        SWC_RESULT_VERIFY(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols));
     for (const NativeFunctionInfo* info : description.functions)
-        SWC_RESULT_VERIFY(appendCodeRelocations(*info, *info->machineCode, textSection));
+        SWC_RESULT_VERIFY(appendCodeRelocations(*info, *info->machineCode, textSection, description.allowUnresolvedSymbols));
 
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection) const
+Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT_VERIFY(appendSingleCodeRelocation(startup.textOffset, relocation, textSection));
+        SWC_RESULT_VERIFY(appendSingleCodeRelocation(startup.textOffset, relocation, textSection, allowUnresolvedSymbols));
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection) const
+Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT_VERIFY(appendSingleCodeRelocation(owner.textOffset, relocation, textSection));
+        SWC_RESULT_VERIFY(appendSingleCodeRelocation(owner.textOffset, relocation, textSection, allowUnresolvedSymbols));
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection) const
+Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     const uint32_t patchOffset = functionOffset + relocation.codeOffset;
     SWC_ASSERT(patchOffset + sizeof(uint64_t) <= textSection.data.bytes.size());
@@ -105,9 +160,20 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
             const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
             SWC_ASSERT(target != nullptr);
             const auto it = builder_.functionBySymbol.find(const_cast<SymbolFunction*>(target));
-            SWC_ASSERT(it != builder_.functionBySymbol.end());
-            record.symbolName = it->second->symbolName;
-            record.addend     = 0;
+            if (it != builder_.functionBySymbol.end())
+            {
+                record.symbolName = it->second->symbolName;
+            }
+            else if (allowUnresolvedSymbols && target)
+            {
+                record.symbolName = unresolvedFunctionSymbolName(builder_.ctx(), *target);
+            }
+            else
+            {
+                SWC_ASSERT(false);
+                return builder_.reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+            }
+            record.addend = 0;
             writeU64(textSection.data.bytes, patchOffset, 0);
             break;
         }
@@ -153,16 +219,49 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::buildDataRelocations(CoffSectionBuild& section)
+Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& section)
 {
     for (const auto& relocation : section.data.relocations)
     {
-        SWC_ASSERT(relocation.offset + sizeof(uint64_t) <= section.data.bytes.size());
-        writeU64(section.data.bytes, relocation.offset, relocation.addend);
+        switch (relocation.type)
+        {
+            case IMAGE_REL_AMD64_ADDR64:
+                SWC_ASSERT(relocation.offset + sizeof(uint64_t) <= section.data.bytes.size());
+                writeU64(section.data.bytes, relocation.offset, relocation.addend);
+                break;
+
+            case IMAGE_REL_AMD64_ADDR32NB:
+            case IMAGE_REL_AMD64_SECREL:
+                SWC_ASSERT(relocation.offset + sizeof(uint32_t) <= section.data.bytes.size());
+                writeU32(section.data.bytes, relocation.offset, static_cast<uint32_t>(relocation.addend));
+                break;
+
+            case IMAGE_REL_AMD64_SECTION:
+                SWC_ASSERT(relocation.offset + sizeof(uint16_t) <= section.data.bytes.size());
+                writeU16(section.data.bytes, relocation.offset, static_cast<uint16_t>(relocation.addend));
+                break;
+
+            default:
+                SWC_ASSERT(false);
+                return Result::Error;
+        }
+
         section.relocations.push_back(relocation);
     }
 
+    section.data.relocations.clear();
+
     return Result::Continue;
+}
+
+void NativeObjFileWriterCoff::writeU16(std::vector<std::byte>& bytes, const uint32_t offset, const uint16_t value)
+{
+    std::memcpy(bytes.data() + offset, &value, sizeof(value));
+}
+
+void NativeObjFileWriterCoff::writeU32(std::vector<std::byte>& bytes, const uint32_t offset, const uint32_t value)
+{
+    std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
 
 void NativeObjFileWriterCoff::writeU64(std::vector<std::byte>& bytes, const uint32_t offset, const uint64_t value)
@@ -170,7 +269,7 @@ void NativeObjFileWriterCoff::writeU64(std::vector<std::byte>& bytes, const uint
     std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
 
-void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices)
+void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices)
 {
     const auto add = [&](CoffSymbolRecord record) {
         symbolIndices.emplace(record.name, static_cast<uint32_t>(symbols.size()));
@@ -198,6 +297,31 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
             .value         = info->textOffset,
             .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
             .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+        });
+    }
+
+    for (const auto& extraSymbol : extraSymbols)
+    {
+        int16_t sectionNumber = 0;
+        for (const auto& section : sections)
+        {
+            if (section.data.name != extraSymbol.sectionName)
+                continue;
+
+            sectionNumber = static_cast<int16_t>(section.sectionNumber);
+            break;
+        }
+
+        SWC_ASSERT(sectionNumber != 0);
+        if (sectionNumber == 0)
+            continue;
+
+        add({
+            .name          = extraSymbol.name,
+            .sectionNumber = sectionNumber,
+            .value         = extraSymbol.value,
+            .type          = extraSymbol.type,
+            .storageClass  = extraSymbol.storageClass,
         });
     }
 
@@ -309,7 +433,7 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
     header.PointerToSymbolTable = symbolTableOffset;
     header.NumberOfSymbols      = static_cast<DWORD>(symbols.size());
     header.SizeOfOptionalHeader = 0;
-    header.Characteristics      = IMAGE_FILE_LARGE_ADDRESS_AWARE | IMAGE_FILE_DEBUG_STRIPPED;
+    header.Characteristics      = 0;
     std::memcpy(fileData.data(), &header, sizeof(header));
 
     uint32_t sectionHeaderOffset = sizeof(IMAGE_FILE_HEADER);

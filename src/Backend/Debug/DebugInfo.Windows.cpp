@@ -19,13 +19,21 @@ namespace DebugInfoPrivate
         constexpr uint32_t K_DEBUG_S_LINES         = 0xF2;
         constexpr uint32_t K_DEBUG_S_STRINGTABLE   = 0xF3;
         constexpr uint32_t K_DEBUG_S_FILECHKSMS    = 0xF4;
-        constexpr uint16_t K_S_END                 = 0x0006;
         constexpr uint16_t K_S_FRAMEPROC           = 0x1012;
         constexpr uint16_t K_S_OBJNAME             = 0x1101;
-        constexpr uint16_t K_S_GPROC32             = 0x1110;
+        constexpr uint16_t K_S_GPROC32_ID          = 0x1147;
+        constexpr uint16_t K_S_PROC_ID_END         = 0x114F;
         constexpr uint16_t K_S_COMPILE3            = 0x113C;
+        constexpr uint16_t K_LF_PROCEDURE          = 0x1008;
+        constexpr uint16_t K_LF_ARGLIST            = 0x1201;
+        constexpr uint16_t K_LF_FUNC_ID            = 0x1601;
         constexpr uint32_t K_CV_CFL_CXX            = 0x01;
         constexpr uint16_t K_CV_CFL_AMD64          = 0x00D0;
+        constexpr uint32_t K_CV_TYPE_SIGNATURE     = 4;
+        constexpr uint32_t K_CV_FIRST_NONPRIM      = 0x1000;
+        constexpr uint32_t K_T_VOID                = 0x0003;
+        constexpr uint8_t  K_CV_CALL_NEAR_C        = 0x00;
+        constexpr uint32_t K_CV_FRAMEPROC_FLAGS    = 0x00114200;
         constexpr uint16_t K_CHKSUM_TYPE_NONE      = 0x00;
         constexpr uint32_t K_CV_LINE_STATEMENT_BIT = 0x80000000u;
 
@@ -88,11 +96,7 @@ namespace DebugInfoPrivate
                     return it->second;
 
                 const uint32_t entryOffset = size;
-                entries.push_back({
-                    .fileName     = fileName,
-                    .stringOffset = stringOffset,
-                    .entryOffset  = entryOffset,
-                });
+                entries.push_back(stringOffset);
                 offsets.emplace(fileName, entryOffset);
                 size += 8;
                 return entryOffset;
@@ -100,9 +104,8 @@ namespace DebugInfoPrivate
 
             void commit(std::vector<std::byte>& outBytes) const
             {
-                for (const auto& entry : entries)
+                for (const uint32_t stringOffset : entries)
                 {
-                    const auto stringOffset = static_cast<uint32_t>(entry.stringOffset);
                     outBytes.insert(outBytes.end(), reinterpret_cast<const std::byte*>(&stringOffset), reinterpret_cast<const std::byte*>(&stringOffset) + sizeof(stringOffset));
                     outBytes.push_back(static_cast<std::byte>(0));
                     outBytes.push_back(static_cast<std::byte>(K_CHKSUM_TYPE_NONE));
@@ -111,16 +114,9 @@ namespace DebugInfoPrivate
                 }
             }
 
-            struct Entry
-            {
-                Utf8     fileName;
-                uint32_t stringOffset = 0;
-                uint32_t entryOffset  = 0;
-            };
-
             uint32_t                           size = 0;
             std::unordered_map<Utf8, uint32_t> offsets;
-            std::vector<Entry>                 entries;
+            std::vector<uint32_t>              entries;
         };
 
         void writeU16(std::vector<std::byte>& bytes, const uint16_t value)
@@ -177,7 +173,25 @@ namespace DebugInfoPrivate
         {
             const uint16_t recordLength = static_cast<uint16_t>(bytes.size() - recordOffset - sizeof(uint16_t));
             patchU16(bytes, recordOffset, recordLength);
-            alignBytes(bytes, 4);
+        }
+
+        uint32_t beginTypeRecord(std::vector<std::byte>& bytes, const uint16_t kind)
+        {
+            const uint32_t offset = static_cast<uint32_t>(bytes.size());
+            writeU16(bytes, 0);
+            writeU16(bytes, kind);
+            return offset;
+        }
+
+        void endTypeRecord(std::vector<std::byte>& bytes, const uint32_t recordOffset)
+        {
+            const uint32_t rawRecordSize = static_cast<uint32_t>(bytes.size()) - recordOffset;
+            const uint32_t padBytes      = Math::alignUpU32(rawRecordSize, 4) - rawRecordSize;
+            for (uint32_t i = padBytes; i > 0; --i)
+                bytes.push_back(static_cast<std::byte>(0xF0u + i));
+
+            const uint16_t recordLength = static_cast<uint16_t>(bytes.size() - recordOffset - sizeof(uint16_t));
+            patchU16(bytes, recordOffset, recordLength);
         }
 
         uint32_t beginSubsection(std::vector<std::byte>& bytes, const uint32_t type)
@@ -282,18 +296,20 @@ namespace DebugInfoPrivate
             endRecord(bytes, recordOffset);
         }
 
-        void appendProcSymbols(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const DebugInfoFunctionRecord& function)
+        void appendProcSymbols(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const DebugInfoFunctionRecord& function, const uint32_t typeIndex)
         {
             SWC_ASSERT(function.machineCode != nullptr);
 
-            const uint32_t procOffset = beginRecord(bytes, K_S_GPROC32);
+            const uint32_t codeSize = static_cast<uint32_t>(function.machineCode->bytes.size());
+
+            const uint32_t procOffset = beginRecord(bytes, K_S_GPROC32_ID);
             writeU32(bytes, 0);
             writeU32(bytes, 0);
             writeU32(bytes, 0);
-            writeU32(bytes, static_cast<uint32_t>(function.machineCode->bytes.size()));
+            writeU32(bytes, codeSize);
             writeU32(bytes, 0);
-            writeU32(bytes, 0);
-            writeU32(bytes, 0);
+            writeU32(bytes, codeSize ? codeSize - 1 : 0);
+            writeU32(bytes, typeIndex);
 
             const uint32_t offRelocOffset = static_cast<uint32_t>(bytes.size());
             writeU32(bytes, 0);
@@ -323,13 +339,57 @@ namespace DebugInfoPrivate
             writeU32(bytes, 0);
             writeU32(bytes, 0);
             writeU16(bytes, 0);
-            writeU32(bytes, 0);
+            writeU32(bytes, K_CV_FRAMEPROC_FLAGS);
             endRecord(bytes, frameOffset);
 
-            const uint32_t endOffset = beginRecord(bytes, K_S_END);
+            const uint32_t endOffset = beginRecord(bytes, K_S_PROC_ID_END);
             SWC_UNUSED(endOffset);
             endRecord(bytes, endOffset);
         }
+
+        struct TypeTableBuilder
+        {
+            void begin()
+            {
+                writeU32(bytes, K_CV_TYPE_SIGNATURE);
+            }
+
+            uint32_t appendEmptyArgList()
+            {
+                const uint32_t typeIndex    = nextTypeIndex++;
+                const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_ARGLIST);
+                writeU32(bytes, 0);
+                endTypeRecord(bytes, recordOffset);
+                return typeIndex;
+            }
+
+            uint32_t appendProcedureType(const uint32_t argListType)
+            {
+                const uint32_t typeIndex    = nextTypeIndex++;
+                const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_PROCEDURE);
+                writeU32(bytes, K_T_VOID);
+                bytes.push_back(static_cast<std::byte>(K_CV_CALL_NEAR_C));
+                bytes.push_back(std::byte{0});
+                writeU16(bytes, 0);
+                writeU32(bytes, argListType);
+                endTypeRecord(bytes, recordOffset);
+                return typeIndex;
+            }
+
+            uint32_t appendFunctionId(const Utf8& functionName, const uint32_t procedureType)
+            {
+                const uint32_t typeIndex    = nextTypeIndex++;
+                const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_FUNC_ID);
+                writeU32(bytes, 0);
+                writeU32(bytes, procedureType);
+                writeCString(bytes, functionName);
+                endTypeRecord(bytes, recordOffset);
+                return typeIndex;
+            }
+
+            std::vector<std::byte> bytes;
+            uint32_t               nextTypeIndex = K_CV_FIRST_NONPRIM;
+        };
 
         void appendLinesSubsection(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const DebugInfoFunctionRecord& function, const FunctionLines& functionLines, const FileChecksumBuilder& checksums)
         {
@@ -395,6 +455,12 @@ namespace DebugInfoPrivate
 
             StringTableBuilder  strings;
             FileChecksumBuilder checksums;
+            TypeTableBuilder    types;
+            types.begin();
+            const uint32_t        argListType = types.appendEmptyArgList();
+            const uint32_t        procType    = types.appendProcedureType(argListType);
+            std::vector<uint32_t> functionTypeIndices;
+            functionTypeIndices.reserve(request.functions.size());
             for (const DebugInfoFunctionRecord& function : request.functions)
             {
                 const FunctionLines lines = function.machineCode ? collectFunctionLines(*request.ctx, *function.machineCode) : FunctionLines{};
@@ -405,6 +471,7 @@ namespace DebugInfoPrivate
                 }
 
                 functionLines.push_back(lines);
+                functionTypeIndices.push_back(types.appendFunctionId(function.debugName.empty() ? function.symbolName : function.debugName, procType));
             }
 
             if (!checksums.entries.empty())
@@ -418,14 +485,31 @@ namespace DebugInfoPrivate
                 endSubsection(debugSection.bytes, checksumLenOffset);
             }
 
-            for (size_t i = 0; i < request.functions.size(); ++i)
-                appendLinesSubsection(debugSection.bytes, debugSection, request.functions[i], functionLines[i], checksums);
-
-            const uint32_t symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
+            uint32_t symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
+            appendObjNameRecord(debugSection.bytes, request.objectPath);
             appendCompileRecord(debugSection.bytes, request.ctx->compiler().buildCfg().backend);
             endSubsection(debugSection.bytes, symbolsLenOffset);
 
+            for (size_t i = 0; i < request.functions.size(); ++i)
+            {
+                const DebugInfoFunctionRecord& function = request.functions[i];
+                if (function.machineCode)
+                {
+                    symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
+                    appendProcSymbols(debugSection.bytes, debugSection, function, functionTypeIndices[i]);
+                    endSubsection(debugSection.bytes, symbolsLenOffset);
+                }
+
+                appendLinesSubsection(debugSection.bytes, debugSection, request.functions[i], functionLines[i], checksums);
+            }
+
             outResult.sections.push_back(std::move(debugSection));
+
+            NativeSectionData typeSection;
+            typeSection.name            = ".debug$T";
+            typeSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_DISCARDABLE | IMAGE_SCN_ALIGN_1BYTES | IMAGE_SCN_MEM_READ;
+            typeSection.bytes           = std::move(types.bytes);
+            outResult.sections.push_back(std::move(typeSection));
             return Result::Continue;
         }
 

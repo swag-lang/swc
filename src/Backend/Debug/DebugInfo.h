@@ -18,7 +18,6 @@ struct DebugInfoFunctionRecord
 {
     Utf8               symbolName;
     Utf8               debugName;
-    uint32_t           textOffset  = 0;
     const MachineCode* machineCode = nullptr;
 };
 
@@ -27,7 +26,6 @@ struct DebugInfoObjectRequest
     TaskContext*                             ctx      = nullptr;
     Runtime::TargetOs                        targetOs = Runtime::TargetOs::Windows;
     fs::path                                 objectPath;
-    uint16_t                                 textSectionNumber = 0;
     std::span<const DebugInfoFunctionRecord> functions;
     bool                                     emitCodeView = false;
 };

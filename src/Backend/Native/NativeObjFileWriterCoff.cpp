@@ -61,7 +61,6 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
         debugFunctions.push_back({
             .symbolName  = description.startup->symbolName,
             .debugName   = description.startup->debugName,
-            .textOffset  = description.startup->textOffset,
             .machineCode = &description.startup->code,
         });
     }
@@ -74,19 +73,17 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
         debugFunctions.push_back({
             .symbolName  = info->symbolName,
             .debugName   = info->debugName,
-            .textOffset  = info->textOffset,
             .machineCode = info->machineCode,
         });
     }
 
     DebugInfoObjectResult        debugInfoResult;
     const DebugInfoObjectRequest debugInfoRequest = {
-        .ctx               = &builder_.ctx(),
-        .targetOs          = builder_.ctx().cmdLine().targetOs,
-        .objectPath        = description.objPath,
-        .textSectionNumber = 1,
-        .functions         = debugFunctions,
-        .emitCodeView      = builder_.compiler().buildCfg().backend.debugInfo,
+        .ctx          = &builder_.ctx(),
+        .targetOs     = builder_.ctx().cmdLine().targetOs,
+        .objectPath   = description.objPath,
+        .functions    = debugFunctions,
+        .emitCodeView = builder_.compiler().buildCfg().backend.debugInfo,
     };
     SWC_RESULT_VERIFY(DebugInfo::buildObject(debugInfoRequest, debugInfoResult));
     for (auto& debugSectionData : debugInfoResult.sections)

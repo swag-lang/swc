@@ -135,6 +135,9 @@
     <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp">
       <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Test.DebugInfo.cpp">
+      <Filter>src\Backend\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp">
       <Filter>src\Backend\Unittest</Filter>
     </ClCompile>

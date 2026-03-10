@@ -192,6 +192,7 @@
         <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.ControlFlowSimplification.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.DebugInfo.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.EncodeX64.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp"/>

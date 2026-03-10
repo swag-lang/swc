@@ -55,7 +55,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const std:
     outPaths.artifactExtension = artifactExtension();
     outPaths.outDir            = configuredOutDir(outPaths.workDir);
     outPaths.artifactPath      = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
-    outPaths.pdbPath           = outPaths.outDir / std::format("{}.pdb", outPaths.name);
+    outPaths.pdbPath           = outPaths.outDir / std::format("{}{}.pdb", outPaths.name, outPaths.artifactExtension);
 
     if (!workDirIndex.has_value())
         return;

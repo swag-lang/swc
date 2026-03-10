@@ -125,7 +125,7 @@ public:
     NativeSectionData                                              mergedBss;
     std::array<uint32_t, ConstantManager::SHARD_COUNT>             rdataShardBaseOffsets{};
     std::vector<NativeObjDescription>                              objectDescriptions;
-    fs::path                                                       workDir;
+    fs::path                                                       buildDir;
     fs::path                                                       artifactPath;
     fs::path                                                       pdbPath;
     std::atomic<bool>                                              objWriteFailed = false;

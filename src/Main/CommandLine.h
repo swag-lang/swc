@@ -42,9 +42,9 @@ struct CommandLine
     Utf8                buildCfg        = "fast-debug";
     Utf8                targetArchName  = "x86_64";
     Utf8                backendKindName = "exe";
-    Utf8                nativeArtifactBaseName;
-    Utf8                nativeWorkDirName;
-    Utf8                nativeArtifactOutputDirStorage;
+    Utf8                name;
+    Utf8                outDirStorage;
+    Utf8                workDirStorage;
     std::optional<bool> backendOptimize;
 
     bool logColor        = true;
@@ -79,7 +79,8 @@ struct CommandLine
     std::set<fs::path> files;
 
     fs::path          modulePath;
-    fs::path          nativeArtifactOutputDir;
+    fs::path          outDir;
+    fs::path          workDir;
     Runtime::BuildCfg defaultBuildCfg{};
 };
 

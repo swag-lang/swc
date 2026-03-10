@@ -434,9 +434,9 @@ namespace Runtime
         BuildCfgBackendSubKind backendSubKind = BuildCfgBackendSubKind::Console;
 
         String          linkerArgs;
-        String          nativeArtifactBaseName;
-        String          nativeArtifactOutputDir;
-        String          nativeWorkDirName;
+        String          name;
+        String          outDir;
+        String          workDir;
         BuildCfgBackend backend;
 
         String         repoPath;

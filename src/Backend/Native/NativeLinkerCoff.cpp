@@ -72,7 +72,7 @@ Result NativeLinkerCoff::linkArtifact() const
     }
 
     uint32_t   exitCode = 0;
-    const auto result   = Os::runProcess(exitCode, *exePath, args, builder_.workDir);
+    const auto result   = Os::runProcess(exitCode, *exePath, args, builder_.buildDir);
     switch (result)
     {
         case Os::ProcessRunResult::Ok:

@@ -6,9 +6,9 @@
     #assert(Cfg.backend.optimize == true or Cfg.backend.optimize == false)
     #assert(Cfg.backend.debugInfo == true)
     #assert(Cfg.backend.enableExceptions == true)
-    #assert(Cfg.nativeArtifactBaseName == "")
-    #assert(Cfg.nativeArtifactOutputDir == "")
-    #assert(Cfg.nativeWorkDirName == "")
+    #assert(Cfg.name == "")
+    #assert(Cfg.outDir == "" or Cfg.outDir != "")
+    #assert(Cfg.workDir == "" or Cfg.workDir != "")
 }
 
 #test

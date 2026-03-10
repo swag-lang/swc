@@ -6,12 +6,11 @@ SWC_BEGIN_NAMESPACE();
 
 struct NativeArtifactPaths
 {
-    Utf8                  baseName;
-    Utf8                  workDirRootName;
+    Utf8                  name;
     Utf8                  artifactExtension;
-    fs::path              workDirRoot;
     fs::path              workDir;
-    fs::path              artifactOutputDir;
+    fs::path              buildDir;
+    fs::path              outDir;
     fs::path              artifactPath;
     fs::path              pdbPath;
     std::vector<fs::path> objectPaths;
@@ -35,15 +34,15 @@ private:
     Result          prepareDataSections() const;
     Result          buildStartup() const;
     Result          partitionObjects() const;
-    Utf8            configuredArtifactBaseName() const;
-    Utf8            artifactBaseName() const;
+    Utf8            configuredName() const;
+    Utf8            artifactName() const;
     Utf8            artifactExtension() const;
-    fs::path        configuredArtifactOutputDirectory(const fs::path& defaultOutputDir) const;
-    Result          createArtifactOutputDirectory(const fs::path& outputDir) const;
-    Utf8            configuredWorkDirectoryName() const;
-    Utf8            automaticWorkDirectoryName(const Utf8& baseName) const;
-    static fs::path workDirectory(const fs::path& workDirRoot, uint32_t workDirIndex);
-    Result          createWorkDirectory(const fs::path& workDir) const;
+    fs::path        configuredOutDir(const fs::path& defaultOutDir) const;
+    Result          createOutDir(const fs::path& outDir) const;
+    fs::path        configuredWorkDir() const;
+    Utf8            automaticWorkDirName(const Utf8& name) const;
+    static fs::path buildDirectory(const fs::path& workDir, uint32_t buildIndex);
+    Result          createBuildDirectory(const fs::path& buildDir) const;
 
     NativeBackendBuilder& builder_;
 };

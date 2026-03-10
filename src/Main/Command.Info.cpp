@@ -166,8 +166,8 @@ namespace
         printInfoLine(ctx, "buildCfg", cmdLine.buildCfg);
         printInfoLine(ctx, "targetArchName", cmdLine.targetArchName);
         printInfoLine(ctx, "backendKind", buildCfgBackendKindName(buildCfg.backendKind));
-        printInfoLine(ctx, "nativeArtifactBaseName", runtimeStringToUtf8(buildCfg.nativeArtifactBaseName));
-        printInfoLine(ctx, "nativeWorkDirName", runtimeStringToUtf8(buildCfg.nativeWorkDirName));
+        printInfoLine(ctx, "name", runtimeStringToUtf8(buildCfg.name));
+        printInfoLine(ctx, "workDir", runtimeStringToUtf8(buildCfg.workDir));
         printInfoLine(ctx, "backendOptimize", boolToUtf8(buildCfg.backend.optimize));
         printInfoLine(ctx, "logColor", boolToUtf8(cmdLine.logColor));
         printInfoLine(ctx, "logAscii", boolToUtf8(cmdLine.logAscii));
@@ -196,7 +196,8 @@ namespace
         printPathSet(ctx, "directories", cmdLine.directories);
         printPathSet(ctx, "files", cmdLine.files);
         printInfoLine(ctx, "modulePath", cmdLine.modulePath);
-        printInfoLine(ctx, "nativeArtifactOutputDir", runtimeStringToUtf8(buildCfg.nativeArtifactOutputDir));
+        printInfoLine(ctx, "outDir", runtimeStringToUtf8(buildCfg.outDir));
+        printInfoLine(ctx, "workDir", runtimeStringToUtf8(buildCfg.workDir));
     }
 }
 
@@ -229,11 +230,13 @@ namespace Command
             printInfoLine(ctx, "currentDir", currentDir);
 
         printGroupHeader(ctx, "Native Paths");
-        printInfoLine(ctx, "native.baseName", nativePaths.baseName, LogColor::Yellow);
-        printInfoLine(ctx, "native.workDirRoot", nativePaths.workDirRoot, LogColor::Yellow);
-        printInfoLine(ctx, "native.outputDir", nativePaths.artifactOutputDir, LogColor::Yellow);
-        printInfoLine(ctx, "native.artifactPath", nativePaths.artifactPath, LogColor::Yellow);
-        printInfoLine(ctx, "native.pdbPath", nativePaths.pdbPath, LogColor::Yellow);
+        printInfoLine(ctx, "name", nativePaths.name, LogColor::Yellow);
+        printInfoLine(ctx, "workDir", nativePaths.workDir, LogColor::Yellow);
+        if (!nativePaths.buildDir.empty())
+            printInfoLine(ctx, "buildDir", nativePaths.buildDir, LogColor::Yellow);
+        printInfoLine(ctx, "outDir", nativePaths.outDir, LogColor::Yellow);
+        printInfoLine(ctx, "artifactPath", nativePaths.artifactPath, LogColor::Yellow);
+        printInfoLine(ctx, "pdbPath", nativePaths.pdbPath, LogColor::Yellow);
 
         printGroupHeader(ctx, "Native Toolchain");
         switch (toolchainResult)

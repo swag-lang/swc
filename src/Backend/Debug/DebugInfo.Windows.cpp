@@ -7,6 +7,7 @@
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
+#include <wincrypt.h>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,11 +23,14 @@ namespace DebugInfoPrivate
         constexpr uint16_t K_S_FRAMEPROC           = 0x1012;
         constexpr uint16_t K_S_OBJNAME             = 0x1101;
         constexpr uint16_t K_S_GPROC32_ID          = 0x1147;
+        constexpr uint16_t K_S_BUILDINFO           = 0x114C;
         constexpr uint16_t K_S_PROC_ID_END         = 0x114F;
         constexpr uint16_t K_S_COMPILE3            = 0x113C;
         constexpr uint16_t K_LF_PROCEDURE          = 0x1008;
         constexpr uint16_t K_LF_ARGLIST            = 0x1201;
         constexpr uint16_t K_LF_FUNC_ID            = 0x1601;
+        constexpr uint16_t K_LF_BUILDINFO          = 0x1603;
+        constexpr uint16_t K_LF_STRING_ID          = 0x1605;
         constexpr uint32_t K_CV_CFL_CXX            = 0x01;
         constexpr uint16_t K_CV_CFL_AMD64          = 0x00D0;
         constexpr uint32_t K_CV_TYPE_SIGNATURE     = 4;
@@ -35,6 +39,8 @@ namespace DebugInfoPrivate
         constexpr uint8_t  K_CV_CALL_NEAR_C        = 0x00;
         constexpr uint32_t K_CV_FRAMEPROC_FLAGS    = 0x00114200;
         constexpr uint16_t K_CHKSUM_TYPE_NONE      = 0x00;
+        constexpr uint16_t K_CHKSUM_TYPE_SHA256    = 0x03;
+        constexpr uint32_t K_SHA256_LENGTH         = 32;
         constexpr uint32_t K_CV_LINE_STATEMENT_BIT = 0x80000000u;
 
         struct LineEntry
@@ -96,28 +102,102 @@ namespace DebugInfoPrivate
                     return it->second;
 
                 const uint32_t entryOffset = size;
-                entries.push_back(stringOffset);
+                Entry          entry;
+                entry.stringOffset = stringOffset;
+                computeChecksum(entry, fileName);
+                entries.push_back(entry);
                 offsets.emplace(fileName, entryOffset);
-                size += 8;
+                size += Math::alignUpU32(6 + entry.checksumSize, 4);
                 return entryOffset;
             }
 
             void commit(std::vector<std::byte>& outBytes) const
             {
-                for (const uint32_t stringOffset : entries)
+                for (const Entry& entry : entries)
                 {
+                    const uint32_t stringOffset = entry.stringOffset;
                     outBytes.insert(outBytes.end(), reinterpret_cast<const std::byte*>(&stringOffset), reinterpret_cast<const std::byte*>(&stringOffset) + sizeof(stringOffset));
-                    outBytes.push_back(static_cast<std::byte>(0));
-                    outBytes.push_back(static_cast<std::byte>(K_CHKSUM_TYPE_NONE));
-                    outBytes.push_back(std::byte{0});
-                    outBytes.push_back(std::byte{0});
+                    outBytes.push_back(static_cast<std::byte>(entry.checksumSize));
+                    outBytes.push_back(static_cast<std::byte>(entry.checksumKind));
+                    outBytes.insert(outBytes.end(), entry.checksum.begin(), entry.checksum.begin() + entry.checksumSize);
+
+                    const uint32_t recordSize = 6 + entry.checksumSize;
+                    const uint32_t padBytes   = Math::alignUpU32(recordSize, 4) - recordSize;
+                    for (uint32_t i = 0; i < padBytes; ++i)
+                        outBytes.push_back(std::byte{0});
                 }
+            }
+
+            struct Entry
+            {
+                uint32_t                  stringOffset = 0;
+                uint8_t                   checksumKind = K_CHKSUM_TYPE_NONE;
+                uint8_t                   checksumSize = 0;
+                std::array<std::byte, 32> checksum{};
+            };
+
+            static bool computeSha256(const Utf8& fileName, std::array<std::byte, 32>& outChecksum)
+            {
+                std::ifstream input(fs::path(fileName.c_str()), std::ios::binary);
+                if (!input.is_open())
+                    return false;
+
+                HCRYPTPROV provider = 0;
+                if (!CryptAcquireContextW(&provider, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
+                    return false;
+
+                HCRYPTHASH hash = 0;
+                if (!CryptCreateHash(provider, CALG_SHA_256, 0, 0, &hash))
+                {
+                    CryptReleaseContext(provider, 0);
+                    return false;
+                }
+
+                std::array<char, 4096> buffer;
+                bool                   success = true;
+                while (input.good())
+                {
+                    input.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+                    const auto readCount = input.gcount();
+                    if (!readCount)
+                        continue;
+
+                    if (!CryptHashData(hash, reinterpret_cast<const BYTE*>(buffer.data()), static_cast<DWORD>(readCount), 0))
+                    {
+                        success = false;
+                        break;
+                    }
+                }
+
+                DWORD checksumSize = K_SHA256_LENGTH;
+                if (success)
+                    success = CryptGetHashParam(hash, HP_HASHVAL, reinterpret_cast<BYTE*>(outChecksum.data()), &checksumSize, 0) && checksumSize == K_SHA256_LENGTH;
+
+                CryptDestroyHash(hash);
+                CryptReleaseContext(provider, 0);
+                return success;
+            }
+
+            static void computeChecksum(Entry& outEntry, const Utf8& fileName)
+            {
+                if (!computeSha256(fileName, outEntry.checksum))
+                    return;
+
+                outEntry.checksumKind = K_CHKSUM_TYPE_SHA256;
+                outEntry.checksumSize = K_SHA256_LENGTH;
             }
 
             uint32_t                           size = 0;
             std::unordered_map<Utf8, uint32_t> offsets;
-            std::vector<uint32_t>              entries;
+            std::vector<Entry>                 entries;
         };
+
+        Utf8 codeViewPathString(const fs::path& path)
+        {
+            fs::path normalized = path.lexically_normal();
+            normalized.make_preferred();
+            return Utf8(normalized.string());
+        }
 
         void writeU16(std::vector<std::byte>& bytes, const uint16_t value)
         {
@@ -223,6 +303,53 @@ namespace DebugInfoPrivate
             return std::format("swc {}.{}.{}", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM);
         }
 
+        Utf8 primarySourcePath(const std::vector<FunctionLines>& functionLines)
+        {
+            for (const FunctionLines& functionLine : functionLines)
+            {
+                for (const LineBlock& block : functionLine.blocks)
+                {
+                    if (!block.fileName.empty())
+                        return block.fileName;
+                }
+            }
+
+            return {};
+        }
+
+        Utf8 buildInfoCurrentDirectory(const DebugInfoObjectRequest& request, const Utf8& primarySource)
+        {
+            if (!primarySource.empty())
+                return codeViewPathString(fs::path(primarySource.c_str()).parent_path());
+
+            if (!request.objectPath.empty())
+                return codeViewPathString(request.objectPath.parent_path());
+
+            std::error_code ec;
+            const fs::path  currentPath = fs::current_path(ec);
+            if (ec)
+                return {};
+
+            return codeViewPathString(currentPath);
+        }
+
+        Utf8 buildInfoSourceFileName(const Utf8& primarySource)
+        {
+            if (primarySource.empty())
+                return {};
+
+            return Utf8(fs::path(primarySource.c_str()).filename().string());
+        }
+
+        Utf8 buildInfoCommandLine(const TaskContext& ctx)
+        {
+            return std::format("{} --cfg {} --backend-kind {} --target-arch {}",
+                               codeViewPathString(Os::getExeFullName()),
+                               ctx.cmdLine().buildCfg,
+                               ctx.cmdLine().backendKindName,
+                               ctx.cmdLine().targetArchName);
+        }
+
         FunctionLines collectFunctionLines(TaskContext& ctx, const MachineCode& code)
         {
             FunctionLines                    result;
@@ -242,15 +369,15 @@ namespace DebugInfoPrivate
                 if (!codeRange.srcView || !codeRange.line)
                     continue;
 
-                const auto fileName = Utf8(file->path().string());
+                const auto codeViewFileName = codeViewPathString(file->path());
 
                 size_t     blockIndex = 0;
-                const auto blockIt    = blockIndices.find(fileName);
+                const auto blockIt    = blockIndices.find(codeViewFileName);
                 if (blockIt == blockIndices.end())
                 {
                     blockIndex = result.blocks.size();
-                    result.blocks.push_back({.fileName = fileName});
-                    blockIndices.emplace(fileName, blockIndex);
+                    result.blocks.push_back({.fileName = codeViewFileName});
+                    blockIndices.emplace(codeViewFileName, blockIndex);
                 }
                 else
                 {
@@ -289,10 +416,17 @@ namespace DebugInfoPrivate
 
         void appendObjNameRecord(std::vector<std::byte>& bytes, const fs::path& objectPath)
         {
-            const auto     objectName   = Utf8(objectPath.string());
+            const auto     objectName   = codeViewPathString(objectPath);
             const uint32_t recordOffset = beginRecord(bytes, K_S_OBJNAME);
             writeU32(bytes, 0);
             writeCString(bytes, objectName);
+            endRecord(bytes, recordOffset);
+        }
+
+        void appendBuildInfoRecord(std::vector<std::byte>& bytes, const uint32_t buildInfoTypeIndex)
+        {
+            const uint32_t recordOffset = beginRecord(bytes, K_S_BUILDINFO);
+            writeU32(bytes, buildInfoTypeIndex);
             endRecord(bytes, recordOffset);
         }
 
@@ -387,6 +521,27 @@ namespace DebugInfoPrivate
                 return typeIndex;
             }
 
+            uint32_t appendStringId(const Utf8& value)
+            {
+                const uint32_t typeIndex    = nextTypeIndex++;
+                const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_STRING_ID);
+                writeU32(bytes, 0);
+                writeCString(bytes, value);
+                endTypeRecord(bytes, recordOffset);
+                return typeIndex;
+            }
+
+            uint32_t appendBuildInfo(const std::array<uint32_t, 5>& items)
+            {
+                const uint32_t typeIndex    = nextTypeIndex++;
+                const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
+                writeU16(bytes, static_cast<uint16_t>(items.size()));
+                for (const uint32_t item : items)
+                    writeU32(bytes, item);
+                endTypeRecord(bytes, recordOffset);
+                return typeIndex;
+            }
+
             std::vector<std::byte> bytes;
             uint32_t               nextTypeIndex = K_CV_FIRST_NONPRIM;
         };
@@ -474,16 +629,20 @@ namespace DebugInfoPrivate
                 functionTypeIndices.push_back(types.appendFunctionId(function.debugName.empty() ? function.symbolName : function.debugName, procType));
             }
 
-            if (!checksums.entries.empty())
-            {
-                const uint32_t stringLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_STRINGTABLE);
-                strings.commit(debugSection.bytes);
-                endSubsection(debugSection.bytes, stringLenOffset);
-
-                const uint32_t checksumLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_FILECHKSMS);
-                checksums.commit(debugSection.bytes);
-                endSubsection(debugSection.bytes, checksumLenOffset);
-            }
+            const Utf8 primarySource       = primarySourcePath(functionLines);
+            const Utf8 buildCurrentDir     = buildInfoCurrentDirectory(request, primarySource);
+            const Utf8 buildTool           = codeViewPathString(Os::getExeFullName());
+            const Utf8 buildSourceFileName = buildInfoSourceFileName(primarySource);
+            fs::path   buildPdbPath        = request.objectPath;
+            buildPdbPath.replace_extension(".pdb");
+            const Utf8     buildPdbPathString = codeViewPathString(buildPdbPath);
+            const Utf8     buildCommandLine   = buildInfoCommandLine(*request.ctx);
+            const uint32_t currentDirId       = types.appendStringId(buildCurrentDir);
+            const uint32_t buildToolId        = types.appendStringId(buildTool);
+            const uint32_t sourceFileId       = types.appendStringId(buildSourceFileName);
+            const uint32_t pdbFileId          = types.appendStringId(buildPdbPathString);
+            const uint32_t commandLineId      = types.appendStringId(buildCommandLine);
+            const uint32_t buildInfoId        = types.appendBuildInfo({currentDirId, buildToolId, sourceFileId, pdbFileId, commandLineId});
 
             uint32_t symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
             appendObjNameRecord(debugSection.bytes, request.objectPath);
@@ -502,6 +661,21 @@ namespace DebugInfoPrivate
 
                 appendLinesSubsection(debugSection.bytes, debugSection, request.functions[i], functionLines[i], checksums);
             }
+
+            if (!checksums.entries.empty())
+            {
+                const uint32_t checksumLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_FILECHKSMS);
+                checksums.commit(debugSection.bytes);
+                endSubsection(debugSection.bytes, checksumLenOffset);
+
+                const uint32_t stringLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_STRINGTABLE);
+                strings.commit(debugSection.bytes);
+                endSubsection(debugSection.bytes, stringLenOffset);
+            }
+
+            symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
+            appendBuildInfoRecord(debugSection.bytes, buildInfoId);
+            endSubsection(debugSection.bytes, symbolsLenOffset);
 
             outResult.sections.push_back(std::move(debugSection));
 

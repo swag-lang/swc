@@ -34,10 +34,17 @@ public:
     {
     }
 
+    Utf8(const std::string& other) :
+        std::string(other)
+    {
+    }
+
     Utf8(std::string&& other) :
         std::string(std::move(other))
     {
     }
+
+    Utf8(const fs::path& path);
 
     Utf8(const std::string_view& other) :
         std::string(other)

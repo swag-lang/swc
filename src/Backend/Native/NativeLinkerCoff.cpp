@@ -79,17 +79,17 @@ Result NativeLinkerCoff::linkArtifact() const
         case Os::ProcessRunResult::Ok:
             break;
         case Os::ProcessRunResult::StartFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return builder_.reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, Utf8(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
         case Os::ProcessRunResult::WaitFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(*exePath));
+            return builder_.reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, Utf8(*exePath));
         case Os::ProcessRunResult::ExitCodeFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return builder_.reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, Utf8(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)
-        return builder_.reportError(DiagnosticId::cmd_err_native_tool_failed, Diagnostic::ARG_TOOL, FileSystem::toUtf8Path(exePath->filename()), Diagnostic::ARG_VALUE, exitCode);
+        return builder_.reportError(DiagnosticId::cmd_err_native_tool_failed, Diagnostic::ARG_TOOL, Utf8(exePath->filename()), Diagnostic::ARG_VALUE, exitCode);
     if (!fs::exists(builder_.artifactPath))
-        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(builder_.artifactPath));
+        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.artifactPath));
     return Result::Continue;
 }
 
@@ -111,11 +111,11 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
         args.emplace_back("/ENTRY:mainCRTStartup");
     }
 
-    args.emplace_back(std::format("/OUT:{}", FileSystem::toUtf8Path(builder_.artifactPath)));
+    args.emplace_back(std::format("/OUT:{}", Utf8(builder_.artifactPath)));
     appendLinkSearchPaths(args);
 
     for (const auto& object : builder_.objectDescriptions)
-        args.push_back(FileSystem::toUtf8Path(object.objPath));
+        args.emplace_back(object.objPath);
 
     std::set<Utf8> libraries;
     collectLinkLibraries(libraries);
@@ -140,20 +140,20 @@ std::vector<Utf8> NativeLinkerCoff::buildLibArguments() const
     std::vector<Utf8> args;
     args.emplace_back("/NOLOGO");
     args.emplace_back("/MACHINE:X64");
-    args.emplace_back(std::format("/OUT:{}", FileSystem::toUtf8Path(builder_.artifactPath)));
+    args.emplace_back(std::format("/OUT:{}", Utf8(builder_.artifactPath)));
     for (const auto& object : builder_.objectDescriptions)
-        args.push_back(FileSystem::toUtf8Path(object.objPath));
+        args.emplace_back(object.objPath);
     return args;
 }
 
 void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
 {
     if (!toolchain_.vcLibPath.empty())
-        args.emplace_back(std::format("/LIBPATH:{}", FileSystem::toUtf8Path(toolchain_.vcLibPath)));
+        args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.vcLibPath)));
     if (!toolchain_.sdkUmLibPath.empty())
-        args.emplace_back(std::format("/LIBPATH:{}", FileSystem::toUtf8Path(toolchain_.sdkUmLibPath)));
+        args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.sdkUmLibPath)));
     if (!toolchain_.sdkUcrtLibPath.empty())
-        args.emplace_back(std::format("/LIBPATH:{}", FileSystem::toUtf8Path(toolchain_.sdkUcrtLibPath)));
+        args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.sdkUcrtLibPath)));
 }
 
 void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const

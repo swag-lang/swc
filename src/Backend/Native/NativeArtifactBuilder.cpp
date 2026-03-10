@@ -602,7 +602,7 @@ Result NativeArtifactBuilder::createArtifactOutputDirectory(const fs::path& outp
     std::error_code ec;
     fs::create_directories(outputDir, ec);
     if (ec)
-        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(outputDir), Diagnostic::ARG_BECAUSE, ec.message());
+        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(outputDir), Diagnostic::ARG_BECAUSE, ec.message());
     return Result::Continue;
 }
 
@@ -625,21 +625,21 @@ Utf8 NativeArtifactBuilder::automaticWorkDirectoryName(const Utf8& baseName) con
     if (!cmdLine.modulePath.empty())
     {
         key += "module=";
-        key += FileSystem::toUtf8Path(cmdLine.modulePath);
+        key += Utf8(cmdLine.modulePath);
         key += ";";
     }
 
     for (const fs::path& file : cmdLine.files)
     {
         key += "file=";
-        key += FileSystem::toUtf8Path(file);
+        key += Utf8(file);
         key += ";";
     }
 
     for (const fs::path& directory : cmdLine.directories)
     {
         key += "directory=";
-        key += FileSystem::toUtf8Path(directory);
+        key += Utf8(directory);
         key += ";";
     }
 
@@ -657,7 +657,7 @@ Result NativeArtifactBuilder::createWorkDirectory(const fs::path& workDir) const
     std::error_code ec;
     fs::create_directories(workDir, ec);
     if (ec)
-        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(workDir), Diagnostic::ARG_BECAUSE, ec.message());
+        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(workDir), Diagnostic::ARG_BECAUSE, ec.message());
     return Result::Continue;
 }
 

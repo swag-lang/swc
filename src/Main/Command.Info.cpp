@@ -104,7 +104,7 @@ namespace
 
     void printInfoLine(const TaskContext& ctx, const Utf8& name, const fs::path& value, const LogColor color = LogColor::White)
     {
-        printInfoLine(ctx, name, FileSystem::toUtf8Path(value), color);
+        printInfoLine(ctx, name, Utf8(value), color);
     }
 
     void printInfoLine(const TaskContext& ctx, const char* name, const char* value, const LogColor color = LogColor::White)
@@ -119,7 +119,7 @@ namespace
 
     void printInfoLine(const TaskContext& ctx, const char* name, const fs::path& value, const LogColor color = LogColor::White)
     {
-        printInfoLine(ctx, name, FileSystem::toUtf8Path(value), color);
+        printInfoLine(ctx, name, Utf8(value), color);
     }
 
     void printStringSet(const TaskContext& ctx, const char* name, const std::set<Utf8>& values)

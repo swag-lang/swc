@@ -4,6 +4,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Utf8::Utf8(const fs::path& path) :
+    std::string(path.generic_string())
+{
+}
+
 void Utf8::trim_start()
 {
     erase(begin(), std::ranges::find_if(begin(), end(), [](char8_t ch) { return !std::isspace(ch); }));

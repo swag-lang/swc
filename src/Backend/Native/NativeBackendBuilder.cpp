@@ -17,7 +17,7 @@ namespace
     void logArtifactAction(const TaskContext& ctx, std::string_view action, const fs::path& artifactPath)
     {
         const Logger::ScopedLock loggerLock(ctx.global().logger());
-        Logger::printAction(ctx, action, FileSystem::toUtf8Path(artifactPath.filename()));
+        Logger::printAction(ctx, action, Utf8(artifactPath.filename()));
     }
 }
 
@@ -147,11 +147,11 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
         case Os::ProcessRunResult::Ok:
             break;
         case Os::ProcessRunResult::StartFailed:
-            return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
         case Os::ProcessRunResult::WaitFailed:
-            return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(artifactPath));
+            return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, Utf8(artifactPath));
         case Os::ProcessRunResult::ExitCodeFailed:
-            return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, FileSystem::toUtf8Path(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)

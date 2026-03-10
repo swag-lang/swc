@@ -166,11 +166,6 @@ Utf8 FileSystem::formatFileLocation(const TaskContext* ctx, const fs::path& file
     return out;
 }
 
-Utf8 FileSystem::toUtf8Path(const fs::path& path)
-{
-    return {path.generic_string()};
-}
-
 Utf8 FileSystem::sanitizeFileName(Utf8 value)
 {
     if (value.empty())

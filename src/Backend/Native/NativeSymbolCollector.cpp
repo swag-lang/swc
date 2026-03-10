@@ -261,7 +261,7 @@ Utf8 NativeSymbolCollector::makeSymbolSortKey(const SymbolFunction& symbol) cons
     if (const SourceFile* file = builder_.compiler().srcView(symbol.srcViewRef()).file())
     {
         key += "|";
-        key += FileSystem::toUtf8Path(file->path());
+        key += Utf8(file->path());
     }
 
     key += "|";
@@ -279,7 +279,7 @@ Utf8 NativeSymbolCollector::makeSortKey(const SymbolVariable& symbol) const
     Utf8 key = symbol.getFullScopedName(builder_.ctx());
     key += "|";
     if (const SourceFile* file = builder_.compiler().srcView(symbol.srcViewRef()).file())
-        key += FileSystem::toUtf8Path(file->path());
+        key += Utf8(file->path());
     key += "|";
     key += std::to_string(symbol.tokRef().get());
     return key;

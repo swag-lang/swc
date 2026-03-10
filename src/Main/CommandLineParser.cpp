@@ -526,14 +526,14 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         if (ec)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            diag.addArgument(Diagnostic::ARG_PATH, FileSystem::toUtf8Path(cmdLine_->nativeArtifactOutputDir));
+            diag.addArgument(Diagnostic::ARG_PATH, Utf8(cmdLine_->nativeArtifactOutputDir));
             diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
             diag.report(ctx);
             return Result::Error;
         }
 
         cmdLine_->nativeArtifactOutputDir        = std::move(temp);
-        cmdLine_->nativeArtifactOutputDirStorage = FileSystem::toUtf8Path(cmdLine_->nativeArtifactOutputDir);
+        cmdLine_->nativeArtifactOutputDirStorage = Utf8(cmdLine_->nativeArtifactOutputDir);
     }
     else
     {

@@ -108,9 +108,9 @@ namespace
             buildCfg.backend.enableExceptions = true;
         }
 
-        buildCfg.name         = runtimeStringFromUtf8(cmdLine.name);
-        buildCfg.outDir       = runtimeStringFromUtf8(cmdLine.outDirStorage);
-        buildCfg.workDir      = runtimeStringFromUtf8(cmdLine.workDirStorage);
+        buildCfg.name           = runtimeStringFromUtf8(cmdLine.name);
+        buildCfg.outDir         = runtimeStringFromUtf8(cmdLine.outDirStorage);
+        buildCfg.workDir        = runtimeStringFromUtf8(cmdLine.workDirStorage);
         cmdLine.defaultBuildCfg = buildCfg;
     }
 }

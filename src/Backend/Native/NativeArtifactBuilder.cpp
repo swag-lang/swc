@@ -752,12 +752,12 @@ CommandLine cmdLine;
 Global&     global = const_cast<Global&>(ctx.global());
 {
     CommandLineParser parser(global, cmdLine);
-    char              arg0[] = "swc";
-    char              arg1[] = "test";
-    char              arg2[] = "--cfg";
-    char              arg3[] = "debug";
-    char              arg4[] = "--backend-kind";
-    char              arg5[] = "exe";
+    char              arg0[]  = "swc";
+    char              arg1[]  = "test";
+    char              arg2[]  = "--cfg";
+    char              arg3[]  = "debug";
+    char              arg4[]  = "--backend-kind";
+    char              arg5[]  = "exe";
     char              arg6[]  = "--name";
     char              arg7[]  = "hello";
     char              arg8[]  = "--out-dir";

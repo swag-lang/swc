@@ -85,14 +85,13 @@ namespace
                 return false;
 
             const uint64_t totalCount = multiplier * elemCount;
+            SWC_ASSERT(totalCount > 0);
             SWC_ASSERT(totalCount <= std::numeric_limits<uint32_t>::max());
-            if (totalCount > std::numeric_limits<uint32_t>::max())
-                return false;
 
             outOpDrop = elemOpDrop;
             outSizeOf = elemSizeOf;
             outCount  = static_cast<uint32_t>(totalCount);
-            return outCount != 0;
+            return true;
         }
 
         if (!typeInfo.isStruct())
@@ -103,9 +102,7 @@ namespace
             return false;
 
         const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
-        SWC_ASSERT(sizeOf <= std::numeric_limits<uint32_t>::max());
-        if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
-            return false;
+        SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
 
         outOpDrop = const_cast<SymbolFunction*>(opDrop);
         outSizeOf = static_cast<uint32_t>(sizeOf);
@@ -119,13 +116,13 @@ namespace
         symbolMap.getAllSymbols(symbols);
         for (const Symbol* symbol : symbols)
         {
-            if (!symbol)
-                continue;
+            SWC_ASSERT(symbol != nullptr);
 
             if (symbol->isVariable())
             {
                 auto* symVar = const_cast<SymbolVariable*>(symbol->safeCast<SymbolVariable>());
-                if (!symVar || !symVar->hasGlobalStorage())
+                SWC_ASSERT(symVar != nullptr);
+                if (!symVar->hasGlobalStorage())
                     continue;
 
                 const DataSegmentKind storageKind = symVar->globalStorageKind();
@@ -182,10 +179,9 @@ namespace
         const uint64_t     scratchBase    = Math::alignUpU64(frameSize, scratchAlign);
         const uint64_t     scratchSize    = entriesOffset + static_cast<uint64_t>(entries.size()) * entrySize;
         const uint64_t     scratchEnd     = scratchBase + scratchSize;
+        SWC_ASSERT(scratchSize > 0);
         SWC_ASSERT(scratchSize <= std::numeric_limits<uint32_t>::max());
         SWC_ASSERT(scratchEnd <= std::numeric_limits<uint32_t>::max());
-        if (!scratchSize || scratchSize > std::numeric_limits<uint32_t>::max() || scratchEnd > std::numeric_limits<uint32_t>::max())
-            return;
 
         frameSize = scratchEnd;
         codeGen.setGvtdScratchLayout(static_cast<uint32_t>(scratchBase), static_cast<uint32_t>(scratchSize), entries.span());
@@ -518,8 +514,8 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
     if (codeGen.frame().hasCurrentInlineContext())
     {
         const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
-        if (inlineCtx.payload)
-            return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef, inlineCtx.doneLabel);
+        SWC_ASSERT(inlineCtx.payload != nullptr);
+        return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef, inlineCtx.doneLabel);
     }
 
     return emitFunctionReturn(codeGen, codeGen.function(), nodeExprRef);

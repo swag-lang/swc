@@ -16,8 +16,7 @@ NativeObjJob::NativeObjJob(const TaskContext& ctx, NativeBackendBuilder& builder
 JobResult NativeObjJob::exec()
 {
     ctx().state().reset();
-    if (!builder_)
-        return JobResult::Done;
+    SWC_ASSERT(builder_ != nullptr);
     if (builder_->writeObject(objIndex_) != Result::Continue)
         builder_->objWriteFailed.store(true, std::memory_order_release);
     return JobResult::Done;

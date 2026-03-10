@@ -8,8 +8,7 @@ SWC_BEGIN_NAMESPACE();
 std::unique_ptr<NativeObjFileWriter> NativeObjFileWriter::create(NativeBackendBuilder& builder)
 {
     const auto format = getNativeObjFormat(builder.ctx().cmdLine().targetOs);
-    if (!format)
-        return {};
+    SWC_ASSERT(format.has_value());
 
     switch (*format)
     {

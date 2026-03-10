@@ -214,8 +214,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     if (resolvedRightRef.isValid() && resolvedChildRef == resolvedRightRef)
     {
         const NullCoalescingCodeGenPayload* state = nullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
-        if (!state)
-            return Result::Continue;
+        SWC_ASSERT(state != nullptr);
 
         const CodeGenNodePayload& rightPayload  = codeGen.payload(nodeRightRef);
         const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());

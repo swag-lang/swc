@@ -66,8 +66,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
         for (SymbolVariable* symVar : symbolFunc.parameters())
         {
-            if (!symVar)
-                continue;
+            SWC_ASSERT(symVar != nullptr);
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
                 payload->hasPayload = false;
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
@@ -75,8 +74,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
         for (SymbolVariable* symVar : symbolFunc.localVariables())
         {
-            if (!symVar)
-                continue;
+            SWC_ASSERT(symVar != nullptr);
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
                 payload->hasPayload = false;
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
@@ -231,7 +229,9 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
-    return *(safePayload(nodeRef));
+    CodeGenNodePayload* nodePayload = safePayload(nodeRef);
+    SWC_ASSERT(nodePayload != nullptr);
+    return *nodePayload;
 }
 
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)

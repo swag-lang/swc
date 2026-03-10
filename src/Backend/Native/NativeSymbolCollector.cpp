@@ -44,16 +44,13 @@ Result NativeSymbolCollector::collectSymbols()
     for (size_t idx = 0; idx < builder_.rawFunctions.size(); ++idx)
     {
         SymbolFunction* function = builder_.rawFunctions[idx];
-        if (!function)
-            continue;
+        SWC_ASSERT(function != nullptr);
 
         SmallVector<SymbolFunction*> deps;
         function->appendCallDependencies(deps);
         for (SymbolFunction* dep : deps)
         {
-            if (!dep)
-                continue;
-
+            SWC_ASSERT(dep != nullptr);
             collectFunction(*dep);
         }
     }
@@ -103,21 +100,21 @@ void NativeSymbolCollector::collectSymbolsRec(const SymbolMap& symbolMap)
     symbolMap.getAllSymbols(symbols);
     for (const Symbol* symbol : symbols)
     {
-        if (!symbol)
-            continue;
+        SWC_ASSERT(symbol != nullptr);
 
         if (symbol->isFunction())
         {
             auto* function = const_cast<SymbolFunction*>(symbol->safeCast<SymbolFunction>());
-            if (function)
-                collectFunction(*function);
+            SWC_ASSERT(function != nullptr);
+            collectFunction(*function);
             continue;
         }
 
         if (symbol->isVariable())
         {
             auto* variable = const_cast<SymbolVariable*>(symbol->safeCast<SymbolVariable>());
-            if (variable && variable->hasGlobalStorage())
+            SWC_ASSERT(variable != nullptr);
+            if (variable->hasGlobalStorage())
                 builder_.regularGlobals.push_back(variable);
             continue;
         }
@@ -191,8 +188,7 @@ Result NativeSymbolCollector::scheduleCodeGen() const
     JobManager& jobMgr = builder_.ctx().global().jobMgr();
     for (const auto& info : builder_.functionInfos)
     {
-        if (!info.symbol)
-            continue;
+        SWC_ASSERT(info.symbol != nullptr);
         if (info.symbol->isCodeGenCompleted() || !info.symbol->loweredCode().bytes.empty())
             continue;
         if (!info.symbol->tryMarkCodeGenJobScheduled())

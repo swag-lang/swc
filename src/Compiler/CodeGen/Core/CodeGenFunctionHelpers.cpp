@@ -286,30 +286,25 @@ namespace
                 if (requiresTypedConstMaterialization)
                 {
                     const SemaNodeView argConstView = codeGen.viewTypeConstant(argRef);
-                    if (!argConstView.cstRef().isValid())
-                        return;
-                    if (!materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()))
-                        return;
+                    if (argConstView.cstRef().isValid())
+                        SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()));
                 }
             }
             else
             {
                 const SemaNodeView argConstView = codeGen.viewTypeConstant(argRef);
-                if (!materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()))
-                    return;
+                SWC_ASSERT(argConstView.cstRef().isValid());
+                SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()));
             }
         }
         else
         {
-            if (arg.defaultCstRef.isInvalid())
-                return;
-            if (argIndex >= params.size())
-                return;
+            SWC_ASSERT(arg.defaultCstRef.isValid());
+            SWC_ASSERT(argIndex < params.size());
             const SymbolVariable* param = params[argIndex];
             SWC_ASSERT(param != nullptr);
             normalizedTypeRef = param->typeRef();
-            if (!materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, arg.defaultCstRef))
-                return;
+            SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, arg.defaultCstRef));
         }
 
         ABICall::PreparedArg preparedArg;
@@ -480,9 +475,7 @@ namespace
 
             ConstantRef  typeInfoCstRef = ConstantRef::invalid();
             const Result typeInfoRes    = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, info.argTypeRef, info.argRef);
-            SWC_ASSERT(typeInfoRes == Result::Continue);
-            if (typeInfoRes != Result::Continue)
-                SWC_INTERNAL_ERROR();
+            SWC_INTERNAL_CHECK(typeInfoRes == Result::Continue);
             info.typeInfoCstRef = typeInfoCstRef;
             if (info.argPayload.reg == callConv.stackPointer)
             {

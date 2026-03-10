@@ -210,21 +210,16 @@ namespace
     AssignTarget resolveAssignTarget(CodeGen& codeGen, AstNodeRef leftRef)
     {
         AssignTarget target;
-        target.payload = codeGen.safePayload(leftRef);
-        if (!target.payload)
-            return target;
-        if (!target.payload->isAddress())
-            return target;
+        target.payload = &codeGen.payload(leftRef);
+        SWC_ASSERT(target.payload->isAddress());
 
         const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
         const TypeRef      leftTypeRef  = resolveOperandTypeRef(*target.payload, leftTypeView.typeRef());
-        if (!leftTypeRef.isValid())
-            return target;
+        SWC_ASSERT(leftTypeRef.isValid());
 
         const TypeRef   opTypeRef    = normalizeAssignmentTypeRef(codeGen, leftTypeRef);
         const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(opTypeRef);
-        if (leftTypeInfo.isReference())
-            return target;
+        SWC_ASSERT(!leftTypeInfo.isReference());
 
         target.typeRef   = leftTypeRef;
         target.opTypeRef = opTypeRef;

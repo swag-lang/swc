@@ -60,8 +60,7 @@ Result NativeBackendBuilder::run()
     SWC_RESULT_VERIFY(writeObjects());
 
     const auto linker = NativeLinker::create(*this);
-    if (!linker)
-        return reportError(DiagnosticId::cmd_err_native_linker_not_implemented);
+    SWC_ASSERT(linker != nullptr);
     SWC_RESULT_VERIFY(linker->link());
     logArtifactAction(ctx_, "Build", artifactPath);
 
@@ -75,8 +74,7 @@ Result NativeBackendBuilder::writeObject(const uint32_t objIndex)
 {
     SWC_ASSERT(objIndex < objectDescriptions.size());
     const auto objectWriter = NativeObjFileWriter::create(*this);
-    if (!objectWriter)
-        return reportError(DiagnosticId::cmd_err_native_object_writer_not_implemented);
+    SWC_ASSERT(objectWriter != nullptr);
     return objectWriter->writeObjectFile(objectDescriptions[objIndex]);
 }
 

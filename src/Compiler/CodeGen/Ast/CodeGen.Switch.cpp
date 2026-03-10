@@ -65,12 +65,9 @@ namespace
             *payload = {};
     }
 
-    MicroOpBits conditionOpBits(const TypeInfo* typeInfo, TaskContext& ctx)
+    MicroOpBits conditionOpBits(const TypeInfo& typeInfo, TaskContext& ctx)
     {
-        if (!typeInfo)
-            return MicroOpBits::B64;
-
-        switch (typeInfo->sizeOf(ctx))
+        switch (typeInfo.sizeOf(ctx))
         {
             case 1:
                 return MicroOpBits::B8;
@@ -97,7 +94,7 @@ namespace
             return microOpBitsFromBitWidth(bits);
         }
 
-        return conditionOpBits(&typeInfo, ctx);
+        return conditionOpBits(typeInfo, ctx);
     }
 
     void loadPayloadToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits)
@@ -114,7 +111,7 @@ namespace
     void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits = conditionOpBits(&typeInfo, codeGen.ctx());
+        const MicroOpBits condBits = conditionOpBits(typeInfo, codeGen.ctx());
         const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
 
         MicroBuilder& builder = codeGen.builder();
@@ -130,7 +127,7 @@ namespace
     void emitConditionTrueJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef trueLabel)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits = conditionOpBits(&typeInfo, codeGen.ctx());
+        const MicroOpBits condBits = conditionOpBits(typeInfo, codeGen.ctx());
         const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
 
         MicroBuilder& builder = codeGen.builder();

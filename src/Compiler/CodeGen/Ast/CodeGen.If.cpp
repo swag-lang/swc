@@ -52,12 +52,9 @@ namespace
             *payload = {};
     }
 
-    MicroOpBits conditionOpBits(const TypeInfo* typeInfo, TaskContext& ctx)
+    MicroOpBits conditionOpBits(const TypeInfo& typeInfo, TaskContext& ctx)
     {
-        if (!typeInfo)
-            return MicroOpBits::B64;
-
-        switch (typeInfo->sizeOf(ctx))
+        switch (typeInfo.sizeOf(ctx))
         {
             case 1:
                 return MicroOpBits::B8;
@@ -86,8 +83,9 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
     {
         const CodeGenNodePayload& conditionPayload = codeGen.payload(nodeConditionRef);
         const SemaNodeView        conditionView    = codeGen.viewType(nodeConditionRef);
-        const MicroOpBits         condBits         = conditionOpBits(conditionView.type(), codeGen.ctx());
-        const MicroReg            condReg          = codeGen.nextVirtualIntRegister();
+        SWC_ASSERT(conditionView.type() != nullptr);
+        const MicroOpBits condBits = conditionOpBits(*conditionView.type(), codeGen.ctx());
+        const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
 
         if (conditionPayload.isAddress())
             builder.emitLoadRegMem(condReg, conditionPayload.reg, 0, condBits);
@@ -112,8 +110,7 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
         return Result::Continue;
 
     const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
-    if (!state)
-        return Result::Continue;
+    SWC_ASSERT(state != nullptr);
 
     if (isIfBlockChild)
     {

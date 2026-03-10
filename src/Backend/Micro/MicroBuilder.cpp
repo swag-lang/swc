@@ -60,9 +60,7 @@ void MicroBuilder::storeInstructionDebugInfo(MicroInstrRef instructionRef)
         return;
 
     MicroInstr* inst = instructions_.ptr(instructionRef);
-    if (!inst)
-        return;
-
+    SWC_ASSERT(inst != nullptr);
     inst->sourceCodeRef = currentDebugSourceCodeRef_;
 }
 
@@ -154,9 +152,6 @@ void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg f
     SWC_ASSERT(forbiddenReg.isValid());
     SWC_ASSERT(!forbiddenReg.isVirtual());
 
-    if (!virtualReg.isVirtual() || !forbiddenReg.isValid() || forbiddenReg.isVirtual())
-        return;
-
     auto& forbiddenRegs = virtualRegForbiddenPhysRegs_[virtualReg];
     for (const auto reg : forbiddenRegs)
     {
@@ -170,9 +165,6 @@ void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg f
 void MicroBuilder::addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs)
 {
     SWC_ASSERT(virtualReg.isVirtual());
-    if (!virtualReg.isVirtual())
-        return;
-
     for (const auto forbiddenReg : forbiddenRegs)
         addVirtualRegForbiddenPhysReg(virtualReg, forbiddenReg);
 }

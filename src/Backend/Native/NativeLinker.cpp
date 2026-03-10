@@ -11,9 +11,9 @@ std::unique_ptr<NativeLinker> NativeLinker::create(NativeBackendBuilder& builder
     {
         case Runtime::TargetOs::Windows:
             return std::make_unique<NativeLinkerCoff>(builder);
-        default:
-            return {};
     }
+
+    SWC_UNREACHABLE();
 }
 
 Os::WindowsToolchainDiscoveryResult NativeLinker::queryToolchainPaths(const NativeBackendBuilder& builder, Os::WindowsToolchainPaths& outToolchain)

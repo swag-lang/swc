@@ -26,6 +26,14 @@ namespace
         MicroLabelRef doneLabel     = MicroLabelRef::invalid();
     };
 
+    struct ForCStyleStmtCodeGenPayload
+    {
+        MicroLabelRef loopLabel     = MicroLabelRef::invalid();
+        MicroLabelRef bodyLabel     = MicroLabelRef::invalid();
+        MicroLabelRef continueLabel = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
+    };
+
     struct ForeachStmtCodeGenPayload
     {
         MicroLabelRef   loopLabel        = MicroLabelRef::invalid();
@@ -87,6 +95,37 @@ namespace
     void eraseLoopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         LoopStmtCodeGenPayload* payload = loopStmtCodeGenPayload(codeGen, nodeRef);
+        if (payload)
+            *payload = {};
+    }
+
+    ForCStyleStmtCodeGenPayload* forCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        nodeRef = resolvedNodeRef(codeGen, nodeRef);
+        if (nodeRef.isInvalid())
+            return nullptr;
+        return codeGen.sema().codeGenPayload<ForCStyleStmtCodeGenPayload>(nodeRef);
+    }
+
+    ForCStyleStmtCodeGenPayload& setForCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const ForCStyleStmtCodeGenPayload& payloadValue)
+    {
+        nodeRef = resolvedNodeRef(codeGen, nodeRef);
+        SWC_ASSERT(nodeRef.isValid());
+
+        auto* payload = codeGen.sema().codeGenPayload<ForCStyleStmtCodeGenPayload>(nodeRef);
+        if (!payload)
+        {
+            payload = codeGen.compiler().allocate<ForCStyleStmtCodeGenPayload>();
+            codeGen.sema().setCodeGenPayload(nodeRef, payload);
+        }
+
+        *payload = payloadValue;
+        return *payload;
+    }
+
+    void eraseForCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        ForCStyleStmtCodeGenPayload* payload = forCStyleStmtCodeGenPayload(codeGen, nodeRef);
         if (payload)
             *payload = {};
     }
@@ -523,6 +562,103 @@ namespace
 
         emitForeachStoreLoopState(codeGen, loopState);
     }
+}
+
+Result AstForCStyleStmt::codeGenPreNode(CodeGen& codeGen)
+{
+    ForCStyleStmtCodeGenPayload loopState;
+    loopState.loopLabel     = codeGen.builder().createLabel();
+    loopState.bodyLabel     = codeGen.builder().createLabel();
+    loopState.continueLabel = codeGen.builder().createLabel();
+    loopState.doneLabel     = codeGen.builder().createLabel();
+    setForCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    return Result::Continue;
+}
+
+Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    const AstNodeRef exprRef     = resolvedNodeRef(codeGen, nodeExprRef);
+    const AstNodeRef postStmtRef = resolvedNodeRef(codeGen, nodePostStmtRef);
+    const AstNodeRef bodyRef     = resolvedNodeRef(codeGen, nodeBodyRef);
+
+    if (childRef == exprRef)
+    {
+        codeGen.builder().placeLabel(loopState->loopLabel);
+        return Result::Continue;
+    }
+
+    if (childRef == postStmtRef)
+    {
+        codeGen.builder().placeLabel(loopState->continueLabel);
+
+        CodeGenFrame frame = codeGen.frame();
+        frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopContinueLabel(loopState->loopLabel);
+        frame.setCurrentLoopBreakLabel(loopState->doneLabel);
+        codeGen.pushFrame(frame);
+        return Result::Continue;
+    }
+
+    if (childRef == bodyRef)
+    {
+        codeGen.builder().placeLabel(loopState->bodyLabel);
+
+        CodeGenFrame frame = codeGen.frame();
+        frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopContinueLabel(postStmtRef.isValid() ? loopState->continueLabel : loopState->loopLabel);
+        frame.setCurrentLoopBreakLabel(loopState->doneLabel);
+        codeGen.pushFrame(frame);
+    }
+
+    return Result::Continue;
+}
+
+Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    const AstNodeRef exprRef     = resolvedNodeRef(codeGen, nodeExprRef);
+    const AstNodeRef postStmtRef = resolvedNodeRef(codeGen, nodePostStmtRef);
+    const AstNodeRef bodyRef     = resolvedNodeRef(codeGen, nodeBodyRef);
+
+    if (childRef == exprRef)
+    {
+        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
+        emitConditionFalseJump(codeGen, exprPayload, exprView.typeRef(), loopState->doneLabel);
+        if (postStmtRef.isValid())
+            codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->bodyLabel);
+        return Result::Continue;
+    }
+
+    if (childRef == postStmtRef)
+    {
+        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
+        codeGen.popFrame();
+        return Result::Continue;
+    }
+
+    if (childRef == bodyRef)
+    {
+        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, postStmtRef.isValid() ? loopState->continueLabel : loopState->loopLabel);
+        codeGen.popFrame();
+    }
+
+    return Result::Continue;
+}
+
+Result AstForCStyleStmt::codeGenPostNode(CodeGen& codeGen)
+{
+    const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    codeGen.builder().placeLabel(loopState->doneLabel);
+    eraseForCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    return Result::Continue;
 }
 
 Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const

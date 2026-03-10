@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 
 var g = "toto"

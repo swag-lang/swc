@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 enum A
 {
     #if A do

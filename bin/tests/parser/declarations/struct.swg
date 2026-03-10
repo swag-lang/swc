@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 struct A {}
 struct A
 {

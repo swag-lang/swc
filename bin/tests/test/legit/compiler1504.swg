@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 #global skip
 var X: u32 = undefined

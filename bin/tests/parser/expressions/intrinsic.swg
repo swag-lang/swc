@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 // Expressions
 var a = @countof()                      // swc-expected-error {{parser_err_too_few_arguments}}
 var b = @countof(a, b + 4)              // swc-expected-error {{parser_err_too_many_arguments}}

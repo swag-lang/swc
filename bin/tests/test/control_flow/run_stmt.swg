@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 
 func compute(v: s32)->s32

@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 enum TOTO: const [..] s32
 {
     R = 1

@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 #assert(A())
 #assert(A(1, 2, 3))
 

@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 
 func stringEq(a: string, b: string)->bool

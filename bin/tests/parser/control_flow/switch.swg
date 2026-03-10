@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 #test
 {
     switch a

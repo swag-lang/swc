@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 #[A]
 enum B { Z }
 

@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 #global skip
 func function(x: s32, y: s32 = 100)

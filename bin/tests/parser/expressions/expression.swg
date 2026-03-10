@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 #assert((A))
 #assert((A and B))
 #assert(A and B or C)

@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 #global skip
 func append()

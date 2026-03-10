@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 
 var a: [2] s32 = [50, 60]

@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 func test1(a: f32, b: f32)->f32
 {

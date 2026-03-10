@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #init
 {
     Counter = 2

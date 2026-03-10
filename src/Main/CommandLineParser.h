@@ -58,7 +58,8 @@ class CommandLineParser
 {
 public:
     explicit CommandLineParser(Global& global, CommandLine& cmdLine);
-    Result parse(int argc, char* argv[]);
+    static void refreshBuildCfg(CommandLine& cmdLine);
+    Result      parse(int argc, char* argv[]);
 
 private:
     std::vector<ArgInfo>    args_;

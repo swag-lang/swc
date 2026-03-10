@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 
 var defaultCounter: s32 = 0

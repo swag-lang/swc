@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 func toto() {}
 func toto() => 0
 func(T) toto() => 0

@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 
 func anyToS64(v: any)->s64

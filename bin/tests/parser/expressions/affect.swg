@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 func toto()
 {
     buffer = #nodrop values[idx]

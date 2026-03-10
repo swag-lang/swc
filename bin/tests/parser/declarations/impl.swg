@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 impl A for B { }
 impl A.B for B { }
 impl A.B for B.X { }

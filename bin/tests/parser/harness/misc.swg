@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 #error(B)
 #warning(B)
 #print(C)

@@ -1,3 +1,5 @@
+// swc-option suite-syntax
+
 // swc-option lex-only
 
 // Operator & punctuation lexing coverage

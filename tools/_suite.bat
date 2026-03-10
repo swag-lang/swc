@@ -36,11 +36,7 @@ if errorlevel 1 exit /b %errorlevel%
 exit /b %errorlevel%
 
 :test
-%EXE% test --backend-kind exe --num-cores 2 -d "%ROOT%\bin\tests\test" %EXTRA%
-if errorlevel 1 exit /b %errorlevel%
-%EXE% test --backend-kind dll --num-cores 2 -d "%ROOT%\bin\tests\test" %EXTRA%
-if errorlevel 1 exit /b %errorlevel%
-%EXE% test --backend-kind lib --num-cores 2 -d "%ROOT%\bin\tests\test" %EXTRA%
+%EXE% test --backend-kind all --num-cores 2 -d "%ROOT%\bin\tests" %EXTRA%
 exit /b %errorlevel%
 
 :usage

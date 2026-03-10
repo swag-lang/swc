@@ -1,3 +1,5 @@
+// swc-option suite-test
+
 #global fileprivate
 
 func len(str: string)->u32

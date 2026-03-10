@@ -2,7 +2,6 @@
 #include "Main/Command.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
@@ -119,7 +118,7 @@ namespace
 
     void replaceCrLf(std::string& content)
     {
-        content.erase(std::remove(content.begin(), content.end(), '\r'), content.end());
+        std::erase(content, '\r');
     }
 
     bool containsVerifyOption(std::string_view content, std::string_view option)
@@ -202,7 +201,7 @@ namespace
 
     void runNativeTestCommand(CompilerInstance& compiler);
 
-    bool runCompilerSubset(CompilerInstance& compiler, CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {})
+    bool runCompilerSubset(const CompilerInstance& compiler, CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {})
     {
         if (files.empty())
             return true;
@@ -241,7 +240,7 @@ namespace
         return !hasNewErrors(errorsBefore);
     }
 
-    bool runLegacyTestBackend(CompilerInstance& compiler, std::string_view backendKind)
+    bool runLegacyTestBackend(const CompilerInstance& compiler, std::string_view backendKind)
     {
         CommandLine cmdLine     = compiler.cmdLine();
         cmdLine.backendKindName = backendKind;

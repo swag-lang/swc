@@ -3,6 +3,7 @@
 #foreignlib("user32")
 #foreignlib("dbghelp")
 #foreignlib("ucrt")
+#foreignlib("vcruntime")
 
 ////////////////////////////////////////////////////////////
 namespace __Win32RT
@@ -144,7 +145,7 @@ impl MutexRW
 // LIBC
 ////////////////////////////////////////////////////////////
 
-#[Swag.Foreign("ucrtbase")]
+#[Swag.Foreign("ucrt")]
 {
     func sinf(val: f32)->f32;
     func cosf(val: f32)->f32;

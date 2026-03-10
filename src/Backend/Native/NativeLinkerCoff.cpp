@@ -11,31 +11,9 @@ namespace
     {
         Utf8 out(value);
         out.make_lower();
-
-        if (out == "ucrtbase" || out == "ucrtbase.lib")
-            return "ucrt.lib";
-        if (out == "ucrtbased" || out == "ucrtbased.lib")
-            return "ucrtd.lib";
-
         if (fs::path(std::string(out)).extension().empty())
             out += ".lib";
         return out;
-    }
-
-    void addLinkLibraryForModule(std::set<Utf8>& out, const std::string_view moduleName)
-    {
-        const Utf8 normalized = normalizeLibraryFileName(moduleName);
-        if (!normalized.empty())
-            out.insert(normalized);
-
-        Utf8 lowered(moduleName);
-        lowered.make_lower();
-
-        // MSVC splits ucrtbase imports across multiple import libraries.
-        if (lowered == "ucrtbase" || lowered == "ucrtbase.lib")
-            out.insert("vcruntime.lib");
-        else if (lowered == "ucrtbased" || lowered == "ucrtbased.lib")
-            out.insert("vcruntimed.lib");
     }
 }
 
@@ -181,7 +159,7 @@ void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
 void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
 {
     for (const Utf8& library : builder_.compiler().foreignLibs())
-        addLinkLibraryForModule(out, library);
+        out.emplace(normalizeLibraryFileName(library));
 
     const auto collectFromCode = [&](const MachineCode& code) {
         for (const auto& relocation : code.codeRelocations)
@@ -192,7 +170,7 @@ void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
             if (!function)
                 continue;
             if (!function->foreignModuleName().empty())
-                addLinkLibraryForModule(out, function->foreignModuleName());
+                out.emplace(normalizeLibraryFileName(function->foreignModuleName()));
         }
     };
 

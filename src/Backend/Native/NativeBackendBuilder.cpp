@@ -5,7 +5,6 @@
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Backend/Native/NativeSymbolCollector.h"
-#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/Logger.h"

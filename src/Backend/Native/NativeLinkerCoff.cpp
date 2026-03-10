@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Native/NativeLinkerCoff.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Main/FileSystem.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Native/NativeSymbolCollector.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
-#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"

@@ -52,7 +52,7 @@ namespace
 
     Result runCollectedJitTests(TaskContext& ctx)
     {
-        CompilerInstance& compiler = ctx.compiler();
+        const CompilerInstance& compiler = ctx.compiler();
         SWC_RESULT_VERIFY(runJitFunctions(ctx, compiler.nativeInitFunctions()));
         SWC_RESULT_VERIFY(runJitFunctions(ctx, compiler.nativePreMainFunctions()));
         SWC_RESULT_VERIFY(runJitFunctions(ctx, compiler.nativeTestFunctions()));

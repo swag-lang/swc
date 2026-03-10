@@ -40,9 +40,9 @@ Result NativeSymbolCollector::collectSymbols()
 
     collectSymbolsRec(*rootModule);
 
-    for (size_t idx = 0; idx < builder_.rawFunctions.size(); ++idx)
+    for (size_t idx = 0; idx < builder_.rawFunctions.size(); ++idx)  // NOLINT(modernize-loop-convert)
     {
-        SymbolFunction* function = builder_.rawFunctions[idx];
+        const SymbolFunction* function = builder_.rawFunctions[idx];
         SWC_ASSERT(function != nullptr);
 
         SmallVector<SymbolFunction*> deps;

@@ -10,7 +10,7 @@ struct div_t { quot, rem: s32 }
 struct ldiv_t { quot, rem: s32 }
 struct lldiv_t { quot, rem: s64 }
 
-#[Foreign(ForeignLib)]
+#[Foreign(module: ForeignLib, link: ForeignLink)]
 {
     func atof(nptr: cstring)->f64;
     func atoi(nptr: cstring)->s32;

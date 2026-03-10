@@ -18,7 +18,7 @@ const SEEK_CUR     = 1
 const SEEK_END     = 2
 const TMP_MAX      = 32767
 
-#[Foreign(ForeignLib)]
+#[Foreign(module: ForeignLib, link: ForeignLink)]
 {
     func remove(filename: cstring)->s64;
     func rename(old, new: cstring)->s64;
@@ -62,16 +62,16 @@ var stderr: *FILE
 
 #if #os == Swag.TargetOs.Windows
 {
-    #[Foreign(ForeignLib, "__stdio_common_vfprintf"), Discardable]
+    #[Foreign(module: ForeignLib, function: "__stdio_common_vfprintf", link: ForeignLink), Discardable]
     func stdio_common_vfprintf(_Options: u64, _Stream: *FILE, _Format: cstring, _Locale: #null *void, _ArgList: #null *void)->s32;
-    #[Foreign(ForeignLib, "__stdio_common_vsprintf"), Discardable]
+    #[Foreign(module: ForeignLib, function: "__stdio_common_vsprintf", link: ForeignLink), Discardable]
     func stdio_common_vsprintf(_Options: u64, _Buffer: *u8, _BufferCount: size_t, _Format: cstring, _Locale: #null *void, _ArgList: #null *void)->s32;
-    #[Foreign(ForeignLib, "__stdio_common_vfscanf"), Discardable]
+    #[Foreign(module: ForeignLib, function: "__stdio_common_vfscanf", link: ForeignLink), Discardable]
     func stdio_common_vfscanf(_Options: u64, _Stream: *FILE, _Format: cstring, _Locale: #null *void, _ArgList: #null *void)->s32;
-    #[Foreign(ForeignLib, "__stdio_common_vsscanf"), Discardable]
+    #[Foreign(module: ForeignLib, function: "__stdio_common_vsscanf", link: ForeignLink), Discardable]
     func stdio_common_vsscanf(_Options: u64, _Buffer: cstring, _BufferCount: size_t, _Format: cstring, _Locale: #null *void, _ArgList: #null *void)->s32;
 
-    #[Foreign(ForeignLib, "__acrt_iob_func")]
+    #[Foreign(module: ForeignLib, function: "__acrt_iob_func", link: ForeignLink)]
     func acrt_iob_func(index: u32)->*FILE;
 
     #init

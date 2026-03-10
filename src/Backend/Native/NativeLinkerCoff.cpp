@@ -169,8 +169,9 @@ void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
             const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
             if (!function)
                 continue;
-            if (!function->foreignModuleName().empty())
-                out.emplace(normalizeLibraryFileName(function->foreignModuleName()));
+            const std::string_view libraryName = function->foreignLinkModuleName().empty() ? function->foreignModuleName() : function->foreignLinkModuleName();
+            if (!libraryName.empty())
+                out.emplace(normalizeLibraryFileName(libraryName));
         }
     };
 

@@ -56,6 +56,7 @@ struct AttributeList
     bool                            hasForeign = false;
     Utf8                            foreignModuleName;
     Utf8                            foreignFunctionName;
+    Utf8                            foreignLinkModuleName;
 
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
@@ -65,11 +66,12 @@ struct AttributeList
         backendOptimize = value;
     }
 
-    void setForeign(std::string_view moduleName, std::string_view functionName)
+    void setForeign(std::string_view moduleName, std::string_view functionName, std::string_view linkModuleName = {})
     {
-        hasForeign          = true;
-        foreignModuleName   = moduleName;
-        foreignFunctionName = functionName;
+        hasForeign            = true;
+        foreignModuleName     = moduleName;
+        foreignFunctionName   = functionName;
+        foreignLinkModuleName = linkModuleName;
     }
 };
 

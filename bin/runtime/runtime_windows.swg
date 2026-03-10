@@ -145,7 +145,7 @@ impl MutexRW
 // LIBC
 ////////////////////////////////////////////////////////////
 
-#[Swag.Foreign("ucrt")]
+#[Swag.Foreign(module: "ucrtbase", link: "ucrt")]
 {
     func sinf(val: f32)->f32;
     func cosf(val: f32)->f32;

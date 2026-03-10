@@ -64,6 +64,7 @@ public:
     bool             isForeign() const noexcept { return attributes().hasForeign; }
     std::string_view foreignModuleName() const { return attributes().foreignModuleName; }
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
+    std::string_view foreignLinkModuleName() const { return attributes().foreignLinkModuleName; }
     Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
 
     bool     hasInterfaceMethodSlot() const noexcept { return interfaceMethodSlot_ != K_INVALID_INTERFACE_METHOD_SLOT; }

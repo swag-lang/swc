@@ -4,6 +4,7 @@
 {
     #foreignlib("ucrt")
     const ForeignLib = "ucrtbase"
+    const ForeignLink = "ucrt"
 }
 #else
 {

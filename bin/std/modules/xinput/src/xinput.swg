@@ -41,7 +41,7 @@ struct XINPUT_VIBRATION
     wRightMotorSpeed:     WORD
 }
 
-#[Foreign("xinput")]
+#[Foreign(module: "xinput1_4", link: "xinput")]
 {
     func XInputGetState(dwUserIndex: DWORD, pState: *XINPUT_STATE)->DWORD;
     func XInputSetState(dwUserIndex: DWORD, pVibration: *XINPUT_VIBRATION)->DWORD;

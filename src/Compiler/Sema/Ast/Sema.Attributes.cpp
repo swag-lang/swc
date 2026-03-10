@@ -199,34 +199,46 @@ namespace
         return Result::Continue;
     }
 
-    Result collectForeignOptions(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
+    Result collectForeignStringValue(Sema& sema, Utf8& outValue, const ResolvedCallArgument& arg)
     {
-        SWC_ASSERT(!args.empty());
-
-        const AstNodeRef moduleValueRef = args[0];
-        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, moduleValueRef));
-        const SemaNodeView moduleView = sema.viewConstant(moduleValueRef);
-        SWC_ASSERT(moduleView.cst() != nullptr);
-        if (!moduleView.cst()->isString())
-            return SemaError::raiseInvalidType(sema, moduleValueRef, moduleView.cst()->typeRef(), sema.typeMgr().typeString());
-
-        std::string_view functionName;
-        if (args.size() > 1)
+        outValue.clear();
+        if (arg.argRef.isValid())
         {
-            const AstNodeRef functionValueRef = args[1];
-            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, functionValueRef));
-            const SemaNodeView functionView = sema.viewConstant(functionValueRef);
-            SWC_ASSERT(functionView.cst() != nullptr);
-            if (!functionView.cst()->isString())
-                return SemaError::raiseInvalidType(sema, functionValueRef, functionView.cst()->typeRef(), sema.typeMgr().typeString());
-            functionName = functionView.cst()->getString();
+            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, arg.argRef));
+            const SemaNodeView argView = sema.viewConstant(arg.argRef);
+            SWC_ASSERT(argView.cst() != nullptr);
+            SWC_ASSERT(argView.cst()->isString());
+            outValue = Utf8{argView.cst()->getString()};
+            return Result::Continue;
         }
 
-        outAttributes.setForeign(moduleView.cst()->getString(), functionName);
+        if (!arg.defaultCstRef.isValid())
+            return Result::Continue;
+
+        const ConstantValue& constant = sema.cstMgr().get(arg.defaultCstRef);
+        SWC_ASSERT(constant.isString());
+        outValue = Utf8{constant.getString()};
         return Result::Continue;
     }
 
-    Result collectPredefinedAttributeData(Sema& sema, std::span<const AstNodeRef> args, const SymbolFunction& attrSym, AttributeList& outAttributes)
+    Result collectForeignOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
+    {
+        SWC_ASSERT(!args.empty());
+
+        Utf8 moduleName;
+        Utf8 functionName;
+        Utf8 linkModuleName;
+        SWC_RESULT_VERIFY(collectForeignStringValue(sema, moduleName, args[0]));
+        if (args.size() > 1)
+            SWC_RESULT_VERIFY(collectForeignStringValue(sema, functionName, args[1]));
+        if (args.size() > 2)
+            SWC_RESULT_VERIFY(collectForeignStringValue(sema, linkModuleName, args[2]));
+
+        outAttributes.setForeign(moduleName, functionName, linkModuleName);
+        return Result::Continue;
+    }
+
+    Result collectPredefinedAttributeData(Sema& sema, std::span<const AstNodeRef> args, std::span<const ResolvedCallArgument> resolvedArgs, const SymbolFunction& attrSym, AttributeList& outAttributes)
     {
         if (!attrSym.inSwagNamespace(sema.ctx()))
             return Result::Continue;
@@ -240,7 +252,7 @@ namespace
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintAst))
             return collectPrintAstOptions(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))
-            return collectForeignOptions(sema, args, outAttributes);
+            return collectForeignOptions(sema, resolvedArgs, outAttributes);
         return Result::Continue;
     }
 
@@ -403,7 +415,9 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     callNode.collectArguments(args, sema.ast());
     SmallVector<AstNodeRef> argValues;
     Match::resolveCallArgumentValues(sema, argValues, args.span());
-    SWC_RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), attrSym, sema.frame().currentAttributes()));
+    SmallVector<ResolvedCallArgument> resolvedArgs;
+    sema.appendResolvedCallArguments(nodeCallRef, resolvedArgs);
+    SWC_RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), resolvedArgs.span(), attrSym, sema.frame().currentAttributes()));
 
     const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)

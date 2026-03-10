@@ -1,7 +1,7 @@
 #global export
 using Swag
 
-#[Foreign(ForeignLib), Discardable]
+#[Foreign(module: ForeignLib, link: ForeignLink), Discardable]
 {
     func isalnum(c: s32)->s32;
     func isalpha(c: s32)->s32;

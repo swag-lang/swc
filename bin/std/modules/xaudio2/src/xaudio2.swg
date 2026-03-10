@@ -353,7 +353,7 @@ struct WAVEFORMATEXTENSIBLE
     subFormat:         GUID
 }
 
-#[Swag.Foreign("xaudio2_9")]
+#[Swag.Foreign(module: "xaudio2_9", link: "xaudio2")]
 {
     func XAudio2Create(ppXAudio2: **IXAudio2, flags: UINT32, processor: XAUDIO2_PROCESSOR = XAUDIO2_ANY_PROCESSOR)->HRESULT;
     func X3DAudioInitialize(speakerChannelMask: UINT32, speedOfSound: FLOAT32, instance: X3DAUDIO_HANDLE)->HRESULT;

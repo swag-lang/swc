@@ -87,7 +87,7 @@ namespace Swag
 
     // The following function is foreign (imported)
     #[AttrUsage(AttributeUsage.Function)]
-    attr Foreign(module: string, function: string = "")
+    attr Foreign(module: string, function: string = "", link: string = "")
 
     // The following function accepts that the called does not use its return value
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]

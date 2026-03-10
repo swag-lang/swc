@@ -15,7 +15,7 @@ const MATH_ERREXCEPT = 2
 const FP_ILOGBNAN = -1 - cast(s32) (~0'u32 >> 1)
 const FP_ILOGB0   = FP_ILOGBNAN
 
-#[Foreign(ForeignLib), Discardable]
+#[Foreign(module: ForeignLib, link: ForeignLink), Discardable]
 {
     func acos(x: f64)->f64;
     func acosf(x: f32)->f32;

@@ -1,7 +1,7 @@
 #global export
 using Swag
 
-#[Foreign(ForeignLib)]
+#[Foreign(module: ForeignLib, link: ForeignLink)]
 {
     func clock()->clock_t;
     func mktime(timeptr: *tm)->time_t;
@@ -11,15 +11,15 @@ using Swag
 
 #if #os == Swag.TargetOs.Windows
 {
-    #[Foreign(ForeignLib, "_difftime64")]
+    #[Foreign(module: ForeignLib, function: "_difftime64", link: ForeignLink)]
     func difftime(time1, time2: time_t)->f64;
-    #[Foreign(ForeignLib, "_time64")]
+    #[Foreign(module: ForeignLib, function: "_time64", link: ForeignLink)]
     func time(timer: *time_t)->time_t;
-    #[Foreign(ForeignLib, "_gmtime64")]
+    #[Foreign(module: ForeignLib, function: "_gmtime64", link: ForeignLink)]
     func gmtime(timer: *time_t)->*tm;
-    #[Foreign(ForeignLib, "_localtime64")]
+    #[Foreign(module: ForeignLib, function: "_localtime64", link: ForeignLink)]
     func localtime(timer: *time_t)->*tm;
-    #[Foreign(ForeignLib, "_ctime64")]
+    #[Foreign(module: ForeignLib, function: "_ctime64", link: ForeignLink)]
     func ctime(timer: const *time_t)->*u8;
 }
 

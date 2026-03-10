@@ -1,7 +1,7 @@
 #global export
 using Swag
 
-#[Foreign(ForeignLib), Discardable]
+#[Foreign(module: ForeignLib, link: ForeignLink), Discardable]
 {
     func memcpy(dst: *void, src: const *void, num: size_t)->*void;
     func memmove(dst: *void, src: const *void, num: size_t)->*void;
@@ -13,7 +13,7 @@ using Swag
     func strncat(dst: *u8, src: cstring, num: size_t)->*u8;
 }
 
-#[Foreign(ForeignLib)]
+#[Foreign(module: ForeignLib, link: ForeignLink)]
 {
     func memcmp(ptr1, ptr2: const *void, num: size_t)->s32;
     func memchr(ptr: const *void, value: s32, num: size_t)->*void;

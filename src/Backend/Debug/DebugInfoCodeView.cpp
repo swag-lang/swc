@@ -1,14 +1,11 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
-#include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
-#include "Main/FileSystem.h"
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
@@ -1440,59 +1437,6 @@ namespace
         return Result::Continue;
     }
 
-    bool parseImageLayout(const fs::path& imagePath, uint32_t& outTextRva, uint32_t& outImageSize)
-    {
-        outTextRva   = 0;
-        outImageSize = 0;
-
-        std::ifstream file(imagePath, std::ios::binary);
-        if (!file.is_open())
-            return false;
-
-        IMAGE_DOS_HEADER dosHeader{};
-        file.read(reinterpret_cast<char*>(&dosHeader), sizeof(dosHeader));
-        if (!file.good() || dosHeader.e_magic != IMAGE_DOS_SIGNATURE)
-            return false;
-
-        file.seekg(dosHeader.e_lfanew, std::ios::beg);
-        DWORD signature = 0;
-        file.read(reinterpret_cast<char*>(&signature), sizeof(signature));
-        if (!file.good() || signature != IMAGE_NT_SIGNATURE)
-            return false;
-
-        IMAGE_FILE_HEADER fileHeader{};
-        file.read(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
-        if (!file.good())
-            return false;
-
-        IMAGE_OPTIONAL_HEADER64 optionalHeader{};
-        file.read(reinterpret_cast<char*>(&optionalHeader), sizeof(optionalHeader));
-        if (!file.good() || optionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-            return false;
-
-        outImageSize = optionalHeader.SizeOfImage;
-
-        for (uint16_t i = 0; i < fileHeader.NumberOfSections; ++i)
-        {
-            IMAGE_SECTION_HEADER section{};
-            file.read(reinterpret_cast<char*>(&section), sizeof(section));
-            if (!file.good())
-                return false;
-
-            if ((section.Characteristics & IMAGE_SCN_CNT_CODE) == 0)
-                continue;
-
-            outTextRva = section.VirtualAddress;
-            return outTextRva != 0;
-        }
-
-        return false;
-    }
-
-    fs::path defaultJitDebugRoot()
-    {
-        return Os::getTemporaryPath() / "swc_jit_debug";
-    }
 }
 
 Result DebugInfoCodeView::buildObject(DebugInfoObjectResult& outResult, const DebugInfoObjectRequest& request)
@@ -1503,96 +1447,6 @@ Result DebugInfoCodeView::buildObject(DebugInfoObjectResult& outResult, const De
     SWC_RESULT_VERIFY(appendCodeViewSection(request, outResult));
     SWC_RESULT_VERIFY(appendUnwindSections(request, outResult));
     return Result::Continue;
-}
-
-bool DebugInfoCodeView::emitJitArtifact(JitDebugArtifact& outArtifact, const JitDebugRequest& request)
-{
-    outArtifact = {};
-    if (!request.ctx || !request.function || !request.machineCode || !request.codeAddress)
-        return false;
-    if (!request.ctx->compiler().buildCfg().backend.debugInfo)
-        return false;
-    if (!Os::isDebuggerAttached())
-        return false;
-
-    Os::WindowsToolchainPaths toolchain;
-    if (Os::discoverWindowsToolchainPaths(toolchain) != Os::WindowsToolchainDiscoveryResult::Ok)
-        return false;
-
-    fs::path workDir = request.workDir;
-    if (workDir.empty())
-        workDir = defaultJitDebugRoot();
-
-    const uint32_t uniqueId    = request.ctx->compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const Utf8     baseNameRaw = request.debugName.empty() ? request.symbolName : request.debugName;
-    const Utf8     baseName    = FileSystem::sanitizeFileName(baseNameRaw.empty() ? Utf8("jit") : baseNameRaw);
-    const Utf8     uniqueName  = std::format("{}_{:08x}", baseName, uniqueId);
-    const Utf8     symbolName  = std::format("__swc_jit_fn_{}", uniqueName);
-
-    std::error_code ec;
-    fs::create_directories(workDir, ec);
-    if (ec)
-        return false;
-
-    const fs::path objPath   = workDir / std::format("{}.obj", uniqueName);
-    const fs::path imagePath = workDir / std::format("{}.dll", uniqueName);
-    const fs::path pdbPath   = workDir / std::format("{}.pdb", uniqueName);
-
-    NativeBackendBuilder tempBuilder(request.ctx->compiler(), false);
-    tempBuilder.functionInfos.push_back({
-        .symbol      = const_cast<SymbolFunction*>(request.function),
-        .machineCode = request.machineCode,
-        .sortKey     = uniqueName,
-        .symbolName  = symbolName,
-        .debugName   = request.debugName.empty() ? uniqueName : request.debugName,
-    });
-    tempBuilder.functionBySymbol.emplace(const_cast<SymbolFunction*>(request.function), &tempBuilder.functionInfos.back());
-
-    NativeObjDescription description;
-    description.index                  = 0;
-    description.objPath                = objPath;
-    description.includeData            = false;
-    description.allowUnresolvedSymbols = true;
-    description.functions.push_back(&tempBuilder.functionInfos.back());
-
-    const auto writer = NativeObjFileWriter::create(tempBuilder);
-    if (!writer)
-        return false;
-    if (writer->writeObjectFile(description) != Result::Continue)
-        return false;
-
-    std::vector<Utf8> args;
-    args.emplace_back("/NOLOGO");
-    args.emplace_back("/NODEFAULTLIB");
-    args.emplace_back("/INCREMENTAL:NO");
-    args.emplace_back("/MACHINE:X64");
-    args.emplace_back("/DLL");
-    args.emplace_back("/NOENTRY");
-    args.emplace_back("/DEBUG:FULL");
-    args.emplace_back("/OPT:NOREF");
-    args.emplace_back("/FORCE:UNRESOLVED");
-    args.emplace_back(std::format("/OUT:{}", Utf8(imagePath)));
-    args.emplace_back(std::format("/PDB:{}", Utf8(pdbPath)));
-    args.emplace_back(objPath);
-
-    uint32_t   exitCode  = 0;
-    const auto runResult = Os::runProcess(exitCode, toolchain.linkExe, args, workDir);
-    if (runResult != Os::ProcessRunResult::Ok)
-        return false;
-    if (!fs::exists(imagePath) || !fs::exists(pdbPath))
-        return false;
-
-    uint32_t textRva   = 0;
-    uint32_t imageSize = 0;
-    if (!parseImageLayout(imagePath, textRva, imageSize))
-        return false;
-
-    outArtifact.imagePath  = imagePath;
-    outArtifact.pdbPath    = pdbPath;
-    outArtifact.imageSize  = imageSize;
-    outArtifact.moduleName = uniqueName;
-    outArtifact.imageBase  = reinterpret_cast<uint64_t>(request.codeAddress) - textRva;
-    return outArtifact.imageBase != 0;
 }
 
 SWC_END_NAMESPACE();

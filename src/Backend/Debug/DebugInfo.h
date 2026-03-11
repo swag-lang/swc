@@ -73,27 +73,6 @@ struct DebugInfoObjectResult
     std::vector<DebugInfoDefinedSymbol> symbols;
 };
 
-struct JitDebugArtifact
-{
-    fs::path imagePath;
-    fs::path pdbPath;
-    uint64_t imageBase = 0;
-    uint32_t imageSize = 0;
-    Utf8     moduleName;
-};
-
-struct JitDebugRequest
-{
-    TaskContext*          ctx      = nullptr;
-    Runtime::TargetOs     targetOs = Runtime::TargetOs::Windows;
-    const SymbolFunction* function = nullptr;
-    Utf8                  symbolName;
-    Utf8                  debugName;
-    const MachineCode*    machineCode = nullptr;
-    void*                 codeAddress = nullptr;
-    fs::path              workDir;
-};
-
 class DebugInfo
 {
 public:
@@ -102,10 +81,8 @@ public:
     static std::unique_ptr<DebugInfo> create(Runtime::TargetOs targetOs);
 
     static Result buildObject(const DebugInfoObjectRequest& request, DebugInfoObjectResult& outResult);
-    static bool   emitJitArtifact(const JitDebugRequest& request, JitDebugArtifact& outArtifact);
 
     virtual Result buildObject(DebugInfoObjectResult& outResult, const DebugInfoObjectRequest& request) = 0;
-    virtual bool   emitJitArtifact(JitDebugArtifact& outArtifact, const JitDebugRequest& request)       = 0;
 };
 
 SWC_END_NAMESPACE();

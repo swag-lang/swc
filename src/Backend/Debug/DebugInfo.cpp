@@ -21,10 +21,4 @@ Result DebugInfo::buildObject(const DebugInfoObjectRequest& request, DebugInfoOb
     return debugInfo->buildObject(outResult, request);
 }
 
-bool DebugInfo::emitJitArtifact(const JitDebugRequest& request, JitDebugArtifact& outArtifact)
-{
-    const auto debugInfo = create(request.targetOs);
-    return debugInfo->emitJitArtifact(outArtifact, request);
-}
-
 SWC_END_NAMESPACE();

@@ -848,52 +848,6 @@ namespace Os
         executableMemory.hostRuntimeFunction_ = nullptr;
     }
 
-    bool loadJitSymbolFile(JITMemory& executableMemory, const fs::path& imagePath, const std::string_view moduleName, const uint64_t imageBase, const uint32_t imageSize)
-    {
-        if (!imageBase || !imageSize)
-            return false;
-        if (imagePath.empty())
-            return false;
-        if (!ensureSymbolEngineInitialized())
-            return false;
-
-        SymbolEngineState&     state = symbolEngineState();
-        const std::scoped_lock lock(state.mutex);
-        if (executableMemory.hostSymbolModuleBase_)
-            return true;
-
-        const std::wstring wideImagePath  = imagePath.wstring();
-        const std::wstring wideModuleName = toWide(moduleName);
-        const HANDLE       process        = GetCurrentProcess();
-        const DWORD64      loadedBase     = SymLoadModuleExW(process,
-                                                             nullptr,
-                                                    wideImagePath.empty() ? nullptr : wideImagePath.c_str(),
-                                                    wideModuleName.empty() ? nullptr : wideModuleName.c_str(),
-                                                    imageBase,
-                                                             imageSize,
-                                                             nullptr,
-                                                             0);
-        if (!loadedBase)
-            return false;
-
-        executableMemory.hostSymbolModuleBase_ = loadedBase;
-        return true;
-    }
-
-    void unloadJitSymbolFile(JITMemory& executableMemory)
-    {
-        if (!executableMemory.hostSymbolModuleBase_)
-            return;
-        if (!ensureSymbolEngineInitialized())
-            return;
-
-        SymbolEngineState&     state = symbolEngineState();
-        const std::scoped_lock lock(state.mutex);
-        const HANDLE           process = GetCurrentProcess();
-        (void) SymUnloadModule64(process, executableMemory.hostSymbolModuleBase_);
-        executableMemory.hostSymbolModuleBase_ = 0;
-    }
-
     bool loadExternalModule(void*& outModuleHandle, std::string_view moduleName)
     {
         outModuleHandle = nullptr;

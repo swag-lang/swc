@@ -3,7 +3,6 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Debug/DebugInfo.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
@@ -394,49 +393,17 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
     return patchRelocations(ctx, ownerFunction, writableCode, relocations);
 }
 
-void JIT::finalize(TaskContext& ctx, JITMemory& executableMemory, const SymbolFunction* ownerFunction, const MachineCode* machineCode)
+void JIT::finalize(JITMemory& executableMemory)
 {
     JITMemoryManager::makeExecutable(executableMemory);
     JITMemoryManager::registerUnwindInfo(executableMemory);
-
-    if (!ctx.compiler().buildCfg().backend.debugInfo)
-        return;
-    if (!Os::isDebuggerAttached())
-        return;
-
-    const MachineCode* debugMachineCode = machineCode;
-    if (!debugMachineCode && ownerFunction)
-    {
-        const MachineCode& loweredCode = ownerFunction->loweredCode();
-        if (!loweredCode.bytes.empty())
-            debugMachineCode = &loweredCode;
-    }
-
-    if (!ownerFunction || !debugMachineCode)
-        return;
-
-    JitDebugArtifact      artifact;
-    const JitDebugRequest request = {
-        .ctx         = &ctx,
-        .targetOs    = ctx.compiler().cmdLine().targetOs,
-        .function    = ownerFunction,
-        .symbolName  = ownerFunction->getFullScopedName(ctx),
-        .debugName   = ownerFunction->getFullScopedName(ctx),
-        .machineCode = debugMachineCode,
-        .codeAddress = executableMemory.entryPoint(),
-    };
-
-    if (!DebugInfo::emitJitArtifact(request, artifact))
-        return;
-
-    (void) Os::loadJitSymbolFile(executableMemory, artifact.imagePath, artifact.moduleName, artifact.imageBase, artifact.imageSize);
 }
 
 Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo, const SymbolFunction* ownerFunction)
 {
     prepare(ctx, outExecutableMemory, linearCode, unwindInfo);
     SWC_RESULT_VERIFY(patch(ctx, outExecutableMemory, relocations, ownerFunction));
-    finalize(ctx, outExecutableMemory, ownerFunction);
+    finalize(outExecutableMemory);
     return Result::Continue;
 }
 

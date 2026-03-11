@@ -1142,9 +1142,10 @@ namespace
 
         uint32_t appendBuildInfo(const std::array<uint32_t, 5>& items)
         {
-            const uint32_t typeIndex    = nextTypeIndex++;
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
-            writeU16(bytes, items.size());
+            const uint32_t     typeIndex    = nextTypeIndex++;
+            const uint32_t     recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
+            constexpr uint16_t size         = items.size();
+            writeU16(bytes, size);
             for (const uint32_t item : items)
                 writeU32(bytes, item);
             endTypeRecord(bytes, recordOffset);

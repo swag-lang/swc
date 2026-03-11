@@ -522,6 +522,10 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->modulePath = std::move(temp);
     }
 
+    cmdLine_->originalDirectories = cmdLine_->directories;
+    cmdLine_->originalFiles       = cmdLine_->files;
+    cmdLine_->originalModulePath  = cmdLine_->modulePath;
+
     if (!cmdLine_->outDir.empty())
     {
         std::error_code ec;

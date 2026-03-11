@@ -77,8 +77,11 @@ struct CommandLine
 
     std::set<fs::path> directories;
     std::set<fs::path> files;
+    std::set<fs::path> originalDirectories;
+    std::set<fs::path> originalFiles;
 
     fs::path          modulePath;
+    fs::path          originalModulePath;
     fs::path          outDir;
     fs::path          workDir;
     Runtime::BuildCfg defaultBuildCfg{};

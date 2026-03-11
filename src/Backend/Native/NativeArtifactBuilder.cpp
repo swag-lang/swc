@@ -26,6 +26,27 @@ namespace
     {
         return std::format("{}_{:02}.obj", name, objectIndex);
     }
+
+    const std::set<fs::path>& inputDirectories(const CommandLine& cmdLine)
+    {
+        if (!cmdLine.originalDirectories.empty())
+            return cmdLine.originalDirectories;
+        return cmdLine.directories;
+    }
+
+    const std::set<fs::path>& inputFiles(const CommandLine& cmdLine)
+    {
+        if (!cmdLine.originalFiles.empty())
+            return cmdLine.originalFiles;
+        return cmdLine.files;
+    }
+
+    const fs::path& inputModulePath(const CommandLine& cmdLine)
+    {
+        if (!cmdLine.originalModulePath.empty())
+            return cmdLine.originalModulePath;
+        return cmdLine.modulePath;
+    }
 }
 
 NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
@@ -539,14 +560,17 @@ Utf8 NativeArtifactBuilder::artifactName() const
     if (!buildCfgName.empty())
         return FileSystem::sanitizeFileName(buildCfgName);
 
-    const auto& cmdLine = builder_.ctx().cmdLine();
+    const auto& cmdLine     = builder_.ctx().cmdLine();
+    const auto& directories = inputDirectories(cmdLine);
+    const auto& files       = inputFiles(cmdLine);
+    const auto& modulePath  = inputModulePath(cmdLine);
 
-    if (!cmdLine.modulePath.empty())
-        return FileSystem::sanitizeFileName(Utf8(cmdLine.modulePath.filename().string()));
-    if (cmdLine.files.size() == 1)
-        return FileSystem::sanitizeFileName(Utf8(cmdLine.files.begin()->stem().string()));
-    if (cmdLine.directories.size() == 1)
-        return FileSystem::sanitizeFileName(Utf8(cmdLine.directories.begin()->filename().string()));
+    if (!modulePath.empty())
+        return FileSystem::sanitizeFileName(Utf8(modulePath.filename().string()));
+    if (files.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(files.begin()->stem().string()));
+    if (directories.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(directories.begin()->filename().string()));
 
     return "native";
 }
@@ -601,26 +625,29 @@ fs::path NativeArtifactBuilder::configuredWorkDir() const
 
 Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
 {
-    const CommandLine& cmdLine = builder_.ctx().cmdLine();
+    const CommandLine& cmdLine     = builder_.ctx().cmdLine();
+    const auto&        directories = inputDirectories(cmdLine);
+    const auto&        files       = inputFiles(cmdLine);
+    const auto&        modulePath  = inputModulePath(cmdLine);
     Utf8               key;
 
     key += std::format("cmd={};os={};arch={};backend={};sub={};name={};", static_cast<int>(cmdLine.command), static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), static_cast<int>(builder_.compiler().buildCfg().backendKind), static_cast<int>(builder_.compiler().buildCfg().backendSubKind), name);
 
-    if (!cmdLine.modulePath.empty())
+    if (!modulePath.empty())
     {
         key += "module=";
-        key += Utf8(cmdLine.modulePath);
+        key += Utf8(modulePath);
         key += ";";
     }
 
-    for (const fs::path& file : cmdLine.files)
+    for (const fs::path& file : files)
     {
         key += "file=";
         key += Utf8(file);
         key += ";";
     }
 
-    for (const fs::path& directory : cmdLine.directories)
+    for (const fs::path& directory : directories)
     {
         key += "directory=";
         key += Utf8(directory);
@@ -631,9 +658,9 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
     return std::format("{}_{:08x}", FileSystem::sanitizeFileName(name), hash);
 }
 
-fs::path NativeArtifactBuilder::buildDirectory(const fs::path& workDir, const uint32_t)
+fs::path NativeArtifactBuilder::buildDirectory(const fs::path& workDir, const uint32_t buildIndex)
 {
-    return workDir;
+    return workDir / std::format("{:08x}", buildIndex);
 }
 
 Result NativeArtifactBuilder::createBuildDirectory(const fs::path& buildDir) const

@@ -15,7 +15,6 @@ public:
 
 private:
     Result            discoverToolchain();
-    Result            linkArtifact() const;
     std::vector<Utf8> buildLinkArguments(bool dll) const;
     std::vector<Utf8> buildLibArguments() const;
     void              appendLinkSearchPaths(std::vector<Utf8>& args) const;

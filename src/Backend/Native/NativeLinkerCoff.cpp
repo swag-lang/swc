@@ -27,12 +27,6 @@ Os::WindowsToolchainDiscoveryResult NativeLinkerCoff::queryToolchainPaths(Os::Wi
     return Os::discoverWindowsToolchainPaths(outToolchain);
 }
 
-Result NativeLinkerCoff::link()
-{
-    SWC_RESULT_VERIFY(discoverToolchain());
-    return linkArtifact();
-}
-
 Result NativeLinkerCoff::discoverToolchain()
 {
     switch (queryToolchainPaths(toolchain_))
@@ -48,8 +42,10 @@ Result NativeLinkerCoff::discoverToolchain()
     SWC_UNREACHABLE();
 }
 
-Result NativeLinkerCoff::linkArtifact() const
+Result NativeLinkerCoff::link()
 {
+    SWC_RESULT_VERIFY(discoverToolchain());
+    
     std::vector<Utf8> args;
     const fs::path*   exePath = nullptr;
 

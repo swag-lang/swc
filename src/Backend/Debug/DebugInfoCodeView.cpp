@@ -826,9 +826,10 @@ namespace
             uint64_t offset    = 0;
         };
 
-        explicit TypeTableBuilder(TaskContext& ctx) :
+        explicit TypeTableBuilder(TaskContext* ctx) :
             ctx(ctx)
         {
+            SWC_ASSERT(ctx != nullptr);
         }
 
         void begin()
@@ -1025,12 +1026,12 @@ namespace
             if (typeRef.isInvalid())
                 return K_T_VOID;
 
-            const TypeInfo& originalType = ctx.typeMgr().get(typeRef);
+            const TypeInfo& originalType = ctx->typeMgr().get(typeRef);
             isConst                      = isConst || originalType.isConst();
 
             if (originalType.isAlias())
             {
-                const TypeRef unwrapped = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias);
+                const TypeRef unwrapped = originalType.unwrap(*ctx, typeRef, TypeExpandE::Alias);
                 if (unwrapped.isValid() && unwrapped != typeRef)
                     return typeIndexFor(unwrapped, isConst);
             }
@@ -1062,7 +1063,7 @@ namespace
                     FieldDesc{.name = "ptr", .typeIndex = elemPtrType, .offset = offsetof(Runtime::Slice<std::byte>, ptr)},
                     FieldDesc{.name = "count", .typeIndex = K_T_UINT8, .offset = offsetof(Runtime::Slice<std::byte>, count)},
                 };
-                return appendSyntheticStructType(typeRef, originalType.toName(ctx), fields, sizeof(Runtime::Slice<std::byte>), isConst);
+                return appendSyntheticStructType(typeRef, originalType.toName(*ctx), fields, sizeof(Runtime::Slice<std::byte>), isConst);
             }
 
             if (originalType.isAny())
@@ -1100,7 +1101,7 @@ namespace
             if (originalType.isArray())
             {
                 uint32_t    currentType = typeIndexFor(originalType.payloadArrayElemTypeRef());
-                uint64_t    currentSize = ctx.typeMgr().get(originalType.payloadArrayElemTypeRef()).sizeOf(ctx);
+                uint64_t    currentSize = ctx->typeMgr().get(originalType.payloadArrayElemTypeRef()).sizeOf(*ctx);
                 const auto& dims        = originalType.payloadArrayDims();
                 for (size_t i = dims.size(); i-- > 0;)
                 {
@@ -1122,14 +1123,14 @@ namespace
                 for (size_t i = 0; i < aggregate.types.size(); ++i)
                 {
                     const TypeRef   fieldTypeRef = aggregate.types[i];
-                    const TypeInfo& fieldType    = ctx.typeMgr().get(fieldTypeRef);
-                    const uint32_t  alignment    = fieldType.alignOf(ctx);
+                    const TypeInfo& fieldType    = ctx->typeMgr().get(fieldTypeRef);
+                    const uint32_t  alignment    = fieldType.alignOf(*ctx);
                     if (alignment)
                         offset = Math::alignUpU64(offset, alignment);
 
                     Utf8 fieldName;
                     if (i < aggregate.names.size() && aggregate.names[i].isValid())
-                        fieldName = Utf8(ctx.idMgr().get(aggregate.names[i]).name);
+                        fieldName = Utf8(ctx->idMgr().get(aggregate.names[i]).name);
                     if (fieldName.empty())
                         fieldName = std::format("_{}", i);
 
@@ -1138,10 +1139,10 @@ namespace
                         .typeIndex = typeIndexFor(fieldTypeRef),
                         .offset    = offset,
                     });
-                    offset += fieldType.sizeOf(ctx);
+                    offset += fieldType.sizeOf(*ctx);
                 }
 
-                return appendSyntheticStructType(typeRef, originalType.toName(ctx), fields, originalType.sizeOf(ctx), isConst);
+                return appendSyntheticStructType(typeRef, originalType.toName(*ctx), fields, originalType.sizeOf(*ctx), isConst);
             }
 
             if (originalType.isStruct())
@@ -1154,7 +1155,7 @@ namespace
                     return itForward->second;
                 }
 
-                const Utf8     typeName    = originalType.toName(ctx);
+                const Utf8     typeName    = originalType.toName(*ctx);
                 const uint32_t forwardType = appendForwardStructRecord(typeName);
                 forwardStructTypes.emplace(typeKey, forwardType);
                 buildingStructs.insert(typeKey);
@@ -1166,14 +1167,14 @@ namespace
                         continue;
 
                     fields.push_back({
-                        .name      = Utf8(field->name(ctx)),
+                        .name      = Utf8(field->name(*ctx)),
                         .typeIndex = typeIndexFor(field->typeRef(), field->hasExtraFlag(SymbolVariableFlagsE::Let)),
                         .offset    = field->offset(),
                     });
                 }
 
                 const uint32_t fieldListType = fields.empty() ? 0 : appendFieldList(fields);
-                const uint32_t baseTypeIndex = appendStructRecord(typeName, fieldListType, static_cast<uint16_t>(fields.size()), originalType.sizeOf(ctx), 0);
+                const uint32_t baseTypeIndex = appendStructRecord(typeName, fieldListType, static_cast<uint16_t>(fields.size()), originalType.sizeOf(*ctx), 0);
                 buildingStructs.erase(typeKey);
                 const uint32_t typeIndex = isConst ? appendModifierType(baseTypeIndex, K_CV_TYPE_MOD_CONST) : baseTypeIndex;
                 builtTypes.emplace(cacheKey, typeIndex);
@@ -1197,7 +1198,7 @@ namespace
             return typeIndex;
         }
 
-        TaskContext&                           ctx;
+        TaskContext*                           ctx = nullptr;
         std::vector<std::byte>                 bytes;
         uint32_t                               nextTypeIndex = K_CV_FIRST_NONPRIM;
         std::unordered_map<uint64_t, uint32_t> builtTypes;
@@ -1286,7 +1287,7 @@ namespace
 
         StringTableBuilder  strings;
         FileChecksumBuilder checksums;
-        TypeTableBuilder    types(*request.ctx);
+        TypeTableBuilder    types(request.ctx);
         types.begin();
 
         std::vector<uint32_t> globalTypeIndices;

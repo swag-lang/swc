@@ -570,9 +570,16 @@ SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierRef idRe
 
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
-    SWC_RACE_CONDITION_WRITE(rcFiles_);
     if (!path.is_absolute())
         path = fs::absolute(path);
+
+    return addResolvedFile(std::move(path), flags);
+}
+
+SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
+{
+    SWC_RACE_CONDITION_WRITE(rcFiles_);
+    SWC_ASSERT(path.is_absolute());
 
     auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
@@ -589,57 +596,97 @@ std::span<SourceFile* const> CompilerInstance::files() const
     return filePtrs_;
 }
 
+void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags)
+{
+    if (paths.empty())
+        return;
+
+    files_.reserve(files_.size() + paths.size());
+    filePtrs_.reserve(filePtrs_.size() + paths.size());
+    for (fs::path& path : paths)
+        addResolvedFile(std::move(path), flags);
+}
+
+void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flags, const bool canFilter)
+{
+    if (cmdLine().numCores == 1)
+    {
+        std::vector<fs::path> paths;
+        collectSwagFilesRec(cmdLine(), folder, paths, canFilter);
+        std::ranges::sort(paths);
+        appendResolvedFiles(paths, flags);
+        return;
+    }
+
+    std::error_code ec;
+    for (fs::recursive_directory_iterator it(folder, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+    {
+        if (ec)
+        {
+            ec.clear();
+            continue;
+        }
+
+        const fs::directory_entry& entry = *it;
+        if (!entry.is_regular_file(ec))
+        {
+            ec.clear();
+            continue;
+        }
+
+        const fs::path path = entry.path();
+        const fs::path ext  = path.extension();
+        if (ext != ".swg" && ext != ".swgs")
+            continue;
+
+        if (canFilter && !cmdLine().fileFilter.empty())
+        {
+            const std::string pathString = path.string();
+            bool              ignore     = false;
+            for (const Utf8& filter : cmdLine().fileFilter)
+            {
+                if (!pathString.contains(filter))
+                {
+                    ignore = true;
+                    break;
+                }
+            }
+
+            if (ignore)
+                continue;
+        }
+
+        addResolvedFile(path, flags);
+    }
+}
+
 Result CompilerInstance::collectFiles(TaskContext& ctx)
 {
-    const CommandLine&    cmdLine = ctx.cmdLine();
-    std::vector<fs::path> paths;
-
-    const auto reserveFiles = [this](const size_t count) {
-        if (!count)
-            return;
-
-        files_.reserve(files_.size() + count);
-        filePtrs_.reserve(filePtrs_.size() + count);
-    };
+    const CommandLine& cmdLine = ctx.cmdLine();
 
     // Collect direct folders from the command line
     for (const fs::path& folder : cmdLine.directories)
-    {
-        paths.clear();
-        collectSwagFilesRec(cmdLine, folder, paths);
-        if (cmdLine.numCores == 1)
-            std::ranges::sort(paths);
-        reserveFiles(paths.size());
-        for (const fs::path& f : paths)
-            addFile(f, FileFlagsE::CustomSrc);
-    }
+        collectFolderFiles(folder, FileFlagsE::CustomSrc, true);
 
     // Collect direct files from the command line
-    paths.clear();
-    for (const fs::path& file : cmdLine.files)
-        paths.push_back(file);
-    if (cmdLine.numCores == 1)
-        std::ranges::sort(paths);
-    reserveFiles(paths.size());
-    for (const fs::path& f : paths)
-        addFile(f, FileFlagsE::CustomSrc);
+    if (!cmdLine.files.empty())
+    {
+        files_.reserve(files_.size() + cmdLine.files.size());
+        filePtrs_.reserve(filePtrs_.size() + cmdLine.files.size());
+        for (const fs::path& file : cmdLine.files)
+            addResolvedFile(file, FileFlagsE::CustomSrc);
+    }
 
     // Collect files for the module
     if (!cmdLine.modulePath.empty())
     {
         modulePathFile_ = cmdLine.modulePath / "module.swg";
         SWC_RESULT_VERIFY(FileSystem::resolveFile(ctx, modulePathFile_));
-        addFile(modulePathFile_, FileFlagsE::Module);
+        addResolvedFile(modulePathFile_, FileFlagsE::Module);
 
         modulePathSrc_ = cmdLine.modulePath / "src";
         SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, modulePathSrc_));
-        paths.clear();
-        collectSwagFilesRec(cmdLine, modulePathSrc_, paths);
-        if (cmdLine.numCores == 1)
-            std::ranges::sort(paths);
-        reserveFiles(paths.size());
-        for (const fs::path& f : paths)
-            addFile(f, FileFlagsE::ModuleSrc);
+        collectFolderFiles(modulePathSrc_, FileFlagsE::ModuleSrc, true);
     }
 
     // Collect runtime files
@@ -647,13 +694,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     {
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
         SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, runtimePath));
-        paths.clear();
-        collectSwagFilesRec(cmdLine, runtimePath, paths, false);
-        if (cmdLine.numCores == 1)
-            std::ranges::sort(paths);
-        reserveFiles(paths.size());
-        for (const fs::path& f : paths)
-            addFile(f, FileFlagsE::Runtime);
+        collectFolderFiles(runtimePath, FileFlagsE::Runtime, false);
     }
 
     srcViews_.reserve(files_.size());

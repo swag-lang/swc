@@ -12,7 +12,9 @@
 
 #test
 {
-    check(add(4, 5) == 9, 1)
+    var a = 0
+    a += 4
+    check(add(a, 5) == 9, 1)
     check(Counter == 3, 2)
     check(touch(4) == 7, 3)
 }

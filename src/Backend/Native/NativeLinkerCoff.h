@@ -20,8 +20,6 @@ private:
     void              appendLinkSearchPaths(std::vector<Utf8>& args) const;
     void              collectLinkLibraries(std::set<Utf8>& out) const;
     void              appendUserLinkerArgs(std::vector<Utf8>& args) const;
-
-    NativeBackendBuilder&     builder_;
     Os::WindowsToolchainPaths toolchain_;
 };
 

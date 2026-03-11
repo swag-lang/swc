@@ -17,7 +17,7 @@ namespace
 }
 
 NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
-    builder_(builder)
+    NativeLinker(builder)
 {
 }
 
@@ -45,7 +45,7 @@ Result NativeLinkerCoff::discoverToolchain()
 Result NativeLinkerCoff::link()
 {
     SWC_RESULT_VERIFY(discoverToolchain());
-    
+
     std::vector<Utf8> args;
     const fs::path*   exePath = nullptr;
 
@@ -67,31 +67,7 @@ Result NativeLinkerCoff::link()
             SWC_UNREACHABLE();
     }
 
-    uint32_t   exitCode = 0;
-    const auto result   = Os::runProcess(exitCode, *exePath, args, builder_.buildDir);
-    switch (result)
-    {
-        case Os::ProcessRunResult::Ok:
-            break;
-        case Os::ProcessRunResult::StartFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, Utf8(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
-        case Os::ProcessRunResult::WaitFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, Utf8(*exePath));
-        case Os::ProcessRunResult::ExitCodeFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, Utf8(*exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
-    }
-
-    if (exitCode != 0)
-        return builder_.reportError(DiagnosticId::cmd_err_native_tool_failed, Diagnostic::ARG_TOOL, Utf8(exePath->filename()), Diagnostic::ARG_VALUE, exitCode);
-    if (!fs::exists(builder_.artifactPath))
-        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.artifactPath));
-    if (builder_.compiler().buildCfg().backend.debugInfo &&
-        builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Export &&
-        !fs::exists(builder_.pdbPath))
-    {
-        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.pdbPath));
-    }
-    return Result::Continue;
+    return runToolAndValidateArtifacts(*exePath, args);
 }
 
 std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const

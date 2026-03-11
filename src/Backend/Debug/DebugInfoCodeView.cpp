@@ -257,19 +257,19 @@ namespace
         return {normalized.string()};
     }
 
-    void writeU16(std::vector<std::byte>& bytes, const uint16_t value)
+    void writeU16(std::vector<std::byte>& bytes, uint16_t value)
     {
         const auto* src = reinterpret_cast<const std::byte*>(&value);
         bytes.insert(bytes.end(), src, src + sizeof(value));
     }
 
-    void writeU32(std::vector<std::byte>& bytes, const uint32_t value)
+    void writeU32(std::vector<std::byte>& bytes, uint32_t value)
     {
         const auto* src = reinterpret_cast<const std::byte*>(&value);
         bytes.insert(bytes.end(), src, src + sizeof(value));
     }
 
-    void writeU64(std::vector<std::byte>& bytes, const uint64_t value)
+    void writeU64(std::vector<std::byte>& bytes, uint64_t value)
     {
         const auto* src = reinterpret_cast<const std::byte*>(&value);
         bytes.insert(bytes.end(), src, src + sizeof(value));
@@ -979,7 +979,7 @@ namespace
             return typeIndex;
         }
 
-        uint32_t primitiveTypeIndex(const TypeInfo& typeInfo) const
+        static uint32_t primitiveTypeIndex(const TypeInfo& typeInfo)
         {
             if (typeInfo.isVoid() || typeInfo.isNull() || typeInfo.isUndefined())
                 return K_T_VOID;
@@ -1191,7 +1191,7 @@ namespace
         {
             const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
-            writeU16(bytes, items.size());
+            writeU16(bytes, (uint16_t) items.size());
             for (const uint32_t item : items)
                 writeU32(bytes, item);
             endTypeRecord(bytes, recordOffset);

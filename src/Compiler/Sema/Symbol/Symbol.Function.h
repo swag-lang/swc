@@ -79,6 +79,10 @@ public:
     const MicroBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
     AstNodeRef          declNodeRef() const noexcept { return declNodeRef_; }
     void                setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    uint32_t            debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
+    void                setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
+    MicroReg            debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
+    void                setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
     bool                tryMarkCodeGenJobScheduled() noexcept;
     void                addCallDependency(SymbolFunction* sym);
     void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
@@ -109,6 +113,8 @@ private:
     CallConvKind                 callConvKind_        = CallConvKind::Host;
     AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
+    uint32_t                     debugStackFrameSize_ = 0;
+    MicroReg                     debugStackBaseReg_   = MicroReg::invalid();
 
     MicroBuilder                 microInstrBuilder_;
     MachineCode                  loweredMicroCode_;

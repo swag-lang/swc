@@ -17,6 +17,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool shouldSpillParametersForDebugInfo(const CodeGen& codeGen)
+    {
+        return codeGen.compiler().buildCfg().backend.debugInfo;
+    }
+
     uint32_t checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
         const uint64_t rawSize = typeInfo.sizeOf(codeGen.ctx());
@@ -187,6 +192,42 @@ namespace
         codeGen.setGvtdScratchLayout(static_cast<uint32_t>(scratchBase), static_cast<uint32_t>(scratchSize), entries.span());
     }
 
+    void appendDebugParameterSlots(CodeGen& codeGen, uint64_t& frameSize)
+    {
+        if (!shouldSpillParametersForDebugInfo(codeGen))
+            return;
+
+        const std::vector<SymbolVariable*>& params = codeGen.function().parameters();
+        for (SymbolVariable* symVar : params)
+        {
+            SWC_ASSERT(symVar != nullptr);
+
+            const TypeRef typeRef = symVar->typeRef();
+            SWC_ASSERT(typeRef.isValid());
+
+            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+            const uint64_t  rawSize  = typeInfo.sizeOf(codeGen.ctx());
+            if (!rawSize)
+                continue;
+
+            const CallConv&                        callConv        = CallConv::get(codeGen.function().callConvKind());
+            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, typeRef, ABITypeNormalize::Usage::Argument);
+            uint32_t                               slotSize        = checkedTypeSizeInBytes(codeGen, typeInfo);
+            uint32_t                               slotAlignment   = typeInfo.alignOf(codeGen.ctx());
+            if (!slotAlignment)
+                slotAlignment = 1;
+
+            if (!normalizedParam.isIndirect && normalizedParam.numBits)
+                slotSize = std::max<uint32_t>(slotSize, normalizedParam.numBits / 8);
+
+            frameSize = Math::alignUpU64(frameSize, slotAlignment);
+            SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+            symVar->setDebugStackSlotOffset(static_cast<uint32_t>(frameSize));
+            symVar->setDebugStackSlotSize(slotSize);
+            frameSize += slotSize;
+        }
+    }
+
     void buildLocalStackLayout(CodeGen& codeGen)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
@@ -208,6 +249,7 @@ namespace
             frameSize = std::max<uint64_t>(frameSize, symOffset + size);
         }
 
+        appendDebugParameterSlots(codeGen, frameSize);
         configureGvtdScratchLayout(codeGen, frameSize);
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
@@ -230,6 +272,8 @@ namespace
         SWC_ASSERT(frameBaseReg.isValid());
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
         codeGen.setLocalStackBaseReg(frameBaseReg);
+        codeGen.function().setDebugStackFrameSize(frameSize);
+        codeGen.function().setDebugStackBaseReg(callConv.stackPointer);
     }
 
     void emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
@@ -239,6 +283,53 @@ namespace
 
         const CallConv& callConv = CallConv::get(callConvKind);
         codeGen.builder().emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
+    }
+
+    void spillParametersToDebugSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    {
+        if (!shouldSpillParametersForDebugInfo(codeGen))
+            return;
+        if (!codeGen.hasLocalStackFrame())
+            return;
+
+        MicroBuilder&                       builder = codeGen.builder();
+        const MicroReg                      baseReg = CallConv::get(symbolFunc.callConvKind()).stackPointer;
+        const std::vector<SymbolVariable*>& params  = symbolFunc.parameters();
+        for (SymbolVariable* symVar : params)
+        {
+            SWC_ASSERT(symVar != nullptr);
+            if (!symVar->debugStackSlotSize())
+                continue;
+
+            const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(*symVar);
+            if (!symbolPayload)
+                continue;
+
+            const TypeInfo& typeInfo = codeGen.typeMgr().get(symVar->typeRef());
+            const uint64_t  rawSize  = typeInfo.sizeOf(codeGen.ctx());
+            if (!rawSize)
+                continue;
+
+            const uint32_t copySize = checkedTypeSizeInBytes(codeGen, typeInfo);
+            if (symbolPayload->isAddress())
+            {
+                MicroReg slotAddrReg = baseReg;
+                if (symVar->debugStackSlotOffset())
+                {
+                    slotAddrReg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegReg(slotAddrReg, baseReg, MicroOpBits::B64);
+                    builder.emitOpBinaryRegImm(slotAddrReg, ApInt(symVar->debugStackSlotOffset(), 64), MicroOp::Add, MicroOpBits::B64);
+                }
+
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, slotAddrReg, symbolPayload->reg, copySize);
+                continue;
+            }
+
+            const MicroOpBits storeBits = microOpBitsFromChunkSize(copySize);
+            if (storeBits == MicroOpBits::Zero)
+                continue;
+            builder.emitLoadMemReg(baseReg, symVar->debugStackSlotOffset(), symbolPayload->reg, storeBits);
+        }
     }
 
     MicroReg parameterSourcePhysReg(const CallConv& callConv, const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo)
@@ -482,6 +573,7 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
     materializeStackParameters(codeGen, symbolFunc, paramInfos);
     emitLocalStackFramePrologue(codeGen, callConvKind);
+    spillParametersToDebugSlots(codeGen, symbolFunc);
 
     return Result::Continue;
 }

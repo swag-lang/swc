@@ -63,13 +63,17 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         clearGvtdScratchLayout();
         frames_.clear();
         frames_.emplace_back();
+        symbolFunc.setDebugStackFrameSize(0);
+        symbolFunc.setDebugStackBaseReg(MicroReg::invalid());
 
         for (SymbolVariable* symVar : symbolFunc.parameters())
         {
             SWC_ASSERT(symVar != nullptr);
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
                 payload->hasPayload = false;
-            symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+            symVar->setCodeGenLocalSize(0);
+            symVar->setDebugStackSlotOffset(0);
+            symVar->setDebugStackSlotSize(0);
         }
 
         for (SymbolVariable* symVar : symbolFunc.localVariables())

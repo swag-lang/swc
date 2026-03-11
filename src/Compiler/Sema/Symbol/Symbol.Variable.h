@@ -35,6 +35,10 @@ public:
     void        setDefaultValueRef(ConstantRef ref) { defaultValueRef_ = ref; }
     uint32_t    codeGenLocalSize() const { return codeGenLocalSize_; }
     void        setCodeGenLocalSize(uint32_t size) { codeGenLocalSize_ = size; }
+    uint32_t    debugStackSlotOffset() const { return debugStackSlotOffset_; }
+    void        setDebugStackSlotOffset(uint32_t offset) { debugStackSlotOffset_ = offset; }
+    uint32_t    debugStackSlotSize() const { return debugStackSlotSize_; }
+    void        setDebugStackSlotSize(uint32_t size) { debugStackSlotSize_ = size; }
     void*       codeGenPayload() const { return codeGenPayload_; }
     void        setCodeGenPayload(void* payload) const { codeGenPayload_ = payload; }
     bool        hasGlobalStorage() const { return hasGlobalStorage_; }
@@ -54,6 +58,8 @@ private:
     ConstantRef     cstRef_            = ConstantRef::invalid();
     ConstantRef     defaultValueRef_   = ConstantRef::invalid();
     uint32_t        codeGenLocalSize_  = 0;
+    uint32_t        debugStackSlotOffset_ = 0;
+    uint32_t        debugStackSlotSize_   = 0;
     DataSegmentKind globalStorageKind_ = DataSegmentKind::Zero;
     bool            hasGlobalStorage_  = false;
     mutable void*   codeGenPayload_    = nullptr;

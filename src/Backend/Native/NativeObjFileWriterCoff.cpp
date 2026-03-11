@@ -2,6 +2,8 @@
 #include "Backend/Native/NativeObjFileWriterCoff.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Compiler/Sema/Symbol/Symbol.Constant.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 
@@ -9,12 +11,138 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct FunctionDebugStorage
+    {
+        std::vector<DebugInfoLocalRecord>    parameters;
+        std::vector<DebugInfoLocalRecord>    locals;
+        std::vector<DebugInfoConstantRecord> constants;
+    };
+
+    DebugInfoLocalRecord makeDebugLocalRecord(const Utf8& name, const Utf8& linkageName, const TypeRef typeRef, const bool isConst, const uint32_t offset, const MicroReg baseReg)
+    {
+        DebugInfoLocalRecord record;
+        record.name        = name;
+        record.linkageName = linkageName;
+        record.typeRef     = typeRef;
+        record.isConst     = isConst;
+        record.offset      = offset;
+        record.baseReg     = baseReg;
+        return record;
+    }
+
+    DebugInfoDataRecord makeDebugDataRecord(const Utf8& name, const Utf8& linkageName, const TypeRef typeRef, const bool isConst, const Utf8& symbolName, const Utf8& sectionName, const uint32_t symbolOffset, const bool isGlobal)
+    {
+        DebugInfoDataRecord record;
+        record.name         = name;
+        record.linkageName  = linkageName;
+        record.typeRef      = typeRef;
+        record.isConst      = isConst;
+        record.symbolName   = symbolName;
+        record.sectionName  = sectionName;
+        record.symbolOffset = symbolOffset;
+        record.isGlobal     = isGlobal;
+        return record;
+    }
+
+    DebugInfoConstantRecord makeDebugConstantRecord(const Utf8& name, const Utf8& linkageName, const TypeRef typeRef, const bool isConst, const ConstantRef valueRef)
+    {
+        DebugInfoConstantRecord record;
+        record.name        = name;
+        record.linkageName = linkageName;
+        record.typeRef     = typeRef;
+        record.isConst     = isConst;
+        record.valueRef    = valueRef;
+        return record;
+    }
+
     Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
     {
         Utf8 key = function.getFullScopedName(ctx);
         key += "|";
         key += std::to_string(function.tokRef().get());
         return std::format("__swc_ext_fn_{:08x}", Math::hash(key.view()));
+    }
+
+    Utf8 debugDataSymbolName(const TaskContext& ctx, const SymbolVariable& symbol)
+    {
+        Utf8 key = symbol.getFullScopedName(ctx);
+        key += "|";
+        key += std::to_string(symbol.tokRef().get());
+        key += "|";
+        key += std::to_string(symbol.offset());
+        return std::format("__swc_dbg_data_{:08x}", Math::hash(key.view()));
+    }
+
+    bool shouldEmitDebugVariable(const TaskContext& ctx, const SymbolVariable& symbol)
+    {
+        if (!symbol.idRef().isValid() || symbol.typeRef().isInvalid())
+            return false;
+
+        return !symbol.name(ctx).empty();
+    }
+
+    bool shouldEmitDebugConstant(const TaskContext& ctx, const SymbolConstant& symbol)
+    {
+        if (!symbol.idRef().isValid() || symbol.typeRef().isInvalid() || symbol.cstRef().isInvalid())
+            return false;
+
+        return !symbol.name(ctx).empty();
+    }
+
+    Utf8 dataSectionName(const SymbolVariable& symbol)
+    {
+        switch (symbol.globalStorageKind())
+        {
+            case DataSegmentKind::GlobalInit:
+                return ".data";
+            case DataSegmentKind::GlobalZero:
+                return ".bss";
+            default:
+                return {};
+        }
+    }
+
+    void appendDebugConstantRecord(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const SymbolConstant& symbol)
+    {
+        if (!shouldEmitDebugConstant(ctx, symbol))
+            return;
+
+        out.push_back(makeDebugConstantRecord(Utf8(symbol.name(ctx)), symbol.getFullScopedName(ctx), symbol.typeRef(), true, symbol.cstRef()));
+    }
+
+    void collectGlobalDebugConstantsRec(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const SymbolMap& symbolMap)
+    {
+        std::vector<const Symbol*> symbols;
+        symbolMap.getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            SWC_ASSERT(symbol != nullptr);
+
+            if (const auto* constant = symbol->safeCast<SymbolConstant>())
+            {
+                appendDebugConstantRecord(out, ctx, *constant);
+                continue;
+            }
+
+            if (!symbol->isModule() && !symbol->isNamespace())
+                continue;
+
+            collectGlobalDebugConstantsRec(out, ctx, *symbol->asSymMap());
+        }
+    }
+
+    void collectFunctionDebugConstants(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const SymbolFunction& function)
+    {
+        std::vector<const Symbol*> symbols;
+        function.getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            SWC_ASSERT(symbol != nullptr);
+
+            const auto* constant = symbol->safeCast<SymbolConstant>();
+            if (constant)
+                appendDebugConstantRecord(out, ctx, *constant);
+        }
     }
 }
 
@@ -56,12 +184,16 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     }
 
     std::vector<DebugInfoFunctionRecord> debugFunctions;
+    std::vector<FunctionDebugStorage>    functionDebugStorage;
+    functionDebugStorage.reserve(description.functions.size());
+
     if (description.startup)
     {
         debugFunctions.push_back({
-            .symbolName  = description.startup->symbolName,
-            .debugName   = description.startup->debugName,
-            .machineCode = &description.startup->code,
+            .symbolName    = description.startup->symbolName,
+            .debugName     = description.startup->debugName,
+            .returnTypeRef = TypeRef::invalid(),
+            .machineCode   = &description.startup->code,
         });
     }
 
@@ -70,11 +202,89 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
         if (!info)
             continue;
 
+        functionDebugStorage.emplace_back();
+        FunctionDebugStorage& debugStorage = functionDebugStorage.back();
+        const MicroReg        frameBaseReg = info->symbol ? info->symbol->debugStackBaseReg() : MicroReg::invalid();
+
+        if (info->symbol)
+        {
+            for (const SymbolVariable* symVar : info->symbol->parameters())
+            {
+                SWC_ASSERT(symVar != nullptr);
+                if (!symVar->debugStackSlotSize())
+                    continue;
+                if (!shouldEmitDebugVariable(builder_.ctx(), *symVar))
+                    continue;
+
+                debugStorage.parameters.push_back(makeDebugLocalRecord(Utf8(symVar->name(builder_.ctx())),
+                                                                       symVar->getFullScopedName(builder_.ctx()),
+                                                                       symVar->typeRef(),
+                                                                       symVar->hasExtraFlag(SymbolVariableFlagsE::Let),
+                                                                       symVar->debugStackSlotOffset(),
+                                                                       frameBaseReg));
+            }
+
+            for (const SymbolVariable* symVar : info->symbol->localVariables())
+            {
+                SWC_ASSERT(symVar != nullptr);
+                if (!symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+                    continue;
+                if (!shouldEmitDebugVariable(builder_.ctx(), *symVar))
+                    continue;
+
+                debugStorage.locals.push_back(makeDebugLocalRecord(Utf8(symVar->name(builder_.ctx())),
+                                                                   symVar->getFullScopedName(builder_.ctx()),
+                                                                   symVar->typeRef(),
+                                                                   symVar->hasExtraFlag(SymbolVariableFlagsE::Let),
+                                                                   symVar->offset(),
+                                                                   frameBaseReg));
+            }
+
+            collectFunctionDebugConstants(debugStorage.constants, builder_.ctx(), *info->symbol);
+        }
+
         debugFunctions.push_back({
-            .symbolName  = info->symbolName,
-            .debugName   = info->debugName,
-            .machineCode = info->machineCode,
+            .symbolName    = info->symbolName,
+            .debugName     = info->debugName,
+            .returnTypeRef = info->symbol ? info->symbol->returnTypeRef() : TypeRef::invalid(),
+            .machineCode   = info->machineCode,
+            .frameSize     = info->symbol ? info->symbol->debugStackFrameSize() : 0,
+            .frameBaseReg = frameBaseReg,
+            .parameters    = debugStorage.parameters,
+            .locals        = debugStorage.locals,
+            .constants     = debugStorage.constants,
         });
+    }
+
+    std::vector<DebugInfoDataRecord>     debugGlobals;
+    std::vector<DebugInfoConstantRecord> debugConstants;
+    if (description.includeData)
+    {
+        debugGlobals.reserve(builder_.regularGlobals.size());
+        for (const SymbolVariable* symbol : builder_.regularGlobals)
+        {
+            SWC_ASSERT(symbol != nullptr);
+            if (!symbol->hasGlobalStorage())
+                continue;
+            if (!shouldEmitDebugVariable(builder_.ctx(), *symbol))
+                continue;
+
+            const Utf8 sectionName = dataSectionName(*symbol);
+            if (sectionName.empty())
+                continue;
+
+            debugGlobals.push_back(makeDebugDataRecord(Utf8(symbol->name(builder_.ctx())),
+                                                       symbol->getFullScopedName(builder_.ctx()),
+                                                       symbol->typeRef(),
+                                                       symbol->hasExtraFlag(SymbolVariableFlagsE::Let),
+                                                       debugDataSymbolName(builder_.ctx(), *symbol),
+                                                       sectionName,
+                                                       symbol->offset(),
+                                                       symbol->isPublic()));
+        }
+
+        if (const SymbolModule* rootModule = builder_.compiler().symModule())
+            collectGlobalDebugConstantsRec(debugConstants, builder_.ctx(), *rootModule);
     }
 
     DebugInfoObjectResult        debugInfoResult;
@@ -83,6 +293,8 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
         .targetOs     = builder_.ctx().cmdLine().targetOs,
         .objectPath   = description.objPath,
         .functions    = debugFunctions,
+        .globals      = debugGlobals,
+        .constants    = debugConstants,
         .emitCodeView = builder_.compiler().buildCfg().backend.debugInfo,
     };
     SWC_RESULT_VERIFY(DebugInfo::buildObject(debugInfoRequest, debugInfoResult));

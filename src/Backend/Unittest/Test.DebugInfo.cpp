@@ -20,9 +20,15 @@ namespace
     constexpr uint32_t K_DEBUG_S_FILECHKSMS  = 0xF4;
     constexpr uint16_t K_S_FRAMEPROC         = 0x1012;
     constexpr uint16_t K_S_OBJNAME           = 0x1101;
+    constexpr uint16_t K_S_CONSTANT          = 0x1107;
+    constexpr uint16_t K_S_UDT               = 0x1108;
+    constexpr uint16_t K_S_LDATA32           = 0x110C;
+    constexpr uint16_t K_S_GDATA32           = 0x110D;
+    constexpr uint16_t K_S_REGREL32          = 0x1111;
     constexpr uint16_t K_S_GPROC32_ID        = 0x1147;
     constexpr uint16_t K_S_BUILDINFO         = 0x114C;
     constexpr uint16_t K_S_PROC_ID_END       = 0x114F;
+    constexpr uint16_t K_LF_MODIFIER         = 0x1001;
     constexpr uint16_t K_LF_PROCEDURE        = 0x1008;
     constexpr uint16_t K_LF_ARGLIST          = 0x1201;
     constexpr uint16_t K_LF_FUNC_ID          = 0x1601;
@@ -175,6 +181,33 @@ namespace
         return true;
     }
 
+    bool typeSectionContainsLeaf(const ByteSpan bytes, const uint16_t expectedKind)
+    {
+        if (bytes.size() < sizeof(uint32_t))
+            return false;
+        if (readU32(bytes, 0) != K_CV_TYPE_SIGNATURE)
+            return false;
+
+        uint32_t cursor = sizeof(uint32_t);
+        while (cursor + 4 <= bytes.size())
+        {
+            const uint16_t recordLength = readU16(bytes, cursor + 0);
+            if (!recordLength)
+                return false;
+
+            const uint32_t nextCursor = cursor + sizeof(uint16_t) + recordLength;
+            if (nextCursor > bytes.size())
+                return false;
+
+            if (readU16(bytes, cursor + sizeof(uint16_t)) == expectedKind)
+                return true;
+
+            cursor = nextCursor;
+        }
+
+        return cursor == bytes.size();
+    }
+
     bool fileChecksumsSubsectionContainsKind(const ByteSpan bytes, const uint8_t expectedKind, const uint8_t expectedSize)
     {
         if (bytes.size() < sizeof(uint32_t))
@@ -247,6 +280,38 @@ namespace
 
         return false;
     }
+
+    DebugInfoLocalRecord makeDebugLocalRecord(const Utf8& name, const TypeRef typeRef, const uint32_t offset, const MicroReg baseReg)
+    {
+        DebugInfoLocalRecord record;
+        record.name    = name;
+        record.typeRef = typeRef;
+        record.offset  = offset;
+        record.baseReg = baseReg;
+        return record;
+    }
+
+    DebugInfoDataRecord makeDebugDataRecord(const Utf8& name, const TypeRef typeRef, const Utf8& symbolName, const Utf8& sectionName, const uint32_t symbolOffset, const bool isGlobal)
+    {
+        DebugInfoDataRecord record;
+        record.name         = name;
+        record.typeRef      = typeRef;
+        record.symbolName   = symbolName;
+        record.sectionName  = sectionName;
+        record.symbolOffset = symbolOffset;
+        record.isGlobal     = isGlobal;
+        return record;
+    }
+
+    DebugInfoConstantRecord makeDebugConstantRecord(const Utf8& name, const TypeRef typeRef, const ConstantRef valueRef)
+    {
+        DebugInfoConstantRecord record;
+        record.name     = name;
+        record.typeRef  = typeRef;
+        record.isConst  = true;
+        record.valueRef = valueRef;
+        return record;
+    }
 }
 
 SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
@@ -316,6 +381,89 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
         K_LF_BUILDINFO,
     };
     if (!typeSectionContainsLeafs(typeBytes, EXPECTED_LEAFS))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
+{
+    MachineCode code;
+    code.bytes.push_back(std::byte{0xC3});
+
+    const ConstantRef constantRef = ctx.cstMgr().addS32(ctx, 42);
+
+    const DebugInfoLocalRecord    parameter        = makeDebugLocalRecord("arg0", ctx.typeMgr().typeS32(), 32, MicroReg::intReg(4));
+    const DebugInfoLocalRecord    local            = makeDebugLocalRecord("local0", ctx.typeMgr().typeS32(), 0, MicroReg::intReg(4));
+    const DebugInfoConstantRecord functionConstant = makeDebugConstantRecord("kLocal", ctx.typeMgr().typeS32(), constantRef);
+
+    const std::array parameters = {parameter};
+    const std::array locals     = {local};
+    const std::array fnConsts   = {functionConstant};
+
+    const DebugInfoFunctionRecord function = {
+        .symbolName    = "__swc_debug_info_vars_proc",
+        .debugName     = "debug::vars",
+        .returnTypeRef = ctx.typeMgr().typeS32(),
+        .machineCode   = &code,
+        .frameSize     = 32,
+        .frameBaseReg  = MicroReg::intReg(4),
+        .parameters    = parameters,
+        .locals        = locals,
+        .constants     = fnConsts,
+    };
+
+    const DebugInfoDataRecord     global         = makeDebugDataRecord("gValue", ctx.typeMgr().typeS32(), "__swc_dbg_data_test_global", ".data", 16, true);
+    const DebugInfoConstantRecord globalConstant = makeDebugConstantRecord("kGlobal", ctx.typeMgr().typeS32(), constantRef);
+
+    const std::array functions = {function};
+    const std::array globals   = {global};
+    const std::array constants = {globalConstant};
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &ctx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-vars.obj"),
+        .functions    = functions,
+        .globals      = globals,
+        .constants    = constants,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT_VERIFY(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+    if (debugSection->relocations.size() != 4)
+        return Result::Error;
+
+    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    if (!symbolsSubsectionContainsRecord(debugBytes, K_S_REGREL32))
+        return Result::Error;
+    if (!symbolsSubsectionContainsRecord(debugBytes, K_S_GDATA32) && !symbolsSubsectionContainsRecord(debugBytes, K_S_LDATA32))
+        return Result::Error;
+    if (!symbolsSubsectionContainsRecord(debugBytes, K_S_CONSTANT))
+        return Result::Error;
+
+    const NativeSectionData* typeSection = findSection(debugInfo, ".debug$T");
+    if (!typeSection)
+        return Result::Error;
+    const ByteSpan typeBytes = asByteSpan(typeSection->bytes);
+    if (!typeSectionContainsLeaf(typeBytes, K_LF_MODIFIER))
+        return Result::Error;
+
+    bool sawDebugGlobal = false;
+    for (const DebugInfoDefinedSymbol& symbol : debugInfo.symbols)
+    {
+        if (symbol.name != "__swc_dbg_data_test_global")
+            continue;
+
+        sawDebugGlobal = symbol.sectionName == ".data" && symbol.value == 16;
+        break;
+    }
+
+    if (!sawDebugGlobal)
         return Result::Error;
 }
 SWC_TEST_END()

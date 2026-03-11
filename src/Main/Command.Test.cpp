@@ -22,12 +22,6 @@ namespace
         Test,
     };
 
-    struct SourceSuiteClassification
-    {
-        TestSuiteKind kind      = TestSuiteKind::Unknown;
-        bool          hasSource = false;
-    };
-
     struct SourceSuiteBuckets
     {
         std::vector<fs::path> syntaxFiles;
@@ -62,7 +56,7 @@ namespace
         return true;
     }
 
-    void collectSwagFilesRec(const CommandLine& cmdLine, const fs::path& folder, std::vector<fs::path>& files)
+    void collectSwagFilesRec(std::vector<fs::path>& outFiles, const CommandLine& cmdLine, const fs::path& folder)
     {
         std::error_code ec;
         for (fs::recursive_directory_iterator it(folder, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
@@ -87,33 +81,8 @@ namespace
             if (!pathMatchesFilter(cmdLine, path))
                 continue;
 
-            files.push_back(path);
+            outFiles.push_back(path);
         }
-    }
-
-    void collectInputFiles(const CommandLine& cmdLine, std::vector<fs::path>& files)
-    {
-        std::vector<fs::path> collected;
-        for (const fs::path& folder : cmdLine.directories)
-        {
-            collected.clear();
-            collectSwagFilesRec(cmdLine, folder, collected);
-            if (cmdLine.numCores == 1)
-                std::ranges::sort(collected);
-            files.insert(files.end(), collected.begin(), collected.end());
-        }
-
-        collected.clear();
-        for (const fs::path& file : cmdLine.files)
-        {
-            if (!pathMatchesFilter(cmdLine, file))
-                continue;
-            collected.push_back(file);
-        }
-
-        if (cmdLine.numCores == 1)
-            std::ranges::sort(collected);
-        files.insert(files.end(), collected.begin(), collected.end());
     }
 
     void replaceCrLf(std::string& content)
@@ -127,66 +96,114 @@ namespace
                content.contains(std::string(VERIFY_OPTION_PREFIX_B) + std::string(option));
     }
 
-    SourceSuiteClassification classifySourceFile(const fs::path& path)
+    bool classifySourceFile(TestSuiteKind& outKind, const fs::path& path)
     {
+        outKind = TestSuiteKind::Unknown;
+
         std::ifstream file(path, std::ios::binary | std::ios::ate);
         if (!file)
-            return {};
+            return false;
 
         const std::streamsize fileSize = file.tellg();
         if (fileSize <= 0)
-            return {};
+            return false;
 
         std::string content;
         content.resize(static_cast<size_t>(fileSize));
         file.seekg(0, std::ios::beg);
         if (!file.read(content.data(), fileSize))
-            return {};
+            return false;
 
         replaceCrLf(content);
 
         if (containsVerifyOption(content, VERIFY_SUITE_SYNTAX))
-            return {.kind = TestSuiteKind::Syntax, .hasSource = true};
-        if (containsVerifyOption(content, VERIFY_SUITE_SEMA))
-            return {.kind = TestSuiteKind::Sema, .hasSource = true};
-        if (containsVerifyOption(content, VERIFY_SUITE_TEST))
-            return {.kind = TestSuiteKind::Test, .hasSource = true};
-        if (containsVerifyOption(content, VERIFY_LEX_ONLY))
-            return {.kind = TestSuiteKind::Syntax, .hasSource = true};
-        if (content.contains(EXPECTED_PARSER_ID) || content.contains(EXPECTED_LEX_ID))
-            return {.kind = TestSuiteKind::Syntax, .hasSource = true};
-        if (content.contains("#run") || content.contains(EXPECTED_SEMA_ID))
-            return {.kind = TestSuiteKind::Sema, .hasSource = true};
-
-        return {};
-    }
-
-    SourceSuiteBuckets bucketStandaloneSourceSuites(const std::vector<fs::path>& inputFiles)
-    {
-        SourceSuiteBuckets result;
-        result.semaFiles.reserve(inputFiles.size());
-
-        for (const fs::path& path : inputFiles)
         {
-            const SourceSuiteClassification classification = classifySourceFile(path);
-            result.hasSourceHints |= classification.hasSource;
-
-            switch (classification.kind)
-            {
-                case TestSuiteKind::Syntax:
-                    result.syntaxFiles.push_back(path);
-                    break;
-                case TestSuiteKind::Test:
-                    result.testFiles.push_back(path);
-                    break;
-                case TestSuiteKind::Sema:
-                case TestSuiteKind::Unknown:
-                    result.semaFiles.push_back(path);
-                    break;
-            }
+            outKind = TestSuiteKind::Syntax;
+            return true;
         }
 
-        return result;
+        if (containsVerifyOption(content, VERIFY_SUITE_SEMA))
+        {
+            outKind = TestSuiteKind::Sema;
+            return true;
+        }
+
+        if (containsVerifyOption(content, VERIFY_SUITE_TEST))
+        {
+            outKind = TestSuiteKind::Test;
+            return true;
+        }
+
+        if (containsVerifyOption(content, VERIFY_LEX_ONLY))
+        {
+            outKind = TestSuiteKind::Syntax;
+            return true;
+        }
+
+        if (content.contains(EXPECTED_PARSER_ID) || content.contains(EXPECTED_LEX_ID))
+        {
+            outKind = TestSuiteKind::Syntax;
+            return true;
+        }
+
+        if (content.contains("#run") || content.contains(EXPECTED_SEMA_ID))
+        {
+            outKind = TestSuiteKind::Sema;
+            return true;
+        }
+
+        return false;
+    }
+
+    void appendStandaloneSourceFile(SourceSuiteBuckets& outBuckets, const fs::path& path)
+    {
+        TestSuiteKind kind           = TestSuiteKind::Unknown;
+        const bool    hasSourceHints = classifySourceFile(kind, path);
+        outBuckets.hasSourceHints |= hasSourceHints;
+
+        switch (kind)
+        {
+            case TestSuiteKind::Syntax:
+                outBuckets.syntaxFiles.push_back(path);
+                break;
+            case TestSuiteKind::Test:
+                outBuckets.testFiles.push_back(path);
+                break;
+            case TestSuiteKind::Sema:
+            case TestSuiteKind::Unknown:
+                outBuckets.semaFiles.push_back(path);
+                break;
+        }
+    }
+
+    void collectStandaloneSourceSuites(SourceSuiteBuckets& outBuckets, const CommandLine& cmdLine)
+    {
+        std::vector<fs::path> collected;
+
+        for (const fs::path& folder : cmdLine.directories)
+        {
+            collected.clear();
+            collectSwagFilesRec(collected, cmdLine, folder);
+            if (cmdLine.numCores == 1)
+                std::ranges::sort(collected);
+
+            for (const fs::path& path : collected)
+                appendStandaloneSourceFile(outBuckets, path);
+        }
+
+        collected.clear();
+        for (const fs::path& path : cmdLine.files)
+        {
+            if (!pathMatchesFilter(cmdLine, path))
+                continue;
+            collected.push_back(path);
+        }
+
+        if (cmdLine.numCores == 1)
+            std::ranges::sort(collected);
+
+        for (const fs::path& path : collected)
+            appendStandaloneSourceFile(outBuckets, path);
     }
 
     bool usesAllBackendKinds(const CommandLine& cmdLine)
@@ -197,61 +214,6 @@ namespace
     bool hasNewErrors(const uint64_t errorsBefore)
     {
         return Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore;
-    }
-
-    void runNativeTestCommand(CompilerInstance& compiler);
-
-    bool runCompilerSubset(const CompilerInstance& compiler, CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {}, const bool clearOutputs = true)
-    {
-        if (files.empty())
-            return true;
-
-        CommandLine cmdLine = compiler.cmdLine();
-        cmdLine.command     = command;
-        cmdLine.directories.clear();
-        cmdLine.files.clear();
-        cmdLine.modulePath.clear();
-        cmdLine.files.insert(files.begin(), files.end());
-        cmdLine.clear = cmdLine.clear && clearOutputs;
-        if (!backendKindName.empty())
-            cmdLine.backendKindName = backendKindName;
-        if (command == CommandKind::Syntax)
-            cmdLine.runtime = false;
-
-        CommandLineParser::refreshBuildCfg(cmdLine);
-
-        const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
-        CompilerInstance subCompiler(compiler.global(), cmdLine);
-
-        switch (command)
-        {
-            case CommandKind::Syntax:
-                Command::syntax(subCompiler);
-                break;
-            case CommandKind::Sema:
-                Command::sema(subCompiler);
-                break;
-            case CommandKind::Test:
-                Command::test(subCompiler);
-                break;
-            default:
-                SWC_UNREACHABLE();
-        }
-
-        return !hasNewErrors(errorsBefore);
-    }
-
-    bool runLegacyTestBackend(const CompilerInstance& compiler, std::string_view backendKind, const bool clearOutputs)
-    {
-        CommandLine cmdLine     = compiler.cmdLine();
-        cmdLine.backendKindName = backendKind;
-        cmdLine.clear           = cmdLine.clear && clearOutputs;
-        CommandLineParser::refreshBuildCfg(cmdLine);
-
-        const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
-        CompilerInstance subCompiler(compiler.global(), cmdLine);
-        runNativeTestCommand(subCompiler);
-        return !hasNewErrors(errorsBefore);
     }
 
     Result prepareJitFunction(TaskContext& ctx, SymbolFunction& symbol)
@@ -282,7 +244,7 @@ namespace
 
     Result runJitFunctions(TaskContext& ctx, const std::vector<SymbolFunction*>& functions)
     {
-        for (SymbolFunction* symbol : functions)
+        for (SymbolFunction* const symbol : functions)
         {
             if (!symbol)
                 continue;
@@ -307,7 +269,7 @@ namespace
         if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
             return;
 
-        for (SourceFile* file : ctx.compiler().files())
+        for (SourceFile* const file : ctx.compiler().files())
         {
             if (!file)
                 continue;
@@ -319,48 +281,104 @@ namespace
         }
     }
 
-    void runNativeTestCommand(CompilerInstance& compiler)
+    bool runNativeBackend(CompilerInstance& compiler, const Runtime::BuildCfgBackendKind backendKind, const bool runArtifact)
     {
-        Command::sema(compiler);
-        if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
-            return;
+        compiler.buildCfg().backendKind = backendKind;
 
-        const bool           runArtifact = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
         NativeBackendBuilder builder(compiler, runArtifact);
         if (builder.run() != Result::Continue)
-            return;
-        if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
-            return;
+            return false;
 
-        if (runCollectedJitTests(builder.ctx()) != Result::Continue)
-            return;
-
-        verifyExpectedMarkers(builder.ctx());
+        return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
 
-    bool runFullTestBackends(CompilerInstance& compiler, const std::vector<fs::path>* files = nullptr)
+    bool runNativeTestBackends(CompilerInstance& compiler)
     {
+        struct RestoreBackendKind final
+        {
+            CompilerInstance&             compiler;
+            Runtime::BuildCfgBackendKind  backendKind;
+
+            ~RestoreBackendKind()
+            {
+                compiler.buildCfg().backendKind = backendKind;
+            }
+        };
+
+        const RestoreBackendKind restore{.compiler = compiler, .backendKind = compiler.buildCfg().backendKind};
+
         if (!usesAllBackendKinds(compiler.cmdLine()))
         {
-            if (files)
-                return runCompilerSubset(compiler, CommandKind::Test, *files, compiler.cmdLine().backendKindName);
+            const Runtime::BuildCfgBackendKind backendKind = compiler.buildCfg().backendKind;
+            if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
+                return false;
 
-            runNativeTestCommand(compiler);
+            TaskContext ctx(compiler);
+            if (runCollectedJitTests(ctx) != Result::Continue)
+                return false;
+
+            verifyExpectedMarkers(ctx);
             return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
         }
 
-        bool clearOutputs = compiler.cmdLine().clear;
-        for (const std::string_view backendKind : {std::string_view("exe"), std::string_view("dll"), std::string_view("lib")})
+        for (const Runtime::BuildCfgBackendKind backendKind : {Runtime::BuildCfgBackendKind::Executable, Runtime::BuildCfgBackendKind::Library, Runtime::BuildCfgBackendKind::Export})
         {
-            const bool ok = files
-                                ? runCompilerSubset(compiler, CommandKind::Test, *files, backendKind, clearOutputs)
-                                : runLegacyTestBackend(compiler, backendKind, clearOutputs);
-            if (!ok)
+            if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
                 return false;
-            clearOutputs = false;
         }
 
-        return true;
+        compiler.buildCfg().backendKind = restore.backendKind;
+
+        TaskContext ctx(compiler);
+        if (runCollectedJitTests(ctx) != Result::Continue)
+            return false;
+
+        verifyExpectedMarkers(ctx);
+        return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
+    }
+
+    bool runCompilerSubset(const CompilerInstance& compiler, const CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {})
+    {
+        if (files.empty())
+            return true;
+
+        CommandLine cmdLine = compiler.cmdLine();
+        cmdLine.command     = command;
+        cmdLine.directories.clear();
+        cmdLine.files.clear();
+        cmdLine.modulePath.clear();
+        cmdLine.files.insert(files.begin(), files.end());
+        if (!backendKindName.empty())
+            cmdLine.backendKindName = backendKindName;
+        if (command == CommandKind::Syntax)
+            cmdLine.runtime = false;
+
+        CommandLineParser::refreshBuildCfg(cmdLine);
+
+        const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+        CompilerInstance subCompiler(compiler.global(), cmdLine);
+
+        switch (command)
+        {
+            case CommandKind::Syntax:
+                Command::syntax(subCompiler);
+                break;
+
+            case CommandKind::Sema:
+                Command::sema(subCompiler);
+                break;
+
+            case CommandKind::Test:
+                Command::sema(subCompiler);
+                if (Stats::get().numErrors.load(std::memory_order_relaxed) == 0)
+                    runNativeTestBackends(subCompiler);
+                break;
+
+            default:
+                SWC_UNREACHABLE();
+        }
+
+        return !hasNewErrors(errorsBefore);
     }
 
     bool runStandaloneSourceDrivenSuites(CompilerInstance& compiler)
@@ -371,15 +389,11 @@ namespace
         if (cmdLine.directories.empty() && cmdLine.files.empty())
             return false;
 
-        std::vector<fs::path> inputFiles;
-        collectInputFiles(cmdLine, inputFiles);
-        if (inputFiles.empty())
-            return false;
-
-        const SourceSuiteBuckets buckets = bucketStandaloneSourceSuites(inputFiles);
+        SourceSuiteBuckets buckets;
+        collectStandaloneSourceSuites(buckets, cmdLine);
         if (!buckets.hasSourceHints)
             return false;
-        if (buckets.syntaxFiles.empty() && buckets.semaFiles.empty())
+        if (buckets.syntaxFiles.empty() && buckets.semaFiles.empty() && buckets.testFiles.empty())
             return false;
 
         if (!runCompilerSubset(compiler, CommandKind::Syntax, buckets.syntaxFiles))
@@ -387,8 +401,20 @@ namespace
         if (!runCompilerSubset(compiler, CommandKind::Sema, buckets.semaFiles))
             return true;
 
-        runFullTestBackends(compiler, &buckets.testFiles);
+        runCompilerSubset(compiler, CommandKind::Test, buckets.testFiles, compiler.cmdLine().backendKindName);
         return true;
+    }
+
+    void runTestCommand(CompilerInstance& compiler)
+    {
+        if (runStandaloneSourceDrivenSuites(compiler))
+            return;
+
+        Command::sema(compiler);
+        if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
+            return;
+
+        runNativeTestBackends(compiler);
     }
 }
 
@@ -396,16 +422,7 @@ namespace Command
 {
     void test(CompilerInstance& compiler)
     {
-        if (runStandaloneSourceDrivenSuites(compiler))
-            return;
-
-        if (usesAllBackendKinds(compiler.cmdLine()))
-        {
-            runFullTestBackends(compiler);
-            return;
-        }
-
-        runNativeTestCommand(compiler);
+        runTestCommand(compiler);
     }
 }
 

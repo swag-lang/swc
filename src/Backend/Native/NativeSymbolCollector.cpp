@@ -172,7 +172,7 @@ Result NativeSymbolCollector::scheduleCodeGen() const
         return Result::Continue;
 
     SourceFile* firstFile = nullptr;
-    for (SourceFile* file : builder_.compiler().files())
+    for (SourceFile* const file : builder_.compiler().files())
     {
         if (file)
         {

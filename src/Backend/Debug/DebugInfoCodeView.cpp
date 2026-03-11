@@ -469,12 +469,29 @@ namespace
         return {fs::path(primarySource.c_str()).filename().string()};
     }
 
+    std::string_view buildInfoBackendKindName(const Runtime::BuildCfgBackendKind backendKind)
+    {
+        switch (backendKind)
+        {
+            case Runtime::BuildCfgBackendKind::Executable:
+                return "exe";
+            case Runtime::BuildCfgBackendKind::Library:
+                return "dll";
+            case Runtime::BuildCfgBackendKind::Export:
+                return "lib";
+            case Runtime::BuildCfgBackendKind::None:
+                return "none";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
     Utf8 buildInfoCommandLine(const TaskContext& ctx)
     {
         return std::format("{} --cfg {} --backend-kind {} --target-arch {}",
                            codeViewPathString(Os::getExeFullName()),
                            ctx.cmdLine().buildCfg,
-                           ctx.cmdLine().backendKindName,
+                           buildInfoBackendKindName(ctx.compiler().buildCfg().backendKind),
                            ctx.cmdLine().targetArchName);
     }
 

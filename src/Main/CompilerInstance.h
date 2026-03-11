@@ -120,8 +120,8 @@ public:
     const SourceView& srcView(SourceViewRef ref) const;
     const SourceView* findSourceViewByFileName(std::string_view fileName) const;
 
-    Result                   collectFiles(TaskContext& ctx);
-    std::vector<SourceFile*> files() const;
+    Result                         collectFiles(TaskContext& ctx);
+    std::span<SourceFile* const>   files() const;
 
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
@@ -152,6 +152,7 @@ private:
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>> files_;
+    std::vector<SourceFile*>                 filePtrs_;
     std::vector<std::unique_ptr<SourceView>> srcViews_;
     std::unique_ptr<TypeManager>             typeMgr_;
     std::unique_ptr<TypeGen>                 typeGen_;

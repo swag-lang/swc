@@ -29,7 +29,7 @@ namespace Command
             return;
 
         // Parser
-        for (SourceFile* f : compiler.files())
+        for (SourceFile* const f : compiler.files())
         {
             auto* job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
@@ -39,7 +39,8 @@ namespace Command
 
         // Filter files
         std::vector<SourceFile*> files;
-        for (SourceFile* f : compiler.files())
+        files.reserve(compiler.files().size());
+        for (SourceFile* const f : compiler.files())
         {
             const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
@@ -57,7 +58,7 @@ namespace Command
         symModule->addSingleSymbol(ctx, moduleNamespace);
         compiler.setSymModule(symModule);
 
-        for (SourceFile* f : files)
+        for (SourceFile* const f : files)
         {
             f->setModuleNamespace(*moduleNamespace);
             auto* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), true);
@@ -66,7 +67,7 @@ namespace Command
 
         jobMgr.waitAll(clientId);
 
-        for (SourceFile* f : files)
+        for (SourceFile* const f : files)
         {
             auto* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), false);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);

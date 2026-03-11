@@ -576,26 +576,31 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 
     auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
+    filePtrs_.push_back(files_.back().get());
 #if SWC_HAS_REF_DEBUG_INFO
     fileRef.dbgPtr = files_.back().get();
 #endif
     return *files_.back();
 }
 
-std::vector<SourceFile*> CompilerInstance::files() const
+std::span<SourceFile* const> CompilerInstance::files() const
 {
     SWC_RACE_CONDITION_READ(rcFiles_);
-    std::vector<SourceFile*> result;
-    result.reserve(files_.size());
-    for (const std::unique_ptr<SourceFile>& f : files_)
-        result.push_back(f.get());
-    return result;
+    return filePtrs_;
 }
 
 Result CompilerInstance::collectFiles(TaskContext& ctx)
 {
     const CommandLine&    cmdLine = ctx.cmdLine();
     std::vector<fs::path> paths;
+
+    const auto reserveFiles = [this](const size_t count) {
+        if (!count)
+            return;
+
+        files_.reserve(files_.size() + count);
+        filePtrs_.reserve(filePtrs_.size() + count);
+    };
 
     // Collect direct folders from the command line
     for (const fs::path& folder : cmdLine.directories)
@@ -604,6 +609,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         collectSwagFilesRec(cmdLine, folder, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
+        reserveFiles(paths.size());
         for (const fs::path& f : paths)
             addFile(f, FileFlagsE::CustomSrc);
     }
@@ -614,6 +620,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         paths.push_back(file);
     if (cmdLine.numCores == 1)
         std::ranges::sort(paths);
+    reserveFiles(paths.size());
     for (const fs::path& f : paths)
         addFile(f, FileFlagsE::CustomSrc);
 
@@ -630,6 +637,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         collectSwagFilesRec(cmdLine, modulePathSrc_, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
+        reserveFiles(paths.size());
         for (const fs::path& f : paths)
             addFile(f, FileFlagsE::ModuleSrc);
     }
@@ -643,9 +651,12 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         collectSwagFilesRec(cmdLine, runtimePath, paths, false);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
+        reserveFiles(paths.size());
         for (const fs::path& f : paths)
             addFile(f, FileFlagsE::Runtime);
     }
+
+    srcViews_.reserve(files_.size());
 
     if (files_.empty())
     {

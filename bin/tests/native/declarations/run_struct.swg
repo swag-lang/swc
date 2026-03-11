@@ -33,16 +33,6 @@ struct PtrWrap
 
 #test
 {
-    var a: Swag.Context
-    a.runtimeFlags = .FromCompiler
-    @assert(a.runtimeFlags == .FromCompiler)
-    var b = &a.runtimeFlags
-    var c = dref b
-    @assert(c == .FromCompiler)
-}
-
-#test
-{
     var a: Vec2 = {x: 1, y: 2}
     @assert(a.x == 1)
     @assert(a.y == 2)

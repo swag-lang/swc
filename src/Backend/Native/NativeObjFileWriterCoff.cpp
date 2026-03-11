@@ -173,6 +173,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     {
         CoffSectionBuild section;
         section.data = builder_.mergedData;
+        SWC_RESULT_VERIFY(applySectionRelocations(section));
         sections.push_back(std::move(section));
     }
 

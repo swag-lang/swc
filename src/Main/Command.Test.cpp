@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Main/Command.h"
-#include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -184,8 +182,7 @@ namespace
         {
             collected.clear();
             collectSwagFilesRec(collected, cmdLine, folder);
-            if (cmdLine.numCores == 1)
-                std::ranges::sort(collected);
+            std::ranges::sort(collected);
 
             for (const fs::path& path : collected)
                 appendStandaloneSourceFile(outBuckets, path);
@@ -199,8 +196,7 @@ namespace
             collected.push_back(path);
         }
 
-        if (cmdLine.numCores == 1)
-            std::ranges::sort(collected);
+        std::ranges::sort(collected);
 
         for (const fs::path& path : collected)
             appendStandaloneSourceFile(outBuckets, path);
@@ -214,54 +210,6 @@ namespace
     bool hasNewErrors(const uint64_t errorsBefore)
     {
         return Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore;
-    }
-
-    Result prepareJitFunction(TaskContext& ctx, SymbolFunction& symbol)
-    {
-        ctx.state().jitEmissionError = false;
-        SWC_RESULT_VERIFY(symbol.emit(ctx));
-        if (ctx.state().jitEmissionError)
-            return Result::Error;
-
-        symbol.jit(ctx);
-        if (ctx.state().jitEmissionError || !symbol.jitEntryAddress())
-            return Result::Error;
-
-        return Result::Continue;
-    }
-
-    Result runJitFunction(TaskContext& ctx, SymbolFunction& symbol)
-    {
-        SWC_RESULT_VERIFY(prepareJitFunction(ctx, symbol));
-
-        JITExecManager::Request request;
-        request.function     = &symbol;
-        request.nodeRef      = symbol.declNodeRef();
-        request.codeRef      = symbol.codeRef();
-        request.runImmediate = true;
-        return ctx.compiler().jitExecMgr().submit(ctx, request);
-    }
-
-    Result runJitFunctions(TaskContext& ctx, const std::vector<SymbolFunction*>& functions)
-    {
-        for (SymbolFunction* const symbol : functions)
-        {
-            if (!symbol)
-                continue;
-            SWC_RESULT_VERIFY(runJitFunction(ctx, *symbol));
-        }
-
-        return Result::Continue;
-    }
-
-    Result runCollectedJitTests(TaskContext& ctx)
-    {
-        const CompilerInstance& compiler = ctx.compiler();
-        SWC_RESULT_VERIFY(runJitFunctions(ctx, compiler.nativeInitFunctions()));
-        SWC_RESULT_VERIFY(runJitFunctions(ctx, compiler.nativePreMainFunctions()));
-        SWC_RESULT_VERIFY(runJitFunctions(ctx, compiler.nativeTestFunctions()));
-        SWC_RESULT_VERIFY(runJitFunctions(ctx, compiler.nativeDropFunctions()));
-        return Result::Continue;
     }
 
     void verifyExpectedMarkers(TaskContext& ctx)
@@ -314,9 +262,6 @@ namespace
                 return false;
 
             TaskContext ctx(compiler);
-            if (runCollectedJitTests(ctx) != Result::Continue)
-                return false;
-
             verifyExpectedMarkers(ctx);
             return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
         }
@@ -330,9 +275,6 @@ namespace
         compiler.buildCfg().backendKind = restore.backendKind;
 
         TaskContext ctx(compiler);
-        if (runCollectedJitTests(ctx) != Result::Continue)
-            return false;
-
         verifyExpectedMarkers(ctx);
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }

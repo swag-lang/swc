@@ -28,12 +28,14 @@ public:
 
     uint32_t pageSize() const noexcept { return pageSizeValue_; }
     uint32_t size() const noexcept;
+    uint32_t extentSize() const noexcept;
 #if SWC_HAS_STATS
     uint64_t allocatedBytes() const noexcept;
 #endif
     uint8_t* seekPtr() const noexcept { return lastPtr_; }
     void     clear() noexcept;
     void     copyTo(ByteSpanRW dst) const;
+    void     copyToPreserveOffsets(ByteSpanRW dst) const;
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
     uint8_t* pushU16(uint16_t v) { return pushPod(v); }

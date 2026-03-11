@@ -247,6 +247,8 @@ bool MicroConstantPropagationPass::tryTrackConstantPointerStackCopy(uint64_t sta
     const auto itConstPtr = knownConstantPointers_.find(prevOps[1].reg);
     if (itConstPtr == knownConstantPointers_.end())
         return false;
+    if (constantPointerRangeHasRelocation(itConstPtr->second, slotNumBytes))
+        return false;
 
     const uint64_t            constantOffset = itConstPtr->second.offset + prevOps[3].valueU64;
     std::array<std::byte, 16> bytes{};
@@ -355,8 +357,9 @@ void MicroConstantPropagationPass::updateKnownConstantPointersForInstruction(Mic
             if (canTrackConstantPointer && ops[2].valueU64)
             {
                 knownConstantPointers_[ops[0].reg] = {
-                    .pointer = ops[2].valueU64,
-                    .offset  = 0,
+                    .pointer     = ops[2].valueU64,
+                    .offset      = 0,
+                    .constantRef = itRelocation->second->constantRef,
                 };
             }
             else

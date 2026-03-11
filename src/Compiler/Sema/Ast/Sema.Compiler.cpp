@@ -653,6 +653,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     }
 
     std::string_view name;
+    bool             registerCompilerEntry = false;
     switch (tok.id)
     {
         case TokenId::CompilerRun:
@@ -661,18 +662,23 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
             break;
         case TokenId::CompilerFuncTest:
             name = "test";
+            registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncInit:
             name = "init";
+            registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncDrop:
             name = "drop";
+            registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncMain:
             name = "main";
+            registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncPreMain:
             name = "premain";
+            registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncMessage:
             name = "message";
@@ -685,6 +691,8 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     auto& sym = SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, *this, name);
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
     sym.setDeclNodeRef(sema.curNodeRef());
+    if (registerCompilerEntry)
+        ctx.compiler().registerCompilerEntryFunction(&sym);
     return Result::SkipChildren;
 }
 

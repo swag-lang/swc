@@ -26,8 +26,9 @@ private:
     void sortAndUnique(std::vector<T*>& values) const;
 
     Result               collectSymbols();
+    void                 collectCompilerEntryFunctions();
     void                 collectSymbolsRec(const SymbolMap& symbolMap);
-    void                 collectFunction(SymbolFunction& symbol) const;
+    void                 collectFunction(SymbolFunction& symbol);
     Result               scheduleCodeGen() const;
     CompilerFunctionKind classifyCompilerFunction(const SymbolFunction& symbol) const;
     static bool          isCompilerFunction(const SymbolFunction& symbol);
@@ -36,6 +37,7 @@ private:
     Utf8                 makeSortKey(const SymbolVariable& symbol) const;
 
     NativeBackendBuilder& builder_;
+    std::unordered_set<SymbolFunction*> seenFunctions_;
 };
 
 template<typename T>

@@ -108,6 +108,8 @@ public:
 
     bool                     registerForeignLib(std::string_view name);
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
+    void                     registerCompilerEntryFunction(SymbolFunction* symbol);
+    void                     appendCompilerEntryFunctions(std::vector<SymbolFunction*>& out) const;
     void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
 
@@ -193,6 +195,7 @@ private:
     std::atomic<uint32_t>                              pendingImplRegistrations_ = 0;
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;
+    std::vector<SymbolFunction*>                       compilerEntryFunctions_;
     std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
     std::once_flag                                     nativeRuntimeContextTlsIdOffsetOnce_;
     uint32_t                                           nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;

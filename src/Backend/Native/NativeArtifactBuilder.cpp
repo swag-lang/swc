@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Math/Helpers.h"
@@ -10,6 +11,66 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr std::string_view K_NATIVE_TEMP_FOLDER = "swc_native";
+
+    Utf8 constantKindName(const ConstantKind kind)
+    {
+        switch (kind)
+        {
+            case ConstantKind::Invalid:
+                return "invalid";
+            case ConstantKind::Bool:
+                return "bool";
+            case ConstantKind::Char:
+                return "char";
+            case ConstantKind::Rune:
+                return "rune";
+            case ConstantKind::String:
+                return "string";
+            case ConstantKind::Int:
+                return "int";
+            case ConstantKind::Float:
+                return "float";
+            case ConstantKind::ValuePointer:
+                return "value-pointer";
+            case ConstantKind::BlockPointer:
+                return "block-pointer";
+            case ConstantKind::Slice:
+                return "slice";
+            case ConstantKind::Null:
+                return "null";
+            case ConstantKind::Undefined:
+                return "undefined";
+            case ConstantKind::TypeValue:
+                return "type-value";
+            case ConstantKind::EnumValue:
+                return "enum-value";
+            case ConstantKind::Struct:
+                return "struct";
+            case ConstantKind::AggregateStruct:
+                return "aggregate-struct";
+            case ConstantKind::Array:
+                return "array";
+            case ConstantKind::AggregateArray:
+                return "aggregate-array";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    Utf8 constantTypeName(const TaskContext& ctx, const ConstantValue& constant)
+    {
+        if (!constant.typeRef().isValid())
+            return "<invalid>";
+        return ctx.typeMgr().get(constant.typeRef()).toName(ctx);
+    }
+
+    void setConstantValidationFailure(Utf8* outTypeName, Utf8* outDetail, const Utf8& typeName, const Utf8& detail)
+    {
+        if (outTypeName)
+            *outTypeName = typeName;
+        if (outDetail)
+            *outDetail = detail;
+    }
 
     bool isZeroFilled(const ByteSpan bytes)
     {
@@ -130,9 +191,6 @@ Result NativeArtifactBuilder::validateNativeData() const
         return builder_.reportError(DiagnosticId::cmd_err_native_constant_segment_unsupported);
     if (!compiler.globalZeroSegment().relocations().empty())
         return builder_.reportError(DiagnosticId::cmd_err_native_global_zero_relocations_unsupported);
-    if (!compiler.globalInitSegment().relocations().empty())
-        return builder_.reportError(DiagnosticId::cmd_err_native_global_init_relocations_unsupported);
-
     for (const SymbolVariable* symbol : builder_.regularGlobals)
     {
         if (!symbol)
@@ -172,7 +230,7 @@ bool NativeArtifactBuilder::isNativeStaticType(const TypeRef typeRef) const
     if (typeInfo.isEnum())
         return isNativeStaticType(typeInfo.payloadSymEnum().underlyingTypeRef());
 
-    if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
+    if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString())
         return true;
 
     if (typeInfo.isArray())
@@ -234,12 +292,12 @@ Result NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, c
             }
 
             case MicroRelocation::Kind::GlobalZeroAddress:
-                if (builder_.compiler().globalZeroSegment().size() == 0)
+                if (builder_.compiler().globalZeroSegment().extentSize() == 0)
                     return builder_.reportError(DiagnosticId::cmd_err_native_empty_global_zero_segment, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
                 break;
 
             case MicroRelocation::Kind::GlobalInitAddress:
-                if (builder_.compiler().globalInitSegment().size() == 0)
+                if (builder_.compiler().globalInitSegment().extentSize() == 0)
                     return builder_.reportError(DiagnosticId::cmd_err_native_empty_global_init_segment, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
                 break;
 
@@ -249,8 +307,23 @@ Result NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, c
                 const Ref ref        = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
                 if (ref == INVALID_REF)
                     return builder_.reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
-                if (!validateConstantRelocation(relocation))
-                    return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, owner.getFullScopedName(builder_.ctx()));
+                Utf8 typeName;
+                Utf8 detail;
+                if (!validateConstantRelocation(relocation, &typeName, &detail))
+                {
+                    TaskContext&      ctx     = const_cast<TaskContext&>(builder_.ctx());
+                    const SourceView& srcView = ctx.compiler().srcView(owner.srcViewRef());
+                    const Utf8        ownerName = owner.getFullScopedName(ctx);
+
+                    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_constant_payload_unsupported, srcView.fileRef());
+                    diag.last().addSpan(srcView.tokenCodeRange(ctx, owner.tokRef()), "", DiagnosticSeverity::Error);
+                    diag.last().setMessage(std::format("function '{}' references unsupported constant payload for type '{}' ({})",
+                                                       ownerName,
+                                                       typeName.empty() ? Utf8("<unknown>") : typeName,
+                                                       detail.empty() ? Utf8("native static validation failed") : detail));
+                    diag.report(ctx);
+                    return Result::Error;
+                }
                 break;
             }
         }
@@ -259,37 +332,83 @@ Result NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, c
     return Result::Continue;
 }
 
-bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& relocation) const
+bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& relocation, Utf8* outTypeName, Utf8* outDetail) const
 {
     if (!relocation.constantRef.isValid())
+    {
+        setConstantValidationFailure(outTypeName, outDetail, "<unknown>", "missing constant reference");
         return false;
+    }
 
     uint32_t  shardIndex = 0;
     const Ref baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
-    if (baseOffset == INVALID_REF)
-        return false;
-
     const ConstantValue& constant = builder_.compiler().cstMgr().get(relocation.constantRef);
-    switch (constant.kind())
+    const Utf8           typeName = constantTypeName(builder_.ctx(), constant);
+    if (baseOffset == INVALID_REF)
     {
-        case ConstantKind::Struct:
-            return relocation.targetAddress == reinterpret_cast<uint64_t>(constant.getStruct().data()) &&
-                   validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, constant.getStruct());
-
-        case ConstantKind::Array:
-            return relocation.targetAddress == reinterpret_cast<uint64_t>(constant.getArray().data()) &&
-                   validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, constant.getArray());
-
-        case ConstantKind::ValuePointer:
-        case ConstantKind::BlockPointer:
-            return true;
-
-        case ConstantKind::Null:
-            return true;
-
-        default:
-            return false;
+        setConstantValidationFailure(outTypeName, outDetail, typeName, std::format("constant data segment lookup failed; constant kind '{}'", constantKindName(constant.kind())));
+        return false;
     }
+
+    const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+    const auto validateBorrowedPayload = [&](const ByteSpan payload, const std::string_view payloadKind) {
+        if (relocation.targetAddress != reinterpret_cast<uint64_t>(payload.data()))
+        {
+            setConstantValidationFailure(outTypeName,
+                                         outDetail,
+                                         typeName,
+                                         std::format("{} relocation target does not match payload base; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
+            return false;
+        }
+
+        if (!validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payload))
+        {
+            setConstantValidationFailure(outTypeName,
+                                         outDetail,
+                                         typeName,
+                                         std::format("{} payload is not representable as native static data; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
+            return false;
+        }
+
+        return true;
+    };
+
+    if (constant.kind() == ConstantKind::Struct)
+        return validateBorrowedPayload(constant.getStruct(), "struct");
+    if (constant.kind() == ConstantKind::Array)
+        return validateBorrowedPayload(constant.getArray(), "array");
+
+    if (constant.kind() == ConstantKind::ValuePointer || constant.kind() == ConstantKind::BlockPointer)
+        return true;
+    if (constant.kind() == ConstantKind::Null)
+        return true;
+    if (constant.typeRef().isInvalid())
+    {
+        setConstantValidationFailure(outTypeName, outDetail, typeName, std::format("constant type is invalid; constant kind '{}'", constantKindName(constant.kind())));
+        return false;
+    }
+
+    const uint64_t sizeOf = builder_.ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_.ctx());
+    if (!sizeOf || baseOffset + sizeOf > segment.extentSize())
+    {
+        setConstantValidationFailure(outTypeName, outDetail, typeName, std::format("constant payload range is invalid; constant kind '{}'", constantKindName(constant.kind())));
+        return false;
+    }
+
+    const auto* payloadBytes = segment.ptr<std::byte>(baseOffset);
+    if (!payloadBytes)
+    {
+        setConstantValidationFailure(outTypeName, outDetail, typeName, std::format("constant payload bytes are unavailable; constant kind '{}'", constantKindName(constant.kind())));
+        return false;
+    }
+
+    if (!validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, ByteSpan{payloadBytes, static_cast<size_t>(sizeOf)}))
+    {
+        setConstantValidationFailure(outTypeName, outDetail, typeName, std::format("payload is not representable as native static data; constant kind '{}'", constantKindName(constant.kind())));
+        return false;
+    }
+
+    return true;
 }
 
 bool NativeArtifactBuilder::validateNativeStaticPayload(TypeRef typeRef, const uint32_t shardIndex, const Ref baseOffset, const ByteSpan bytes) const
@@ -311,8 +430,51 @@ bool NativeArtifactBuilder::validateNativeStaticPayload(TypeRef typeRef, const u
     if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
         return true;
 
-    if (typeInfo.isInterface() || typeInfo.isAny())
+    if (typeInfo.isInterface())
         return isZeroFilled(bytes);
+
+    if (typeInfo.isAny())
+    {
+        if (bytes.size() != sizeof(Runtime::Any))
+            return false;
+
+        const auto* value = reinterpret_cast<const Runtime::Any*>(bytes.data());
+        if (!value->type)
+            return value->value == nullptr;
+
+        uint32_t typeInfoOffset = 0;
+        if (!findDataSegmentRelocation(shardIndex, baseOffset + offsetof(Runtime::Any, type), typeInfoOffset))
+            return false;
+        if (typeInfoOffset >= segment.extentSize())
+            return false;
+
+        const auto* runtimeType = segment.ptr<Runtime::TypeInfo>(typeInfoOffset);
+        if (!runtimeType)
+            return false;
+
+        const TypeRef valueTypeRef = builder_.ctx().typeGen().getBackTypeRef(runtimeType);
+        if (valueTypeRef.isInvalid())
+            return false;
+
+        if (!value->value)
+            return true;
+
+        uint32_t valueOffset = 0;
+        if (!findDataSegmentRelocation(shardIndex, baseOffset + offsetof(Runtime::Any, value), valueOffset))
+            return false;
+        if (valueOffset >= segment.extentSize())
+            return false;
+
+        const uint64_t valueSize = builder_.ctx().typeMgr().get(valueTypeRef).sizeOf(builder_.ctx());
+        if (!valueSize || valueOffset + valueSize > segment.extentSize())
+            return false;
+
+        const auto* payloadBytes = segment.ptr<std::byte>(valueOffset);
+        if (!payloadBytes)
+            return false;
+
+        return validateNativeStaticPayload(valueTypeRef, shardIndex, valueOffset, ByteSpan{payloadBytes, static_cast<size_t>(valueSize)});
+    }
 
     if (typeInfo.isString())
     {
@@ -324,7 +486,7 @@ bool NativeArtifactBuilder::validateNativeStaticPayload(TypeRef typeRef, const u
             return value->length == 0;
 
         uint32_t targetOffset = 0;
-        return findDataSegmentRelocation(shardIndex, baseOffset + offsetof(Runtime::String, ptr), targetOffset) && targetOffset < segment.size();
+        return findDataSegmentRelocation(shardIndex, baseOffset + offsetof(Runtime::String, ptr), targetOffset) && targetOffset < segment.extentSize();
     }
 
     if (typeInfo.isSlice())
@@ -347,7 +509,7 @@ bool NativeArtifactBuilder::validateNativeStaticPayload(TypeRef typeRef, const u
             return false;
 
         const uint64_t byteCount = slice->count * elementSize;
-        if (targetOffset + byteCount > segment.size())
+        if (targetOffset + byteCount > segment.extentSize())
             return false;
 
         if (elementType.isBool() || elementType.isChar() || elementType.isRune() || elementType.isInt() || elementType.isFloat())
@@ -422,7 +584,7 @@ bool NativeArtifactBuilder::validateNativeStaticPayload(TypeRef typeRef, const u
             return true;
 
         uint32_t targetOffset = 0;
-        return findDataSegmentRelocation(shardIndex, baseOffset, targetOffset) && targetOffset < segment.size();
+        return findDataSegmentRelocation(shardIndex, baseOffset, targetOffset) && targetOffset < segment.extentSize();
     }
 
     return false;
@@ -457,14 +619,14 @@ Result NativeArtifactBuilder::prepareDataSections() const
     builder_.mergedRData.relocations.clear();
     builder_.mergedData.bytes.clear();
     builder_.mergedData.relocations.clear();
-    builder_.mergedBss.bssSize = builder_.compiler().globalZeroSegment().size();
+    builder_.mergedBss.bssSize = builder_.compiler().globalZeroSegment().extentSize();
     builder_.mergedBss.bss     = builder_.mergedBss.bssSize != 0;
     builder_.rdataShardBaseOffsets.fill(0);
 
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
         const DataSegment& segment     = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
-        const uint32_t     segmentSize = segment.size();
+        const uint32_t     segmentSize = segment.extentSize();
         if (!segmentSize)
             continue;
 
@@ -475,7 +637,7 @@ Result NativeArtifactBuilder::prepareDataSections() const
 
         const uint32_t insertOffset = static_cast<uint32_t>(builder_.mergedRData.bytes.size());
         builder_.mergedRData.bytes.resize(insertOffset + segmentSize);
-        segment.copyTo(ByteSpanRW{builder_.mergedRData.bytes.data() + insertOffset, segmentSize});
+        segment.copyToPreserveOffsets(ByteSpanRW{builder_.mergedRData.bytes.data() + insertOffset, segmentSize});
 
         for (const auto& relocation : segment.relocations())
         {
@@ -487,11 +649,20 @@ Result NativeArtifactBuilder::prepareDataSections() const
         }
     }
 
-    const uint32_t dataSize = builder_.compiler().globalInitSegment().size();
+    const uint32_t dataSize = builder_.compiler().globalInitSegment().extentSize();
     if (dataSize)
     {
         builder_.mergedData.bytes.resize(dataSize);
-        builder_.compiler().globalInitSegment().copyTo(ByteSpanRW{builder_.mergedData.bytes.data(), dataSize});
+        builder_.compiler().globalInitSegment().copyToPreserveOffsets(ByteSpanRW{builder_.mergedData.bytes.data(), dataSize});
+
+        for (const auto& relocation : builder_.compiler().globalInitSegment().relocations())
+        {
+            NativeSectionRelocation record;
+            record.offset     = relocation.offset;
+            record.symbolName = K_DATA_BASE_SYMBOL;
+            record.addend     = relocation.targetOffset;
+            builder_.mergedData.relocations.push_back(record);
+        }
     }
 
     return Result::Continue;

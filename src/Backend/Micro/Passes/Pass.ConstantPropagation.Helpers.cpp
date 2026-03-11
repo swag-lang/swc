@@ -1,5 +1,8 @@
 #include "pch.h"
+#include "Main/TaskContext.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
 
@@ -185,6 +188,37 @@ bool MicroConstantPropagationPass::tryGetPointerBytesRange(std::array<std::byte,
     const uint64_t byteAddress = pointer + offset;
     std::memcpy(outBytes.data(), reinterpret_cast<const void*>(byteAddress), numBytes);
     return true;
+}
+
+bool MicroConstantPropagationPass::constantPointerRangeHasRelocation(const KnownConstantPointer& constantPointer, const uint32_t numBytes) const
+{
+    if (!context_ || !context_->taskContext)
+        return true;
+    if (constantPointer.constantRef.isInvalid())
+        return true;
+    if (!numBytes)
+        return false;
+
+    uint32_t       shardIndex = 0;
+    const Ref      baseOffset = context_->taskContext->cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(constantPointer.pointer));
+    if (baseOffset == INVALID_REF)
+        return true;
+
+    const DataSegment& segment     = context_->taskContext->cstMgr().shardDataSegment(shardIndex);
+    const uint64_t     rangeBegin  = static_cast<uint64_t>(baseOffset) + constantPointer.offset;
+    const uint64_t     rangeEnd    = rangeBegin + numBytes;
+    constexpr uint64_t relocSize   = sizeof(uint64_t);
+
+    for (const auto& relocation : segment.relocations())
+    {
+        const uint64_t relocBegin = relocation.offset;
+        if (MicroPassHelpers::rangesOverlap(rangeBegin, numBytes, relocBegin, static_cast<uint32_t>(relocSize)))
+            return true;
+        if (relocBegin >= rangeEnd)
+            break;
+    }
+
+    return false;
 }
 
 void MicroConstantPropagationPass::setKnownStackSlotsFromBytes(uint64_t baseOffset, std::span<const std::byte> bytes)

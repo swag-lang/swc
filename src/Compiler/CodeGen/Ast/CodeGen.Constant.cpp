@@ -164,6 +164,14 @@ namespace
         return reinterpret_cast<uint64_t>(storedPayload.data());
     }
 
+    ConstantRef makeBorrowedStructConstant(CodeGen& codeGen, TypeRef typeRef, ByteSpan payload)
+    {
+        const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(asStringView(payload));
+        const ByteSpan         storedBytes   = asByteSpan(storedPayload);
+        const ConstantValue    cst           = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, storedBytes);
+        return codeGen.cstMgr().addConstant(codeGen.ctx(), cst);
+    }
+
     ConstantRef makeBorrowedRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
     {
         uint32_t targetShardIndex = 0;
@@ -284,8 +292,9 @@ namespace
                         std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
                         ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef);
 
-                        const uint64_t storageAddress = addPayloadToConstantManagerAndGetAddress(codeGen, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
-                        builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
+                        const ConstantRef   typedNullCstRef = makeBorrowedStructConstant(codeGen, targetTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+                        const ConstantValue& typedNullCst   = codeGen.cstMgr().get(typedNullCstRef);
+                        builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);
                         payload.setIsValue();
                         return;
                     }

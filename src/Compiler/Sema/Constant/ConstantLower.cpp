@@ -157,7 +157,16 @@ namespace
 
         if (dstType.isString())
         {
-            SWC_ASSERT((cst.isNull() || cst.isString()) && dstBytes.size() == sizeof(Runtime::String));
+            SWC_ASSERT((cst.isNull() || cst.isString() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::String));
+            if (cst.isStruct(dstTypeRef))
+            {
+                const auto bytes = cst.getStruct();
+                SWC_ASSERT(bytes.size() == dstBytes.size());
+                if (!dstBytes.empty())
+                    std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+                return;
+            }
+
             Runtime::String rt = {};
             if (cst.isString())
             {
@@ -170,7 +179,16 @@ namespace
 
         if (dstType.isSlice())
         {
-            SWC_ASSERT((cst.isNull() || cst.isSlice()) && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
+            SWC_ASSERT((cst.isNull() || cst.isSlice() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
+            if (cst.isStruct(dstTypeRef))
+            {
+                const auto bytes = cst.getStruct();
+                SWC_ASSERT(bytes.size() == dstBytes.size());
+                if (!dstBytes.empty())
+                    std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+                return;
+            }
+
             Runtime::Slice<uint8_t> rt = {};
             if (cst.isSlice())
             {

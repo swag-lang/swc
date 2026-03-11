@@ -53,10 +53,22 @@ uint32_t DataSegment::size() const noexcept
     return store_.size();
 }
 
+uint32_t DataSegment::extentSize() const noexcept
+{
+    const std::shared_lock lock(mutex_);
+    return store_.extentSize();
+}
+
 void DataSegment::copyTo(ByteSpanRW dst) const
 {
     const std::shared_lock lock(mutex_);
     store_.copyTo(dst);
+}
+
+void DataSegment::copyToPreserveOffsets(ByteSpanRW dst) const
+{
+    const std::shared_lock lock(mutex_);
+    store_.copyToPreserveOffsets(dst);
 }
 
 std::pair<uint32_t, std::byte*> DataSegment::reserveBytes(uint32_t size, uint32_t align, bool zeroInit)

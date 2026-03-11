@@ -74,6 +74,22 @@ uint32_t PagedStore::size() const noexcept
     return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
 }
 
+uint32_t PagedStore::extentSize() const noexcept
+{
+    const auto* pages = snapshotPages();
+    for (size_t i = pages->size(); i-- > 0;)
+    {
+        const uint32_t used = (*pages)[i]->used.load(std::memory_order_relaxed);
+        if (!used)
+            continue;
+
+        const uint64_t size = static_cast<uint64_t>(i) * pageSizeValue_ + used;
+        return static_cast<uint32_t>(std::min<uint64_t>(size, std::numeric_limits<uint32_t>::max()));
+    }
+
+    return 0;
+}
+
 #if SWC_HAS_STATS
 uint64_t PagedStore::allocatedBytes() const noexcept
 {
@@ -102,6 +118,28 @@ void PagedStore::copyTo(ByteSpanRW dst) const
     }
 
     SWC_ASSERT(remaining == 0);
+}
+
+void PagedStore::copyToPreserveOffsets(ByteSpanRW dst) const
+{
+    SWC_ASSERT(dst.size() <= extentSize());
+
+    if (dst.empty())
+        return;
+
+    std::memset(dst.data(), 0, dst.size_bytes());
+
+    const auto* pages = snapshotPages();
+    for (size_t i = 0; i < pages->size(); ++i)
+    {
+        const uint32_t used = (*pages)[i]->used.load(std::memory_order_relaxed);
+        if (!used)
+            continue;
+
+        const uint64_t dstOffset = static_cast<uint64_t>(i) * pageSizeValue_;
+        SWC_ASSERT(dstOffset + used <= dst.size_bytes());
+        std::memcpy(dst.data() + dstOffset, (*pages)[i]->bytes(), used);
+    }
 }
 
 std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)

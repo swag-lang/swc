@@ -2,10 +2,15 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Runtime.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/PagedStore.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -34,6 +39,17 @@ namespace
         }
 
         return nullptr;
+    }
+
+    ConstantRef makeRelocStringConstant(TaskContext& ctx)
+    {
+        DataSegment& segment = ctx.cstMgr().shardDataSegment(0);
+        const auto [baseOffset, storage] = segment.reserveBytes(sizeof(Runtime::String), alignof(Runtime::String), true);
+        auto* const runtimeString        = reinterpret_cast<Runtime::String*>(storage);
+        runtimeString->length            = segment.addString(baseOffset, offsetof(Runtime::String, ptr), Utf8{"const-prop"});
+
+        const ConstantValue constantValue = ConstantValue::makeStructBorrowed(ctx, ctx.typeMgr().typeString(), ByteSpan{storage, sizeof(Runtime::String)});
+        return ctx.cstMgr().addConstant(ctx, constantValue);
     }
 }
 
@@ -182,6 +198,77 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownIndexedStackLoad)
 
     const MicroInstrOperand* ops2 = inst2->ops(builder.operands());
     if (inst2->op != MicroInstrOpcode::LoadRegImm || ops2[2].valueU64 != 0x1234ull)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PagedStore_CopyToPreserveOffsetsKeepsSparseLayout)
+{
+    PagedStore store(32);
+
+    std::array<std::byte, 24> first;
+    std::array<std::byte, 16> second;
+    first.fill(std::byte{0x11});
+    second.fill(std::byte{0x22});
+
+    const auto [firstSpan, firstRef]   = store.pushCopySpan(ByteSpan{first.data(), first.size()});
+    const auto [secondSpan, secondRef] = store.pushCopySpan(ByteSpan{second.data(), second.size()});
+    SWC_UNUSED(firstSpan);
+    SWC_UNUSED(secondSpan);
+
+    if (firstRef != 0 || secondRef != 32)
+        return Result::Error;
+    if (store.size() != 40 || store.extentSize() != 48)
+        return Result::Error;
+
+    std::array<std::byte, 48> out;
+    out.fill(std::byte{0xCC});
+    store.copyToPreserveOffsets(ByteSpanRW{out.data(), out.size()});
+
+    for (size_t i = 0; i < first.size(); ++i)
+    {
+        if (out[i] != first[i])
+            return Result::Error;
+    }
+
+    for (size_t i = first.size(); i < secondRef; ++i)
+    {
+        if (out[i] != std::byte{0})
+            return Result::Error;
+    }
+
+    for (size_t i = 0; i < second.size(); ++i)
+    {
+        if (out[secondRef + i] != second[i])
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroConstantPropagation_DoesNotFoldRelocationBackedStackCopy)
+{
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg stackPtr = MicroReg::intReg(4);
+    constexpr MicroReg r8       = MicroReg::intReg(8);
+    constexpr MicroReg r9       = MicroReg::intReg(9);
+    constexpr MicroReg r10      = MicroReg::intReg(10);
+
+    const ConstantRef   stringRef      = makeRelocStringConstant(ctx);
+    const ConstantValue stringConstant = ctx.cstMgr().get(stringRef);
+    const ByteSpan      stringBytes    = stringConstant.getStruct();
+
+    builder.emitLoadRegPtrReloc(r8, reinterpret_cast<uint64_t>(stringBytes.data()), stringRef);
+    builder.emitLoadRegMem(r9, r8, offsetof(Runtime::String, ptr), MicroOpBits::B64);
+    builder.emitLoadMemReg(stackPtr, 32, r9, MicroOpBits::B64);
+    builder.emitLoadRegMem(r10, stackPtr, 32, MicroOpBits::B64);
+
+    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+
+    const MicroInstr* inst3 = instructionAt(builder, 3);
+    if (!inst3)
+        return Result::Error;
+
+    if (inst3->op != MicroInstrOpcode::LoadRegMem)
         return Result::Error;
 }
 SWC_TEST_END()

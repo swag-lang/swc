@@ -24,25 +24,13 @@ namespace
     constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_ASSERT = 3;
     ConstantRef        makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef);
 
-    uint64_t addIntrinsicPayloadToConstantManagerAndGetAddress(CodeGen& codeGen, ByteSpan payload)
-    {
-        const std::string_view stored = codeGen.cstMgr().addPayloadBuffer(asStringView(payload));
-        return reinterpret_cast<uint64_t>(stored.data());
-    }
-
-    ByteSpan addIntrinsicPayloadToConstantManagerAndGetSpan(CodeGen& codeGen, ByteSpan payload)
-    {
-        const std::string_view stored = codeGen.cstMgr().addPayloadBuffer(asStringView(payload));
-        return asByteSpan(stored);
-    }
-
     CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
     {
         const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
         SWC_ASSERT(cst.isStruct() || cst.isArray());
 
         const ByteSpan bytes = cst.isStruct() ? cst.getStruct() : cst.getArray();
-        const uint64_t addr  = cst.isStruct() ? reinterpret_cast<uint64_t>(bytes.data()) : addIntrinsicPayloadToConstantManagerAndGetAddress(codeGen, bytes);
+        const uint64_t addr  = reinterpret_cast<uint64_t>(bytes.data());
 
         CodeGenNodePayload payload;
         payload.typeRef = cst.typeRef();
@@ -1087,7 +1075,11 @@ namespace
 
         std::vector<std::byte> bytes;
         bytes.resize(sizeOf);
-        return codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStruct(codeGen.ctx(), typeRef, ByteSpan{bytes.data(), bytes.size()}));
+
+        const std::string_view storedPayload(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        const std::string_view persistentStorage = codeGen.cstMgr().addPayloadBuffer(storedPayload);
+        const ByteSpan         persistentBytes{reinterpret_cast<const std::byte*>(persistentStorage.data()), persistentStorage.size()};
+        return codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, persistentBytes));
     }
 
     Result codeGenProcessInfos(CodeGen& codeGen)

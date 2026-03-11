@@ -33,11 +33,13 @@ Result NativeSymbolCollector::collectSymbols()
     builder_.regularGlobals.clear();
     builder_.functionInfos.clear();
     builder_.functionBySymbol.clear();
+    seenFunctions_.clear();
 
     const SymbolModule* rootModule = compiler.symModule();
     if (!rootModule)
         return builder_.reportError(DiagnosticId::cmd_err_native_root_module_missing);
 
+    collectCompilerEntryFunctions();
     collectSymbolsRec(*rootModule);
 
     for (size_t idx = 0; idx < builder_.rawFunctions.size(); ++idx) // NOLINT(modernize-loop-convert)
@@ -94,6 +96,19 @@ Result NativeSymbolCollector::collectSymbols()
     return Result::Continue;
 }
 
+void NativeSymbolCollector::collectCompilerEntryFunctions()
+{
+    std::vector<SymbolFunction*> compilerEntryFunctions;
+    builder_.compiler().appendCompilerEntryFunctions(compilerEntryFunctions);
+    for (SymbolFunction* symbol : compilerEntryFunctions)
+    {
+        if (!symbol)
+            continue;
+
+        collectFunction(*symbol);
+    }
+}
+
 void NativeSymbolCollector::collectSymbolsRec(const SymbolMap& symbolMap)
 {
     std::vector<const Symbol*> symbols;
@@ -130,15 +145,19 @@ void NativeSymbolCollector::collectSymbolsRec(const SymbolMap& symbolMap)
     }
 }
 
-void NativeSymbolCollector::collectFunction(SymbolFunction& symbol) const
+void NativeSymbolCollector::collectFunction(SymbolFunction& symbol)
 {
     if (symbol.isForeign() || symbol.isEmpty() || symbol.isAttribute())
+        return;
+    if (!symbol.isSemaCompleted())
         return;
     if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
         return;
 
     const CompilerFunctionKind compilerKind = classifyCompilerFunction(symbol);
     if (compilerKind == CompilerFunctionKind::Excluded)
+        return;
+    if (!seenFunctions_.insert(&symbol).second)
         return;
 
     builder_.rawFunctions.push_back(&symbol);

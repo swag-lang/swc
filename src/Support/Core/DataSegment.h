@@ -28,7 +28,9 @@ public:
     std::pair<uint32_t, std::byte*>           reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
     Ref                                       findRef(const void* ptr) const noexcept { return store_.findRef(ptr); }
     uint32_t                                  size() const noexcept;
+    uint32_t                                  extentSize() const noexcept;
     void                                      copyTo(ByteSpanRW dst) const;
+    void                                      copyToPreserveOffsets(ByteSpanRW dst) const;
     const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
 #if SWC_HAS_STATS
     size_t memStorageReserved() const;

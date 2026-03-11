@@ -536,6 +536,32 @@ bool CompilerInstance::registerForeignLib(std::string_view name)
     return true;
 }
 
+void CompilerInstance::registerCompilerEntryFunction(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        if (std::ranges::find(compilerEntryFunctions_, symbol) == compilerEntryFunctions_.end())
+        {
+            compilerEntryFunctions_.push_back(symbol);
+            inserted = true;
+        }
+    }
+
+    if (inserted)
+        notifyAlive();
+}
+
+void CompilerInstance::appendCompilerEntryFunctions(std::vector<SymbolFunction*>& out) const
+{
+    const std::shared_lock lock(mutex_);
+    out.reserve(out.size() + compilerEntryFunctions_.size());
+    for (SymbolFunction* symbol : compilerEntryFunctions_)
+        out.push_back(symbol);
+}
+
 void CompilerInstance::registerRuntimeFunctionSymbol(const IdentifierRef idRef, SymbolFunction* symbol)
 {
     SWC_ASSERT(idRef.isValid());
@@ -609,55 +635,10 @@ void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFla
 
 void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flags, const bool canFilter)
 {
-    if (cmdLine().numCores == 1)
-    {
-        std::vector<fs::path> paths;
-        collectSwagFilesRec(cmdLine(), folder, paths, canFilter);
-        std::ranges::sort(paths);
-        appendResolvedFiles(paths, flags);
-        return;
-    }
-
-    std::error_code ec;
-    for (fs::recursive_directory_iterator it(folder, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-    {
-        if (ec)
-        {
-            ec.clear();
-            continue;
-        }
-
-        const fs::directory_entry& entry = *it;
-        if (!entry.is_regular_file(ec))
-        {
-            ec.clear();
-            continue;
-        }
-
-        const fs::path path = entry.path();
-        const fs::path ext  = path.extension();
-        if (ext != ".swg" && ext != ".swgs")
-            continue;
-
-        if (canFilter && !cmdLine().fileFilter.empty())
-        {
-            const std::string pathString = path.string();
-            bool              ignore     = false;
-            for (const Utf8& filter : cmdLine().fileFilter)
-            {
-                if (!pathString.contains(filter))
-                {
-                    ignore = true;
-                    break;
-                }
-            }
-
-            if (ignore)
-                continue;
-        }
-
-        addResolvedFile(path, flags);
-    }
+    std::vector<fs::path> paths;
+    collectSwagFilesRec(cmdLine(), folder, paths, canFilter);
+    std::ranges::sort(paths);
+    appendResolvedFiles(paths, flags);
 }
 
 Result CompilerInstance::collectFiles(TaskContext& ctx)

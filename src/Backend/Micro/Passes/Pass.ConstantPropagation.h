@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroPassManager.h"
+#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -10,8 +11,9 @@ struct KnownConstant
 
 struct KnownConstantPointer
 {
-    uint64_t pointer = 0;
-    uint64_t offset  = 0;
+    uint64_t    pointer     = 0;
+    uint64_t    offset      = 0;
+    ConstantRef constantRef = ConstantRef::invalid();
 };
 
 struct CompareState
@@ -107,6 +109,7 @@ private:
     void                    eraseKnownAddressDefs(MicroRegSpan defs);
     void                    eraseKnownConstantPointerDefs(MicroRegSpan defs);
     static bool             tryGetPointerBytesRange(std::array<std::byte, 16>& outBytes, uint32_t numBytes, uint64_t pointer, uint64_t offset);
+    bool                    constantPointerRangeHasRelocation(const KnownConstantPointer& constantPointer, uint32_t numBytes) const;
     void                    setKnownStackSlotsFromBytes(uint64_t baseOffset, std::span<const std::byte> bytes);
     static uint64_t         signExtendToBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits);
     static bool             foldFloatBinaryToBits(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits);

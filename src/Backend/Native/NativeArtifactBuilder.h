@@ -28,7 +28,7 @@ private:
     Result          validateNativeData() const;
     bool            isNativeStaticType(TypeRef typeRef) const;
     Result          validateRelocations(const SymbolFunction& owner, const MachineCode& code) const;
-    bool            validateConstantRelocation(const MicroRelocation& relocation) const;
+    bool            validateConstantRelocation(const MicroRelocation& relocation, Utf8* outTypeName = nullptr, Utf8* outDetail = nullptr) const;
     bool            validateNativeStaticPayload(TypeRef typeRef, uint32_t shardIndex, Ref baseOffset, ByteSpan bytes) const;
     bool            findDataSegmentRelocation(uint32_t shardIndex, uint32_t offset, uint32_t& outTargetOffset) const;
     Result          prepareDataSections() const;

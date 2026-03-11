@@ -201,7 +201,7 @@ namespace
 
     void runNativeTestCommand(CompilerInstance& compiler);
 
-    bool runCompilerSubset(const CompilerInstance& compiler, CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {})
+    bool runCompilerSubset(const CompilerInstance& compiler, CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {}, const bool clearOutputs = true)
     {
         if (files.empty())
             return true;
@@ -212,6 +212,7 @@ namespace
         cmdLine.files.clear();
         cmdLine.modulePath.clear();
         cmdLine.files.insert(files.begin(), files.end());
+        cmdLine.clear = cmdLine.clear && clearOutputs;
         if (!backendKindName.empty())
             cmdLine.backendKindName = backendKindName;
         if (command == CommandKind::Syntax)
@@ -240,10 +241,11 @@ namespace
         return !hasNewErrors(errorsBefore);
     }
 
-    bool runLegacyTestBackend(const CompilerInstance& compiler, std::string_view backendKind)
+    bool runLegacyTestBackend(const CompilerInstance& compiler, std::string_view backendKind, const bool clearOutputs)
     {
         CommandLine cmdLine     = compiler.cmdLine();
         cmdLine.backendKindName = backendKind;
+        cmdLine.clear           = cmdLine.clear && clearOutputs;
         CommandLineParser::refreshBuildCfg(cmdLine);
 
         const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
@@ -347,13 +349,15 @@ namespace
             return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
         }
 
+        bool clearOutputs = compiler.cmdLine().clear;
         for (const std::string_view backendKind : {std::string_view("exe"), std::string_view("dll"), std::string_view("lib")})
         {
             const bool ok = files
-                                ? runCompilerSubset(compiler, CommandKind::Test, *files, backendKind)
-                                : runLegacyTestBackend(compiler, backendKind);
+                                ? runCompilerSubset(compiler, CommandKind::Test, *files, backendKind, clearOutputs)
+                                : runLegacyTestBackend(compiler, backendKind, clearOutputs);
             if (!ok)
                 return false;
+            clearOutputs = false;
         }
 
         return true;

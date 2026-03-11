@@ -168,6 +168,7 @@ namespace
         printInfoLine(ctx, "errorId", boolToUtf8(cmdLine.errorId));
         printInfoLine(ctx, "silent", boolToUtf8(cmdLine.silent));
         printInfoLine(ctx, "stats", boolToUtf8(cmdLine.stats));
+        printInfoLine(ctx, "clear", boolToUtf8(cmdLine.clear));
         printInfoLine(ctx, "verboseInfo", boolToUtf8(cmdLine.verboseInfo));
         printInfoLine(ctx, "verboseVerify", boolToUtf8(cmdLine.verboseVerify));
         printInfoLine(ctx, "verify", boolToUtf8(cmdLine.verify));

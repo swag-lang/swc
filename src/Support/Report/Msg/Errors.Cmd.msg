@@ -39,6 +39,7 @@ SWC_DIAG_DEF(cmd_err_native_empty_global_init_segment, Error, "function '{sym}' 
 SWC_DIAG_DEF(cmd_err_native_constant_storage_unsupported, Error, "function '{sym}' references unsupported constant storage")
 SWC_DIAG_DEF(cmd_err_native_constant_payload_unsupported, Error, "function '{sym}' references unsupported constant payload")
 SWC_DIAG_DEF(cmd_err_native_test_entry_lower_failed, Error, "failed to lower native test entry point")
+SWC_DIAG_DEF(cmd_err_native_output_dir_clear_failed, Error, "cannot clear native backend output directory '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_work_dir_create_failed, Error, "cannot create native backend work directory '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_too_many_coff_relocations, Error, "native backend emitted too many COFF relocations in one section")
 SWC_DIAG_DEF(cmd_err_native_obj_open_failed, Error, "cannot open '{path}' for writing")

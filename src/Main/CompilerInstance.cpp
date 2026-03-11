@@ -518,6 +518,11 @@ bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
     return true;
 }
 
+bool CompilerInstance::markNativeOutputsCleared()
+{
+    return !nativeOutputsCleared_.exchange(true, std::memory_order_acq_rel);
+}
+
 bool CompilerInstance::registerForeignLib(std::string_view name)
 {
     const std::unique_lock lock(mutex_);

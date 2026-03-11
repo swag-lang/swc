@@ -27,6 +27,38 @@ namespace
         return std::format("{}_{:02}.obj", name, objectIndex);
     }
 
+    bool pathEquals(const fs::path& lhs, const fs::path& rhs)
+    {
+        return lhs.lexically_normal() == rhs.lexically_normal();
+    }
+
+    Result clearDirectoryContents(const NativeBackendBuilder& builder, const fs::path& path)
+    {
+        if (path.empty())
+            return Result::Continue;
+
+        std::error_code ec;
+        if (!fs::exists(path, ec))
+            return ec ? builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec.message()) : Result::Continue;
+        if (ec)
+            return builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec.message());
+        if (!fs::is_directory(path, ec))
+            return builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec ? ec.message() : "path is not a directory");
+
+        for (fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec.message());
+
+            std::error_code removeEc;
+            fs::remove_all(it->path(), removeEc);
+            if (removeEc)
+                return builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(it->path()), Diagnostic::ARG_BECAUSE, removeEc.message());
+        }
+
+        return Result::Continue;
+    }
+
     const std::set<fs::path>& inputDirectories(const CommandLine& cmdLine)
     {
         if (!cmdLine.originalDirectories.empty())
@@ -528,6 +560,8 @@ Result NativeArtifactBuilder::partitionObjects() const
     const uint32_t      workDirIndex = builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
     NativeArtifactPaths paths;
     queryPaths(paths, workDirIndex, numJobs);
+    if (builder_.ctx().cmdLine().clear && builder_.compiler().markNativeOutputsCleared())
+        SWC_RESULT_VERIFY(clearOutputFolders(paths));
     SWC_RESULT_VERIFY(createBuildDirectory(paths.buildDir));
     SWC_RESULT_VERIFY(createOutDir(paths.outDir));
     builder_.buildDir     = paths.buildDir;
@@ -551,6 +585,14 @@ Result NativeArtifactBuilder::partitionObjects() const
         info.jobIndex                = objIndex;
         builder_.objectDescriptions[objIndex].functions.push_back(&info);
     }
+    return Result::Continue;
+}
+
+Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& paths) const
+{
+    SWC_RESULT_VERIFY(clearDirectoryContents(builder_, paths.workDir));
+    if (!pathEquals(paths.outDir, paths.workDir))
+        SWC_RESULT_VERIFY(clearDirectoryContents(builder_, paths.outDir));
     return Result::Continue;
 }
 

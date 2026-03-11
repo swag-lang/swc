@@ -34,6 +34,7 @@ private:
     Result          prepareDataSections() const;
     Result          buildStartup() const;
     Result          partitionObjects() const;
+    Result          clearOutputFolders(const NativeArtifactPaths& paths) const;
     Utf8            artifactName() const;
     Utf8            artifactExtension() const;
     fs::path        configuredOutDir(const fs::path& defaultOutDir) const;

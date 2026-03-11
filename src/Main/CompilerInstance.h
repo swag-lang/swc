@@ -102,6 +102,7 @@ public:
 
     std::atomic<uint32_t>&       atomicId() { return atomicId_; }
     const std::atomic<uint32_t>& atomicId() const { return atomicId_; }
+    bool                         markNativeOutputsCleared();
     bool                         setMainFunc(AstCompilerFunc* node);
     AstCompilerFunc*             mainFunc() const { return mainFunc_; }
 
@@ -183,6 +184,7 @@ private:
 
     std::vector<PerThreadData>                         perThreadData_;
     std::atomic<uint32_t>                              atomicId_                 = 0;
+    std::atomic<bool>                                  nativeOutputsCleared_     = false;
     std::atomic<uint32_t>                              pendingImplRegistrations_ = 0;
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;

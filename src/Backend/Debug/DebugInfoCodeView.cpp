@@ -15,6 +15,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// ReSharper disable IdentifierTypo
+// ReSharper disable StringLiteralTypo
+
 namespace
 {
     constexpr uint32_t K_CV_SIGNATURE_C13        = 4;
@@ -1141,7 +1144,7 @@ namespace
         {
             const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
-            writeU16(bytes, (uint16_t) items.size());
+            writeU16(bytes, items.size());
             for (const uint32_t item : items)
                 writeU32(bytes, item);
             endTypeRecord(bytes, recordOffset);

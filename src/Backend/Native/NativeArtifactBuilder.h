@@ -34,7 +34,6 @@ private:
     Result          prepareDataSections() const;
     Result          buildStartup() const;
     Result          partitionObjects() const;
-    Utf8            configuredName() const;
     Utf8            artifactName() const;
     Utf8            artifactExtension() const;
     fs::path        configuredOutDir(const fs::path& defaultOutDir) const;

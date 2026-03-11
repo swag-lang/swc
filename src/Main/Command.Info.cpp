@@ -61,14 +61,6 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Utf8 runtimeStringToUtf8(const Runtime::String& value)
-    {
-        if (!value.ptr || !value.length)
-            return {};
-
-        return Utf8(std::string_view(value.ptr, value.length));
-    }
-
     Utf8 filePathDisplayModeName(const FileSystem::FilePathDisplayMode value)
     {
         switch (value)
@@ -166,8 +158,8 @@ namespace
         printInfoLine(ctx, "buildCfg", cmdLine.buildCfg);
         printInfoLine(ctx, "targetArchName", cmdLine.targetArchName);
         printInfoLine(ctx, "backendKind", buildCfgBackendKindName(buildCfg.backendKind));
-        printInfoLine(ctx, "name", runtimeStringToUtf8(buildCfg.name));
-        printInfoLine(ctx, "workDir", runtimeStringToUtf8(buildCfg.workDir));
+        printInfoLine(ctx, "name", Utf8(buildCfg.name));
+        printInfoLine(ctx, "workDir", Utf8(buildCfg.workDir));
         printInfoLine(ctx, "backendOptimize", boolToUtf8(buildCfg.backend.optimize));
         printInfoLine(ctx, "logColor", boolToUtf8(cmdLine.logColor));
         printInfoLine(ctx, "logAscii", boolToUtf8(cmdLine.logAscii));
@@ -196,8 +188,8 @@ namespace
         printPathSet(ctx, "directories", cmdLine.directories);
         printPathSet(ctx, "files", cmdLine.files);
         printInfoLine(ctx, "modulePath", cmdLine.modulePath);
-        printInfoLine(ctx, "outDir", runtimeStringToUtf8(buildCfg.outDir));
-        printInfoLine(ctx, "workDir", runtimeStringToUtf8(buildCfg.workDir));
+        printInfoLine(ctx, "outDir", Utf8(buildCfg.outDir));
+        printInfoLine(ctx, "workDir", Utf8(buildCfg.workDir));
     }
 }
 

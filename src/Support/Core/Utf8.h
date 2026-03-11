@@ -4,6 +4,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace Runtime
+{
+    struct String;
+}
+
 class Utf8 : public std::string
 {
 public:
@@ -45,6 +50,7 @@ public:
     }
 
     Utf8(const fs::path& path);
+    Utf8(const Runtime::String& value);
 
     Utf8(const std::string_view& other) :
         std::string(other)

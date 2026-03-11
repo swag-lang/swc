@@ -22,14 +22,6 @@ namespace
         return true;
     }
 
-    Utf8 runtimeStringToUtf8(const Runtime::String& value)
-    {
-        if (!value.ptr || !value.length)
-            return {};
-
-        return {std::string_view(value.ptr, value.length)};
-    }
-
     Utf8 objectFileName(const Utf8& name, const uint32_t objectIndex)
     {
         return std::format("{}_{:02}.obj", name, objectIndex);
@@ -541,20 +533,11 @@ Result NativeArtifactBuilder::partitionObjects() const
     return Result::Continue;
 }
 
-Utf8 NativeArtifactBuilder::configuredName() const
-{
-    const Utf8 buildCfgName = runtimeStringToUtf8(builder_.compiler().buildCfg().name);
-    if (!buildCfgName.empty())
-        return FileSystem::sanitizeFileName(buildCfgName);
-
-    return {};
-}
-
 Utf8 NativeArtifactBuilder::artifactName() const
 {
-    Utf8 configuredValue = configuredName();
-    if (!configuredValue.empty())
-        return configuredValue;
+    const Utf8 buildCfgName = Utf8(builder_.compiler().buildCfg().name);
+    if (!buildCfgName.empty())
+        return FileSystem::sanitizeFileName(buildCfgName);
 
     const auto& cmdLine = builder_.ctx().cmdLine();
 
@@ -564,7 +547,8 @@ Utf8 NativeArtifactBuilder::artifactName() const
         return FileSystem::sanitizeFileName(Utf8(cmdLine.files.begin()->stem().string()));
     if (cmdLine.directories.size() == 1)
         return FileSystem::sanitizeFileName(Utf8(cmdLine.directories.begin()->filename().string()));
-    return "native_test";
+
+    return "native";
 }
 
 Utf8 NativeArtifactBuilder::artifactExtension() const
@@ -592,7 +576,7 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
 
 fs::path NativeArtifactBuilder::configuredOutDir(const fs::path& defaultOutDir) const
 {
-    const Utf8 buildCfgOutDir = runtimeStringToUtf8(builder_.compiler().buildCfg().outDir);
+    const Utf8 buildCfgOutDir = Utf8(builder_.compiler().buildCfg().outDir);
     if (!buildCfgOutDir.empty())
         return {buildCfgOutDir.c_str()};
     return defaultOutDir;
@@ -609,7 +593,7 @@ Result NativeArtifactBuilder::createOutDir(const fs::path& outDir) const
 
 fs::path NativeArtifactBuilder::configuredWorkDir() const
 {
-    const Utf8 buildCfgWorkDir = runtimeStringToUtf8(builder_.compiler().buildCfg().workDir);
+    const Utf8 buildCfgWorkDir = Utf8(builder_.compiler().buildCfg().workDir);
     if (!buildCfgWorkDir.empty())
         return {buildCfgWorkDir.c_str()};
     return {};
@@ -647,9 +631,9 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
     return std::format("{}_{:08x}", FileSystem::sanitizeFileName(name), hash);
 }
 
-fs::path NativeArtifactBuilder::buildDirectory(const fs::path& workDir, const uint32_t buildIndex)
+fs::path NativeArtifactBuilder::buildDirectory(const fs::path& workDir, const uint32_t)
 {
-    return workDir / std::format("{:08x}_{:08x}", Os::currentProcessId(), buildIndex);
+    return workDir;
 }
 
 Result NativeArtifactBuilder::createBuildDirectory(const fs::path& buildDir) const

@@ -1,11 +1,17 @@
 // ReSharper disable CppInconsistentNaming
 #include "pch.h"
+#include "Backend/Runtime.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 
 Utf8::Utf8(const fs::path& path) :
     std::string(path.generic_string())
+{
+}
+
+Utf8::Utf8(const Runtime::String& value) :
+    std::string(value.ptr && value.length ? std::string_view(value.ptr, value.length) : std::string_view{})
 {
 }
 

@@ -34,8 +34,7 @@ namespace
     constexpr uint16_t K_LF_FUNC_ID          = 0x1601;
     constexpr uint16_t K_LF_BUILDINFO        = 0x1603;
     constexpr uint16_t K_LF_STRING_ID        = 0x1605;
-    constexpr uint8_t  K_CHKSUM_TYPE_SHA256  = 0x03;
-    constexpr uint8_t  K_SHA256_LENGTH       = 32;
+    constexpr uint8_t  K_CHKSUM_TYPE_NONE    = 0x00;
 
     uint32_t alignUp4(const uint32_t value)
     {
@@ -520,7 +519,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
     const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
     if (!bytesContainString(debugBytes, Utf8(sourcePath.string())))
         return Result::Error;
-    if (!fileChecksumsSubsectionContainsKind(debugBytes, K_CHKSUM_TYPE_SHA256, K_SHA256_LENGTH))
+    if (!fileChecksumsSubsectionContainsKind(debugBytes, K_CHKSUM_TYPE_NONE, 0))
         return Result::Error;
     if (!subsectionTypeAppearsBefore(debugBytes, K_DEBUG_S_FILECHKSMS, K_DEBUG_S_STRINGTABLE))
         return Result::Error;

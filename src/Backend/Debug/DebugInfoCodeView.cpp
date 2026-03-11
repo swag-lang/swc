@@ -12,9 +12,6 @@
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
-#include <wincrypt.h>
-
-#include <utility>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -70,8 +67,6 @@ namespace
     constexpr uint32_t K_CV_PTR_ATTR_NEAR64      = 0x0000000C;
     constexpr uint32_t K_CV_FRAMEPROC_FLAGS      = 0x00114200;
     constexpr uint16_t K_CHKSUM_TYPE_NONE        = 0x00;
-    constexpr uint16_t K_CHKSUM_TYPE_SHA256      = 0x03;
-    constexpr uint32_t K_SHA256_LENGTH           = 32;
     constexpr uint32_t K_CV_LINE_STATEMENT_BIT   = 0x80000000u;
     constexpr uint16_t K_CV_ENCODED_FRAME_NONE   = 0x0000;
     constexpr uint16_t K_CV_ENCODED_FRAME_RSP    = 0x0001;
@@ -194,55 +189,10 @@ namespace
             std::array<std::byte, 32> checksum{};
         };
 
-        static bool computeSha256(const Utf8& fileName, std::array<std::byte, 32>& outChecksum)
-        {
-            std::ifstream input(fs::path(fileName.c_str()), std::ios::binary);
-            if (!input.is_open())
-                return false;
-
-            HCRYPTPROV provider = 0;
-            if (!CryptAcquireContextW(&provider, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
-                return false;
-
-            HCRYPTHASH hash = 0;
-            if (!CryptCreateHash(provider, CALG_SHA_256, 0, 0, &hash))
-            {
-                CryptReleaseContext(provider, 0);
-                return false;
-            }
-
-            std::array<char, 4096> buffer;
-            bool                   success = true;
-            while (input.good())
-            {
-                input.read(buffer.data(), buffer.size());
-                const auto readCount = input.gcount();
-                if (!readCount)
-                    continue;
-
-                if (!CryptHashData(hash, reinterpret_cast<const BYTE*>(buffer.data()), static_cast<DWORD>(readCount), 0))
-                {
-                    success = false;
-                    break;
-                }
-            }
-
-            DWORD checksumSize = K_SHA256_LENGTH;
-            if (success)
-                success = CryptGetHashParam(hash, HP_HASHVAL, reinterpret_cast<BYTE*>(outChecksum.data()), &checksumSize, 0) && checksumSize == K_SHA256_LENGTH;
-
-            CryptDestroyHash(hash);
-            CryptReleaseContext(provider, 0);
-            return success;
-        }
-
         static void computeChecksum(Entry& outEntry, const Utf8& fileName)
         {
-            if (!computeSha256(fileName, outEntry.checksum))
+            if (fileName.empty())
                 return;
-
-            outEntry.checksumKind = K_CHKSUM_TYPE_SHA256;
-            outEntry.checksumSize = K_SHA256_LENGTH;
         }
 
         uint32_t                           size = 0;

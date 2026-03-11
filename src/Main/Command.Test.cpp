@@ -155,8 +155,8 @@ namespace
 
     void appendStandaloneSourceFile(SourceSuiteBuckets& outBuckets, const fs::path& path)
     {
-        TestSuiteKind kind           = TestSuiteKind::Unknown;
-        const bool    hasSourceHints = classifySourceFile(kind, path);
+        auto       kind           = TestSuiteKind::Unknown;
+        const bool hasSourceHints = classifySourceFile(kind, path);
         outBuckets.hasSourceHints |= hasSourceHints;
 
         switch (kind)
@@ -244,8 +244,8 @@ namespace
     {
         struct RestoreBackendKind final
         {
-            CompilerInstance&             compiler;
-            Runtime::BuildCfgBackendKind  backendKind;
+            CompilerInstance&            compiler;
+            Runtime::BuildCfgBackendKind backendKind;
 
             ~RestoreBackendKind()
             {

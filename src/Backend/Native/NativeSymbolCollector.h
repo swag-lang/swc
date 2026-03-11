@@ -36,7 +36,7 @@ private:
     Utf8                 makeSortKey(const SymbolFunction& symbol) const;
     Utf8                 makeSortKey(const SymbolVariable& symbol) const;
 
-    NativeBackendBuilder& builder_;
+    NativeBackendBuilder&               builder_;
     std::unordered_set<SymbolFunction*> seenFunctions_;
 };
 

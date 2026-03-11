@@ -1158,7 +1158,7 @@ namespace
         {
             const uint32_t     typeIndex    = nextTypeIndex++;
             const uint32_t     recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
-            const uint16_t     size         = static_cast<uint16_t>(items.size());
+            constexpr uint16_t size         = items.size();
             writeU16(bytes, size);
             for (const uint32_t item : items)
                 writeU32(bytes, item);

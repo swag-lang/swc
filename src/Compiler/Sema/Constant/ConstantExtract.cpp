@@ -280,7 +280,7 @@ namespace
         SWC_ASSERT(ptrValue);
 
         const uint64_t byteOffset = static_cast<uint64_t>(constIndex) * elemSize;
-        const auto*    elemPtr    = reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptrValue + byteOffset));
+        const auto*    elemPtr    = reinterpret_cast<const std::byte*>(ptrValue + byteOffset);
         const ByteSpan elemBytes{elemPtr, elemSize};
         return extractAtIndexBytes(sema, elemBytes, elemType, 0, 1, nodeArgRef);
     }

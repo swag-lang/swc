@@ -148,11 +148,11 @@ namespace
             const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
             if (srcConst.isArray())
             {
-                const ByteSpan   arrayBytes        = srcConst.getArray();
+                const ByteSpan    arrayBytes       = srcConst.getArray();
                 const ConstantRef runtimeStringRef = makeBorrowedRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), arrayBytes.size());
                 SWC_ASSERT(runtimeStringRef.isValid());
-                const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringRef);
-                const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+                const ConstantValue&      runtimeStringCst = codeGen.cstMgr().get(runtimeStringRef);
+                const CodeGenNodePayload& dstPayload       = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
                 builder.emitLoadRegPtrReloc(dstPayload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringRef);
                 return Result::Continue;
             }
@@ -197,11 +197,11 @@ namespace
             const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
             if (srcConst.isArray())
             {
-                const ByteSpan    arrayBytes       = srcConst.getArray();
-                const ConstantRef runtimeSliceRef  = makeBorrowedRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), elementCount);
+                const ByteSpan    arrayBytes      = srcConst.getArray();
+                const ConstantRef runtimeSliceRef = makeBorrowedRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), elementCount);
                 SWC_ASSERT(runtimeSliceRef.isValid());
-                const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
-                const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+                const ConstantValue&      runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
+                const CodeGenNodePayload& dstPayload      = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
                 builder.emitLoadRegPtrReloc(dstPayload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceRef);
                 return Result::Continue;
             }

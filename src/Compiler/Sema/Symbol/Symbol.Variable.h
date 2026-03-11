@@ -53,16 +53,16 @@ public:
     DataSegmentKind globalStorageKind() const { return globalStorageKind_; }
 
 private:
-    uint32_t        offset_            = 0;
-    uint32_t        parameterIndex_    = K_INVALID_PARAMETER_INDEX;
-    ConstantRef     cstRef_            = ConstantRef::invalid();
-    ConstantRef     defaultValueRef_   = ConstantRef::invalid();
-    uint32_t        codeGenLocalSize_  = 0;
+    uint32_t        offset_               = 0;
+    uint32_t        parameterIndex_       = K_INVALID_PARAMETER_INDEX;
+    ConstantRef     cstRef_               = ConstantRef::invalid();
+    ConstantRef     defaultValueRef_      = ConstantRef::invalid();
+    uint32_t        codeGenLocalSize_     = 0;
     uint32_t        debugStackSlotOffset_ = 0;
     uint32_t        debugStackSlotSize_   = 0;
-    DataSegmentKind globalStorageKind_ = DataSegmentKind::Zero;
-    bool            hasGlobalStorage_  = false;
-    mutable void*   codeGenPayload_    = nullptr;
+    DataSegmentKind globalStorageKind_    = DataSegmentKind::Zero;
+    bool            hasGlobalStorage_     = false;
+    mutable void*   codeGenPayload_       = nullptr;
 };
 
 SWC_END_NAMESPACE();

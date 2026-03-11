@@ -87,7 +87,7 @@ void Logger::printHeaderCentered(const TaskContext& ctx,
 
 void Logger::printAction(const TaskContext& ctx, std::string_view left, std::string_view right)
 {
-    LogColor rightColor = LogColor::White;
+    auto rightColor = LogColor::White;
     if (right.contains("error"))
         rightColor = LogColor::BrightRed;
     else if (right.contains("warning"))

@@ -33,8 +33,6 @@ namespace
         {
             lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + (i * elemSize), elemSize}, elemTypeRef, values[i]);
         }
-
-        return;
     }
 
     void lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
@@ -276,7 +274,6 @@ namespace
         SWC_ASSERT(dstType.isEnum() || dstType.isStruct() || dstType.isArray() || dstType.isBool() || dstType.isChar() ||
                    dstType.isRune() || dstType.isInt() || dstType.isFloat() || dstType.isString() || dstType.isSlice() ||
                    dstType.isAny() || dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction());
-        return;
     }
 }
 
@@ -322,7 +319,6 @@ void ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstBytes,
         else if (fieldSize)
             std::memset(dstBytes.data() + fieldOffset, 0, fieldSize);
     }
-    return;
 }
 
 SWC_END_NAMESPACE();

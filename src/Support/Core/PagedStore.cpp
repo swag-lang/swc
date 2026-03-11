@@ -83,7 +83,7 @@ uint32_t PagedStore::extentSize() const noexcept
         if (!used)
             continue;
 
-        const uint64_t size = static_cast<uint64_t>(i) * pageSizeValue_ + used;
+        const uint64_t size = i * pageSizeValue_ + used;
         return static_cast<uint32_t>(std::min<uint64_t>(size, std::numeric_limits<uint32_t>::max()));
     }
 
@@ -136,7 +136,7 @@ void PagedStore::copyToPreserveOffsets(ByteSpanRW dst) const
         if (!used)
             continue;
 
-        const uint64_t dstOffset = static_cast<uint64_t>(i) * pageSizeValue_;
+        const uint64_t dstOffset = i * pageSizeValue_;
         SWC_ASSERT(dstOffset + used <= dst.size_bytes());
         std::memcpy(dst.data() + dstOffset, (*pages)[i]->bytes(), used);
     }

@@ -20,7 +20,7 @@ namespace
         if (!typeRef.isValid())
             return typeRef;
 
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo         = sema.typeMgr().get(typeRef);
         const TypeRef   unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         if (unwrappedTypeRef.isValid())
             return unwrappedTypeRef;

@@ -1214,7 +1214,6 @@ void X64Encoder::encodePush(MicroReg reg)
     if (isExtendedReg(x64Reg))
         store_.pushU8(getRex(false, false, false, true));
     emitCpuOp(store_, 0x50, reg);
-    return;
 }
 
 void X64Encoder::encodePop(MicroReg reg)
@@ -1223,13 +1222,11 @@ void X64Encoder::encodePop(MicroReg reg)
     if (isExtendedReg(x64Reg))
         store_.pushU8(getRex(false, false, false, true));
     emitCpuOp(store_, 0x58, reg);
-    return;
 }
 
 void X64Encoder::encodeRet()
 {
     emitCpuOp(store_, 0xC3);
-    return;
 }
 
 // ============================================================================
@@ -1276,8 +1273,6 @@ void X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits 
         emitSpecCpuOp(store_, getX64RegMemOpCode(MicroOp::Move), opBits);
         emitModRm(store_, regSrc, regDst);
     }
-
-    return;
 }
 
 void X64Encoder::encodeLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)
@@ -1297,8 +1292,6 @@ void X64Encoder::encodeLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits 
         emitCpuOp(store_, 0xB8, reg);
         emitValue(store_, valueU64, opBits);
     }
-
-    return;
 }
 
 void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
@@ -1320,8 +1313,6 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
         emitSpecCpuOp(store_, MicroOp::Move, opBits);
         emitModRm(store_, memOffset, reg, memReg);
     }
-
-    return;
 }
 
 void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
@@ -1352,8 +1343,6 @@ void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint6
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
@@ -1383,8 +1372,6 @@ void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, Mi
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
@@ -1418,8 +1405,6 @@ void X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uin
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
@@ -1451,8 +1436,6 @@ void X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, 
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 // ============================================================================
@@ -1479,8 +1462,6 @@ void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t
         emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
         emitModRm(store_, memOffset, reg, memReg);
     }
-
-    return;
 }
 
 namespace
@@ -1545,7 +1526,6 @@ namespace
 
         // Value
         emitValue(store, valueU64, std::min(opBitsValue, MicroOpBits::B32));
-        return;
     }
 
     void encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, bool mr)
@@ -1630,8 +1610,6 @@ namespace
             if (needsForcedDisplacement || addValue != 0)
                 emitValue(store, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
         }
-
-        return;
     }
 }
 
@@ -1676,8 +1654,6 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
         emitSpecCpuOp(store_, getX64RegMemOpCode(MicroOp::Move), opBits);
         emitModRm(store_, memOffset, reg, memReg);
     }
-
-    return;
 }
 
 void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
@@ -1710,8 +1686,6 @@ void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApI
     emitSpecB8(store_, 0xC7, opBits);
     emitModRm(store_, memOffset, MODRM_REG_0, memReg);
     emitValue(store_, valueU64, std::min(opBits, MicroOpBits::B32));
-
-    return;
 }
 
 // ============================================================================
@@ -1731,8 +1705,6 @@ void X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits)
         emitSpecCpuOp(store_, MicroOp::Xor, opBits);
         emitModRm(store_, reg, reg);
     }
-
-    return;
 }
 
 // ============================================================================
@@ -1792,7 +1764,6 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
     }
 
     emitModRm(store_, MODRM_REG_0, reg);
-    return;
 }
 
 void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)
@@ -1827,7 +1798,6 @@ void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCon
     }
 
     emitModRm(store_, regDst, regSrc);
-    return;
 }
 
 // ============================================================================
@@ -1849,8 +1819,6 @@ void X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBit
         emitSpecCpuOp(store_, MicroOp::Compare, opBits);
         emitModRm(store_, reg1, reg0);
     }
-
-    return;
 }
 
 void X64Encoder::encodeCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)
@@ -1892,8 +1860,6 @@ void X64Encoder::encodeCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits o
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
@@ -1905,8 +1871,6 @@ void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg r
     emitRex(store_, opBits, reg, memReg);
     emitSpecCpuOp(store_, MicroOp::Compare, opBits);
     emitModRm(store_, memOffset, reg, memReg);
-
-    return;
 }
 
 void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
@@ -1940,8 +1904,6 @@ void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApIn
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 // ============================================================================
@@ -1974,8 +1936,6 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
@@ -2027,8 +1987,6 @@ void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
@@ -2098,8 +2056,6 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
@@ -2299,8 +2255,6 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits)
@@ -2342,8 +2296,6 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
         emitSpecCpuOp(store_, op, opBits);
         emitModRm(store_, memOffset, reg, memReg);
     }
-
-    return;
 }
 
 void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, MicroOp op, MicroOpBits opBits)
@@ -2697,8 +2649,6 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& valueInt, MicroOp op, MicroOpBits opBits)
@@ -3000,8 +2950,6 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
@@ -3041,8 +2989,6 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     {
         SWC_INTERNAL_ERROR();
     }
-
-    return;
 }
 
 void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits)
@@ -3196,7 +3142,6 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
     jump.patchOffsetAddr = store_.seekPtr() - sizeof(uint32_t);
     jump.offsetStart     = store_.size();
     jump.opBits          = opBits;
-    return;
 }
 
 void X64Encoder::encodePatchJump(const MicroJump& jump, uint64_t offsetDestination)
@@ -3211,8 +3156,6 @@ void X64Encoder::encodePatchJump(const MicroJump& jump, uint64_t offsetDestinati
     {
         *static_cast<uint32_t*>(jump.patchOffsetAddr) = static_cast<int32_t>(offset);
     }
-
-    return;
 }
 
 void X64Encoder::encodePatchJump(const MicroJump& jump)
@@ -3225,7 +3168,6 @@ void X64Encoder::encodeJumpReg(MicroReg reg)
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Register, MODRM_REG_4, encodeReg(reg));
-    return;
 }
 
 // ============================================================================
@@ -3237,7 +3179,6 @@ void X64Encoder::encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, 
     const CallConv& conv = CallConv::get(callConv);
     encodeLoadRegImm(conv.intReturn, ApInt(targetAddress, 64), MicroOpBits::B64);
     encodeCallReg(conv.intReturn, callConv);
-    return;
 }
 
 void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
@@ -3248,7 +3189,6 @@ void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 
     emitCpuOp(store_, 0xE8);
     store_.pushU32(0);
-    return;
 }
 
 void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv)
@@ -3258,19 +3198,16 @@ void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv)
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, MODRM_REG_2, reg);
-    return;
 }
 
 void X64Encoder::encodeNop()
 {
     emitCpuOp(store_, 0x90);
-    return;
 }
 
 void X64Encoder::encodeBreakpoint()
 {
     emitCpuOp(store_, 0xCC);
-    return;
 }
 
 SWC_END_NAMESPACE();

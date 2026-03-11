@@ -21,7 +21,7 @@ namespace
         if (!typeRef.isValid())
             return typeRef;
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo         = codeGen.typeMgr().get(typeRef);
         const TypeRef   unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         if (unwrappedTypeRef.isValid())
             return unwrappedTypeRef;
@@ -68,10 +68,10 @@ namespace
         if (!stringCmpSymbol)
             return Result::Error;
 
-        auto&                     stringCmpFunction = *stringCmpSymbol;
-        const CallConvKind        callConvKind      = stringCmpFunction.callConvKind();
-        const CallConv&           callConv          = CallConv::get(callConvKind);
-        const auto&               params            = stringCmpFunction.parameters();
+        auto&                             stringCmpFunction = *stringCmpSymbol;
+        const CallConvKind                callConvKind      = stringCmpFunction.callConvKind();
+        const CallConv&                   callConv          = CallConv::get(callConvKind);
+        const auto&                       params            = stringCmpFunction.parameters();
         SmallVector<ABICall::PreparedArg> preparedArgs;
         preparedArgs.reserve(2);
 
@@ -81,14 +81,14 @@ namespace
         appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, leftPayload, params[0]->typeRef());
         appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, rightPayload, params[1]->typeRef());
 
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         if (stringCmpFunction.isForeign())
             ABICall::callExtern(builder, callConvKind, &stringCmpFunction, preparedCall);
         else
             ABICall::callLocal(builder, callConvKind, &stringCmpFunction, preparedCall);
 
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
@@ -197,7 +197,6 @@ namespace
         if (srcType.isFloat() && dstType.isFloat())
         {
             builder.emitOpBinaryRegReg(outReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
-            return;
         }
     }
 
@@ -236,12 +235,12 @@ namespace
         const TypeRef             leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
         const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
-        const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
+        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && isStringCompareType(codeGen, compareTypeRef))
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
 
-        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits         = compareOpBits(compareType, codeGen.ctx());
+        const TypeInfo&   compareType = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits      = compareOpBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;

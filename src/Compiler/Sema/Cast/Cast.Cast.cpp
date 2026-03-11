@@ -46,14 +46,14 @@ namespace
         if (typeRef.isInvalid())
             return Result::Error;
 
-        const TypeInfo&    typeInfo = sema.typeMgr().get(typeRef);
-        const uint64_t     sizeOf   = typeInfo.sizeOf(sema.ctx());
-        const uint32_t     alignOf  = typeInfo.alignOf(sema.ctx());
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        const uint64_t  sizeOf   = typeInfo.sizeOf(sema.ctx());
+        const uint32_t  alignOf  = typeInfo.alignOf(sema.ctx());
         SWC_ASSERT(sizeOf <= std::numeric_limits<uint32_t>::max());
         SWC_ASSERT(sizeOf == srcBytes.size());
 
         const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
-        outOffset = offset;
+        outOffset                    = offset;
         return materializeNativeStaticPayloadInPlace(sema, segment, typeRef, offset, ByteSpanRW{storage, static_cast<size_t>(sizeOf)}, srcBytes);
     }
 
@@ -151,11 +151,11 @@ namespace
             if (srcBytes.size() != sizeof(Runtime::Slice<std::byte>))
                 return Result::Error;
 
-            auto* const                        dstSlice       = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
-            const auto* const                  srcSlice       = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
-            const TypeRef                      elementTypeRef = typeInfo.payloadTypeRef();
-            const TypeInfo&                    elementType    = sema.typeMgr().get(elementTypeRef);
-            const uint64_t                     elementSize    = elementType.sizeOf(ctx);
+            auto* const       dstSlice       = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
+            const auto* const srcSlice       = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
+            const TypeRef     elementTypeRef = typeInfo.payloadTypeRef();
+            const TypeInfo&   elementType    = sema.typeMgr().get(elementTypeRef);
+            const uint64_t    elementSize    = elementType.sizeOf(ctx);
             if (!srcSlice->ptr)
             {
                 if (srcSlice->count != 0)
@@ -175,11 +175,11 @@ namespace
             {
                 const uint64_t elementOffset = idx * elementSize;
                 SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
-                                                                       segment,
-                                                                       elementTypeRef,
-                                                                       dataOffset + static_cast<uint32_t>(elementOffset),
-                                                                       ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
-                                                                       ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}));
+                                                                        segment,
+                                                                        elementTypeRef,
+                                                                        dataOffset + static_cast<uint32_t>(elementOffset),
+                                                                        ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
+                                                                        ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}));
             }
 
             dstSlice->ptr   = dataStorage;
@@ -204,11 +204,11 @@ namespace
             {
                 const uint64_t elementOffset = idx * elementSize;
                 SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
-                                                                       segment,
-                                                                       elementTypeRef,
-                                                                       baseOffset + static_cast<uint32_t>(elementOffset),
-                                                                       ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
-                                                                       ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}));
+                                                                        segment,
+                                                                        elementTypeRef,
+                                                                        baseOffset + static_cast<uint32_t>(elementOffset),
+                                                                        ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
+                                                                        ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}));
             }
 
             return Result::Continue;
@@ -229,11 +229,11 @@ namespace
                     return Result::Error;
 
                 SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
-                                                                       segment,
-                                                                       fieldTypeRef,
-                                                                       baseOffset + static_cast<uint32_t>(fieldOffset),
-                                                                       ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
-                                                                       ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}));
+                                                                        segment,
+                                                                        fieldTypeRef,
+                                                                        baseOffset + static_cast<uint32_t>(fieldOffset),
+                                                                        ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
+                                                                        ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}));
             }
 
             return Result::Continue;
@@ -1112,7 +1112,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     if (typeInfoOffset == INVALID_REF)
         return Result::Error;
 
-    DataSegment& segment = sema.cstMgr().shardDataSegment(shardIndex);
+    DataSegment& segment            = sema.cstMgr().shardDataSegment(shardIndex);
     const auto [anyOffset, storage] = segment.reserveBytes(sizeof(Runtime::Any), alignof(Runtime::Any), true);
     auto* const runtimeAny          = reinterpret_cast<Runtime::Any*>(storage);
     runtimeAny->type                = segment.ptr<Runtime::TypeInfo>(typeInfoOffset);

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -76,7 +76,7 @@ namespace
         SWC_ASSERT(sizeOf == srcBytes.size());
 
         const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
-        outOffset = offset;
+        outOffset                    = offset;
         return materializeGlobalInitPayloadInPlace(sema, segment, typeRef, offset, ByteSpanRW{storage, static_cast<size_t>(sizeOf)}, srcBytes);
     }
 
@@ -198,11 +198,11 @@ namespace
             {
                 const uint64_t elementOffset = idx * elementSize;
                 SWC_RESULT_VERIFY(materializeGlobalInitPayloadInPlace(sema,
-                                                                     segment,
-                                                                     elementTypeRef,
-                                                                     dataOffset + static_cast<uint32_t>(elementOffset),
-                                                                     ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
-                                                                     ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}));
+                                                                      segment,
+                                                                      elementTypeRef,
+                                                                      dataOffset + static_cast<uint32_t>(elementOffset),
+                                                                      ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
+                                                                      ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}));
             }
 
             dstSlice->ptr   = dataStorage;
@@ -227,11 +227,11 @@ namespace
             {
                 const uint64_t elementOffset = idx * elementSize;
                 SWC_RESULT_VERIFY(materializeGlobalInitPayloadInPlace(sema,
-                                                                     segment,
-                                                                     elementTypeRef,
-                                                                     baseOffset + static_cast<uint32_t>(elementOffset),
-                                                                     ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
-                                                                     ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}));
+                                                                      segment,
+                                                                      elementTypeRef,
+                                                                      baseOffset + static_cast<uint32_t>(elementOffset),
+                                                                      ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
+                                                                      ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}));
             }
 
             return Result::Continue;
@@ -252,11 +252,11 @@ namespace
                     return Result::Error;
 
                 SWC_RESULT_VERIFY(materializeGlobalInitPayloadInPlace(sema,
-                                                                     segment,
-                                                                     fieldTypeRef,
-                                                                     baseOffset + static_cast<uint32_t>(fieldOffset),
-                                                                     ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
-                                                                     ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}));
+                                                                      segment,
+                                                                      fieldTypeRef,
+                                                                      baseOffset + static_cast<uint32_t>(fieldOffset),
+                                                                      ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
+                                                                      ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}));
             }
 
             return Result::Continue;
@@ -704,8 +704,8 @@ namespace
         const size_t count = symbols.size();
         for (size_t i = 0; i < count; ++i)
         {
-            Symbol* const               sym   = symbols[i];
-            const SymbolVariable* const field = fields[i];
+            Symbol* const               sym    = symbols[i];
+            const SymbolVariable* const field  = fields[i];
             auto* const                 symVar = getVariableSymbol(sym);
             if (!symVar || !field)
                 continue;

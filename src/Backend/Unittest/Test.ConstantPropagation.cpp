@@ -2,11 +2,11 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Runtime.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -43,7 +43,7 @@ namespace
 
     ConstantRef makeRelocStringConstant(TaskContext& ctx)
     {
-        DataSegment& segment = ctx.cstMgr().shardDataSegment(0);
+        DataSegment& segment             = ctx.cstMgr().shardDataSegment(0);
         const auto [baseOffset, storage] = segment.reserveBytes(sizeof(Runtime::String), alignof(Runtime::String), true);
         auto* const runtimeString        = reinterpret_cast<Runtime::String*>(storage);
         runtimeString->length            = segment.addString(baseOffset, offsetof(Runtime::String, ptr), Utf8{"const-prop"});

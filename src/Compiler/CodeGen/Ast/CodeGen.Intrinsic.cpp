@@ -1304,7 +1304,7 @@ Result AstIntrinsicValue::codeGenPostNode(CodeGen& codeGen) const
                 indexTypeRef = codeGen.curViewType().typeRef();
 
             const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), indexTypeRef);
-            MicroOpBits               opBits  = MicroOpBits::B64;
+            auto                      opBits  = MicroOpBits::B64;
             if (indexTypeRef.isValid())
             {
                 const uint64_t sizeOfType = codeGen.typeMgr().get(indexTypeRef).sizeOf(codeGen.ctx());

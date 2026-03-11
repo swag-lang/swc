@@ -292,8 +292,8 @@ namespace
                         std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
                         ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef);
 
-                        const ConstantRef   typedNullCstRef = makeBorrowedStructConstant(codeGen, targetTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
-                        const ConstantValue& typedNullCst   = codeGen.cstMgr().get(typedNullCstRef);
+                        const ConstantRef    typedNullCstRef = makeBorrowedStructConstant(codeGen, targetTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+                        const ConstantValue& typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);
                         payload.setIsValue();
                         return;

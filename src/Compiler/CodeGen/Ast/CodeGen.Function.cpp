@@ -179,10 +179,10 @@ namespace
         constexpr uint32_t sliceAlignment = alignof(Runtime::Slice<Runtime::Gvtd>);
         constexpr uint32_t entrySize      = sizeof(Runtime::Gvtd);
         constexpr uint32_t entryAlignment = alignof(Runtime::Gvtd);
-        const uint32_t     scratchAlign   = std::max(sliceAlignment, entryAlignment);
-        const uint32_t     entriesOffset  = Math::alignUpU32(sliceSize, entryAlignment);
+        constexpr uint32_t scratchAlign   = std::max(sliceAlignment, entryAlignment);
+        constexpr uint32_t entriesOffset  = Math::alignUpU32(sliceSize, entryAlignment);
         const uint64_t     scratchBase    = Math::alignUpU64(frameSize, scratchAlign);
-        const uint64_t     scratchSize    = entriesOffset + static_cast<uint64_t>(entries.size()) * entrySize;
+        const uint64_t     scratchSize    = entriesOffset + entries.size() * entrySize;
         const uint64_t     scratchEnd     = scratchBase + scratchSize;
         SWC_ASSERT(scratchSize > 0);
         SWC_ASSERT(scratchSize <= std::numeric_limits<uint32_t>::max());

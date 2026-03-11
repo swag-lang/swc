@@ -16,12 +16,12 @@ JITMemory::JITMemory(JITMemory&& other) noexcept :
     unwindInfoSize_(other.unwindInfoSize_),
     hostRuntimeFunction_(other.hostRuntimeFunction_)
 {
-    other.ptr_                  = nullptr;
-    other.size_                 = 0;
-    other.allocationSize_       = 0;
-    other.unwindInfoOffset_     = 0;
-    other.unwindInfoSize_       = 0;
-    other.hostRuntimeFunction_  = nullptr;
+    other.ptr_                 = nullptr;
+    other.size_                = 0;
+    other.allocationSize_      = 0;
+    other.unwindInfoOffset_    = 0;
+    other.unwindInfoSize_      = 0;
+    other.hostRuntimeFunction_ = nullptr;
 }
 
 JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
@@ -30,18 +30,18 @@ JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
     {
         reset();
 
-        ptr_                        = other.ptr_;
-        size_                       = other.size_;
-        allocationSize_             = other.allocationSize_;
-        unwindInfoOffset_           = other.unwindInfoOffset_;
-        unwindInfoSize_             = other.unwindInfoSize_;
-        hostRuntimeFunction_        = other.hostRuntimeFunction_;
-        other.ptr_                  = nullptr;
-        other.size_                 = 0;
-        other.allocationSize_       = 0;
-        other.unwindInfoOffset_     = 0;
-        other.unwindInfoSize_       = 0;
-        other.hostRuntimeFunction_  = nullptr;
+        ptr_                       = other.ptr_;
+        size_                      = other.size_;
+        allocationSize_            = other.allocationSize_;
+        unwindInfoOffset_          = other.unwindInfoOffset_;
+        unwindInfoSize_            = other.unwindInfoSize_;
+        hostRuntimeFunction_       = other.hostRuntimeFunction_;
+        other.ptr_                 = nullptr;
+        other.size_                = 0;
+        other.allocationSize_      = 0;
+        other.unwindInfoOffset_    = 0;
+        other.unwindInfoSize_      = 0;
+        other.hostRuntimeFunction_ = nullptr;
     }
 
     return *this;
@@ -51,12 +51,12 @@ void JITMemory::reset()
 {
     Os::removeHostJitFunctionTable(*this);
 
-    ptr_                  = nullptr;
-    size_                 = 0;
-    allocationSize_       = 0;
-    unwindInfoOffset_     = 0;
-    unwindInfoSize_       = 0;
-    hostRuntimeFunction_  = nullptr;
+    ptr_                 = nullptr;
+    size_                = 0;
+    allocationSize_      = 0;
+    unwindInfoOffset_    = 0;
+    unwindInfoSize_      = 0;
+    hostRuntimeFunction_ = nullptr;
 }
 
 SWC_END_NAMESPACE();

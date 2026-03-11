@@ -661,23 +661,23 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
             name = "run";
             break;
         case TokenId::CompilerFuncTest:
-            name = "test";
+            name                  = "test";
             registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncInit:
-            name = "init";
+            name                  = "init";
             registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncDrop:
-            name = "drop";
+            name                  = "drop";
             registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncMain:
-            name = "main";
+            name                  = "main";
             registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncPreMain:
-            name = "premain";
+            name                  = "premain";
             registerCompilerEntry = true;
             break;
         case TokenId::CompilerFuncMessage:

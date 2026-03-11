@@ -125,7 +125,6 @@ namespace
         if (type.isUndefined())
         {
             rtType.nativeKind = Runtime::TypeInfoNativeKind::Undefined;
-            return;
         }
     }
 

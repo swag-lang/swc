@@ -122,8 +122,8 @@ public:
     const SourceView& srcView(SourceViewRef ref) const;
     const SourceView* findSourceViewByFileName(std::string_view fileName) const;
 
-    Result                         collectFiles(TaskContext& ctx);
-    std::span<SourceFile* const>   files() const;
+    Result                       collectFiles(TaskContext& ctx);
+    std::span<SourceFile* const> files() const;
 
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)

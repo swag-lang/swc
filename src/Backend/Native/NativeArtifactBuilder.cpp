@@ -311,8 +311,8 @@ Result NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, c
                 Utf8 detail;
                 if (!validateConstantRelocation(relocation, &typeName, &detail))
                 {
-                    TaskContext&      ctx     = const_cast<TaskContext&>(builder_.ctx());
-                    const SourceView& srcView = ctx.compiler().srcView(owner.srcViewRef());
+                    auto&             ctx       = const_cast<TaskContext&>(builder_.ctx());
+                    const SourceView& srcView   = ctx.compiler().srcView(owner.srcViewRef());
                     const Utf8        ownerName = owner.getFullScopedName(ctx);
 
                     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_constant_payload_unsupported, srcView.fileRef());
@@ -340,33 +340,33 @@ bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& re
         return false;
     }
 
-    uint32_t  shardIndex = 0;
-    const Ref baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
-    const ConstantValue& constant = builder_.compiler().cstMgr().get(relocation.constantRef);
-    const Utf8           typeName = constantTypeName(builder_.ctx(), constant);
+    uint32_t             shardIndex = 0;
+    const Ref            baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
+    const ConstantValue& constant   = builder_.compiler().cstMgr().get(relocation.constantRef);
+    const Utf8           typeName   = constantTypeName(builder_.ctx(), constant);
     if (baseOffset == INVALID_REF)
     {
         setConstantValidationFailure(outTypeName, outDetail, typeName, std::format("constant data segment lookup failed; constant kind '{}'", constantKindName(constant.kind())));
         return false;
     }
 
-    const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
-    const auto validateBorrowedPayload = [&](const ByteSpan payload, const std::string_view payloadKind) {
+    const DataSegment& segment                 = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+    const auto         validateBorrowedPayload = [&](const ByteSpan payload, const std::string_view payloadKind) {
         if (relocation.targetAddress != reinterpret_cast<uint64_t>(payload.data()))
         {
             setConstantValidationFailure(outTypeName,
-                                         outDetail,
-                                         typeName,
-                                         std::format("{} relocation target does not match payload base; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
+                                                 outDetail,
+                                                 typeName,
+                                                 std::format("{} relocation target does not match payload base; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
             return false;
         }
 
         if (!validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payload))
         {
             setConstantValidationFailure(outTypeName,
-                                         outDetail,
-                                         typeName,
-                                         std::format("{} payload is not representable as native static data; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
+                                                 outDetail,
+                                                 typeName,
+                                                 std::format("{} payload is not representable as native static data; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
             return false;
         }
 

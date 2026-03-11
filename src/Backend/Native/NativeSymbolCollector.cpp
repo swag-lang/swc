@@ -250,18 +250,16 @@ bool NativeSymbolCollector::isCompilerFunction(const SymbolFunction& symbol)
 
 Utf8 NativeSymbolCollector::makeSymbolSortKey(const SymbolFunction& symbol) const
 {
-    Utf8 key = symbol.getFullScopedName(builder_.ctx());
-    key += "|";
-    key += symbol.computeName(builder_.ctx());
-
+    Utf8 key;
     if (const SourceFile* file = builder_.compiler().srcView(symbol.srcViewRef()).file())
-    {
-        key += "|";
         key += Utf8(file->path());
-    }
 
     key += "|";
     key += std::to_string(symbol.tokRef().get());
+    key += "|";
+    key += symbol.getFullScopedName(builder_.ctx());
+    key += "|";
+    key += symbol.computeName(builder_.ctx());
     return key;
 }
 
@@ -272,12 +270,13 @@ Utf8 NativeSymbolCollector::makeSortKey(const SymbolFunction& symbol) const
 
 Utf8 NativeSymbolCollector::makeSortKey(const SymbolVariable& symbol) const
 {
-    Utf8 key = symbol.getFullScopedName(builder_.ctx());
-    key += "|";
+    Utf8 key;
     if (const SourceFile* file = builder_.compiler().srcView(symbol.srcViewRef()).file())
         key += Utf8(file->path());
     key += "|";
     key += std::to_string(symbol.tokRef().get());
+    key += "|";
+    key += symbol.getFullScopedName(builder_.ctx());
     return key;
 }
 

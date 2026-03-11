@@ -249,7 +249,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
             .returnTypeRef = info->symbol ? info->symbol->returnTypeRef() : TypeRef::invalid(),
             .machineCode   = info->machineCode,
             .frameSize     = info->symbol ? info->symbol->debugStackFrameSize() : 0,
-            .frameBaseReg = frameBaseReg,
+            .frameBaseReg  = frameBaseReg,
             .parameters    = debugStorage.parameters,
             .locals        = debugStorage.locals,
             .constants     = debugStorage.constants,

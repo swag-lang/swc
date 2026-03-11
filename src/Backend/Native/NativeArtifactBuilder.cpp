@@ -598,7 +598,7 @@ Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& path
 
 Utf8 NativeArtifactBuilder::artifactName() const
 {
-    const Utf8 buildCfgName = Utf8(builder_.compiler().buildCfg().name);
+    const auto buildCfgName = Utf8(builder_.compiler().buildCfg().name);
     if (!buildCfgName.empty())
         return FileSystem::sanitizeFileName(buildCfgName);
 
@@ -642,7 +642,7 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
 
 fs::path NativeArtifactBuilder::configuredOutDir(const fs::path& defaultOutDir) const
 {
-    const Utf8 buildCfgOutDir = Utf8(builder_.compiler().buildCfg().outDir);
+    const auto buildCfgOutDir = Utf8(builder_.compiler().buildCfg().outDir);
     if (!buildCfgOutDir.empty())
         return {buildCfgOutDir.c_str()};
     return defaultOutDir;
@@ -659,7 +659,7 @@ Result NativeArtifactBuilder::createOutDir(const fs::path& outDir) const
 
 fs::path NativeArtifactBuilder::configuredWorkDir() const
 {
-    const Utf8 buildCfgWorkDir = Utf8(builder_.compiler().buildCfg().workDir);
+    const auto buildCfgWorkDir = Utf8(builder_.compiler().buildCfg().workDir);
     if (!buildCfgWorkDir.empty())
         return {buildCfgWorkDir.c_str()};
     return {};

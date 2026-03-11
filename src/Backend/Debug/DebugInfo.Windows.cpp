@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfo.h"
-#include "Backend/Runtime.h"
 #include "Backend/Native/NativeObjFileWriter.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -20,86 +20,86 @@ namespace DebugInfoPrivate
 {
     namespace
     {
-        constexpr uint32_t K_CV_SIGNATURE_C13      = 4;
-        constexpr uint32_t K_DEBUG_S_SYMBOLS       = 0xF1;
-        constexpr uint32_t K_DEBUG_S_LINES         = 0xF2;
-        constexpr uint32_t K_DEBUG_S_STRINGTABLE   = 0xF3;
-        constexpr uint32_t K_DEBUG_S_FILECHKSMS    = 0xF4;
-        constexpr uint16_t K_S_CONSTANT            = 0x1107;
-        constexpr uint16_t K_S_UDT                 = 0x1108;
-        constexpr uint16_t K_S_LDATA32             = 0x110C;
-        constexpr uint16_t K_S_GDATA32             = 0x110D;
-        constexpr uint16_t K_S_REGREL32            = 0x1111;
-        constexpr uint16_t K_S_FRAMEPROC           = 0x1012;
-        constexpr uint16_t K_S_OBJNAME             = 0x1101;
-        constexpr uint16_t K_S_GPROC32_ID          = 0x1147;
-        constexpr uint16_t K_S_BUILDINFO           = 0x114C;
-        constexpr uint16_t K_S_PROC_ID_END         = 0x114F;
-        constexpr uint16_t K_S_COMPILE3            = 0x113C;
-        constexpr uint16_t K_LF_MODIFIER           = 0x1001;
-        constexpr uint16_t K_LF_POINTER            = 0x1002;
-        constexpr uint16_t K_LF_ARRAY              = 0x1503;
-        constexpr uint16_t K_LF_STRUCTURE          = 0x1505;
-        constexpr uint16_t K_LF_PROCEDURE          = 0x1008;
-        constexpr uint16_t K_LF_ARGLIST            = 0x1201;
-        constexpr uint16_t K_LF_FIELDLIST          = 0x1203;
-        constexpr uint16_t K_LF_FUNC_ID            = 0x1601;
-        constexpr uint16_t K_LF_BUILDINFO          = 0x1603;
-        constexpr uint16_t K_LF_STRING_ID          = 0x1605;
-        constexpr uint16_t K_LF_MEMBER             = 0x150D;
-        constexpr uint32_t K_CV_CFL_CXX            = 0x01;
-        constexpr uint16_t K_CV_CFL_AMD64          = 0x00D0;
-        constexpr uint32_t K_CV_TYPE_SIGNATURE     = 4;
-        constexpr uint32_t K_CV_FIRST_NONPRIM      = 0x1000;
-        constexpr uint32_t K_T_VOID                = 0x0003;
-        constexpr uint32_t K_T_PVOID64             = 0x0603;
-        constexpr uint32_t K_T_BOOL08              = 0x0030;
-        constexpr uint32_t K_T_SHORT               = 0x0011;
-        constexpr uint32_t K_T_USHORT              = 0x0021;
-        constexpr uint32_t K_T_CHAR                = 0x0070;
-        constexpr uint32_t K_T_UCHAR               = 0x0020;
-        constexpr uint32_t K_T_INT4                = 0x0074;
-        constexpr uint32_t K_T_UINT4               = 0x0075;
-        constexpr uint32_t K_T_INT8                = 0x0013;
-        constexpr uint32_t K_T_UINT8               = 0x0023;
-        constexpr uint32_t K_T_REAL32              = 0x0040;
-        constexpr uint32_t K_T_REAL64              = 0x0041;
-        constexpr uint8_t  K_CV_CALL_NEAR_C        = 0x00;
-        constexpr uint16_t K_CV_TYPE_MOD_CONST     = 0x0001;
+        constexpr uint32_t K_CV_SIGNATURE_C13        = 4;
+        constexpr uint32_t K_DEBUG_S_SYMBOLS         = 0xF1;
+        constexpr uint32_t K_DEBUG_S_LINES           = 0xF2;
+        constexpr uint32_t K_DEBUG_S_STRINGTABLE     = 0xF3;
+        constexpr uint32_t K_DEBUG_S_FILECHKSMS      = 0xF4;
+        constexpr uint16_t K_S_CONSTANT              = 0x1107;
+        constexpr uint16_t K_S_UDT                   = 0x1108;
+        constexpr uint16_t K_S_LDATA32               = 0x110C;
+        constexpr uint16_t K_S_GDATA32               = 0x110D;
+        constexpr uint16_t K_S_REGREL32              = 0x1111;
+        constexpr uint16_t K_S_FRAMEPROC             = 0x1012;
+        constexpr uint16_t K_S_OBJNAME               = 0x1101;
+        constexpr uint16_t K_S_GPROC32_ID            = 0x1147;
+        constexpr uint16_t K_S_BUILDINFO             = 0x114C;
+        constexpr uint16_t K_S_PROC_ID_END           = 0x114F;
+        constexpr uint16_t K_S_COMPILE3              = 0x113C;
+        constexpr uint16_t K_LF_MODIFIER             = 0x1001;
+        constexpr uint16_t K_LF_POINTER              = 0x1002;
+        constexpr uint16_t K_LF_ARRAY                = 0x1503;
+        constexpr uint16_t K_LF_STRUCTURE            = 0x1505;
+        constexpr uint16_t K_LF_PROCEDURE            = 0x1008;
+        constexpr uint16_t K_LF_ARGLIST              = 0x1201;
+        constexpr uint16_t K_LF_FIELDLIST            = 0x1203;
+        constexpr uint16_t K_LF_FUNC_ID              = 0x1601;
+        constexpr uint16_t K_LF_BUILDINFO            = 0x1603;
+        constexpr uint16_t K_LF_STRING_ID            = 0x1605;
+        constexpr uint16_t K_LF_MEMBER               = 0x150D;
+        constexpr uint32_t K_CV_CFL_CXX              = 0x01;
+        constexpr uint16_t K_CV_CFL_AMD64            = 0x00D0;
+        constexpr uint32_t K_CV_TYPE_SIGNATURE       = 4;
+        constexpr uint32_t K_CV_FIRST_NONPRIM        = 0x1000;
+        constexpr uint32_t K_T_VOID                  = 0x0003;
+        constexpr uint32_t K_T_PVOID64               = 0x0603;
+        constexpr uint32_t K_T_BOOL08                = 0x0030;
+        constexpr uint32_t K_T_SHORT                 = 0x0011;
+        constexpr uint32_t K_T_USHORT                = 0x0021;
+        constexpr uint32_t K_T_CHAR                  = 0x0070;
+        constexpr uint32_t K_T_UCHAR                 = 0x0020;
+        constexpr uint32_t K_T_INT4                  = 0x0074;
+        constexpr uint32_t K_T_UINT4                 = 0x0075;
+        constexpr uint32_t K_T_INT8                  = 0x0013;
+        constexpr uint32_t K_T_UINT8                 = 0x0023;
+        constexpr uint32_t K_T_REAL32                = 0x0040;
+        constexpr uint32_t K_T_REAL64                = 0x0041;
+        constexpr uint8_t  K_CV_CALL_NEAR_C          = 0x00;
+        constexpr uint16_t K_CV_TYPE_MOD_CONST       = 0x0001;
         constexpr uint16_t K_CV_MEMBER_ACCESS_PUBLIC = 0x0003;
-        constexpr uint32_t K_CV_PTR_ATTR_NEAR64    = 0x0000000C;
-        constexpr uint32_t K_CV_FRAMEPROC_FLAGS    = 0x00114200;
-        constexpr uint16_t K_CHKSUM_TYPE_NONE      = 0x00;
-        constexpr uint16_t K_CHKSUM_TYPE_SHA256    = 0x03;
-        constexpr uint32_t K_SHA256_LENGTH         = 32;
-        constexpr uint32_t K_CV_LINE_STATEMENT_BIT = 0x80000000u;
-        constexpr uint16_t K_CV_ENCODED_FRAME_NONE = 0x0000;
-        constexpr uint16_t K_CV_ENCODED_FRAME_RSP  = 0x0001;
-        constexpr uint16_t K_CV_ENCODED_FRAME_RBP  = 0x0002;
-        constexpr uint16_t K_CV_NUMERIC_LEAF       = 0x8000;
-        constexpr uint16_t K_LF_CHAR_NUMERIC       = 0x8000;
-        constexpr uint16_t K_LF_SHORT_NUMERIC      = 0x8001;
-        constexpr uint16_t K_LF_USHORT_NUMERIC     = 0x8002;
-        constexpr uint16_t K_LF_LONG_NUMERIC       = 0x8003;
-        constexpr uint16_t K_LF_ULONG_NUMERIC      = 0x8004;
-        constexpr uint16_t K_LF_QUADWORD_NUMERIC   = 0x8009;
-        constexpr uint16_t K_LF_UQUADWORD_NUMERIC  = 0x800A;
-        constexpr uint16_t K_CV_REG_RAX            = 328;
-        constexpr uint16_t K_CV_REG_RBX            = 329;
-        constexpr uint16_t K_CV_REG_RCX            = 330;
-        constexpr uint16_t K_CV_REG_RDX            = 331;
-        constexpr uint16_t K_CV_REG_RSI            = 332;
-        constexpr uint16_t K_CV_REG_RDI            = 333;
-        constexpr uint16_t K_CV_REG_RBP            = 334;
-        constexpr uint16_t K_CV_REG_RSP            = 335;
-        constexpr uint16_t K_CV_REG_R8             = 336;
-        constexpr uint16_t K_CV_REG_R9             = 337;
-        constexpr uint16_t K_CV_REG_R10            = 338;
-        constexpr uint16_t K_CV_REG_R11            = 339;
-        constexpr uint16_t K_CV_REG_R12            = 340;
-        constexpr uint16_t K_CV_REG_R13            = 341;
-        constexpr uint16_t K_CV_REG_R14            = 342;
-        constexpr uint16_t K_CV_REG_R15            = 343;
+        constexpr uint32_t K_CV_PTR_ATTR_NEAR64      = 0x0000000C;
+        constexpr uint32_t K_CV_FRAMEPROC_FLAGS      = 0x00114200;
+        constexpr uint16_t K_CHKSUM_TYPE_NONE        = 0x00;
+        constexpr uint16_t K_CHKSUM_TYPE_SHA256      = 0x03;
+        constexpr uint32_t K_SHA256_LENGTH           = 32;
+        constexpr uint32_t K_CV_LINE_STATEMENT_BIT   = 0x80000000u;
+        constexpr uint16_t K_CV_ENCODED_FRAME_NONE   = 0x0000;
+        constexpr uint16_t K_CV_ENCODED_FRAME_RSP    = 0x0001;
+        constexpr uint16_t K_CV_ENCODED_FRAME_RBP    = 0x0002;
+        constexpr uint16_t K_CV_NUMERIC_LEAF         = 0x8000;
+        constexpr uint16_t K_LF_CHAR_NUMERIC         = 0x8000;
+        constexpr uint16_t K_LF_SHORT_NUMERIC        = 0x8001;
+        constexpr uint16_t K_LF_USHORT_NUMERIC       = 0x8002;
+        constexpr uint16_t K_LF_LONG_NUMERIC         = 0x8003;
+        constexpr uint16_t K_LF_ULONG_NUMERIC        = 0x8004;
+        constexpr uint16_t K_LF_QUADWORD_NUMERIC     = 0x8009;
+        constexpr uint16_t K_LF_UQUADWORD_NUMERIC    = 0x800A;
+        constexpr uint16_t K_CV_REG_RAX              = 328;
+        constexpr uint16_t K_CV_REG_RBX              = 329;
+        constexpr uint16_t K_CV_REG_RCX              = 330;
+        constexpr uint16_t K_CV_REG_RDX              = 331;
+        constexpr uint16_t K_CV_REG_RSI              = 332;
+        constexpr uint16_t K_CV_REG_RDI              = 333;
+        constexpr uint16_t K_CV_REG_RBP              = 334;
+        constexpr uint16_t K_CV_REG_RSP              = 335;
+        constexpr uint16_t K_CV_REG_R8               = 336;
+        constexpr uint16_t K_CV_REG_R9               = 337;
+        constexpr uint16_t K_CV_REG_R10              = 338;
+        constexpr uint16_t K_CV_REG_R11              = 339;
+        constexpr uint16_t K_CV_REG_R12              = 340;
+        constexpr uint16_t K_CV_REG_R13              = 341;
+        constexpr uint16_t K_CV_REG_R14              = 342;
+        constexpr uint16_t K_CV_REG_R15              = 343;
 
         struct LineEntry
         {
@@ -215,7 +215,7 @@ namespace DebugInfoPrivate
                 bool                   success = true;
                 while (input.good())
                 {
-                    input.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+                    input.read(buffer.data(), buffer.size());
                     const auto readCount = input.gcount();
                     if (!readCount)
                         continue;
@@ -721,9 +721,9 @@ namespace DebugInfoPrivate
             if (!constant.valueRef.isValid())
                 return false;
 
-            const size_t   savedSize     = bytes.size();
-            const uint32_t recordOffset  = beginRecord(bytes, K_S_CONSTANT);
-            const ConstantValue& value   = ctx.cstMgr().get(constant.valueRef);
+            const size_t         savedSize    = bytes.size();
+            const uint32_t       recordOffset = beginRecord(bytes, K_S_CONSTANT);
+            const ConstantValue& value        = ctx.cstMgr().get(constant.valueRef);
             writeU32(bytes, typeIndex);
             if (!appendConstantValueBytes(bytes, ctx, value))
             {
@@ -747,11 +747,11 @@ namespace DebugInfoPrivate
             endRecord(bytes, recordOffset);
         }
 
-        void appendProcSymbols(std::vector<std::byte>& bytes,
-                               NativeSectionData& debugSection,
-                               const TaskContext& ctx,
-                               const DebugInfoFunctionRecord& function,
-                               const uint32_t typeIndex,
+        void appendProcSymbols(std::vector<std::byte>&         bytes,
+                               NativeSectionData&              debugSection,
+                               const TaskContext&              ctx,
+                               const DebugInfoFunctionRecord&  function,
+                               const uint32_t                  typeIndex,
                                const std::span<const uint32_t> parameterTypeIndices,
                                const std::span<const uint32_t> localTypeIndices,
                                const std::span<const uint32_t> constantTypeIndices)
@@ -855,8 +855,8 @@ namespace DebugInfoPrivate
 
             uint32_t appendProcedureType(const uint32_t returnType, const std::span<const uint32_t> arguments)
             {
-                const uint32_t argListType = appendArgList(arguments);
-                const uint32_t typeIndex   = nextTypeIndex++;
+                const uint32_t argListType  = appendArgList(arguments);
+                const uint32_t typeIndex    = nextTypeIndex++;
                 const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_PROCEDURE);
                 writeU32(bytes, returnType);
                 bytes.push_back(static_cast<std::byte>(K_CV_CALL_NEAR_C));
@@ -1019,8 +1019,8 @@ namespace DebugInfoPrivate
                     return cacheIt->second;
 
                 const uint32_t fieldListType = fields.empty() ? 0 : appendFieldList(fields);
-                const uint32_t baseTypeIndex  = appendStructRecord(typeName, fieldListType, static_cast<uint16_t>(fields.size()), sizeOf, 0);
-                const uint32_t typeIndex      = isConst ? appendModifierType(baseTypeIndex, K_CV_TYPE_MOD_CONST) : baseTypeIndex;
+                const uint32_t baseTypeIndex = appendStructRecord(typeName, fieldListType, static_cast<uint16_t>(fields.size()), sizeOf, 0);
+                const uint32_t typeIndex     = isConst ? appendModifierType(baseTypeIndex, K_CV_TYPE_MOD_CONST) : baseTypeIndex;
                 builtTypes.emplace(cacheKey, typeIndex);
                 udtNames.emplace(baseTypeIndex, typeName);
                 return typeIndex;
@@ -1032,7 +1032,7 @@ namespace DebugInfoPrivate
                     return K_T_VOID;
 
                 const TypeInfo& originalType = ctx.typeMgr().get(typeRef);
-                isConst                       = isConst || originalType.isConst();
+                isConst                      = isConst || originalType.isConst();
 
                 if (originalType.isAlias())
                 {
@@ -1063,8 +1063,8 @@ namespace DebugInfoPrivate
 
                 if (originalType.isSlice())
                 {
-                    const uint32_t elemPtrType = appendPointerType(typeIndexFor(originalType.payloadTypeRef()));
-                    const std::array fields = {
+                    const uint32_t   elemPtrType = appendPointerType(typeIndexFor(originalType.payloadTypeRef()));
+                    const std::array fields      = {
                         FieldDesc{.name = "ptr", .typeIndex = elemPtrType, .offset = offsetof(Runtime::Slice<std::byte>, ptr)},
                         FieldDesc{.name = "count", .typeIndex = K_T_UINT8, .offset = offsetof(Runtime::Slice<std::byte>, count)},
                     };
@@ -1105,9 +1105,9 @@ namespace DebugInfoPrivate
 
                 if (originalType.isArray())
                 {
-                    uint32_t currentType = typeIndexFor(originalType.payloadArrayElemTypeRef());
-                    uint64_t currentSize = ctx.typeMgr().get(originalType.payloadArrayElemTypeRef()).sizeOf(ctx);
-                    const auto& dims = originalType.payloadArrayDims();
+                    uint32_t    currentType = typeIndexFor(originalType.payloadArrayElemTypeRef());
+                    uint64_t    currentSize = ctx.typeMgr().get(originalType.payloadArrayElemTypeRef()).sizeOf(ctx);
+                    const auto& dims        = originalType.payloadArrayDims();
                     for (size_t i = dims.size(); i-- > 0;)
                     {
                         currentSize *= dims[i];
@@ -1127,9 +1127,9 @@ namespace DebugInfoPrivate
                     uint64_t offset = 0;
                     for (size_t i = 0; i < aggregate.types.size(); ++i)
                     {
-                        const TypeRef fieldTypeRef = aggregate.types[i];
-                        const TypeInfo& fieldType  = ctx.typeMgr().get(fieldTypeRef);
-                        const uint32_t alignment   = fieldType.alignOf(ctx);
+                        const TypeRef   fieldTypeRef = aggregate.types[i];
+                        const TypeInfo& fieldType    = ctx.typeMgr().get(fieldTypeRef);
+                        const uint32_t  alignment    = fieldType.alignOf(ctx);
                         if (alignment)
                             offset = Math::alignUpU64(offset, alignment);
 
@@ -1160,7 +1160,7 @@ namespace DebugInfoPrivate
                         return itForward->second;
                     }
 
-                    const Utf8 typeName = originalType.toName(ctx);
+                    const Utf8     typeName    = originalType.toName(ctx);
                     const uint32_t forwardType = appendForwardStructRecord(typeName);
                     forwardStructTypes.emplace(typeKey, forwardType);
                     buildingStructs.insert(typeKey);
@@ -1179,7 +1179,7 @@ namespace DebugInfoPrivate
                     }
 
                     const uint32_t fieldListType = fields.empty() ? 0 : appendFieldList(fields);
-                    const uint32_t baseTypeIndex  = appendStructRecord(typeName, fieldListType, static_cast<uint16_t>(fields.size()), originalType.sizeOf(ctx), 0);
+                    const uint32_t baseTypeIndex = appendStructRecord(typeName, fieldListType, static_cast<uint16_t>(fields.size()), originalType.sizeOf(ctx), 0);
                     buildingStructs.erase(typeKey);
                     const uint32_t typeIndex = isConst ? appendModifierType(baseTypeIndex, K_CV_TYPE_MOD_CONST) : baseTypeIndex;
                     builtTypes.emplace(cacheKey, typeIndex);
@@ -1196,16 +1196,16 @@ namespace DebugInfoPrivate
             {
                 const uint32_t typeIndex    = nextTypeIndex++;
                 const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
-                writeU16(bytes, static_cast<uint16_t>(items.size()));
+                writeU16(bytes, items.size());
                 for (const uint32_t item : items)
                     writeU32(bytes, item);
                 endTypeRecord(bytes, recordOffset);
                 return typeIndex;
             }
 
-            TaskContext&                          ctx;
-            std::vector<std::byte>                bytes;
-            uint32_t                              nextTypeIndex = K_CV_FIRST_NONPRIM;
+            TaskContext&                           ctx;
+            std::vector<std::byte>                 bytes;
+            uint32_t                               nextTypeIndex = K_CV_FIRST_NONPRIM;
             std::unordered_map<uint64_t, uint32_t> builtTypes;
             std::unordered_map<uint64_t, uint32_t> modifierTypes;
             std::unordered_map<uint32_t, uint32_t> pointerTypes;
@@ -1308,7 +1308,7 @@ namespace DebugInfoPrivate
             for (size_t i = 0; i < request.functions.size(); ++i)
             {
                 const DebugInfoFunctionRecord& function = request.functions[i];
-                const FunctionLines lines = function.machineCode ? collectFunctionLines(*request.ctx, *function.machineCode) : FunctionLines{};
+                const FunctionLines            lines    = function.machineCode ? collectFunctionLines(*request.ctx, *function.machineCode) : FunctionLines{};
                 for (const auto& block : lines.blocks)
                 {
                     const uint32_t stringOffset = strings.insert(block.fileName);

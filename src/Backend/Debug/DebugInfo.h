@@ -44,26 +44,26 @@ struct DebugInfoConstantRecord : DebugInfoTypedRecord
 
 struct DebugInfoFunctionRecord
 {
-    Utf8                                   symbolName;
-    Utf8                                   debugName;
-    TypeRef                                returnTypeRef = TypeRef::invalid();
-    const MachineCode*                     machineCode = nullptr;
-    uint32_t                               frameSize   = 0;
-    MicroReg                               frameBaseReg = MicroReg::invalid();
-    std::span<const DebugInfoLocalRecord>  parameters;
-    std::span<const DebugInfoLocalRecord>  locals;
+    Utf8                                     symbolName;
+    Utf8                                     debugName;
+    TypeRef                                  returnTypeRef = TypeRef::invalid();
+    const MachineCode*                       machineCode   = nullptr;
+    uint32_t                                 frameSize     = 0;
+    MicroReg                                 frameBaseReg  = MicroReg::invalid();
+    std::span<const DebugInfoLocalRecord>    parameters;
+    std::span<const DebugInfoLocalRecord>    locals;
     std::span<const DebugInfoConstantRecord> constants;
 };
 
 struct DebugInfoObjectRequest
 {
-    TaskContext*                              ctx      = nullptr;
-    Runtime::TargetOs                         targetOs = Runtime::TargetOs::Windows;
-    fs::path                                  objectPath;
-    std::span<const DebugInfoFunctionRecord>  functions;
-    std::span<const DebugInfoDataRecord>      globals;
-    std::span<const DebugInfoConstantRecord>  constants;
-    bool                                      emitCodeView = false;
+    TaskContext*                             ctx      = nullptr;
+    Runtime::TargetOs                        targetOs = Runtime::TargetOs::Windows;
+    fs::path                                 objectPath;
+    std::span<const DebugInfoFunctionRecord> functions;
+    std::span<const DebugInfoDataRecord>     globals;
+    std::span<const DebugInfoConstantRecord> constants;
+    bool                                     emitCodeView = false;
 };
 
 struct DebugInfoObjectResult

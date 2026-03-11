@@ -14,12 +14,12 @@ public:
     Result link() override;
 
 private:
-    Result            discoverToolchain();
-    std::vector<Utf8> buildLinkArguments(bool dll) const;
-    std::vector<Utf8> buildLibArguments() const;
-    void              appendLinkSearchPaths(std::vector<Utf8>& args) const;
-    void              collectLinkLibraries(std::set<Utf8>& out) const;
-    void              appendUserLinkerArgs(std::vector<Utf8>& args) const;
+    Result                    discoverToolchain();
+    std::vector<Utf8>         buildLinkArguments(bool dll) const;
+    std::vector<Utf8>         buildLibArguments() const;
+    void                      appendLinkSearchPaths(std::vector<Utf8>& args) const;
+    void                      collectLinkLibraries(std::set<Utf8>& out) const;
+    void                      appendUserLinkerArgs(std::vector<Utf8>& args) const;
     Os::WindowsToolchainPaths toolchain_;
 };
 

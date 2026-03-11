@@ -507,7 +507,7 @@ namespace
             if (blockIt == blockIndices.end())
             {
                 blockIndex = result.blocks.size();
-                result.blocks.push_back({.fileName = codeViewFileName});
+                result.blocks.push_back({.fileName = codeViewFileName, .entries = {}});
                 blockIndices.emplace(codeViewFileName, blockIndex);
             }
             else

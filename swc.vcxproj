@@ -209,7 +209,7 @@
         <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemory.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfo.cpp"/>
-        <ClCompile Include="src\Backend\Debug\DebugInfo.Windows.cpp"/>
+        <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeLinker.cpp"/>
@@ -478,6 +478,7 @@
         <ClInclude Include="src\Backend\JIT\JITMemory.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.h"/>
+        <ClInclude Include="src\Backend\Debug\DebugInfoCodeView.h"/>
         <ClInclude Include="src\Backend\\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\\Encoder\X64Unwind.h"/>

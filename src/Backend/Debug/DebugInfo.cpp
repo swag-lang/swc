@@ -1,34 +1,30 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfo.h"
+#include "Backend/Debug/DebugInfoCodeView.h"
 
 SWC_BEGIN_NAMESPACE();
 
-namespace DebugInfoPrivate
+std::unique_ptr<DebugInfo> DebugInfo::create(const Runtime::TargetOs targetOs)
 {
-    Result buildWindowsObject(const DebugInfoObjectRequest& request, DebugInfoObjectResult& outResult);
-    bool   emitWindowsJitArtifact(const JitDebugRequest& request, JitDebugArtifact& outArtifact);
+    switch (targetOs)
+    {
+        case Runtime::TargetOs::Windows:
+            return std::make_unique<DebugInfoCodeView>();
+    }
+
+    SWC_UNREACHABLE();
 }
 
 Result DebugInfo::buildObject(const DebugInfoObjectRequest& request, DebugInfoObjectResult& outResult)
 {
-    switch (request.targetOs)
-    {
-        case Runtime::TargetOs::Windows:
-            return DebugInfoPrivate::buildWindowsObject(request, outResult);
-    }
-
-    SWC_UNREACHABLE();
+    const auto debugInfo = create(request.targetOs);
+    return debugInfo->buildObject(outResult, request);
 }
 
 bool DebugInfo::emitJitArtifact(const JitDebugRequest& request, JitDebugArtifact& outArtifact)
 {
-    switch (request.targetOs)
-    {
-        case Runtime::TargetOs::Windows:
-            return DebugInfoPrivate::emitWindowsJitArtifact(request, outArtifact);
-    }
-
-    SWC_UNREACHABLE();
+    const auto debugInfo = create(request.targetOs);
+    return debugInfo->emitJitArtifact(outArtifact, request);
 }
 
 SWC_END_NAMESPACE();

@@ -983,6 +983,9 @@
     <ClInclude Include="src\Backend\Debug\DebugInfo.h">
       <Filter>src\Backend\Debug</Filter>
     </ClInclude>
+    <ClInclude Include="src\Backend\Debug\DebugInfoCodeView.h">
+      <Filter>src\Backend\Debug</Filter>
+    </ClInclude>
     <ClInclude Include="src\Backend\\Encoder\Encoder.h">
       <Filter>src\Backend\Encoder</Filter>
     </ClInclude>

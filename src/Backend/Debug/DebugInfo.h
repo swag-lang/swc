@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include <memory>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -93,10 +94,18 @@ struct JitDebugRequest
     fs::path              workDir;
 };
 
-namespace DebugInfo
+class DebugInfo
 {
-    Result buildObject(const DebugInfoObjectRequest& request, DebugInfoObjectResult& outResult);
-    bool   emitJitArtifact(const JitDebugRequest& request, JitDebugArtifact& outArtifact);
-}
+public:
+    virtual ~DebugInfo() = default;
+
+    static std::unique_ptr<DebugInfo> create(Runtime::TargetOs targetOs);
+
+    static Result buildObject(const DebugInfoObjectRequest& request, DebugInfoObjectResult& outResult);
+    static bool   emitJitArtifact(const JitDebugRequest& request, JitDebugArtifact& outArtifact);
+
+    virtual Result buildObject(DebugInfoObjectResult& outResult, const DebugInfoObjectRequest& request) = 0;
+    virtual bool   emitJitArtifact(JitDebugArtifact& outArtifact, const JitDebugRequest& request)       = 0;
+};
 
 SWC_END_NAMESPACE();

@@ -241,22 +241,6 @@ namespace
         return true;
     }
 
-    void verifyExpectedMarkersWithLog(CompilerInstance& compiler)
-    {
-        TaskContext    ctx(compiler);
-        const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
-
-        if (!compiler.cmdLine().test)
-        {
-            verifyExpectedMarkers(ctx);
-            return;
-        }
-
-        ScopedTimedAction verifyAction(ctx, "Verify", "expected markers");
-        verifyExpectedMarkers(ctx);
-        finishAction(verifyAction, errorsBefore);
-    }
-
     void verifyExpectedMarkers(TaskContext& ctx)
     {
         if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
@@ -306,7 +290,8 @@ namespace
             if (!runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable))
                 return false;
 
-            verifyExpectedMarkersWithLog(compiler);
+            TaskContext ctx(compiler);
+            verifyExpectedMarkers(ctx);
             return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
         }
 
@@ -318,7 +303,8 @@ namespace
 
         compiler.buildCfg().backendKind = restore.backendKind;
 
-        verifyExpectedMarkersWithLog(compiler);
+        TaskContext ctx(compiler);
+        verifyExpectedMarkers(ctx);
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
 

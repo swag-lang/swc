@@ -17,7 +17,7 @@ namespace
         Unknown,
         Syntax,
         Sema,
-        Test,
+        Native,
     };
 
     struct SourceSuiteBuckets
@@ -38,6 +38,11 @@ namespace
     constexpr std::string_view EXPECTED_LEX_ID        = "{{lex_";
     constexpr std::string_view EXPECTED_SEMA_ID       = "{{sema_";
     constexpr std::string_view BACKEND_KIND_ALL       = "all";
+
+    bool isRunCommand(const CommandKind command)
+    {
+        return command == CommandKind::Run;
+    }
 
     bool pathMatchesFilter(const CommandLine& cmdLine, const fs::path& path)
     {
@@ -128,7 +133,7 @@ namespace
 
         if (containsVerifyOption(content, VERIFY_SUITE_TEST))
         {
-            outKind = TestSuiteKind::Test;
+            outKind = TestSuiteKind::Native;
             return true;
         }
 
@@ -164,7 +169,7 @@ namespace
             case TestSuiteKind::Syntax:
                 outBuckets.syntaxFiles.push_back(path);
                 break;
-            case TestSuiteKind::Test:
+            case TestSuiteKind::Native:
                 outBuckets.testFiles.push_back(path);
                 break;
             case TestSuiteKind::Sema:
@@ -240,7 +245,7 @@ namespace
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
 
-    bool runNativeTestBackends(CompilerInstance& compiler)
+    bool runNativeBackends(CompilerInstance& compiler, const bool runArtifact)
     {
         struct RestoreBackendKind final
         {
@@ -258,7 +263,7 @@ namespace
         if (!usesAllBackendKinds(compiler.cmdLine()))
         {
             const Runtime::BuildCfgBackendKind backendKind = compiler.buildCfg().backendKind;
-            if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
+            if (!runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable))
                 return false;
 
             TaskContext ctx(compiler);
@@ -268,7 +273,7 @@ namespace
 
         for (const Runtime::BuildCfgBackendKind backendKind : {Runtime::BuildCfgBackendKind::Executable, Runtime::BuildCfgBackendKind::Library, Runtime::BuildCfgBackendKind::Export})
         {
-            if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
+            if (!runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable))
                 return false;
         }
 
@@ -310,10 +315,11 @@ namespace
                 Command::sema(subCompiler);
                 break;
 
-            case CommandKind::Test:
+            case CommandKind::Build:
+            case CommandKind::Run:
                 Command::sema(subCompiler);
                 if (Stats::get().numErrors.load(std::memory_order_relaxed) == 0)
-                    runNativeTestBackends(subCompiler);
+                    runNativeBackends(subCompiler, isRunCommand(command));
                 break;
 
             default:
@@ -326,6 +332,8 @@ namespace
     bool runStandaloneSourceDrivenSuites(CompilerInstance& compiler)
     {
         const CommandLine& cmdLine = compiler.cmdLine();
+        if (!cmdLine.test)
+            return false;
         if (!cmdLine.modulePath.empty())
             return false;
         if (cmdLine.directories.empty() && cmdLine.files.empty())
@@ -343,11 +351,11 @@ namespace
         if (!runCompilerSubset(compiler, CommandKind::Sema, buckets.semaFiles))
             return true;
 
-        runCompilerSubset(compiler, CommandKind::Test, buckets.testFiles, compiler.cmdLine().backendKindName);
+        runCompilerSubset(compiler, compiler.cmdLine().command, buckets.testFiles, compiler.cmdLine().backendKindName);
         return true;
     }
 
-    void runTestCommand(CompilerInstance& compiler)
+    void runNativeCommand(CompilerInstance& compiler, const bool runArtifact)
     {
         if (runStandaloneSourceDrivenSuites(compiler))
             return;
@@ -356,15 +364,20 @@ namespace
         if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
             return;
 
-        runNativeTestBackends(compiler);
+        runNativeBackends(compiler, runArtifact);
     }
 }
 
 namespace Command
 {
-    void test(CompilerInstance& compiler)
+    void build(CompilerInstance& compiler)
     {
-        runTestCommand(compiler);
+        runNativeCommand(compiler, false);
+    }
+
+    void run(CompilerInstance& compiler)
+    {
+        runNativeCommand(compiler, true);
     }
 }
 

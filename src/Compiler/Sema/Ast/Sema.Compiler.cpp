@@ -637,7 +637,11 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 {
     TaskContext& ctx = sema.ctx();
     const Token& tok = sema.token(codeRef());
-    if (tok.id == TokenId::CompilerFuncMain)
+    const bool ignoreTestFunc = tok.id == TokenId::CompilerFuncTest && !ctx.cmdLine().test;
+    const bool ignoreMainFunc = tok.id == TokenId::CompilerFuncMain && (ctx.cmdLine().backendKindName == "dll" || ctx.cmdLine().backendKindName == "lib");
+    const bool ignoreCompilerFunc = ignoreTestFunc || ignoreMainFunc;
+
+    if (tok.id == TokenId::CompilerFuncMain && !ignoreMainFunc)
     {
         if (!ctx.compiler().setMainFunc(this))
         {
@@ -691,7 +695,14 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     auto& sym = SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, *this, name);
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
     sym.setDeclNodeRef(sema.curNodeRef());
-    if (registerCompilerEntry)
+    if (ignoreCompilerFunc)
+    {
+        sym.setIgnored(ctx);
+        sym.setDeclared(ctx);
+        sym.setTyped(ctx);
+        sym.setSemaCompleted(ctx);
+    }
+    else if (registerCompilerEntry)
         ctx.compiler().registerCompilerEntryFunction(&sym);
     return Result::SkipChildren;
 }
@@ -699,6 +710,9 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    if (sym.isIgnored())
+        return Result::SkipChildren;
+
     sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
 
@@ -715,6 +729,9 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 Result AstCompilerFunc::semaPostNode(Sema& sema) const
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    if (sym.isIgnored())
+        return Result::Continue;
+
     sym.setSemaCompleted(sema.ctx());
 
     if (sema.token(codeRef()).id != TokenId::CompilerRun)

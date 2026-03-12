@@ -13,7 +13,8 @@ struct CommandInfo
 inline constexpr CommandInfo COMMANDS[] = {
     {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
     {"sema", "Perform semantic analysis on the source code, including type checking."},
-    {"test", "Run source-driven test suites, including syntax-only, sema-only and full native #test execution."},
+    {"build", "Build native artifacts from the input sources without running emitted executables."},
+    {"run", "Build native artifacts from the input sources and run emitted executables when available."},
 };
 
 enum class CommandKind
@@ -21,7 +22,8 @@ enum class CommandKind
     Invalid = -1,
     Syntax,
     Sema,
-    Test,
+    Build,
+    Run,
 };
 
 struct CommandLine
@@ -57,7 +59,7 @@ struct CommandLine
     bool clear           = false;
     bool verboseInfo     = false;
     bool verboseVerify   = false;
-    bool verify          = true;
+    bool test            = false;
     bool unittest        = true;
     bool verboseUnittest = false;
     bool runtime         = true;

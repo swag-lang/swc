@@ -216,7 +216,7 @@ namespace
 
 void Verify::tokenize(TaskContext& ctx)
 {
-    if (!ctx.cmdLine().verify)
+    if (!ctx.cmdLine().test)
         return;
 
     srcView_ = &ctx.compiler().addSourceView(file_->ref());

@@ -32,6 +32,10 @@
     check(subtract_int_from_float(10.5, 2) == 8.5, 9)
 }
 
+#main
+{
+}
+
 #drop
 {
     DropCheck = Counter + Seed

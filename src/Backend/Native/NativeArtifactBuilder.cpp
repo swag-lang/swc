@@ -154,6 +154,8 @@ Result NativeArtifactBuilder::buildStartup() const
 
     if (builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
+    if (builder_.compiler().nativeMainFunctions().empty())
+        return builder_.reportError(DiagnosticId::cmd_err_native_main_missing);
 
     auto         startup = std::make_unique<NativeStartupInfo>();
     MicroBuilder builder(builder_.ctx());
@@ -166,6 +168,8 @@ Result NativeArtifactBuilder::buildStartup() const
     for (SymbolFunction* symbol : builder_.compiler().nativePreMainFunctions())
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     for (SymbolFunction* symbol : builder_.compiler().nativeTestFunctions())
+        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    for (SymbolFunction* symbol : builder_.compiler().nativeMainFunctions())
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     for (SymbolFunction* symbol : builder_.compiler().nativeDropFunctions())
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});

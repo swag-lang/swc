@@ -171,7 +171,7 @@ namespace
         printInfoLine(ctx, "clear", boolToUtf8(cmdLine.clear));
         printInfoLine(ctx, "verboseInfo", boolToUtf8(cmdLine.verboseInfo));
         printInfoLine(ctx, "verboseVerify", boolToUtf8(cmdLine.verboseVerify));
-        printInfoLine(ctx, "verify", boolToUtf8(cmdLine.verify));
+        printInfoLine(ctx, "test", boolToUtf8(cmdLine.test));
         printInfoLine(ctx, "unittest", boolToUtf8(cmdLine.unittest));
         printInfoLine(ctx, "verboseUnittest", boolToUtf8(cmdLine.verboseUnittest));
         printInfoLine(ctx, "runtime", boolToUtf8(cmdLine.runtime));

@@ -44,6 +44,7 @@ public:
     Verify&            unitTest() { return *unitTest_; }
     const Verify&      unitTest() const { return *unitTest_; }
     void               setModuleNamespace(SymbolNamespace& ns) const;
+    const SymbolNamespace* fileNamespace() const;
     Ast&               ast();
     const Ast&         ast() const;
     bool               isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }

@@ -4,6 +4,7 @@
 #include "Main/Global.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE()
 class CodeGenJob;
@@ -41,6 +42,13 @@ Result NativeSymbolCollector::collectSymbols()
 
     collectCompilerEntryFunctions();
     collectSymbolsRec(*rootModule);
+    for (SourceFile* const file : compiler.files())
+    {
+        if (!file)
+            continue;
+        if (const SymbolNamespace* const fileNamespace = file->fileNamespace())
+            collectGlobalVariablesRec(*fileNamespace);
+    }
 
     for (size_t idx = 0; idx < builder_.rawFunctions.size(); ++idx) // NOLINT(modernize-loop-convert)
     {
@@ -142,6 +150,28 @@ void NativeSymbolCollector::collectSymbolsRec(const SymbolMap& symbolMap)
         {
             collectSymbolsRec(*const_cast<SymbolMap*>(symbol->asSymMap()));
         }
+    }
+}
+
+void NativeSymbolCollector::collectGlobalVariablesRec(const SymbolMap& symbolMap)
+{
+    std::vector<const Symbol*> symbols;
+    symbolMap.getAllSymbols(symbols);
+    for (const Symbol* symbol : symbols)
+    {
+        SWC_ASSERT(symbol != nullptr);
+
+        if (symbol->isVariable())
+        {
+            auto* variable = const_cast<SymbolVariable*>(symbol->safeCast<SymbolVariable>());
+            SWC_ASSERT(variable != nullptr);
+            if (variable->hasGlobalStorage())
+                builder_.regularGlobals.push_back(variable);
+            continue;
+        }
+
+        if (symbol->kind() == SymbolKind::Namespace)
+            collectGlobalVariablesRec(*const_cast<SymbolMap*>(symbol->asSymMap()));
     }
 }
 

@@ -428,6 +428,19 @@ namespace
         record.valueRef = valueRef;
         return record;
     }
+
+    Utf8 debugDataSectionName(const SymbolVariable& symbol)
+    {
+        switch (symbol.globalStorageKind())
+        {
+            case DataSegmentKind::GlobalInit:
+                return ".data";
+            case DataSegmentKind::GlobalZero:
+                return ".bss";
+            default:
+                return {};
+        }
+    }
 }
 
 SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
@@ -901,6 +914,94 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
     }
 
     if (!sawAcc)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
+{
+    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_fileprivate_global_{:08x}.swg", uniqueId);
+
+    {
+        std::ofstream output(sourcePath, std::ios::binary);
+        output << "#global fileprivate\n";
+        output << "var GValue: s32 = 7\n";
+        output << "#test\n";
+        output << "{\n";
+        output << "    @assert(GValue == 7)\n";
+        output << "}\n";
+    }
+
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Build;
+    cmdLine.buildCfg        = "debug";
+    cmdLine.backendKindName = "dll";
+    cmdLine.name            = "compiler_fileprivate_global_debug";
+    cmdLine.test            = true;
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+        return Result::Error;
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    NativeSymbolCollector symbolCollector(nativeBuilder);
+    SWC_RESULT(symbolCollector.prepare());
+    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+        return Result::Error;
+
+    TaskContext           compilerCtx(compiler);
+    const SymbolVariable* globalVar = nullptr;
+    for (const SymbolVariable* symbol : nativeBuilder.regularGlobals)
+    {
+        if (!symbol)
+            continue;
+        if (symbol->name(compilerCtx) != "GValue")
+            continue;
+
+        globalVar = symbol;
+        break;
+    }
+
+    if (!globalVar || !globalVar->hasGlobalStorage())
+        return Result::Error;
+
+    const Utf8 sectionName = debugDataSectionName(*globalVar);
+    if (sectionName.empty())
+        return Result::Error;
+
+    const DebugInfoDataRecord global = makeDebugDataRecord("GValue",
+                                                           globalVar->typeRef(),
+                                                           "__swc_dbg_fileprivate_global",
+                                                           sectionName,
+                                                           globalVar->offset(),
+                                                           globalVar->isPublic());
+
+    const std::array globals = {global};
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &compilerCtx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-fileprivate-global.obj"),
+        .globals      = globals,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+
+    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    if (!symbolsSubsectionContainsRecord(debugBytes, K_S_LDATA32))
+        return Result::Error;
+    if (!bytesContainString(debugBytes, "GValue"))
         return Result::Error;
 }
 SWC_TEST_END()

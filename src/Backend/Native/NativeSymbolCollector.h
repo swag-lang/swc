@@ -27,6 +27,7 @@ private:
 
     Result               collectSymbols();
     void                 collectCompilerEntryFunctions();
+    void                 collectGlobalVariablesRec(const SymbolMap& symbolMap);
     void                 collectSymbolsRec(const SymbolMap& symbolMap);
     void                 collectFunction(SymbolFunction& symbol);
     Result               scheduleCodeGen() const;

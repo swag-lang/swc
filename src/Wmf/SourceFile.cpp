@@ -37,6 +37,11 @@ void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
     nodePayloadContext_->setModuleNamespace(ns);
 }
 
+const SymbolNamespace* SourceFile::fileNamespace() const
+{
+    return nodePayloadContext_->fileNamespace_;
+}
+
 Result SourceFile::loadContent(TaskContext& ctx)
 {
     if (!content_.empty())

@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -132,6 +133,20 @@ namespace
         }
     }
 
+    void collectGlobalDebugConstants(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const CompilerInstance& compiler)
+    {
+        if (const SymbolModule* rootModule = compiler.symModule())
+            collectGlobalDebugConstantsRec(out, ctx, *rootModule);
+
+        for (const SourceFile* file : compiler.files())
+        {
+            if (!file)
+                continue;
+            if (const SymbolNamespace* fileNamespace = file->fileNamespace())
+                collectGlobalDebugConstantsRec(out, ctx, *fileNamespace);
+        }
+    }
+
     void collectFunctionDebugConstants(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const SymbolFunction& function)
     {
         std::vector<const Symbol*> symbols;
@@ -205,10 +220,10 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
             continue;
 
         functionDebugStorage.emplace_back();
-        FunctionDebugStorage& debugStorage       = functionDebugStorage.back();
-        const MicroReg        parameterBaseReg   = info->symbol ? CallConv::get(info->symbol->callConvKind()).stackPointer : MicroReg::invalid();
-        const MicroReg        localBaseReg       = info->symbol ? info->symbol->debugStackBaseReg() : MicroReg::invalid();
-        const MicroReg        frameProcBaseReg   = parameterBaseReg;
+        FunctionDebugStorage& debugStorage     = functionDebugStorage.back();
+        const MicroReg        parameterBaseReg = info->symbol ? CallConv::get(info->symbol->callConvKind()).stackPointer : MicroReg::invalid();
+        const MicroReg        localBaseReg     = info->symbol ? info->symbol->debugStackBaseReg() : MicroReg::invalid();
+        const MicroReg        frameProcBaseReg = parameterBaseReg;
 
         if (info->symbol)
         {
@@ -287,8 +302,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
                                                        symbol->isPublic()));
         }
 
-        if (const SymbolModule* rootModule = builder_.compiler().symModule())
-            collectGlobalDebugConstantsRec(debugConstants, builder_.ctx(), *rootModule);
+        collectGlobalDebugConstants(debugConstants, builder_.ctx(), builder_.compiler());
     }
 
     DebugInfoObjectResult        debugInfoResult;

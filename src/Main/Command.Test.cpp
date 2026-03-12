@@ -273,16 +273,16 @@ namespace
     {
         struct RestoreBackendKind final
         {
-            CompilerInstance&            compiler;
+            CompilerInstance*            compiler;
             Runtime::BuildCfgBackendKind backendKind;
 
             ~RestoreBackendKind()
             {
-                compiler.buildCfg().backendKind = backendKind;
+                compiler->buildCfg().backendKind = backendKind;
             }
         };
 
-        const RestoreBackendKind restore{.compiler = compiler, .backendKind = compiler.buildCfg().backendKind};
+        const RestoreBackendKind restore{.compiler = &compiler, .backendKind = compiler.buildCfg().backendKind};
 
         if (!usesAllBackendKinds(compiler.cmdLine()))
         {
@@ -378,7 +378,7 @@ namespace
             return false;
 
         SourceSuiteBuckets buckets;
-        TaskContext        ctx(compiler);
+        const TaskContext  ctx(compiler);
         ScopedTimedAction  discoverAction(ctx, "Discover", "test suites");
         collectStandaloneSourceSuites(buckets, cmdLine);
         if (!buckets.hasSourceHints)
@@ -408,15 +408,12 @@ namespace
         if (runStandaloneSourceDrivenSuites(compiler))
             return;
 
-        TaskContext       ctx(compiler);
+        const TaskContext ctx(compiler);
         ScopedTimedAction analyzeAction(ctx, "Analyze", "sources");
         const uint64_t    errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
         Command::sema(compiler);
         if (!finishAction(analyzeAction, errorsBefore))
-        {
             return;
-        }
-
         runNativeBackends(compiler, runArtifact);
     }
 }

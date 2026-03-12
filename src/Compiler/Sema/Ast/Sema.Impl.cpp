@@ -70,7 +70,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         if (!forView.sym()->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
 
-        SWC_RESULT_VERIFY(forView.sym()->cast<SymbolStruct>().addInterface(sema, symImpl));
+        SWC_RESULT(forView.sym()->cast<SymbolStruct>().addInterface(sema, symImpl));
 
         symImpl.addExtraFlag(SymbolImplFlagsE::ForInterface);
         symImpl.setTypeRef(identView.typeRef());

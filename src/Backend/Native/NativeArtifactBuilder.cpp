@@ -49,6 +49,8 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const std:
     outPaths.objectPaths.clear();
     outPaths.name = artifactName();
 
+    // Reuse a stable work directory when possible, so repeated native builds converge
+    // to the same artifact/output layout unless the caller asks for a unique build slot.
     outPaths.workDir = configuredWorkDir();
     if (outPaths.workDir.empty())
         outPaths.workDir = Os::getTemporaryPath() / "swc_native" / automaticWorkDirName(outPaths.name).c_str();
@@ -75,8 +77,8 @@ Result NativeArtifactBuilder::build() const
     const NativeValidate nativeValidate(builder_);
     nativeValidate.validate();
 #endif
-    SWC_RESULT_VERIFY(prepareDataSections());
-    SWC_RESULT_VERIFY(buildStartup());
+    SWC_RESULT(prepareDataSections());
+    SWC_RESULT(buildStartup());
     return partitionObjects();
 }
 
@@ -99,6 +101,8 @@ Result NativeArtifactBuilder::prepareDataSections() const
     builder_.mergedBss.bss     = builder_.mergedBss.bssSize != 0;
     builder_.rdataShardBaseOffsets.fill(0);
 
+    // Constant shards are concatenated into one synthetic .rdata section while preserving
+    // per-shard offsets so relocations can still target the original logical base.
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
         const DataSegment& segment     = compiler.cstMgr().shardDataSegment(shardIndex);
@@ -155,6 +159,8 @@ Result NativeArtifactBuilder::buildStartup() const
     MicroBuilder builder(builder_.ctx());
     builder.setBackendBuildCfg(builder_.compiler().buildCfg().backend);
 
+    // The startup thunk runs compiler-generated lifecycle hooks and then exits with the
+    // program return value already carried in the host integer return register.
     for (SymbolFunction* symbol : builder_.compiler().nativeInitFunctions())
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     for (SymbolFunction* symbol : builder_.compiler().nativePreMainFunctions())
@@ -208,13 +214,14 @@ Result NativeArtifactBuilder::partitionObjects() const
     NativeArtifactPaths paths;
     queryPaths(paths, workDirIndex, numJobs);
     if (builder_.ctx().cmdLine().clear && builder_.compiler().markNativeOutputsCleared())
-        SWC_RESULT_VERIFY(clearOutputFolders(paths));
-    SWC_RESULT_VERIFY(createBuildDir(paths.buildDir));
-    SWC_RESULT_VERIFY(createOutDir(paths.outDir));
+        SWC_RESULT(clearOutputFolders(paths));
+    SWC_RESULT(createBuildDir(paths.buildDir));
+    SWC_RESULT(createOutDir(paths.outDir));
     builder_.buildDir     = paths.buildDir;
     builder_.artifactPath = paths.artifactPath;
     builder_.pdbPath      = paths.pdbPath;
 
+    // Object 0 owns shared sections/startup, so the remaining objects only need code.
     for (uint32_t i = 0; i < numJobs; ++i)
     {
         builder_.objectDescriptions[i].index       = i;
@@ -237,9 +244,9 @@ Result NativeArtifactBuilder::partitionObjects() const
 
 Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& paths) const
 {
-    SWC_RESULT_VERIFY(FileSystem::clearDirectoryContents(builder_.ctx(), paths.workDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
+    SWC_RESULT(FileSystem::clearDirectoryContents(builder_.ctx(), paths.workDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
     if (!FileSystem::pathEquals(paths.outDir, paths.workDir))
-        SWC_RESULT_VERIFY(FileSystem::clearDirectoryContents(builder_.ctx(), paths.outDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
+        SWC_RESULT(FileSystem::clearDirectoryContents(builder_.ctx(), paths.outDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
     return Result::Continue;
 }
 
@@ -354,6 +361,8 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
         key += ";";
     }
 
+    // Keep the auto-generated work dir deterministic for a given command line so cleanup
+    // and incremental native builds operate on the same location.
     const uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(key.view()));
     return std::format("{}_{:08x}", FileSystem::sanitizeFileName(name), hash);
 }

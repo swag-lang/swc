@@ -124,7 +124,7 @@ namespace
         for (const auto& valueRef : values)
         {
             ConstantRef castedRef;
-            SWC_RESULT_VERIFY(foldElemCast(args, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef));
+            SWC_RESULT(foldElemCast(args, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef));
             newValues.push_back(castedRef);
         }
 
@@ -161,7 +161,7 @@ namespace
 
             for (const auto srcElemTypeRef : srcTypes)
             {
-                SWC_RESULT_VERIFY(checkElemCast(args, srcElemTypeRef, dstSubArrayType));
+                SWC_RESULT(checkElemCast(args, srcElemTypeRef, dstSubArrayType));
             }
 
             if (!args.castRequest->isConstantFolding())
@@ -181,7 +181,7 @@ namespace
             for (size_t i = 0; i < values.size(); ++i)
             {
                 ConstantRef castedRef;
-                SWC_RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstSubArrayType, values[i], castedRef));
+                SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, values[i], castedRef));
                 const ByteSpanRW dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType);
             }
@@ -200,7 +200,7 @@ namespace
 
         for (const auto srcElemTypeRef : srcTypes)
         {
-            SWC_RESULT_VERIFY(checkElemCast(args, srcElemTypeRef, dstElemTypeRef));
+            SWC_RESULT(checkElemCast(args, srcElemTypeRef, dstElemTypeRef));
         }
 
         if (!args.castRequest->isConstantFolding())
@@ -217,7 +217,7 @@ namespace
         for (size_t i = 0; i < values.size(); ++i)
         {
             ConstantRef castedRef;
-            SWC_RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstElemTypeRef, values[i], castedRef));
+            SWC_RESULT(foldElemCast(args, srcTypes[i], dstElemTypeRef, values[i], castedRef));
             newValues.push_back(castedRef);
         }
 

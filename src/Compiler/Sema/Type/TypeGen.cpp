@@ -23,7 +23,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
     {
         const std::scoped_lock lk(cache.mutex);
-        SWC_RESULT_VERIFY(processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
+        SWC_RESULT(processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
     }
 
     {

@@ -338,7 +338,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
         .emitCodeView = true,
     };
 
-    SWC_RESULT_VERIFY(DebugInfo::buildObject(request, debugInfo));
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
 
     const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
     if (!debugSection)
@@ -429,7 +429,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
         .emitCodeView = true,
     };
 
-    SWC_RESULT_VERIFY(DebugInfo::buildObject(request, debugInfo));
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
 
     const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
     if (!debugSection)
@@ -478,7 +478,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
     }
 
     SourceFile& sourceFile = ctx.compiler().addFile(sourcePath, FileFlagsE::CustomSrc);
-    SWC_RESULT_VERIFY(sourceFile.loadContent(ctx));
+    SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;
     lexer.tokenize(ctx, sourceFile.ast().srcView(), LexerFlagsE::Default);
@@ -510,7 +510,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
         .emitCodeView = true,
     };
 
-    SWC_RESULT_VERIFY(DebugInfo::buildObject(request, debugInfo));
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
 
     const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
     if (!debugSection)

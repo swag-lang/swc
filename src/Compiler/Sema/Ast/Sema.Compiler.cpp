@@ -37,7 +37,7 @@ namespace
 
 Result AstCompilerExpression::semaPostNode(Sema& sema)
 {
-    SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, nodeExprRef));
+    SWC_RESULT(SemaCheck::isConstant(sema, nodeExprRef));
     sema.inheritPayload(*this, nodeExprRef);
     return Result::Continue;
 }
@@ -235,7 +235,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerOs:
         {
             TypeRef typeRef = TypeRef::invalid();
-            SWC_RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
+            SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetOs));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
@@ -251,7 +251,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerCurLocation:
         {
             TypeRef typeRef = TypeRef::invalid();
-            SWC_RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
+            SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
             sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, *this));
             break;
         }
@@ -259,7 +259,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerArch:
         {
             TypeRef typeRef = TypeRef::invalid();
-            SWC_RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TargetArch, typeRef, codeRef()));
+            SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TargetArch, typeRef, codeRef()));
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetArch));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
@@ -284,7 +284,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerSwagOs:
         {
             TypeRef typeRef = TypeRef::invalid();
-            SWC_RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
+            SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(nativeTargetOs()));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
@@ -342,7 +342,7 @@ namespace
 {
     Result semaCompilerGlobalIf(Sema& sema, const AstCompilerGlobal& node)
     {
-        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeModeRef));
+        SWC_RESULT(SemaCheck::isConstant(sema, node.nodeModeRef));
         const SemaNodeView condView = sema.viewConstant(node.nodeModeRef);
 
         SWC_ASSERT(condView.cst());
@@ -390,7 +390,7 @@ namespace
         if (view.cstRef().isValid())
         {
             ConstantRef newCstRef;
-            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
             sema.setConstant(view.nodeRef(), newCstRef);
             view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
@@ -427,7 +427,7 @@ namespace
         if (view.cstRef().isValid())
         {
             ConstantRef newCstRef;
-            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
             sema.setConstant(view.nodeRef(), newCstRef);
             view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
@@ -442,7 +442,7 @@ namespace
         const SemaNodeView view     = sema.viewType(childRef);
         if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
-        SWC_RESULT_VERIFY(sema.waitSemaCompleted(view.type(), childRef));
+        SWC_RESULT(sema.waitSemaCompleted(view.type(), childRef));
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), view.type()->sizeOf(sema.ctx())));
         return Result::Continue;
@@ -466,7 +466,7 @@ namespace
         const SemaNodeView view     = sema.viewType(childRef);
         if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
-        SWC_RESULT_VERIFY(sema.waitSemaCompleted(view.type(), childRef));
+        SWC_RESULT(sema.waitSemaCompleted(view.type(), childRef));
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), view.type()->alignOf(sema.ctx())));
         return Result::Continue;
@@ -486,7 +486,7 @@ namespace
             return Result::Continue;
         }
 
-        SWC_RESULT_VERIFY(SemaCheck::isValueOrType(sema, view));
+        SWC_RESULT(SemaCheck::isValueOrType(sema, view));
         if (view.type() && view.type()->isTypeValue())
         {
             const Utf8          name  = sema.typeMgr().get(view.type()->payloadTypeRef()).toName(ctx);
@@ -547,7 +547,7 @@ namespace
     Result semaCompilerLocation(Sema& sema, const AstCompilerCallOne& node)
     {
         TypeRef typeRef = TypeRef::invalid();
-        SWC_RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, node.codeRef()));
+        SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, node.codeRef()));
 
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView view     = sema.viewSymbol(childRef);
@@ -562,7 +562,7 @@ namespace
     Result semaCompilerForeignLib(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, childRef));
+        SWC_RESULT(SemaCheck::isConstant(sema, childRef));
 
         const SemaNodeView view = sema.viewConstant(childRef);
         SWC_ASSERT(view.cst());
@@ -760,7 +760,7 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_run_expr_void, nodeExprRef);
 
     auto& runExprSymFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-    SWC_RESULT_VERIFY(SemaJIT::runExpr(sema, runExprSymFn, nodeExprRef));
+    SWC_RESULT(SemaJIT::runExpr(sema, runExprSymFn, nodeExprRef));
     sema.inheritPayload(sema.curNode(), nodeExprRef);
 
     return Result::Continue;

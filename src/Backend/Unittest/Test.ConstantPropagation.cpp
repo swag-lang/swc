@@ -65,7 +65,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
     builder.emitLoadRegImm(r10, ApInt(42, 64), MicroOpBits::B64);
     builder.emitCmpRegReg(r9, r10, MicroOpBits::B64);
 
-    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+    SWC_RESULT(runConstantPropagationPass(builder));
 
     if (builder.instructions().count() != 4)
         return Result::Error;
@@ -96,7 +96,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownBinaryOperation)
     builder.emitLoadRegImm(r9, ApInt(3, 64), MicroOpBits::B64);
     builder.emitOpBinaryRegReg(r8, r9, MicroOp::Add, MicroOpBits::B64);
 
-    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+    SWC_RESULT(runConstantPropagationPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst2    = instructionAt(builder, 2);
@@ -120,7 +120,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownSignAndZeroExtend)
     builder.emitLoadSignedExtendRegReg(r9, r8, MicroOpBits::B64, MicroOpBits::B8);
     builder.emitLoadZeroExtendRegReg(r10, r8, MicroOpBits::B64, MicroOpBits::B8);
 
-    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+    SWC_RESULT(runConstantPropagationPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst1    = instructionAt(builder, 1);
@@ -146,7 +146,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_ReadsSubRangeFromKnownStackSlot)
     builder.emitLoadMemImm(stackPtr, 40, ApInt(0x1122334455667788ull, 64), MicroOpBits::B64);
     builder.emitLoadRegMem(r8, stackPtr, 44, MicroOpBits::B32);
 
-    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+    SWC_RESULT(runConstantPropagationPass(builder));
 
     const MicroInstr* inst1 = instructionAt(builder, 1);
     if (!inst1)
@@ -167,7 +167,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownStackSignExtendLoad)
     builder.emitLoadMemImm(stackPtr, 16, ApInt(0xFFFFFFFEull, 32), MicroOpBits::B32);
     builder.emitLoadSignedExtendRegMem(r8, stackPtr, 16, MicroOpBits::B64, MicroOpBits::B32);
 
-    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+    SWC_RESULT(runConstantPropagationPass(builder));
 
     const MicroInstr* inst1 = instructionAt(builder, 1);
     if (!inst1)
@@ -190,7 +190,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownIndexedStackLoad)
     builder.emitLoadMemImm(stackPtr, 24, ApInt(0x1234, 32), MicroOpBits::B32);
     builder.emitLoadAmcRegMem(dstReg, MicroOpBits::B32, stackPtr, idxReg, 4, 16, MicroOpBits::B32);
 
-    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+    SWC_RESULT(runConstantPropagationPass(builder));
 
     const MicroInstr* inst2 = instructionAt(builder, 2);
     if (!inst2)
@@ -262,7 +262,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_DoesNotFoldRelocationBackedStackCopy)
     builder.emitLoadMemReg(stackPtr, 32, r9, MicroOpBits::B64);
     builder.emitLoadRegMem(r10, stackPtr, 32, MicroOpBits::B64);
 
-    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+    SWC_RESULT(runConstantPropagationPass(builder));
 
     const MicroInstr* inst3 = instructionAt(builder, 3);
     if (!inst3)

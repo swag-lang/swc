@@ -88,7 +88,7 @@ namespace
         if (SymbolFunction* currentFunc = sema.frame().currentFunction())
         {
             const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
             currentFunc->addLocalVariable(sema.ctx(), &symVar);
         }
 
@@ -127,7 +127,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;
-    SWC_RESULT_VERIFY(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
+    SWC_RESULT(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
 
     if (nodeExprView.type()->isAggregateArray())
     {
@@ -203,7 +203,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     // Constant extract
     if (nodeExprView.cst() && hasConstIndex)
     {
-        SWC_RESULT_VERIFY(ConstantExtract::atIndex(sema, *nodeExprView.cst(), constIndex, nodeArgRef));
+        SWC_RESULT(ConstantExtract::atIndex(sema, *nodeExprView.cst(), constIndex, nodeArgRef));
     }
     else
     {
@@ -216,8 +216,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         auto& storageSym = registerUniqueIndexRuntimeStorageSymbol(sema, *this);
         storageSym.registerAttributes(sema);
         storageSym.setDeclared(sema.ctx());
-        SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-        SWC_RESULT_VERIFY(completeIndexRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeIndexRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
 
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
@@ -265,7 +265,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
             int64_t constIndex    = 0;
             bool    hasConstIndex = false;
-            SWC_RESULT_VERIFY(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex));
+            SWC_RESULT(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex));
 
             if (hasConstIndex)
             {
@@ -328,7 +328,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             const SemaNodeView nodeArgView   = sema.viewTypeConstant(children[0]);
             int64_t            constIndex    = 0;
             bool               hasConstIndex = false;
-            SWC_RESULT_VERIFY(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));
+            SWC_RESULT(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));
         }
 
         if (nodeExprView.type()->isVariadic())

@@ -31,7 +31,7 @@ namespace
         if (SymbolFunction* currentFunc = sema.frame().currentFunction())
         {
             const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
             currentFunc->addLocalVariable(sema.ctx(), &symVar);
         }
 
@@ -95,8 +95,8 @@ Result AstForCStyleStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
     if (childRef == nodeExprRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
-        SWC_RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
     return Result::Continue;
@@ -134,7 +134,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
             const SemaNodeView exprView     = sema.viewType(nodeExprRef);
             TypeRef            valueTypeRef = TypeRef::invalid();
             TypeRef            indexTypeRef = TypeRef::invalid();
-            SWC_RESULT_VERIFY(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+            SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
 
             const size_t count = std::min<size_t>(tokNames.size(), 2);
             for (size_t i = 0; i < count; i++)
@@ -146,14 +146,14 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
                 auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
                 symVar.registerAttributes(sema);
                 symVar.setDeclared(sema.ctx());
-                SWC_RESULT_VERIFY(Match::ghosting(sema, symVar));
+                SWC_RESULT(Match::ghosting(sema, symVar));
 
                 symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
                 symVar.setTypeRef(i == 0 ? valueTypeRef : indexTypeRef);
                 if (SymbolFunction* currentFunc = sema.frame().currentFunction())
                 {
                     const TypeInfo& symType = sema.typeMgr().get(symVar.typeRef());
-                    SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+                    SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
                     currentFunc->addLocalVariable(sema.ctx(), &symVar);
                 }
                 symVar.setTyped(sema.ctx());
@@ -165,15 +165,15 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         auto& stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state");
         stateSym.registerAttributes(sema);
         stateSym.setDeclared(sema.ctx());
-        SWC_RESULT_VERIFY(Match::ghosting(sema, stateSym));
-        SWC_RESULT_VERIFY(completeForeachInternalSymbol(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
+        SWC_RESULT(Match::ghosting(sema, stateSym));
+        SWC_RESULT(completeForeachInternalSymbol(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
         symbols.push_back(&stateSym);
 
         auto& sourceSpillSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill");
         sourceSpillSym.registerAttributes(sema);
         sourceSpillSym.setDeclared(sema.ctx());
-        SWC_RESULT_VERIFY(Match::ghosting(sema, sourceSpillSym));
-        SWC_RESULT_VERIFY(completeForeachInternalSymbol(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
+        SWC_RESULT(Match::ghosting(sema, sourceSpillSym));
+        SWC_RESULT(completeForeachInternalSymbol(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
         symbols.push_back(&sourceSpillSym);
 
         sema.setSymbolList(sema.curNodeRef(), symbols.span());
@@ -187,18 +187,18 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
     if (childRef == nodeExprRef)
     {
         const SemaNodeView exprView = sema.viewType(nodeExprRef);
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, exprView.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
 
         TypeRef valueTypeRef = TypeRef::invalid();
         TypeRef indexTypeRef = TypeRef::invalid();
-        SWC_RESULT_VERIFY(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
     }
 
     if (childRef == nodeWhereRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
-        SWC_RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
     return Result::Continue;
@@ -220,7 +220,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
             auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
             symVar.registerAttributes(sema);
             symVar.setDeclared(sema.ctx());
-            SWC_RESULT_VERIFY(Match::ghosting(sema, symVar));
+            SWC_RESULT(Match::ghosting(sema, symVar));
 
             const SemaNodeView view = sema.viewType(nodeExprRef);
             symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
@@ -238,13 +238,13 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef == nodeExprRef)
     {
         const SemaNodeView view = sema.viewNodeType(nodeExprRef);
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
         if (view.node()->isNot(AstNodeId::RangeExpr))
         {
             const AstNode& exprNode   = sema.node(nodeExprRef);
             auto [countRef, countPtr] = sema.ast().makeNode<AstNodeId::CountOfExpr>(exprNode.tokRef());
             countPtr->nodeExprRef     = nodeExprRef;
-            SWC_RESULT_VERIFY(SemaHelpers::intrinsicCountOf(sema, countRef, nodeExprRef));
+            SWC_RESULT(SemaHelpers::intrinsicCountOf(sema, countRef, nodeExprRef));
             sema.setSubstitute(nodeExprRef, countRef);
         }
         else if (!view.type()->isInt())
@@ -259,8 +259,8 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef == nodeWhereRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
-        SWC_RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
     return Result::Continue;
@@ -300,8 +300,8 @@ Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeExprRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
-        SWC_RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
     return Result::Continue;

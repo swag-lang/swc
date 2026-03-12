@@ -181,7 +181,7 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
         if (type.isStruct() && &type.payloadSymStruct() == this)
             return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, typeNodeRef);
 
-        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&type, typeNodeRef));
+        SWC_RESULT(sema.waitSemaCompleted(&type, typeNodeRef));
     }
 
     return Result::Continue;
@@ -197,7 +197,7 @@ Result SymbolStruct::registerSpecOps(Sema& sema) const
         {
             if (!symFunc)
                 continue;
-            SWC_RESULT_VERIFY(SemaSpecOp::registerSymbol(sema, *symFunc));
+            SWC_RESULT(SemaSpecOp::registerSymbol(sema, *symFunc));
         }
     }
 

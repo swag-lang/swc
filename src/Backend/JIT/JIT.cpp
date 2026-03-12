@@ -402,7 +402,7 @@ void JIT::finalize(JITMemory& executableMemory)
 Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo, const SymbolFunction* ownerFunction)
 {
     prepare(ctx, outExecutableMemory, linearCode, unwindInfo);
-    SWC_RESULT_VERIFY(patch(ctx, outExecutableMemory, relocations, ownerFunction));
+    SWC_RESULT(patch(ctx, outExecutableMemory, relocations, ownerFunction));
     finalize(outExecutableMemory);
     return Result::Continue;
 }
@@ -499,7 +499,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     SWC_ASSERT(lowerResult == Result::Continue);
 
     JITMemory executableMemory;
-    SWC_RESULT_VERIFY(emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, loweredCode.unwindInfo));
+    SWC_RESULT(emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, loweredCode.unwindInfo));
 
     void* const invoker = executableMemory.entryPoint();
     SWC_ASSERT(invoker != nullptr);

@@ -29,7 +29,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     const size_t numMicroInstrNoOptim = builder.instructions().count();
 #endif
 
-    SWC_RESULT_VERIFY(builder.runPasses(&encoder, passContext));
+    SWC_RESULT(builder.runPasses(&encoder, passContext));
 
 #if SWC_HAS_STATS
     const size_t numMicroInstrFinal   = builder.instructions().count();

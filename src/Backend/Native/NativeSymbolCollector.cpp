@@ -15,7 +15,7 @@ NativeSymbolCollector::NativeSymbolCollector(NativeBackendBuilder& builder) :
 
 Result NativeSymbolCollector::prepare()
 {
-    SWC_RESULT_VERIFY(collectSymbols());
+    SWC_RESULT(collectSymbols());
     return scheduleCodeGen();
 }
 

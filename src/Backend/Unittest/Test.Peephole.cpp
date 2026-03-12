@@ -121,7 +121,7 @@ SWC_TEST_BEGIN(Peephole_EliminatesNoOps)
     builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (instructionCount(builder) != 1)
         return Result::Error;
@@ -153,7 +153,7 @@ SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
     builder.emitOpBinaryRegImm(r14, ApInt(0x7F, 64), MicroOp::And, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (instructionCount(builder) != 8)
         return Result::Error;
@@ -174,7 +174,7 @@ SWC_TEST_BEGIN(Peephole_RemovesAdjacentPushPopSameRegister)
     builder.emitPop(rbp);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (instructionCount(builder) != 1)
         return Result::Error;
@@ -198,7 +198,7 @@ SWC_TEST_BEGIN(Peephole_KeepsAdjacentPushPopStackPointer)
     builder.emitPop(rsp);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (instructionCount(builder) != 3)
         return Result::Error;
@@ -223,7 +223,7 @@ SWC_TEST_BEGIN(Peephole_RemovesRedundantStackSaveRestoreAroundImmediateShift)
     builder.emitLoadRegMem(rcx, rsp, 32, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (instructionCount(builder) != 2)
         return Result::Error;
@@ -251,7 +251,7 @@ SWC_TEST_BEGIN(Peephole_KeepsStackSaveRestoreWhenShiftWritesSavedReg)
     builder.emitLoadRegMem(rcx, rsp, 32, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (instructionCount(builder) != 4)
         return Result::Error;
@@ -278,7 +278,7 @@ SWC_TEST_BEGIN(Peephole_RemovesRedundantStackLoadStorePair)
     builder.emitLoadMemReg(rsp, 0x38, rax, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (countStackAccess(builder, MicroInstrOpcode::LoadRegMem, rsp, 0x38) != 0)
         return Result::Error;
@@ -300,7 +300,7 @@ SWC_TEST_BEGIN(Peephole_KeepsStackLoadStorePairWhenSlotWasWritten)
     builder.emitLoadMemReg(rsp, 0x38, rax, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (countStackAccess(builder, MicroInstrOpcode::LoadRegMem, rsp, 0x38) != 2)
         return Result::Error;
@@ -323,7 +323,7 @@ SWC_TEST_BEGIN(Peephole_FoldsLoadOpStoreIntoMemImm)
     builder.emitCmpRegImm(r9, ApInt(0, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (!hasInstruction(builder, MicroInstrOpcode::OpBinaryMemImm))
         return Result::Error;
@@ -351,7 +351,7 @@ SWC_TEST_BEGIN(Peephole_KeepsLoadOpStoreWhenResultRegIsUsed)
     builder.emitCmpRegImm(r9, ApInt(0, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (hasInstruction(builder, MicroInstrOpcode::OpBinaryMemImm))
         return Result::Error;
@@ -385,7 +385,7 @@ SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadOpStoreIntoMemImm)
     builder.emitCmpRegImm(r10, ApInt(0, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (countInstruction(builder, MicroInstrOpcode::OpBinaryMemImm) != 2)
         return Result::Error;
@@ -417,7 +417,7 @@ SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadCmpIntoCmpMemImmAcrossJump)
     builder.emitLoadRegImm(rax, ApInt(1, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     if (!hasInstruction(builder, MicroInstrOpcode::CmpMemImm))
         return Result::Error;
@@ -452,7 +452,7 @@ SWC_TEST_BEGIN(Peephole_FoldsCopySwapAddIntoAccumulatorAcrossBackedge)
     builder.emitLoadRegMem(rax, rsp, 0x30, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     bool                       hasRewrittenAdd = false;
     const MicroOperandStorage& operands        = builder.operands();
@@ -505,7 +505,7 @@ SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
     builder.placeLabel(loopLabel);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPeepholePass(builder));
+    SWC_RESULT(runPeepholePass(builder));
 
     bool                       hasFrameCopy          = false;
     bool                       hasLoadFromFrameBase0 = false;

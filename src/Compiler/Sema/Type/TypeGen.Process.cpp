@@ -108,7 +108,7 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
         // Be sure the type is completed.
         const LayoutKind kind = layoutKindOf(type);
         if (const Symbol* sym = type.getSymbol())
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(sym, node.codeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(sym, node.codeRef()));
 
         auto it = cache.entries.find(key);
         if (it == cache.entries.end())
@@ -119,7 +119,7 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
 
             // Make sure the runtime TypeInfo struct definition exists before we write
             // an instance of it into the 'DataSegment'.
-            SWC_RESULT_VERIFY(rtTypeRefFor(sema, kind, entry.rtTypeRef, node.codeRef()));
+            SWC_RESULT(rtTypeRefFor(sema, kind, entry.rtTypeRef, node.codeRef()));
 
             // Allocate the concrete runtime payload (TypeInfoStruct/TypeInfoPtr/...) in
             // the target storage and remember its offset.

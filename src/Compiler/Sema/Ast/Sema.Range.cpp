@@ -14,9 +14,9 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeUpView   = sema.viewNodeTypeConstant(nodeExprUpRef);
 
     if (nodeDownView.nodeRef().isValid())
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeDownView.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, nodeDownView.nodeRef()));
     if (nodeUpView.nodeRef().isValid())
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeUpView.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, nodeUpView.nodeRef()));
 
     TypeRef typeRef = TypeRef::invalid();
     if (nodeDownView.typeRef().isValid())
@@ -34,7 +34,7 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
 
     if (nodeDownView.typeRef().isValid() && nodeUpView.typeRef().isValid())
     {
-        SWC_RESULT_VERIFY(Cast::castPromote(sema, nodeDownView, nodeUpView, CastKind::Implicit));
+        SWC_RESULT(Cast::castPromote(sema, nodeDownView, nodeUpView, CastKind::Implicit));
         typeRef = nodeDownView.typeRef();
     }
 

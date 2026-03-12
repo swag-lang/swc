@@ -166,7 +166,7 @@ namespace
             printPassInstructions(context, pass, true);
 
         context.passChanged = false;
-        SWC_RESULT_VERIFY(pass.run(context));
+        SWC_RESULT(pass.run(context));
 
         uint64_t storageRevisionAfter = storageRevisionBefore;
         if (context.instructions)
@@ -194,7 +194,7 @@ namespace
         for (MicroPass* pass : passes)
         {
             SWC_ASSERT(pass != nullptr);
-            SWC_RESULT_VERIFY(runPass(context, *pass));
+            SWC_RESULT(runPass(context, *pass));
         }
 
         return Result::Continue;
@@ -211,7 +211,7 @@ namespace
             bool iterationMutated = false;
             for (MicroPass* pass : passes)
             {
-                SWC_RESULT_VERIFY(runPass(context, *pass));
+                SWC_RESULT(runPass(context, *pass));
                 iterationMutated = iterationMutated || context.passChanged;
             }
 
@@ -284,11 +284,11 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 Result MicroPassManager::run(MicroPassContext& context) const
 {
     SWC_ASSERT(context.instructions != nullptr);
-    SWC_RESULT_VERIFY(runLinearPasses(context, startPasses_));
+    SWC_RESULT(runLinearPasses(context, startPasses_));
 
     context.printInstrCountBefore = context.instructions->count();
-    SWC_RESULT_VERIFY(runLoopPasses(context, loopPasses_));
-    SWC_RESULT_VERIFY(runLinearPasses(context, finalPasses_));
+    SWC_RESULT(runLoopPasses(context, loopPasses_));
+    SWC_RESULT(runLinearPasses(context, finalPasses_));
 
     return Result::Continue;
 }

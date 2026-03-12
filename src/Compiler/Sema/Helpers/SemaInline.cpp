@@ -468,7 +468,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     AstNodeRef variadicExprRef     = AstNodeRef::invalid();
     TypeRef    variadicExprTypeRef = TypeRef::invalid();
-    SWC_RESULT_VERIFY(createVariadicInlineExpression(sema, callRef, variadicBinding, variadicExprRef, variadicExprTypeRef));
+    SWC_RESULT(createVariadicInlineExpression(sema, callRef, variadicBinding, variadicExprRef, variadicExprTypeRef));
     if (variadicBinding.param)
     {
         if (variadicExprRef.isInvalid() || variadicExprTypeRef.isInvalid())
@@ -481,7 +481,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!returnTypeRef.isValid())
         returnTypeRef = sema.typeMgr().typeVoid();
 
-    SWC_RESULT_VERIFY(waitInlineResultTypeIfNeeded(sema, callRef, returnTypeRef));
+    SWC_RESULT(waitInlineResultTypeIfNeeded(sema, callRef, returnTypeRef));
 
     const SemaClone::CloneContext cloneContext{bindings.span()};
     const bool                    isMixin       = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
@@ -492,7 +492,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());
 
     SymbolVariable* resultVar = nullptr;
-    SWC_RESULT_VERIFY(createInlineResultVariable(sema, callRef, returnTypeRef, resultVar));
+    SWC_RESULT(createInlineResultVariable(sema, callRef, returnTypeRef, resultVar));
 
     // Create payload
     auto* inlinePayload           = sema.compiler().allocate<SemaInlinePayload>();
@@ -514,7 +514,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
         SWC_ASSERT(inlinePayload != nullptr);
-        SWC_RESULT_VERIFY(finalizeInlineBlock(inSema, nodeRef, *inlinePayload));
+        SWC_RESULT(finalizeInlineBlock(inSema, nodeRef, *inlinePayload));
         inSema.setSemaPayload(nodeRef, inlinePayload);
         return Result::Continue;
     });

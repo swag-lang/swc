@@ -292,8 +292,8 @@ Result Sema::waitRuntimeFunction(const IdentifierManager::RuntimeFunctionKind ki
     if (!symbol)
         return waitIdentifier(idRef, codeRef);
 
-    SWC_RESULT_VERIFY(waitDeclared(symbol, codeRef));
-    SWC_RESULT_VERIFY(waitTyped(symbol, codeRef));
+    SWC_RESULT(waitDeclared(symbol, codeRef));
+    SWC_RESULT(waitTyped(symbol, codeRef));
     return Result::Continue;
 }
 
@@ -459,7 +459,7 @@ Result Sema::postNode(AstNode& node)
     {
         processDeferredPopsPostNode(nodeRef);
         if (nodeRef == curNodeRef())
-            SWC_RESULT_VERIFY(processDeferredPostNodeActions(nodeRef));
+            SWC_RESULT(processDeferredPostNodeActions(nodeRef));
     }
     return result;
 }
@@ -476,7 +476,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         return Result::SkipChildren;
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    SWC_RESULT_VERIFY(info.semaPreNodeChild(*this, node, childRef));
+    SWC_RESULT(info.semaPreNodeChild(*this, node, childRef));
 
     if (curScope_->isTopLevel())
     {

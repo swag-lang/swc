@@ -80,7 +80,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RemovesBodyAdjustsAndRebasesOffsets)
 
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runStackAdjustNormalizePass(builder));
+    SWC_RESULT(runStackAdjustNormalizePass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     if (builder.instructions().count() != 7)
@@ -168,7 +168,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesBranchingDepths)
     builder.placeLabel(doneLabel);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runStackAdjustNormalizePass(builder));
+    SWC_RESULT(runStackAdjustNormalizePass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
 

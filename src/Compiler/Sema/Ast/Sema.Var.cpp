@@ -163,7 +163,7 @@ namespace
             const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(ctx);
             SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
             uint32_t valueOffset = INVALID_REF;
-            SWC_RESULT_VERIFY(materializeGlobalInitPayload(valueOffset, sema, segment, valueTypeRef, ByteSpan{reinterpret_cast<const std::byte*>(srcAny->value), static_cast<size_t>(valueSize)}));
+            SWC_RESULT(materializeGlobalInitPayload(valueOffset, sema, segment, valueTypeRef, ByteSpan{reinterpret_cast<const std::byte*>(srcAny->value), static_cast<size_t>(valueSize)}));
             dstAny->value = segment.ptr<std::byte>(valueOffset);
             segment.addRelocation(baseOffset + offsetof(Runtime::Any, value), valueOffset);
             return Result::Continue;
@@ -197,7 +197,7 @@ namespace
             for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                SWC_RESULT_VERIFY(materializeGlobalInitPayloadInPlace(sema,
+                SWC_RESULT(materializeGlobalInitPayloadInPlace(sema,
                                                                       segment,
                                                                       elementTypeRef,
                                                                       dataOffset + static_cast<uint32_t>(elementOffset),
@@ -226,7 +226,7 @@ namespace
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                SWC_RESULT_VERIFY(materializeGlobalInitPayloadInPlace(sema,
+                SWC_RESULT(materializeGlobalInitPayloadInPlace(sema,
                                                                       segment,
                                                                       elementTypeRef,
                                                                       baseOffset + static_cast<uint32_t>(elementOffset),
@@ -251,7 +251,7 @@ namespace
                 if (fieldOffset + fieldSize > srcBytes.size())
                     return Result::Error;
 
-                SWC_RESULT_VERIFY(materializeGlobalInitPayloadInPlace(sema,
+                SWC_RESULT(materializeGlobalInitPayloadInPlace(sema,
                                                                       segment,
                                                                       fieldTypeRef,
                                                                       baseOffset + static_cast<uint32_t>(fieldOffset),
@@ -330,7 +330,7 @@ namespace
 
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& typeInfo = ctx.typeMgr().get(symVar.typeRef());
-        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
+        SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
         TypeRef storageTypeRef = symVar.typeRef();
         if (typeInfo.isAlias())
         {
@@ -378,7 +378,7 @@ namespace
             {
                 const auto [reservedOffset, storage] = segment.reserveBytes(size, alignment, true);
                 offset                               = reservedOffset;
-                SWC_RESULT_VERIFY(materializeGlobalInitPayloadInPlace(sema, segment, storageTypeRef, offset, ByteSpanRW{storage, loweredBytes.size()}, ByteSpan{loweredBytes.data(), loweredBytes.size()}));
+                SWC_RESULT(materializeGlobalInitPayloadInPlace(sema, segment, storageTypeRef, offset, ByteSpanRW{storage, loweredBytes.size()}, ByteSpan{loweredBytes.data(), loweredBytes.size()}));
             }
             else
             {
@@ -424,12 +424,12 @@ namespace
                 if (SymbolFunction* currentFunc = sema.frame().currentFunction())
                 {
                     const TypeInfo* symType = symVar.typeRef().isValid() ? &ctx.typeMgr().get(symVar.typeRef()) : nullptr;
-                    SWC_RESULT_VERIFY(sema.waitSemaCompleted(symType, sema.curNodeRef()));
+                    SWC_RESULT(sema.waitSemaCompleted(symType, sema.curNodeRef()));
                     currentFunc->addLocalVariable(ctx, &symVar);
                 }
                 else
                 {
-                    SWC_RESULT_VERIFY(allocateGlobalStorage(sema, symVar));
+                    SWC_RESULT(allocateGlobalStorage(sema, symVar));
                 }
             }
 
@@ -774,7 +774,7 @@ namespace
     {
         SemaNodeView nodeInitView = sema.viewNodeTypeConstant(context.nodeInitRef);
         if (context.nodeInitRef.isValid())
-            SWC_RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
+            SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
 
         const SemaNodeView nodeTypeView    = sema.viewType(context.nodeTypeRef);
         TypeRef            explicitTypeRef = nodeTypeView.typeRef();
@@ -817,19 +817,19 @@ namespace
         // Implicit cast from initializer to the specified type
         if (nodeInitView.typeRef().isValid() && explicitTypeRef.isValid())
         {
-            SWC_RESULT_VERIFY(Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization));
+            SWC_RESULT(Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization));
         }
         else if (nodeInitView.cstRef().isValid())
         {
             ConstantRef newCstRef;
-            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown, !isConst));
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown, !isConst));
             sema.setConstant(nodeInitView.nodeRef(), newCstRef);
             nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 
             if (nodeInitView.type()->isInt())
             {
                 const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef(), nodeInitView.typeRef(), false);
-                SWC_RESULT_VERIFY(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
+                SWC_RESULT(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
             }
         }
 
@@ -837,7 +837,7 @@ namespace
             storeFieldDefaultConstants(symbols, nodeInitView.cstRef());
 
         if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && context.nodeInitRef.isValid())
-            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitView.nodeRef()));
+            SWC_RESULT(SemaCheck::isConstant(sema, nodeInitView.nodeRef()));
 
         const TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
@@ -862,7 +862,7 @@ namespace
         ConstantRef implicitStructCstRef = ConstantRef::invalid();
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
+            SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
             implicitStructCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
         }
         const bool hasImplicitStructInit = implicitStructCstRef.isValid();
@@ -906,7 +906,7 @@ namespace
             }
         }
 
-        SWC_RESULT_VERIFY(completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef()));
+        SWC_RESULT(completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef()));
         return Result::Continue;
     }
 }
@@ -1005,7 +1005,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
     const std::span<Symbol*> symbols = sema.curViewSymbolList().symList();
     for (const Symbol* sym : symbols)
     {
-        SWC_RESULT_VERIFY(Match::ghosting(sema, *sym));
+        SWC_RESULT(Match::ghosting(sema, *sym));
     }
 
     return Result::Continue;
@@ -1085,12 +1085,12 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         sym.setSemaCompleted(sema.ctx());
         fieldsForSymbols.push_back(field);
 
-        SWC_RESULT_VERIFY(Match::ghosting(sema, sym));
+        SWC_RESULT(Match::ghosting(sema, sym));
     }
 
     sema.setSymbolList(sema.curNodeRef(), symbols.span());
     const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags()};
-    SWC_RESULT_VERIFY(semaPostVarDeclCommon(sema, context, symbols.span()));
+    SWC_RESULT(semaPostVarDeclCommon(sema, context, symbols.span()));
 
     const SemaNodeView refreshedInitView = sema.viewNodeTypeConstant(nodeInitRef);
     storeDestructuringLetConstants(sema, symbols.span(), fieldsForSymbols.span(), refreshedInitView.cstRef());
@@ -1105,7 +1105,7 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
                                          AstModifierFlagsE::ConstRef |
                                          AstModifierFlagsE::Move |
                                          AstModifierFlagsE::MoveRaw;
-    SWC_RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
 
     sema.inheritPayload(*this, nodeExprRef);
     return Result::Continue;

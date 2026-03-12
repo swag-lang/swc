@@ -44,7 +44,7 @@ Result NativeLinkerCoff::discoverToolchain()
 
 Result NativeLinkerCoff::link()
 {
-    SWC_RESULT_VERIFY(discoverToolchain());
+    SWC_RESULT(discoverToolchain());
 
     std::vector<Utf8> args;
     const fs::path*   exePath = nullptr;

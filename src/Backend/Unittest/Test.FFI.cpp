@@ -135,7 +135,7 @@ SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
 {
     const TypeManager& typeMgr = ctx.typeMgr();
     bool               result  = false;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const JITArgument>{}, typeMgr.typeBool(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const JITArgument>{}, typeMgr.typeBool(), &result));
     if (!result)
         return Result::Error;
 }
@@ -154,7 +154,7 @@ SWC_TEST_BEGIN(FFI_CallNativeU8)
     };
 
     uint8_t result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddU8), args, typeMgr.typeU8(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddU8), args, typeMgr.typeU8(), &result));
     if (result != 42)
         return Result::Error;
 }
@@ -173,7 +173,7 @@ SWC_TEST_BEGIN(FFI_CallNativeI32)
     };
 
     int32_t result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddI32), args, typeMgr.typeS32(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddI32), args, typeMgr.typeS32(), &result));
     if (result != -1337)
         return Result::Error;
 }
@@ -192,7 +192,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF32)
     };
 
     float result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF32), args, typeMgr.typeF32(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF32), args, typeMgr.typeF32(), &result));
     if (result != 1.75f)
         return Result::Error;
 }
@@ -211,7 +211,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF64)
     };
 
     double result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF64), args, typeMgr.typeF64(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF64), args, typeMgr.typeF64(), &result));
     if (result != 4.0)
         return Result::Error;
 }
@@ -236,7 +236,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
     };
 
     double result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeSum5F64), args, typeMgr.typeF64(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeSum5F64), args, typeMgr.typeF64(), &result));
     if (result != 15.0)
         return Result::Error;
 }
@@ -259,7 +259,7 @@ SWC_TEST_BEGIN(FFI_CallNativeMixedArgs)
     };
 
     uint64_t result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeMixArgs), args, typeMgr.typeU64(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeMixArgs), args, typeMgr.typeU64(), &result));
     if (result != 70003ULL)
         return Result::Error;
 }
@@ -286,7 +286,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStackArgs)
     };
 
     int64_t result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStackArgs), args, typeMgr.typeS64(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStackArgs), args, typeMgr.typeS64(), &result));
     if (result != 21)
         return Result::Error;
 }
@@ -303,7 +303,7 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
     };
 
     bool result = false;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeConsumePtr), args, typeMgr.typeBool(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeConsumePtr), args, typeMgr.typeBool(), &result));
     if (!result)
         return Result::Error;
 }
@@ -328,7 +328,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByValueRegister)
     };
 
     uint64_t result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructPair32Sum), args, typeMgr.typeU64(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructPair32Sum), args, typeMgr.typeU64(), &result));
     if (result != 42)
         return Result::Error;
 }
@@ -362,7 +362,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByValueStack)
     };
 
     uint64_t result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructPair32Stack), args, typeMgr.typeU64(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructPair32Stack), args, typeMgr.typeU64(), &result));
     if (result != 40)
         return Result::Error;
 }
@@ -388,7 +388,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByReferenceCopy)
     };
 
     uint64_t result = 0;
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructTriple64Mutate), args, typeMgr.typeU64(), &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructTriple64Mutate), args, typeMgr.typeU64(), &result));
     if (result != 65)
         return Result::Error;
     if (value.a != 10 || value.b != 20 || value.c != 30)
@@ -417,7 +417,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByValueRegister)
     };
 
     FFIStructPair32 result = {};
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnStructPair32), args, structTypeRef, &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnStructPair32), args, structTypeRef, &result));
     if (result.a != a || result.b != b)
         return Result::Error;
 }
@@ -443,7 +443,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByReference)
     };
 
     FFIStructTriple64 result = {};
-    SWC_RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnStructTriple64), args, structTypeRef, &result));
+    SWC_RESULT(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnStructTriple64), args, structTypeRef, &result));
     if (result.a != 40 || result.b != 41 || result.c != 42)
         return Result::Error;
 }

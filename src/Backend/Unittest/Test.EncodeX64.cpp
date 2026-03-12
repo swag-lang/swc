@@ -42,7 +42,7 @@ namespace
 #define ENCODE_CASE(__name, __hex, ...)                                            \
     do                                                                             \
     {                                                                              \
-        SWC_RESULT_VERIFY(runCase(__name, __hex, [&](MicroBuilder& builder) { auto& b = builder; __VA_ARGS__; })); \
+        SWC_RESULT(runCase(__name, __hex, [&](MicroBuilder& builder) { auto& b = builder; __VA_ARGS__; })); \
     } while (false)
 
     Result buildFlow(const RunCaseFn& runCase)
@@ -340,7 +340,7 @@ namespace
         passes.addStartPass(encodePass);
 
         MicroPassContext passCtx;
-        SWC_RESULT_VERIFY(builder.runPasses(passes, &encoder, passCtx));
+        SWC_RESULT(builder.runPasses(passes, &encoder, passCtx));
 
         std::vector<std::byte> unwindInfo;
         encoder.buildUnwindInfo(unwindInfo);
@@ -361,55 +361,55 @@ namespace
 
 SWC_TEST_BEGIN(EncodeX64_Flow)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildFlow));
+    SWC_RESULT(runCase(ctx, buildFlow));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_Load)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildLoad));
+    SWC_RESULT(runCase(ctx, buildLoad));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_CmpAndCond)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildCmpAndCond));
+    SWC_RESULT(runCase(ctx, buildCmpAndCond));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_UnaryOps)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildUnaryOps));
+    SWC_RESULT(runCase(ctx, buildUnaryOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryRegRegOps)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildBinaryRegRegOps));
+    SWC_RESULT(runCase(ctx, buildBinaryRegRegOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryRegMemOps)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildBinaryRegMemOps));
+    SWC_RESULT(runCase(ctx, buildBinaryRegMemOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryMemRegOps)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildBinaryMemRegOps));
+    SWC_RESULT(runCase(ctx, buildBinaryMemRegOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryImmOps)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildBinaryImmOps));
+    SWC_RESULT(runCase(ctx, buildBinaryImmOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_TernaryAndConvert)
 {
-    SWC_RESULT_VERIFY(runCase(ctx, buildTernaryAndConvert));
+    SWC_RESULT(runCase(ctx, buildTernaryAndConvert));
 }
 SWC_TEST_END()
 
@@ -430,7 +430,7 @@ SWC_TEST_BEGIN(EncodeX64_UnwindFromMicro)
         0x50,
     };
 
-    SWC_RESULT_VERIFY(runUnwindCase(ctx, [](MicroBuilder& b) {
+    SWC_RESULT(runUnwindCase(ctx, [](MicroBuilder& b) {
         b.emitPush(RBP);
         b.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
         b.emitPush(R12);
@@ -457,7 +457,7 @@ SWC_TEST_BEGIN(EncodeX64_UnwindStopsBeforeStackStoreBody)
         0x00,
     };
 
-    SWC_RESULT_VERIFY(runUnwindCase(ctx, [](MicroBuilder& b) {
+    SWC_RESULT(runUnwindCase(ctx, [](MicroBuilder& b) {
         b.emitPush(RBP);
         b.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
         b.emitOpBinaryRegImm(RSP, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
@@ -483,7 +483,7 @@ SWC_TEST_BEGIN(EncodeX64_UnwindUpdatesFramePointerWhenAssignedTwice)
         0x00,
     };
 
-    SWC_RESULT_VERIFY(runUnwindCase(ctx, [](MicroBuilder& b) {
+    SWC_RESULT(runUnwindCase(ctx, [](MicroBuilder& b) {
         b.emitPush(RBP);
         b.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
         b.emitOpBinaryRegImm(RSP, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
@@ -501,7 +501,7 @@ SWC_TEST_BEGIN(EncodeX64_UnwindStopsAfterBodyStart)
         0x00,
     };
 
-    SWC_RESULT_VERIFY(runUnwindCase(ctx, [](MicroBuilder& b) {
+    SWC_RESULT(runUnwindCase(ctx, [](MicroBuilder& b) {
         b.emitNop();
         b.emitPush(R12);
         b.emitRet(); }, expected));

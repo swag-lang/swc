@@ -401,7 +401,7 @@ namespace
             if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            SWC_RESULT_VERIFY(emitAssign(codeGen, leftRef, rightPayload, rightTypeRef, assignOp));
+            SWC_RESULT(emitAssign(codeGen, leftRef, rightPayload, rightTypeRef, assignOp));
         }
 
         return Result::Continue;

@@ -499,7 +499,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     for (const fs::path& folder : cmdLine_->directories)
     {
         fs::path temp = folder;
-        SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, temp));
+        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
         resolvedFolders.insert(std::move(temp));
     }
     cmdLine_->directories = std::move(resolvedFolders);
@@ -509,7 +509,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     for (const fs::path& file : cmdLine_->files)
     {
         fs::path temp = file;
-        SWC_RESULT_VERIFY(FileSystem::resolveFile(ctx, temp));
+        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
         resolvedFiles.insert(std::move(temp));
     }
     cmdLine_->files = std::move(resolvedFiles);
@@ -518,7 +518,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     if (!cmdLine_->modulePath.empty())
     {
         fs::path temp = cmdLine_->modulePath;
-        SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, temp));
+        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
         cmdLine_->modulePath = std::move(temp);
     }
 

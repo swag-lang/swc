@@ -35,8 +35,8 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
 {
     using Pn = IdentifierManager::PredefinedName;
 
-    SWC_RESULT_VERIFY(sema.waitPredefined(Pn::TypeInfo, typeRef, codeRef));
-    SWC_RESULT_VERIFY(sema.waitPredefined(Pn::TypeValue, typeRef, codeRef));
+    SWC_RESULT(sema.waitPredefined(Pn::TypeInfo, typeRef, codeRef));
+    SWC_RESULT(sema.waitPredefined(Pn::TypeValue, typeRef, codeRef));
 
     auto predefinedName = Pn::TypeInfo;
     switch (kind)
@@ -54,7 +54,7 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
         case LayoutKind::Base: predefinedName = Pn::TypeInfo; break;
     }
 
-    SWC_RESULT_VERIFY(sema.waitPredefined(predefinedName, typeRef, codeRef));
+    SWC_RESULT(sema.waitPredefined(predefinedName, typeRef, codeRef));
     if (typeRef.isInvalid())
         return Result::Pause;
     return Result::Continue;

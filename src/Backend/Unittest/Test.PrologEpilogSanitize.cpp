@@ -89,7 +89,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
     builder.emitOpBinaryRegImm(rsp, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPrologEpilogSanitizePass(builder));
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
 
     if (builder.instructions().count() != 6)
         return Result::Error;
@@ -121,7 +121,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
     builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPrologEpilogSanitizePass(builder));
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
 
     if (builder.instructions().count() != 7)
         return Result::Error;
@@ -154,7 +154,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryPr
     builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPrologEpilogSanitizePass(builder));
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
 
     if (builder.instructions().count() != 4)
         return Result::Error;
@@ -190,7 +190,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotTouchFramePointerSetupAfterBodyS
     builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runPrologEpilogSanitizePass(builder));
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
 
     if (builder.instructions().count() != 5)
         return Result::Error;

@@ -161,7 +161,7 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     }
 
     ByteSpan bytes;
-    SWC_RESULT_VERIFY(getStructBytesFromConstant(sema, bytes, cst, symVar, nodeMemberRef));
+    SWC_RESULT(getStructBytesFromConstant(sema, bytes, cst, symVar, nodeMemberRef));
 
     const TypeInfo& typeVar   = symVar.typeInfo(ctx);
     const TypeInfo* typeField = &typeVar;
@@ -169,7 +169,7 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     const auto fieldBytes = ByteSpan{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
 
     ConstantRef cstRef = ConstantRef::invalid();
-    SWC_RESULT_VERIFY(makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes, cstRef, symVar, nodeMemberRef));
+    SWC_RESULT(makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes, cstRef, symVar, nodeMemberRef));
 
     sema.setConstant(nodeRef, cstRef);
     return Result::Continue;
@@ -203,7 +203,7 @@ namespace
     {
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
-        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&elemType, nodeArgRef));
+        SWC_RESULT(sema.waitSemaCompleted(&elemType, nodeArgRef));
         const uint64_t elemSize = elemType.sizeOf(ctx);
         SWC_ASSERT(elemSize);
 

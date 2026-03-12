@@ -34,7 +34,7 @@ namespace
         if (SymbolFunction* currentFunc = sema.frame().currentFunction())
         {
             const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
             currentFunc->addLocalVariable(sema.ctx(), &symVar);
         }
 
@@ -115,8 +115,8 @@ namespace
 
         if (!storageSym.isSemaCompleted())
         {
-            SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-            SWC_RESULT_VERIFY(completeCastRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+            SWC_RESULT(Match::ghosting(sema, storageSym));
+            SWC_RESULT(completeCastRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
         }
 
         return Result::Continue;

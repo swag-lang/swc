@@ -33,13 +33,13 @@ Result MicroConstantPropagationPass::trackKnownMemoryWrite(MicroInstrRef instRef
         case MicroInstrOpcode::LoadMemReg:
         case MicroInstrOpcode::LoadAmcMemImm:
         case MicroInstrOpcode::LoadAmcMemReg:
-            SWC_RESULT_VERIFY(trackStackStoreInstruction(prevInst, prevOps, inst, ops, handledMemoryWrite));
+            SWC_RESULT(trackStackStoreInstruction(prevInst, prevOps, inst, ops, handledMemoryWrite));
             break;
 
         case MicroInstrOpcode::OpBinaryMemImm:
         case MicroInstrOpcode::OpBinaryMemReg:
         case MicroInstrOpcode::OpUnaryMem:
-            SWC_RESULT_VERIFY(trackStackMutationInstruction(instRef, inst, ops, handledMemoryWrite));
+            SWC_RESULT(trackStackMutationInstruction(instRef, inst, ops, handledMemoryWrite));
             break;
 
         default:

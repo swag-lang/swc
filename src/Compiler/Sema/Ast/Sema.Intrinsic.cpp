@@ -71,7 +71,7 @@ namespace
         if (SymbolFunction* currentFunc = sema.frame().currentFunction())
         {
             const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
             currentFunc->addLocalVariable(sema.ctx(), &symVar);
         }
 
@@ -85,11 +85,11 @@ namespace
         SemaNodeView view = sema.viewNodeTypeConstantSymbol(children[0]);
         if (view.sym() && view.sym()->isConstant() && view.cstRef().isInvalid())
         {
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(view.sym(), sema.node(view.nodeRef()).codeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(view.sym(), sema.node(view.nodeRef()).codeRef()));
             view.compute(sema, children[0], SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         }
 
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
 
         const TypeInfo* type = view.type();
 
@@ -130,7 +130,7 @@ namespace
     {
         const SemaNodeView view = sema.viewType(children[0]);
 
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
 
         if (!view.type() || !view.type()->isAny())
             return SemaError::raiseRequestedTypeFam(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeAny());
@@ -151,8 +151,8 @@ namespace
         const SemaNodeView nodeViewPtr = sema.viewType(children[0]);
         SemaNodeView       viewType    = sema.viewTypeConstant(children[1]);
 
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
-        SWC_RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, viewType));
+        SWC_RESULT(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, viewType));
 
         if (!nodeViewPtr.type()->isValuePointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeValuePtrVoid());
@@ -187,8 +187,8 @@ namespace
             auto& storageSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, node, "intrinsic_runtime_storage");
             storageSym.registerAttributes(sema);
             storageSym.setDeclared(sema.ctx());
-            SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-            SWC_RESULT_VERIFY(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
+            SWC_RESULT(Match::ghosting(sema, storageSym));
+            SWC_RESULT(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
 
             auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
             if (!payload)
@@ -208,13 +208,13 @@ namespace
         const SemaNodeView nodeViewPtr  = sema.viewType(children[0]);
         SemaNodeView       nodeViewSize = sema.viewNodeTypeConstant(children[1]);
 
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
-        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
+        SWC_RESULT(SemaCheck::isValue(sema, nodeViewSize.nodeRef()));
 
         if (!nodeViewPtr.type()->isAnyPointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeBlockPtrVoid());
 
-        SWC_RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
+        SWC_RESULT(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
 
         TypeRef typeRef;
         if (forString)
@@ -238,8 +238,8 @@ namespace
             auto& storageSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, node, "intrinsic_runtime_storage");
             storageSym.registerAttributes(sema);
             storageSym.setDeclared(sema.ctx());
-            SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-            SWC_RESULT_VERIFY(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
+            SWC_RESULT(Match::ghosting(sema, storageSym));
+            SWC_RESULT(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
 
             auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
             if (!payload)

@@ -264,7 +264,7 @@ namespace
     Result semaBang(Sema& sema, const AstUnaryExpr& node, SemaNodeView& view)
     {
         SWC_UNUSED(node);
-        SWC_RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
         return Result::Continue;
     }
@@ -286,7 +286,7 @@ namespace
             resultTypeRef = sema.typeMgr().addType(ty);
         }
 
-        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeExprRef));
+        SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeExprRef));
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsLValue(node);
         return Result::Continue;
@@ -361,21 +361,21 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     SemaNodeView view = sema.viewNodeTypeConstantSymbol(nodeExprRef);
 
     // Value-check
-    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
+    SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
     sema.setIsValue(*this);
 
     // Force types
     const Token& tok = sema.token(codeRef());
-    SWC_RESULT_VERIFY(promote(sema, tok.id, view));
+    SWC_RESULT(promote(sema, tok.id, view));
 
     // Type-check
-    SWC_RESULT_VERIFY(check(sema, tok.id, *this, view));
+    SWC_RESULT(check(sema, tok.id, *this, view));
 
     // Constant folding
     if (view.cstRef().isValid())
     {
         ConstantRef result;
-        SWC_RESULT_VERIFY(constantFold(sema, result, tok.id, *this, view));
+        SWC_RESULT(constantFold(sema, result, tok.id, *this, view));
         sema.setConstant(sema.curNodeRef(), result);
         return Result::Continue;
     }

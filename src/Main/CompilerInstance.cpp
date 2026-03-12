@@ -662,11 +662,11 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     if (!cmdLine.modulePath.empty())
     {
         modulePathFile_ = cmdLine.modulePath / "module.swg";
-        SWC_RESULT_VERIFY(FileSystem::resolveFile(ctx, modulePathFile_));
+        SWC_RESULT(FileSystem::resolveFile(ctx, modulePathFile_));
         addResolvedFile(modulePathFile_, FileFlagsE::Module);
 
         modulePathSrc_ = cmdLine.modulePath / "src";
-        SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, modulePathSrc_));
+        SWC_RESULT(FileSystem::resolveFolder(ctx, modulePathSrc_));
         collectFolderFiles(modulePathSrc_, FileFlagsE::ModuleSrc, true);
     }
 
@@ -674,7 +674,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     if (cmdLine.runtime)
     {
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
-        SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, runtimePath));
+        SWC_RESULT(FileSystem::resolveFolder(ctx, runtimePath));
         collectFolderFiles(runtimePath, FileFlagsE::Runtime, false);
     }
 

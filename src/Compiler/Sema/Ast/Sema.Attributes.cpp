@@ -160,7 +160,7 @@ namespace
 
         for (const auto argValueRef : args)
         {
-            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
+            SWC_RESULT(SemaCheck::isConstant(sema, argValueRef));
             const SemaNodeView argView = sema.viewConstant(argValueRef);
             outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst()->getString()});
         }
@@ -178,7 +178,7 @@ namespace
 
         for (const auto argValueRef : args)
         {
-            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
+            SWC_RESULT(SemaCheck::isConstant(sema, argValueRef));
             const SemaNodeView argView = sema.viewConstant(argValueRef);
             outAttributes.printAstStageOptions.push_back(Utf8{argView.cst()->getString()});
         }
@@ -189,7 +189,7 @@ namespace
     Result collectOptimizeLevel(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
     {
         const AstNodeRef argValueRef = args[0];
-        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
+        SWC_RESULT(SemaCheck::isConstant(sema, argValueRef));
 
         const SemaNodeView argView = sema.viewConstant(argValueRef);
         SWC_ASSERT(argView.cst() != nullptr);
@@ -204,7 +204,7 @@ namespace
         outValue.clear();
         if (arg.argRef.isValid())
         {
-            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, arg.argRef));
+            SWC_RESULT(SemaCheck::isConstant(sema, arg.argRef));
             const SemaNodeView argView = sema.viewConstant(arg.argRef);
             SWC_ASSERT(argView.cst() != nullptr);
             SWC_ASSERT(argView.cst()->isString());
@@ -228,11 +228,11 @@ namespace
         Utf8 moduleName;
         Utf8 functionName;
         Utf8 linkModuleName;
-        SWC_RESULT_VERIFY(collectForeignStringValue(sema, moduleName, args[0]));
+        SWC_RESULT(collectForeignStringValue(sema, moduleName, args[0]));
         if (args.size() > 1)
-            SWC_RESULT_VERIFY(collectForeignStringValue(sema, functionName, args[1]));
+            SWC_RESULT(collectForeignStringValue(sema, functionName, args[1]));
         if (args.size() > 2)
-            SWC_RESULT_VERIFY(collectForeignStringValue(sema, linkModuleName, args[2]));
+            SWC_RESULT(collectForeignStringValue(sema, linkModuleName, args[2]));
 
         outAttributes.setForeign(moduleName, functionName, linkModuleName);
         return Result::Continue;
@@ -335,9 +335,9 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero));
     sym.setTypeRef(typeRef);
-    SWC_RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), true));
+    SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), true));
     sym.setTyped(sema.ctx());
-    SWC_RESULT_VERIFY(Match::ghosting(sema, sym));
+    SWC_RESULT(Match::ghosting(sema, sym));
     sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }
@@ -417,13 +417,13 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     Match::resolveCallArgumentValues(sema, argValues, args.span());
     SmallVector<ResolvedCallArgument> resolvedArgs;
     sema.appendResolvedCallArguments(nodeCallRef, resolvedArgs);
-    SWC_RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), resolvedArgs.span(), attrSym, sema.frame().currentAttributes()));
+    SWC_RESULT(collectPredefinedAttributeData(sema, argValues.span(), resolvedArgs.span(), attrSym, sema.frame().currentAttributes()));
 
     const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)
     {
         const AttributeList& currentAttributes = sema.frame().currentAttributes();
-        SWC_RESULT_VERIFY(validateRtAttributeConstraints(sema, currentAttributes, attrFlags, errorRef));
+        SWC_RESULT(validateRtAttributeConstraints(sema, currentAttributes, attrFlags, errorRef));
 
         sema.frame().currentAttributes().addRtFlag(attrFlags);
         return Result::Continue;

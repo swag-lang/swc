@@ -1461,8 +1461,8 @@ Result DebugInfoCodeView::buildObject(DebugInfoObjectResult& outResult, const De
     outResult.sections.clear();
     outResult.symbols.clear();
 
-    SWC_RESULT_VERIFY(appendCodeViewSection(request, outResult));
-    SWC_RESULT_VERIFY(appendUnwindSections(request, outResult));
+    SWC_RESULT(appendCodeViewSection(request, outResult));
+    SWC_RESULT(appendUnwindSections(request, outResult));
     return Result::Continue;
 }
 

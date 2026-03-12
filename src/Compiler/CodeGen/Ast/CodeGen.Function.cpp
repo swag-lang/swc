@@ -388,7 +388,7 @@ namespace
         if (inlinePayload.returnTypeRef != codeGen.typeMgr().typeVoid())
         {
             SWC_ASSERT(exprRef.isValid());
-            SWC_RESULT_VERIFY(emitInlineResultStore(codeGen, inlinePayload, exprRef));
+            SWC_RESULT(emitInlineResultStore(codeGen, inlinePayload, exprRef));
         }
 
         SWC_ASSERT(doneLabel.isValid());

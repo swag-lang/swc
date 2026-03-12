@@ -81,7 +81,7 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& view)
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, view.nodeRef());
 
     ConstantRef cstRef;
-    SWC_RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, view.typeRef(), view.nodeRef()));
+    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, cstRef, view.typeRef(), view.nodeRef()));
     sema.setConstant(view.nodeRef(), cstRef);
     view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     return Result::Continue;

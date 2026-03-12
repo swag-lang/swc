@@ -340,7 +340,7 @@ Result CodeGen::preNode(AstNode& node)
         return Result::SkipChildren;
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    SWC_RESULT_VERIFY(info.codeGenPreNode(*this, node));
+    SWC_RESULT(info.codeGenPreNode(*this, node));
 
     const SemaInlinePayload* inlinePayload = sema().semaPayload<SemaInlinePayload>(curNodeRef());
     if (inlinePayload && inlinePayload->inlineRootRef == curNodeRef())
@@ -361,12 +361,12 @@ Result CodeGen::postNode(AstNode& node)
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
     if (curViewConstant().hasConstant())
     {
-        SWC_RESULT_VERIFY(emitConstant(curNodeRef()));
+        SWC_RESULT(emitConstant(curNodeRef()));
     }
     else
     {
         const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-        SWC_RESULT_VERIFY(info.codeGenPostNode(*this, node));
+        SWC_RESULT(info.codeGenPostNode(*this, node));
     }
 
     if (frame().hasCurrentInlineContext() && frame().currentInlineContext().rootNodeRef == curNodeRef())

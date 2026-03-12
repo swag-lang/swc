@@ -375,7 +375,7 @@ namespace
             builder.emitLoadMemReg(runtimeAnyReg, offsetof(Runtime::Any, value), valuePtrReg, MicroOpBits::B64);
 
             ConstantRef typeInfoCstRef = ConstantRef::invalid();
-            SWC_RESULT_VERIFY(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, sourceTypeRef, codeGen.curNodeRef()));
+            SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, sourceTypeRef, codeGen.curNodeRef()));
             const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
             SWC_ASSERT(typeInfoCst.isValuePointer());
 

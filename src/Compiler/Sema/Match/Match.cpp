@@ -243,8 +243,8 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 
     for (const Symbol* other : lookUpCxt.symbols())
     {
-        SWC_RESULT_VERIFY(sema.waitDeclared(other, lookUpCxt.codeRef));
-        SWC_RESULT_VERIFY(sema.waitTyped(other, lookUpCxt.codeRef));
+        SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
+        SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
     }
 
     return Result::Continue;
@@ -262,7 +262,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
 
     for (const Symbol* other : lookUpCxt.symbols())
     {
-        SWC_RESULT_VERIFY(sema.waitDeclared(other, lookUpCxt.codeRef));
+        SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
     }
 
     if (lookUpCxt.count() == 1)
@@ -283,7 +283,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         if (sym.acceptOverloads() && other->acceptOverloads())
         {
             SWC_ASSERT(sym.isTyped());
-            SWC_RESULT_VERIFY(sema.waitTyped(other, lookUpCxt.codeRef));
+            SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
             if (!sym.deepCompare(other))
                 continue;
         }
@@ -299,7 +299,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         if (sym.acceptOverloads() && other->acceptOverloads())
         {
             SWC_ASSERT(sym.isTyped());
-            SWC_RESULT_VERIFY(sema.waitTyped(other, lookUpCxt.codeRef));
+            SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
             if (!sym.deepCompare(other))
                 continue;
         }

@@ -52,7 +52,7 @@ SWC_TEST_BEGIN(MicroControlFlowSimplification_RemovesRedundantFlow)
     builder.emitLoadRegImm(r9, ApInt(2, 64), MicroOpBits::B64);
     builder.placeLabel(deadLabel);
 
-    SWC_RESULT_VERIFY(runControlFlowSimplificationPass(builder));
+    SWC_RESULT(runControlFlowSimplificationPass(builder));
 
     if (builder.instructions().count() != 2)
         return Result::Error;
@@ -82,7 +82,7 @@ SWC_TEST_BEGIN(MicroControlFlowSimplification_MergesJumpChain)
     builder.placeLabel(targetRef);
     builder.emitRet();
 
-    SWC_RESULT_VERIFY(runControlFlowSimplificationPass(builder));
+    SWC_RESULT(runControlFlowSimplificationPass(builder));
 
     uint32_t jumpCount = 0;
     for (const MicroInstr& inst : builder.instructions().view())

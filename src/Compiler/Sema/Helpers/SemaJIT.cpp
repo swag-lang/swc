@@ -176,7 +176,7 @@ namespace
             auto* job = heapNew<CodeGenJob>(ctx, sema, symFn, symFn.declNodeRef());
             sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
         }
-        SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
+        SWC_RESULT(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
         if (ctx.state().jitEmissionError)
             return Result::Error;
 
@@ -206,7 +206,7 @@ namespace
             {
                 if (!function)
                     continue;
-                SWC_RESULT_VERIFY(sema.waitCodeGenPreSolved(function, function->codeRef()));
+                SWC_RESULT(sema.waitCodeGenPreSolved(function, function->codeRef()));
             }
 
             SmallVector<SymbolFunction*> expandedOrder;
@@ -229,7 +229,7 @@ namespace
         {
             if (!function)
                 continue;
-            SWC_RESULT_VERIFY(function->emit(ctx));
+            SWC_RESULT(function->emit(ctx));
         }
 
         if (ctx.state().jitEmissionError)
@@ -415,7 +415,7 @@ namespace
 
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
 {
-    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+    SWC_RESULT(SemaCheck::isValue(sema, nodeExprRef));
 
     ///////////////////////////////////////////
     // Resume path: consume deferred completion if present.
@@ -431,11 +431,11 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
         return Result::Pause;
 
     const SemaNodeView initialView = sema.viewType(nodeExprRef);
-    SWC_RESULT_VERIFY(sema.waitSemaCompleted(initialView.type(), nodeExprRef));
+    SWC_RESULT(sema.waitSemaCompleted(initialView.type(), nodeExprRef));
 
     const TypeRef           exprTypeRef = sema.viewType(nodeExprRef).typeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
-    SWC_RESULT_VERIFY(prepareJitFunction(sema, symFn));
+    SWC_RESULT(prepareJitFunction(sema, symFn));
 
     ///////////////////////////////////////////
     // Build payload and submit with shared node lifecycle.
@@ -475,7 +475,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     const SymbolFunction* currentFn = sema.frame().currentFunction();
     if (currentFn == &calledFn)
         return Result::Continue;
-    SWC_RESULT_VERIFY(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
+    SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
 
     ///////////////////////////////////////////
     // Build payload and arguments for call folding.
@@ -485,7 +485,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 
     const TypeRef           exprTypeRef = calledFn.returnTypeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
-    SWC_RESULT_VERIFY(prepareJitFunction(sema, calledFn));
+    SWC_RESULT(prepareJitFunction(sema, calledFn));
 
     payload->resultStorage.resize(resultMeta.resultSize);
 
@@ -510,7 +510,7 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
 
     ///////////////////////////////////////////
     // Shared codegen/JIT preparation path.
-    SWC_RESULT_VERIFY(prepareJitFunction(sema, symFn));
+    SWC_RESULT(prepareJitFunction(sema, symFn));
 
     ///////////////////////////////////////////
     // Submit statement execution to the JIT manager.

@@ -753,7 +753,7 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
         if (castRequest.isConstantFolding())
         {
             const auto cst = sema.cstMgr().get(castRequest.srcConstRef);
-            SWC_RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
+            SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
         }
 
         return Result::Continue;
@@ -844,7 +844,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     const ConstantValue& srcCst = sema.cstMgr().get(srcCstRef);
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
-    SWC_RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, anyTypeRef, castRequest.errorNodeRef));
+    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, anyTypeRef, castRequest.errorNodeRef));
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
     uint32_t  shardIndex     = 0;
@@ -870,7 +870,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, anyTypeRef);
 
             uint32_t valueOffset = INVALID_REF;
-            SWC_RESULT_VERIFY(ConstantLower::materializeNativeStaticPayload(valueOffset, sema, segment, anyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
+            SWC_RESULT(ConstantLower::materializeNativeStaticPayload(valueOffset, sema, segment, anyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
             runtimeAny->value = segment.ptr<std::byte>(valueOffset);
             segment.addRelocation(anyOffset + offsetof(Runtime::Any, value), valueOffset);
         }
@@ -903,7 +903,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     if (srcType.isStruct())
     {
         const SymbolStruct& fromStruct = srcType.payloadSymStruct();
-        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&srcType, castRequest.errorNodeRef));
+        SWC_RESULT(sema.waitSemaCompleted(&srcType, castRequest.errorNodeRef));
         const SymbolInterface& toItf = dstType.payloadSymInterface();
         if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
             return Result::Continue;
@@ -1130,7 +1130,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
                 const TypeRef     srcTypeRef = view.typeRef();
                 const ConstantRef srcCstRef  = view.cstRef();
                 view.nodeRef()               = createCast(sema, dstTypeRef, view.nodeRef());
-                SWC_RESULT_VERIFY(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef));
+                SWC_RESULT(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef));
             }
         }
         else
@@ -1168,8 +1168,8 @@ Result Cast::castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& n
         return Result::Continue;
 
     const TypeRef promotedTypeRef = sema.typeMgr().promote(nodeLeftView.typeRef(), nodeRightView.typeRef(), false);
-    SWC_RESULT_VERIFY(castIfNeeded(sema, nodeLeftView, promotedTypeRef, castKind));
-    SWC_RESULT_VERIFY(castIfNeeded(sema, nodeRightView, promotedTypeRef, castKind));
+    SWC_RESULT(castIfNeeded(sema, nodeLeftView, promotedTypeRef, castKind));
+    SWC_RESULT(castIfNeeded(sema, nodeRightView, promotedTypeRef, castKind));
     return Result::Continue;
 }
 

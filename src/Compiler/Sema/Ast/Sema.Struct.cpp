@@ -22,7 +22,7 @@ namespace
         if (SymbolFunction* currentFunc = sema.frame().currentFunction())
         {
             const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
             currentFunc->addLocalVariable(sema.ctx(), &symVar);
         }
 
@@ -65,8 +65,8 @@ namespace
         auto& storageSym = registerUniqueLiteralRuntimeStorageSymbol(sema, node);
         storageSym.registerAttributes(sema);
         storageSym.setDeclared(sema.ctx());
-        SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-        SWC_RESULT_VERIFY(completeLiteralRuntimeStorageSymbol(sema, storageSym, literalView.typeRef()));
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeLiteralRuntimeStorageSymbol(sema, storageSym, literalView.typeRef()));
 
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
@@ -129,9 +129,9 @@ Result AstStructDecl::semaPostNode(Sema& sema)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.removeIgnoredFields();
-    SWC_RESULT_VERIFY(sym.canBeCompleted(sema));
-    SWC_RESULT_VERIFY(sym.registerSpecOps(sema));
-    SWC_RESULT_VERIFY(sym.computeLayout(sema.ctx()));
+    SWC_RESULT(sym.canBeCompleted(sema));
+    SWC_RESULT(sym.registerSpecOps(sema));
+    SWC_RESULT(sym.computeLayout(sema.ctx()));
 
     // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()))
@@ -185,8 +185,8 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.removeIgnoredFields();
-    SWC_RESULT_VERIFY(sym.canBeCompleted(sema));
-    SWC_RESULT_VERIFY(sym.computeLayout(sema.ctx()));
+    SWC_RESULT(sym.canBeCompleted(sema));
+    SWC_RESULT(sym.computeLayout(sema.ctx()));
     sym.setSemaCompleted(sema.ctx());
     sema.setType(sema.curNodeRef(), sym.typeRef());
     return Result::Continue;
@@ -197,12 +197,12 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
     SmallVector<AstNodeRef> children;
     AstNode::collectChildren(children, sema.ast(), spanArgsRef);
 
-    SWC_RESULT_VERIFY(SemaHelpers::finalizeAggregateStruct(sema, children));
+    SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children));
     SemaNodeView initView = sema.curViewNodeTypeConstant();
-    SWC_RESULT_VERIFY(attachLiteralRuntimeStorageIfNeeded(sema, *this, initView));
+    SWC_RESULT(attachLiteralRuntimeStorageIfNeeded(sema, *this, initView));
 
     const SemaNodeView nodeWhatView = sema.viewType(nodeWhatRef);
-    SWC_RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));
+    SWC_RESULT(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));
 
     return Result::Continue;
 }

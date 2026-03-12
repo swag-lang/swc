@@ -49,22 +49,22 @@ const CompilerInstance& NativeBackendBuilder::compiler() const
 
 Result NativeBackendBuilder::run()
 {
-    SWC_RESULT_VERIFY(validateTarget());
+    SWC_RESULT(validateTarget());
 
     NativeSymbolCollector symbolCollector(*this);
-    SWC_RESULT_VERIFY(symbolCollector.prepare());
+    SWC_RESULT(symbolCollector.prepare());
 
     const NativeArtifactBuilder artifactBuilder(*this);
-    SWC_RESULT_VERIFY(artifactBuilder.build());
-    SWC_RESULT_VERIFY(writeObjects());
+    SWC_RESULT(artifactBuilder.build());
+    SWC_RESULT(writeObjects());
 
     const auto linker = NativeLinker::create(*this);
     SWC_ASSERT(linker != nullptr);
-    SWC_RESULT_VERIFY(linker->link());
+    SWC_RESULT(linker->link());
     logArtifactAction(ctx_, "Build", artifactPath);
 
     if (runArtifact_ && compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
-        SWC_RESULT_VERIFY(runGeneratedArtifact());
+        SWC_RESULT(runGeneratedArtifact());
 
     return Result::Continue;
 }

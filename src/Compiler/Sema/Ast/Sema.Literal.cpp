@@ -111,7 +111,7 @@ namespace
         if (SymbolFunction* currentFunc = sema.frame().currentFunction())
         {
             const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
             currentFunc->addLocalVariable(sema.ctx(), &symVar);
         }
 
@@ -151,8 +151,8 @@ namespace
         auto& storageSym = registerUniqueLiteralRuntimeStorageSymbol(sema, node);
         storageSym.registerAttributes(sema);
         storageSym.setDeclared(sema.ctx());
-        SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-        SWC_RESULT_VERIFY(completeLiteralRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeLiteralRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
 
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
@@ -535,7 +535,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    SWC_RESULT_VERIFY(SemaHelpers::finalizeAggregateStruct(sema, children));
+    SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children));
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
     return attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView);
 }
@@ -577,7 +577,7 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
 
     sema.setIsValue(*this);
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
-    SWC_RESULT_VERIFY(attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView));
+    SWC_RESULT(attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView));
     return Result::Continue;
 }
 

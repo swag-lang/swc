@@ -64,7 +64,7 @@ namespace
         }
 
         uint32_t typeOffset = INVALID_REF;
-        SWC_RESULT_VERIFY(resolveSegmentOffset(typeOffset, sema, segment, srcAny->type));
+        SWC_RESULT(resolveSegmentOffset(typeOffset, sema, segment, srcAny->type));
         dstAny->type = typeOffset == INVALID_REF ? nullptr : segment.ptr<Runtime::TypeInfo>(typeOffset);
         if (typeOffset != INVALID_REF)
             segment.addRelocation(baseOffset + offsetof(Runtime::Any, type), typeOffset);
@@ -79,7 +79,7 @@ namespace
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
 
         uint32_t valueOffset = INVALID_REF;
-        SWC_RESULT_VERIFY(ConstantLower::materializeNativeStaticPayload(valueOffset,
+        SWC_RESULT(ConstantLower::materializeNativeStaticPayload(valueOffset,
                                                                         sema,
                                                                         segment,
                                                                         valueTypeRef,
@@ -119,7 +119,7 @@ namespace
         for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
-            SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
+            SWC_RESULT(materializeNativeStaticPayloadInPlace(sema,
                                                                     segment,
                                                                     elementTypeRef,
                                                                     dataOffset + static_cast<uint32_t>(elementOffset),
@@ -149,7 +149,7 @@ namespace
         for (uint64_t idx = 0; idx < totalCount; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
-            SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
+            SWC_RESULT(materializeNativeStaticPayloadInPlace(sema,
                                                                     segment,
                                                                     elementTypeRef,
                                                                     baseOffset + static_cast<uint32_t>(elementOffset),
@@ -175,7 +175,7 @@ namespace
             if (fieldOffset + fieldSize > srcBytes.size())
                 return Result::Error;
 
-            SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
+            SWC_RESULT(materializeNativeStaticPayloadInPlace(sema,
                                                                     segment,
                                                                     fieldTypeRef,
                                                                     baseOffset + static_cast<uint32_t>(fieldOffset),
@@ -194,13 +194,13 @@ namespace
         const auto dstInterface = reinterpret_cast<Runtime::Interface*>(dstBytes.data());
         const auto srcInterface = reinterpret_cast<const Runtime::Interface*>(srcBytes.data());
         uint32_t   objOffset    = INVALID_REF;
-        SWC_RESULT_VERIFY(resolveSegmentOffset(objOffset, sema, segment, srcInterface->obj));
+        SWC_RESULT(resolveSegmentOffset(objOffset, sema, segment, srcInterface->obj));
         dstInterface->obj = objOffset == INVALID_REF ? nullptr : segment.ptr<std::byte>(objOffset);
         if (objOffset != INVALID_REF)
             segment.addRelocation(baseOffset + offsetof(Runtime::Interface, obj), objOffset);
 
         uint32_t itableOffset = INVALID_REF;
-        SWC_RESULT_VERIFY(resolveSegmentOffset(itableOffset, sema, segment, srcInterface->itable));
+        SWC_RESULT(resolveSegmentOffset(itableOffset, sema, segment, srcInterface->itable));
         dstInterface->itable = itableOffset == INVALID_REF ? nullptr : segment.ptr<void*>(itableOffset);
         if (itableOffset != INVALID_REF)
             segment.addRelocation(baseOffset + offsetof(Runtime::Interface, itable), itableOffset);
@@ -215,7 +215,7 @@ namespace
         auto&      dstPtr    = *reinterpret_cast<uint64_t*>(dstBytes.data());
         const auto srcPtr    = reinterpret_cast<const void*>(*reinterpret_cast<const uint64_t*>(srcBytes.data()));
         uint32_t   ptrOffset = INVALID_REF;
-        SWC_RESULT_VERIFY(resolveSegmentOffset(ptrOffset, sema, segment, srcPtr));
+        SWC_RESULT(resolveSegmentOffset(ptrOffset, sema, segment, srcPtr));
         dstPtr = ptrOffset == INVALID_REF ? 0 : reinterpret_cast<uint64_t>(segment.ptr<std::byte>(ptrOffset));
         if (ptrOffset != INVALID_REF)
             segment.addRelocation(baseOffset, ptrOffset);

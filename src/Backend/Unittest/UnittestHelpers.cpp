@@ -86,7 +86,7 @@ namespace Backend::Unittest
         passes.addStartPass(encodePass);
 
         MicroPassContext passCtx;
-        SWC_RESULT_VERIFY(builder.runPasses(passes, &encoder, passCtx));
+        SWC_RESULT(builder.runPasses(passes, &encoder, passCtx));
 
         if (encoder.size() == 0)
         {

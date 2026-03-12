@@ -90,7 +90,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
     if (nodeTypeRef.isValid())
     {
-        SWC_RESULT_VERIFY(validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef));
+        SWC_RESULT(validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef));
     }
 
     const TypeRef  underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);
@@ -146,7 +146,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
         if (nodeInitView.node()->is(AstNodeId::CastExpr))
             isExplicitInitCast = nodeInitView.node()->cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit);
         const CastKind initCastKind = isExplicitInitCast ? CastKind::Explicit : CastKind::Initialization;
-        SWC_RESULT_VERIFY(Cast::cast(sema, nodeInitView, underlyingTypeRef, initCastKind));
+        SWC_RESULT(Cast::cast(sema, nodeInitView, underlyingTypeRef, initCastKind));
         valueCst = nodeInitView.cstRef();
         if (underlyingType.isInt())
         {

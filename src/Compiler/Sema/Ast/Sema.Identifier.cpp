@@ -131,9 +131,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     const Result ret = Match::match(sema, lookUpCxt, idRef);
     if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
         return sema.waitCompilerDefined(idRef, codeRef());
-    SWC_RESULT_VERIFY(ret);
+    SWC_RESULT(ret);
 
-    SWC_RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+    SWC_RESULT(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
     return Result::Continue;
 }
 

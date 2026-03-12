@@ -156,7 +156,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     CoffSectionBuild textSection;
     textSection.data.name            = ".text";
     textSection.data.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
-    SWC_RESULT_VERIFY(buildTextSection(description, textSection));
+    SWC_RESULT(buildTextSection(description, textSection));
 
     std::vector<CoffSectionBuild> sections;
     sections.push_back(std::move(textSection));
@@ -165,7 +165,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     {
         CoffSectionBuild section;
         section.data = builder_.mergedRData;
-        SWC_RESULT_VERIFY(applySectionRelocations(section));
+        SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));
     }
 
@@ -173,7 +173,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     {
         CoffSectionBuild section;
         section.data = builder_.mergedData;
-        SWC_RESULT_VERIFY(applySectionRelocations(section));
+        SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));
     }
 
@@ -298,12 +298,12 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
         .constants    = debugConstants,
         .emitCodeView = builder_.compiler().buildCfg().backend.debugInfo,
     };
-    SWC_RESULT_VERIFY(DebugInfo::buildObject(debugInfoRequest, debugInfoResult));
+    SWC_RESULT(DebugInfo::buildObject(debugInfoRequest, debugInfoResult));
     for (auto& debugSectionData : debugInfoResult.sections)
     {
         CoffSectionBuild section;
         section.data = std::move(debugSectionData);
-        SWC_RESULT_VERIFY(applySectionRelocations(section));
+        SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));
     }
 
@@ -334,9 +334,9 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
         appendCode(info->textOffset, info->machineCode->bytes);
 
     if (description.startup)
-        SWC_RESULT_VERIFY(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols));
+        SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols));
     for (const NativeFunctionInfo* info : description.functions)
-        SWC_RESULT_VERIFY(appendCodeRelocations(*info, *info->machineCode, textSection, description.allowUnresolvedSymbols));
+        SWC_RESULT(appendCodeRelocations(*info, *info->machineCode, textSection, description.allowUnresolvedSymbols));
 
     return Result::Continue;
 }
@@ -344,14 +344,14 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
 Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT_VERIFY(appendSingleCodeRelocation(startup.textOffset, relocation, textSection, allowUnresolvedSymbols));
+        SWC_RESULT(appendSingleCodeRelocation(startup.textOffset, relocation, textSection, allowUnresolvedSymbols));
     return Result::Continue;
 }
 
 Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT_VERIFY(appendSingleCodeRelocation(owner.textOffset, relocation, textSection, allowUnresolvedSymbols));
+        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, relocation, textSection, allowUnresolvedSymbols));
     return Result::Continue;
 }
 

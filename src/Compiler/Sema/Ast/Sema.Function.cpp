@@ -135,7 +135,7 @@ namespace
     Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
         SymbolFunction* tlsGetValueFn = nullptr;
-        SWC_RESULT_VERIFY(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue, tlsGetValueFn, node.codeRef()));
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue, tlsGetValueFn, node.codeRef()));
         SWC_ASSERT(tlsGetValueFn != nullptr);
 
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
@@ -155,7 +155,7 @@ namespace
     Result setupIntrinsicAssertRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
         SymbolFunction* raiseExceptionFn = nullptr;
-        SWC_RESULT_VERIFY(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::RaiseException, raiseExceptionFn, node.codeRef()));
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::RaiseException, raiseExceptionFn, node.codeRef()));
         SWC_ASSERT(raiseExceptionFn != nullptr);
 
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
@@ -205,7 +205,7 @@ namespace
         if (SymbolFunction* currentFunc = sema.frame().currentFunction())
         {
             const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
             currentFunc->addLocalVariable(sema.ctx(), &symVar);
         }
 
@@ -249,8 +249,8 @@ namespace
         auto& storageSym = registerUniqueCallExprRuntimeStorageSymbol(sema, node);
         storageSym.registerAttributes(sema);
         storageSym.setDeclared(sema.ctx());
-        SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
-        SWC_RESULT_VERIFY(completeCallExprRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeCallExprRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
 
         if (!payload)
         {
@@ -287,7 +287,7 @@ namespace
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
         const auto                        resolveMode = node.hasFlag(AstCallExprFlagsE::AttributeContext) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
-        SWC_RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
+        SWC_RESULT(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
@@ -317,15 +317,15 @@ namespace
 
         if (tryIntrinsicFold)
         {
-            SWC_RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, calledFn, args));
+            SWC_RESULT(ConstantIntrinsic::tryConstantFoldCall(sema, calledFn, args));
         }
         else
         {
-            SWC_RESULT_VERIFY(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
+            SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
             if (sema.viewConstant(sema.curNodeRef()).hasConstant())
                 return Result::Continue;
-            SWC_RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
-            SWC_RESULT_VERIFY(attachCallExprRuntimeStorageIfNeeded(sema, node, calledFn));
+            SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
+            SWC_RESULT(attachCallExprRuntimeStorageIfNeeded(sema, node, calledFn));
         }
 
         return Result::Continue;
@@ -410,10 +410,10 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         SemaPurity::computePurityFlag(sema, sym);
         sym.setTyped(sema.ctx());
 
-        SWC_RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), false));
-        SWC_RESULT_VERIFY(SemaSpecOp::validateSymbol(sema, sym));
+        SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));
+        SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
         if (!sym.isEmpty())
-            SWC_RESULT_VERIFY(Match::ghosting(sema, sym));
+            SWC_RESULT(Match::ghosting(sema, sym));
 
         registerRuntimeFunctionSymbol(sema, sym);
     }
@@ -455,16 +455,16 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 
 Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 {
-    SWC_RESULT_VERIFY(semaCallExprCommon(sema, *this, true));
+    SWC_RESULT(semaCallExprCommon(sema, *this, true));
 
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::IntrinsicGetContext)
     {
-        SWC_RESULT_VERIFY(setupIntrinsicGetContextRuntimeCall(sema, *this));
+        SWC_RESULT(setupIntrinsicGetContextRuntimeCall(sema, *this));
     }
     else if (tok.id == TokenId::IntrinsicAssert)
     {
-        SWC_RESULT_VERIFY(setupIntrinsicAssertRuntimeCall(sema, *this));
+        SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
     }
 
     return Result::Continue;
@@ -493,7 +493,7 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
             return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, nodeExprRef);
 
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        SWC_RESULT_VERIFY(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
+        SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
     }
     else if (!returnType.isVoid())
     {

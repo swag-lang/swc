@@ -89,17 +89,19 @@ Result NativeArtifactBuilder::prepareDataSections() const
     builder_.mergedBss.name              = ".bss";
     builder_.mergedBss.characteristics   = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
 
+    CompilerInstance& compiler = builder_.compiler();
+
     builder_.mergedRData.bytes.clear();
     builder_.mergedRData.relocations.clear();
     builder_.mergedData.bytes.clear();
     builder_.mergedData.relocations.clear();
-    builder_.mergedBss.bssSize = builder_.compiler().globalZeroSegment().extentSize();
+    builder_.mergedBss.bssSize = compiler.globalZeroSegment().extentSize();
     builder_.mergedBss.bss     = builder_.mergedBss.bssSize != 0;
     builder_.rdataShardBaseOffsets.fill(0);
 
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
-        const DataSegment& segment     = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+        const DataSegment& segment     = compiler.cstMgr().shardDataSegment(shardIndex);
         const uint32_t     segmentSize = segment.extentSize();
         if (!segmentSize)
             continue;
@@ -123,13 +125,13 @@ Result NativeArtifactBuilder::prepareDataSections() const
         }
     }
 
-    const uint32_t dataSize = builder_.compiler().globalInitSegment().extentSize();
+    const uint32_t dataSize = compiler.globalInitSegment().extentSize();
     if (dataSize)
     {
         builder_.mergedData.bytes.resize(dataSize);
-        builder_.compiler().globalInitSegment().copyToPreserveOffsets(ByteSpanRW{builder_.mergedData.bytes.data(), dataSize});
+        compiler.globalInitSegment().copyToPreserveOffsets(ByteSpanRW{builder_.mergedData.bytes.data(), dataSize});
 
-        for (const auto& relocation : builder_.compiler().globalInitSegment().relocations())
+        for (const auto& relocation : compiler.globalInitSegment().relocations())
         {
             NativeSectionRelocation record;
             record.offset     = relocation.offset;

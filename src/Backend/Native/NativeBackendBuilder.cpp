@@ -7,16 +7,17 @@
 #include "Backend/Native/NativeSymbolCollector.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
-#include "Support/Report/Logger.h"
+#include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void logArtifactAction(const TaskContext& ctx, std::string_view action, const fs::path& artifactPath)
+    Result checkActionResult(Result result, ScopedTimedAction& action)
     {
-        const Logger::ScopedLock loggerLock(ctx.global().logger());
-        Logger::printAction(ctx, action, Utf8(artifactPath.filename()));
+        if (result != Result::Continue)
+            action.fail();
+        return result;
     }
 }
 
@@ -51,17 +52,21 @@ Result NativeBackendBuilder::run()
 {
     SWC_RESULT(validateTarget());
 
-    NativeSymbolCollector symbolCollector(*this);
-    SWC_RESULT(symbolCollector.prepare());
-
     const NativeArtifactBuilder artifactBuilder(*this);
-    SWC_RESULT(artifactBuilder.build());
-    SWC_RESULT(writeObjects());
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    ScopedTimedAction           buildAction(ctx_, "Build", paths.artifactPath.filename().string());
+
+    NativeSymbolCollector symbolCollector(*this);
+    SWC_RESULT(checkActionResult(symbolCollector.prepare(), buildAction));
+
+    SWC_RESULT(checkActionResult(artifactBuilder.build(), buildAction));
+    SWC_RESULT(checkActionResult(writeObjects(), buildAction));
 
     const auto linker = NativeLinker::create(*this);
     SWC_ASSERT(linker != nullptr);
-    SWC_RESULT(linker->link());
-    logArtifactAction(ctx_, "Build", artifactPath);
+    SWC_RESULT(checkActionResult(linker->link(), buildAction));
+    buildAction.success();
 
     if (runArtifact_ && compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
         SWC_RESULT(runGeneratedArtifact());
@@ -134,7 +139,7 @@ Result NativeBackendBuilder::writeObjects()
 
 Result NativeBackendBuilder::runGeneratedArtifact() const
 {
-    logArtifactAction(ctx_, "Run", artifactPath);
+    ScopedTimedAction runAction(ctx_, "Run", artifactPath.filename().string());
 
     uint32_t       exitCode    = 0;
     const fs::path artifactDir = artifactPath.parent_path();
@@ -144,15 +149,22 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
         case Os::ProcessRunResult::Ok:
             break;
         case Os::ProcessRunResult::StartFailed:
+            runAction.fail();
             return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
         case Os::ProcessRunResult::WaitFailed:
+            runAction.fail();
             return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, Utf8(artifactPath));
         case Os::ProcessRunResult::ExitCodeFailed:
+            runAction.fail();
             return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)
+    {
+        runAction.fail();
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, exitCode);
+    }
+    runAction.success();
     return Result::Continue;
 }
 

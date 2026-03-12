@@ -5,6 +5,8 @@
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
+#include "Support/Core/Utf8Helper.h"
+#include "Support/Report/ScopedTimedAction.h"
 #include "Wmf/SourceFile.h"
 #include "Wmf/Verify.h"
 
@@ -217,6 +219,44 @@ namespace
         return Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore;
     }
 
+    void verifyExpectedMarkers(TaskContext& ctx);
+
+    Utf8 formatFileGroup(std::string_view name, const size_t fileCount)
+    {
+        return std::format("{} ({} {})",
+                           name,
+                           Utf8Helper::toNiceBigNumber(fileCount),
+                           fileCount == 1 ? "file" : "files");
+    }
+
+    bool finishAction(ScopedTimedAction& action, const uint64_t errorsBefore)
+    {
+        if (hasNewErrors(errorsBefore))
+        {
+            action.fail();
+            return false;
+        }
+
+        action.success();
+        return true;
+    }
+
+    void verifyExpectedMarkersWithLog(CompilerInstance& compiler)
+    {
+        TaskContext    ctx(compiler);
+        const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+
+        if (!compiler.cmdLine().test)
+        {
+            verifyExpectedMarkers(ctx);
+            return;
+        }
+
+        ScopedTimedAction verifyAction(ctx, "Verify", "expected markers");
+        verifyExpectedMarkers(ctx);
+        finishAction(verifyAction, errorsBefore);
+    }
+
     void verifyExpectedMarkers(TaskContext& ctx)
     {
         if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
@@ -266,8 +306,7 @@ namespace
             if (!runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable))
                 return false;
 
-            TaskContext ctx(compiler);
-            verifyExpectedMarkers(ctx);
+            verifyExpectedMarkersWithLog(compiler);
             return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
         }
 
@@ -279,16 +318,16 @@ namespace
 
         compiler.buildCfg().backendKind = restore.backendKind;
 
-        TaskContext ctx(compiler);
-        verifyExpectedMarkers(ctx);
+        verifyExpectedMarkersWithLog(compiler);
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
 
-    bool runCompilerSubset(const CompilerInstance& compiler, const CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {})
+    bool runCompilerSubset(CompilerInstance& compiler, const CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {})
     {
         if (files.empty())
             return true;
 
+        TaskContext ctx(compiler);
         CommandLine cmdLine = compiler.cmdLine();
         cmdLine.command     = command;
         cmdLine.directories.clear();
@@ -308,19 +347,32 @@ namespace
         switch (command)
         {
             case CommandKind::Syntax:
+            {
+                ScopedTimedAction parseAction(ctx, "Parse", formatFileGroup("syntax tests", files.size()));
                 Command::syntax(subCompiler);
+                finishAction(parseAction, errorsBefore);
                 break;
+            }
 
             case CommandKind::Sema:
+            {
+                ScopedTimedAction analyzeAction(ctx, "Analyze", formatFileGroup("semantic tests", files.size()));
                 Command::sema(subCompiler);
+                finishAction(analyzeAction, errorsBefore);
                 break;
+            }
 
             case CommandKind::Build:
             case CommandKind::Run:
+            {
+                ScopedTimedAction analyzeAction(ctx, "Analyze", formatFileGroup("native tests", files.size()));
                 Command::sema(subCompiler);
-                if (Stats::get().numErrors.load(std::memory_order_relaxed) == 0)
+                if (finishAction(analyzeAction, errorsBefore))
+                {
                     runNativeBackends(subCompiler, isRunCommand(command));
+                }
                 break;
+            }
 
             default:
                 SWC_UNREACHABLE();
@@ -340,11 +392,21 @@ namespace
             return false;
 
         SourceSuiteBuckets buckets;
+        TaskContext        ctx(compiler);
+        ScopedTimedAction  discoverAction(ctx, "Discover", "test suites");
         collectStandaloneSourceSuites(buckets, cmdLine);
         if (!buckets.hasSourceHints)
+        {
+            discoverAction.fail();
             return false;
+        }
         if (buckets.syntaxFiles.empty() && buckets.semaFiles.empty() && buckets.testFiles.empty())
+        {
+            discoverAction.fail();
             return false;
+        }
+
+        discoverAction.success();
 
         if (!runCompilerSubset(compiler, CommandKind::Syntax, buckets.syntaxFiles))
             return true;
@@ -360,9 +422,14 @@ namespace
         if (runStandaloneSourceDrivenSuites(compiler))
             return;
 
+        TaskContext       ctx(compiler);
+        ScopedTimedAction analyzeAction(ctx, "Analyze", "sources");
+        const uint64_t    errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
         Command::sema(compiler);
-        if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
+        if (!finishAction(analyzeAction, errorsBefore))
+        {
             return;
+        }
 
         runNativeBackends(compiler, runArtifact);
     }

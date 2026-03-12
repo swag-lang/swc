@@ -2,6 +2,8 @@
 
 ## Hard Rules
 
+- Compile with the latest msbuild version.
+
 - After any change:
     1. Compile a **DevMode** build.
     2. Run `test_dm.bat`.

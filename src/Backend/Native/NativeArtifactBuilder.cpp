@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
-#include "Backend/Native/NativeValidate.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/Native/NativeValidate.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Math/Helpers.h"
@@ -15,38 +15,6 @@ namespace
     Utf8 objectFileName(const Utf8& name, const uint32_t objectIndex)
     {
         return std::format("{}_{:02}.obj", name, objectIndex);
-    }
-
-    bool pathEquals(const fs::path& lhs, const fs::path& rhs)
-    {
-        return lhs.lexically_normal() == rhs.lexically_normal();
-    }
-
-    Result clearDirectoryContents(const NativeBackendBuilder& builder, const fs::path& path)
-    {
-        if (path.empty())
-            return Result::Continue;
-
-        std::error_code ec;
-        if (!fs::exists(path, ec))
-            return ec ? builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec.message()) : Result::Continue;
-        if (ec)
-            return builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec.message());
-        if (!fs::is_directory(path, ec))
-            return builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec ? ec.message() : "path is not a directory");
-
-        for (fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec.message());
-
-            std::error_code removeEc;
-            fs::remove_all(it->path(), removeEc);
-            if (removeEc)
-                return builder.reportError(DiagnosticId::cmd_err_native_output_dir_clear_failed, Diagnostic::ARG_PATH, Utf8(it->path()), Diagnostic::ARG_BECAUSE, removeEc.message());
-        }
-
-        return Result::Continue;
     }
 
     const std::set<fs::path>& inputDirectories(const CommandLine& cmdLine)
@@ -268,9 +236,9 @@ Result NativeArtifactBuilder::partitionObjects() const
 
 Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& paths) const
 {
-    SWC_RESULT_VERIFY(clearDirectoryContents(builder_, paths.workDir));
-    if (!pathEquals(paths.outDir, paths.workDir))
-        SWC_RESULT_VERIFY(clearDirectoryContents(builder_, paths.outDir));
+    SWC_RESULT_VERIFY(FileSystem::clearDirectoryContents(builder_.ctx(), paths.workDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
+    if (!FileSystem::pathEquals(paths.outDir, paths.workDir))
+        SWC_RESULT_VERIFY(FileSystem::clearDirectoryContents(builder_.ctx(), paths.outDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
     return Result::Continue;
 }
 

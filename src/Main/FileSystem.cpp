@@ -23,6 +23,21 @@ namespace
             return filePath;
         return absolutePath;
     }
+
+    Result reportClearDirectoryError(TaskContext& ctx, const DiagnosticId diagId, const fs::path& path, const Utf8& because)
+    {
+        Diagnostic diag = Diagnostic::get(diagId);
+        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    Result reportClearDirectoryError(TaskContext& ctx, const DiagnosticId diagId, const fs::path& path, const std::error_code& ec)
+    {
+        SWC_ASSERT(ec);
+        return reportClearDirectoryError(ctx, diagId, path, FileSystem::normalizeSystemMessage(ec));
+    }
 }
 
 Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
@@ -121,6 +136,43 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 
     folder = resolved;
     return Result::Continue;
+}
+
+Result FileSystem::clearDirectoryContents(TaskContext& ctx, const fs::path& path, const DiagnosticId diagId)
+{
+    if (path.empty())
+        return Result::Continue;
+
+    std::error_code ec;
+    const bool       exists = fs::exists(path, ec);
+    if (ec)
+        return reportClearDirectoryError(ctx, diagId, path, ec);
+    if (!exists)
+        return Result::Continue;
+
+    const bool isDirectory = fs::is_directory(path, ec);
+    if (ec)
+        return reportClearDirectoryError(ctx, diagId, path, ec);
+    if (!isDirectory)
+        return reportClearDirectoryError(ctx, diagId, path, "path is not a directory");
+
+    for (fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+    {
+        if (ec)
+            return reportClearDirectoryError(ctx, diagId, path, ec);
+
+        std::error_code removeEc;
+        fs::remove_all(it->path(), removeEc);
+        if (removeEc)
+            return reportClearDirectoryError(ctx, diagId, it->path(), removeEc);
+    }
+
+    return Result::Continue;
+}
+
+bool FileSystem::pathEquals(const fs::path& lhs, const fs::path& rhs)
+{
+    return lhs.lexically_normal() == rhs.lexically_normal();
 }
 
 Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath)

@@ -870,7 +870,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, anyTypeRef);
 
             uint32_t valueOffset = INVALID_REF;
-            SWC_RESULT(ConstantLower::materializeNativeStaticPayload(valueOffset, sema, segment, anyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
+            SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, anyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
             runtimeAny->value = segment.ptr<std::byte>(valueOffset);
             segment.addRelocation(anyOffset + offsetof(Runtime::Any, value), valueOffset);
         }

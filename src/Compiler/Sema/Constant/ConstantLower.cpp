@@ -14,17 +14,17 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     void   lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
-    Result materializeNativeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
+    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
     Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr);
 
-    Result materializeNativeStaticScalar(ByteSpanRW dstBytes, ByteSpan srcBytes)
+    Result materializeStaticScalar(ByteSpanRW dstBytes, ByteSpan srcBytes)
     {
         if (!dstBytes.empty())
             std::memcpy(dstBytes.data(), srcBytes.data(), dstBytes.size());
         return Result::Continue;
     }
 
-    Result materializeNativeStaticString(DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticString(DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (srcBytes.size() != sizeof(Runtime::String))
             return Result::Error;
@@ -45,7 +45,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeNativeStaticAny(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticAny(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         TaskContext& ctx = sema.ctx();
         if (srcBytes.size() != sizeof(Runtime::Any))
@@ -79,17 +79,17 @@ namespace
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
 
         uint32_t valueOffset = INVALID_REF;
-        SWC_RESULT(ConstantLower::materializeNativeStaticPayload(valueOffset,
-                                                                        sema,
-                                                                        segment,
-                                                                        valueTypeRef,
-                                                                        ByteSpan{static_cast<const std::byte*>(srcAny->value), static_cast<size_t>(valueSize)}));
+        SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset,
+                                                           sema,
+                                                           segment,
+                                                           valueTypeRef,
+                                                           ByteSpan{static_cast<const std::byte*>(srcAny->value), static_cast<size_t>(valueSize)}));
         dstAny->value = segment.ptr<std::byte>(valueOffset);
         segment.addRelocation(baseOffset + offsetof(Runtime::Any, value), valueOffset);
         return Result::Continue;
     }
 
-    Result materializeNativeStaticSlice(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticSlice(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         TaskContext& ctx = sema.ctx();
         if (srcBytes.size() != sizeof(Runtime::Slice<std::byte>))
@@ -119,12 +119,12 @@ namespace
         for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
-            SWC_RESULT(materializeNativeStaticPayloadInPlace(sema,
-                                                                    segment,
-                                                                    elementTypeRef,
-                                                                    dataOffset + static_cast<uint32_t>(elementOffset),
-                                                                    ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
-                                                                    ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}));
+            SWC_RESULT(materializeStaticPayloadInPlace(sema,
+                                                       segment,
+                                                       elementTypeRef,
+                                                       dataOffset + static_cast<uint32_t>(elementOffset),
+                                                       ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
+                                                       ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}));
         }
 
         dstSlice->ptr   = dataStorage;
@@ -133,7 +133,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeNativeStaticArray(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticArray(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         TaskContext&    ctx            = sema.ctx();
         const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
@@ -149,18 +149,18 @@ namespace
         for (uint64_t idx = 0; idx < totalCount; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
-            SWC_RESULT(materializeNativeStaticPayloadInPlace(sema,
-                                                                    segment,
-                                                                    elementTypeRef,
-                                                                    baseOffset + static_cast<uint32_t>(elementOffset),
-                                                                    ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
-                                                                    ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}));
+            SWC_RESULT(materializeStaticPayloadInPlace(sema,
+                                                       segment,
+                                                       elementTypeRef,
+                                                       baseOffset + static_cast<uint32_t>(elementOffset),
+                                                       ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
+                                                       ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}));
         }
 
         return Result::Continue;
     }
 
-    Result materializeNativeStaticStruct(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticStruct(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         TaskContext& ctx = sema.ctx();
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
@@ -175,18 +175,18 @@ namespace
             if (fieldOffset + fieldSize > srcBytes.size())
                 return Result::Error;
 
-            SWC_RESULT(materializeNativeStaticPayloadInPlace(sema,
-                                                                    segment,
-                                                                    fieldTypeRef,
-                                                                    baseOffset + static_cast<uint32_t>(fieldOffset),
-                                                                    ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
-                                                                    ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}));
+            SWC_RESULT(materializeStaticPayloadInPlace(sema,
+                                                       segment,
+                                                       fieldTypeRef,
+                                                       baseOffset + static_cast<uint32_t>(fieldOffset),
+                                                       ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
+                                                       ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}));
         }
 
         return Result::Continue;
     }
 
-    Result materializeNativeStaticInterface(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticInterface(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (srcBytes.size() != sizeof(Runtime::Interface))
             return Result::Error;
@@ -207,7 +207,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeNativeStaticPointer(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticPointer(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (srcBytes.size() != sizeof(uint64_t))
             return Result::Error;
@@ -502,7 +502,7 @@ namespace
                    dstType.isAny() || dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction());
     }
 
-    Result materializeNativeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (typeRef.isInvalid())
             return Result::Error;
@@ -512,7 +512,7 @@ namespace
         if (typeInfo.isAlias())
         {
             const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            return unwrappedTypeRef.isValid() ? materializeNativeStaticPayloadInPlace(sema, segment, unwrappedTypeRef, baseOffset, dstBytes, srcBytes) : Result::Error;
+            return unwrappedTypeRef.isValid() ? materializeStaticPayloadInPlace(sema, segment, unwrappedTypeRef, baseOffset, dstBytes, srcBytes) : Result::Error;
         }
 
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);
@@ -522,32 +522,32 @@ namespace
         switch (typeInfo.kind())
         {
             case TypeInfoKind::Enum:
-                return materializeNativeStaticPayloadInPlace(sema, segment, typeInfo.payloadSymEnum().underlyingTypeRef(), baseOffset, dstBytes, srcBytes);
+                return materializeStaticPayloadInPlace(sema, segment, typeInfo.payloadSymEnum().underlyingTypeRef(), baseOffset, dstBytes, srcBytes);
 
             case TypeInfoKind::Bool:
             case TypeInfoKind::Char:
             case TypeInfoKind::Rune:
             case TypeInfoKind::Int:
             case TypeInfoKind::Float:
-                return materializeNativeStaticScalar(dstBytes, srcBytes);
+                return materializeStaticScalar(dstBytes, srcBytes);
 
             case TypeInfoKind::String:
-                return materializeNativeStaticString(segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticString(segment, baseOffset, dstBytes, srcBytes);
 
             case TypeInfoKind::Any:
-                return materializeNativeStaticAny(sema, segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticAny(sema, segment, baseOffset, dstBytes, srcBytes);
 
             case TypeInfoKind::Slice:
-                return materializeNativeStaticSlice(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
+                return materializeStaticSlice(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
 
             case TypeInfoKind::Array:
-                return materializeNativeStaticArray(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
+                return materializeStaticArray(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
 
             case TypeInfoKind::Struct:
-                return materializeNativeStaticStruct(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
+                return materializeStaticStruct(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
 
             case TypeInfoKind::Interface:
-                return materializeNativeStaticInterface(sema, segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticInterface(sema, segment, baseOffset, dstBytes, srcBytes);
 
             case TypeInfoKind::ValuePointer:
             case TypeInfoKind::BlockPointer:
@@ -556,7 +556,7 @@ namespace
             case TypeInfoKind::CString:
             case TypeInfoKind::Function:
             case TypeInfoKind::TypeInfo:
-                return materializeNativeStaticPointer(sema, segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticPointer(sema, segment, baseOffset, dstBytes, srcBytes);
 
             default:
                 break;
@@ -610,7 +610,7 @@ void ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstBytes,
     }
 }
 
-Result ConstantLower::materializeNativeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)
+Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)
 {
     outOffset = INVALID_REF;
     if (typeRef.isInvalid())
@@ -624,7 +624,7 @@ Result ConstantLower::materializeNativeStaticPayload(uint32_t& outOffset, Sema& 
 
     const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
     outOffset                    = offset;
-    return materializeNativeStaticPayloadInPlace(sema, segment, typeRef, offset, ByteSpanRW{storage, static_cast<size_t>(sizeOf)}, srcBytes);
+    return materializeStaticPayloadInPlace(sema, segment, typeRef, offset, ByteSpanRW{storage, static_cast<size_t>(sizeOf)}, srcBytes);
 }
 
 SWC_END_NAMESPACE();

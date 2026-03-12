@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -205,6 +206,17 @@ namespace
         fs::path normalized = path.lexically_normal();
         normalized.make_preferred();
         return {normalized.string()};
+    }
+
+    const char* sectionBaseSymbolName(const Utf8& sectionName)
+    {
+        if (sectionName == ".rdata")
+            return K_R_DATA_BASE_SYMBOL;
+        if (sectionName == ".data")
+            return K_DATA_BASE_SYMBOL;
+        if (sectionName == ".bss")
+            return K_BSS_BASE_SYMBOL;
+        return nullptr;
     }
 
     void writeU16(std::vector<std::byte>& bytes, uint16_t value)
@@ -502,6 +514,8 @@ namespace
 
         for (const auto& range : code.debugSourceRanges)
         {
+            if (range.debugNoStep)
+                continue;
             if (!range.sourceCodeRef.isValid())
                 continue;
 
@@ -667,6 +681,9 @@ namespace
         const uint32_t recordOffset = beginRecord(bytes, data.isGlobal ? K_S_GDATA32 : K_S_LDATA32);
         writeU32(bytes, typeIndex);
 
+        const char*   relocBaseSymbol = sectionBaseSymbolName(data.sectionName);
+        const Utf8    relocSymbolName  = relocBaseSymbol ? Utf8(relocBaseSymbol) : data.symbolName;
+        const uint32_t relocAddend     = relocBaseSymbol ? data.symbolOffset : 0;
         const uint32_t offRelocOffset = static_cast<uint32_t>(bytes.size());
         writeU32(bytes, 0);
         const uint32_t segRelocOffset = static_cast<uint32_t>(bytes.size());
@@ -675,13 +692,13 @@ namespace
 
         debugSection.relocations.push_back({
             .offset     = offRelocOffset,
-            .symbolName = data.symbolName,
-            .addend     = 0,
+            .symbolName = relocSymbolName,
+            .addend     = relocAddend,
             .type       = IMAGE_REL_AMD64_SECREL,
         });
         debugSection.relocations.push_back({
             .offset     = segRelocOffset,
-            .symbolName = data.symbolName,
+            .symbolName = relocSymbolName,
             .addend     = 0,
             .type       = IMAGE_REL_AMD64_SECTION,
         });
@@ -1349,11 +1366,14 @@ namespace
             for (size_t i = 0; i < request.globals.size(); ++i)
             {
                 const DebugInfoDataRecord& data = request.globals[i];
-                outResult.symbols.push_back({
-                    .name        = data.symbolName,
-                    .sectionName = data.sectionName,
-                    .value       = data.symbolOffset,
-                });
+                if (!sectionBaseSymbolName(data.sectionName))
+                {
+                    outResult.symbols.push_back({
+                        .name        = data.symbolName,
+                        .sectionName = data.sectionName,
+                        .value       = data.symbolOffset,
+                    });
+                }
                 appendDataSymbol(debugSection.bytes, debugSection, data, globalTypeIndices[i]);
             }
 

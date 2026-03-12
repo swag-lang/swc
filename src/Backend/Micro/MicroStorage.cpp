@@ -298,11 +298,12 @@ MicroInstrRef MicroStorage::insertBefore(MicroInstrRef beforeRef, const MicroIns
     return ref;
 }
 
-MicroInstrRef MicroStorage::insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData)
+MicroInstrRef MicroStorage::insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData, const bool debugNoStep)
 {
     MicroInstr inst;
     inst.op          = op;
     inst.numOperands = static_cast<uint8_t>(opsData.size());
+    inst.debugNoStep = debugNoStep;
 
     if (!opsData.empty())
     {

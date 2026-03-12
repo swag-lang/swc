@@ -73,6 +73,8 @@ public:
     MicroBuilderFlags                   flags() const { return flags_; }
     bool                                hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
     void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
+    void                                setCurrentDebugNoStep(bool value);
+    bool                                currentDebugNoStep() const { return currentDebugNoStep_; }
     SourceCodeRef                       instructionSourceCodeRef(MicroInstrRef instructionRef) const;
     void                                setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     void                                setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
@@ -158,6 +160,7 @@ private:
     MicroOperandStorage                                 operands_;
     MicroBuilderFlags                                   flags_                     = MicroBuilderFlagsE::Zero;
     SourceCodeRef                                       currentDebugSourceCodeRef_ = SourceCodeRef::invalid();
+    bool                                                currentDebugNoStep_        = false;
     Utf8                                                printSymbolName_;
     Utf8                                                printFilePath_;
     uint32_t                                            printSourceLine_ = 0;

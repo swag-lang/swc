@@ -569,17 +569,28 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
     if (!typeSectionContainsLeaf(typeBytes, K_LF_MODIFIER))
         return Result::Error;
 
-    bool sawDebugGlobal = false;
-    for (const DebugInfoDefinedSymbol& symbol : debugInfo.symbols)
+    bool sawDataBaseRelocation = false;
+    for (const NativeSectionRelocation& relocation : debugSection->relocations)
     {
-        if (symbol.name != "__swc_dbg_data_test_global")
+        if (relocation.symbolName != K_DATA_BASE_SYMBOL)
             continue;
 
-        sawDebugGlobal = symbol.sectionName == ".data" && symbol.value == 16;
+        if (relocation.type != IMAGE_REL_AMD64_SECREL)
+            continue;
+        if (relocation.addend != 16)
+            return Result::Error;
+
+        sawDataBaseRelocation = true;
         break;
     }
 
-    if (!sawDebugGlobal)
+    for (const DebugInfoDefinedSymbol& symbol : debugInfo.symbols)
+    {
+        if (symbol.name == "__swc_dbg_data_test_global")
+            return Result::Error;
+    }
+
+    if (!sawDataBaseRelocation)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -730,6 +741,98 @@ SWC_TEST_BEGIN(DebugInfo_CollapsesConsecutiveSameLineEntries)
     if (lines.size() != 2)
         return Result::Error;
     if (lines[0] != 1 || lines[1] != 2)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_SkipsNoStepLineEntries)
+{
+    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_info_nostep_{:08x}.swg", uniqueId);
+
+    {
+        std::ofstream output(sourcePath, std::ios::binary);
+        output << "alpha\n";
+        output << "beta\n";
+        output << "gamma\n";
+    }
+
+    SourceFile& sourceFile = ctx.compiler().addFile(sourcePath, FileFlagsE::CustomSrc);
+    SWC_RESULT(sourceFile.loadContent(ctx));
+
+    Lexer lexer;
+    lexer.tokenize(ctx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+
+    const SourceView& srcView = sourceFile.ast().srcView();
+    TokenRef          line1Tok;
+    TokenRef          line2Tok;
+    TokenRef          line3Tok;
+    for (uint32_t i = 0; i < srcView.tokens().size(); ++i)
+    {
+        const TokenRef        tokRef(i);
+        const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, tokRef);
+        if (!codeRange.line)
+            continue;
+
+        if (codeRange.line == 1 && !line1Tok.isValid())
+            line1Tok = tokRef;
+        else if (codeRange.line == 2 && !line2Tok.isValid())
+            line2Tok = tokRef;
+        else if (codeRange.line == 3 && !line3Tok.isValid())
+            line3Tok = tokRef;
+    }
+
+    if (!line1Tok.isValid() || !line2Tok.isValid() || !line3Tok.isValid())
+        return Result::Error;
+
+    MachineCode code;
+    code.bytes = {std::byte{0x90}, std::byte{0x90}, std::byte{0xC3}};
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 0,
+        .codeEndOffset   = 1,
+        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line1Tok},
+    });
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 1,
+        .codeEndOffset   = 2,
+        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line2Tok},
+        .debugNoStep     = true,
+    });
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 2,
+        .codeEndOffset   = 3,
+        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line3Tok},
+    });
+
+    const DebugInfoFunctionRecord function = {
+        .symbolName  = "__swc_debug_info_nostep_proc",
+        .debugName   = "debug::nostep",
+        .machineCode = &code,
+    };
+
+    const std::array functions = {function};
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &ctx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-nostep.obj"),
+        .functions    = functions,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+
+    std::vector<uint32_t> lines;
+    if (!tryReadFirstLineBlockLines(asByteSpan(debugSection->bytes), lines))
+        return Result::Error;
+    if (lines.size() != 2)
+        return Result::Error;
+    if (lines[0] != 1 || lines[1] != 3)
         return Result::Error;
 }
 SWC_TEST_END()

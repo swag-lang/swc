@@ -13,6 +13,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct ScopedDebugNoStep final
+    {
+        ScopedDebugNoStep(MicroBuilder& builder, const bool value) :
+            builder(builder),
+            savedValue(builder.currentDebugNoStep())
+        {
+            builder.setCurrentDebugNoStep(value);
+        }
+
+        ~ScopedDebugNoStep()
+        {
+            builder.setCurrentDebugNoStep(savedValue);
+        }
+
+        MicroBuilder& builder;
+        bool          savedValue = false;
+    };
+
     struct ForeachLoopRuntimeState
     {
         uint64_t base  = 0;
@@ -631,19 +649,26 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
         const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         emitConditionFalseJump(codeGen, exprPayload, exprView.typeRef(), loopState->doneLabel);
         if (postStmtRef.isValid())
+        {
+            const ScopedDebugNoStep noStep(codeGen.builder(), true);
             codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->bodyLabel);
+        }
         return Result::Continue;
     }
 
     if (childRef == postStmtRef)
     {
-        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
+        {
+            const ScopedDebugNoStep noStep(codeGen.builder(), true);
+            codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
+        }
         codeGen.popFrame();
         return Result::Continue;
     }
 
     if (childRef == bodyRef)
     {
+        const ScopedDebugNoStep noStep(codeGen.builder(), true);
         codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, postStmtRef.isValid() ? loopState->continueLabel : loopState->loopLabel);
         codeGen.popFrame();
     }
@@ -728,6 +753,8 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         const TypeInfo&   indexType = codeGen.typeMgr().get(loopState->indexTypeRef);
         const MicroOpBits opBits    = conditionOpBits(&indexType, codeGen.ctx());
         MicroBuilder&     builder   = codeGen.builder();
+        builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
+        builder.setCurrentDebugNoStep(false);
 
         builder.placeLabel(loopState->continueLabel);
         if (loopState->reverse)
@@ -840,6 +867,8 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
     if (childRef == bodyRef)
     {
+        codeGen.builder().setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
+        codeGen.builder().setCurrentDebugNoStep(false);
         codeGen.builder().placeLabel(loopState->continueLabel);
         emitForeachLoadLoopState(codeGen, *loopState);
         if (!loopState->reverse)
@@ -917,6 +946,7 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
     if (childRef == bodyRef)
     {
+        const ScopedDebugNoStep noStep(codeGen.builder(), true);
         codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
         codeGen.popFrame();
     }
@@ -969,6 +999,7 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
+    const ScopedDebugNoStep noStep(codeGen.builder(), true);
     codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
     codeGen.popFrame();
     return Result::Continue;

@@ -95,6 +95,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             builderFlags.add(MicroBuilderFlagsE::DebugInfo);
         builder_->setFlags(builderFlags);
         builder_->setCurrentDebugSourceCodeRef(SourceCodeRef::invalid());
+        builder_->setCurrentDebugNoStep(false);
 
         const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
         const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());

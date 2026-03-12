@@ -96,7 +96,7 @@ public:
     bool                                  erase(MicroInstrRef ref);
     MicroInstrRef                         findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
     MicroInstrRef                         insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
-    MicroInstrRef                         insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
+    MicroInstrRef                         insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData, bool debugNoStep = false);
     View                                  view() noexcept;
     ConstView                             view() const noexcept;
 

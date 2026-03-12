@@ -234,7 +234,7 @@ namespace
         subOps[1].opBits   = MicroOpBits::B64;
         subOps[2].microOp  = MicroOp::Subtract;
         subOps[3].valueU64 = frameSize;
-        context.instructions->insertBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+        context.instructions->insertBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps, true);
 
         std::vector<MicroInstrRef> retRefs;
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
@@ -250,7 +250,7 @@ namespace
             addOps[1].opBits   = MicroOpBits::B64;
             addOps[2].microOp  = MicroOp::Add;
             addOps[3].valueU64 = frameSize;
-            context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+            context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps, true);
         }
     }
 

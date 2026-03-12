@@ -17,6 +17,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct ScopedDebugNoStep final
+    {
+        ScopedDebugNoStep(MicroBuilder& builder, const bool value) :
+            builder(builder),
+            savedValue(builder.currentDebugNoStep())
+        {
+            builder.setCurrentDebugNoStep(value);
+        }
+
+        ~ScopedDebugNoStep()
+        {
+            builder.setCurrentDebugNoStep(savedValue);
+        }
+
+        MicroBuilder& builder;
+        bool          savedValue = false;
+    };
+
     bool shouldSpillParametersForDebugInfo(const CodeGen& codeGen)
     {
         return codeGen.compiler().buildCfg().backend.debugInfo;
@@ -492,6 +510,7 @@ namespace
         if (normalizedRet.isVoid)
         {
             // Void returns only need control transfer; ABI return registers are irrelevant.
+            const ScopedDebugNoStep noStep(builder, true);
             emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
             return Result::Continue;
@@ -536,8 +555,11 @@ namespace
             ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload.reg, isAddressed, normalizedRet);
         }
 
-        emitLocalStackFrameEpilogue(codeGen, callConvKind);
-        builder.emitRet();
+        {
+            const ScopedDebugNoStep noStep(builder, true);
+            emitLocalStackFrameEpilogue(codeGen, callConvKind);
+            builder.emitRet();
+        }
         return Result::Continue;
     }
 }
@@ -564,16 +586,20 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
         // Capture hidden return pointer before any parameter materialization can clobber input registers.
         SWC_ASSERT(!callConv.intArgRegs.empty());
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef());
+        const ScopedDebugNoStep noStep(codeGen.builder(), true);
         codeGen.builder().emitLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
     }
 
     SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
     collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
     buildLocalStackLayout(codeGen);
-    materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
-    materializeStackParameters(codeGen, symbolFunc, paramInfos);
-    emitLocalStackFramePrologue(codeGen, callConvKind);
-    spillParametersToDebugSlots(codeGen, symbolFunc);
+    {
+        const ScopedDebugNoStep noStep(codeGen.builder(), true);
+        materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
+        materializeStackParameters(codeGen, symbolFunc, paramInfos);
+        emitLocalStackFramePrologue(codeGen, callConvKind);
+        spillParametersToDebugSlots(codeGen, symbolFunc);
+    }
 
     return Result::Continue;
 }

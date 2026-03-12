@@ -443,13 +443,13 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     {
         MicroInstrOperand pushFrameOps[1];
         pushFrameOps[0].reg = conv.framePointer;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Push, pushFrameOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Push, pushFrameOps, true);
 
         MicroInstrOperand setFrameOps[3];
         setFrameOps[0].reg    = conv.framePointer;
         setFrameOps[1].reg    = conv.stackPointer;
         setFrameOps[2].opBits = MicroOpBits::B64;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps, true);
     }
 
     // Integer persistent regs are saved with push/pop.
@@ -457,7 +457,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     {
         MicroInstrOperand pushOps[1];
         pushOps[0].reg = pushedReg;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Push, pushOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Push, pushOps, true);
     }
 
     bool mergedStackSub = false;
@@ -473,7 +473,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         subOps[1].opBits   = MicroOpBits::B64;
         subOps[2].microOp  = MicroOp::Subtract;
         subOps[3].valueU64 = savedRegsStackSubSize_;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, subOps, true);
     }
 
     // Float persistent regs use explicit stack slots because there is no push/pop form.
@@ -484,7 +484,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         storeOps[1].reg      = slot.reg;
         storeOps[2].opBits   = slot.slotBits;
         storeOps[3].valueU64 = slot.offset;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, storeOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, storeOps, true);
     }
 }
 
@@ -504,7 +504,7 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
         loadOps[1].reg      = conv.stackPointer;
         loadOps[2].opBits   = slot.slotBits;
         loadOps[3].valueU64 = slot.offset;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, loadOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, loadOps, true);
     }
 
     bool mergedStackAdd = false;
@@ -521,21 +521,21 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
         addOps[1].opBits   = MicroOpBits::B64;
         addOps[2].microOp  = MicroOp::Add;
         addOps[3].valueU64 = savedRegsStackSubSize_;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, addOps, true);
     }
 
     for (const MicroReg pushedReg : std::ranges::reverse_view(pushedRegs_))
     {
         MicroInstrOperand popOps[1];
         popOps[0].reg = pushedReg;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Pop, popOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Pop, popOps, true);
     }
 
     if (useFramePointer_)
     {
         MicroInstrOperand popFrameOps[1];
         popFrameOps[0].reg = conv.framePointer;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Pop, popFrameOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Pop, popFrameOps, true);
     }
 }
 

@@ -62,6 +62,7 @@ void MicroBuilder::storeInstructionDebugInfo(MicroInstrRef instructionRef)
     MicroInstr* inst = instructions_.ptr(instructionRef);
     SWC_ASSERT(inst != nullptr);
     inst->sourceCodeRef = currentDebugSourceCodeRef_;
+    inst->debugNoStep   = currentDebugNoStep_;
 }
 
 void MicroBuilder::setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef)
@@ -70,6 +71,14 @@ void MicroBuilder::setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeR
         return;
 
     currentDebugSourceCodeRef_ = sourceCodeRef;
+}
+
+void MicroBuilder::setCurrentDebugNoStep(const bool value)
+{
+    if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
+        return;
+
+    currentDebugNoStep_ = value;
 }
 
 SourceCodeRef MicroBuilder::instructionSourceCodeRef(MicroInstrRef instructionRef) const

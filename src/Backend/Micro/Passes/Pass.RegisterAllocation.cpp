@@ -1044,7 +1044,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             flushAllMappedVirtuals(stamp, stackDepth, boundaryPending);
             for (const auto& pendingInst : boundaryPending)
             {
-                instructions_->insertBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps));
+                instructions_->insertBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps), true);
             }
         }
 
@@ -1112,7 +1112,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         for (const auto& pendingInst : pending)
         {
-            instructions_->insertBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps));
+            instructions_->insertBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps), true);
         }
 
         expireDeadMappings(stamp);
@@ -1155,7 +1155,7 @@ void MicroRegisterAllocationPass::insertSpillFrame() const
     subOps[1].opBits   = MicroOpBits::B64;
     subOps[2].microOp  = MicroOp::Subtract;
     subOps[3].valueU64 = spillFrameSize;
-    instructions_->insertBefore(*operands_, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+    instructions_->insertBefore(*operands_, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps, true);
 
     std::vector<MicroInstrRef> retRefs;
     for (auto it = instructions_->view().begin(); it != instructions_->view().end(); ++it)
@@ -1171,7 +1171,7 @@ void MicroRegisterAllocationPass::insertSpillFrame() const
         addOps[1].opBits   = MicroOpBits::B64;
         addOps[2].microOp  = MicroOp::Add;
         addOps[3].valueU64 = spillFrameSize;
-        instructions_->insertBefore(*operands_, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+        instructions_->insertBefore(*operands_, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps, true);
     }
 }
 

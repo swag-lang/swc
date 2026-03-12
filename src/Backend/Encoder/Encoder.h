@@ -50,6 +50,7 @@ struct EncoderDebugSourceRange
     uint32_t      codeStartOffset = 0;
     uint32_t      codeEndOffset   = 0;
     SourceCodeRef sourceCodeRef   = SourceCodeRef::invalid();
+    bool          debugNoStep     = false;
 };
 
 class Encoder
@@ -65,7 +66,7 @@ public:
     uint8_t                                     byteAt(uint32_t index) const;
     void                                        copyTo(ByteSpanRW dst) const;
     void                                        clearDebugSourceRanges() { debugSourceRanges_.clear(); }
-    void                                        addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef);
+    void                                        addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef, bool debugNoStep = false);
     const std::vector<EncoderDebugSourceRange>& debugSourceRanges() const { return debugSourceRanges_; }
     void                                        setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&             backendBuildCfg() const { return backendBuildCfg_; }

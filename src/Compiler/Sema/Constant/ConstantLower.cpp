@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -13,6 +14,25 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     void lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
+    Result materializeNativeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
+
+    Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, DataSegment& segment, const void* sourcePtr)
+    {
+        outOffset = INVALID_REF;
+        if (!sourcePtr)
+            return Result::Continue;
+
+        uint32_t  shardIndex = 0;
+        const Ref targetRef  = sema.cstMgr().findDataSegmentRef(shardIndex, sourcePtr);
+        if (targetRef == INVALID_REF)
+            return Result::Error;
+
+        if (&segment != &sema.cstMgr().shardDataSegment(shardIndex))
+            return Result::Error;
+
+        outOffset = targetRef;
+        return Result::Continue;
+    }
 
     void lowerAggregateArrayToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
     {
@@ -275,6 +295,230 @@ namespace
                    dstType.isRune() || dstType.isInt() || dstType.isFloat() || dstType.isString() || dstType.isSlice() ||
                    dstType.isAny() || dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction());
     }
+
+    Result materializeNativeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    {
+        if (typeRef.isInvalid())
+            return Result::Error;
+
+        TaskContext&    ctx      = sema.ctx();
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (typeInfo.isAlias())
+        {
+            const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
+            return unwrappedTypeRef.isValid() ? materializeNativeStaticPayloadInPlace(sema, segment, unwrappedTypeRef, baseOffset, dstBytes, srcBytes) : Result::Error;
+        }
+
+        const uint64_t sizeOf = typeInfo.sizeOf(ctx);
+        if (sizeOf != dstBytes.size() || sizeOf != srcBytes.size())
+            return Result::Error;
+
+        if (typeInfo.isEnum())
+            return materializeNativeStaticPayloadInPlace(sema, segment, typeInfo.payloadSymEnum().underlyingTypeRef(), baseOffset, dstBytes, srcBytes);
+
+        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
+        {
+            if (!dstBytes.empty())
+                std::memcpy(dstBytes.data(), srcBytes.data(), dstBytes.size());
+            return Result::Continue;
+        }
+
+        if (typeInfo.isString())
+        {
+            if (srcBytes.size() != sizeof(Runtime::String))
+                return Result::Error;
+
+            auto* const       dstString = reinterpret_cast<Runtime::String*>(dstBytes.data());
+            const auto* const srcString = reinterpret_cast<const Runtime::String*>(srcBytes.data());
+            if (!srcString->ptr)
+            {
+                if (srcString->length != 0)
+                    return Result::Error;
+
+                dstString->ptr    = nullptr;
+                dstString->length = 0;
+                return Result::Continue;
+            }
+
+            dstString->length = segment.addString(baseOffset, offsetof(Runtime::String, ptr), std::string_view(srcString->ptr, srcString->length));
+            return Result::Continue;
+        }
+
+        if (typeInfo.isAny())
+        {
+            if (srcBytes.size() != sizeof(Runtime::Any))
+                return Result::Error;
+
+            auto* const       dstAny = reinterpret_cast<Runtime::Any*>(dstBytes.data());
+            const auto* const srcAny = reinterpret_cast<const Runtime::Any*>(srcBytes.data());
+            if (!srcAny->type)
+            {
+                if (srcAny->value != nullptr)
+                    return Result::Error;
+
+                dstAny->value = nullptr;
+                dstAny->type  = nullptr;
+                return Result::Continue;
+            }
+
+            uint32_t typeOffset = INVALID_REF;
+            SWC_RESULT_VERIFY(resolveSegmentOffset(typeOffset, sema, segment, srcAny->type));
+            dstAny->type = typeOffset == INVALID_REF ? nullptr : segment.ptr<Runtime::TypeInfo>(typeOffset);
+            if (typeOffset != INVALID_REF)
+                segment.addRelocation(baseOffset + offsetof(Runtime::Any, type), typeOffset);
+            if (!srcAny->value)
+                return Result::Continue;
+
+            const TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(srcAny->type);
+            if (valueTypeRef.isInvalid())
+                return Result::Error;
+
+            const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(ctx);
+            SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
+
+            uint32_t valueOffset = INVALID_REF;
+            SWC_RESULT_VERIFY(ConstantLower::materializeNativeStaticPayload(valueOffset,
+                                                                            sema,
+                                                                            segment,
+                                                                            valueTypeRef,
+                                                                            ByteSpan{reinterpret_cast<const std::byte*>(srcAny->value), static_cast<size_t>(valueSize)}));
+            dstAny->value = segment.ptr<std::byte>(valueOffset);
+            segment.addRelocation(baseOffset + offsetof(Runtime::Any, value), valueOffset);
+            return Result::Continue;
+        }
+
+        if (typeInfo.isSlice())
+        {
+            if (srcBytes.size() != sizeof(Runtime::Slice<std::byte>))
+                return Result::Error;
+
+            auto* const       dstSlice       = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
+            const auto* const srcSlice       = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
+            const TypeRef     elementTypeRef = typeInfo.payloadTypeRef();
+            const TypeInfo&   elementType    = sema.typeMgr().get(elementTypeRef);
+            const uint64_t    elementSize    = elementType.sizeOf(ctx);
+            if (!srcSlice->ptr)
+            {
+                if (srcSlice->count != 0)
+                    return Result::Error;
+
+                dstSlice->ptr   = nullptr;
+                dstSlice->count = 0;
+                return Result::Continue;
+            }
+
+            if (!elementSize)
+                return Result::Error;
+
+            const uint64_t byteCount = srcSlice->count * elementSize;
+            SWC_ASSERT(byteCount <= std::numeric_limits<uint32_t>::max());
+            const auto [dataOffset, dataStorage] = segment.reserveBytes(static_cast<uint32_t>(byteCount), elementType.alignOf(ctx), true);
+            for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
+            {
+                const uint64_t elementOffset = idx * elementSize;
+                SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
+                                                                        segment,
+                                                                        elementTypeRef,
+                                                                        dataOffset + static_cast<uint32_t>(elementOffset),
+                                                                        ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
+                                                                        ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}));
+            }
+
+            dstSlice->ptr   = dataStorage;
+            dstSlice->count = srcSlice->count;
+            segment.addRelocation(baseOffset + offsetof(Runtime::Slice<std::byte>, ptr), dataOffset);
+            return Result::Continue;
+        }
+
+        if (typeInfo.isArray())
+        {
+            const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
+            const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
+            const uint64_t  elementSize    = elementType.sizeOf(ctx);
+            if (!elementSize)
+                return Result::Error;
+
+            uint64_t totalCount = 1;
+            for (const uint64_t dim : typeInfo.payloadArrayDims())
+                totalCount *= dim;
+
+            for (uint64_t idx = 0; idx < totalCount; ++idx)
+            {
+                const uint64_t elementOffset = idx * elementSize;
+                SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
+                                                                        segment,
+                                                                        elementTypeRef,
+                                                                        baseOffset + static_cast<uint32_t>(elementOffset),
+                                                                        ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
+                                                                        ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}));
+            }
+
+            return Result::Continue;
+        }
+
+        if (typeInfo.isStruct())
+        {
+            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+            {
+                if (!field)
+                    continue;
+
+                const TypeRef   fieldTypeRef = field->typeRef();
+                const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
+                const uint64_t  fieldSize    = fieldType.sizeOf(ctx);
+                const uint64_t  fieldOffset  = field->offset();
+                if (fieldOffset + fieldSize > srcBytes.size())
+                    return Result::Error;
+
+                SWC_RESULT_VERIFY(materializeNativeStaticPayloadInPlace(sema,
+                                                                        segment,
+                                                                        fieldTypeRef,
+                                                                        baseOffset + static_cast<uint32_t>(fieldOffset),
+                                                                        ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
+                                                                        ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}));
+            }
+
+            return Result::Continue;
+        }
+
+        if (typeInfo.isInterface())
+        {
+            if (srcBytes.size() != sizeof(Runtime::Interface))
+                return Result::Error;
+
+            auto* const       dstInterface = reinterpret_cast<Runtime::Interface*>(dstBytes.data());
+            const auto* const srcInterface = reinterpret_cast<const Runtime::Interface*>(srcBytes.data());
+            uint32_t objOffset = INVALID_REF;
+            SWC_RESULT_VERIFY(resolveSegmentOffset(objOffset, sema, segment, srcInterface->obj));
+            dstInterface->obj = objOffset == INVALID_REF ? nullptr : segment.ptr<std::byte>(objOffset);
+            if (objOffset != INVALID_REF)
+                segment.addRelocation(baseOffset + offsetof(Runtime::Interface, obj), objOffset);
+
+            uint32_t itableOffset = INVALID_REF;
+            SWC_RESULT_VERIFY(resolveSegmentOffset(itableOffset, sema, segment, srcInterface->itable));
+            dstInterface->itable = itableOffset == INVALID_REF ? nullptr : segment.ptr<void*>(itableOffset);
+            if (itableOffset != INVALID_REF)
+                segment.addRelocation(baseOffset + offsetof(Runtime::Interface, itable), itableOffset);
+            return Result::Continue;
+        }
+
+        if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isTypeInfo() || typeInfo.isCString() || typeInfo.isFunction())
+        {
+            if (srcBytes.size() != sizeof(uint64_t))
+                return Result::Error;
+
+            auto&      dstPtr    = *reinterpret_cast<uint64_t*>(dstBytes.data());
+            const auto srcPtr    = reinterpret_cast<const void*>(*reinterpret_cast<const uint64_t*>(srcBytes.data()));
+            uint32_t   ptrOffset = INVALID_REF;
+            SWC_RESULT_VERIFY(resolveSegmentOffset(ptrOffset, sema, segment, srcPtr));
+            dstPtr = ptrOffset == INVALID_REF ? 0 : reinterpret_cast<uint64_t>(segment.ptr<std::byte>(ptrOffset));
+            if (ptrOffset != INVALID_REF)
+                segment.addRelocation(baseOffset, ptrOffset);
+            return Result::Continue;
+        }
+
+        return Result::Error;
+    }
 }
 
 void ConstantLower::lowerToBytes(Sema& sema, ByteSpanRW dstBytes, ConstantRef cstRef, TypeRef dstTypeRef)
@@ -319,6 +563,23 @@ void ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstBytes,
         else if (fieldSize)
             std::memset(dstBytes.data() + fieldOffset, 0, fieldSize);
     }
+}
+
+Result ConstantLower::materializeNativeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)
+{
+    outOffset = INVALID_REF;
+    if (typeRef.isInvalid())
+        return Result::Error;
+
+    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+    const uint64_t  sizeOf   = typeInfo.sizeOf(sema.ctx());
+    const uint32_t  alignOf  = typeInfo.alignOf(sema.ctx());
+    SWC_ASSERT(sizeOf <= std::numeric_limits<uint32_t>::max());
+    SWC_ASSERT(sizeOf == srcBytes.size());
+
+    const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
+    outOffset                    = offset;
+    return materializeNativeStaticPayloadInPlace(sema, segment, typeRef, offset, ByteSpanRW{storage, static_cast<size_t>(sizeOf)}, srcBytes);
 }
 
 SWC_END_NAMESPACE();

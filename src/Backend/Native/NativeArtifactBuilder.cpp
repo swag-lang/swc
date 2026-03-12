@@ -10,8 +10,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr std::string_view K_NATIVE_TEMP_FOLDER = "swc_native";
-
     Utf8 objectFileName(const Utf8& name, const uint32_t objectIndex)
     {
         return std::format("{}_{:02}.obj", name, objectIndex);
@@ -53,7 +51,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const std:
 
     outPaths.workDir = configuredWorkDir();
     if (outPaths.workDir.empty())
-        outPaths.workDir = Os::getTemporaryPath() / K_NATIVE_TEMP_FOLDER / automaticWorkDirName(outPaths.name).c_str();
+        outPaths.workDir = Os::getTemporaryPath() / "swc_native" / automaticWorkDirName(outPaths.name).c_str();
 
     outPaths.artifactExtension = artifactExtension();
     outPaths.outDir            = configuredOutDir(outPaths.workDir);

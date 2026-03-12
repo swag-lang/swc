@@ -31,6 +31,7 @@ private:
     Result          clearOutputFolders(const NativeArtifactPaths& paths) const;
     Utf8            artifactName() const;
     Utf8            artifactExtension() const;
+    Utf8            objectExtension() const;
     fs::path        configuredOutDir(const fs::path& defaultOutDir) const;
     Result          createOutDir(const fs::path& outDir) const;
     fs::path        configuredWorkDir() const;

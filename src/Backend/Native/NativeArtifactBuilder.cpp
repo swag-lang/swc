@@ -10,9 +10,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Utf8 objectFileName(const Utf8& name, const uint32_t objectIndex)
+    Utf8 objectFileName(const Utf8& name, const Utf8& extension, const uint32_t objectIndex)
     {
-        return std::format("{}_{:02}.obj", name, objectIndex);
+        return std::format("{}_{:02}{}", name, objectIndex, extension);
     }
 
     const std::set<fs::path>& inputDirectories(const CommandLine& cmdLine)
@@ -64,8 +64,9 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const std:
     outPaths.buildDir = buildDirectory(outPaths.workDir, workDirIndex.value());
     outPaths.objectPaths.clear();
     outPaths.objectPaths.reserve(numObjects);
+    const Utf8 objectExt = objectExtension();
     for (uint32_t i = 0; i < numObjects; ++i)
-        outPaths.objectPaths.push_back(outPaths.buildDir / objectFileName(outPaths.name, i).c_str());
+        outPaths.objectPaths.push_back(outPaths.buildDir / objectFileName(outPaths.name, objectExt, i).c_str());
 }
 
 Result NativeArtifactBuilder::build() const
@@ -279,6 +280,17 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
             }
 
             break;
+    }
+
+    SWC_UNREACHABLE();
+}
+
+Utf8 NativeArtifactBuilder::objectExtension() const
+{
+    switch (builder_.ctx().cmdLine().targetOs)
+    {
+        case Runtime::TargetOs::Windows:
+            return ".obj";
     }
 
     SWC_UNREACHABLE();

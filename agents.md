@@ -2,7 +2,7 @@
 
 ## Hard Rules
 
-- Compile with the latest msbuild version.
+- Compile with the latest msbuild version (look also for visual studio insider versions)
 
 - After any change:
     1. Compile a **DevMode** build.

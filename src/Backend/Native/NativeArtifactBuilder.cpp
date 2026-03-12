@@ -138,7 +138,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     outPaths.artifactExtension = artifactExtension();
     outPaths.outDir            = configuredOutDir(outPaths.workDir);
     outPaths.artifactPath      = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
-    outPaths.pdbPath           = outPaths.outDir / std::format("{}{}.pdb", outPaths.name, outPaths.artifactExtension);
+    outPaths.pdbPath           = outPaths.outDir / std::format("{}.pdb", outPaths.name);
 
     if (!numObjects)
         return;
@@ -451,7 +451,7 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
 
 fs::path NativeArtifactBuilder::buildDir(const fs::path& workDir)
 {
-    return workDir / "obj";
+    return workDir;
 }
 
 Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const

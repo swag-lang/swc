@@ -83,11 +83,13 @@ SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
         return Result::Error;
     if (!FileSystem::pathEquals(firstPaths.outDir, firstPaths.workDir))
         return Result::Error;
-    if (!FileSystem::pathEquals(firstPaths.buildDir, firstPaths.workDir / "obj"))
+    if (!FileSystem::pathEquals(firstPaths.buildDir, firstPaths.workDir))
         return Result::Error;
     if (!FileSystem::pathEquals(firstPaths.artifactPath.parent_path(), firstPaths.workDir))
         return Result::Error;
     if (!FileSystem::pathEquals(firstPaths.pdbPath.parent_path(), firstPaths.workDir))
+        return Result::Error;
+    if (firstPaths.pdbPath.filename() != fs::path("native_paths.pdb"))
         return Result::Error;
     if (!FileSystem::pathEquals(firstPaths.workDir, secondPaths.workDir))
         return Result::Error;

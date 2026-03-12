@@ -444,9 +444,10 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
         return false;
 
     const AttributeList& attributes = fn.attributes();
-    return attributes.hasRtFlag(RtAttributeFlagsE::Inline) ||
-           attributes.hasRtFlag(RtAttributeFlagsE::Macro) ||
-           attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
+    if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
+        return true;
+
+    return SemaHelpers::isOptimizeEnabled(sema) && attributes.hasRtFlag(RtAttributeFlagsE::Inline);
 }
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)

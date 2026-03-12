@@ -179,6 +179,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 Result AstAutoCastExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
+    const SemaNodeView exprView     = sema.viewTypeConstant(nodeExprRef);
 
     // Value-check
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
@@ -186,9 +187,17 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
     // Check cast modifiers
     SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
 
-    // We do not know the destination type here (it comes from context).
-    // Keep the node and inherit the child payload; the cast will be applied later.
-    sema.inheritPayload(*this, nodeExprView.nodeRef());
+    // We do not know the destination type here (it comes from context),
+    // but we still need the source expression type or constant. Copying the raw payload would
+    // keep a call's callee symbol payload and expose `func()->T` instead of the call result `T`.
+    if (exprView.hasConstant())
+        sema.setConstant(sema.curNodeRef(), exprView.cstRef());
+    else
+        sema.setType(sema.curNodeRef(), exprView.typeRef());
+
+    if (sema.isFoldedTypedConst(nodeExprRef))
+        sema.setFoldedTypedConst(sema.curNodeRef());
+
     sema.setIsValue(*this);
 
     return Result::Continue;

@@ -133,18 +133,21 @@ struct AstCompilerExpression : AstNodeT<AstNodeId::CompilerExpression>
     AstNodeRef nodeExprRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnostic>
 {
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstCompilerCallOne : AstInternalCallUnaryT<AstNodeId::CompilerCallOne>
 {
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -440,6 +443,7 @@ enum class AstCallExprFlagsE : AstNode::ParserFlags
 
 struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr, AstCallExprFlagsE>
 {
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -448,6 +452,7 @@ struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr, AstCallExprFlagsE>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr, AstCallExprFlagsE>
 {
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -575,6 +580,7 @@ struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
     AstModifierFlags modifierFlags;
 
     Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -831,6 +837,7 @@ struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
     AstNodeRef nodeInitRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema) const;
 };
 
@@ -915,6 +922,7 @@ struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
         AstNode::collectChildren(out, {nodePointeeTypeRef});
     }
 
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema) const;
 };
 
@@ -1151,6 +1159,7 @@ struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlag
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreDecl(Sema& sema) const;
     Result     semaPreNode(Sema& sema) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -1165,6 +1174,7 @@ struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, As
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreDecl(Sema& sema) const;
     Result     semaPreNode(Sema& sema) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

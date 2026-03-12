@@ -42,6 +42,13 @@ Result AstCompilerExpression::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstCompilerExpression::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeExprRef)
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
+}
+
 Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeConditionRef)
@@ -79,7 +86,10 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
 Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeConditionRef)
+    {
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
         return Result::Continue;
+    }
 
     const SemaNodeView condView = sema.viewConstant(nodeConditionRef);
     SWC_ASSERT(condView.cst());
@@ -118,6 +128,13 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
             sym->setIgnored(sema.ctx());
     }
 
+    return Result::Continue;
+}
+
+Result AstCompilerDiagnostic::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeArgRef)
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
     return Result::Continue;
 }
 
@@ -333,6 +350,9 @@ Result AstCompilerGlobal::semaPreNode(Sema& sema) const
 
 Result AstCompilerGlobal::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    if (mode == Mode::CompilerIf && childRef == nodeModeRef)
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+
     if (mode == Mode::AttributeList && childRef == nodeModeRef)
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Zero, childRef);
     return Result::Continue;
@@ -617,6 +637,18 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
         default:
             SWC_INTERNAL_ERROR();
     }
+}
+
+Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeArgRef)
+        return Result::Continue;
+
+    const Token& tok = sema.token(codeRef());
+    if (tok.id == TokenId::CompilerForeignLib)
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+
+    return Result::Continue;
 }
 
 Result AstCompilerCall::semaPostNode(const Sema& sema) const

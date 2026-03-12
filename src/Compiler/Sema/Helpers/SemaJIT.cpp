@@ -466,6 +466,9 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         return Result::Continue;
     if (sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr))
         return Result::Continue;
+    if (!sema.compiler().buildCfg().backend.optimize &&
+        !sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr))
+        return Result::Continue;
     if (sema.viewConstant(callRef).hasConstant())
         return Result::Continue;
 

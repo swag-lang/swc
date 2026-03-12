@@ -266,6 +266,12 @@ namespace
 
             case ConstantKind::ValuePointer:
             {
+                if (!cst.getValuePointer())
+                {
+                    builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
+                    payload.setIsValue();
+                    return;
+                }
                 builder.emitLoadRegPtrReloc(payload.reg, cst.getValuePointer(), cstRef);
                 payload.setIsValue();
                 return;
@@ -273,6 +279,12 @@ namespace
 
             case ConstantKind::BlockPointer:
             {
+                if (!cst.getBlockPointer())
+                {
+                    builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
+                    payload.setIsValue();
+                    return;
+                }
                 builder.emitLoadRegPtrReloc(payload.reg, cst.getBlockPointer(), cstRef);
                 payload.setIsValue();
                 return;

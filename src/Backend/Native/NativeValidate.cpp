@@ -156,12 +156,15 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (!relocation.constantRef.isValid())
         return false;
 
+    const ConstantValue& constant = builder_.compiler().cstMgr().get(relocation.constantRef);
+    if (constant.kind() == ConstantKind::ValuePointer || constant.kind() == ConstantKind::BlockPointer || constant.kind() == ConstantKind::Null)
+        return true;
+
     uint32_t  shardIndex = 0;
     const Ref baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
     if (baseOffset == INVALID_REF)
         return false;
 
-    const ConstantValue& constant = builder_.compiler().cstMgr().get(relocation.constantRef);
     if (constant.kind() == ConstantKind::Struct)
     {
         const ByteSpan payload = constant.getStruct();
@@ -177,9 +180,6 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
             return false;
         return validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payload);
     }
-
-    if (constant.kind() == ConstantKind::ValuePointer || constant.kind() == ConstantKind::BlockPointer || constant.kind() == ConstantKind::Null)
-        return true;
     if (constant.typeRef().isInvalid())
         return false;
 

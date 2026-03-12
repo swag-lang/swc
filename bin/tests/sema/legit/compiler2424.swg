@@ -1,9 +1,14 @@
 #global fileprivate
 #global skip
+const Cfg = #run dref @compiler.getBuildCfg()
+
 func print(f: f32)
     verify
     {
-        @assert(#isconstexpr(f))
+        if Cfg.backend.optimize
+            @assert(#isconstexpr(f))
+        else
+            @assert(!#isconstexpr(f))
         return true
     }
 {

@@ -228,6 +228,31 @@ namespace
         return true;
     }
 
+    bool hasCallAtNonFrameDepth(const MicroPassContext& context, const AnalyzeResult& analysisResult)
+    {
+        SWC_ASSERT(context.instructions);
+
+        if (!analysisResult.frameSize)
+            return false;
+
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        {
+            const MicroInstr& inst = *it;
+            if (!MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                continue;
+
+            const auto depthIt = analysisResult.depthBeforeByRef.find(it.current.get());
+            SWC_ASSERT(depthIt != analysisResult.depthBeforeByRef.end());
+            if (depthIt == analysisResult.depthBeforeByRef.end())
+                return true;
+
+            if (depthIt->second != analysisResult.frameSize)
+                return true;
+        }
+
+        return false;
+    }
+
     void applyOffsetRebase(const MicroPassContext& context, const AnalyzeResult& analysisResult, const CallConv& conv)
     {
         SWC_ASSERT(context.instructions);
@@ -290,6 +315,11 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
     if (analysisResult.stackAdjustRefs.empty())
         return Result::Continue;
     if (!analysisResult.frameSize)
+        return Result::Continue;
+    // Outgoing call frames are interpreted relative to the call-time stack pointer.
+    // If we hoist a smaller call frame to a larger function-wide frame, stack-passed
+    // arguments would move to the wrong ABI slots.
+    if (hasCallAtNonFrameDepth(context, analysisResult))
         return Result::Continue;
     if (!validateOffsetRebase(context, analysisResult, conv))
         return Result::Continue;

@@ -466,9 +466,23 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeExprRef && hasFlag(AstCallExprFlagsE::AttributeContext))
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
+}
+
 Result AstCallExpr::semaPostNode(Sema& sema) const
 {
     return semaCallExprCommon(sema, *this, false);
+}
+
+Result AstIntrinsicCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeExprRef && hasFlag(AstCallExprFlagsE::AttributeContext))
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
 }
 
 Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const

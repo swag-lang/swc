@@ -70,12 +70,12 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RemovesBodyAdjustsAndRebasesOffsets)
 
     builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadMemReg(rsp, 0, r10, MicroOpBits::B64);
-    builder.emitCallReg(rax, CallConvKind::Host);
+    builder.emitLoadRegMem(rax, rsp, 0, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Add, MicroOpBits::B64);
 
     builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadMemReg(rsp, 32, r11, MicroOpBits::B64);
-    builder.emitCallReg(rax, CallConvKind::Host);
+    builder.emitLoadRegMem(rax, rsp, 32, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Add, MicroOpBits::B64);
 
     builder.emitRet();
@@ -155,14 +155,14 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesBranchingDepths)
 
     builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadMemReg(rsp, 0, r10, MicroOpBits::B64);
-    builder.emitCallReg(rax, CallConvKind::Host);
+    builder.emitLoadRegMem(rax, rsp, 0, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
     builder.placeLabel(elseLabel);
     builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadMemReg(rsp, 8, r11, MicroOpBits::B64);
-    builder.emitCallReg(rax, CallConvKind::Host);
+    builder.emitLoadRegMem(rax, rsp, 8, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Add, MicroOpBits::B64);
 
     builder.placeLabel(doneLabel);
@@ -219,6 +219,66 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesBranchingDepths)
     if (thenStoreOffset != 16)
         return Result::Error;
     if (elseStoreOffset != 8)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroStackAdjustNormalize_SkipsCallsBelowMaxDepth)
+{
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
+    constexpr MicroReg r11 = MicroReg::intReg(11);
+    MicroBuilder       builder(ctx);
+
+    builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0, r10, MicroOpBits::B64);
+    builder.emitCallReg(rax, CallConvKind::Host);
+    builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Add, MicroOpBits::B64);
+
+    builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 32, r11, MicroOpBits::B64);
+    builder.emitCallReg(rax, CallConvKind::Host);
+    builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Add, MicroOpBits::B64);
+
+    builder.emitRet();
+
+    SWC_RESULT(runStackAdjustNormalizePass(builder));
+
+    const MicroOperandStorage& operands = builder.operands();
+    if (builder.instructions().count() != 9)
+        return Result::Error;
+
+    uint32_t countSub40 = 0;
+    uint32_t countAdd40 = 0;
+    uint32_t countSub56 = 0;
+    uint32_t countAdd56 = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (isStackAdjust(inst, ops, rsp, MicroOp::Subtract, 40))
+            ++countSub40;
+        else if (isStackAdjust(inst, ops, rsp, MicroOp::Add, 40))
+            ++countAdd40;
+        else if (isStackAdjust(inst, ops, rsp, MicroOp::Subtract, 56))
+            ++countSub56;
+        else if (isStackAdjust(inst, ops, rsp, MicroOp::Add, 56))
+            ++countAdd56;
+    }
+
+    if (countSub40 != 1 || countAdd40 != 1 || countSub56 != 1 || countAdd56 != 1)
+        return Result::Error;
+
+    uint64_t firstStoreOffset  = 0;
+    uint64_t secondStoreOffset = 0;
+    if (!findStoreOffsetForSourceReg(builder, r10, firstStoreOffset))
+        return Result::Error;
+    if (!findStoreOffsetForSourceReg(builder, r11, secondStoreOffset))
+        return Result::Error;
+
+    if (firstStoreOffset != 0)
+        return Result::Error;
+    if (secondStoreOffset != 32)
         return Result::Error;
 }
 SWC_TEST_END()

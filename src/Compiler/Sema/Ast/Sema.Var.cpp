@@ -645,6 +645,15 @@ namespace
         SWC_RESULT(completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef()));
         return Result::Continue;
     }
+
+    bool requiresConstExprInitializer(const Sema& sema, EnumFlags<AstVarDeclFlagsE> flags)
+    {
+        if (flags.has(AstVarDeclFlagsE::Const))
+            return true;
+        if (flags.has(AstVarDeclFlagsE::Parameter))
+            return true;
+        return !sema.curScope().isLocal() && !sema.curScope().isParameters();
+    }
 }
 
 Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
@@ -670,6 +679,13 @@ Result AstSingleVarDecl::semaPreNode(Sema& sema) const
         SemaHelpers::declareSymbol(sema, *this);
     const Symbol& sym = *sema.curViewSymbol().sym();
     return Match::ghosting(sema, sym);
+}
+
+Result AstSingleVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeInitRef && requiresConstExprInitializer(sema, flags()))
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
 }
 
 Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -744,6 +760,13 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
         SWC_RESULT(Match::ghosting(sema, *sym));
     }
 
+    return Result::Continue;
+}
+
+Result AstMultiVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeInitRef && requiresConstExprInitializer(sema, flags()))
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
     return Result::Continue;
 }
 

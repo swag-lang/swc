@@ -267,6 +267,13 @@ Result AstNamedType::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstArrayType::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (spanDimensionsRef.isValid() && childRef != nodePointeeTypeRef)
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
+}
+
 Result AstArrayType::semaPostNode(Sema& sema) const
 {
     TaskContext&       ctx  = sema.ctx();

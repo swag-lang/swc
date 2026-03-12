@@ -10,6 +10,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaHelpers
 {
+    inline bool isOptimizeEnabled(const Sema& sema)
+    {
+        return sema.compiler().buildCfg().backend.optimize;
+    }
+
+    inline bool isConstExprRequired(const Sema& sema)
+    {
+        return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
+    }
+
+    inline void pushConstExprRequirement(Sema& sema, AstNodeRef childRef)
+    {
+        SWC_ASSERT(childRef.isValid());
+        auto frame = sema.frame();
+        frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
+        sema.pushFramePopOnPostChild(frame, childRef);
+    }
+
     inline IdentifierRef getUniqueIdentifier(Sema& sema, const std::string_view& name)
     {
         const uint32_t id = sema.compiler().atomicId().fetch_add(1);

@@ -457,6 +457,14 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     return Result::Continue;
 }
 
+Result AstBinaryExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    const TokenId op = canonicalBinaryToken(sema.token(codeRef()).id);
+    if (op == TokenId::SymPlusPlus && (childRef == nodeLeftRef || childRef == nodeRightRef))
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
+}
+
 Result AstBinaryExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeLeftView  = sema.viewNodeTypeConstant(nodeLeftRef);

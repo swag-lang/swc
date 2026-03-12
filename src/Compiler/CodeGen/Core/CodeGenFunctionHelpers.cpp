@@ -19,6 +19,29 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    ConstantRef makeBorrowedRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
+    {
+        uint32_t targetShardIndex = 0;
+        Ref      targetOffset     = INVALID_REF;
+        if (targetPtr)
+            targetOffset = codeGen.cstMgr().findDataSegmentRef(targetShardIndex, targetPtr);
+
+        if (targetPtr && targetOffset == INVALID_REF)
+            return ConstantRef::invalid();
+
+        DataSegment& segment         = codeGen.cstMgr().shardDataSegment(targetOffset == INVALID_REF ? 0 : targetShardIndex);
+        const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
+        auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
+        runtimeValue->ptr            = const_cast<std::byte*>(reinterpret_cast<const std::byte*>(targetPtr));
+        runtimeValue->count          = count;
+
+        if (targetOffset != INVALID_REF)
+            segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetOffset);
+
+        const ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
+        return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
+    }
+
     bool shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, const ABITypeNormalize::NormalizedType& normalizedType)
     {
         if (normalizedType.isIndirect)
@@ -176,12 +199,37 @@ namespace
                 return false;
             }
 
+            case ConstantKind::String:
+            {
+                const std::string_view value               = cst.getString();
+                const TypeRef          runtimeTypeRef      = targetTypeRef.isValid() ? targetTypeRef : codeGen.typeMgr().typeString();
+                const ConstantRef      runtimeStringCstRef = makeBorrowedRuntimeBufferConstant(codeGen, runtimeTypeRef, value.data(), value.size());
+                if (runtimeStringCstRef.isInvalid())
+                    return false;
+                const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
+                builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
+                outPayload.setIsValue();
+                return true;
+            }
+
             case ConstantKind::ValuePointer:
+                if (!cst.getValuePointer())
+                {
+                    builder.emitLoadRegImm(outPayload.reg, ApInt(0, 64), MicroOpBits::B64);
+                    outPayload.setIsValue();
+                    return true;
+                }
                 builder.emitLoadRegPtrReloc(outPayload.reg, cst.getValuePointer(), cstRef);
                 outPayload.setIsValue();
                 return true;
 
             case ConstantKind::BlockPointer:
+                if (!cst.getBlockPointer())
+                {
+                    builder.emitLoadRegImm(outPayload.reg, ApInt(0, 64), MicroOpBits::B64);
+                    outPayload.setIsValue();
+                    return true;
+                }
                 builder.emitLoadRegPtrReloc(outPayload.reg, cst.getBlockPointer(), cstRef);
                 outPayload.setIsValue();
                 return true;
@@ -203,6 +251,23 @@ namespace
                 builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(cst.getArray().data()), cstRef);
                 outPayload.setIsAddress();
                 return true;
+
+            case ConstantKind::Slice:
+            {
+                const ByteSpan  sliceBytes       = cst.getSlice();
+                const TypeRef   runtimeTypeRef   = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
+                const TypeInfo& sliceType        = codeGen.typeMgr().get(runtimeTypeRef);
+                const TypeInfo& elementType      = codeGen.typeMgr().get(sliceType.payloadTypeRef());
+                const uint64_t  elementSize      = elementType.sizeOf(codeGen.ctx());
+                const uint64_t  elementCount     = elementSize ? sliceBytes.size() / elementSize : 0;
+                const ConstantRef runtimeSliceRef = makeBorrowedRuntimeBufferConstant(codeGen, runtimeTypeRef, sliceBytes.data(), elementCount);
+                if (runtimeSliceRef.isInvalid())
+                    return false;
+                const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
+                builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceRef);
+                outPayload.setIsValue();
+                return true;
+            }
 
             default:
                 return false;
@@ -299,10 +364,10 @@ namespace
         }
         else
         {
-            SWC_ASSERT(arg.defaultCstRef.isValid());
-            SWC_ASSERT(argIndex < params.size());
             const SymbolVariable* param = params[argIndex];
             SWC_ASSERT(param != nullptr);
+            SWC_ASSERT(argIndex < params.size());
+            SWC_ASSERT(arg.defaultCstRef.isValid());
             normalizedTypeRef = param->typeRef();
             SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, arg.defaultCstRef));
         }

@@ -122,6 +122,13 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstEnumValue::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeInitRef)
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
+}
+
 Result AstEnumValue::semaPostNode(Sema& sema) const
 {
     TaskContext& ctx          = sema.ctx();

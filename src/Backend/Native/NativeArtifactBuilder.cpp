@@ -61,7 +61,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const std:
     if (!workDirIndex.has_value())
         return;
 
-    outPaths.buildDir = buildDirectory(outPaths.workDir, workDirIndex.value());
+    outPaths.buildDir = buildDir(outPaths.workDir, workDirIndex.value());
     outPaths.objectPaths.clear();
     outPaths.objectPaths.reserve(numObjects);
     const Utf8 objectExt = objectExtension();
@@ -207,7 +207,7 @@ Result NativeArtifactBuilder::partitionObjects() const
     queryPaths(paths, workDirIndex, numJobs);
     if (builder_.ctx().cmdLine().clear && builder_.compiler().markNativeOutputsCleared())
         SWC_RESULT_VERIFY(clearOutputFolders(paths));
-    SWC_RESULT_VERIFY(createBuildDirectory(paths.buildDir));
+    SWC_RESULT_VERIFY(createBuildDir(paths.buildDir));
     SWC_RESULT_VERIFY(createOutDir(paths.outDir));
     builder_.buildDir     = paths.buildDir;
     builder_.artifactPath = paths.artifactPath;
@@ -356,12 +356,12 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
     return std::format("{}_{:08x}", FileSystem::sanitizeFileName(name), hash);
 }
 
-fs::path NativeArtifactBuilder::buildDirectory(const fs::path& workDir, const uint32_t buildIndex)
+fs::path NativeArtifactBuilder::buildDir(const fs::path& workDir, const uint32_t buildIndex)
 {
     return workDir / std::format("{:08x}", buildIndex);
 }
 
-Result NativeArtifactBuilder::createBuildDirectory(const fs::path& buildDir) const
+Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const
 {
     std::error_code ec;
     fs::create_directories(buildDir, ec);

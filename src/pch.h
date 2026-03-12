@@ -45,21 +45,23 @@ namespace fs = std::filesystem;
 
 #ifdef SWC_DEV_MODE
 #define SWC_FORCE_STATS
-#define SWC_HAS_ASSERT           1
-#define SWC_HAS_RACE_CONDITION   1
-#define SWC_HAS_REF_DEBUG_INFO   1
-#define SWC_HAS_VISIT_DEBUG_INFO 1
-#define SWC_HAS_SEMA_DEBUG_INFO  1
-#define SWC_HAS_TOKEN_DEBUG_INFO 1
-#define SWC_HAS_UNITTEST         1
+#define SWC_HAS_ASSERT            1
+#define SWC_HAS_NATIVE_VALIDATION 1
+#define SWC_HAS_RACE_CONDITION    1
+#define SWC_HAS_REF_DEBUG_INFO    1
+#define SWC_HAS_VISIT_DEBUG_INFO  1
+#define SWC_HAS_SEMA_DEBUG_INFO   1
+#define SWC_HAS_TOKEN_DEBUG_INFO  1
+#define SWC_HAS_UNITTEST          1
 #else
-#define SWC_HAS_ASSERT           0
-#define SWC_HAS_RACE_CONDITION   0
-#define SWC_HAS_REF_DEBUG_INFO   0
-#define SWC_HAS_VISIT_DEBUG_INFO 0
-#define SWC_HAS_SEMA_DEBUG_INFO  0
-#define SWC_HAS_TOKEN_DEBUG_INFO 0
-#define SWC_HAS_UNITTEST         0
+#define SWC_HAS_ASSERT            0
+#define SWC_HAS_NATIVE_VALIDATION 0
+#define SWC_HAS_RACE_CONDITION    0
+#define SWC_HAS_REF_DEBUG_INFO    0
+#define SWC_HAS_VISIT_DEBUG_INFO  0
+#define SWC_HAS_SEMA_DEBUG_INFO   0
+#define SWC_HAS_TOKEN_DEBUG_INFO  0
+#define SWC_HAS_UNITTEST          0
 #endif
 
 #ifdef SWC_FORCE_STATS

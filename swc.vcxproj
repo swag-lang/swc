@@ -211,6 +211,7 @@
         <ClCompile Include="src\Backend\Debug\DebugInfo.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeLinker.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeLinkerCoff.cpp"/>
@@ -561,6 +562,7 @@
         <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc"/>
         <ClInclude Include="src\\Backend\\Runtime.h"/>
         <ClInclude Include="src\Backend\Native\NativeArtifactBuilder.h"/>
+        <ClInclude Include="src\Backend\Native\NativeValidate.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>
         <ClInclude Include="src\Backend\Native\NativeLinker.h"/>
         <ClInclude Include="src\Backend\Native\NativeLinkerCoff.h"/>

@@ -315,7 +315,7 @@ Result NativeArtifactBuilder::validateRelocations(const SymbolFunction& owner, c
                     const SourceView& srcView   = ctx.compiler().srcView(owner.srcViewRef());
                     const Utf8        ownerName = owner.getFullScopedName(ctx);
 
-                    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_constant_payload_unsupported, srcView.fileRef());
+                    const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_constant_payload_unsupported, srcView.fileRef());
                     diag.last().addSpan(srcView.tokenCodeRange(ctx, owner.tokRef()), "", DiagnosticSeverity::Error);
                     diag.last().setMessage(std::format("function '{}' references unsupported constant payload for type '{}' ({})",
                                                        ownerName,
@@ -354,19 +354,13 @@ bool NativeArtifactBuilder::validateConstantRelocation(const MicroRelocation& re
     const auto         validateBorrowedPayload = [&](const ByteSpan payload, const std::string_view payloadKind) {
         if (relocation.targetAddress != reinterpret_cast<uint64_t>(payload.data()))
         {
-            setConstantValidationFailure(outTypeName,
-                                                 outDetail,
-                                                 typeName,
-                                                 std::format("{} relocation target does not match payload base; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
+            setConstantValidationFailure(outTypeName, outDetail, typeName, std::format("{} relocation target does not match payload base; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
             return false;
         }
 
         if (!validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payload))
         {
-            setConstantValidationFailure(outTypeName,
-                                                 outDetail,
-                                                 typeName,
-                                                 std::format("{} payload is not representable as native static data; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
+            setConstantValidationFailure(outTypeName, outDetail, typeName, std::format("{} payload is not representable as native static data; constant kind '{}'", payloadKind, constantKindName(constant.kind())));
             return false;
         }
 

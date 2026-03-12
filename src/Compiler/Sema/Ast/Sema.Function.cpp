@@ -134,6 +134,24 @@ namespace
 
     Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
+        if (sema.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::None)
+        {
+            SymbolFunction* tlsAllocFn  = nullptr;
+            SymbolFunction* tlsGetPtrFn = nullptr;
+            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsAlloc, tlsAllocFn, node.codeRef()));
+            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetPtr, tlsGetPtrFn, node.codeRef()));
+            SWC_ASSERT(tlsAllocFn != nullptr);
+            SWC_ASSERT(tlsGetPtrFn != nullptr);
+
+            if (SymbolFunction* currentFn = sema.frame().currentFunction())
+            {
+                currentFn->addCallDependency(tlsAllocFn);
+                currentFn->addCallDependency(tlsGetPtrFn);
+            }
+
+            return Result::Continue;
+        }
+
         SymbolFunction* tlsGetValueFn = nullptr;
         SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue, tlsGetValueFn, node.codeRef()));
         SWC_ASSERT(tlsGetValueFn != nullptr);

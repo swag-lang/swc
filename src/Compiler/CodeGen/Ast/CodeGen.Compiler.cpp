@@ -61,6 +61,8 @@ namespace
         SWC_ASSERT(frameBaseReg.isValid());
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
         codeGen.setLocalStackBaseReg(frameBaseReg);
+        codeGen.function().setDebugStackFrameSize(frameSize);
+        codeGen.function().setDebugStackBaseReg(frameBaseReg);
     }
 
     void emitCompilerFunctionStackEpilogue(CodeGen& codeGen, CallConvKind callConvKind)

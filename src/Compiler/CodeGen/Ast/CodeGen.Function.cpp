@@ -273,7 +273,7 @@ namespace
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
         codeGen.setLocalStackBaseReg(frameBaseReg);
         codeGen.function().setDebugStackFrameSize(frameSize);
-        codeGen.function().setDebugStackBaseReg(callConv.stackPointer);
+        codeGen.function().setDebugStackBaseReg(frameBaseReg);
     }
 
     void emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind)

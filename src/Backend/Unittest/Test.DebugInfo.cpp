@@ -4,8 +4,14 @@
 
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Micro/MachineCode.h"
+#include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeSymbolCollector.h"
 #include "Compiler/Lexer/Lexer.h"
+#include "Main/Command.h"
+#include "Main/CommandLine.h"
+#include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Stats.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -15,7 +21,9 @@ namespace
     constexpr uint32_t K_CV_SIGNATURE_C13    = 4;
     constexpr uint32_t K_CV_TYPE_SIGNATURE   = 4;
     constexpr uint32_t K_CV_FIRST_NONPRIM    = 0x1000;
+    constexpr uint32_t K_CV_LINE_NUMBER_MASK = 0x00FFFFFFu;
     constexpr uint32_t K_DEBUG_S_SYMBOLS     = 0xF1;
+    constexpr uint32_t K_DEBUG_S_LINES       = 0xF2;
     constexpr uint32_t K_DEBUG_S_STRINGTABLE = 0xF3;
     constexpr uint32_t K_DEBUG_S_FILECHKSMS  = 0xF4;
     constexpr uint16_t K_S_FRAMEPROC         = 0x1012;
@@ -28,6 +36,8 @@ namespace
     constexpr uint16_t K_S_GPROC32_ID        = 0x1147;
     constexpr uint16_t K_S_BUILDINFO         = 0x114C;
     constexpr uint16_t K_S_PROC_ID_END       = 0x114F;
+    constexpr uint16_t K_CV_REG_RBX          = 329;
+    constexpr uint16_t K_CV_REG_RSP          = 335;
     constexpr uint16_t K_LF_MODIFIER         = 0x1001;
     constexpr uint16_t K_LF_PROCEDURE        = 0x1008;
     constexpr uint16_t K_LF_ARGLIST          = 0x1201;
@@ -107,6 +117,63 @@ namespace
 
                     if (readU16(bytes, recordCursor + sizeof(uint16_t)) == recordType)
                         return true;
+
+                    recordCursor = nextRecordCursor;
+                }
+            }
+
+            cursor = alignUp4(cursor + subsectionSize);
+        }
+
+        return false;
+    }
+
+    bool tryFindRegRelativeSymbol(const ByteSpan bytes, const Utf8& expectedName, uint16_t& outRegister, uint32_t& outOffset)
+    {
+        if (bytes.size() < sizeof(uint32_t))
+            return false;
+        if (readU32(bytes, 0) != K_CV_SIGNATURE_C13)
+            return false;
+
+        uint32_t cursor = sizeof(uint32_t);
+        while (cursor + 8 <= bytes.size())
+        {
+            const uint32_t subsectionType = readU32(bytes, cursor + 0);
+            const uint32_t subsectionSize = readU32(bytes, cursor + 4);
+            cursor += 8;
+
+            if (cursor + subsectionSize > bytes.size())
+                return false;
+
+            if (subsectionType == K_DEBUG_S_SYMBOLS)
+            {
+                uint32_t       recordCursor = cursor;
+                const uint32_t recordEnd    = cursor + subsectionSize;
+                while (recordCursor + 4 <= recordEnd)
+                {
+                    const uint16_t recordSize       = readU16(bytes, recordCursor + 0);
+                    const uint32_t nextRecordCursor = recordCursor + sizeof(uint16_t) + recordSize;
+                    if (nextRecordCursor > recordEnd)
+                        return false;
+
+                    if (readU16(bytes, recordCursor + sizeof(uint16_t)) == K_S_REGREL32)
+                    {
+                        const uint32_t nameOffset = recordCursor + 14;
+                        const uint32_t nameEnd    = nextRecordCursor;
+                        uint32_t       cursorName = nameOffset;
+                        while (cursorName < nameEnd && bytes[cursorName] != std::byte{0})
+                            cursorName++;
+                        if (cursorName >= nameEnd)
+                            return false;
+
+                        const Utf8 name{std::string_view(reinterpret_cast<const char*>(bytes.data() + nameOffset), cursorName - nameOffset)};
+                        if (name == expectedName)
+                        {
+                            outOffset   = readU32(bytes, recordCursor + 4);
+                            outRegister = readU16(bytes, recordCursor + 12);
+                            return true;
+                        }
+                    }
 
                     recordCursor = nextRecordCursor;
                 }
@@ -273,6 +340,56 @@ namespace
                 sawFirst = true;
             if (subsectionType == secondType)
                 return sawFirst;
+
+            cursor = alignUp4(cursor + subsectionSize);
+        }
+
+        return false;
+    }
+
+    bool tryReadFirstLineBlockLines(const ByteSpan bytes, std::vector<uint32_t>& outLines)
+    {
+        outLines.clear();
+        if (bytes.size() < sizeof(uint32_t))
+            return false;
+        if (readU32(bytes, 0) != K_CV_SIGNATURE_C13)
+            return false;
+
+        uint32_t cursor = sizeof(uint32_t);
+        while (cursor + 8 <= bytes.size())
+        {
+            const uint32_t subsectionType = readU32(bytes, cursor + 0);
+            const uint32_t subsectionSize = readU32(bytes, cursor + 4);
+            cursor += 8;
+
+            if (cursor + subsectionSize > bytes.size())
+                return false;
+
+            if (subsectionType == K_DEBUG_S_LINES)
+            {
+                if (subsectionSize < 24)
+                    return false;
+
+                const uint32_t blockOffset = cursor + 12;
+                const uint32_t lineCount   = readU32(bytes, blockOffset + 4);
+                const uint32_t blockSize   = readU32(bytes, blockOffset + 8);
+                if (blockSize < 12)
+                    return false;
+
+                const uint32_t entriesOffset = blockOffset + 12;
+                const uint32_t entriesSize   = lineCount * 8;
+                if (entriesOffset + entriesSize > cursor + subsectionSize)
+                    return false;
+
+                outLines.reserve(lineCount);
+                for (uint32_t i = 0; i < lineCount; ++i)
+                {
+                    const uint32_t lineInfo = readU32(bytes, entriesOffset + i * 8 + 4);
+                    outLines.push_back(lineInfo & K_CV_LINE_NUMBER_MASK);
+                }
+
+                return true;
+            }
 
             cursor = alignUp4(cursor + subsectionSize);
         }
@@ -463,6 +580,224 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
     }
 
     if (!sawDebugGlobal)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_UsesPerVariableBaseRegistersForRegRelativeSymbols)
+{
+    MachineCode code;
+    code.bytes.push_back(std::byte{0xC3});
+
+    const DebugInfoLocalRecord parameter = makeDebugLocalRecord("arg0", ctx.typeMgr().typeS32(), 32, MicroReg::intReg(4));
+    const DebugInfoLocalRecord local     = makeDebugLocalRecord("local0", ctx.typeMgr().typeS32(), 16, MicroReg::intReg(1));
+
+    const std::array parameters = {parameter};
+    const std::array locals     = {local};
+
+    const DebugInfoFunctionRecord function = {
+        .symbolName    = "__swc_debug_info_regrel_proc",
+        .debugName     = "debug::regrel",
+        .returnTypeRef = ctx.typeMgr().typeS32(),
+        .machineCode   = &code,
+        .frameSize     = 64,
+        .frameBaseReg  = MicroReg::intReg(4),
+        .parameters    = parameters,
+        .locals        = locals,
+    };
+
+    const std::array functions = {function};
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &ctx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-regrel.obj"),
+        .functions    = functions,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+
+    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    uint16_t       paramRegister = 0;
+    uint16_t       localRegister = 0;
+    uint32_t       paramOffset   = 0;
+    uint32_t       localOffset   = 0;
+    if (!tryFindRegRelativeSymbol(debugBytes, "arg0", paramRegister, paramOffset))
+        return Result::Error;
+    if (!tryFindRegRelativeSymbol(debugBytes, "local0", localRegister, localOffset))
+        return Result::Error;
+    if (paramRegister != K_CV_REG_RSP || paramOffset != 32)
+        return Result::Error;
+    if (localRegister != K_CV_REG_RBX || localOffset != 16)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_CollapsesConsecutiveSameLineEntries)
+{
+    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_info_lines_{:08x}.swg", uniqueId);
+
+    {
+        std::ofstream output(sourcePath, std::ios::binary);
+        output << "alpha beta\n";
+        output << "gamma\n";
+    }
+
+    SourceFile& sourceFile = ctx.compiler().addFile(sourcePath, FileFlagsE::CustomSrc);
+    SWC_RESULT(sourceFile.loadContent(ctx));
+
+    Lexer lexer;
+    lexer.tokenize(ctx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+
+    const SourceView& srcView = sourceFile.ast().srcView();
+    TokenRef          line1Tok0;
+    TokenRef          line1Tok1;
+    TokenRef          line2Tok0;
+    for (uint32_t i = 0; i < srcView.tokens().size(); ++i)
+    {
+        const TokenRef        tokRef(i);
+        const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, tokRef);
+        if (!codeRange.line)
+            continue;
+
+        if (codeRange.line == 1)
+        {
+            if (!line1Tok0.isValid())
+                line1Tok0 = tokRef;
+            else if (!line1Tok1.isValid())
+                line1Tok1 = tokRef;
+        }
+        else if (codeRange.line == 2 && !line2Tok0.isValid())
+        {
+            line2Tok0 = tokRef;
+        }
+    }
+
+    if (!line1Tok0.isValid() || !line1Tok1.isValid() || !line2Tok0.isValid())
+        return Result::Error;
+
+    MachineCode code;
+    code.bytes = {std::byte{0x90}, std::byte{0x90}, std::byte{0xC3}};
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 0,
+        .codeEndOffset   = 1,
+        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line1Tok0},
+    });
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 1,
+        .codeEndOffset   = 2,
+        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line1Tok1},
+    });
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 2,
+        .codeEndOffset   = 3,
+        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line2Tok0},
+    });
+
+    const DebugInfoFunctionRecord function = {
+        .symbolName  = "__swc_debug_info_lines_proc",
+        .debugName   = "debug::lines",
+        .machineCode = &code,
+    };
+
+    const std::array functions = {function};
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &ctx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-lines.obj"),
+        .functions    = functions,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+
+    std::vector<uint32_t> lines;
+    if (!tryReadFirstLineBlockLines(asByteSpan(debugSection->bytes), lines))
+        return Result::Error;
+    if (lines.size() != 2)
+        return Result::Error;
+    if (lines[0] != 1 || lines[1] != 2)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
+{
+    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_compiler_test_{:08x}.swg", uniqueId);
+
+    {
+        std::ofstream output(sourcePath, std::ios::binary);
+        output << "// swc-option suite-test\n";
+        output << "#test\n";
+        output << "{\n";
+        output << "    var acc: s32 = 0\n";
+        output << "    acc += 1\n";
+        output << "}\n";
+    }
+
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Build;
+    cmdLine.buildCfg        = "debug";
+    cmdLine.backendKindName = "dll";
+    cmdLine.name            = "compiler_test_debug";
+    cmdLine.test            = true;
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+        return Result::Error;
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    NativeSymbolCollector symbolCollector(nativeBuilder);
+    SWC_RESULT(symbolCollector.prepare());
+    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+        return Result::Error;
+
+    const auto& nativeTests = compiler.nativeTestFunctions();
+    if (nativeTests.size() != 1)
+        return Result::Error;
+
+    const SymbolFunction* const testFn = nativeTests.front();
+    if (!testFn)
+        return Result::Error;
+    if (testFn->debugStackFrameSize() == 0)
+        return Result::Error;
+    if (!testFn->debugStackBaseReg().isValid())
+        return Result::Error;
+
+    const TaskContext compilerCtx(compiler);
+    bool              sawAcc = false;
+    for (const SymbolVariable* local : testFn->localVariables())
+    {
+        if (!local)
+            continue;
+        if (local->name(compilerCtx) != "acc")
+            continue;
+
+        sawAcc = true;
+        if (!local->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            return Result::Error;
+        break;
+    }
+
+    if (!sawAcc)
         return Result::Error;
 }
 SWC_TEST_END()

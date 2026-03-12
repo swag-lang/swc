@@ -529,9 +529,14 @@ namespace
                 blockIndex = blockIt->second;
             }
 
-            result.blocks[blockIndex].entries.push_back({
+            auto&          entries = result.blocks[blockIndex].entries;
+            const uint32_t line    = std::min<uint32_t>(codeRange.line, 0x00FFFFFFu);
+            if (!entries.empty() && entries.back().line == line)
+                continue;
+
+            entries.push_back({
                 .codeOffset = range.codeStartOffset,
-                .line       = std::min<uint32_t>(codeRange.line, 0x00FFFFFFu),
+                .line       = line,
             });
         }
 

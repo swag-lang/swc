@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
@@ -204,8 +205,10 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
             continue;
 
         functionDebugStorage.emplace_back();
-        FunctionDebugStorage& debugStorage = functionDebugStorage.back();
-        const MicroReg        frameBaseReg = info->symbol ? info->symbol->debugStackBaseReg() : MicroReg::invalid();
+        FunctionDebugStorage& debugStorage       = functionDebugStorage.back();
+        const MicroReg        parameterBaseReg   = info->symbol ? CallConv::get(info->symbol->callConvKind()).stackPointer : MicroReg::invalid();
+        const MicroReg        localBaseReg       = info->symbol ? info->symbol->debugStackBaseReg() : MicroReg::invalid();
+        const MicroReg        frameProcBaseReg   = parameterBaseReg;
 
         if (info->symbol)
         {
@@ -222,7 +225,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
                                                                        symVar->typeRef(),
                                                                        symVar->hasExtraFlag(SymbolVariableFlagsE::Let),
                                                                        symVar->debugStackSlotOffset(),
-                                                                       frameBaseReg));
+                                                                       parameterBaseReg));
             }
 
             for (const SymbolVariable* symVar : info->symbol->localVariables())
@@ -238,7 +241,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
                                                                    symVar->typeRef(),
                                                                    symVar->hasExtraFlag(SymbolVariableFlagsE::Let),
                                                                    symVar->offset(),
-                                                                   frameBaseReg));
+                                                                   localBaseReg));
             }
 
             collectFunctionDebugConstants(debugStorage.constants, builder_.ctx(), *info->symbol);
@@ -250,7 +253,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
             .returnTypeRef = info->symbol ? info->symbol->returnTypeRef() : TypeRef::invalid(),
             .machineCode   = info->machineCode,
             .frameSize     = info->symbol ? info->symbol->debugStackFrameSize() : 0,
-            .frameBaseReg  = frameBaseReg,
+            .frameBaseReg  = frameProcBaseReg,
             .parameters    = debugStorage.parameters,
             .locals        = debugStorage.locals,
             .constants     = debugStorage.constants,

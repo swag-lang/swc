@@ -39,8 +39,6 @@ namespace
     constexpr std::string_view EXPECTED_PARSER_ID     = "{{parser_";
     constexpr std::string_view EXPECTED_LEX_ID        = "{{lex_";
     constexpr std::string_view EXPECTED_SEMA_ID       = "{{sema_";
-    constexpr std::string_view BACKEND_KIND_ALL       = "all";
-
     bool isRunCommand(const CommandKind command)
     {
         return command == CommandKind::Run;
@@ -209,11 +207,6 @@ namespace
             appendStandaloneSourceFile(outBuckets, path);
     }
 
-    bool usesAllBackendKinds(const CommandLine& cmdLine)
-    {
-        return cmdLine.backendKindName == BACKEND_KIND_ALL;
-    }
-
     bool hasNewErrors(const uint64_t errorsBefore)
     {
         return Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore;
@@ -271,37 +264,9 @@ namespace
 
     bool runNativeBackends(CompilerInstance& compiler, const bool runArtifact)
     {
-        struct RestoreBackendKind final
-        {
-            CompilerInstance*            compiler;
-            Runtime::BuildCfgBackendKind backendKind;
-
-            ~RestoreBackendKind()
-            {
-                compiler->buildCfg().backendKind = backendKind;
-            }
-        };
-
-        const RestoreBackendKind restore{.compiler = &compiler, .backendKind = compiler.buildCfg().backendKind};
-
-        if (!usesAllBackendKinds(compiler.cmdLine()))
-        {
-            const Runtime::BuildCfgBackendKind backendKind = compiler.buildCfg().backendKind;
-            if (!runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable))
-                return false;
-
-            TaskContext ctx(compiler);
-            verifyExpectedMarkers(ctx);
-            return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
-        }
-
-        for (const Runtime::BuildCfgBackendKind backendKind : {Runtime::BuildCfgBackendKind::Executable, Runtime::BuildCfgBackendKind::Library, Runtime::BuildCfgBackendKind::Export})
-        {
-            if (!runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable))
-                return false;
-        }
-
-        compiler.buildCfg().backendKind = restore.backendKind;
+        const Runtime::BuildCfgBackendKind backendKind = compiler.buildCfg().backendKind;
+        if (!runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable))
+            return false;
 
         TaskContext ctx(compiler);
         verifyExpectedMarkers(ctx);

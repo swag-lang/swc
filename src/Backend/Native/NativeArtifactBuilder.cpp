@@ -35,6 +35,82 @@ namespace
             return cmdLine.originalModulePath;
         return cmdLine.modulePath;
     }
+
+    fs::path absolutePathNoThrow(const fs::path& path)
+    {
+        if (path.empty())
+            return {};
+
+        std::error_code ec;
+        fs::path        absolutePath = fs::absolute(path, ec);
+        if (ec)
+            return path.lexically_normal();
+        return absolutePath.lexically_normal();
+    }
+
+    void appendInputRoots(std::vector<fs::path>& outRoots, const std::set<fs::path>& inputs, const bool useParentDirectory)
+    {
+        for (const fs::path& input : inputs)
+        {
+            fs::path root = useParentDirectory ? input.parent_path() : input;
+            if (root.empty())
+                root = input;
+
+            root = absolutePathNoThrow(root);
+            if (!root.empty())
+                outRoots.push_back(root);
+        }
+    }
+
+    fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
+    {
+        fs::path result;
+        auto     lhsIt = lhs.begin();
+        auto     rhsIt = rhs.begin();
+        while (lhsIt != lhs.end() && rhsIt != rhs.end() && *lhsIt == *rhsIt)
+        {
+            result /= *lhsIt;
+            ++lhsIt;
+            ++rhsIt;
+        }
+
+        return result;
+    }
+
+    fs::path inputRootPath(const CommandLine& cmdLine)
+    {
+        std::vector<fs::path> roots;
+        const auto&           modulePath = inputModulePath(cmdLine);
+        if (!modulePath.empty())
+            roots.push_back(absolutePathNoThrow(modulePath.parent_path()));
+
+        appendInputRoots(roots, inputFiles(cmdLine), true);
+        appendInputRoots(roots, inputDirectories(cmdLine), false);
+
+        if (roots.empty())
+            return {};
+
+        fs::path root = roots.front();
+        for (size_t i = 1; i < roots.size(); ++i)
+        {
+            root = commonPathPrefix(root, roots[i]);
+            if (root.empty())
+                return roots.front();
+        }
+
+        if (!root.empty() && root != root.root_path())
+            return root;
+        return roots.front();
+    }
+
+    fs::path currentPathNoThrow()
+    {
+        std::error_code ec;
+        const fs::path  currentDir = fs::current_path(ec);
+        if (ec)
+            return {};
+        return currentDir.lexically_normal();
+    }
 }
 
 NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
@@ -42,28 +118,31 @@ NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
 {
 }
 
-void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const std::optional<uint32_t> workDirIndex, const uint32_t numObjects) const
+void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint32_t numObjects) const
 {
     outPaths.workDir.clear();
     outPaths.buildDir.clear();
     outPaths.objectPaths.clear();
     outPaths.name = artifactName();
 
-    // Reuse a stable work directory when possible, so repeated native builds converge
-    // to the same artifact/output layout unless the caller asks for a unique build slot.
     outPaths.workDir = configuredWorkDir();
     if (outPaths.workDir.empty())
-        outPaths.workDir = Os::getTemporaryPath() / "swc_native" / automaticWorkDirName(outPaths.name).c_str();
+    {
+        fs::path sourceRoot = inputRootPath(builder_.ctx().cmdLine());
+        if (sourceRoot.empty())
+            sourceRoot = currentPathNoThrow();
+        outPaths.workDir = sourceRoot / ".output" / automaticWorkDirName(outPaths.name).c_str();
+    }
 
+    outPaths.buildDir          = buildDir(outPaths.workDir);
     outPaths.artifactExtension = artifactExtension();
     outPaths.outDir            = configuredOutDir(outPaths.workDir);
     outPaths.artifactPath      = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
     outPaths.pdbPath           = outPaths.outDir / std::format("{}{}.pdb", outPaths.name, outPaths.artifactExtension);
 
-    if (!workDirIndex.has_value())
+    if (!numObjects)
         return;
 
-    outPaths.buildDir = buildDir(outPaths.workDir, workDirIndex.value());
     outPaths.objectPaths.clear();
     outPaths.objectPaths.reserve(numObjects);
     const Utf8 objectExt = objectExtension();
@@ -214,9 +293,8 @@ Result NativeArtifactBuilder::partitionObjects() const
     const uint32_t numJobs = std::max<uint32_t>(1, static_cast<uint32_t>(functionCount ? std::min<size_t>(functionCount, maxJobs) : 1));
     builder_.objectDescriptions.resize(numJobs);
 
-    const uint32_t      workDirIndex = builder_.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
     NativeArtifactPaths paths;
-    queryPaths(paths, workDirIndex, numJobs);
+    queryPaths(paths, numJobs);
     if (builder_.ctx().cmdLine().clear && builder_.compiler().markNativeOutputsCleared())
         SWC_RESULT(clearOutputFolders(paths));
     SWC_RESULT(createBuildDir(paths.buildDir));
@@ -371,9 +449,9 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
     return std::format("{}_{:08x}", FileSystem::sanitizeFileName(name), hash);
 }
 
-fs::path NativeArtifactBuilder::buildDir(const fs::path& workDir, const uint32_t buildIndex)
+fs::path NativeArtifactBuilder::buildDir(const fs::path& workDir)
 {
-    return workDir / std::format("{:08x}", buildIndex);
+    return workDir / "obj";
 }
 
 Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const

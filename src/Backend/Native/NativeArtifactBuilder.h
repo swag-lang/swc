@@ -22,7 +22,7 @@ public:
     explicit NativeArtifactBuilder(NativeBackendBuilder& builder);
 
     Result build() const;
-    void   queryPaths(NativeArtifactPaths& outPaths, std::optional<uint32_t> workDirIndex = std::nullopt, uint32_t numObjects = 0) const;
+    void   queryPaths(NativeArtifactPaths& outPaths, uint32_t numObjects = 0) const;
 
 private:
     Result          prepareDataSections() const;
@@ -36,7 +36,7 @@ private:
     Result          createOutDir(const fs::path& outDir) const;
     fs::path        configuredWorkDir() const;
     Utf8            automaticWorkDirName(const Utf8& name) const;
-    static fs::path buildDir(const fs::path& workDir, uint32_t buildIndex);
+    static fs::path buildDir(const fs::path& workDir);
     Result          createBuildDir(const fs::path& buildDir) const;
 
     NativeBackendBuilder& builder_;

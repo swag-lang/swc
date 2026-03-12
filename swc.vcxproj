@@ -198,6 +198,7 @@
         <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.NativeArtifact.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp"/>

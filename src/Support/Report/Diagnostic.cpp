@@ -259,6 +259,7 @@ void Diagnostic::report(TaskContext& ctx) const
     {
         {
             const Logger::ScopedLock loggerLock(ctx.global().logger());
+            ctx.global().logger().ensureTransientLineSeparated(ctx);
             Logger::print(ctx, msg);
         }
 

@@ -1,11 +1,24 @@
 #include "pch.h"
 
 #include "Main/CommandLine.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
+
+void Logger::ensureTransientLineSeparated(const TaskContext& ctx)
+{
+    if (ctx.cmdLine().silent)
+        return;
+
+    if (!transientLineActive_)
+        return;
+
+    std::cout << "\n";
+    transientLineActive_ = false;
+}
 
 void Logger::print(const TaskContext& ctx, std::string_view message)
 {
@@ -47,6 +60,7 @@ void Logger::printHeaderDot(const TaskContext& ctx,
     if (ctx.cmdLine().silent)
         return;
 
+    ctx.global().logger().ensureTransientLineSeparated(ctx);
     print(ctx, LogColorHelper::toAnsi(ctx, headerColor));
     print(ctx, header);
     print(ctx, LogColorHelper::toAnsi(ctx, dotColor));
@@ -69,6 +83,7 @@ void Logger::printHeaderCentered(const TaskContext& ctx,
     if (ctx.cmdLine().silent)
         return;
 
+    ctx.global().logger().ensureTransientLineSeparated(ctx);
     size_t size = header.size();
     while (size < centerColumn)
     {

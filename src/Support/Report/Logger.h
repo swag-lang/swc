@@ -32,6 +32,9 @@ public:
 
     void lock() { mutexAccess_.lock(); }
     void unlock() { mutexAccess_.unlock(); }
+    void startTransientLine() { transientLineActive_ = true; }
+    void finishTransientLine() { transientLineActive_ = false; }
+    void ensureTransientLineSeparated(const TaskContext& ctx);
 
     static void print(const TaskContext& ctx, std::string_view message);
     static void printDim(const TaskContext& ctx, std::string_view message);
@@ -42,6 +45,7 @@ public:
 
 private:
     std::mutex mutexAccess_;
+    bool       transientLineActive_ = false;
 };
 
 SWC_END_NAMESPACE();

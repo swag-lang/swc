@@ -73,6 +73,7 @@ public:
     {
         const Logger::ScopedLock loggerLock(ctx.global().logger());
         TimedActionLog::printLine(ctx, action_, detail_, {}, false);
+        ctx.global().logger().startTransientLine();
     }
 
     void success()
@@ -84,6 +85,7 @@ public:
         const Logger::ScopedLock loggerLock(ctx_->global().logger());
         Logger::print(*ctx_, "\r");
         TimedActionLog::printLine(*ctx_, action_, detail_, elapsed, true);
+        ctx_->global().logger().finishTransientLine();
         active_ = false;
     }
 
@@ -97,6 +99,7 @@ public:
         Logger::print(*ctx_, std::string(lineSize_, ' '));
         Logger::print(*ctx_, "\r");
         std::cout << std::flush;
+        ctx_->global().logger().finishTransientLine();
         active_ = false;
     }
 

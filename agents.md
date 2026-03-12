@@ -2,8 +2,6 @@
 
 ## Hard Rules
 
-- Compile with the latest msbuild version (look also for visual studio insider versions)
-
 - After any change:
     1. Compile a **DevMode** build.
     2. Run `test_dm.bat`.
@@ -26,12 +24,14 @@
     - Backend only
     - Must be placed in `backend/unittest`.
 
-- Individual tests must not run longer than **40 seconds**.  
+- Individual tests must not run longer than **40 seconds**.
   (Compilation time is excluded from this limit.)
 
 ---
 
 ## Coding Rules
+
+- Comment what you are doing when this is really usefull. Do not over comment. Make it pro.
 
 - Always fix the **root cause** of problems. Do not introduce hacks or workarounds.
 
@@ -49,5 +49,5 @@
 
 - Do not add defensive code. Prefere `SWC_ASSERT` if possible.
 
-- Declare **local variables and reference parameters as `const`** when they are not modified  
+- Declare **local variables and reference parameters as `const`** when they are not modified
   (`const` placed on the left side of the type).

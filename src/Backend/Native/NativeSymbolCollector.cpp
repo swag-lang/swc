@@ -42,11 +42,11 @@ Result NativeSymbolCollector::collectSymbols()
 
     collectCompilerEntryFunctions();
     collectSymbolsRec(*rootModule);
-    for (SourceFile* const file : compiler.files())
+    for (const SourceFile* file : compiler.files())
     {
         if (!file)
             continue;
-        if (const SymbolNamespace* const fileNamespace = file->fileNamespace())
+        if (const SymbolNamespace* fileNamespace = file->fileNamespace())
             collectGlobalVariablesRec(*fileNamespace);
     }
 

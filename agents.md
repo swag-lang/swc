@@ -48,6 +48,3 @@
   Use explicit types when they better communicate intent.
 
 - Do not add defensive code. Prefere `SWC_ASSERT` if possible.
-
-- Declare **local variables and reference parameters as `const`** when they are not modified
-  (`const` placed on the left side of the type).

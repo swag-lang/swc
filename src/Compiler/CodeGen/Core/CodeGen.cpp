@@ -224,19 +224,19 @@ void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Resolv
     sema().appendResolvedCallArguments(nodeRef, out);
 }
 
+CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
+{
+    CodeGenNodePayload* nodePayload = safePayload(nodeRef);
+    SWC_ASSERT(nodePayload != nullptr);
+    return *nodePayload;
+}
+
 CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 {
     nodeRef = resolvedNodeRef(nodeRef);
     if (nodeRef.isInvalid())
         return nullptr;
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
-}
-
-CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
-{
-    CodeGenNodePayload* nodePayload = safePayload(nodeRef);
-    SWC_ASSERT(nodePayload != nullptr);
-    return *nodePayload;
 }
 
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
@@ -299,6 +299,23 @@ CodeGenNodePayload& CodeGen::setPayloadAddress(AstNodeRef nodeRef, TypeRef typeR
     CodeGenNodePayload& nodePayload = setPayload(nodeRef, typeRef);
     nodePayload.setIsAddress();
     return nodePayload;
+}
+
+void CodeGen::clearGvtdScratchLayout()
+{
+    gvtdScratchEntries_.clear();
+    gvtdScratchOffset_ = 0;
+    gvtdScratchSize_   = 0;
+}
+
+void CodeGen::setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries)
+{
+    gvtdScratchOffset_ = offset;
+    gvtdScratchSize_   = size;
+    gvtdScratchEntries_.clear();
+    gvtdScratchEntries_.reserve(entries.size());
+    for (const auto& entry : entries)
+        gvtdScratchEntries_.push_back(entry);
 }
 
 void CodeGen::pushFrame(const CodeGenFrame& frame)

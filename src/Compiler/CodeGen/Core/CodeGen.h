@@ -230,21 +230,9 @@ public:
     CodeGenNodePayload&              setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&              setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&              setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    void                             clearGvtdScratchLayout()
-    {
-        gvtdScratchEntries_.clear();
-        gvtdScratchOffset_ = 0;
-        gvtdScratchSize_   = 0;
-    }
-    void setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries)
-    {
-        gvtdScratchOffset_ = offset;
-        gvtdScratchSize_   = size;
-        gvtdScratchEntries_.clear();
-        gvtdScratchEntries_.reserve(entries.size());
-        for (const auto& entry : entries)
-            gvtdScratchEntries_.push_back(entry);
-    }
+
+    void                              clearGvtdScratchLayout();
+    void                              setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries);
     bool                              hasGvtdScratchLayout() const { return gvtdScratchSize_ != 0; }
     uint32_t                          gvtdScratchOffset() const { return gvtdScratchOffset_; }
     uint32_t                          gvtdScratchSize() const { return gvtdScratchSize_; }

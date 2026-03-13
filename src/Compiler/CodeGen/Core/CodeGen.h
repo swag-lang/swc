@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
@@ -56,6 +57,24 @@ struct CodeGenGvtdEntry
     SymbolFunction* opDrop   = nullptr;
     uint32_t        sizeOf   = 0;
     uint32_t        count    = 0;
+};
+
+struct ScopedDebugNoStep final
+{
+    ScopedDebugNoStep(MicroBuilder& builder, const bool value) :
+        builder_(&builder),
+        savedValue_(builder.currentDebugNoStep())
+    {
+        builder.setCurrentDebugNoStep(value);
+    }
+
+    ~ScopedDebugNoStep()
+    {
+        builder_->setCurrentDebugNoStep(savedValue_);
+    }
+
+    MicroBuilder* builder_    = nullptr;
+    bool          savedValue_ = false;
 };
 
 class CodeGenFrame

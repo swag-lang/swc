@@ -13,24 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct ScopedDebugNoStep final
-    {
-        ScopedDebugNoStep(MicroBuilder& builder, const bool value) :
-            builder(&builder),
-            savedValue(builder.currentDebugNoStep())
-        {
-            builder.setCurrentDebugNoStep(value);
-        }
-
-        ~ScopedDebugNoStep()
-        {
-            builder->setCurrentDebugNoStep(savedValue);
-        }
-
-        MicroBuilder* builder = nullptr;
-        bool          savedValue = false;
-    };
-
     struct ForeachLoopRuntimeState
     {
         uint64_t base  = 0;

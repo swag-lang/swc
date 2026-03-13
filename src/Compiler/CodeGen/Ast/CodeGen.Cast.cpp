@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
@@ -22,10 +23,7 @@ namespace
 {
     ConstantRef makeBorrowedStructConstant(CodeGen& codeGen, TypeRef typeRef, ByteSpan payload)
     {
-        const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(asStringView(payload));
-        const ByteSpan         storedBytes   = asByteSpan(storedPayload);
-        const ConstantValue    cst           = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, storedBytes);
-        return codeGen.cstMgr().addConstant(codeGen.ctx(), cst);
+        return CodeGenFunctionHelpers::materializeStaticPayloadConstant(codeGen, typeRef, payload);
     }
 
     ConstantRef makeBorrowedRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)

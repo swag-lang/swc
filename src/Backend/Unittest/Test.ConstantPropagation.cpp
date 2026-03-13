@@ -51,6 +51,27 @@ namespace
         const ConstantValue constantValue = ConstantValue::makeStructBorrowed(ctx, ctx.typeMgr().typeString(), ByteSpan{storage, sizeof(Runtime::String)});
         return ctx.cstMgr().addConstant(ctx, constantValue);
     }
+
+    ConstantRef makeUnsortedRelocStringConstant(TaskContext& ctx)
+    {
+        DataSegment& segment             = ctx.cstMgr().shardDataSegment(0);
+        const auto [baseOffset, storage] = segment.reserveBytes(sizeof(Runtime::String), alignof(Runtime::String), true);
+        auto* const runtimeString        = reinterpret_cast<Runtime::String*>(storage);
+        const auto [dummyOffset, dummy]  = segment.reserveBytes(sizeof(Runtime::String), alignof(Runtime::String), true);
+        auto* const dummyString          = reinterpret_cast<Runtime::String*>(dummy);
+
+        const std::pair<std::string_view, Ref> text = segment.addString(Utf8{"const-prop-unsorted"});
+        dummyString->ptr                            = text.first.data();
+        dummyString->length                         = text.first.size();
+        segment.addRelocation(dummyOffset + offsetof(Runtime::String, ptr), text.second);
+
+        runtimeString->ptr    = text.first.data();
+        runtimeString->length = text.first.size();
+        segment.addRelocation(baseOffset + offsetof(Runtime::String, ptr), text.second);
+
+        const ConstantValue constantValue = ConstantValue::makeStructBorrowed(ctx, ctx.typeMgr().typeString(), ByteSpan{storage, sizeof(Runtime::String)});
+        return ctx.cstMgr().addConstant(ctx, constantValue);
+    }
 }
 
 SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
@@ -245,6 +266,34 @@ SWC_TEST_BEGIN(PagedStore_CopyToPreserveOffsetsKeepsSparseLayout)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroConstantPropagation_DoesNotFoldUnsortedRelocationBackedStackCopy)
+{
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg stackPtr = MicroReg::intReg(4);
+    constexpr MicroReg r8       = MicroReg::intReg(8);
+    constexpr MicroReg r9       = MicroReg::intReg(9);
+    constexpr MicroReg r10      = MicroReg::intReg(10);
+
+    const ConstantRef   stringRef      = makeUnsortedRelocStringConstant(ctx);
+    const ConstantValue stringConstant = ctx.cstMgr().get(stringRef);
+    const ByteSpan      stringBytes    = stringConstant.getStruct();
+
+    builder.emitLoadRegPtrReloc(r8, reinterpret_cast<uint64_t>(stringBytes.data()), stringRef);
+    builder.emitLoadRegMem(r9, r8, offsetof(Runtime::String, ptr), MicroOpBits::B64);
+    builder.emitLoadMemReg(stackPtr, 64, r9, MicroOpBits::B64);
+    builder.emitLoadRegMem(r10, stackPtr, 64, MicroOpBits::B64);
+
+    SWC_RESULT(runConstantPropagationPass(builder));
+
+    const MicroInstr* inst3 = instructionAt(builder, 3);
+    if (!inst3)
+        return Result::Error;
+
+    if (inst3->op != MicroInstrOpcode::LoadRegMem)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroConstantPropagation_DoesNotFoldRelocationBackedStackCopy)
 {
     MicroBuilder       builder(ctx);
@@ -261,6 +310,34 @@ SWC_TEST_BEGIN(MicroConstantPropagation_DoesNotFoldRelocationBackedStackCopy)
     builder.emitLoadRegMem(r9, r8, offsetof(Runtime::String, ptr), MicroOpBits::B64);
     builder.emitLoadMemReg(stackPtr, 32, r9, MicroOpBits::B64);
     builder.emitLoadRegMem(r10, stackPtr, 32, MicroOpBits::B64);
+
+    SWC_RESULT(runConstantPropagationPass(builder));
+
+    const MicroInstr* inst3 = instructionAt(builder, 3);
+    if (!inst3)
+        return Result::Error;
+
+    if (inst3->op != MicroInstrOpcode::LoadRegMem)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroConstantPropagation_DoesNotFoldWholeRelocationBackedAggregateCopy)
+{
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg stackPtr = MicroReg::intReg(4);
+    constexpr MicroReg r8       = MicroReg::intReg(8);
+    constexpr MicroReg xmm0     = MicroReg::floatReg(0);
+    constexpr MicroReg r9       = MicroReg::intReg(9);
+
+    const ConstantRef   stringRef      = makeRelocStringConstant(ctx);
+    const ConstantValue stringConstant = ctx.cstMgr().get(stringRef);
+    const ByteSpan      stringBytes    = stringConstant.getStruct();
+
+    builder.emitLoadRegPtrReloc(r8, reinterpret_cast<uint64_t>(stringBytes.data()), stringRef);
+    builder.emitLoadRegMem(xmm0, r8, 0, MicroOpBits::B128);
+    builder.emitLoadMemReg(stackPtr, 48, xmm0, MicroOpBits::B128);
+    builder.emitLoadRegMem(r9, stackPtr, 48 + offsetof(Runtime::String, ptr), MicroOpBits::B64);
 
     SWC_RESULT(runConstantPropagationPass(builder));
 

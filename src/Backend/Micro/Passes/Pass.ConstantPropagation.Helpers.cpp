@@ -208,14 +208,22 @@ bool MicroConstantPropagationPass::constantPointerRangeHasRelocation(const Known
     const uint64_t     rangeBegin = static_cast<uint64_t>(baseOffset) + constantPointer.offset;
     const uint64_t     rangeEnd   = rangeBegin + numBytes;
     constexpr uint64_t relocSize  = sizeof(uint64_t);
+    DataSegmentAllocation allocation;
+    if (!segment.findAllocation(allocation, static_cast<uint32_t>(rangeBegin)))
+        return true;
+
+    const uint64_t allocBegin = allocation.offset;
+    const uint64_t allocEnd   = allocBegin + allocation.size;
+    if (rangeBegin < allocBegin || rangeEnd > allocEnd)
+        return true;
 
     for (const auto& relocation : segment.relocations())
     {
         const uint64_t relocBegin = relocation.offset;
+        if (relocBegin < allocBegin || relocBegin >= allocEnd)
+            continue;
         if (MicroPassHelpers::rangesOverlap(rangeBegin, numBytes, relocBegin, relocSize))
             return true;
-        if (relocBegin >= rangeEnd)
-            break;
     }
 
     return false;

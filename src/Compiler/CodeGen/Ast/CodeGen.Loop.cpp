@@ -52,16 +52,16 @@ namespace
 
     struct ForStmtCodeGenPayload
     {
-        MicroLabelRef   loopLabel     = MicroLabelRef::invalid();
-        MicroLabelRef   continueLabel = MicroLabelRef::invalid();
-        MicroLabelRef   doneLabel     = MicroLabelRef::invalid();
-        MicroReg        indexReg      = MicroReg::invalid();
-        MicroReg        boundReg      = MicroReg::invalid();
-        SymbolVariable* indexSym      = nullptr;
-        TypeRef         indexTypeRef  = TypeRef::invalid();
-        bool            reverse       = false;
-        bool            inclusive     = false;
-        bool            unsignedCmp   = false;
+        MicroLabelRef   loopLabel       = MicroLabelRef::invalid();
+        MicroLabelRef   continueLabel   = MicroLabelRef::invalid();
+        MicroLabelRef   doneLabel       = MicroLabelRef::invalid();
+        MicroReg        indexReg        = MicroReg::invalid();
+        MicroReg        boundReg        = MicroReg::invalid();
+        SymbolVariable* indexSym        = nullptr;
+        TypeRef         indexTypeRef    = TypeRef::invalid();
+        bool            reverse         = false;
+        bool            inclusive       = false;
+        bool            unsignedCmp     = false;
         bool            hasContinueJump = false;
     };
 

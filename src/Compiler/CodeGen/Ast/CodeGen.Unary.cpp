@@ -12,7 +12,7 @@ namespace
 {
     TypeRef resolveDerefResultTypeRef(CodeGen& codeGen, TypeRef operandTypeRef)
     {
-        const TypeInfo& operandTypeInfo = codeGen.typeMgr().get(operandTypeRef);
+        const TypeInfo& operandTypeInfo  = codeGen.typeMgr().get(operandTypeRef);
         const TypeRef   unwrappedTypeRef = operandTypeInfo.unwrap(codeGen.ctx(), operandTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         if (unwrappedTypeRef.isValid())
             operandTypeRef = unwrappedTypeRef;

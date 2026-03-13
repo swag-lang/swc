@@ -75,7 +75,7 @@ namespace
 
     bool appendCodeGenDependencies(std::vector<SymbolFunction*>& functions)
     {
-        bool                         changed = false;
+        bool               changed = false;
         std::unordered_set seenFunctions(functions.begin(), functions.end());
         for (size_t idx = 0; idx < functions.size(); ++idx)
         {

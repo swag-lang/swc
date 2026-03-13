@@ -216,7 +216,7 @@ namespace
         const TypeRef      leftTypeRef  = resolveOperandTypeRef(target.payload, leftTypeView.typeRef());
         SWC_ASSERT(leftTypeRef.isValid());
 
-        const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(leftTypeRef);
+        const TypeInfo& leftTypeInfo  = codeGen.typeMgr().get(leftTypeRef);
         TypeRef         targetTypeRef = leftTypeRef;
         if (leftTypeInfo.isReference())
         {
@@ -230,8 +230,8 @@ namespace
         }
 
         const TypeRef opTypeRef = normalizeAssignmentTypeRef(codeGen, targetTypeRef);
-        target.typeRef   = targetTypeRef;
-        target.opTypeRef = opTypeRef;
+        target.typeRef          = targetTypeRef;
+        target.opTypeRef        = opTypeRef;
         return target;
     }
 

@@ -179,8 +179,8 @@ namespace
             return;
         }
 
-        uint32_t shardIndex = 0;
-        const Ref ref       = codeGen.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
+        uint32_t  shardIndex = 0;
+        const Ref ref        = codeGen.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
         if (ref != INVALID_REF)
             codeGen.builder().emitLoadRegPtrReloc(reg, value, cstRef);
         else
@@ -883,7 +883,7 @@ ConstantRef CodeGenFunctionHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (ConstantLower::materializeStaticPayload(offset, codeGen.sema(), segment, typeRef, payload) != Result::Continue)
         return ConstantRef::invalid();
 
-    const ByteSpan storedBytes{segment.ptr<std::byte>(offset), static_cast<size_t>(sizeOf)};
+    const ByteSpan storedBytes{segment.ptr<std::byte>(offset), sizeOf};
     if (typeInfo.isArray())
         return codeGen.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, typeRef, storedBytes));
 

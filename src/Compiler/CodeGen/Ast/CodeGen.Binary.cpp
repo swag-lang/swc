@@ -418,7 +418,7 @@ namespace
         const MicroReg indexReg = materializePointerIndexReg(codeGen, indexPayload, indexTypeRef);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
-        MicroBuilder&       builder       = codeGen.builder();
+        MicroBuilder&             builder       = codeGen.builder();
         builder.emitLoadRegReg(resultPayload.reg, baseReg, MicroOpBits::B64);
 
         if (encodeCtx.pointerStride == 1)
@@ -452,7 +452,7 @@ namespace
         const MicroReg rightReg = materializePointerValue(codeGen, *encodeCtx.rightPayload);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
-        MicroBuilder&       builder       = codeGen.builder();
+        MicroBuilder&             builder       = codeGen.builder();
         builder.emitLoadRegReg(resultPayload.reg, leftReg, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(resultPayload.reg, rightReg, MicroOp::Subtract, MicroOpBits::B64);
         if (encodeCtx.pointerStride != 1)

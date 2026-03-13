@@ -165,9 +165,9 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     const SemaNodeView resultView = codeGen.curViewType();
     SWC_ASSERT(resultView.type() != nullptr);
 
-    const TypeRef     resultTypeRef = resultView.typeRef();
-    const bool        addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
-    MicroBuilder&     builder       = codeGen.builder();
+    const TypeRef resultTypeRef = resultView.typeRef();
+    const bool    addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
+    MicroBuilder& builder       = codeGen.builder();
 
     if (resolvedCondRef.isValid() && resolvedChildRef == resolvedCondRef)
     {
@@ -218,7 +218,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         const ConditionalExprCodeGenPayload* state = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
         SWC_ASSERT(state != nullptr);
 
-        const CodeGenNodePayload& falsePayload = codeGen.payload(nodeFalseRef);
+        const CodeGenNodePayload& falsePayload  = codeGen.payload(nodeFalseRef);
         const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
         if (addressBacked)
         {

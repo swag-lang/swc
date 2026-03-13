@@ -828,7 +828,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
 
     if (srcType->isIntUnsized() || srcType->isFloatUnsized())
     {
-        ConstantRef concreteCstRef;
+        ConstantRef          concreteCstRef;
         const TypeInfo::Sign hintSign = srcType->isIntUnsized() ? TypeInfo::Sign::Signed : TypeInfo::Sign::Unknown;
         if (!concretizeConstant(sema, concreteCstRef, srcCstRef, hintSign, true))
         {

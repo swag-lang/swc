@@ -34,9 +34,9 @@ namespace
     {
         outIsPointer = false;
 
-        const TaskContext& ctx     = codeGen.ctx();
-        const TypeManager& typeMgr = codeGen.typeMgr();
-        const TypeRef      typeRef = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+        const TaskContext& ctx      = codeGen.ctx();
+        const TypeManager& typeMgr  = codeGen.typeMgr();
+        const TypeRef      typeRef  = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeInfo&    typeInfo = typeMgr.get(typeRef);
         if (typeInfo.isStruct())
             return &typeInfo.payloadSymStruct();
@@ -72,7 +72,7 @@ namespace
                 continue;
 
             bool                usingFieldIsPointer = false;
-            const SymbolStruct*  usingTargetStruct  = resolveUsingTargetStruct(codeGen, *field, usingFieldIsPointer);
+            const SymbolStruct* usingTargetStruct   = resolveUsingTargetStruct(codeGen, *field, usingFieldIsPointer);
             if (!usingTargetStruct)
                 continue;
 
@@ -117,8 +117,8 @@ namespace
         if (!offset)
             return baseReg;
 
-        MicroBuilder& builder = codeGen.builder();
-        const MicroReg result = codeGen.nextVirtualIntRegister();
+        MicroBuilder&  builder = codeGen.builder();
+        const MicroReg result  = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegReg(result, baseReg, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(result, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
         return result;
@@ -192,9 +192,9 @@ namespace
         const Symbol*             rightSym     = (rightView.sym());
         const auto&               symVar       = rightSym->cast<SymbolVariable>();
 
-        const TypeRef             memberTypeRef = symVar.typeRef();
-        const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
-        MicroBuilder&             builder       = codeGen.builder();
+        const TypeRef                    memberTypeRef = symVar.typeRef();
+        const CodeGenNodePayload&        payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
+        MicroBuilder&                    builder       = codeGen.builder();
         SmallVector<StructUsingPathStep> usingPath;
         if (leftTypeView.typeRef().isValid())
             resolveStructMemberPath(codeGen, leftTypeView.typeRef(), symVar, usingPath);

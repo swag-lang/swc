@@ -220,7 +220,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());
 
-    const TypeRef             resultTypeRef       = resolveIndexedResultTypeRef(codeGen, *indexedView.type());
+    const TypeRef            resultTypeRef        = resolveIndexedResultTypeRef(codeGen, *indexedView.type());
     const CodeGenNodePayload indexedResultPayload = emitIndexAddress(codeGen, nodeArgRef, *indexedView.type(), indexedPayload, resultTypeRef);
     CodeGenNodePayload&      resultPayload        = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
     resultPayload.reg                             = indexedResultPayload.reg;

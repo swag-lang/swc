@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -224,8 +224,8 @@ namespace
             return;
         }
 
-        uint32_t shardIndex = 0;
-        const Ref ref       = codeGen.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
+        uint32_t  shardIndex = 0;
+        const Ref ref        = codeGen.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
         if (ref != INVALID_REF)
             codeGen.builder().emitLoadRegPtrReloc(reg, value, cstRef);
         else
@@ -344,8 +344,8 @@ namespace
 
             case ConstantKind::TypeValue:
             {
-                ConstantRef typeInfoCstRef = ConstantRef::invalid();
-                const Result typeInfoRes   = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, cst.getTypeValue(), codeGen.curNodeRef());
+                ConstantRef  typeInfoCstRef = ConstantRef::invalid();
+                const Result typeInfoRes    = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, cst.getTypeValue(), codeGen.curNodeRef());
                 SWC_ASSERT(typeInfoRes == Result::Continue);
                 SWC_ASSERT(typeInfoCstRef.isValid());
 

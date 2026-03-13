@@ -839,8 +839,8 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
                 const uint64_t  s  = ty.sizeOf(ctx);
                 if (!s)
                     continue;
-                align              = std::max(align, a);
-                size               = ((size + static_cast<uint64_t>(a) - 1) / static_cast<uint64_t>(a)) * static_cast<uint64_t>(a);
+                align = std::max(align, a);
+                size  = ((size + static_cast<uint64_t>(a) - 1) / static_cast<uint64_t>(a)) * static_cast<uint64_t>(a);
                 size += s;
             }
             size = ((size + static_cast<uint64_t>(align) - 1) / static_cast<uint64_t>(align)) * static_cast<uint64_t>(align);

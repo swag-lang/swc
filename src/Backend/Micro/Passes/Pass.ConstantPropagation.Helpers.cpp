@@ -204,10 +204,10 @@ bool MicroConstantPropagationPass::constantPointerRangeHasRelocation(const Known
     if (baseOffset == INVALID_REF)
         return true;
 
-    const DataSegment& segment    = context_->taskContext->cstMgr().shardDataSegment(shardIndex);
-    const uint64_t     rangeBegin = static_cast<uint64_t>(baseOffset) + constantPointer.offset;
-    const uint64_t     rangeEnd   = rangeBegin + numBytes;
-    constexpr uint64_t relocSize  = sizeof(uint64_t);
+    const DataSegment&    segment    = context_->taskContext->cstMgr().shardDataSegment(shardIndex);
+    const uint64_t        rangeBegin = static_cast<uint64_t>(baseOffset) + constantPointer.offset;
+    const uint64_t        rangeEnd   = rangeBegin + numBytes;
+    constexpr uint64_t    relocSize  = sizeof(uint64_t);
     DataSegmentAllocation allocation;
     if (!segment.findAllocation(allocation, static_cast<uint32_t>(rangeBegin)))
         return true;

@@ -213,7 +213,6 @@ namespace
             builder.emitClearReg(dstReg, dstBits);
             builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
             outReg = dstReg;
-            return;
         }
     }
 

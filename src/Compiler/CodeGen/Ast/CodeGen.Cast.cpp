@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -123,9 +123,9 @@ namespace
 
     struct InterfaceCastInfo
     {
-        const SymbolStruct*   objectStruct       = nullptr;
-        const SymbolImpl*     implSym            = nullptr;
-        const SymbolVariable* usingField         = nullptr;
+        const SymbolStruct*   objectStruct        = nullptr;
+        const SymbolImpl*     implSym             = nullptr;
+        const SymbolVariable* usingField          = nullptr;
         bool                  usingFieldIsPointer = false;
     };
 
@@ -152,9 +152,9 @@ namespace
             {
                 if (const SymbolImpl* implSym = findInterfaceImpl(ultimateType.payloadSymStruct(), dstItf.idRef()))
                 {
-                    outInfo.objectStruct       = &ultimateType.payloadSymStruct();
-                    outInfo.implSym            = implSym;
-                    outInfo.usingField         = field;
+                    outInfo.objectStruct        = &ultimateType.payloadSymStruct();
+                    outInfo.implSym             = implSym;
+                    outInfo.usingField          = field;
                     outInfo.usingFieldIsPointer = false;
                     return true;
                 }
@@ -172,9 +172,9 @@ namespace
 
             if (const SymbolImpl* implSym = findInterfaceImpl(pointeeUltimate.payloadSymStruct(), dstItf.idRef()))
             {
-                outInfo.objectStruct       = &pointeeUltimate.payloadSymStruct();
-                outInfo.implSym            = implSym;
-                outInfo.usingField         = field;
+                outInfo.objectStruct        = &pointeeUltimate.payloadSymStruct();
+                outInfo.implSym             = implSym;
+                outInfo.usingField          = field;
                 outInfo.usingFieldIsPointer = true;
                 return true;
             }
@@ -384,9 +384,9 @@ namespace
 
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
-        MicroBuilder&             builder    = codeGen.builder();
-        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
-        const auto*               castPayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        MicroBuilder&             builder             = codeGen.builder();
+        const CodeGenNodePayload& srcPayload          = codeGen.payload(srcNodeRef);
+        const auto*               castPayload         = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         const bool                needsRuntimeStorage = castPayload && castPayload->runtimeStorageSym != nullptr;
 
         TypeRef sourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();
@@ -501,18 +501,18 @@ namespace
         {
             SWC_ASSERT(castPayload && castPayload->runtimeStorageSym != nullptr);
 
-            const auto& srcStruct = srcType.payloadSymStruct();
-            const auto& dstItf    = dstType.payloadSymInterface();
+            const auto&       srcStruct = srcType.payloadSymStruct();
+            const auto&       dstItf    = dstType.payloadSymInterface();
             InterfaceCastInfo castInfo;
             const bool        hasCastInfo = resolveInterfaceCastInfo(codeGen, srcStruct, dstItf, castInfo);
             SWC_ASSERT(hasCastInfo);
             SWC_ASSERT(castInfo.implSym != nullptr);
 
-            const uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
-            const uint64_t objectStorageSize    = srcType.sizeOf(codeGen.ctx());
-            const uint64_t itableOffset         = interfaceStorageSize + objectStorageSize;
+            constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
+            const uint64_t     objectStorageSize    = srcType.sizeOf(codeGen.ctx());
+            const uint64_t     itableOffset         = interfaceStorageSize + objectStorageSize;
 
-            const MicroReg runtimeItfReg = castRuntimeStorageAddressReg(codeGen);
+            const MicroReg runtimeItfReg    = castRuntimeStorageAddressReg(codeGen);
             MicroReg       objectStorageReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(objectStorageReg, runtimeItfReg, MicroOpBits::B64);
             builder.emitOpBinaryRegImm(objectStorageReg, ApInt(interfaceStorageSize, 64), MicroOp::Add, MicroOpBits::B64);

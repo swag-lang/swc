@@ -569,7 +569,7 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
         // Capture hidden return pointer before any parameter materialization can clobber input registers.
         SWC_ASSERT(!callConv.intArgRegs.empty());
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef());
-        const ScopedDebugNoStep noStep(codeGen.builder(), true);
+        const ScopedDebugNoStep   noStep(codeGen.builder(), true);
         codeGen.builder().emitLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
     }
 

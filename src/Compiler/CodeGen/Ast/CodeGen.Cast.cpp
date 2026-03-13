@@ -15,13 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint64_t addPayloadToConstantManagerAndGetAddress(CodeGen& codeGen, ByteSpan payload)
-    {
-        const std::string_view payloadView(reinterpret_cast<const char*>(payload.data()), payload.size());
-        const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(payloadView);
-        return reinterpret_cast<uint64_t>(storedPayload.data());
-    }
-
     ConstantRef makeBorrowedStructConstant(CodeGen& codeGen, TypeRef typeRef, ByteSpan payload)
     {
         const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(asStringView(payload));
@@ -43,7 +36,7 @@ namespace
         DataSegment& segment         = codeGen.cstMgr().shardDataSegment(targetOffset == INVALID_REF ? 0 : targetShardIndex);
         const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
         auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
-        runtimeValue->ptr            = const_cast<std::byte*>(reinterpret_cast<const std::byte*>(targetPtr));
+        runtimeValue->ptr            = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
         runtimeValue->count          = count;
 
         if (targetOffset != INVALID_REF)

@@ -28,7 +28,6 @@ namespace
     constexpr uint16_t K_S_FRAMEPROC         = 0x1012;
     constexpr uint16_t K_S_OBJNAME           = 0x1101;
     constexpr uint16_t K_S_CONSTANT          = 0x1107;
-    constexpr uint16_t K_S_UDT               = 0x1108;
     constexpr uint16_t K_S_LDATA32           = 0x110C;
     constexpr uint16_t K_S_GDATA32           = 0x110D;
     constexpr uint16_t K_S_REGREL32          = 0x1111;

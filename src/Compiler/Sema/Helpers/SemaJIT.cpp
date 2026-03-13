@@ -202,7 +202,7 @@ namespace
                 sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
             }
 
-            for (SymbolFunction* function : jitOrder)
+            for (const SymbolFunction* function : jitOrder)
             {
                 if (!function)
                     continue;

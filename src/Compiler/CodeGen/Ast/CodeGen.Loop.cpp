@@ -16,7 +16,7 @@ namespace
     struct ScopedDebugNoStep final
     {
         ScopedDebugNoStep(MicroBuilder& builder, const bool value) :
-            builder(builder),
+            builder(&builder),
             savedValue(builder.currentDebugNoStep())
         {
             builder.setCurrentDebugNoStep(value);
@@ -24,10 +24,10 @@ namespace
 
         ~ScopedDebugNoStep()
         {
-            builder.setCurrentDebugNoStep(savedValue);
+            builder->setCurrentDebugNoStep(savedValue);
         }
 
-        MicroBuilder& builder;
+        MicroBuilder* builder = nullptr;
         bool          savedValue = false;
     };
 
@@ -707,7 +707,7 @@ Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const
 
 Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef whereRef = resolvedNodeRef(codeGen, nodeWhereRef);

@@ -20,7 +20,7 @@ namespace
     struct ScopedDebugNoStep final
     {
         ScopedDebugNoStep(MicroBuilder& builder, const bool value) :
-            builder(builder),
+            builder(&builder),
             savedValue(builder.currentDebugNoStep())
         {
             builder.setCurrentDebugNoStep(value);
@@ -28,10 +28,10 @@ namespace
 
         ~ScopedDebugNoStep()
         {
-            builder.setCurrentDebugNoStep(savedValue);
+            builder->setCurrentDebugNoStep(savedValue);
         }
 
-        MicroBuilder& builder;
+        MicroBuilder* builder    = nullptr;
         bool          savedValue = false;
     };
 
@@ -313,7 +313,7 @@ namespace
         MicroBuilder&                       builder = codeGen.builder();
         const MicroReg                      baseReg = CallConv::get(symbolFunc.callConvKind()).stackPointer;
         const std::vector<SymbolVariable*>& params  = symbolFunc.parameters();
-        for (SymbolVariable* symVar : params)
+        for (const SymbolVariable* symVar : params)
         {
             SWC_ASSERT(symVar != nullptr);
             if (!symVar->debugStackSlotSize())

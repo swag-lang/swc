@@ -160,11 +160,6 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
     return Result::Continue;
 }
 
-Result AstNullCoalescingExpr::codeGenPostNode(CodeGen& codeGen) const
-{
-    return Result::Continue;
-}
-
 Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     const AstNodeRef resolvedLeftRef  = resolvedNodeRef(codeGen, nodeLeftRef);
@@ -195,14 +190,14 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
 
         if (addressBacked)
         {
-            CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
+            const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
             builder.emitLoadRegReg(resultPayload.reg, leftPayload.reg, MicroOpBits::B64);
         }
         else
         {
-            const TypeInfo&     resultType    = codeGen.typeMgr().get(resultTypeRef);
-            const MicroOpBits   resultBits    = compareOpBits(resultType);
-            CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+            const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+            const MicroOpBits         resultBits    = compareOpBits(resultType);
+            const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
             emitSelectedOperand(codeGen, resultPayload, leftPayload, resultBits);
         }
 

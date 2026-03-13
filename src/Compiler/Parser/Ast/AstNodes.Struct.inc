@@ -605,7 +605,6 @@ struct AstNullCoalescingExpr : AstNodeT<AstNodeId::NullCoalescingExpr>
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
     Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

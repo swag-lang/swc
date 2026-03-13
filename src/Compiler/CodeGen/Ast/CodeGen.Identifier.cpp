@@ -79,14 +79,14 @@ namespace
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
-            CodeGenNodePayload localPayload = makeLocalStackPayload(codeGen, symVar);
+            const CodeGenNodePayload localPayload = makeLocalStackPayload(codeGen, symVar);
             codeGen.setVariablePayload(symVar, localPayload);
             return localPayload;
         }
 
         if (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar))
         {
-            CodeGenNodePayload localPayload = makeLocalStackPayload(codeGen, symVar);
+            const CodeGenNodePayload localPayload = makeLocalStackPayload(codeGen, symVar);
             codeGen.setVariablePayload(symVar, localPayload);
             return localPayload;
         }

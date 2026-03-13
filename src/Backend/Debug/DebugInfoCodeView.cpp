@@ -158,7 +158,6 @@ namespace
             const uint32_t entryOffset = size;
             Entry          entry;
             entry.stringOffset = stringOffset;
-            computeChecksum(entry, fileName);
             entries.push_back(entry);
             offsets.emplace(fileName, entryOffset);
             size += Math::alignUpU32(6 + entry.checksumSize, 4);
@@ -189,12 +188,6 @@ namespace
             uint8_t                   checksumSize = 0;
             std::array<std::byte, 32> checksum{};
         };
-
-        static void computeChecksum(Entry& outEntry, const Utf8& fileName)
-        {
-            if (fileName.empty())
-                return;
-        }
 
         uint32_t                           size = 0;
         std::unordered_map<Utf8, uint32_t> offsets;

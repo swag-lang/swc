@@ -240,7 +240,7 @@ namespace
             return {};
 
         std::error_code ec;
-        fs::path        absolutePath = fs::absolute(path, ec);
+        const fs::path  absolutePath = fs::absolute(path, ec);
         if (ec)
             return path.lexically_normal();
         return absolutePath.lexically_normal();

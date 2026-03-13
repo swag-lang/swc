@@ -1074,7 +1074,9 @@ namespace
             return AstNodeRef::invalid();
         const auto& memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
 
-        const SemaNodeView receiverView = sema.viewNodeType(memberAccess.nodeLeftRef);
+        const SemaNodeView receiverView = sema.viewNodeTypeSymbol(memberAccess.nodeLeftRef);
+        if (receiverView.sym() && receiverView.sym()->isImpl())
+            return AstNodeRef::invalid();
         if (receiverView.type() && receiverView.type()->isInterface() && sema.isValue(*receiverView.node()))
             return receiverView.nodeRef();
 

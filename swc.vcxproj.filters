@@ -219,9 +219,6 @@
     <ClCompile Include="src\Backend\Native\NativeObjectFileWriterWindowsCoff.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Native\NativeSymbolCollector.cpp">
-      <Filter>src\Backend\Native</Filter>
-    </ClCompile>
     <ClCompile Include="src\Backend\\ABI\CallConv.cpp">
       <Filter>src\Backend\ABI</Filter>
     </ClCompile>
@@ -873,9 +870,6 @@
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeObjectFileWriterWindowsCoff.h">
-      <Filter>src\Backend\Native</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\Native\NativeSymbolCollector.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantPropagation.Private.h">

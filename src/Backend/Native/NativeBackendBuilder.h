@@ -89,6 +89,7 @@ public:
     const CompilerInstance& compiler() const;
 
     Result run();
+    Result prepare();
     Result writeObject(uint32_t objIndex);
 
     Result reportError(DiagnosticId id) const;
@@ -110,12 +111,11 @@ public:
         return reportError(std::move(diag));
     }
 
-    std::vector<SymbolFunction*>                                   rawFunctions;
-    std::vector<SymbolFunction*>                                   rawTestFunctions;
-    std::vector<SymbolFunction*>                                   rawInitFunctions;
-    std::vector<SymbolFunction*>                                   rawPreMainFunctions;
-    std::vector<SymbolFunction*>                                   rawDropFunctions;
-    std::vector<SymbolFunction*>                                   rawMainFunctions;
+    std::vector<SymbolFunction*>                                   testFunctions;
+    std::vector<SymbolFunction*>                                   initFunctions;
+    std::vector<SymbolFunction*>                                   preMainFunctions;
+    std::vector<SymbolFunction*>                                   dropFunctions;
+    std::vector<SymbolFunction*>                                   mainFunctions;
     std::vector<SymbolVariable*>                                   regularGlobals;
     std::vector<NativeFunctionInfo>                                functionInfos;
     std::unordered_map<SymbolFunction*, const NativeFunctionInfo*> functionBySymbol;

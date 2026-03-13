@@ -171,6 +171,7 @@ namespace
 
             symVar.setTyped(sema.ctx());
             symVar.setSemaCompleted(sema.ctx());
+            sema.compiler().registerNativeGlobalVariable(&symVar);
         }
 
         return Result::Continue;

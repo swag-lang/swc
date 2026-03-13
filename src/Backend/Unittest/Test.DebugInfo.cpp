@@ -5,7 +5,6 @@
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeSymbolCollector.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
@@ -881,8 +880,7 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
-    NativeSymbolCollector symbolCollector(nativeBuilder);
-    SWC_RESULT(symbolCollector.prepare());
+    SWC_RESULT(nativeBuilder.prepare());
     if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
         return Result::Error;
 
@@ -949,8 +947,7 @@ SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
-    NativeSymbolCollector symbolCollector(nativeBuilder);
-    SWC_RESULT(symbolCollector.prepare());
+    SWC_RESULT(nativeBuilder.prepare());
     if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
         return Result::Error;
 

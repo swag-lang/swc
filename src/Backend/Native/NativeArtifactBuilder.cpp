@@ -233,7 +233,7 @@ Result NativeArtifactBuilder::buildStartup() const
 
     if (builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
-    if (builder_.compiler().nativeMainFunctions().empty())
+    if (builder_.mainFunctions.empty())
         return builder_.reportError(DiagnosticId::cmd_err_native_main_missing);
 
     auto         startup = std::make_unique<NativeStartupInfo>();
@@ -242,15 +242,15 @@ Result NativeArtifactBuilder::buildStartup() const
 
     // The startup thunk runs compiler-generated lifecycle hooks and then exits with the
     // program return value already carried in the host integer return register.
-    for (SymbolFunction* symbol : builder_.compiler().nativeInitFunctions())
+    for (SymbolFunction* symbol : builder_.initFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.compiler().nativePreMainFunctions())
+    for (SymbolFunction* symbol : builder_.preMainFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.compiler().nativeTestFunctions())
+    for (SymbolFunction* symbol : builder_.testFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.compiler().nativeMainFunctions())
+    for (SymbolFunction* symbol : builder_.mainFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.compiler().nativeDropFunctions())
+    for (SymbolFunction* symbol : builder_.dropFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
 
     auto* exitProcess = Symbol::make<SymbolFunction>(builder_.ctx(), nullptr, TokenRef::invalid(), builder_.compiler().idMgr().addIdentifier("ExitProcess"), SymbolFlagsE::Zero);

@@ -446,6 +446,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
 
     sym.setSemaCompleted(sema.ctx());
+    sema.compiler().registerNativeCodeFunction(&sym);
     return Result::Continue;
 }
 

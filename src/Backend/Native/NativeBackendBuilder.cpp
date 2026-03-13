@@ -4,20 +4,122 @@
 #include "Backend/Native/NativeLinker.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
-#include "Backend/Native/NativeSymbolCollector.h"
+#include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Main/Global.h"
+#include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/ScopedTimedAction.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    template<typename T, typename MAKE_KEY>
+    void sortAndUnique(std::vector<T*>& values, const MAKE_KEY& makeKey)
+    {
+        values.erase(std::remove(values.begin(), values.end(), nullptr), values.end());
+        std::ranges::sort(values, [&](const T* lhs, const T* rhs) {
+            if (lhs == rhs)
+                return false;
+
+            const Utf8 lhsKey = makeKey(*lhs);
+            const Utf8 rhsKey = makeKey(*rhs);
+            if (lhsKey != rhsKey)
+                return lhsKey < rhsKey;
+            return lhs < rhs;
+        });
+
+        values.erase(std::unique(values.begin(), values.end()), values.end());
+    }
+
+    bool isCompilerFunction(const SymbolFunction& symbol)
+    {
+        return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
+    }
+
+    Utf8 makeFunctionSortKey(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    {
+        Utf8 key;
+        if (const SourceFile* file = builder.compiler().srcView(symbol.srcViewRef()).file())
+            key += Utf8(file->path());
+
+        key += "|";
+        key += std::to_string(symbol.tokRef().get());
+        key += "|";
+        key += symbol.getFullScopedName(builder.ctx());
+        key += "|";
+        key += symbol.computeName(builder.ctx());
+        return key;
+    }
+
+    Utf8 makeVariableSortKey(const NativeBackendBuilder& builder, const SymbolVariable& symbol)
+    {
+        Utf8 key;
+        if (const SourceFile* file = builder.compiler().srcView(symbol.srcViewRef()).file())
+            key += Utf8(file->path());
+
+        key += "|";
+        key += std::to_string(symbol.tokRef().get());
+        key += "|";
+        key += symbol.getFullScopedName(builder.ctx());
+        return key;
+    }
+
     Result checkActionResult(Result result, ScopedTimedAction& action)
     {
         if (result != Result::Continue)
             action.fail();
         return result;
+    }
+
+    Result scheduleCodeGen(NativeBackendBuilder& builder)
+    {
+        if (builder.functionInfos.empty())
+            return Result::Continue;
+
+        SourceFile* firstFile = nullptr;
+        for (SourceFile* const file : builder.compiler().files())
+        {
+            if (file)
+            {
+                firstFile = file;
+                break;
+            }
+        }
+
+        if (!firstFile)
+            return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
+
+        Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);
+        JobManager& jobMgr = builder.ctx().global().jobMgr();
+        for (const auto& info : builder.functionInfos)
+        {
+            SWC_ASSERT(info.symbol != nullptr);
+            if (info.symbol->isCodeGenCompleted() || !info.symbol->loweredCode().bytes.empty())
+                continue;
+            if (!info.symbol->tryMarkCodeGenJobScheduled())
+                continue;
+
+            const AstNodeRef root = info.symbol->declNodeRef();
+            if (root.isInvalid())
+                return builder.reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, info.symbolName);
+
+            auto* job = heapNew<CodeGenJob>(builder.ctx(), baseSema, *info.symbol, root);
+            jobMgr.enqueue(*job, JobPriority::Normal, builder.compiler().jobClientId());
+        }
+
+        Sema::waitDone(builder.ctx(), builder.compiler().jobClientId());
+        if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
+            return Result::Error;
+
+        for (const auto& info : builder.functionInfos)
+        {
+            if (!info.machineCode || info.machineCode->bytes.empty())
+                return builder.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, info.symbolName);
+        }
+
+        return Result::Continue;
     }
 }
 
@@ -55,10 +157,9 @@ Result NativeBackendBuilder::run()
     const NativeArtifactBuilder artifactBuilder(*this);
     NativeArtifactPaths         paths;
     artifactBuilder.queryPaths(paths);
-    ScopedTimedAction           buildAction(ctx_, "Build", paths.artifactPath.filename().string());
+    ScopedTimedAction buildAction(ctx_, "Build", paths.artifactPath.filename().string());
 
-    NativeSymbolCollector symbolCollector(*this);
-    SWC_RESULT(checkActionResult(symbolCollector.prepare(), buildAction));
+    SWC_RESULT(checkActionResult(prepare(), buildAction));
 
     SWC_RESULT(checkActionResult(artifactBuilder.build(), buildAction));
     SWC_RESULT(checkActionResult(writeObjects(), buildAction));
@@ -72,6 +173,72 @@ Result NativeBackendBuilder::run()
         SWC_RESULT(runGeneratedArtifact());
 
     return Result::Continue;
+}
+
+Result NativeBackendBuilder::prepare()
+{
+    functionInfos.clear();
+    functionBySymbol.clear();
+    testFunctions    = compiler_.nativeTestFunctions();
+    initFunctions    = compiler_.nativeInitFunctions();
+    preMainFunctions = compiler_.nativePreMainFunctions();
+    dropFunctions    = compiler_.nativeDropFunctions();
+    mainFunctions    = compiler_.nativeMainFunctions();
+    regularGlobals   = compiler_.nativeGlobalVariables();
+
+    auto               functions = compiler_.nativeCodeSegment();
+    std::unordered_set seenFunctions(functions.begin(), functions.end());
+    for (size_t idx = 0; idx < functions.size(); ++idx)
+    {
+        const SymbolFunction* function = functions[idx];
+        SWC_ASSERT(function != nullptr);
+
+        SmallVector<SymbolFunction*> deps;
+        function->appendCallDependencies(deps);
+        for (SymbolFunction* dep : deps)
+        {
+            if (!dep)
+                continue;
+            if (dep->isForeign() || dep->isEmpty() || dep->isAttribute())
+                continue;
+            if (dep->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+                continue;
+            if (!dep->isSemaCompleted())
+                continue;
+            if (!seenFunctions.insert(dep).second)
+                continue;
+
+            functions.push_back(dep);
+        }
+    }
+
+    sortAndUnique(functions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+    sortAndUnique(testFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+    sortAndUnique(initFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+    sortAndUnique(preMainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+    sortAndUnique(dropFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+    sortAndUnique(mainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+    sortAndUnique(regularGlobals, [&](const SymbolVariable& symbol) { return makeVariableSortKey(*this, symbol); });
+
+    for (SymbolFunction* symbol : functions)
+    {
+        SWC_ASSERT(symbol != nullptr);
+
+        NativeFunctionInfo info;
+        info.symbol      = symbol;
+        info.machineCode = &symbol->loweredCode();
+        info.sortKey     = makeFunctionSortKey(*this, *symbol);
+        info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", functionInfos.size(), Math::hash(info.sortKey));
+        info.debugName   = symbol->getFullScopedName(ctx_);
+        info.exported    = symbol->isPublic() && !isCompilerFunction(*symbol);
+        info.compilerFn  = isCompilerFunction(*symbol);
+        functionInfos.push_back(std::move(info));
+    }
+
+    for (const auto& info : functionInfos)
+        functionBySymbol.emplace(info.symbol, &info);
+
+    return scheduleCodeGen(*this);
 }
 
 Result NativeBackendBuilder::writeObject(const uint32_t objIndex)

@@ -689,7 +689,6 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     }
 
     std::string_view name;
-    bool             registerCompilerEntry = false;
     switch (tok.id)
     {
         case TokenId::CompilerRun:
@@ -697,24 +696,19 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
             name = "run";
             break;
         case TokenId::CompilerFuncTest:
-            name                  = "test";
-            registerCompilerEntry = true;
+            name = "test";
             break;
         case TokenId::CompilerFuncInit:
-            name                  = "init";
-            registerCompilerEntry = true;
+            name = "init";
             break;
         case TokenId::CompilerFuncDrop:
-            name                  = "drop";
-            registerCompilerEntry = true;
+            name = "drop";
             break;
         case TokenId::CompilerFuncMain:
-            name                  = "main";
-            registerCompilerEntry = true;
+            name = "main";
             break;
         case TokenId::CompilerFuncPreMain:
-            name                  = "premain";
-            registerCompilerEntry = true;
+            name = "premain";
             break;
         case TokenId::CompilerFuncMessage:
             name = "message";
@@ -734,8 +728,6 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
         sym.setTyped(ctx);
         sym.setSemaCompleted(ctx);
     }
-    else if (registerCompilerEntry)
-        ctx.compiler().registerCompilerEntryFunction(&sym);
     return Result::SkipChildren;
 }
 
@@ -766,7 +758,29 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
 
     sym.setSemaCompleted(sema.ctx());
 
-    if (sema.token(codeRef()).id != TokenId::CompilerRun)
+    const TokenId tokenId = sema.token(codeRef()).id;
+    switch (tokenId)
+    {
+        case TokenId::CompilerFuncTest:
+            sema.compiler().registerNativeTestFunction(&sym);
+            break;
+        case TokenId::CompilerFuncInit:
+            sema.compiler().registerNativeInitFunction(&sym);
+            break;
+        case TokenId::CompilerFuncDrop:
+            sema.compiler().registerNativeDropFunction(&sym);
+            break;
+        case TokenId::CompilerFuncMain:
+            sema.compiler().registerNativeMainFunction(&sym);
+            break;
+        case TokenId::CompilerFuncPreMain:
+            sema.compiler().registerNativePreMainFunction(&sym);
+            break;
+        default:
+            break;
+    }
+
+    if (tokenId != TokenId::CompilerRun)
         return Result::Continue;
 
     return SemaJIT::runStatement(sema, sym, sema.curNodeRef());

@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/Command.h"
@@ -32,6 +33,39 @@ namespace
 {
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
+
+    template<typename T>
+    bool appendUnique(std::vector<T*>& values, T* value)
+    {
+        if (std::ranges::find(values, value) != values.end())
+            return false;
+
+        values.push_back(value);
+        return true;
+    }
+
+    bool shouldRegisterNativeFunction(const SymbolFunction& symbol)
+    {
+        return !symbol.isForeign() &&
+               !symbol.isEmpty() &&
+               !symbol.isAttribute() &&
+               !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
+    }
+
+    bool isNativeRootFunction(const SymbolFunction& symbol)
+    {
+        const SymbolMap* owner = symbol.ownerSymMap();
+        if (!owner)
+            return false;
+
+        while (owner->ownerSymMap())
+            owner = owner->ownerSymMap();
+
+        if (owner->isModule() || owner->isStruct() || owner->isInterface() || owner->isImpl())
+            return true;
+
+        return owner->isNamespace() && owner->idRef().isValid();
+    }
 
     void initRuntimeContextTlsId()
     {
@@ -388,50 +422,132 @@ void CompilerInstance::initPerThreadRuntimeContextForJit()
     }
 }
 
-void CompilerInstance::resetNativeCodeSegment()
-{
-    nativeCodeSegment_.clear();
-    nativeTestFunctions_.clear();
-    nativeInitFunctions_.clear();
-    nativePreMainFunctions_.clear();
-    nativeDropFunctions_.clear();
-    nativeMainFunctions_.clear();
-}
-
-void CompilerInstance::addNativeCodeFunction(SymbolFunction* symbol)
+void CompilerInstance::registerNativeCodeFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    nativeCodeSegment_.push_back(symbol);
+    SWC_ASSERT(symbol->isSemaCompleted());
+    if (!shouldRegisterNativeFunction(*symbol))
+        return;
+    if (!isNativeRootFunction(*symbol))
+        return;
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        inserted = appendUnique(nativeCodeSegment_, symbol);
+    }
+
+    if (inserted)
+        notifyAlive();
 }
 
-void CompilerInstance::addNativeTestFunction(SymbolFunction* symbol)
+void CompilerInstance::registerNativeTestFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    nativeTestFunctions_.push_back(symbol);
+    SWC_ASSERT(symbol->isSemaCompleted());
+    if (!shouldRegisterNativeFunction(*symbol))
+        return;
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        inserted |= appendUnique(nativeCodeSegment_, symbol);
+        inserted |= appendUnique(nativeTestFunctions_, symbol);
+    }
+
+    if (inserted)
+        notifyAlive();
 }
 
-void CompilerInstance::addNativeInitFunction(SymbolFunction* symbol)
+void CompilerInstance::registerNativeInitFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    nativeInitFunctions_.push_back(symbol);
+    SWC_ASSERT(symbol->isSemaCompleted());
+    if (!shouldRegisterNativeFunction(*symbol))
+        return;
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        inserted |= appendUnique(nativeCodeSegment_, symbol);
+        inserted |= appendUnique(nativeInitFunctions_, symbol);
+    }
+
+    if (inserted)
+        notifyAlive();
 }
 
-void CompilerInstance::addNativePreMainFunction(SymbolFunction* symbol)
+void CompilerInstance::registerNativePreMainFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    nativePreMainFunctions_.push_back(symbol);
+    SWC_ASSERT(symbol->isSemaCompleted());
+    if (!shouldRegisterNativeFunction(*symbol))
+        return;
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        inserted |= appendUnique(nativeCodeSegment_, symbol);
+        inserted |= appendUnique(nativePreMainFunctions_, symbol);
+    }
+
+    if (inserted)
+        notifyAlive();
 }
 
-void CompilerInstance::addNativeDropFunction(SymbolFunction* symbol)
+void CompilerInstance::registerNativeDropFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    nativeDropFunctions_.push_back(symbol);
+    SWC_ASSERT(symbol->isSemaCompleted());
+    if (!shouldRegisterNativeFunction(*symbol))
+        return;
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        inserted |= appendUnique(nativeCodeSegment_, symbol);
+        inserted |= appendUnique(nativeDropFunctions_, symbol);
+    }
+
+    if (inserted)
+        notifyAlive();
 }
 
-void CompilerInstance::addNativeMainFunction(SymbolFunction* symbol)
+void CompilerInstance::registerNativeMainFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    nativeMainFunctions_.push_back(symbol);
+    SWC_ASSERT(symbol->isSemaCompleted());
+    if (!shouldRegisterNativeFunction(*symbol))
+        return;
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        inserted |= appendUnique(nativeCodeSegment_, symbol);
+        inserted |= appendUnique(nativeMainFunctions_, symbol);
+    }
+
+    if (inserted)
+        notifyAlive();
+}
+
+void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+    SWC_ASSERT(symbol->isSemaCompleted());
+    if (!symbol->hasGlobalStorage())
+        return;
+    if (symbol->globalStorageKind() == DataSegmentKind::Compiler)
+        return;
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        inserted = appendUnique(nativeGlobalVariables_, symbol);
+    }
+
+    if (inserted)
+        notifyAlive();
 }
 
 ExitCode CompilerInstance::run()
@@ -537,32 +653,6 @@ bool CompilerInstance::registerForeignLib(std::string_view name)
 
     foreignLibs_.emplace_back(name);
     return true;
-}
-
-void CompilerInstance::registerCompilerEntryFunction(SymbolFunction* symbol)
-{
-    SWC_ASSERT(symbol != nullptr);
-
-    bool inserted = false;
-    {
-        const std::unique_lock lock(mutex_);
-        if (std::ranges::find(compilerEntryFunctions_, symbol) == compilerEntryFunctions_.end())
-        {
-            compilerEntryFunctions_.push_back(symbol);
-            inserted = true;
-        }
-    }
-
-    if (inserted)
-        notifyAlive();
-}
-
-void CompilerInstance::appendCompilerEntryFunctions(std::vector<SymbolFunction*>& out) const
-{
-    const std::shared_lock lock(mutex_);
-    out.reserve(out.size() + compilerEntryFunctions_.size());
-    for (SymbolFunction* symbol : compilerEntryFunctions_)
-        out.push_back(symbol);
 }
 
 void CompilerInstance::registerRuntimeFunctionSymbol(const IdentifierRef idRef, SymbolFunction* symbol)

@@ -19,6 +19,7 @@ class ConstantManager;
 class IdentifierManager;
 class SymbolModule;
 class SymbolFunction;
+class SymbolVariable;
 class JITMemoryManager;
 class ExternalModuleManager;
 class Global;
@@ -77,19 +78,20 @@ public:
     const SymbolModule* symModule() const { return symModule_; }
     void                setSymModule(SymbolModule* symModule) { symModule_ = symModule; }
 
-    void                                resetNativeCodeSegment();
-    void                                addNativeCodeFunction(SymbolFunction* symbol);
-    void                                addNativeTestFunction(SymbolFunction* symbol);
-    void                                addNativeInitFunction(SymbolFunction* symbol);
-    void                                addNativePreMainFunction(SymbolFunction* symbol);
-    void                                addNativeDropFunction(SymbolFunction* symbol);
-    void                                addNativeMainFunction(SymbolFunction* symbol);
+    void                                registerNativeCodeFunction(SymbolFunction* symbol);
+    void                                registerNativeTestFunction(SymbolFunction* symbol);
+    void                                registerNativeInitFunction(SymbolFunction* symbol);
+    void                                registerNativePreMainFunction(SymbolFunction* symbol);
+    void                                registerNativeDropFunction(SymbolFunction* symbol);
+    void                                registerNativeMainFunction(SymbolFunction* symbol);
+    void                                registerNativeGlobalVariable(SymbolVariable* symbol);
     const std::vector<SymbolFunction*>& nativeCodeSegment() const { return nativeCodeSegment_; }
     const std::vector<SymbolFunction*>& nativeTestFunctions() const { return nativeTestFunctions_; }
     const std::vector<SymbolFunction*>& nativeInitFunctions() const { return nativeInitFunctions_; }
     const std::vector<SymbolFunction*>& nativePreMainFunctions() const { return nativePreMainFunctions_; }
     const std::vector<SymbolFunction*>& nativeDropFunctions() const { return nativeDropFunctions_; }
     const std::vector<SymbolFunction*>& nativeMainFunctions() const { return nativeMainFunctions_; }
+    const std::vector<SymbolVariable*>& nativeGlobalVariables() const { return nativeGlobalVariables_; }
 
     void setupSema(TaskContext& ctx);
     void notifyAlive() { changed_ = true; }
@@ -108,8 +110,6 @@ public:
 
     bool                     registerForeignLib(std::string_view name);
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
-    void                     registerCompilerEntryFunction(SymbolFunction* symbol);
-    void                     appendCompilerEntryFunctions(std::vector<SymbolFunction*>& out) const;
     void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
 
@@ -195,7 +195,6 @@ private:
     std::atomic<uint32_t>                              pendingImplRegistrations_ = 0;
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;
-    std::vector<SymbolFunction*>                       compilerEntryFunctions_;
     std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
     std::once_flag                                     nativeRuntimeContextTlsIdOffsetOnce_;
     uint32_t                                           nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
@@ -205,6 +204,7 @@ private:
     std::vector<SymbolFunction*>                       nativePreMainFunctions_;
     std::vector<SymbolFunction*>                       nativeDropFunctions_;
     std::vector<SymbolFunction*>                       nativeMainFunctions_;
+    std::vector<SymbolVariable*>                       nativeGlobalVariables_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

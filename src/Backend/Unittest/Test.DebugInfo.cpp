@@ -646,7 +646,7 @@ SWC_TEST_BEGIN(DebugInfo_UsesPerVariableBaseRegistersForRegRelativeSymbols)
     if (!debugSection)
         return Result::Error;
 
-    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    const ByteSpan debugBytes    = asByteSpan(debugSection->bytes);
     uint16_t       paramRegister = 0;
     uint16_t       localRegister = 0;
     uint32_t       paramOffset   = 0;
@@ -873,7 +873,7 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+    const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
     CompilerInstance compiler(ctx.global(), cmdLine);
     Command::sema(compiler);
     if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
@@ -940,7 +940,7 @@ SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+    const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
     CompilerInstance compiler(ctx.global(), cmdLine);
     Command::sema(compiler);
     if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)

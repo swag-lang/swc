@@ -254,12 +254,12 @@ namespace
 
             case ConstantKind::Slice:
             {
-                const ByteSpan  sliceBytes       = cst.getSlice();
-                const TypeRef   runtimeTypeRef   = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
-                const TypeInfo& sliceType        = codeGen.typeMgr().get(runtimeTypeRef);
-                const TypeInfo& elementType      = codeGen.typeMgr().get(sliceType.payloadTypeRef());
-                const uint64_t  elementSize      = elementType.sizeOf(codeGen.ctx());
-                const uint64_t  elementCount     = elementSize ? sliceBytes.size() / elementSize : 0;
+                const ByteSpan    sliceBytes      = cst.getSlice();
+                const TypeRef     runtimeTypeRef  = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
+                const TypeInfo&   sliceType       = codeGen.typeMgr().get(runtimeTypeRef);
+                const TypeInfo&   elementType     = codeGen.typeMgr().get(sliceType.payloadTypeRef());
+                const uint64_t    elementSize     = elementType.sizeOf(codeGen.ctx());
+                const uint64_t    elementCount    = elementSize ? sliceBytes.size() / elementSize : 0;
                 const ConstantRef runtimeSliceRef = makeBorrowedRuntimeBufferConstant(codeGen, runtimeTypeRef, sliceBytes.data(), elementCount);
                 if (runtimeSliceRef.isInvalid())
                     return false;

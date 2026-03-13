@@ -119,24 +119,24 @@ public:
         return reportError(std::move(diag));
     }
 
-    std::vector<SymbolFunction*>                                   testFunctions;
-    std::vector<SymbolFunction*>                                   initFunctions;
-    std::vector<SymbolFunction*>                                   preMainFunctions;
-    std::vector<SymbolFunction*>                                   dropFunctions;
-    std::vector<SymbolFunction*>                                   mainFunctions;
-    std::vector<SymbolVariable*>                                   regularGlobals;
-    std::vector<NativeFunctionInfo>                                functionInfos;
-    std::unordered_map<SymbolFunction*, const NativeFunctionInfo*> functionBySymbol;
-    std::unique_ptr<NativeStartupInfo>                             startup;
-    NativeSectionData                                              mergedRData;
-    NativeSectionData                                              mergedData;
-    NativeSectionData                                              mergedBss;
+    std::vector<SymbolFunction*>                                                         testFunctions;
+    std::vector<SymbolFunction*>                                                         initFunctions;
+    std::vector<SymbolFunction*>                                                         preMainFunctions;
+    std::vector<SymbolFunction*>                                                         dropFunctions;
+    std::vector<SymbolFunction*>                                                         mainFunctions;
+    std::vector<SymbolVariable*>                                                         regularGlobals;
+    std::vector<NativeFunctionInfo>                                                      functionInfos;
+    std::unordered_map<SymbolFunction*, const NativeFunctionInfo*>                       functionBySymbol;
+    std::unique_ptr<NativeStartupInfo>                                                   startup;
+    NativeSectionData                                                                    mergedRData;
+    NativeSectionData                                                                    mergedData;
+    NativeSectionData                                                                    mergedBss;
     std::array<std::vector<NativeRDataAllocationMapEntry>, ConstantManager::SHARD_COUNT> rdataAllocationMap;
-    std::vector<NativeObjDescription>                              objectDescriptions;
-    fs::path                                                       buildDir;
-    fs::path                                                       artifactPath;
-    fs::path                                                       pdbPath;
-    std::atomic<bool>                                              objWriteFailed = false;
+    std::vector<NativeObjDescription>                                                    objectDescriptions;
+    fs::path                                                                             buildDir;
+    fs::path                                                                             artifactPath;
+    fs::path                                                                             pdbPath;
+    std::atomic<bool>                                                                    objWriteFailed = false;
 
 private:
     Result reportError(const Diagnostic& diag) const;

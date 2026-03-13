@@ -681,10 +681,10 @@ namespace
         const uint32_t recordOffset = beginRecord(bytes, data.isGlobal ? K_S_GDATA32 : K_S_LDATA32);
         writeU32(bytes, typeIndex);
 
-        const char*   relocBaseSymbol = sectionBaseSymbolName(data.sectionName);
-        const Utf8    relocSymbolName  = relocBaseSymbol ? Utf8(relocBaseSymbol) : data.symbolName;
+        const char*    relocBaseSymbol = sectionBaseSymbolName(data.sectionName);
+        const Utf8     relocSymbolName = relocBaseSymbol ? Utf8(relocBaseSymbol) : data.symbolName;
         const uint32_t relocAddend     = relocBaseSymbol ? data.symbolOffset : 0;
-        const uint32_t offRelocOffset = static_cast<uint32_t>(bytes.size());
+        const uint32_t offRelocOffset  = static_cast<uint32_t>(bytes.size());
         writeU32(bytes, 0);
         const uint32_t segRelocOffset = static_cast<uint32_t>(bytes.size());
         writeU16(bytes, 0);
@@ -1180,7 +1180,7 @@ namespace
         {
             const uint32_t     typeIndex    = nextTypeIndex++;
             const uint32_t     recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
-            constexpr uint16_t size         = static_cast<uint16_t>(std::tuple_size_v<std::array<uint32_t, 5>>);
+            constexpr uint16_t size         = std::tuple_size_v<std::array<uint32_t, 5>>;
             writeU16(bytes, size);
             for (const uint32_t item : items)
                 writeU32(bytes, item);

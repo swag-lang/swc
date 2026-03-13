@@ -90,7 +90,7 @@ public:
     }
 
 private:
-    void                                                                  recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
+    void                                                                   recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
     PagedStore                                                             store_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> stringMap_;
     std::vector<DataSegmentRelocation>                                     relocations_;

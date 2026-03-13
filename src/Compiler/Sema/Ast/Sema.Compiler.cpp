@@ -667,11 +667,11 @@ Result AstCompilerCall::semaPostNode(const Sema& sema) const
 
 Result AstCompilerFunc::semaPreDecl(Sema& sema)
 {
-    TaskContext& ctx = sema.ctx();
-    const Token& tok = sema.token(codeRef());
-    const bool ignoreTestFunc = tok.id == TokenId::CompilerFuncTest && !ctx.cmdLine().test;
-    const bool ignoreMainFunc = tok.id == TokenId::CompilerFuncMain && (ctx.cmdLine().backendKindName == "dll" || ctx.cmdLine().backendKindName == "lib");
-    const bool ignoreCompilerFunc = ignoreTestFunc || ignoreMainFunc;
+    TaskContext& ctx                = sema.ctx();
+    const Token& tok                = sema.token(codeRef());
+    const bool   ignoreTestFunc     = tok.id == TokenId::CompilerFuncTest && !ctx.cmdLine().test;
+    const bool   ignoreMainFunc     = tok.id == TokenId::CompilerFuncMain && (ctx.cmdLine().backendKindName == "dll" || ctx.cmdLine().backendKindName == "lib");
+    const bool   ignoreCompilerFunc = ignoreTestFunc || ignoreMainFunc;
 
     if (tok.id == TokenId::CompilerFuncMain && !ignoreMainFunc)
     {

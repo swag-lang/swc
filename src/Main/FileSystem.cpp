@@ -144,7 +144,7 @@ Result FileSystem::clearDirectoryContents(TaskContext& ctx, const fs::path& path
         return Result::Continue;
 
     std::error_code ec;
-    const bool       exists = fs::exists(path, ec);
+    const bool      exists = fs::exists(path, ec);
     if (ec)
         return reportClearDirectoryError(ctx, diagId, path, ec);
     if (!exists)

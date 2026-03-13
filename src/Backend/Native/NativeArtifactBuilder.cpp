@@ -51,7 +51,7 @@ namespace
                 PendingRDataAllocation pending = std::move(pending_.back());
                 pending_.pop_back();
 
-                const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(pending.shardIndex);
+                const DataSegment&    segment = builder_.compiler().cstMgr().shardDataSegment(pending.shardIndex);
                 DataSegmentAllocation allocation;
                 if (!segment.findAllocation(allocation, pending.sourceOffset) || allocation.offset != pending.sourceOffset)
                     return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, pending.ownerName);
@@ -98,7 +98,7 @@ namespace
 
         Result enqueueSourceOffset(const Utf8& ownerName, const uint32_t shardIndex, const uint32_t sourceOffset)
         {
-            const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+            const DataSegment&    segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
             DataSegmentAllocation allocation;
             if (!segment.findAllocation(allocation, sourceOffset))
                 return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
@@ -125,7 +125,7 @@ namespace
                 auto& reachable = reachableOffsets_[shardIndex];
                 std::ranges::sort(reachable);
 
-                const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+                const DataSegment& segment  = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
                 auto&              mappings = builder_.rdataAllocationMap[shardIndex];
                 mappings.clear();
                 emittedAllocations[shardIndex].reserve(reachable.size());
@@ -136,7 +136,7 @@ namespace
                     DataSegmentAllocation allocation;
                     if (!segment.findAllocation(allocation, sourceOffset) || allocation.offset != sourceOffset)
                     {
-                        const auto ownerIt = owners_[shardIndex].find(sourceOffset);
+                        const auto ownerIt   = owners_[shardIndex].find(sourceOffset);
                         const Utf8 ownerName = ownerIt != owners_[shardIndex].end() ? ownerIt->second : Utf8("<rdata>");
                         return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
                     }
@@ -164,10 +164,10 @@ namespace
 
             for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
             {
-                const DataSegment&   segment          = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
-                const auto&          allocations      = emittedAllocations[shardIndex];
-                const auto&          relocations      = segment.relocations();
-                const auto&          allocationOwners = owners_[shardIndex];
+                const DataSegment& segment          = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+                const auto&        allocations      = emittedAllocations[shardIndex];
+                const auto&        relocations      = segment.relocations();
+                const auto&        allocationOwners = owners_[shardIndex];
 
                 for (size_t i = 0; i < allocations.size(); ++i)
                 {
@@ -184,7 +184,7 @@ namespace
                         uint32_t targetOffset = 0;
                         if (!builder_.tryMapRDataSourceOffset(targetOffset, shardIndex, relocation.targetOffset))
                         {
-                            const auto ownerIt = allocationOwners.find(allocation.offset);
+                            const auto ownerIt   = allocationOwners.find(allocation.offset);
                             const Utf8 ownerName = ownerIt != allocationOwners.end() ? ownerIt->second : Utf8("<rdata>");
                             return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
                         }
@@ -201,11 +201,11 @@ namespace
             return Result::Continue;
         }
 
-        NativeBackendBuilder&                                                            builder_;
-        std::array<std::vector<uint32_t>, ConstantManager::SHARD_COUNT>                  reachableOffsets_;
-        std::array<std::unordered_set<uint32_t>, ConstantManager::SHARD_COUNT>           seen_;
-        std::array<std::unordered_map<uint32_t, Utf8>, ConstantManager::SHARD_COUNT>     owners_;
-        std::vector<PendingRDataAllocation>                                              pending_;
+        NativeBackendBuilder&                                                        builder_;
+        std::array<std::vector<uint32_t>, ConstantManager::SHARD_COUNT>              reachableOffsets_;
+        std::array<std::unordered_set<uint32_t>, ConstantManager::SHARD_COUNT>       seen_;
+        std::array<std::unordered_map<uint32_t, Utf8>, ConstantManager::SHARD_COUNT> owners_;
+        std::vector<PendingRDataAllocation>                                          pending_;
     };
 
     Utf8 objectFileName(const Utf8& name, const Utf8& extension, const uint32_t objectIndex)

@@ -34,20 +34,20 @@ public:
     const std::vector<char8_t>& content() const { return content_; }
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
 
-    size_t             size() const { return content_.size() - TRAILING_0; }
-    NodePayload&       nodePayloadContext() { return *nodePayloadContext_; }
-    const NodePayload& nodePayloadContext() const { return *nodePayloadContext_; }
-    FileFlags&         flags() { return flags_; }
-    const FileFlags&   flags() const { return flags_; }
-    bool               hasFlag(FileFlags flag) const { return flags_.has(flag); }
-    void               addFlag(FileFlags flag) { flags_.add(flag); }
-    Verify&            unitTest() { return *unitTest_; }
-    const Verify&      unitTest() const { return *unitTest_; }
-    void               setModuleNamespace(SymbolNamespace& ns) const;
+    size_t                 size() const { return content_.size() - TRAILING_0; }
+    NodePayload&           nodePayloadContext() { return *nodePayloadContext_; }
+    const NodePayload&     nodePayloadContext() const { return *nodePayloadContext_; }
+    FileFlags&             flags() { return flags_; }
+    const FileFlags&       flags() const { return flags_; }
+    bool                   hasFlag(FileFlags flag) const { return flags_.has(flag); }
+    void                   addFlag(FileFlags flag) { flags_.add(flag); }
+    Verify&                unitTest() { return *unitTest_; }
+    const Verify&          unitTest() const { return *unitTest_; }
+    void                   setModuleNamespace(SymbolNamespace& ns) const;
     const SymbolNamespace* fileNamespace() const;
-    Ast&               ast();
-    const Ast&         ast() const;
-    bool               isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }
+    Ast&                   ast();
+    const Ast&             ast() const;
+    bool                   isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }
 
     void setHasError() { hasError_ = true; }
     void setHasWarning() { hasWarning_ = true; }

@@ -39,7 +39,7 @@ namespace
     constexpr std::string_view EXPECTED_PARSER_ID     = "{{parser_";
     constexpr std::string_view EXPECTED_LEX_ID        = "{{lex_";
     constexpr std::string_view EXPECTED_SEMA_ID       = "{{sema_";
-    bool isRunCommand(const CommandKind command)
+    bool                       isRunCommand(const CommandKind command)
     {
         return command == CommandKind::Run;
     }

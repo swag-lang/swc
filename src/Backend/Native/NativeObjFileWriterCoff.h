@@ -57,7 +57,7 @@ private:
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
     Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
     Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
-    Result        appendSingleCodeRelocation(uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
+    Result        appendSingleCodeRelocation(uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
     static Result applySectionRelocations(CoffSectionBuild& section);
     static void   writeU16(std::vector<std::byte>& bytes, uint32_t offset, uint16_t value);
     static void   writeU32(std::vector<std::byte>& bytes, uint32_t offset, uint32_t value);

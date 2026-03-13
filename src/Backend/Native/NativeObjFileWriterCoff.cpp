@@ -361,18 +361,18 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
 Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT(appendSingleCodeRelocation(startup.textOffset, relocation, textSection, allowUnresolvedSymbols));
+        SWC_RESULT(appendSingleCodeRelocation(startup.textOffset, startup.debugName, relocation, textSection, allowUnresolvedSymbols));
     return Result::Continue;
 }
 
 Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, relocation, textSection, allowUnresolvedSymbols));
+        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, owner.debugName, relocation, textSection, allowUnresolvedSymbols));
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const MicroRelocation& relocation, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
+Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     const uint32_t patchOffset = functionOffset + relocation.codeOffset;
     SWC_ASSERT(patchOffset + sizeof(uint64_t) <= textSection.data.bytes.size());
@@ -419,9 +419,15 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
         {
             uint32_t  shardIndex = 0;
             const Ref ref        = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
-            SWC_ASSERT(ref != INVALID_REF);
+            if (ref == INVALID_REF)
+                return builder_.reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
+
+            uint32_t mappedOffset = 0;
+            if (!builder_.tryMapRDataSourceOffset(mappedOffset, shardIndex, ref))
+                return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
+
             record.symbolName = K_R_DATA_BASE_SYMBOL;
-            record.addend     = builder_.rdataShardBaseOffsets[shardIndex] + ref;
+            record.addend     = mappedOffset;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
             break;
         }

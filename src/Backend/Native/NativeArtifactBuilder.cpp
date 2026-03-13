@@ -10,6 +10,204 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct PendingRDataAllocation
+    {
+        uint32_t shardIndex   = 0;
+        uint32_t sourceOffset = 0;
+        Utf8     ownerName;
+    };
+
+    class NativeRDataCollector
+    {
+    public:
+        explicit NativeRDataCollector(NativeBackendBuilder& builder) :
+            builder_(builder)
+        {
+        }
+
+        Result collectAndEmit()
+        {
+            SWC_RESULT(collectRoots());
+            return emitReachableAllocations();
+        }
+
+    private:
+        Result collectRoots()
+        {
+            if (builder_.startup)
+                SWC_RESULT(collectCodeRoots(builder_.startup->debugName, builder_.startup->code.codeRelocations));
+
+            for (const NativeFunctionInfo& info : builder_.functionInfos)
+            {
+                if (!info.machineCode)
+                    continue;
+
+                const Utf8 ownerName = info.symbol ? info.symbol->getFullScopedName(builder_.ctx()) : info.debugName;
+                SWC_RESULT(collectCodeRoots(ownerName, info.machineCode->codeRelocations));
+            }
+
+            while (!pending_.empty())
+            {
+                PendingRDataAllocation pending = std::move(pending_.back());
+                pending_.pop_back();
+
+                const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(pending.shardIndex);
+                DataSegmentAllocation allocation;
+                if (!segment.findAllocation(allocation, pending.sourceOffset) || allocation.offset != pending.sourceOffset)
+                    return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, pending.ownerName);
+
+                for (const DataSegmentRelocation& relocation : segment.relocations())
+                {
+                    if (relocation.offset < allocation.offset)
+                        continue;
+                    if (relocation.offset - allocation.offset >= allocation.size)
+                        continue;
+
+                    SWC_RESULT(enqueueSourceOffset(pending.ownerName, pending.shardIndex, relocation.targetOffset));
+                }
+            }
+
+            return Result::Continue;
+        }
+
+        Result collectCodeRoots(const Utf8& ownerName, const std::span<const MicroRelocation> relocations)
+        {
+            for (const MicroRelocation& relocation : relocations)
+            {
+                if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
+                    continue;
+
+                SWC_RESULT(enqueuePointer(ownerName, reinterpret_cast<const void*>(relocation.targetAddress)));
+            }
+
+            return Result::Continue;
+        }
+
+        Result enqueuePointer(const Utf8& ownerName, const void* ptr)
+        {
+            if (!ptr)
+                return Result::Continue;
+
+            uint32_t  shardIndex = 0;
+            const Ref sourceRef  = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, ptr);
+            if (sourceRef == INVALID_REF)
+                return builder_.reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
+
+            return enqueueSourceOffset(ownerName, shardIndex, sourceRef);
+        }
+
+        Result enqueueSourceOffset(const Utf8& ownerName, const uint32_t shardIndex, const uint32_t sourceOffset)
+        {
+            const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+            DataSegmentAllocation allocation;
+            if (!segment.findAllocation(allocation, sourceOffset))
+                return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
+
+            if (!seen_[shardIndex].insert(allocation.offset).second)
+                return Result::Continue;
+
+            reachableOffsets_[shardIndex].push_back(allocation.offset);
+            owners_[shardIndex].emplace(allocation.offset, ownerName);
+            pending_.push_back({
+                .shardIndex   = shardIndex,
+                .sourceOffset = allocation.offset,
+                .ownerName    = ownerName,
+            });
+            return Result::Continue;
+        }
+
+        Result emitReachableAllocations()
+        {
+            std::array<std::vector<DataSegmentAllocation>, ConstantManager::SHARD_COUNT> emittedAllocations;
+
+            for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
+            {
+                auto& reachable = reachableOffsets_[shardIndex];
+                std::ranges::sort(reachable);
+
+                const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+                auto&              mappings = builder_.rdataAllocationMap[shardIndex];
+                mappings.clear();
+                emittedAllocations[shardIndex].reserve(reachable.size());
+                mappings.reserve(reachable.size());
+
+                for (const uint32_t sourceOffset : reachable)
+                {
+                    DataSegmentAllocation allocation;
+                    if (!segment.findAllocation(allocation, sourceOffset) || allocation.offset != sourceOffset)
+                    {
+                        const auto ownerIt = owners_[shardIndex].find(sourceOffset);
+                        const Utf8 ownerName = ownerIt != owners_[shardIndex].end() ? ownerIt->second : Utf8("<rdata>");
+                        return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
+                    }
+
+                    const uint32_t emittedOffset = Math::alignUpU32(static_cast<uint32_t>(builder_.mergedRData.bytes.size()), std::max(allocation.align, 1u));
+                    if (builder_.mergedRData.bytes.size() < emittedOffset)
+                        builder_.mergedRData.bytes.resize(emittedOffset, std::byte{0});
+
+                    const uint32_t insertOffset = static_cast<uint32_t>(builder_.mergedRData.bytes.size());
+                    SWC_ASSERT(insertOffset == emittedOffset);
+                    builder_.mergedRData.bytes.resize(insertOffset + allocation.size);
+
+                    const auto* sourceBytes = segment.ptr<std::byte>(allocation.offset);
+                    SWC_ASSERT(sourceBytes != nullptr);
+                    std::memcpy(builder_.mergedRData.bytes.data() + insertOffset, sourceBytes, allocation.size);
+
+                    emittedAllocations[shardIndex].push_back(allocation);
+                    mappings.push_back({
+                        .sourceOffset  = allocation.offset,
+                        .size          = allocation.size,
+                        .emittedOffset = emittedOffset,
+                    });
+                }
+            }
+
+            for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
+            {
+                const DataSegment&   segment          = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+                const auto&          allocations      = emittedAllocations[shardIndex];
+                const auto&          relocations      = segment.relocations();
+                const auto&          allocationOwners = owners_[shardIndex];
+
+                for (size_t i = 0; i < allocations.size(); ++i)
+                {
+                    const DataSegmentAllocation&        allocation = allocations[i];
+                    const NativeRDataAllocationMapEntry mapping    = builder_.rdataAllocationMap[shardIndex][i];
+
+                    for (const DataSegmentRelocation& relocation : relocations)
+                    {
+                        if (relocation.offset < allocation.offset)
+                            continue;
+                        if (relocation.offset - allocation.offset >= allocation.size)
+                            continue;
+
+                        uint32_t targetOffset = 0;
+                        if (!builder_.tryMapRDataSourceOffset(targetOffset, shardIndex, relocation.targetOffset))
+                        {
+                            const auto ownerIt = allocationOwners.find(allocation.offset);
+                            const Utf8 ownerName = ownerIt != allocationOwners.end() ? ownerIt->second : Utf8("<rdata>");
+                            return builder_.reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
+                        }
+
+                        NativeSectionRelocation record;
+                        record.offset     = mapping.emittedOffset + (relocation.offset - allocation.offset);
+                        record.symbolName = K_R_DATA_BASE_SYMBOL;
+                        record.addend     = targetOffset;
+                        builder_.mergedRData.relocations.push_back(record);
+                    }
+                }
+            }
+
+            return Result::Continue;
+        }
+
+        NativeBackendBuilder&                                                            builder_;
+        std::array<std::vector<uint32_t>, ConstantManager::SHARD_COUNT>                  reachableOffsets_;
+        std::array<std::unordered_set<uint32_t>, ConstantManager::SHARD_COUNT>           seen_;
+        std::array<std::unordered_map<uint32_t, Utf8>, ConstantManager::SHARD_COUNT>     owners_;
+        std::vector<PendingRDataAllocation>                                              pending_;
+    };
+
     Utf8 objectFileName(const Utf8& name, const Utf8& extension, const uint32_t objectIndex)
     {
         return std::format("{}_{:02}{}", name, objectIndex, extension);
@@ -156,8 +354,8 @@ Result NativeArtifactBuilder::build() const
     const NativeValidate nativeValidate(builder_);
     nativeValidate.validate();
 #endif
-    SWC_RESULT(prepareDataSections());
     SWC_RESULT(buildStartup());
+    SWC_RESULT(prepareDataSections());
     return partitionObjects();
 }
 
@@ -178,35 +376,13 @@ Result NativeArtifactBuilder::prepareDataSections() const
     builder_.mergedData.relocations.clear();
     builder_.mergedBss.bssSize = compiler.globalZeroSegment().extentSize();
     builder_.mergedBss.bss     = builder_.mergedBss.bssSize != 0;
-    builder_.rdataShardBaseOffsets.fill(0);
+    for (auto& mappings : builder_.rdataAllocationMap)
+        mappings.clear();
 
-    // Constant shards are concatenated into one synthetic .rdata section while preserving
-    // per-shard offsets so relocations can still target the original logical base.
-    for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
-    {
-        const DataSegment& segment     = compiler.cstMgr().shardDataSegment(shardIndex);
-        const uint32_t     segmentSize = segment.extentSize();
-        if (!segmentSize)
-            continue;
-
-        const uint32_t baseOffset = Math::alignUpU32(static_cast<uint32_t>(builder_.mergedRData.bytes.size()), 16);
-        if (builder_.mergedRData.bytes.size() < baseOffset)
-            builder_.mergedRData.bytes.resize(baseOffset, std::byte{0});
-        builder_.rdataShardBaseOffsets[shardIndex] = baseOffset;
-
-        const uint32_t insertOffset = static_cast<uint32_t>(builder_.mergedRData.bytes.size());
-        builder_.mergedRData.bytes.resize(insertOffset + segmentSize);
-        segment.copyToPreserveOffsets(ByteSpanRW{builder_.mergedRData.bytes.data() + insertOffset, segmentSize});
-
-        for (const auto& relocation : segment.relocations())
-        {
-            NativeSectionRelocation record;
-            record.offset     = baseOffset + relocation.offset;
-            record.symbolName = K_R_DATA_BASE_SYMBOL;
-            record.addend     = baseOffset + relocation.targetOffset;
-            builder_.mergedRData.relocations.push_back(record);
-        }
-    }
+    // Emitted machine code is the source of truth for native constant roots.
+    // Global initializers are already materialized into .data/.bss and do not need shard-wide .rdata copies.
+    NativeRDataCollector collector(builder_);
+    SWC_RESULT(collector.collectAndEmit());
 
     const uint32_t dataSize = compiler.globalInitSegment().extentSize();
     if (dataSize)

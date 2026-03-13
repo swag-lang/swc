@@ -150,6 +150,31 @@ const CompilerInstance& NativeBackendBuilder::compiler() const
     return compiler_;
 }
 
+bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
+{
+    outOffset = 0;
+    if (shardIndex >= ConstantManager::SHARD_COUNT)
+        return false;
+
+    const auto& entries = rdataAllocationMap[shardIndex];
+    if (entries.empty())
+        return false;
+
+    const auto it = std::upper_bound(entries.begin(),
+                                     entries.end(),
+                                     sourceOffset,
+                                     [](const uint32_t lhs, const NativeRDataAllocationMapEntry& rhs) { return lhs < rhs.sourceOffset; });
+    if (it == entries.begin())
+        return false;
+
+    const auto& entry = *std::prev(it);
+    if (sourceOffset < entry.sourceOffset || sourceOffset - entry.sourceOffset >= entry.size)
+        return false;
+
+    outOffset = entry.emittedOffset + (sourceOffset - entry.sourceOffset);
+    return true;
+}
+
 Result NativeBackendBuilder::run()
 {
     SWC_RESULT(validateTarget());

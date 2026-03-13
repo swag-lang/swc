@@ -68,6 +68,13 @@ struct NativeSectionData
     uint32_t                             bssSize         = 0;
 };
 
+struct NativeRDataAllocationMapEntry
+{
+    uint32_t sourceOffset  = 0;
+    uint32_t size          = 0;
+    uint32_t emittedOffset = 0;
+};
+
 struct NativeObjDescription
 {
     uint32_t                         index = 0;
@@ -87,6 +94,7 @@ public:
     const TaskContext&      ctx() const;
     CompilerInstance&       compiler();
     const CompilerInstance& compiler() const;
+    bool                    tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
 
     Result run();
     Result prepare();
@@ -123,7 +131,7 @@ public:
     NativeSectionData                                              mergedRData;
     NativeSectionData                                              mergedData;
     NativeSectionData                                              mergedBss;
-    std::array<uint32_t, ConstantManager::SHARD_COUNT>             rdataShardBaseOffsets{};
+    std::array<std::vector<NativeRDataAllocationMapEntry>, ConstantManager::SHARD_COUNT> rdataAllocationMap;
     std::vector<NativeObjDescription>                              objectDescriptions;
     fs::path                                                       buildDir;
     fs::path                                                       artifactPath;

@@ -16,7 +16,7 @@
        ```
     3. Ensure no regressions occur.
 
-- When modifying **code generation**, run `all_dm.bat` **10 consecutive times** to detect nondeterministic behavior.
+- When modifying **code generation**, run `test.bat` **10 consecutive times** to detect nondeterministic behavior.
 
 - If a new feature is added, create appropriate tests in the most relevant `bin/tests` folder and file.
 

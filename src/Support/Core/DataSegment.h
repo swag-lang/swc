@@ -17,6 +17,13 @@ struct DataSegmentRelocation
     uint32_t targetOffset;
 };
 
+struct DataSegmentAllocation
+{
+    uint32_t offset = 0;
+    uint32_t size   = 0;
+    uint32_t align  = 1;
+};
+
 class DataSegment
 {
 public:
@@ -27,6 +34,7 @@ public:
     void                                      addRelocation(uint32_t offset, uint32_t targetOffset);
     std::pair<uint32_t, std::byte*>           reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
     Ref                                       findRef(const void* ptr) const noexcept { return store_.findRef(ptr); }
+    bool                                      findAllocation(DataSegmentAllocation& outAllocation, uint32_t offset) const noexcept;
     uint32_t                                  size() const noexcept;
     uint32_t                                  extentSize() const noexcept;
     void                                      copyTo(ByteSpanRW dst) const;
@@ -42,6 +50,7 @@ public:
         std::unique_lock        lock(mutex_);
         std::pair<uint32_t, T*> res = store_.emplaceUninit<T>();
         std::memset(res.second, 0, sizeof(T));
+        recordAllocation(res.first, sizeof(T), static_cast<uint32_t>(alignof(T)));
         return res;
     }
 
@@ -55,6 +64,7 @@ public:
         const std::pair<ByteSpan, Ref> res   = store_.pushCopySpan(ByteSpan{static_cast<const std::byte*>(nullptr), bytes}, static_cast<uint32_t>(alignof(T)));
         T*                             ptr   = store_.ptr<T>(res.second);
         std::memset(ptr, 0, bytes);
+        recordAllocation(res.second, bytes, static_cast<uint32_t>(alignof(T)));
         return {res.second, ptr};
     }
 
@@ -62,7 +72,9 @@ public:
     uint32_t add(const T& value)
     {
         std::unique_lock lock(mutex_);
-        return store_.pushBack(value);
+        const Ref        ref = store_.pushBack(value);
+        recordAllocation(ref, sizeof(T), static_cast<uint32_t>(alignof(T)));
+        return ref;
     }
 
     template<class T>
@@ -78,9 +90,11 @@ public:
     }
 
 private:
+    void                                                                  recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
     PagedStore                                                             store_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> stringMap_;
     std::vector<DataSegmentRelocation>                                     relocations_;
+    std::vector<DataSegmentAllocation>                                     allocations_;
     mutable std::shared_mutex                                              mutex_;
 };
 

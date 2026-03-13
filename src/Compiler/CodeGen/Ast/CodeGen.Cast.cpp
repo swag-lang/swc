@@ -677,6 +677,16 @@ namespace
 
         if (srcIntLikeType && dstFloatType)
         {
+            if (getNumBits(srcOpBits) < 32)
+            {
+                const MicroReg widenedReg = codeGen.nextVirtualIntRegister();
+                if (srcType.isIntSigned())
+                    builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, MicroOpBits::B32, srcOpBits);
+                else
+                    builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, MicroOpBits::B32, srcOpBits);
+                srcReg = widenedReg;
+            }
+
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
@@ -687,7 +697,14 @@ namespace
         if (srcFloatType && dstFloatType)
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = srcReg;
+            if (srcOpBits == dstOpBits)
+            {
+                dstPayload.reg = srcReg;
+                return Result::Continue;
+            }
+
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            builder.emitClearReg(dstPayload.reg, dstOpBits);
             builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
             return Result::Continue;
         }

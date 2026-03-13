@@ -187,16 +187,33 @@ namespace
 
         if (srcType.isIntLike() && dstType.isFloat())
         {
+            MicroReg srcReg = outReg;
+            if (getNumBits(srcBits) < 32)
+            {
+                srcReg = codeGen.nextVirtualIntRegister();
+                if (srcType.isIntSigned())
+                    builder.emitLoadSignedExtendRegReg(srcReg, outReg, MicroOpBits::B32, srcBits);
+                else
+                    builder.emitLoadZeroExtendRegReg(srcReg, outReg, MicroOpBits::B32, srcBits);
+            }
+
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstReg, dstBits);
-            builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertIntToFloat, dstBits);
+            builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertIntToFloat, dstBits);
             outReg = dstReg;
             return;
         }
 
         if (srcType.isFloat() && dstType.isFloat())
         {
-            builder.emitOpBinaryRegReg(outReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
+            if (srcBits == dstBits)
+                return;
+
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            builder.emitClearReg(dstReg, dstBits);
+            builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
+            outReg = dstReg;
+            return;
         }
     }
 

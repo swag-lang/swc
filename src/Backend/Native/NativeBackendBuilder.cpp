@@ -73,6 +73,62 @@ namespace
         return result;
     }
 
+    bool appendCodeGenDependencies(std::vector<SymbolFunction*>& functions)
+    {
+        bool                         changed = false;
+        std::unordered_set seenFunctions(functions.begin(), functions.end());
+        for (size_t idx = 0; idx < functions.size(); ++idx)
+        {
+            const SymbolFunction* function = functions[idx];
+            SWC_ASSERT(function != nullptr);
+
+            SmallVector<SymbolFunction*> deps;
+            function->appendCallDependencies(deps);
+            for (SymbolFunction* dep : deps)
+            {
+                if (!dep)
+                    continue;
+                if (dep->isForeign() || dep->isEmpty() || dep->isAttribute())
+                    continue;
+                if (dep->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+                    continue;
+                if (!dep->isSemaCompleted())
+                    continue;
+                if (!seenFunctions.insert(dep).second)
+                    continue;
+
+                functions.push_back(dep);
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    void rebuildFunctionInfos(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
+    {
+        builder.functionInfos.clear();
+        builder.functionBySymbol.clear();
+
+        for (SymbolFunction* symbol : functions)
+        {
+            SWC_ASSERT(symbol != nullptr);
+
+            NativeFunctionInfo info;
+            info.symbol      = symbol;
+            info.machineCode = &symbol->loweredCode();
+            info.sortKey     = makeFunctionSortKey(builder, *symbol);
+            info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", builder.functionInfos.size(), Math::hash(info.sortKey));
+            info.debugName   = symbol->getFullScopedName(builder.ctx());
+            info.exported    = symbol->isPublic() && !isCompilerFunction(*symbol);
+            info.compilerFn  = isCompilerFunction(*symbol);
+            builder.functionInfos.push_back(std::move(info));
+        }
+
+        for (const auto& info : builder.functionInfos)
+            builder.functionBySymbol.emplace(info.symbol, &info);
+    }
+
     Result scheduleCodeGen(NativeBackendBuilder& builder)
     {
         if (builder.functionInfos.empty())
@@ -211,33 +267,7 @@ Result NativeBackendBuilder::prepare()
     mainFunctions    = compiler_.nativeMainFunctions();
     regularGlobals   = compiler_.nativeGlobalVariables();
 
-    auto               functions = compiler_.nativeCodeSegment();
-    std::unordered_set seenFunctions(functions.begin(), functions.end());
-    for (size_t idx = 0; idx < functions.size(); ++idx)
-    {
-        const SymbolFunction* function = functions[idx];
-        SWC_ASSERT(function != nullptr);
-
-        SmallVector<SymbolFunction*> deps;
-        function->appendCallDependencies(deps);
-        for (SymbolFunction* dep : deps)
-        {
-            if (!dep)
-                continue;
-            if (dep->isForeign() || dep->isEmpty() || dep->isAttribute())
-                continue;
-            if (dep->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
-                continue;
-            if (!dep->isSemaCompleted())
-                continue;
-            if (!seenFunctions.insert(dep).second)
-                continue;
-
-            functions.push_back(dep);
-        }
-    }
-
-    sortAndUnique(functions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+    auto functions = compiler_.nativeCodeSegment();
     sortAndUnique(testFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(initFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(preMainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
@@ -245,25 +275,16 @@ Result NativeBackendBuilder::prepare()
     sortAndUnique(mainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(regularGlobals, [&](const SymbolVariable& symbol) { return makeVariableSortKey(*this, symbol); });
 
-    for (SymbolFunction* symbol : functions)
+    while (true)
     {
-        SWC_ASSERT(symbol != nullptr);
+        appendCodeGenDependencies(functions);
+        sortAndUnique(functions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+        rebuildFunctionInfos(*this, functions);
+        SWC_RESULT(scheduleCodeGen(*this));
 
-        NativeFunctionInfo info;
-        info.symbol      = symbol;
-        info.machineCode = &symbol->loweredCode();
-        info.sortKey     = makeFunctionSortKey(*this, *symbol);
-        info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", functionInfos.size(), Math::hash(info.sortKey));
-        info.debugName   = symbol->getFullScopedName(ctx_);
-        info.exported    = symbol->isPublic() && !isCompilerFunction(*symbol);
-        info.compilerFn  = isCompilerFunction(*symbol);
-        functionInfos.push_back(std::move(info));
+        if (!appendCodeGenDependencies(functions))
+            return Result::Continue;
     }
-
-    for (const auto& info : functionInfos)
-        functionBySymbol.emplace(info.symbol, &info);
-
-    return scheduleCodeGen(*this);
 }
 
 Result NativeBackendBuilder::writeObject(const uint32_t objIndex)

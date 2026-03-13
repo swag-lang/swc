@@ -6,12 +6,124 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct StructUsingPathStep
+    {
+        const SymbolVariable* field     = nullptr;
+        bool                  isPointer = false;
+    };
+
+    bool isUsingMemberDecl(const AstNode* decl)
+    {
+        if (!decl)
+            return false;
+        if (decl->is(AstNodeId::SingleVarDecl))
+            return decl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
+        if (decl->is(AstNodeId::MultiVarDecl))
+            return decl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
+        return false;
+    }
+
+    const SymbolStruct* resolveUsingTargetStruct(CodeGen& codeGen, const SymbolVariable& symVar, bool& outIsPointer)
+    {
+        outIsPointer = false;
+
+        const TaskContext& ctx     = codeGen.ctx();
+        const TypeManager& typeMgr = codeGen.typeMgr();
+        const TypeRef      typeRef = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo&    typeInfo = typeMgr.get(typeRef);
+        if (typeInfo.isStruct())
+            return &typeInfo.payloadSymStruct();
+
+        if (!typeInfo.isAnyPointer())
+            return nullptr;
+
+        const TypeRef   pointeeTypeRef = typeMgr.get(typeInfo.payloadTypeRef()).unwrap(ctx, typeInfo.payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& pointeeType    = typeMgr.get(pointeeTypeRef);
+        if (!pointeeType.isStruct())
+            return nullptr;
+
+        outIsPointer = true;
+        return &pointeeType.payloadSymStruct();
+    }
+
+    bool resolveUsingMemberPathRec(CodeGen& codeGen, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<StructUsingPathStep>& outSteps, SmallVector<const SymbolStruct*>& visited)
+    {
+        if (&currentStruct == &targetStruct)
+            return true;
+
+        for (const SymbolStruct* visitedStruct : visited)
+        {
+            if (visitedStruct == &currentStruct)
+                return false;
+        }
+
+        visited.push_back(&currentStruct);
+        for (const Symbol* fieldSym : currentStruct.fields())
+        {
+            const auto* field = fieldSym ? fieldSym->safeCast<SymbolVariable>() : nullptr;
+            if (!field || !isUsingMemberDecl(field->decl()))
+                continue;
+
+            bool                usingFieldIsPointer = false;
+            const SymbolStruct*  usingTargetStruct  = resolveUsingTargetStruct(codeGen, *field, usingFieldIsPointer);
+            if (!usingTargetStruct)
+                continue;
+
+            outSteps.push_back({.field = field, .isPointer = usingFieldIsPointer});
+            if (resolveUsingMemberPathRec(codeGen, *usingTargetStruct, targetStruct, outSteps, visited))
+                return true;
+            outSteps.pop_back();
+        }
+
+        return false;
+    }
+
+    bool resolveStructMemberPath(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym, SmallVector<StructUsingPathStep>& outSteps)
+    {
+        outSteps.clear();
+
+        const SymbolMap* ownerSymMap = memberSym.ownerSymMap();
+        const auto*      ownerStruct = ownerSymMap ? ownerSymMap->safeCast<SymbolStruct>() : nullptr;
+        if (!ownerStruct)
+            return false;
+
+        TypeRef baseTypeRef = codeGen.typeMgr().get(leftTypeRef).unwrap(codeGen.ctx(), leftTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (baseTypeRef.isInvalid())
+            return false;
+
+        const TypeInfo* baseTypeInfo = &codeGen.typeMgr().get(baseTypeRef);
+        if (baseTypeInfo->isAnyPointer() || baseTypeInfo->isReference())
+        {
+            baseTypeRef  = codeGen.typeMgr().get(baseTypeInfo->payloadTypeRef()).unwrap(codeGen.ctx(), baseTypeInfo->payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+            baseTypeInfo = &codeGen.typeMgr().get(baseTypeRef);
+        }
+
+        if (!baseTypeInfo->isStruct())
+            return false;
+
+        SmallVector<const SymbolStruct*> visited;
+        return resolveUsingMemberPathRec(codeGen, baseTypeInfo->payloadSymStruct(), *ownerStruct, outSteps, visited);
+    }
+
+    MicroReg offsetAddressReg(CodeGen& codeGen, MicroReg baseReg, uint32_t offset)
+    {
+        if (!offset)
+            return baseReg;
+
+        MicroBuilder& builder = codeGen.builder();
+        const MicroReg result = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(result, baseReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(result, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
+        return result;
+    }
+
     CodeGenNodePayload resolveMemberRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
     {
         if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
@@ -80,41 +192,55 @@ namespace
         const Symbol*             rightSym     = (rightView.sym());
         const auto&               symVar       = rightSym->cast<SymbolVariable>();
 
-        const TypeRef             memberTypeRef = codeGen.curViewType().typeRef();
+        const TypeRef             memberTypeRef = symVar.typeRef();
         const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
+        SmallVector<StructUsingPathStep> usingPath;
+        if (leftTypeView.typeRef().isValid())
+            resolveStructMemberPath(codeGen, leftTypeView.typeRef(), symVar, usingPath);
 
+        MicroReg baseAddressReg = leftPayload.reg;
         if (leftTypeView.type() && (leftTypeView.type()->isAnyPointer() || leftTypeView.type()->isReference()))
         {
-            MicroReg baseAddressReg = leftPayload.reg;
             if (leftPayload.isAddress())
             {
                 baseAddressReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(baseAddressReg, leftPayload.reg, 0, MicroOpBits::B64);
             }
+        }
+        else if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, leftPayload))
+        {
+            baseAddressReg = leftPayload.reg;
+        }
+        else
+        {
+            const SemaNodeView leftView = codeGen.viewType(node.nodeLeftRef);
+            SWC_ASSERT(leftView.type());
 
-            builder.emitLoadAddressRegMem(payload.reg, baseAddressReg, symVar.offset(), MicroOpBits::B64);
-            return Result::Continue;
+            const uint64_t leftSize = leftView.type()->sizeOf(codeGen.ctx());
+            SWC_ASSERT(leftSize > 0);
+
+            if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)
+            {
+                const MicroReg spillAddrReg = memberRuntimeStorageAddressReg(codeGen);
+                builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(leftSize)));
+                baseAddressReg = spillAddrReg;
+            }
         }
 
-        if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, leftPayload))
+        for (const auto& step : usingPath)
         {
-            builder.emitLoadAddressRegMem(payload.reg, leftPayload.reg, symVar.offset(), MicroOpBits::B64);
-            return Result::Continue;
-        }
-
-        const SemaNodeView leftView = codeGen.viewType(node.nodeLeftRef);
-        SWC_ASSERT(leftView.type());
-
-        const uint64_t leftSize = leftView.type()->sizeOf(codeGen.ctx());
-        SWC_ASSERT(leftSize > 0);
-
-        MicroReg baseAddressReg = leftPayload.reg;
-        if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)
-        {
-            const MicroReg spillAddrReg = memberRuntimeStorageAddressReg(codeGen);
-            builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(leftSize)));
-            baseAddressReg = spillAddrReg;
+            SWC_ASSERT(step.field != nullptr);
+            if (step.isPointer)
+            {
+                const MicroReg nextAddressReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(nextAddressReg, baseAddressReg, step.field->offset(), MicroOpBits::B64);
+                baseAddressReg = nextAddressReg;
+            }
+            else
+            {
+                baseAddressReg = offsetAddressReg(codeGen, baseAddressReg, step.field->offset());
+            }
         }
 
         builder.emitLoadAddressRegMem(payload.reg, baseAddressReg, symVar.offset(), MicroOpBits::B64);

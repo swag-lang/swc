@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -61,6 +62,7 @@ namespace
         bool            reverse       = false;
         bool            inclusive     = false;
         bool            unsignedCmp   = false;
+        bool            hasContinueJump = false;
     };
 
     AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -278,6 +280,19 @@ namespace
         symbolPayload.setIsValue();
         symbolPayload.reg = valueReg;
         codeGen.setVariablePayload(symVar, symbolPayload);
+    }
+
+    bool currentInstructionIsTerminator(const CodeGen& codeGen)
+    {
+        const MicroInstrRef lastRef = codeGen.builder().instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
+        if (lastRef.isInvalid())
+            return false;
+
+        const MicroInstr* lastInst = codeGen.builder().instructions().ptr(lastRef);
+        if (!lastInst || lastInst->op == MicroInstrOpcode::Label)
+            return false;
+
+        return MicroInstrInfo::isTerminatorInstruction(*lastInst);
     }
 
     CodeGenNodePayload resolveForeachVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
@@ -732,6 +747,12 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
 
     if (childRef == bodyRef)
     {
+        if (currentInstructionIsTerminator(codeGen) && !loopState->hasContinueJump)
+        {
+            codeGen.popFrame();
+            return Result::Continue;
+        }
+
         const TypeInfo&   indexType = codeGen.typeMgr().get(loopState->indexTypeRef);
         const MicroOpBits opBits    = conditionOpBits(&indexType, codeGen.ctx());
         MicroBuilder&     builder   = codeGen.builder();
@@ -1001,6 +1022,18 @@ Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
 {
     if (codeGen.frame().currentBreakableKind() != CodeGenFrame::BreakContextKind::Loop)
         return Result::Continue;
+
+    const AstNodeRef loopRef = codeGen.frame().currentBreakContext().nodeRef;
+    if (loopRef.isValid())
+    {
+        const AstNode& loopNode = codeGen.node(loopRef);
+        if (loopNode.is(AstNodeId::ForStmt))
+        {
+            ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, loopRef);
+            SWC_ASSERT(loopState != nullptr);
+            loopState->hasContinueJump = true;
+        }
+    }
 
     const MicroLabelRef continueLabel = codeGen.frame().currentLoopContinueLabel();
     if (continueLabel == MicroLabelRef::invalid())

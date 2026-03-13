@@ -829,7 +829,8 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     if (srcType->isIntUnsized() || srcType->isFloatUnsized())
     {
         ConstantRef concreteCstRef;
-        if (!concretizeConstant(sema, concreteCstRef, srcCstRef, TypeInfo::Sign::Unknown, true))
+        const TypeInfo::Sign hintSign = srcType->isIntUnsized() ? TypeInfo::Sign::Signed : TypeInfo::Sign::Unknown;
+        if (!concretizeConstant(sema, concreteCstRef, srcCstRef, hintSign, true))
         {
             castRequest.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(srcCstRef).typeRef(), TypeRef::invalid());
             return Result::Error;
@@ -839,6 +840,15 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         anyTypeRef = sema.cstMgr().get(concreteCstRef).typeRef();
         srcType    = &typeMgr.get(anyTypeRef);
         castRequest.setConstantFoldingSrc(concreteCstRef);
+    }
+
+    if (srcType->isChar())
+    {
+        const ConstantValue runeCst = ConstantValue::makeRune(ctx, sema.cstMgr().get(srcCstRef).getChar());
+        srcCstRef                   = sema.cstMgr().addConstant(ctx, runeCst);
+        anyTypeRef                  = typeMgr.typeRune();
+        srcType                     = &typeMgr.get(anyTypeRef);
+        castRequest.setConstantFoldingSrc(srcCstRef);
     }
 
     const ConstantValue& srcCst = sema.cstMgr().get(srcCstRef);

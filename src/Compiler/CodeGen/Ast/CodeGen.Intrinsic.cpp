@@ -544,12 +544,15 @@ namespace
             else
                 builder.emitLoadRegReg(cstrReg, baseReg, MicroOpBits::B64);
 
-            const MicroReg scanReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
             builder.emitClearReg(resultPayload.reg, MicroOpBits::B64);
 
             const MicroLabelRef loopLabel = builder.createLabel();
             const MicroLabelRef doneLabel = builder.createLabel();
+            builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+            const MicroReg scanReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
             builder.placeLabel(loopLabel);
 
             const MicroReg charReg = codeGen.nextVirtualIntRegister();

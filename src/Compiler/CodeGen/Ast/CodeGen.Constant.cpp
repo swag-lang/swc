@@ -91,10 +91,12 @@ namespace
             if (!alignment)
                 alignment = 1;
 
-            offset = alignUpTo(offset, alignment);
-
             const uint64_t elementSize = elementType.sizeOf(codeGen.ctx());
-            SWC_ASSERT(elementSize > 0 && elementSize <= std::numeric_limits<uint32_t>::max());
+            if (!elementSize)
+                continue;
+
+            SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
+            offset = alignUpTo(offset, alignment);
             outLayout.push_back({
                 .valueRef = elementRefs[i],
                 .typeRef  = elementTypeRef,
@@ -105,7 +107,7 @@ namespace
         }
 
         offset = alignUpTo(offset, maxAlignment);
-        SWC_ASSERT(offset > 0 && offset <= std::numeric_limits<uint32_t>::max());
+        SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
         outTotalSize = static_cast<uint32_t>(offset);
         return true;
     }
@@ -123,7 +125,10 @@ namespace
         {
             const CodeGenNodePayload& elementPayload = codeGen.payload(entry.valueRef);
             const uint64_t            elementSize    = codeGen.typeMgr().get(entry.typeRef).sizeOf(codeGen.ctx());
-            SWC_ASSERT(elementSize > 0 && elementSize <= std::numeric_limits<uint32_t>::max());
+            if (!elementSize)
+                continue;
+
+            SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
 
             if (elementPayload.isAddress())
             {
@@ -165,6 +170,41 @@ namespace
         return codeGen.cstMgr().addConstant(codeGen.ctx(), cst);
     }
 
+    ConstantRef makeBorrowedStorageConstant(CodeGen& codeGen, TypeRef typeRef, ByteSpan payload)
+    {
+        const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(asStringView(payload));
+        const ByteSpan         storedBytes   = asByteSpan(storedPayload);
+        const TypeInfo&        typeInfo      = codeGen.typeMgr().get(typeRef);
+
+        ConstantValue cst;
+        if (typeInfo.isArray() || typeInfo.isAggregateArray())
+            cst = ConstantValue::makeArrayBorrowed(codeGen.ctx(), typeRef, storedBytes);
+        else
+            cst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, storedBytes);
+
+        return codeGen.cstMgr().addConstant(codeGen.ctx(), cst);
+    }
+
+    ConstantRef materializeBorrowedStorageConstant(CodeGen& codeGen, ConstantRef cstRef, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return ConstantRef::invalid();
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isStruct() && !typeInfo.isArray())
+            return ConstantRef::invalid();
+
+        const uint64_t storageSize = typeInfo.sizeOf(codeGen.ctx());
+        SWC_ASSERT(storageSize <= std::numeric_limits<uint32_t>::max());
+
+        SmallVector<std::byte> storageBytes;
+        storageBytes.resize(storageSize);
+        if (storageSize)
+            ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{storageBytes.data(), storageBytes.size()}, cstRef, typeRef);
+
+        return makeBorrowedStorageConstant(codeGen, typeRef, ByteSpan{storageBytes.data(), storageBytes.size()});
+    }
+
     ConstantRef makeBorrowedRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
     {
         uint32_t targetShardIndex = 0;
@@ -186,6 +226,22 @@ namespace
 
         const ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
         return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
+    }
+
+    void emitPointerConstant(CodeGen& codeGen, MicroReg reg, const uint64_t value, ConstantRef cstRef)
+    {
+        if (!value)
+        {
+            codeGen.builder().emitLoadRegImm(reg, ApInt(0, 64), MicroOpBits::B64);
+            return;
+        }
+
+        uint32_t shardIndex = 0;
+        const Ref ref       = codeGen.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
+        if (ref != INVALID_REF)
+            codeGen.builder().emitLoadRegPtrReloc(reg, value, cstRef);
+        else
+            codeGen.builder().emitLoadRegPtrImm(reg, value);
     }
 
     void emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
@@ -259,26 +315,14 @@ namespace
 
             case ConstantKind::ValuePointer:
             {
-                if (!cst.getValuePointer())
-                {
-                    builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
-                    payload.setIsValue();
-                    return;
-                }
-                builder.emitLoadRegPtrReloc(payload.reg, cst.getValuePointer(), cstRef);
+                emitPointerConstant(codeGen, payload.reg, cst.getValuePointer(), cstRef);
                 payload.setIsValue();
                 return;
             }
 
             case ConstantKind::BlockPointer:
             {
-                if (!cst.getBlockPointer())
-                {
-                    builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
-                    payload.setIsValue();
-                    return;
-                }
-                builder.emitLoadRegPtrReloc(payload.reg, cst.getBlockPointer(), cstRef);
+                emitPointerConstant(codeGen, payload.reg, cst.getBlockPointer(), cstRef);
                 payload.setIsValue();
                 return;
             }
@@ -306,6 +350,22 @@ namespace
                 }
 
                 builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
+                payload.setIsValue();
+                return;
+            }
+
+            case ConstantKind::TypeValue:
+            {
+                ConstantRef typeInfoCstRef = ConstantRef::invalid();
+                const Result typeInfoRes   = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, cst.getTypeValue(), codeGen.curNodeRef());
+                SWC_ASSERT(typeInfoRes == Result::Continue);
+                SWC_ASSERT(typeInfoCstRef.isValid());
+
+                const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
+                SWC_ASSERT(typeInfoCst.isValuePointer());
+
+                builder.emitLoadRegPtrReloc(payload.reg, typeInfoCst.getValuePointer(), typeInfoCstRef);
+                payload.typeRef = codeGen.typeMgr().typeTypeInfo();
                 payload.setIsValue();
                 return;
             }
@@ -386,6 +446,26 @@ namespace
                 return;
             }
 
+            case ConstantKind::AggregateStruct:
+            case ConstantKind::AggregateArray:
+            {
+                const ConstantRef storageCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, targetTypeRef);
+                SWC_ASSERT(storageCstRef.isValid());
+                const ConstantValue& storageCst = codeGen.cstMgr().get(storageCstRef);
+
+                if (storageCst.isArray())
+                {
+                    builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(storageCst.getArray().data()), storageCstRef);
+                    payload.setIsAddress();
+                    return;
+                }
+
+                SWC_ASSERT(storageCst.isStruct());
+                builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(storageCst.getStruct().data()), storageCstRef);
+                payload.setIsAddress();
+                return;
+            }
+
             default:
                 SWC_UNREACHABLE();
         }
@@ -415,7 +495,30 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
     if (codeGen.safePayload(codeGen.curNodeRef()))
         return Result::Continue;
 
-    const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+    const TypeRef targetTypeRef = codeGen.curViewType().typeRef();
+    if (targetTypeRef.isValid())
+    {
+        const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
+        const uint64_t  sizeOfType = targetType.sizeOf(codeGen.ctx());
+        if (sizeOfType > sizeof(uint64_t))
+        {
+            SWC_ASSERT(sizeOfType <= std::numeric_limits<uint32_t>::max());
+
+            // ABI-direct address-backed values still need a typed zero storage, not a raw null pointer.
+            SmallVector<std::byte> typedNullBytes;
+            typedNullBytes.resize(sizeOfType);
+            std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
+            ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, codeGen.cstMgr().cstNull(), targetTypeRef);
+
+            const ConstantRef         typedNullCstRef = makeBorrowedStructConstant(codeGen, targetTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+            const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
+            const CodeGenNodePayload& payload         = codeGen.setPayloadValue(codeGen.curNodeRef(), targetTypeRef);
+            codeGen.builder().emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);
+            return Result::Continue;
+        }
+    }
+
+    const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), targetTypeRef);
     codeGen.builder().emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
     return Result::Continue;
 }

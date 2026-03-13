@@ -1,0 +1,72 @@
+#global fileprivate // swc-option suite-test
+
+struct A {}
+
+interface I {
+    mtd A() -> s32;
+}
+
+impl I for A {
+    mtd A() -> s32 {
+        return 0;
+    }
+}
+
+namespace B {}
+
+impl I for B {} // swc-expected-error {{sema_err_impl_not_struct}}
+impl B for B {} // swc-expected-error {{sema_err_impl_not_interface}}
+
+enum ARC { A, B }
+
+impl I for ARC {} // swc-expected-error {{sema_err_impl_not_struct}}
+impl ARC for ARC {} // swc-expected-error {{sema_err_impl_not_interface}}
+
+interface I0 { mtd toto(); }
+struct S0 {}
+
+// swc-expected-error@(+1,+2) {{sema_err_interface_already_implemented}}
+impl I0 for S0 { mtd impl toto() {} }
+impl I0 for S0 { mtd impl toto() {} }
+
+interface I1 { mtd toto(); }
+struct T {}
+
+struct U { t: T }
+impl T
+{
+    mtd toto(x: s32) {}
+}
+
+impl I1 for T
+{
+    mtd impl toto() {}
+    func titi() {}
+    mtd tata() { me.toto() }
+    mtd tonton() { .toto() }
+}
+
+#test
+{
+    T.I1.titi()
+}
+
+#test
+{
+    var a: A
+    var i = cast(I) a
+    @assert(i.A() == 0)
+}
+
+#test
+{
+    var t: T
+    var i = cast(I1) t
+    i.toto()
+}
+
+#test
+{
+    var u: U
+    var i = cast(I1) u // swc-expected-error {{sema_err_cannot_cast_to_interface}}
+}

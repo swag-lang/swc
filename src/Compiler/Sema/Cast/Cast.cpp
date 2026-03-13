@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Support/Report/Diagnostic.h"
@@ -62,6 +63,16 @@ namespace
             const uint64_t         valueStorage   = srcType.sizeOf(sema.ctx());
             SmallVector4<uint64_t> dims;
             dims.push_back(anyStorageSize + valueStorage);
+            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        }
+
+        if (srcType.isStruct() && dstType.isInterface())
+        {
+            constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
+            const uint64_t         valueStorage         = srcType.sizeOf(sema.ctx());
+            const uint64_t         itableStorage        = dstType.payloadSymInterface().functions().size() * sizeof(void*);
+            SmallVector4<uint64_t> dims;
+            dims.push_back(interfaceStorageSize + valueStorage + itableStorage);
             return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         }
 

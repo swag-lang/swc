@@ -22,9 +22,9 @@ namespace
 
     struct AssignTarget
     {
-        const CodeGenNodePayload* payload   = nullptr;
-        TypeRef                   typeRef   = TypeRef::invalid();
-        TypeRef                   opTypeRef = TypeRef::invalid();
+        CodeGenNodePayload payload;
+        TypeRef            typeRef   = TypeRef::invalid();
+        TypeRef            opTypeRef = TypeRef::invalid();
     };
 
     struct AssignEncodeContext
@@ -210,18 +210,27 @@ namespace
     AssignTarget resolveAssignTarget(CodeGen& codeGen, AstNodeRef leftRef)
     {
         AssignTarget target;
-        target.payload = &codeGen.payload(leftRef);
-        SWC_ASSERT(target.payload->isAddress());
+        target.payload = codeGen.payload(leftRef);
 
         const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
-        const TypeRef      leftTypeRef  = resolveOperandTypeRef(*target.payload, leftTypeView.typeRef());
+        const TypeRef      leftTypeRef  = resolveOperandTypeRef(target.payload, leftTypeView.typeRef());
         SWC_ASSERT(leftTypeRef.isValid());
 
-        const TypeRef   opTypeRef    = normalizeAssignmentTypeRef(codeGen, leftTypeRef);
-        const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(opTypeRef);
-        SWC_ASSERT(!leftTypeInfo.isReference());
+        const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(leftTypeRef);
+        TypeRef         targetTypeRef = leftTypeRef;
+        if (leftTypeInfo.isReference())
+        {
+            SWC_ASSERT(!target.payload.isAddress());
+            target.payload.setIsAddress();
+            targetTypeRef = leftTypeInfo.payloadTypeRef();
+        }
+        else
+        {
+            SWC_ASSERT(target.payload.isAddress());
+        }
 
-        target.typeRef   = leftTypeRef;
+        const TypeRef opTypeRef = normalizeAssignmentTypeRef(codeGen, targetTypeRef);
+        target.typeRef   = targetTypeRef;
         target.opTypeRef = opTypeRef;
         return target;
     }
@@ -230,7 +239,6 @@ namespace
     {
         AssignEncodeContext encodeCtx;
         encodeCtx.target = resolveAssignTarget(codeGen, leftRef);
-        SWC_ASSERT(encodeCtx.target.payload != nullptr);
         SWC_ASSERT(encodeCtx.target.typeRef.isValid());
         SWC_ASSERT(encodeCtx.target.opTypeRef.isValid());
 
@@ -260,32 +268,29 @@ namespace
 
     Result emitAssignEqualStoreBulk(CodeGen& codeGen, const AssignEncodeContext& encodeCtx)
     {
-        SWC_ASSERT(encodeCtx.target.payload);
         SWC_ASSERT(encodeCtx.rightPayload);
-        SWC_ASSERT(encodeCtx.target.payload->isAddress());
+        SWC_ASSERT(encodeCtx.target.payload.isAddress());
         SWC_ASSERT(encodeCtx.copySize > 0);
 
         const MicroReg srcAddressReg = encodeCtx.rightPayload->reg;
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, encodeCtx.target.payload->reg, srcAddressReg, encodeCtx.copySize);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, encodeCtx.target.payload.reg, srcAddressReg, encodeCtx.copySize);
         return Result::Continue;
     }
 
     Result emitAssignEqualStore(CodeGen& codeGen, const AssignEncodeContext& encodeCtx)
     {
-        SWC_ASSERT(encodeCtx.target.payload);
         SWC_ASSERT(encodeCtx.rightPayload);
         SWC_ASSERT(encodeCtx.target.typeRef.isValid());
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
 
         const MicroReg rightReg = materializeAssignOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);
-        codeGen.builder().emitLoadMemReg(encodeCtx.target.payload->reg, 0, rightReg, encodeCtx.opBits);
+        codeGen.builder().emitLoadMemReg(encodeCtx.target.payload.reg, 0, rightReg, encodeCtx.opBits);
         return Result::Continue;
     }
 
     Result emitAssignCompoundIntLike(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
     {
-        SWC_ASSERT(encodeCtx.target.payload);
         SWC_ASSERT(encodeCtx.rightPayload);
         SWC_ASSERT(encodeCtx.target.typeRef.isValid());
         SWC_ASSERT(encodeCtx.target.opTypeRef.isValid());
@@ -298,17 +303,16 @@ namespace
         const MicroOp   op         = intBinaryMicroOp(binaryOp, isSigned);
         MicroBuilder&   builder    = codeGen.builder();
         const MicroReg  leftReg    = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
-        builder.emitLoadRegMem(leftReg, encodeCtx.target.payload->reg, 0, encodeCtx.opBits);
+        builder.emitLoadRegMem(leftReg, encodeCtx.target.payload.reg, 0, encodeCtx.opBits);
 
         const MicroReg rightReg = materializeAssignOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);
         builder.emitOpBinaryRegReg(leftReg, rightReg, op, encodeCtx.opBits);
-        builder.emitLoadMemReg(encodeCtx.target.payload->reg, 0, leftReg, encodeCtx.opBits);
+        builder.emitLoadMemReg(encodeCtx.target.payload.reg, 0, leftReg, encodeCtx.opBits);
         return Result::Continue;
     }
 
     Result emitAssignCompoundFloat(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
     {
-        SWC_ASSERT(encodeCtx.target.payload);
         SWC_ASSERT(encodeCtx.rightPayload);
         SWC_ASSERT(encodeCtx.target.typeRef.isValid());
         SWC_ASSERT(encodeCtx.target.opTypeRef.isValid());
@@ -322,17 +326,16 @@ namespace
         const MicroOp  op       = floatBinaryMicroOp(binaryOp);
         MicroBuilder&  builder  = codeGen.builder();
         const MicroReg leftReg  = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
-        builder.emitLoadRegMem(leftReg, encodeCtx.target.payload->reg, 0, encodeCtx.opBits);
+        builder.emitLoadRegMem(leftReg, encodeCtx.target.payload.reg, 0, encodeCtx.opBits);
 
         const MicroReg rightReg = materializeAssignOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);
         builder.emitOpBinaryRegReg(leftReg, rightReg, op, encodeCtx.opBits);
-        builder.emitLoadMemReg(encodeCtx.target.payload->reg, 0, leftReg, encodeCtx.opBits);
+        builder.emitLoadMemReg(encodeCtx.target.payload.reg, 0, leftReg, encodeCtx.opBits);
         return Result::Continue;
     }
 
     Result emitAssignCompoundPointer(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
     {
-        SWC_ASSERT(encodeCtx.target.payload);
         SWC_ASSERT(encodeCtx.rightPayload);
         SWC_ASSERT(encodeCtx.target.opTypeRef.isValid());
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
@@ -342,13 +345,13 @@ namespace
         const MicroReg leftReg  = codeGen.nextVirtualIntRegister();
         const MicroReg indexReg = materializeAssignPointerIndexReg(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef);
         MicroBuilder&  builder  = codeGen.builder();
-        builder.emitLoadRegMem(leftReg, encodeCtx.target.payload->reg, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(leftReg, encodeCtx.target.payload.reg, 0, MicroOpBits::B64);
 
         if (stride == 1)
         {
             const MicroOp op = assignOp == TokenId::SymMinusEqual ? MicroOp::Subtract : MicroOp::Add;
             builder.emitOpBinaryRegReg(leftReg, indexReg, op, MicroOpBits::B64);
-            builder.emitLoadMemReg(encodeCtx.target.payload->reg, 0, leftReg, MicroOpBits::B64);
+            builder.emitLoadMemReg(encodeCtx.target.payload.reg, 0, leftReg, MicroOpBits::B64);
             return Result::Continue;
         }
 
@@ -359,13 +362,13 @@ namespace
             builder.emitLoadRegReg(negIndexReg, indexReg, MicroOpBits::B64);
             builder.emitOpUnaryReg(negIndexReg, MicroOp::Negate, MicroOpBits::B64);
             builder.emitLoadAddressAmcRegMem(resultReg, MicroOpBits::B64, leftReg, negIndexReg, stride, 0, MicroOpBits::B64);
-            builder.emitLoadMemReg(encodeCtx.target.payload->reg, 0, resultReg, MicroOpBits::B64);
+            builder.emitLoadMemReg(encodeCtx.target.payload.reg, 0, resultReg, MicroOpBits::B64);
             return Result::Continue;
         }
 
         const MicroReg resultReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadAddressAmcRegMem(resultReg, MicroOpBits::B64, leftReg, indexReg, stride, 0, MicroOpBits::B64);
-        builder.emitLoadMemReg(encodeCtx.target.payload->reg, 0, resultReg, MicroOpBits::B64);
+        builder.emitLoadMemReg(encodeCtx.target.payload.reg, 0, resultReg, MicroOpBits::B64);
         return Result::Continue;
     }
 

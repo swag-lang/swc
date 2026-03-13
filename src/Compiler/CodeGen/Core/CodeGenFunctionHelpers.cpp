@@ -42,6 +42,22 @@ namespace
         return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
     }
 
+    void emitPointerConstant(CodeGen& codeGen, MicroReg reg, const uint64_t value, ConstantRef cstRef)
+    {
+        if (!value)
+        {
+            codeGen.builder().emitLoadRegImm(reg, ApInt(0, 64), MicroOpBits::B64);
+            return;
+        }
+
+        uint32_t shardIndex = 0;
+        const Ref ref       = codeGen.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
+        if (ref != INVALID_REF)
+            codeGen.builder().emitLoadRegPtrReloc(reg, value, cstRef);
+        else
+            codeGen.builder().emitLoadRegPtrImm(reg, value);
+    }
+
     bool shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, const ABITypeNormalize::NormalizedType& normalizedType)
     {
         if (normalizedType.isIndirect)
@@ -213,24 +229,12 @@ namespace
             }
 
             case ConstantKind::ValuePointer:
-                if (!cst.getValuePointer())
-                {
-                    builder.emitLoadRegImm(outPayload.reg, ApInt(0, 64), MicroOpBits::B64);
-                    outPayload.setIsValue();
-                    return true;
-                }
-                builder.emitLoadRegPtrReloc(outPayload.reg, cst.getValuePointer(), cstRef);
+                emitPointerConstant(codeGen, outPayload.reg, cst.getValuePointer(), cstRef);
                 outPayload.setIsValue();
                 return true;
 
             case ConstantKind::BlockPointer:
-                if (!cst.getBlockPointer())
-                {
-                    builder.emitLoadRegImm(outPayload.reg, ApInt(0, 64), MicroOpBits::B64);
-                    outPayload.setIsValue();
-                    return true;
-                }
-                builder.emitLoadRegPtrReloc(outPayload.reg, cst.getBlockPointer(), cstRef);
+                emitPointerConstant(codeGen, outPayload.reg, cst.getBlockPointer(), cstRef);
                 outPayload.setIsValue();
                 return true;
 

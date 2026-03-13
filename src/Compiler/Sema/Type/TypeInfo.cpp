@@ -835,8 +835,10 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
             for (const TypeRef tr : payloadAggregate_.types)
             {
                 const TypeInfo& ty = ctx.typeMgr().get(tr);
-                const uint32_t  a  = ty.alignOf(ctx);
+                const uint32_t  a  = std::max<uint32_t>(ty.alignOf(ctx), 1);
                 const uint64_t  s  = ty.sizeOf(ctx);
+                if (!s)
+                    continue;
                 align              = std::max(align, a);
                 size               = ((size + static_cast<uint64_t>(a) - 1) / static_cast<uint64_t>(a)) * static_cast<uint64_t>(a);
                 size += s;

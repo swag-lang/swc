@@ -1,0 +1,76 @@
+#global fileprivate // swc-option suite-test
+
+var A: s32 = true                 // swc-expected-error {{sema_err_cannot_cast}}
+var B: s32
+var C: f32 = 1
+#assert(#typeof(C) == f32)
+var D = 1.0
+#assert(#typeof(D) == f32)
+
+var E = D // swc-expected-error {{sema_err_expr_not_const}}
+
+struct F
+{
+    A = D // swc-expected-error {{sema_err_expr_not_const}}
+}
+
+#test
+{
+    var D0 = 1.0
+    var E0 = D0
+    #assert(#typeof(D0) == f32)
+    #assert(#typeof(E0) == f32)
+
+    let L0: s32 // swc-expected-error {{sema_err_let_missing_init}}
+    let L1 = 10
+}
+
+#test
+{
+    var a = 2
+    var b: s8 = a // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    let a = 2
+    var b = 2
+    #assert(#typeof(a) == s32)
+    #assert(#typeof(b) == s32)
+}
+
+#test
+{
+    var x = true
+    #assert(#typeof(x) == bool)
+
+    var y: u16 = 5
+    var z = y
+    #assert(#typeof(z) == u16)
+}
+
+#test
+{
+    let a = 1
+    a = 2 // swc-expected-error {{sema_err_assign_to_let}}
+}
+
+#test
+{
+    let a = 5
+    const b = a + 7
+    #assert(b == 12)
+}
+
+#test
+{
+    var x = 1
+    let y = x
+    const z = y // swc-expected-error {{sema_err_expr_not_const}}
+}
+
+#test
+{
+    let a = 1
+    var p = &a // swc-expected-error {{sema_err_take_address_constant}}
+}

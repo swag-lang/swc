@@ -1520,6 +1520,10 @@ namespace
             return false;
         const uint64_t combinedAdd = ops[6].valueU64 + nextOffset;
 
+        if (newOpcode == MicroInstrOpcode::LoadAmcRegMem &&
+            (nextOps[0].reg == ops[1].reg || nextOps[0].reg == ops[2].reg))
+            return false;
+
         MicroInstr* rewriteInst = context.instructions->ptr(instRef);
         if (!rewriteInst)
             return false;
@@ -1636,6 +1640,8 @@ namespace
             if (scanInst.op != MicroInstrOpcode::LoadRegMem)
                 return false;
             if (scanOps[1].reg != tmpReg)
+                return false;
+            if (scanOps[0].reg == baseReg || scanOps[0].reg == indexReg)
                 return false;
             if (!pass.isTempDeadForAddressFold(std::next(scanIt), endIt, tmpReg))
                 return false;

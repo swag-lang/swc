@@ -574,6 +574,30 @@ SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Peephole_DoesNotFoldIndexedLoadWhenResultAliasesAddressReg)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg r11 = MicroReg::intReg(11);
+    constexpr MicroReg rdx = MicroReg::intReg(2);
+
+    builder.emitLoadAddressAmcRegMem(r11, MicroOpBits::B64, r9, rdx, 1, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(r9, r11, 0, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runPeepholePass(builder));
+
+    if (!hasInstruction(builder, MicroInstrOpcode::LoadAddrAmcRegMem))
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::LoadRegMem))
+        return Result::Error;
+    if (hasInstruction(builder, MicroInstrOpcode::LoadAmcRegMem))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

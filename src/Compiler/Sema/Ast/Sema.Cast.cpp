@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -33,9 +34,25 @@ namespace
         if (payload.runtimeStorageSym != nullptr)
             return *payload.runtimeStorageSym;
 
-        auto& storageSym          = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, node, "cast_runtime_storage");
-        payload.runtimeStorageSym = &storageSym;
-        return storageSym;
+        TaskContext&        ctx         = sema.ctx();
+        const Utf8          privateName = "__cast_runtime_storage";
+        const IdentifierRef idRef       = sema.idMgr().addIdentifierOwned(std::format("{}_{}", privateName, sema.compiler().atomicId().fetch_add(1)));
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+
+        auto* sym = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(sym);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(symMap != nullptr);
+            symMap->addSymbol(ctx, sym, true);
+        }
+
+        payload.runtimeStorageSym = sym;
+        return *sym;
     }
 
     Result completeCastRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
@@ -71,6 +88,16 @@ namespace
             const uint64_t         valueStorage   = srcView.type()->sizeOf(sema.ctx());
             SmallVector4<uint64_t> dims;
             dims.push_back(anyStorageSize + valueStorage);
+            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        }
+
+        if (srcView.type()->isStruct() && dstView.type()->isInterface())
+        {
+            constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
+            const uint64_t         valueStorage         = srcView.type()->sizeOf(sema.ctx());
+            const uint64_t         itableStorage        = dstView.type()->payloadSymInterface().functions().size() * sizeof(void*);
+            SmallVector4<uint64_t> dims;
+            dims.push_back(interfaceStorageSize + valueStorage + itableStorage);
             return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         }
 

@@ -10,6 +10,27 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef resolveDerefResultTypeRef(CodeGen& codeGen, TypeRef operandTypeRef)
+    {
+        const TypeInfo& operandTypeInfo = codeGen.typeMgr().get(operandTypeRef);
+        const TypeRef   unwrappedTypeRef = operandTypeInfo.unwrap(codeGen.ctx(), operandTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (unwrappedTypeRef.isValid())
+            operandTypeRef = unwrappedTypeRef;
+
+        const TypeInfo& operandType = codeGen.typeMgr().get(operandTypeRef);
+        SWC_ASSERT(operandType.isAnyPointer() || operandType.isReference());
+
+        TypeRef resultTypeRef = operandType.payloadTypeRef();
+        if (operandType.isConst())
+        {
+            const TypeInfo resultType = codeGen.typeMgr().get(resultTypeRef);
+            resultType.flags().add(TypeInfoFlagsE::Const);
+            resultTypeRef = codeGen.typeMgr().addType(resultType);
+        }
+
+        return resultTypeRef;
+    }
+
     TypeRef resolveOperandTypeRef(const CodeGenNodePayload& payload, TypeRef fallbackTypeRef)
     {
         if (payload.typeRef.isValid())
@@ -133,9 +154,11 @@ namespace
     {
         MicroBuilder&             builder      = codeGen.builder();
         const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
+        const SemaNodeView        childView    = codeGen.viewType(nodeExprRef);
+        SWC_ASSERT(childView.type());
 
-        const SemaNodeView        view    = codeGen.curViewType();
-        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), view.typeRef());
+        const TypeRef             resultTypeRef = resolveDerefResultTypeRef(codeGen, childView.typeRef());
+        const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
         if (childPayload.isAddress())
             builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
         else

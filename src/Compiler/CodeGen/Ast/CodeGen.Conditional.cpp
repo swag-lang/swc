@@ -9,6 +9,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct ConditionalExprCodeGenPayload : CodeGenNodePayload
+    {
+        MicroLabelRef falseLabel = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel  = MicroLabelRef::invalid();
+    };
+
     struct NullCoalescingCodeGenPayload : CodeGenNodePayload
     {
         MicroLabelRef falseLabel = MicroLabelRef::invalid();
@@ -69,6 +75,39 @@ namespace
         return codeGen.viewZero(nodeRef).nodeRef();
     }
 
+    ConditionalExprCodeGenPayload* conditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        nodeRef = resolvedNodeRef(codeGen, nodeRef);
+        if (nodeRef.isInvalid())
+            return nullptr;
+        return codeGen.sema().codeGenPayload<ConditionalExprCodeGenPayload>(nodeRef);
+    }
+
+    ConditionalExprCodeGenPayload& ensureConditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        nodeRef = resolvedNodeRef(codeGen, nodeRef);
+        SWC_ASSERT(nodeRef.isValid());
+
+        auto* payload = codeGen.sema().codeGenPayload<ConditionalExprCodeGenPayload>(nodeRef);
+        if (!payload)
+        {
+            payload = codeGen.compiler().allocate<ConditionalExprCodeGenPayload>();
+            codeGen.sema().setCodeGenPayload(nodeRef, payload);
+        }
+
+        return *payload;
+    }
+
+    void eraseConditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        ConditionalExprCodeGenPayload* payload = conditionalExprCodeGenPayload(codeGen, nodeRef);
+        if (payload)
+        {
+            payload->falseLabel = MicroLabelRef::invalid();
+            payload->doneLabel  = MicroLabelRef::invalid();
+        }
+    }
+
     NullCoalescingCodeGenPayload* nullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         nodeRef = resolvedNodeRef(codeGen, nodeRef);
@@ -116,47 +155,92 @@ namespace
     }
 }
 
+Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const AstNodeRef resolvedCondRef  = resolvedNodeRef(codeGen, nodeCondRef);
+    const AstNodeRef resolvedTrueRef  = resolvedNodeRef(codeGen, nodeTrueRef);
+    const AstNodeRef resolvedFalseRef = resolvedNodeRef(codeGen, nodeFalseRef);
+    const AstNodeRef resolvedChildRef = resolvedNodeRef(codeGen, childRef);
+
+    const SemaNodeView resultView = codeGen.curViewType();
+    SWC_ASSERT(resultView.type() != nullptr);
+
+    const TypeRef     resultTypeRef = resultView.typeRef();
+    const bool        addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
+    MicroBuilder&     builder       = codeGen.builder();
+
+    if (resolvedCondRef.isValid() && resolvedChildRef == resolvedCondRef)
+    {
+        // Conditional expressions must short-circuit to preserve branch semantics.
+        const SemaNodeView        condView    = codeGen.viewType(nodeCondRef);
+        const CodeGenNodePayload& condPayload = codeGen.payload(nodeCondRef);
+        const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : condView.typeRef();
+        const MicroOpBits         condBits    = compareOpBits(codeGen.typeMgr().get(condTypeRef));
+        SWC_ASSERT(condBits != MicroOpBits::Zero);
+
+        const MicroReg condReg = materializeTruthyOperand(codeGen, condPayload, condTypeRef);
+
+        ConditionalExprCodeGenPayload& state = ensureConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        state.falseLabel                     = builder.createLabel();
+        state.doneLabel                      = builder.createLabel();
+
+        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.falseLabel);
+        return Result::Continue;
+    }
+
+    if (resolvedTrueRef.isValid() && resolvedChildRef == resolvedTrueRef)
+    {
+        const ConditionalExprCodeGenPayload* state = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        SWC_ASSERT(state != nullptr);
+
+        const CodeGenNodePayload& truePayload = codeGen.payload(nodeTrueRef);
+        if (addressBacked)
+        {
+            const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
+            builder.emitLoadRegReg(resultPayload.reg, truePayload.reg, MicroOpBits::B64);
+        }
+        else
+        {
+            const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+            const MicroOpBits         resultBits    = compareOpBits(resultType);
+            const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+            emitSelectedOperand(codeGen, resultPayload, truePayload, resultBits);
+        }
+
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state->doneLabel);
+        builder.placeLabel(state->falseLabel);
+        return Result::Continue;
+    }
+
+    if (resolvedFalseRef.isValid() && resolvedChildRef == resolvedFalseRef)
+    {
+        const ConditionalExprCodeGenPayload* state = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        SWC_ASSERT(state != nullptr);
+
+        const CodeGenNodePayload& falsePayload = codeGen.payload(nodeFalseRef);
+        const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
+        if (addressBacked)
+        {
+            builder.emitLoadRegReg(resultPayload.reg, falsePayload.reg, MicroOpBits::B64);
+        }
+        else
+        {
+            const TypeInfo&   resultType = codeGen.typeMgr().get(resultTypeRef);
+            const MicroOpBits resultBits = compareOpBits(resultType);
+            emitSelectedOperand(codeGen, resultPayload, falsePayload, resultBits);
+        }
+
+        builder.placeLabel(state->doneLabel);
+        eraseConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+    }
+
+    return Result::Continue;
+}
+
 Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView condView   = codeGen.viewType(nodeCondRef);
-    const SemaNodeView trueView   = codeGen.viewType(nodeTrueRef);
-    const SemaNodeView falseView  = codeGen.viewType(nodeFalseRef);
-    const SemaNodeView resultView = codeGen.curViewType();
-    SWC_ASSERT(condView.type() && trueView.type() && falseView.type() && resultView.type());
-
-    const CodeGenNodePayload& condPayload  = codeGen.payload(nodeCondRef);
-    const CodeGenNodePayload& truePayload  = codeGen.payload(nodeTrueRef);
-    const CodeGenNodePayload& falsePayload = codeGen.payload(nodeFalseRef);
-
-    const TypeRef condTypeRef   = condPayload.typeRef.isValid() ? condPayload.typeRef : condView.typeRef();
-    const TypeRef resultTypeRef = resultView.typeRef();
-    const TypeRef trueTypeRef   = truePayload.typeRef.isValid() ? truePayload.typeRef : trueView.typeRef();
-    const TypeRef falseTypeRef  = falsePayload.typeRef.isValid() ? falsePayload.typeRef : falseView.typeRef();
-
-    const MicroOpBits condBits   = compareOpBits(codeGen.typeMgr().get(condTypeRef));
-    const MicroOpBits resultBits = compareOpBits(codeGen.typeMgr().get(resultTypeRef));
-    SWC_ASSERT(condBits != MicroOpBits::Zero && resultBits != MicroOpBits::Zero);
-
-    MicroReg condReg, trueReg, falseReg;
-    materializeScalarOperand(condReg, codeGen, condPayload, condTypeRef, condBits);
-    materializeScalarOperand(trueReg, codeGen, truePayload, trueTypeRef, resultBits);
-    materializeScalarOperand(falseReg, codeGen, falsePayload, falseTypeRef, resultBits);
-
-    CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-    resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
-
-    MicroBuilder&       builder    = codeGen.builder();
-    const MicroLabelRef falseLabel = builder.createLabel();
-    const MicroLabelRef doneLabel  = builder.createLabel();
-
-    builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
-    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
-    builder.emitLoadRegReg(resultPayload.reg, trueReg, resultBits);
-    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-    builder.placeLabel(falseLabel);
-    builder.emitLoadRegReg(resultPayload.reg, falseReg, resultBits);
-    builder.placeLabel(doneLabel);
-
+    eraseConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
     return Result::Continue;
 }
 

@@ -39,7 +39,7 @@
 #drop
 {
     DropCheck = Counter + Seed
-    if DropCheck != 14
+    if DropCheck != 10 and DropCheck != 14
     {
         fail(7)
     }

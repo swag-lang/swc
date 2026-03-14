@@ -233,23 +233,17 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
         return codeGenInterfaceMethodMemberAccess(codeGen, *this);
 
     const SemaNodeView rightView = codeGen.viewSymbol(nodeRightRef);
-    if (leftView.type() && rightView.sym() && rightView.sym()->isVariable())
-        return codeGenStructMemberAccess(codeGen, *this);
-    if (rightView.sym() &&
-        (rightView.sym()->isFunction() || rightView.sym()->isType() || rightView.sym()->isNamespace() || rightView.sym()->isModule() || rightView.sym()->isImpl()))
-        return Result::Continue;
-
-    if (codeGen.safePayload(nodeRightRef))
+    if (rightView.sym())
     {
-        codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curViewType().typeRef());
-        return Result::Continue;
+        if (leftView.type() && rightView.sym()->isVariable())
+            return codeGenStructMemberAccess(codeGen, *this);
+        if (rightView.sym()->isFunction() || rightView.sym()->isType() || rightView.sym()->isNamespace() || rightView.sym()->isModule() || rightView.sym()->isImpl())
+            return Result::Continue;
     }
 
-    if (codeGen.curViewConstant().hasConstant())
-        return Result::Continue;
-
-    // TODO
-    SWC_UNREACHABLE();
+    SWC_ASSERT(codeGen.safePayload(nodeRightRef));
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curViewType().typeRef());
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

@@ -420,8 +420,6 @@ Result NativeArtifactBuilder::buildStartup() const
     const IdentifierRef exitIdRef = builder_->ctx().idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit);
     SymbolFunction*     exitFn    = builder_->compiler().runtimeFunctionSymbol(exitIdRef);
     SWC_ASSERT(exitFn != nullptr);
-    if (!exitFn)
-        return builder_->reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, builder_->ctx().idMgr().get(exitIdRef).name);
 
     // Startup calls the runtime wrapper instead of a raw OS entry point, so the
     // emitted startup sequence stays stable across target-specific runtimes.

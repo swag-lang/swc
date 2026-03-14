@@ -40,7 +40,7 @@ private:
     Result partitionObjects() const;
     Result buildStartup() const;
 
-    NativeBackendBuilder& builder_;
+    NativeBackendBuilder* builder_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

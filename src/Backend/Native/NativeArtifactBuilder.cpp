@@ -116,14 +116,14 @@ namespace
 }
 
 NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
-    builder_(builder)
+    builder_(&builder)
 {
 }
 
 Result NativeArtifactBuilder::build() const
 {
 #if SWC_HAS_NATIVE_VALIDATION
-    const NativeValidate nativeValidate(builder_);
+    const NativeValidate nativeValidate(*builder_);
     nativeValidate.validate();
 #endif
     SWC_RESULT(buildStartup());
@@ -141,7 +141,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     outPaths.workDir = configuredWorkDir();
     if (outPaths.workDir.empty())
     {
-        fs::path sourceRoot = inputRootPath(builder_.ctx().cmdLine());
+        fs::path sourceRoot = inputRootPath(builder_->ctx().cmdLine());
         if (sourceRoot.empty())
             sourceRoot = currentPathNoThrow();
         outPaths.workDir = sourceRoot / ".output" / automaticWorkDirName(outPaths.name).c_str();
@@ -165,19 +165,19 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
 
 Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& paths) const
 {
-    SWC_RESULT(FileSystem::clearDirectoryContents(builder_.ctx(), paths.workDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
+    SWC_RESULT(FileSystem::clearDirectoryContents(builder_->ctx(), paths.workDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
     if (!FileSystem::pathEquals(paths.outDir, paths.workDir))
-        SWC_RESULT(FileSystem::clearDirectoryContents(builder_.ctx(), paths.outDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
+        SWC_RESULT(FileSystem::clearDirectoryContents(builder_->ctx(), paths.outDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
     return Result::Continue;
 }
 
 Utf8 NativeArtifactBuilder::artifactName() const
 {
-    const auto buildCfgName = Utf8(builder_.compiler().buildCfg().name);
+    const auto buildCfgName = Utf8(builder_->compiler().buildCfg().name);
     if (!buildCfgName.empty())
         return FileSystem::sanitizeFileName(buildCfgName);
 
-    const auto& cmdLine     = builder_.ctx().cmdLine();
+    const auto& cmdLine     = builder_->ctx().cmdLine();
     const auto& directories = inputDirectories(cmdLine);
     const auto& files       = inputFiles(cmdLine);
     const auto& modulePath  = inputModulePath(cmdLine);
@@ -194,10 +194,10 @@ Utf8 NativeArtifactBuilder::artifactName() const
 
 Utf8 NativeArtifactBuilder::artifactExtension() const
 {
-    switch (builder_.ctx().cmdLine().targetOs)
+    switch (builder_->ctx().cmdLine().targetOs)
     {
         case Runtime::TargetOs::Windows:
-            switch (builder_.compiler().buildCfg().backendKind)
+            switch (builder_->compiler().buildCfg().backendKind)
             {
                 case Runtime::BuildCfgBackendKind::Executable:
                     return ".exe";
@@ -217,7 +217,7 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
 
 Utf8 NativeArtifactBuilder::objectExtension() const
 {
-    switch (builder_.ctx().cmdLine().targetOs)
+    switch (builder_->ctx().cmdLine().targetOs)
     {
         case Runtime::TargetOs::Windows:
             return ".obj";
@@ -228,7 +228,7 @@ Utf8 NativeArtifactBuilder::objectExtension() const
 
 fs::path NativeArtifactBuilder::configuredOutDir(const fs::path& defaultOutDir) const
 {
-    const auto buildCfgOutDir = Utf8(builder_.compiler().buildCfg().outDir);
+    const auto buildCfgOutDir = Utf8(builder_->compiler().buildCfg().outDir);
     if (!buildCfgOutDir.empty())
         return {buildCfgOutDir.c_str()};
     return defaultOutDir;
@@ -239,13 +239,13 @@ Result NativeArtifactBuilder::createOutDir(const fs::path& outDir) const
     std::error_code ec;
     fs::create_directories(outDir, ec);
     if (ec)
-        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(outDir), Diagnostic::ARG_BECAUSE, ec.message());
+        return builder_->reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(outDir), Diagnostic::ARG_BECAUSE, ec.message());
     return Result::Continue;
 }
 
 fs::path NativeArtifactBuilder::configuredWorkDir() const
 {
-    const auto buildCfgWorkDir = Utf8(builder_.compiler().buildCfg().workDir);
+    const auto buildCfgWorkDir = Utf8(builder_->compiler().buildCfg().workDir);
     if (!buildCfgWorkDir.empty())
         return {buildCfgWorkDir.c_str()};
     return {};
@@ -253,13 +253,13 @@ fs::path NativeArtifactBuilder::configuredWorkDir() const
 
 Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
 {
-    const CommandLine& cmdLine     = builder_.ctx().cmdLine();
+    const CommandLine& cmdLine     = builder_->ctx().cmdLine();
     const auto&        directories = inputDirectories(cmdLine);
     const auto&        files       = inputFiles(cmdLine);
     const auto&        modulePath  = inputModulePath(cmdLine);
     Utf8               key;
 
-    key += std::format("cmd={};os={};arch={};backend={};sub={};name={};", static_cast<int>(cmdLine.command), static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), static_cast<int>(builder_.compiler().buildCfg().backendKind), static_cast<int>(builder_.compiler().buildCfg().backendSubKind), name);
+    key += std::format("cmd={};os={};arch={};backend={};sub={};name={};", static_cast<int>(cmdLine.command), static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), static_cast<int>(builder_->compiler().buildCfg().backendKind), static_cast<int>(builder_->compiler().buildCfg().backendSubKind), name);
 
     if (!modulePath.empty())
     {
@@ -298,40 +298,40 @@ Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const
     std::error_code ec;
     fs::create_directories(buildDir, ec);
     if (ec)
-        return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(buildDir), Diagnostic::ARG_BECAUSE, ec.message());
+        return builder_->reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(buildDir), Diagnostic::ARG_BECAUSE, ec.message());
     return Result::Continue;
 }
 
 Result NativeArtifactBuilder::prepareDataSections() const
 {
-    builder_.mergedRData.name            = ".rdata";
-    builder_.mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
-    builder_.mergedData.name             = ".data";
-    builder_.mergedData.characteristics  = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
-    builder_.mergedBss.name              = ".bss";
-    builder_.mergedBss.characteristics   = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedRData.name            = ".rdata";
+    builder_->mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedData.name             = ".data";
+    builder_->mergedData.characteristics  = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedBss.name              = ".bss";
+    builder_->mergedBss.characteristics   = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
 
-    CompilerInstance& compiler = builder_.compiler();
+    CompilerInstance& compiler = builder_->compiler();
 
-    builder_.mergedRData.bytes.clear();
-    builder_.mergedRData.relocations.clear();
-    builder_.mergedData.bytes.clear();
-    builder_.mergedData.relocations.clear();
-    builder_.mergedBss.bssSize = compiler.globalZeroSegment().extentSize();
-    builder_.mergedBss.bss     = builder_.mergedBss.bssSize != 0;
-    for (auto& mappings : builder_.rdataAllocationMap)
+    builder_->mergedRData.bytes.clear();
+    builder_->mergedRData.relocations.clear();
+    builder_->mergedData.bytes.clear();
+    builder_->mergedData.relocations.clear();
+    builder_->mergedBss.bssSize = compiler.globalZeroSegment().extentSize();
+    builder_->mergedBss.bss     = builder_->mergedBss.bssSize != 0;
+    for (auto& mappings : builder_->rdataAllocationMap)
         mappings.clear();
 
     // Emitted machine code is the source of truth for native constant roots.
     // Global initializers are already materialized into .data/.bss and do not need shard-wide .rdata copies.
-    NativeRDataCollector collector(builder_);
+    NativeRDataCollector collector(*builder_);
     SWC_RESULT(collector.collectAndEmit());
 
     const uint32_t dataSize = compiler.globalInitSegment().extentSize();
     if (dataSize)
     {
-        builder_.mergedData.bytes.resize(dataSize);
-        compiler.globalInitSegment().copyToPreserveOffsets(ByteSpanRW{builder_.mergedData.bytes.data(), dataSize});
+        builder_->mergedData.bytes.resize(dataSize);
+        compiler.globalInitSegment().copyToPreserveOffsets(ByteSpanRW{builder_->mergedData.bytes.data(), dataSize});
 
         for (const auto& relocation : compiler.globalInitSegment().relocations())
         {
@@ -339,7 +339,7 @@ Result NativeArtifactBuilder::prepareDataSections() const
             record.offset     = relocation.offset;
             record.symbolName = K_DATA_BASE_SYMBOL;
             record.addend     = relocation.targetOffset;
-            builder_.mergedData.relocations.push_back(record);
+            builder_->mergedData.relocations.push_back(record);
         }
     }
 
@@ -348,79 +348,79 @@ Result NativeArtifactBuilder::prepareDataSections() const
 
 Result NativeArtifactBuilder::partitionObjects() const
 {
-    builder_.objectDescriptions.clear();
+    builder_->objectDescriptions.clear();
 
-    const size_t functionCount = builder_.functionInfos.size();
-    uint32_t     maxJobs       = builder_.ctx().cmdLine().numCores;
+    const size_t functionCount = builder_->functionInfos.size();
+    uint32_t     maxJobs       = builder_->ctx().cmdLine().numCores;
     if (!maxJobs)
-        maxJobs = std::max<uint32_t>(1, builder_.ctx().global().jobMgr().numWorkers());
+        maxJobs = std::max<uint32_t>(1, builder_->ctx().global().jobMgr().numWorkers());
     if (!maxJobs)
         maxJobs = 1;
 
     const uint32_t numJobs = std::max<uint32_t>(1, static_cast<uint32_t>(functionCount ? std::min<size_t>(functionCount, maxJobs) : 1));
-    builder_.objectDescriptions.resize(numJobs);
+    builder_->objectDescriptions.resize(numJobs);
 
     NativeArtifactPaths paths;
     queryPaths(paths, numJobs);
-    if (builder_.ctx().cmdLine().clear && builder_.compiler().markNativeOutputsCleared())
+    if (builder_->ctx().cmdLine().clear && builder_->compiler().markNativeOutputsCleared())
         SWC_RESULT(clearOutputFolders(paths));
     SWC_RESULT(createBuildDir(paths.buildDir));
     SWC_RESULT(createOutDir(paths.outDir));
-    builder_.buildDir     = paths.buildDir;
-    builder_.artifactPath = paths.artifactPath;
-    builder_.pdbPath      = paths.pdbPath;
+    builder_->buildDir     = paths.buildDir;
+    builder_->artifactPath = paths.artifactPath;
+    builder_->pdbPath      = paths.pdbPath;
 
     // Object 0 owns shared sections/startup, so the remaining objects only need code.
     for (uint32_t i = 0; i < numJobs; ++i)
     {
-        builder_.objectDescriptions[i].index       = i;
-        builder_.objectDescriptions[i].includeData = i == 0;
-        builder_.objectDescriptions[i].objPath     = paths.objectPaths[i];
+        builder_->objectDescriptions[i].index       = i;
+        builder_->objectDescriptions[i].includeData = i == 0;
+        builder_->objectDescriptions[i].objPath     = paths.objectPaths[i];
     }
 
-    if (builder_.startup)
-        builder_.objectDescriptions[0].startup = builder_.startup.get();
+    if (builder_->startup)
+        builder_->objectDescriptions[0].startup = builder_->startup.get();
 
-    for (size_t i = 0; i < builder_.functionInfos.size(); ++i)
+    for (size_t i = 0; i < builder_->functionInfos.size(); ++i)
     {
-        NativeFunctionInfo& info     = builder_.functionInfos[i];
+        NativeFunctionInfo& info     = builder_->functionInfos[i];
         const uint32_t      objIndex = static_cast<uint32_t>(i % numJobs);
         info.jobIndex                = objIndex;
-        builder_.objectDescriptions[objIndex].functions.push_back(&info);
+        builder_->objectDescriptions[objIndex].functions.push_back(&info);
     }
     return Result::Continue;
 }
 
 Result NativeArtifactBuilder::buildStartup() const
 {
-    builder_.startup.reset();
+    builder_->startup.reset();
 
-    if (builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
+    if (builder_->compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
-    if (builder_.mainFunctions.empty())
-        return builder_.reportError(DiagnosticId::cmd_err_native_main_missing);
+    if (builder_->mainFunctions.empty())
+        return builder_->reportError(DiagnosticId::cmd_err_native_main_missing);
 
     auto         startup = std::make_unique<NativeStartupInfo>();
-    MicroBuilder builder(builder_.ctx());
-    builder.setBackendBuildCfg(builder_.compiler().buildCfg().backend);
+    MicroBuilder builder(builder_->ctx());
+    builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
 
     // The startup thunk runs compiler-generated lifecycle hooks and then exits with the
     // program return value already carried in the host integer return register.
-    for (SymbolFunction* symbol : builder_.initFunctions)
+    for (SymbolFunction* symbol : builder_->initFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.preMainFunctions)
+    for (SymbolFunction* symbol : builder_->preMainFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.testFunctions)
+    for (SymbolFunction* symbol : builder_->testFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.mainFunctions)
+    for (SymbolFunction* symbol : builder_->mainFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.dropFunctions)
+    for (SymbolFunction* symbol : builder_->dropFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
 
-    auto* exitProcess = Symbol::make<SymbolFunction>(builder_.ctx(), nullptr, TokenRef::invalid(), builder_.compiler().idMgr().addIdentifier("ExitProcess"), SymbolFlagsE::Zero);
+    auto* exitProcess = Symbol::make<SymbolFunction>(builder_->ctx(), nullptr, TokenRef::invalid(), builder_->compiler().idMgr().addIdentifier("ExitProcess"), SymbolFlagsE::Zero);
     exitProcess->attributes().setForeign("kernel32", "ExitProcess");
     exitProcess->setCallConvKind(CallConvKind::Host);
-    exitProcess->setReturnTypeRef(builder_.compiler().typeMgr().typeVoid());
+    exitProcess->setReturnTypeRef(builder_->compiler().typeMgr().typeVoid());
 
     SmallVector<ABICall::PreparedArg> exitArgs;
     exitArgs.push_back({
@@ -436,10 +436,10 @@ Result NativeArtifactBuilder::buildStartup() const
     ABICall::callExtern(builder, CallConvKind::Host, exitProcess, preparedExit);
     builder.emitRet();
 
-    if (startup->code.emit(builder_.ctx(), builder) != Result::Continue)
-        return builder_.reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+    if (startup->code.emit(builder_->ctx(), builder) != Result::Continue)
+        return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
 
-    builder_.startup = std::move(startup);
+    builder_->startup = std::move(startup);
     return Result::Continue;
 }
 

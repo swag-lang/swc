@@ -215,10 +215,7 @@ namespace
 
     Utf8 formatFileGroup(std::string_view name, const size_t fileCount)
     {
-        return std::format("{} ({} {})",
-                           name,
-                           Utf8Helper::toNiceBigNumber(fileCount),
-                           fileCount == 1 ? "file" : "files");
+        return std::format("{} ({} {})", name, Utf8Helper::toNiceBigNumber(fileCount), fileCount == 1 ? "file" : "files");
     }
 
     bool finishAction(ScopedTimedAction& action, const uint64_t errorsBefore)

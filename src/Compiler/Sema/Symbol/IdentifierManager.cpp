@@ -105,6 +105,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::ProcessInfos, .str = "ProcessInfos"},
         {.name = PredefinedName::Gvtd, .str = "Gvtd"},
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
+        {.name = PredefinedName::RuntimeExit, .str = "__exit"},
         {.name = PredefinedName::RuntimeStringCmp, .str = "@stringcmp"},
         {.name = PredefinedName::RuntimeTlsAlloc, .str = "__tlsAlloc"},
         {.name = PredefinedName::RuntimeTlsGetPtr, .str = "__tlsGetPtr"},
@@ -115,6 +116,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     for (const auto& it : PREDEFINED_NAMES)
         predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
 
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Exit)]           = predefined(PredefinedName::RuntimeExit);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]       = predefined(PredefinedName::RuntimeTlsAlloc);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]      = predefined(PredefinedName::RuntimeTlsGetPtr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]    = predefined(PredefinedName::RuntimeTlsGetValue);

@@ -404,8 +404,8 @@ Result NativeArtifactBuilder::buildStartup() const
     MicroBuilder builder(builder_->ctx());
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
 
-    // The startup thunk runs compiler-generated lifecycle hooks and then exits with the
-    // program return value already carried in the host integer return register.
+    // The startup thunk runs compiler-generated lifecycle hooks and then hands off
+    // process termination to the runtime wrapper for the active target.
     for (SymbolFunction* symbol : builder_->initFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     for (SymbolFunction* symbol : builder_->preMainFunctions)
@@ -417,23 +417,16 @@ Result NativeArtifactBuilder::buildStartup() const
     for (SymbolFunction* symbol : builder_->dropFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
 
-    auto* exitProcess = Symbol::make<SymbolFunction>(builder_->ctx(), nullptr, TokenRef::invalid(), builder_->compiler().idMgr().addIdentifier("ExitProcess"), SymbolFlagsE::Zero);
-    exitProcess->attributes().setForeign("kernel32", "ExitProcess");
-    exitProcess->setCallConvKind(CallConvKind::Host);
-    exitProcess->setReturnTypeRef(builder_->compiler().typeMgr().typeVoid());
+    const IdentifierRef exitIdRef = builder_->ctx().idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit);
+    SymbolFunction*     exitFn    = builder_->compiler().runtimeFunctionSymbol(exitIdRef);
+    SWC_ASSERT(exitFn != nullptr);
+    if (!exitFn)
+        return builder_->reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, builder_->ctx().idMgr().get(exitIdRef).name);
 
-    SmallVector<ABICall::PreparedArg> exitArgs;
-    exitArgs.push_back({
-        .srcReg      = CallConv::host().intReturn,
-        .kind        = ABICall::PreparedArgKind::Direct,
-        .isFloat     = false,
-        .isAddressed = false,
-        .numBits     = 32,
-    });
-
-    builder.emitClearReg(CallConv::host().intReturn, MicroOpBits::B32);
-    const ABICall::PreparedCall preparedExit = ABICall::prepareArgs(builder, CallConvKind::Host, exitArgs.span());
-    ABICall::callExtern(builder, CallConvKind::Host, exitProcess, preparedExit);
+    // Startup calls the runtime wrapper instead of a raw OS entry point, so the
+    // emitted startup sequence stays stable across target-specific runtimes.
+    const ABICall::PreparedCall preparedExit = ABICall::prepareArgs(builder, exitFn->callConvKind(), {});
+    ABICall::callLocal(builder, exitFn->callConvKind(), exitFn, preparedExit);
     builder.emitRet();
 
     if (startup->code.emit(builder_->ctx(), builder) != Result::Continue)

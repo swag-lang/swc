@@ -17,6 +17,7 @@ class IdentifierManager
 public:
     enum class RuntimeFunctionKind : uint8_t
     {
+        Exit,
         TlsAlloc,
         TlsGetPtr,
         TlsGetValue,
@@ -109,6 +110,7 @@ public:
         ProcessInfos,
         Gvtd,
         BuildCfg,
+        RuntimeExit,
         RuntimeStringCmp,
         RuntimeTlsAlloc,
         RuntimeTlsGetPtr,

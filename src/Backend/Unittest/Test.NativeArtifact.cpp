@@ -265,6 +265,43 @@ if (emittedRootOffset == emittedNestedOffset || emittedNestedOffset == emittedSt
     return Result::Error;
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
+CommandLine cmdLine     = makeNativeArtifactCmdLine(ctx);
+cmdLine.backendKindName = "exe";
+CommandLineParser::refreshBuildCfg(cmdLine);
+
+CompilerInstance compiler(ctx.global(), cmdLine);
+TaskContext      compilerCtx(compiler);
+compiler.setupSema(compilerCtx);
+NativeBackendBuilder        nativeBuilder(compiler, false);
+const NativeArtifactBuilder artifactBuilder(nativeBuilder);
+
+auto* mainFunction = makeTestFunction(compilerCtx, "main");
+auto* exitFunction = makeTestFunction(compilerCtx, "__exit");
+compiler.registerRuntimeFunctionSymbol(compilerCtx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit), exitFunction);
+nativeBuilder.mainFunctions.push_back(mainFunction);
+
+SWC_RESULT(artifactBuilder.build());
+
+if (!nativeBuilder.startup)
+    return Result::Error;
+
+bool foundExitRelocation = false;
+for (const auto& relocation : nativeBuilder.startup->code.codeRelocations)
+{
+    if (relocation.targetSymbol != exitFunction)
+        continue;
+
+    if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress)
+        return Result::Error;
+
+    foundExitRelocation = true;
+}
+
+if (!foundExitRelocation)
+    return Result::Error;
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

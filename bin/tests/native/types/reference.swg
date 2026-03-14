@@ -74,3 +74,21 @@ struct Vec2
     @assert(p1.x == 300)
     @assert(p1.y == 400)
 }
+
+struct A {}
+func titi(a: &A) {}
+#test
+{
+    var a: A
+    titi(&a)
+}
+
+func tata(a: const &A) {}
+#test
+{
+    var a: A
+    tata(a)
+}
+
+
+

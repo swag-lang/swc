@@ -4,10 +4,6 @@ var A: [..] s32
 #assert(#typeof(A) == [..] s32)
 #assert(#nameof(#typeof(A)) == "[..] s32")
 
-
-
-
-
 #test
 {
     var a: [3] s32 = [1, 2, 3]

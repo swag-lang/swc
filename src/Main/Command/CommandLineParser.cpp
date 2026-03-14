@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Main/Command/CommandLineParser.h"
-#include "Main/CompilerInstance.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -605,7 +605,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     global_(&global)
 {
     updateDefaultBuildCfg(*cmdLine_);
-    const Utf8 registeredBuildCfgs = Utf8(cmdLine_->defaultBuildCfg.registeredConfigs);
+    const auto registeredBuildCfgs = Utf8(cmdLine_->defaultBuildCfg.registeredConfigs);
 
     addArg(HelpOptionGroup::Input, "all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
     addArg(HelpOptionGroup::Input, "all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");

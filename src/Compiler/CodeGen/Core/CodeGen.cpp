@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Compiler/Core/SourceFile.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -9,7 +10,6 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
-#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -57,9 +57,9 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         builder_  = &symbolFunc.microInstrBuilder(ctx());
         visit_.start(ast(), root);
 
-        nextVirtualRegister_ = 1;
-        localStackFrameSize_ = 0;
-        localStackBaseReg_   = MicroReg::invalid();
+        nextVirtualRegister_              = 1;
+        localStackFrameSize_              = 0;
+        localStackBaseReg_                = MicroReg::invalid();
         currentFunctionIndirectReturnReg_ = MicroReg::invalid();
         clearGvtdScratchLayout();
         frames_.clear();

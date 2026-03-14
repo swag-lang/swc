@@ -264,8 +264,8 @@ namespace
         if (normalizedType.isReference())
             return;
 
-        MicroReg    dstReg   = MicroReg::invalid();
-        MicroOpBits loadBits = MicroOpBits::Zero;
+        MicroReg dstReg   = MicroReg::invalid();
+        auto     loadBits = MicroOpBits::Zero;
         if (normalizedArg.isFloat)
         {
             if (normalizedArg.numBits != 32 && normalizedArg.numBits != 64)
@@ -391,8 +391,8 @@ namespace
 
     void emitFunctionCall(CodeGen& codeGen, SymbolFunction& calledFunction, const ABICall::PreparedCall& preparedCall, MicroReg callTargetReg)
     {
-        MicroBuilder&             builder       = codeGen.builder();
-        const CallConvKind        callConvKind  = calledFunction.callConvKind();
+        MicroBuilder&      builder      = codeGen.builder();
+        const CallConvKind callConvKind = calledFunction.callConvKind();
 
         if (callTargetReg.isValid())
         {
@@ -669,11 +669,11 @@ namespace
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
         outArgs.clear();
         outArgs.reserve(args.size());
-        outTransientStackSize            = 0;
-        const CallConvKind               callConvKind = calledFunction.callConvKind();
-        const CallConv&                  callConv     = CallConv::get(callConvKind);
-        const std::vector<SymbolVariable*>& params    = calledFunction.parameters();
-        const size_t                     numParams    = params.size();
+        outTransientStackSize                            = 0;
+        const CallConvKind                  callConvKind = calledFunction.callConvKind();
+        const CallConv&                     callConv     = CallConv::get(callConvKind);
+        const std::vector<SymbolVariable*>& params       = calledFunction.parameters();
+        const size_t                        numParams    = params.size();
 
         bool    hasVariadic           = false;
         bool    hasTypedVariadic      = false;

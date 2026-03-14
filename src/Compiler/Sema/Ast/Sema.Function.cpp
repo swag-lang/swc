@@ -162,8 +162,8 @@ namespace
         if (!sym.parameters().empty())
             return Result::Continue;
 
-        TaskContext&             ctx             = sema.ctx();
-        const SymbolFunction*    bindingFunction = resolveLambdaBindingFunction(sema);
+        TaskContext&            ctx             = sema.ctx();
+        const SymbolFunction*   bindingFunction = resolveLambdaBindingFunction(sema);
         SmallVector<AstNodeRef> params;
         sema.ast().appendNodes(params, node.spanArgsRef);
 

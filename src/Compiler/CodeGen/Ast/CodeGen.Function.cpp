@@ -23,7 +23,7 @@ namespace
         if (!nodeRef.isValid())
             return nullptr;
 
-        const AstNode& node = codeGen.node(nodeRef);
+        const AstNode&               node = codeGen.node(nodeRef);
         SmallVector<SymbolFunction*> deps;
         codeGen.function().appendCallDependencies(deps);
         for (SymbolFunction* dep : deps)
@@ -602,8 +602,8 @@ namespace
         if (normalizedRet.isIndirect)
         {
             SWC_ASSERT(!callConv.intArgRegs.empty());
-            const ScopedDebugNoStep   noStep(codeGen.builder(), true);
-            const MicroReg            outputStorageReg = codeGen.nextVirtualIntRegister();
+            const ScopedDebugNoStep noStep(codeGen.builder(), true);
+            const MicroReg          outputStorageReg = codeGen.nextVirtualIntRegister();
             codeGen.builder().emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
             codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
         }

@@ -2,15 +2,15 @@
 #include "Main/Command/Command.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Compiler/Core/SourceFile.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Test/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/ScopedTimedAction.h"
-#include "Compiler/Core/SourceFile.h"
-#include "Compiler/Test/Verify.h"
 
 SWC_BEGIN_NAMESPACE();
 

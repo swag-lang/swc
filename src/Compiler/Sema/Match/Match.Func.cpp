@@ -520,7 +520,7 @@ namespace
             castFlags.add(CastFlagsE::FoldedTypedConst);
 
         CastRequest castRequest(castKind);
-        castRequest.flags = castFlags;
+        castRequest.flags        = castFlags;
         castRequest.errorNodeRef = argRef;
         castRequest.setConstantFoldingSrc(argNodeView.cstRef());
         if (isUfcsArgument)

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Core/SourceFile.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -15,7 +16,6 @@
 #include "Main/Global.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
-#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

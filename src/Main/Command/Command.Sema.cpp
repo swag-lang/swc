@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
+#include "Compiler/Core/SourceFile.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -10,7 +11,6 @@
 #include "Support/Memory/Heap.h"
 #include "Support/Thread/Job.h"
 #include "Support/Thread/JobManager.h"
-#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

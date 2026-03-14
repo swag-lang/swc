@@ -2,6 +2,7 @@
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
+#include "Compiler/Core/SourceFile.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/NodePayload.h"
@@ -23,7 +24,6 @@
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"
-#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

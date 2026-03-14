@@ -5,11 +5,11 @@
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Compiler/Core/SourceFile.h"
 #include "Main/Global.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/ScopedTimedAction.h"
-#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

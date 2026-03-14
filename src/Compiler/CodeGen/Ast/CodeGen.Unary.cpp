@@ -169,7 +169,7 @@ namespace
 
     Result codeGenUnaryTakeAddress(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        const SemaNodeView        view    = codeGen.curViewType();
+        const SemaNodeView        view      = codeGen.curViewType();
         const SemaNodeView        childView = codeGen.viewSymbol(nodeExprRef);
         const CodeGenNodePayload& payload   = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
         if (childView.sym() && childView.sym()->isFunction() && !codeGen.safePayload(nodeExprRef))

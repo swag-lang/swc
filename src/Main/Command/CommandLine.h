@@ -51,22 +51,22 @@ struct CommandLine
     Utf8                workDirStorage;
     std::optional<bool> backendOptimize;
 
-    bool logColor        = true;
-    bool logAscii        = false;
-    bool syntaxColor     = true;
-    bool diagOneLine     = false;
-    bool errorId         = false;
-    bool silent          = false;
-    bool stats           = false;
-    bool clear           = false;
-    bool verboseInfo     = false;
-    bool verboseVerify   = false;
+    bool logColor         = true;
+    bool logAscii         = false;
+    bool syntaxColor      = true;
+    bool diagOneLine      = false;
+    bool errorId          = false;
+    bool silent           = false;
+    bool stats            = false;
+    bool clear            = false;
+    bool verboseInfo      = false;
+    bool verboseVerify    = false;
     bool sourceDrivenTest = false;
-    bool testNative      = true;
-    bool testJit         = true;
-    bool unittest        = true;
-    bool verboseUnittest = false;
-    bool runtime         = true;
+    bool testNative       = true;
+    bool testJit          = true;
+    bool unittest         = true;
+    bool verboseUnittest  = false;
+    bool runtime          = true;
 
 #ifdef SWC_DEV_MODE
     bool     randomize = false;

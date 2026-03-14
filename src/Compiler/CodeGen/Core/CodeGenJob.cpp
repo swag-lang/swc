@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/Core/SourceFile.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Global.h"
-#include "Compiler/Core/SourceFile.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"

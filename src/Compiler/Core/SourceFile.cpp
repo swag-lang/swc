@@ -1,13 +1,13 @@
 ﻿#include "pch.h"
 #include "Compiler/Core/SourceFile.h"
 #include "Compiler/Sema/Core/NodePayload.h"
+#include "Compiler/Test/Verify.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Timer.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
-#include "Compiler/Test/Verify.h"
 
 SWC_BEGIN_NAMESPACE();
 

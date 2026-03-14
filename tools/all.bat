@@ -6,11 +6,15 @@ set "NATIVE_OUTPUT=%ROOT%\.output"
 set "EXE_OUTPUT=%NATIVE_OUTPUT%\exe"
 set "DLL_OUTPUT=%NATIVE_OUTPUT%\dll"
 set "LIB_OUTPUT=%NATIVE_OUTPUT%\lib"
+set "RUN_OUTPUT=%NATIVE_OUTPUT%\native-run"
 set "EXE_WORKDIR=%NATIVE_OUTPUT%\work\exe"
 set "DLL_WORKDIR=%NATIVE_OUTPUT%\work\dll"
 set "LIB_WORKDIR=%NATIVE_OUTPUT%\work\lib"
+set "RUN_WORKDIR=%NATIVE_OUTPUT%\work\native-run"
 
 call "%~dp0test.bat" --cfg release %*
+if errorlevel 1 exit /b %errorlevel%
+swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\release" --work-dir "%RUN_WORKDIR%\release" --cfg release %*
 if errorlevel 1 exit /b %errorlevel%
 swc run --test --backend-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --cfg release %*
 if errorlevel 1 exit /b %errorlevel%
@@ -19,6 +23,8 @@ if errorlevel 1 exit /b %errorlevel%
 
 call "%~dp0test.bat" --cfg debug %*
 if errorlevel 1 exit /b %errorlevel%
+swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\debug" --work-dir "%RUN_WORKDIR%\debug" --cfg debug %*
+if errorlevel 1 exit /b %errorlevel%
 swc run --test --backend-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --cfg debug %*
 if errorlevel 1 exit /b %errorlevel%
 swc run --test --backend-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --cfg debug %*
@@ -26,12 +32,16 @@ if errorlevel 1 exit /b %errorlevel%
 
 call "%~dp0test.bat" --cfg fast-debug %*
 if errorlevel 1 exit /b %errorlevel%
+swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-debug" --work-dir "%RUN_WORKDIR%\fast-debug" --cfg fast-debug %*
+if errorlevel 1 exit /b %errorlevel%
 swc run --test --backend-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --cfg fast-debug %*
 if errorlevel 1 exit /b %errorlevel%
 swc run --test --backend-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --cfg fast-debug %*
 if errorlevel 1 exit /b %errorlevel%
 
 call "%~dp0test.bat" --cfg fast-compile %*
+if errorlevel 1 exit /b %errorlevel%
+swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-compile" --work-dir "%RUN_WORKDIR%\fast-compile" --cfg fast-compile %*
 if errorlevel 1 exit /b %errorlevel%
 swc run --test --backend-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --cfg fast-compile %*
 if errorlevel 1 exit /b %errorlevel%

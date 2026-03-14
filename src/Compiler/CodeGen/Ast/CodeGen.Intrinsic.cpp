@@ -164,43 +164,6 @@ namespace
         convertIntrinsicNumericOperand(outReg, codeGen, operandTypeRef, resultTypeRef);
     }
 
-    CodeGenNodePayload resolveIntrinsicRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
-    {
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
-            return *symbolPayload;
-
-        SWC_ASSERT(storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
-        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-
-        CodeGenNodePayload localPayload;
-        localPayload.typeRef = storageSym.typeRef();
-        localPayload.setIsAddress();
-        if (!storageSym.offset())
-        {
-            localPayload.reg = codeGen.localStackBaseReg();
-        }
-        else
-        {
-            MicroBuilder& builder = codeGen.builder();
-            localPayload.reg      = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-        }
-
-        codeGen.setVariablePayload(storageSym, localPayload);
-        return localPayload;
-    }
-
-    MicroReg intrinsicRuntimeStorageAddressReg(CodeGen& codeGen)
-    {
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
-        SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
-        const CodeGenNodePayload storagePayload = resolveIntrinsicRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
-        SWC_ASSERT(storagePayload.isAddress());
-        return storagePayload.reg;
-    }
-
     bool tryGetIntrinsicMemSizeConst(CodeGen& codeGen, AstNodeRef sizeRef, uint32_t& outSizeInBytes)
     {
         outSizeInBytes              = 0;
@@ -477,7 +440,7 @@ namespace
 
         const MicroReg ptrReg          = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
         const MicroReg typeInfoReg     = materializeIntrinsicIntArgReg(codeGen, typePayload, MicroOpBits::B64);
-        const MicroReg runtimeValueReg = intrinsicRuntimeStorageAddressReg(codeGen);
+        const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         MicroBuilder&  builder         = codeGen.builder();
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Any, value), ptrReg, MicroOpBits::B64);
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Any, type), typeInfoReg, MicroOpBits::B64);
@@ -513,7 +476,7 @@ namespace
         else
             builder.emitLoadRegReg(sizeReg, sizePayload.reg, MicroOpBits::B64);
 
-        const MicroReg runtimeStorageReg = intrinsicRuntimeStorageAddressReg(codeGen);
+        const MicroReg runtimeStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         const uint64_t countOffset       = forString ? offsetof(Runtime::String, length) : offsetof(Runtime::Slice<std::byte>, count);
         builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Slice<std::byte>, ptr), ptrReg, MicroOpBits::B64);
         builder.emitLoadMemReg(runtimeStorageReg, countOffset, sizeReg, MicroOpBits::B64);

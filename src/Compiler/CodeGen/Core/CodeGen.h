@@ -230,6 +230,9 @@ public:
     CodeGenNodePayload&              setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&              setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&              setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    MicroReg                         offsetAddressReg(MicroReg baseReg, uint32_t offset);
+    CodeGenNodePayload               resolveLocalStackPayload(const SymbolVariable& sym);
+    MicroReg                         runtimeStorageAddressReg(AstNodeRef nodeRef);
 
     void                              clearGvtdScratchLayout();
     void                              setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries);

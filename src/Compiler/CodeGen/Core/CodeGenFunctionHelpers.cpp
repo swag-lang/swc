@@ -148,29 +148,6 @@ namespace
         return false;
     }
 
-    ConstantRef makeBorrowedRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
-    {
-        uint32_t targetShardIndex = 0;
-        Ref      targetOffset     = INVALID_REF;
-        if (targetPtr)
-            targetOffset = codeGen.cstMgr().findDataSegmentRef(targetShardIndex, targetPtr);
-
-        if (targetPtr && targetOffset == INVALID_REF)
-            return ConstantRef::invalid();
-
-        DataSegment& segment         = codeGen.cstMgr().shardDataSegment(targetOffset == INVALID_REF ? 0 : targetShardIndex);
-        const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
-        auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
-        runtimeValue->ptr            = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
-        runtimeValue->count          = count;
-
-        if (targetOffset != INVALID_REF)
-            segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetOffset);
-
-        const ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
-        return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
-    }
-
     void emitPointerConstant(CodeGen& codeGen, MicroReg reg, const uint64_t value, ConstantRef cstRef)
     {
         if (!value)
@@ -197,50 +174,6 @@ namespace
             return false;
 
         return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
-    }
-
-    CodeGenNodePayload resolveCallRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
-    {
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
-            return *symbolPayload;
-
-        if (!storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
-            return {};
-        if (!codeGen.localStackBaseReg().isValid())
-            return {};
-
-        CodeGenNodePayload localPayload;
-        localPayload.typeRef = storageSym.typeRef();
-        localPayload.setIsAddress();
-        if (!storageSym.offset())
-        {
-            localPayload.reg = codeGen.localStackBaseReg();
-        }
-        else
-        {
-            MicroBuilder& builder = codeGen.builder();
-            localPayload.reg      = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-        }
-
-        codeGen.setVariablePayload(storageSym, localPayload);
-        return localPayload;
-    }
-
-    MicroReg callRuntimeStorageAddressReg(CodeGen& codeGen, AstNodeRef callExprRef)
-    {
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(callExprRef);
-        if (!payload || payload->runtimeStorageSym == nullptr)
-            return MicroReg::invalid();
-
-        const CodeGenNodePayload storagePayload = resolveCallRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
-        if (!storagePayload.isAddress())
-            return MicroReg::invalid();
-        if (!storagePayload.reg.isValid())
-            return MicroReg::invalid();
-
-        return storagePayload.reg;
     }
 
     MicroOpBits functionParameterLoadBits(bool isFloat, uint8_t numBits)
@@ -348,7 +281,7 @@ namespace
             {
                 const std::string_view value               = cst.getString();
                 const TypeRef          runtimeTypeRef      = targetTypeRef.isValid() ? targetTypeRef : codeGen.typeMgr().typeString();
-                const ConstantRef      runtimeStringCstRef = makeBorrowedRuntimeBufferConstant(codeGen, runtimeTypeRef, value.data(), value.size());
+                const ConstantRef      runtimeStringCstRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, value.data(), value.size());
                 if (runtimeStringCstRef.isInvalid())
                     return false;
                 const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
@@ -393,7 +326,7 @@ namespace
                 const TypeInfo&   elementType     = codeGen.typeMgr().get(sliceType.payloadTypeRef());
                 const uint64_t    elementSize     = elementType.sizeOf(codeGen.ctx());
                 const uint64_t    elementCount    = elementSize ? sliceBytes.size() / elementSize : 0;
-                const ConstantRef runtimeSliceRef = makeBorrowedRuntimeBufferConstant(codeGen, runtimeTypeRef, sliceBytes.data(), elementCount);
+                const ConstantRef runtimeSliceRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, sliceBytes.data(), elementCount);
                 if (runtimeSliceRef.isInvalid())
                     return false;
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
@@ -890,6 +823,29 @@ ConstantRef CodeGenFunctionHelpers::materializeStaticPayloadConstant(CodeGen& co
     return codeGen.cstMgr().addConstant(ctx, ConstantValue::makeStructBorrowed(ctx, typeRef, storedBytes));
 }
 
+ConstantRef CodeGenFunctionHelpers::materializeRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
+{
+    uint32_t targetShardIndex = 0;
+    Ref      targetOffset     = INVALID_REF;
+    if (targetPtr)
+        targetOffset = codeGen.cstMgr().findDataSegmentRef(targetShardIndex, targetPtr);
+
+    if (targetPtr && targetOffset == INVALID_REF)
+        return ConstantRef::invalid();
+
+    DataSegment& segment         = codeGen.cstMgr().shardDataSegment(targetOffset == INVALID_REF ? 0 : targetShardIndex);
+    const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
+    auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
+    runtimeValue->ptr            = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
+    runtimeValue->count          = count;
+
+    if (targetOffset != INVALID_REF)
+        segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetOffset);
+
+    const ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
+    return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
+}
+
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg)
 {
     SWC_ASSERT(symVar.hasParameterIndex());
@@ -979,7 +935,14 @@ Result CodeGenFunctionHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRe
     buildPreparedABIArguments(codeGen, calledFunction, args, preparedArgs, transientStackSize);
     MicroReg hiddenRetStorageReg = MicroReg::invalid();
     if (normalizedRet.isIndirect)
-        hiddenRetStorageReg = callRuntimeStorageAddressReg(codeGen, codeGen.curNodeRef());
+    {
+        const CodeGenNodePayload* nodePayload = codeGen.safePayload(codeGen.curNodeRef());
+        if (nodePayload &&
+            nodePayload->runtimeStorageSym != nullptr &&
+            nodePayload->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
+            codeGen.localStackBaseReg().isValid())
+            hiddenRetStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+    }
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet, hiddenRetStorageReg);

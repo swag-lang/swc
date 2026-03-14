@@ -11,43 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    CodeGenNodePayload resolveIndexRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
-    {
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
-            return *symbolPayload;
-
-        SWC_ASSERT(storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
-        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-
-        CodeGenNodePayload localPayload;
-        localPayload.typeRef = storageSym.typeRef();
-        localPayload.setIsAddress();
-        if (!storageSym.offset())
-        {
-            localPayload.reg = codeGen.localStackBaseReg();
-        }
-        else
-        {
-            MicroBuilder& builder = codeGen.builder();
-            localPayload.reg      = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-        }
-
-        codeGen.setVariablePayload(storageSym, localPayload);
-        return localPayload;
-    }
-
-    MicroReg indexRuntimeStorageAddressReg(CodeGen& codeGen)
-    {
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
-        SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
-        const CodeGenNodePayload storagePayload = resolveIndexRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
-        SWC_ASSERT(storagePayload.isAddress());
-        return storagePayload.reg;
-    }
-
     MicroOpBits indexOpBits(const TypeInfo& typeInfo)
     {
         if (!typeInfo.isIntLike())
@@ -101,7 +64,7 @@ namespace
         if (sizeOfValue != 1 && sizeOfValue != 2 && sizeOfValue != 4 && sizeOfValue != 8)
             return payload.reg;
 
-        const MicroReg spillAddrReg = indexRuntimeStorageAddressReg(codeGen);
+        const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         builder.emitLoadMemReg(spillAddrReg, 0, payload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
         return spillAddrReg;
     }

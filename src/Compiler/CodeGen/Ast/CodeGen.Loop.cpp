@@ -330,25 +330,7 @@ namespace
         {
             if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
                 return *symbolPayload;
-            SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-
-            CodeGenNodePayload localPayload;
-            localPayload.typeRef = symVar.typeRef();
-            localPayload.setIsAddress();
-            if (!symVar.offset())
-            {
-                localPayload.reg = codeGen.localStackBaseReg();
-            }
-            else
-            {
-                MicroBuilder& builder = codeGen.builder();
-                localPayload.reg      = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(localPayload.reg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-            }
-
-            codeGen.setVariablePayload(symVar, localPayload);
-            return localPayload;
+            return codeGen.resolveLocalStackPayload(symVar);
         }
 
         // Foreach aliases are not guaranteed to be part of function local-variable reset,

@@ -22,28 +22,6 @@ namespace
         return std::ranges::find(locals, const_cast<SymbolVariable*>(&symVar)) != locals.end();
     }
 
-    CodeGenNodePayload makeLocalStackPayload(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-
-        CodeGenNodePayload localPayload;
-        localPayload.typeRef = symVar.typeRef();
-        localPayload.setIsAddress();
-        if (!symVar.offset())
-        {
-            localPayload.reg = codeGen.localStackBaseReg();
-        }
-        else
-        {
-            MicroBuilder& builder = codeGen.builder();
-            localPayload.reg      = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-        }
-
-        return localPayload;
-    }
-
     MicroOpBits identifierPayloadCopyBits(CodeGen& codeGen, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -79,16 +57,12 @@ namespace
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
-            const CodeGenNodePayload localPayload = makeLocalStackPayload(codeGen, symVar);
-            codeGen.setVariablePayload(symVar, localPayload);
-            return localPayload;
+            return codeGen.resolveLocalStackPayload(symVar);
         }
 
         if (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar))
         {
-            const CodeGenNodePayload localPayload = makeLocalStackPayload(codeGen, symVar);
-            codeGen.setVariablePayload(symVar, localPayload);
-            return localPayload;
+            return codeGen.resolveLocalStackPayload(symVar);
         }
 
         if (symVar.hasGlobalStorage())
@@ -169,20 +143,7 @@ namespace
         {
             const uint32_t localSize = symVar.codeGenLocalSize();
             SWC_ASSERT(localSize > 0);
-            CodeGenNodePayload symbolPayload;
-            symbolPayload.typeRef = symVar.typeRef();
-            symbolPayload.setIsAddress();
-
-            if (!symVar.offset())
-            {
-                symbolPayload.reg = codeGen.localStackBaseReg();
-            }
-            else
-            {
-                symbolPayload.reg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(symbolPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(symbolPayload.reg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-            }
+            const CodeGenNodePayload symbolPayload = codeGen.resolveLocalStackPayload(symVar);
 
             if (!skipInit)
             {
@@ -198,7 +159,6 @@ namespace
                         if (localSize > 8)
                         {
                             CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
-                            codeGen.setVariablePayload(symVar, symbolPayload);
                             return;
                         }
 
@@ -220,8 +180,6 @@ namespace
                         CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
                 }
             }
-
-            codeGen.setVariablePayload(symVar, symbolPayload);
             return;
         }
 

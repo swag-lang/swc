@@ -349,15 +349,7 @@ namespace
     {
         SWC_ASSERT(symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
         SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-
-        if (!symVar.offset())
-            return codeGen.localStackBaseReg();
-
-        MicroBuilder&  builder    = codeGen.builder();
-        const MicroReg addressReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(addressReg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(addressReg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-        return addressReg;
+        return codeGen.offsetAddressReg(codeGen.localStackBaseReg(), symVar.offset());
     }
 
     Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)

@@ -301,6 +301,47 @@ CodeGenNodePayload& CodeGen::setPayloadAddress(AstNodeRef nodeRef, TypeRef typeR
     return nodePayload;
 }
 
+MicroReg CodeGen::offsetAddressReg(const MicroReg baseReg, const uint32_t offset)
+{
+    SWC_ASSERT(baseReg.isValid());
+    if (!offset)
+        return baseReg;
+
+    const MicroReg addressReg = nextVirtualIntRegister();
+    builder().emitLoadRegReg(addressReg, baseReg, MicroOpBits::B64);
+    builder().emitOpBinaryRegImm(addressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
+    return addressReg;
+}
+
+CodeGenNodePayload CodeGen::resolveLocalStackPayload(const SymbolVariable& sym)
+{
+    if (const CodeGenNodePayload* symbolPayload = variablePayload(sym))
+        return *symbolPayload;
+
+    SWC_ASSERT(localStackBaseReg().isValid());
+
+    // Stack-backed symbols are reused heavily during codegen, so cache the computed
+    // address payload once instead of rebuilding the same base+offset sequence.
+    CodeGenNodePayload localPayload;
+    localPayload.typeRef = sym.typeRef();
+    localPayload.setIsAddress();
+    localPayload.reg = offsetAddressReg(localStackBaseReg(), sym.offset());
+    setVariablePayload(sym, localPayload);
+    return localPayload;
+}
+
+MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
+{
+    const CodeGenNodePayload* nodePayload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    if (!nodePayload)
+        nodePayload = safePayload(nodeRef);
+    SWC_ASSERT(nodePayload != nullptr);
+    SWC_ASSERT(nodePayload->runtimeStorageSym != nullptr);
+    const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*(nodePayload->runtimeStorageSym));
+    SWC_ASSERT(storagePayload.isAddress());
+    return storagePayload.reg;
+}
+
 void CodeGen::clearGvtdScratchLayout()
 {
     gvtdScratchEntries_.clear();
@@ -405,16 +446,7 @@ Result CodeGen::postNode(AstNode& node)
             SWC_ASSERT(localStackBaseReg().isValid());
 
             inlineNodePayload->setIsAddress();
-            if (!resultVar.offset())
-            {
-                inlineNodePayload->reg = localStackBaseReg();
-            }
-            else
-            {
-                inlineNodePayload->reg = nextVirtualIntRegister();
-                builder().emitLoadRegReg(inlineNodePayload->reg, localStackBaseReg(), MicroOpBits::B64);
-                builder().emitOpBinaryRegImm(inlineNodePayload->reg, ApInt(resultVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-            }
+            inlineNodePayload->reg = offsetAddressReg(localStackBaseReg(), resultVar.offset());
         }
         sema().setCodeGenPayload(curNodeRef(), inlineNodePayload);
 

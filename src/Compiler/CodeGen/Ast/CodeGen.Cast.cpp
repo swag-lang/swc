@@ -21,71 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    ConstantRef makeBorrowedStructConstant(CodeGen& codeGen, TypeRef typeRef, ByteSpan payload)
-    {
-        return CodeGenFunctionHelpers::materializeStaticPayloadConstant(codeGen, typeRef, payload);
-    }
-
-    ConstantRef makeBorrowedRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
-    {
-        uint32_t targetShardIndex = 0;
-        Ref      targetOffset     = INVALID_REF;
-        if (targetPtr)
-            targetOffset = codeGen.cstMgr().findDataSegmentRef(targetShardIndex, targetPtr);
-
-        if (targetPtr && targetOffset == INVALID_REF)
-            return ConstantRef::invalid();
-
-        DataSegment& segment         = codeGen.cstMgr().shardDataSegment(targetOffset == INVALID_REF ? 0 : targetShardIndex);
-        const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
-        auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
-        runtimeValue->ptr            = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
-        runtimeValue->count          = count;
-
-        if (targetOffset != INVALID_REF)
-            segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetOffset);
-
-        const ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
-        return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
-    }
-
-    CodeGenNodePayload resolveCastRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
-    {
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
-            return *symbolPayload;
-
-        SWC_ASSERT(storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
-        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-
-        CodeGenNodePayload localPayload;
-        localPayload.typeRef = storageSym.typeRef();
-        localPayload.setIsAddress();
-        if (!storageSym.offset())
-        {
-            localPayload.reg = codeGen.localStackBaseReg();
-        }
-        else
-        {
-            MicroBuilder& builder = codeGen.builder();
-            localPayload.reg      = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-        }
-
-        codeGen.setVariablePayload(storageSym, localPayload);
-        return localPayload;
-    }
-
-    MicroReg castRuntimeStorageAddressReg(CodeGen& codeGen)
-    {
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
-        SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
-        const CodeGenNodePayload storagePayload = resolveCastRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
-        SWC_ASSERT(storagePayload.isAddress());
-        return storagePayload.reg;
-    }
-
     bool isUsingMemberDecl(const AstNode* decl)
     {
         if (!decl)
@@ -242,7 +177,7 @@ namespace
             if (srcConst.isArray())
             {
                 const ByteSpan    arrayBytes       = srcConst.getArray();
-                const ConstantRef runtimeStringRef = makeBorrowedRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), arrayBytes.size());
+                const ConstantRef runtimeStringRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), arrayBytes.size());
                 SWC_ASSERT(runtimeStringRef.isValid());
                 const ConstantValue&      runtimeStringCst = codeGen.cstMgr().get(runtimeStringRef);
                 const CodeGenNodePayload& dstPayload       = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -252,7 +187,7 @@ namespace
         }
 
         const uint64_t length          = srcType.sizeOf(codeGen.ctx());
-        const MicroReg runtimeValueReg = castRuntimeStorageAddressReg(codeGen);
+        const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
 
         MicroReg srcDataReg = srcPayload.reg;
         if (!srcPayload.isAddress())
@@ -291,7 +226,7 @@ namespace
             if (srcConst.isArray())
             {
                 const ByteSpan    arrayBytes      = srcConst.getArray();
-                const ConstantRef runtimeSliceRef = makeBorrowedRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), elementCount);
+                const ConstantRef runtimeSliceRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), elementCount);
                 SWC_ASSERT(runtimeSliceRef.isValid());
                 const ConstantValue&      runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
                 const CodeGenNodePayload& dstPayload      = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -300,7 +235,7 @@ namespace
             }
         }
 
-        const MicroReg runtimeValueReg = castRuntimeStorageAddressReg(codeGen);
+        const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
 
         MicroReg srcDataReg = srcPayload.reg;
         if (!srcPayload.isAddress())
@@ -440,7 +375,7 @@ namespace
             const ConstantRef  nullCstRef   = srcConstView.cstRef().isValid() ? srcConstView.cstRef() : codeGen.cstMgr().cstNull();
             ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, nullCstRef, dstTypeRef);
 
-            const ConstantRef         typedNullCstRef = makeBorrowedStructConstant(codeGen, dstTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+            const ConstantRef         typedNullCstRef = CodeGenFunctionHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
             const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
             const CodeGenNodePayload& dstPayload      = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             builder.emitLoadRegPtrReloc(dstPayload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);
@@ -460,7 +395,7 @@ namespace
                 return Result::Continue;
             }
 
-            const MicroReg runtimeAnyReg = castRuntimeStorageAddressReg(codeGen);
+            const MicroReg runtimeAnyReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
             TypeRef        anyTypeRef    = sourceTypeRef;
             if (srcType.isChar())
                 anyTypeRef = codeGen.typeMgr().typeRune();
@@ -512,7 +447,7 @@ namespace
             const uint64_t     objectStorageSize    = srcType.sizeOf(codeGen.ctx());
             const uint64_t     itableOffset         = interfaceStorageSize + objectStorageSize;
 
-            const MicroReg runtimeItfReg    = castRuntimeStorageAddressReg(codeGen);
+            const MicroReg runtimeItfReg    = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
             MicroReg       objectStorageReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(objectStorageReg, runtimeItfReg, MicroOpBits::B64);
             builder.emitOpBinaryRegImm(objectStorageReg, ApInt(interfaceStorageSize, 64), MicroOp::Add, MicroOpBits::B64);

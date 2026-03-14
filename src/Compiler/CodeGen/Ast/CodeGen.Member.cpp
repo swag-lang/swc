@@ -112,55 +112,6 @@ namespace
         return resolveUsingMemberPathRec(codeGen, baseTypeInfo->payloadSymStruct(), *ownerStruct, outSteps, visited);
     }
 
-    MicroReg offsetAddressReg(CodeGen& codeGen, MicroReg baseReg, uint32_t offset)
-    {
-        if (!offset)
-            return baseReg;
-
-        MicroBuilder&  builder = codeGen.builder();
-        const MicroReg result  = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(result, baseReg, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(result, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
-        return result;
-    }
-
-    CodeGenNodePayload resolveMemberRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
-    {
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
-            return *symbolPayload;
-
-        SWC_ASSERT(storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
-        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-
-        CodeGenNodePayload localPayload;
-        localPayload.typeRef = storageSym.typeRef();
-        localPayload.setIsAddress();
-        if (!storageSym.offset())
-        {
-            localPayload.reg = codeGen.localStackBaseReg();
-        }
-        else
-        {
-            MicroBuilder& builder = codeGen.builder();
-            localPayload.reg      = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
-        }
-
-        codeGen.setVariablePayload(storageSym, localPayload);
-        return localPayload;
-    }
-
-    MicroReg memberRuntimeStorageAddressReg(CodeGen& codeGen)
-    {
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
-        SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
-        const CodeGenNodePayload storagePayload = resolveMemberRuntimeStoragePayload(codeGen, *(payload->runtimeStorageSym));
-        SWC_ASSERT(storagePayload.isAddress());
-        return storagePayload.reg;
-    }
-
     bool shouldTreatStructMemberLeftAsValue(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& leftPayload)
     {
         const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
@@ -222,7 +173,7 @@ namespace
 
             if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)
             {
-                const MicroReg spillAddrReg = memberRuntimeStorageAddressReg(codeGen);
+                const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
                 builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(leftSize)));
                 baseAddressReg = spillAddrReg;
             }
@@ -239,7 +190,7 @@ namespace
             }
             else
             {
-                baseAddressReg = offsetAddressReg(codeGen, baseAddressReg, step.field->offset());
+                baseAddressReg = codeGen.offsetAddressReg(baseAddressReg, step.field->offset());
             }
         }
 

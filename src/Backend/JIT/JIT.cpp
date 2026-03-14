@@ -98,7 +98,7 @@ namespace
         }
     }
 
-    bool resolveLocalFunctionTargetAddress(uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure)
+    bool resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure)
     {
         outTargetAddress = reloc.targetAddress;
         if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
@@ -129,8 +129,14 @@ namespace
             return false;
         }
 
-        const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
-        void* const           entryAddress   = targetFunction.jitPatchAddress();
+        auto& targetFunction = targetSymbol->cast<SymbolFunction>();
+        void* entryAddress   = targetFunction.jitPatchAddress();
+        if (!entryAddress && !targetFunction.loweredCode().bytes.empty())
+        {
+            targetFunction.jit(ctx);
+            entryAddress = targetFunction.jitPatchAddress();
+        }
+
         if (!entryAddress)
         {
             if (outFailure)
@@ -241,7 +247,7 @@ namespace
                 return true;
 
             case MicroRelocation::Kind::LocalFunctionAddress:
-                return resolveLocalFunctionTargetAddress(outTargetAddress, reloc, basePtr, outFailure);
+                return resolveLocalFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, outFailure);
 
             case MicroRelocation::Kind::ForeignFunctionAddress:
                 return resolveForeignFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, outFailure);

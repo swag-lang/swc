@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Main/Command.h"
+#include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -19,6 +21,7 @@ namespace
         Unknown,
         Syntax,
         Sema,
+        Jit,
         Native,
     };
 
@@ -26,7 +29,8 @@ namespace
     {
         std::vector<fs::path> syntaxFiles;
         std::vector<fs::path> semaFiles;
-        std::vector<fs::path> testFiles;
+        std::vector<fs::path> jitFiles;
+        std::vector<fs::path> nativeFiles;
         bool                  hasSourceHints = false;
     };
 
@@ -34,15 +38,16 @@ namespace
     constexpr std::string_view VERIFY_OPTION_PREFIX_B = "swc-options ";
     constexpr std::string_view VERIFY_SUITE_SYNTAX    = "suite-syntax";
     constexpr std::string_view VERIFY_SUITE_SEMA      = "suite-sema";
+    constexpr std::string_view VERIFY_SUITE_JIT       = "suite-jit";
     constexpr std::string_view VERIFY_SUITE_TEST      = "suite-test";
     constexpr std::string_view VERIFY_LEX_ONLY        = "lex-only";
     constexpr std::string_view EXPECTED_PARSER_ID     = "{{parser_";
     constexpr std::string_view EXPECTED_LEX_ID        = "{{lex_";
     constexpr std::string_view EXPECTED_SEMA_ID       = "{{sema_";
 
-    bool isRunCommand(const CommandKind command)
+    bool shouldRunNativeTests(const CommandLine& cmdLine)
     {
-        return command == CommandKind::Run;
+        return cmdLine.testNative;
     }
 
     bool pathMatchesFilter(const CommandLine& cmdLine, const fs::path& path)
@@ -100,6 +105,17 @@ namespace
                content.contains(std::string(VERIFY_OPTION_PREFIX_B) + std::string(option));
     }
 
+    bool pathContainsComponent(const fs::path& path, std::string_view component)
+    {
+        for (const fs::path& part : path)
+        {
+            if (part.string() == component)
+                return true;
+        }
+
+        return false;
+    }
+
     bool classifySourceFile(TestSuiteKind& outKind, const fs::path& path)
     {
         outKind = TestSuiteKind::Unknown;
@@ -132,6 +148,12 @@ namespace
             return true;
         }
 
+        if (containsVerifyOption(content, VERIFY_SUITE_JIT))
+        {
+            outKind = TestSuiteKind::Jit;
+            return true;
+        }
+
         if (containsVerifyOption(content, VERIFY_SUITE_TEST))
         {
             outKind = TestSuiteKind::Native;
@@ -141,6 +163,12 @@ namespace
         if (containsVerifyOption(content, VERIFY_LEX_ONLY))
         {
             outKind = TestSuiteKind::Syntax;
+            return true;
+        }
+
+        if (content.contains("#test") && pathContainsComponent(path, "jit"))
+        {
+            outKind = TestSuiteKind::Jit;
             return true;
         }
 
@@ -170,8 +198,11 @@ namespace
             case TestSuiteKind::Syntax:
                 outBuckets.syntaxFiles.push_back(path);
                 break;
+            case TestSuiteKind::Jit:
+                outBuckets.jitFiles.push_back(path);
+                break;
             case TestSuiteKind::Native:
-                outBuckets.testFiles.push_back(path);
+                outBuckets.nativeFiles.push_back(path);
                 break;
             case TestSuiteKind::Sema:
             case TestSuiteKind::Unknown:
@@ -258,10 +289,10 @@ namespace
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
 
-    bool runNativeBackends(CompilerInstance& compiler, const bool runArtifact)
+    bool runNativeBackends(CompilerInstance& compiler)
     {
         const Runtime::BuildCfgBackendKind backendKind = compiler.buildCfg().backendKind;
-        if (!runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable))
+        if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
             return false;
 
         TaskContext ctx(compiler);
@@ -269,7 +300,168 @@ namespace
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
 
-    bool runCompilerSubset(CompilerInstance& compiler, const CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {})
+    Utf8 makeFunctionSortKey(const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        Utf8 key;
+        if (const SourceFile* file = ctx.compiler().srcView(symbol.srcViewRef()).file())
+            key += Utf8(file->path());
+
+        key += "|";
+        key += std::to_string(symbol.tokRef().get());
+        key += "|";
+        key += symbol.getFullScopedName(ctx);
+        key += "|";
+        key += symbol.computeName(ctx);
+        return key;
+    }
+
+    void sortAndUniqueFunctions(std::vector<SymbolFunction*>& values, const TaskContext& ctx)
+    {
+        values.erase(std::remove(values.begin(), values.end(), nullptr), values.end());
+        std::ranges::sort(values, [&](const SymbolFunction* lhs, const SymbolFunction* rhs) {
+            if (lhs == rhs)
+                return false;
+
+            const Utf8 lhsKey = makeFunctionSortKey(ctx, *lhs);
+            const Utf8 rhsKey = makeFunctionSortKey(ctx, *rhs);
+            if (lhsKey != rhsKey)
+                return lhsKey < rhsKey;
+            return lhs < rhs;
+        });
+
+        values.erase(std::unique(values.begin(), values.end()), values.end());
+    }
+
+    struct DataSegmentSnapshot
+    {
+        std::vector<std::byte> globalZero;
+        std::vector<std::byte> globalInit;
+    };
+
+    DataSegmentSnapshot snapshotDataSegments(const CompilerInstance& compiler)
+    {
+        DataSegmentSnapshot result;
+
+        const uint32_t zeroExtent = compiler.globalZeroSegment().extentSize();
+        if (zeroExtent)
+        {
+            result.globalZero.resize(zeroExtent);
+            compiler.globalZeroSegment().copyToPreserveOffsets(ByteSpanRW{result.globalZero.data(), result.globalZero.size()});
+        }
+
+        const uint32_t initExtent = compiler.globalInitSegment().extentSize();
+        if (initExtent)
+        {
+            result.globalInit.resize(initExtent);
+            compiler.globalInitSegment().copyToPreserveOffsets(ByteSpanRW{result.globalInit.data(), result.globalInit.size()});
+        }
+
+        return result;
+    }
+
+    void restoreDataSegment(DataSegment& segment, const std::vector<std::byte>& snapshot)
+    {
+        if (snapshot.empty())
+            return;
+
+        std::byte* const dst = segment.ptr<std::byte>(0);
+        SWC_ASSERT(dst != nullptr);
+        std::memcpy(dst, snapshot.data(), snapshot.size());
+    }
+
+    struct DataSegmentRestoreGuard
+    {
+        CompilerInstance*   compiler = nullptr;
+        DataSegmentSnapshot snapshot;
+
+        ~DataSegmentRestoreGuard()
+        {
+            if (!compiler)
+                return;
+
+            restoreDataSegment(compiler->globalZeroSegment(), snapshot.globalZero);
+            restoreDataSegment(compiler->globalInitSegment(), snapshot.globalInit);
+        }
+    };
+
+    bool runJitFunction(TaskContext& ctx, SymbolFunction& function)
+    {
+        if (!function.jitEntryAddress())
+            return false;
+
+        JITExecManager::Request request;
+        request.function     = &function;
+        request.nodeRef      = function.declNodeRef();
+        request.codeRef      = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
+        request.runImmediate = true;
+        return ctx.compiler().jitExecMgr().submit(ctx, request) == Result::Continue &&
+               Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
+    }
+
+    bool runJitTests(CompilerInstance& compiler)
+    {
+        NativeBackendBuilder nativeBuilder(compiler, false);
+        if (nativeBuilder.prepare() != Result::Continue)
+            return false;
+
+        TaskContext ctx(compiler);
+
+        auto allFunctions     = compiler.nativeCodeSegment();
+        auto initFunctions    = compiler.nativeInitFunctions();
+        auto preMainFunctions = compiler.nativePreMainFunctions();
+        auto testFunctions    = compiler.nativeTestFunctions();
+
+        sortAndUniqueFunctions(allFunctions, ctx);
+        sortAndUniqueFunctions(initFunctions, ctx);
+        sortAndUniqueFunctions(preMainFunctions, ctx);
+        sortAndUniqueFunctions(testFunctions, ctx);
+
+        if (initFunctions.empty() && preMainFunctions.empty() && testFunctions.empty())
+            return true;
+
+        if (!SymbolFunction::jitBatch(ctx, allFunctions))
+            return false;
+
+        DataSegmentRestoreGuard restoreGuard = {
+            .compiler = &compiler,
+            .snapshot = snapshotDataSegments(compiler),
+        };
+
+        for (SymbolFunction* function : initFunctions)
+        {
+            if (!runJitFunction(ctx, *function))
+                return false;
+        }
+
+        for (SymbolFunction* function : preMainFunctions)
+        {
+            if (!runJitFunction(ctx, *function))
+                return false;
+        }
+
+        for (SymbolFunction* function : testFunctions)
+        {
+            if (!runJitFunction(ctx, *function))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool finishTestCommand(CompilerInstance& compiler)
+    {
+        if (compiler.cmdLine().testJit && !runJitTests(compiler))
+            return false;
+
+        if (shouldRunNativeTests(compiler.cmdLine()))
+            return runNativeBackends(compiler);
+
+        TaskContext ctx(compiler);
+        verifyExpectedMarkers(ctx);
+        return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
+    }
+
+    bool runCompilerSubset(CompilerInstance& compiler, const CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {}, const std::optional<bool> testJit = std::nullopt, const std::optional<bool> testNative = std::nullopt)
     {
         if (files.empty())
             return true;
@@ -283,6 +475,10 @@ namespace
         cmdLine.files.insert(files.begin(), files.end());
         if (!backendKindName.empty())
             cmdLine.backendKindName = backendKindName;
+        if (testJit.has_value())
+            cmdLine.testJit = testJit.value();
+        if (testNative.has_value())
+            cmdLine.testNative = testNative.value();
         if (command == CommandKind::Syntax)
             cmdLine.runtime = false;
 
@@ -309,13 +505,12 @@ namespace
                 break;
             }
 
-            case CommandKind::Build:
-            case CommandKind::Run:
+            case CommandKind::Test:
             {
-                ScopedTimedAction analyzeAction(ctx, "Analyze", formatFileGroup("native tests", files.size()));
+                ScopedTimedAction analyzeAction(ctx, "Analyze", formatFileGroup("test sources", files.size()));
                 Command::sema(subCompiler);
                 if (finishAction(analyzeAction, errorsBefore))
-                    runNativeBackends(subCompiler, isRunCommand(command));
+                    finishTestCommand(subCompiler);
                 break;
             }
 
@@ -329,7 +524,7 @@ namespace
     bool runStandaloneSourceDrivenSuites(CompilerInstance& compiler)
     {
         const CommandLine& cmdLine = compiler.cmdLine();
-        SWC_ASSERT(cmdLine.test);
+        SWC_ASSERT(cmdLine.isTestCommand());
 
         if (!cmdLine.modulePath.empty())
             return false;
@@ -346,7 +541,7 @@ namespace
             return false;
         }
 
-        if (buckets.syntaxFiles.empty() && buckets.semaFiles.empty() && buckets.testFiles.empty())
+        if (buckets.syntaxFiles.empty() && buckets.semaFiles.empty() && buckets.jitFiles.empty() && buckets.nativeFiles.empty())
         {
             discoverAction.fail();
             return false;
@@ -358,12 +553,14 @@ namespace
             return true;
         if (!runCompilerSubset(compiler, CommandKind::Sema, buckets.semaFiles))
             return true;
+        if (!runCompilerSubset(compiler, CommandKind::Test, buckets.jitFiles, compiler.cmdLine().backendKindName, compiler.cmdLine().testJit, false))
+            return true;
 
-        runCompilerSubset(compiler, compiler.cmdLine().command, buckets.testFiles, compiler.cmdLine().backendKindName);
+        runCompilerSubset(compiler, CommandKind::Test, buckets.nativeFiles, compiler.cmdLine().backendKindName, compiler.cmdLine().testJit, compiler.cmdLine().testNative);
         return true;
     }
 
-    void runNativeTestCommand(CompilerInstance& compiler, const bool runArtifact)
+    void runNativeTestCommand(CompilerInstance& compiler)
     {
         if (runStandaloneSourceDrivenSuites(compiler))
             return;
@@ -375,7 +572,7 @@ namespace
         if (!finishAction(analyzeAction, errorsBefore))
             return;
 
-        runNativeBackends(compiler, runArtifact);
+        finishTestCommand(compiler);
     }
 }
 
@@ -383,8 +580,8 @@ namespace Command
 {
     void test(CompilerInstance& compiler)
     {
-        SWC_ASSERT(compiler.cmdLine().test);
-        runNativeTestCommand(compiler, isRunCommand(compiler.cmdLine().command));
+        SWC_ASSERT(compiler.cmdLine().isTestCommand());
+        runNativeTestCommand(compiler);
     }
 }
 

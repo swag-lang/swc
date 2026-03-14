@@ -45,7 +45,6 @@ namespace
         const fs::path root    = inputRootForTest(cmdLine);
 
         cmdLine.command = CommandKind::Build;
-        cmdLine.test    = false;
         cmdLine.name    = "native_paths";
         cmdLine.directories.clear();
         cmdLine.files.clear();

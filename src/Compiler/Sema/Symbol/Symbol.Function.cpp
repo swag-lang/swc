@@ -335,6 +335,40 @@ void SymbolFunction::jit(TaskContext& ctx)
     }
 }
 
+bool SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions)
+{
+    if (ctx.state().jitEmissionError)
+        return false;
+
+    SmallVector<SymbolFunction*> preparedFunctions;
+    preparedFunctions.reserve(functions.size());
+    for (SymbolFunction* function : functions)
+    {
+        if (ctx.state().jitEmissionError)
+            return false;
+        if (!function)
+            continue;
+        if (function->jitPrepare(ctx))
+            preparedFunctions.push_back(function);
+    }
+
+    for (SymbolFunction* function : preparedFunctions)
+    {
+        if (ctx.state().jitEmissionError)
+            return false;
+        function->jitPatch(ctx);
+    }
+
+    for (SymbolFunction* function : preparedFunctions)
+    {
+        if (ctx.state().jitEmissionError)
+            return false;
+        function->jitFinalize(ctx);
+    }
+
+    return !ctx.state().jitEmissionError;
+}
+
 bool SymbolFunction::jitPrepare(TaskContext& ctx)
 {
     const std::scoped_lock lock(emitMutex_);

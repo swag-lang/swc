@@ -360,17 +360,14 @@ void CompilerInstance::processCommand()
         case CommandKind::Sema:
             Command::sema(*this);
             break;
+        case CommandKind::Test:
+            Command::test(*this);
+            break;
         case CommandKind::Build:
-            if (cmdLine().test)
-                Command::test(*this);
-            else
-                Command::build(*this);
+            Command::build(*this);
             break;
         case CommandKind::Run:
-            if (cmdLine().test)
-                Command::test(*this);
-            else
-                Command::run(*this);
+            Command::run(*this);
             break;
         default:
             SWC_UNREACHABLE();

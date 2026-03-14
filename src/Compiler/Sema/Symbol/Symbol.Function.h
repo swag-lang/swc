@@ -90,6 +90,7 @@ public:
     void*               jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
     void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     Result              emit(TaskContext& ctx);
+    static bool         jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
     void                jit(TaskContext& ctx);
     const MachineCode&  loweredCode() const noexcept { return loweredMicroCode_; }
 

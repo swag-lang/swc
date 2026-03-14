@@ -690,8 +690,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     SemaCycle sc;
     sc.check(ctx, clientId);
 
-    if (Stats::get().numErrors.load() == 0 &&
-        !(ctx.cmdLine().test && (ctx.cmdLine().command == CommandKind::Build || ctx.cmdLine().command == CommandKind::Run)))
+    if (Stats::get().numErrors.load() == 0 && ctx.cmdLine().command != CommandKind::Test)
     {
         for (SourceFile* const f : ctx.compiler().files())
         {

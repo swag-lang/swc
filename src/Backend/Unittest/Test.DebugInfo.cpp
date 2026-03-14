@@ -864,11 +864,10 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
     }
 
     CommandLine cmdLine;
-    cmdLine.command         = CommandKind::Build;
+    cmdLine.command         = CommandKind::Test;
     cmdLine.buildCfg        = "debug";
     cmdLine.backendKindName = "dll";
     cmdLine.name            = "compiler_test_debug";
-    cmdLine.test            = true;
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -931,11 +930,10 @@ SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
     }
 
     CommandLine cmdLine;
-    cmdLine.command         = CommandKind::Build;
+    cmdLine.command         = CommandKind::Test;
     cmdLine.buildCfg        = "debug";
     cmdLine.backendKindName = "dll";
     cmdLine.name            = "compiler_fileprivate_global_debug";
-    cmdLine.test            = true;
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 

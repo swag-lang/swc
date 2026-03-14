@@ -6,5 +6,5 @@ set "NATIVE_OUTPUT=%ROOT%\.output"
 set "EXE_OUTPUT=%NATIVE_OUTPUT%\exe"
 set "EXE_WORKDIR=%NATIVE_OUTPUT%\work\exe"
 
-swc run --test --backend-kind exe -d "%ROOT%\bin\tests" --out-dir "%EXE_OUTPUT%" --work-dir "%EXE_WORKDIR%" %*
+swc test --backend-kind exe -d "%ROOT%\bin\tests" --out-dir "%EXE_OUTPUT%" --work-dir "%EXE_WORKDIR%" %*
 exit /b %errorlevel%

@@ -13,6 +13,7 @@ struct CommandInfo
 inline constexpr CommandInfo COMMANDS[] = {
     {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
     {"sema", "Perform semantic analysis on the source code, including type checking."},
+    {"test", "Run source-driven tests, expected diagnostics, and #test functions."},
     {"build", "Build native artifacts from the input sources without running emitted executables."},
     {"run", "Build native artifacts from the input sources and run emitted executables when available."},
 };
@@ -22,6 +23,7 @@ enum class CommandKind
     Invalid = -1,
     Syntax,
     Sema,
+    Test,
     Build,
     Run,
 };
@@ -59,7 +61,9 @@ struct CommandLine
     bool clear           = false;
     bool verboseInfo     = false;
     bool verboseVerify   = false;
-    bool test            = false;
+    bool sourceDrivenTest = false;
+    bool testNative      = true;
+    bool testJit         = true;
     bool unittest        = true;
     bool verboseUnittest = false;
     bool runtime         = true;
@@ -88,6 +92,16 @@ struct CommandLine
     fs::path          outDir;
     fs::path          workDir;
     Runtime::BuildCfg defaultBuildCfg{};
+
+    bool isTestCommand() const noexcept
+    {
+        return command == CommandKind::Test;
+    }
+
+    bool isTestMode() const noexcept
+    {
+        return sourceDrivenTest || isTestCommand();
+    }
 };
 
 SWC_END_NAMESPACE();

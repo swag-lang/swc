@@ -120,6 +120,17 @@ NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
 {
 }
 
+Result NativeArtifactBuilder::build() const
+{
+#if SWC_HAS_NATIVE_VALIDATION
+    const NativeValidate nativeValidate(builder_);
+    nativeValidate.validate();
+#endif
+    SWC_RESULT(buildStartup());
+    SWC_RESULT(prepareDataSections());
+    return partitionObjects();
+}
+
 void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint32_t numObjects) const
 {
     outPaths.workDir.clear();
@@ -150,158 +161,6 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     const Utf8 objectExt = objectExtension();
     for (uint32_t i = 0; i < numObjects; ++i)
         outPaths.objectPaths.push_back(outPaths.buildDir / objectFileName(outPaths.name, objectExt, i).c_str());
-}
-
-Result NativeArtifactBuilder::build() const
-{
-#if SWC_HAS_NATIVE_VALIDATION
-    const NativeValidate nativeValidate(builder_);
-    nativeValidate.validate();
-#endif
-    SWC_RESULT(buildStartup());
-    SWC_RESULT(prepareDataSections());
-    return partitionObjects();
-}
-
-Result NativeArtifactBuilder::prepareDataSections() const
-{
-    builder_.mergedRData.name            = ".rdata";
-    builder_.mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
-    builder_.mergedData.name             = ".data";
-    builder_.mergedData.characteristics  = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
-    builder_.mergedBss.name              = ".bss";
-    builder_.mergedBss.characteristics   = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
-
-    CompilerInstance& compiler = builder_.compiler();
-
-    builder_.mergedRData.bytes.clear();
-    builder_.mergedRData.relocations.clear();
-    builder_.mergedData.bytes.clear();
-    builder_.mergedData.relocations.clear();
-    builder_.mergedBss.bssSize = compiler.globalZeroSegment().extentSize();
-    builder_.mergedBss.bss     = builder_.mergedBss.bssSize != 0;
-    for (auto& mappings : builder_.rdataAllocationMap)
-        mappings.clear();
-
-    // Emitted machine code is the source of truth for native constant roots.
-    // Global initializers are already materialized into .data/.bss and do not need shard-wide .rdata copies.
-    NativeRDataCollector collector(builder_);
-    SWC_RESULT(collector.collectAndEmit());
-
-    const uint32_t dataSize = compiler.globalInitSegment().extentSize();
-    if (dataSize)
-    {
-        builder_.mergedData.bytes.resize(dataSize);
-        compiler.globalInitSegment().copyToPreserveOffsets(ByteSpanRW{builder_.mergedData.bytes.data(), dataSize});
-
-        for (const auto& relocation : compiler.globalInitSegment().relocations())
-        {
-            NativeSectionRelocation record;
-            record.offset     = relocation.offset;
-            record.symbolName = K_DATA_BASE_SYMBOL;
-            record.addend     = relocation.targetOffset;
-            builder_.mergedData.relocations.push_back(record);
-        }
-    }
-
-    return Result::Continue;
-}
-
-Result NativeArtifactBuilder::buildStartup() const
-{
-    builder_.startup.reset();
-
-    if (builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
-        return Result::Continue;
-    if (builder_.mainFunctions.empty())
-        return builder_.reportError(DiagnosticId::cmd_err_native_main_missing);
-
-    auto         startup = std::make_unique<NativeStartupInfo>();
-    MicroBuilder builder(builder_.ctx());
-    builder.setBackendBuildCfg(builder_.compiler().buildCfg().backend);
-
-    // The startup thunk runs compiler-generated lifecycle hooks and then exits with the
-    // program return value already carried in the host integer return register.
-    for (SymbolFunction* symbol : builder_.initFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.preMainFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.testFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.mainFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_.dropFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-
-    auto* exitProcess = Symbol::make<SymbolFunction>(builder_.ctx(), nullptr, TokenRef::invalid(), builder_.compiler().idMgr().addIdentifier("ExitProcess"), SymbolFlagsE::Zero);
-    exitProcess->attributes().setForeign("kernel32", "ExitProcess");
-    exitProcess->setCallConvKind(CallConvKind::Host);
-    exitProcess->setReturnTypeRef(builder_.compiler().typeMgr().typeVoid());
-
-    SmallVector<ABICall::PreparedArg> exitArgs;
-    exitArgs.push_back({
-        .srcReg      = CallConv::host().intReturn,
-        .kind        = ABICall::PreparedArgKind::Direct,
-        .isFloat     = false,
-        .isAddressed = false,
-        .numBits     = 32,
-    });
-
-    builder.emitClearReg(CallConv::host().intReturn, MicroOpBits::B32);
-    const ABICall::PreparedCall preparedExit = ABICall::prepareArgs(builder, CallConvKind::Host, exitArgs.span());
-    ABICall::callExtern(builder, CallConvKind::Host, exitProcess, preparedExit);
-    builder.emitRet();
-
-    if (startup->code.emit(builder_.ctx(), builder) != Result::Continue)
-        return builder_.reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
-
-    builder_.startup = std::move(startup);
-    return Result::Continue;
-}
-
-Result NativeArtifactBuilder::partitionObjects() const
-{
-    builder_.objectDescriptions.clear();
-
-    const size_t functionCount = builder_.functionInfos.size();
-    uint32_t     maxJobs       = builder_.ctx().cmdLine().numCores;
-    if (!maxJobs)
-        maxJobs = std::max<uint32_t>(1, builder_.ctx().global().jobMgr().numWorkers());
-    if (!maxJobs)
-        maxJobs = 1;
-
-    const uint32_t numJobs = std::max<uint32_t>(1, static_cast<uint32_t>(functionCount ? std::min<size_t>(functionCount, maxJobs) : 1));
-    builder_.objectDescriptions.resize(numJobs);
-
-    NativeArtifactPaths paths;
-    queryPaths(paths, numJobs);
-    if (builder_.ctx().cmdLine().clear && builder_.compiler().markNativeOutputsCleared())
-        SWC_RESULT(clearOutputFolders(paths));
-    SWC_RESULT(createBuildDir(paths.buildDir));
-    SWC_RESULT(createOutDir(paths.outDir));
-    builder_.buildDir     = paths.buildDir;
-    builder_.artifactPath = paths.artifactPath;
-    builder_.pdbPath      = paths.pdbPath;
-
-    // Object 0 owns shared sections/startup, so the remaining objects only need code.
-    for (uint32_t i = 0; i < numJobs; ++i)
-    {
-        builder_.objectDescriptions[i].index       = i;
-        builder_.objectDescriptions[i].includeData = i == 0;
-        builder_.objectDescriptions[i].objPath     = paths.objectPaths[i];
-    }
-
-    if (builder_.startup)
-        builder_.objectDescriptions[0].startup = builder_.startup.get();
-
-    for (size_t i = 0; i < builder_.functionInfos.size(); ++i)
-    {
-        NativeFunctionInfo& info     = builder_.functionInfos[i];
-        const uint32_t      objIndex = static_cast<uint32_t>(i % numJobs);
-        info.jobIndex                = objIndex;
-        builder_.objectDescriptions[objIndex].functions.push_back(&info);
-    }
-    return Result::Continue;
 }
 
 Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& paths) const
@@ -440,6 +299,147 @@ Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const
     fs::create_directories(buildDir, ec);
     if (ec)
         return builder_.reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(buildDir), Diagnostic::ARG_BECAUSE, ec.message());
+    return Result::Continue;
+}
+
+Result NativeArtifactBuilder::prepareDataSections() const
+{
+    builder_.mergedRData.name            = ".rdata";
+    builder_.mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
+    builder_.mergedData.name             = ".data";
+    builder_.mergedData.characteristics  = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+    builder_.mergedBss.name              = ".bss";
+    builder_.mergedBss.characteristics   = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+
+    CompilerInstance& compiler = builder_.compiler();
+
+    builder_.mergedRData.bytes.clear();
+    builder_.mergedRData.relocations.clear();
+    builder_.mergedData.bytes.clear();
+    builder_.mergedData.relocations.clear();
+    builder_.mergedBss.bssSize = compiler.globalZeroSegment().extentSize();
+    builder_.mergedBss.bss     = builder_.mergedBss.bssSize != 0;
+    for (auto& mappings : builder_.rdataAllocationMap)
+        mappings.clear();
+
+    // Emitted machine code is the source of truth for native constant roots.
+    // Global initializers are already materialized into .data/.bss and do not need shard-wide .rdata copies.
+    NativeRDataCollector collector(builder_);
+    SWC_RESULT(collector.collectAndEmit());
+
+    const uint32_t dataSize = compiler.globalInitSegment().extentSize();
+    if (dataSize)
+    {
+        builder_.mergedData.bytes.resize(dataSize);
+        compiler.globalInitSegment().copyToPreserveOffsets(ByteSpanRW{builder_.mergedData.bytes.data(), dataSize});
+
+        for (const auto& relocation : compiler.globalInitSegment().relocations())
+        {
+            NativeSectionRelocation record;
+            record.offset     = relocation.offset;
+            record.symbolName = K_DATA_BASE_SYMBOL;
+            record.addend     = relocation.targetOffset;
+            builder_.mergedData.relocations.push_back(record);
+        }
+    }
+
+    return Result::Continue;
+}
+
+Result NativeArtifactBuilder::partitionObjects() const
+{
+    builder_.objectDescriptions.clear();
+
+    const size_t functionCount = builder_.functionInfos.size();
+    uint32_t     maxJobs       = builder_.ctx().cmdLine().numCores;
+    if (!maxJobs)
+        maxJobs = std::max<uint32_t>(1, builder_.ctx().global().jobMgr().numWorkers());
+    if (!maxJobs)
+        maxJobs = 1;
+
+    const uint32_t numJobs = std::max<uint32_t>(1, static_cast<uint32_t>(functionCount ? std::min<size_t>(functionCount, maxJobs) : 1));
+    builder_.objectDescriptions.resize(numJobs);
+
+    NativeArtifactPaths paths;
+    queryPaths(paths, numJobs);
+    if (builder_.ctx().cmdLine().clear && builder_.compiler().markNativeOutputsCleared())
+        SWC_RESULT(clearOutputFolders(paths));
+    SWC_RESULT(createBuildDir(paths.buildDir));
+    SWC_RESULT(createOutDir(paths.outDir));
+    builder_.buildDir     = paths.buildDir;
+    builder_.artifactPath = paths.artifactPath;
+    builder_.pdbPath      = paths.pdbPath;
+
+    // Object 0 owns shared sections/startup, so the remaining objects only need code.
+    for (uint32_t i = 0; i < numJobs; ++i)
+    {
+        builder_.objectDescriptions[i].index       = i;
+        builder_.objectDescriptions[i].includeData = i == 0;
+        builder_.objectDescriptions[i].objPath     = paths.objectPaths[i];
+    }
+
+    if (builder_.startup)
+        builder_.objectDescriptions[0].startup = builder_.startup.get();
+
+    for (size_t i = 0; i < builder_.functionInfos.size(); ++i)
+    {
+        NativeFunctionInfo& info     = builder_.functionInfos[i];
+        const uint32_t      objIndex = static_cast<uint32_t>(i % numJobs);
+        info.jobIndex                = objIndex;
+        builder_.objectDescriptions[objIndex].functions.push_back(&info);
+    }
+    return Result::Continue;
+}
+
+Result NativeArtifactBuilder::buildStartup() const
+{
+    builder_.startup.reset();
+
+    if (builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
+        return Result::Continue;
+    if (builder_.mainFunctions.empty())
+        return builder_.reportError(DiagnosticId::cmd_err_native_main_missing);
+
+    auto         startup = std::make_unique<NativeStartupInfo>();
+    MicroBuilder builder(builder_.ctx());
+    builder.setBackendBuildCfg(builder_.compiler().buildCfg().backend);
+
+    // The startup thunk runs compiler-generated lifecycle hooks and then exits with the
+    // program return value already carried in the host integer return register.
+    for (SymbolFunction* symbol : builder_.initFunctions)
+        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    for (SymbolFunction* symbol : builder_.preMainFunctions)
+        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    for (SymbolFunction* symbol : builder_.testFunctions)
+        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    for (SymbolFunction* symbol : builder_.mainFunctions)
+        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    for (SymbolFunction* symbol : builder_.dropFunctions)
+        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+
+    auto* exitProcess = Symbol::make<SymbolFunction>(builder_.ctx(), nullptr, TokenRef::invalid(), builder_.compiler().idMgr().addIdentifier("ExitProcess"), SymbolFlagsE::Zero);
+    exitProcess->attributes().setForeign("kernel32", "ExitProcess");
+    exitProcess->setCallConvKind(CallConvKind::Host);
+    exitProcess->setReturnTypeRef(builder_.compiler().typeMgr().typeVoid());
+
+    SmallVector<ABICall::PreparedArg> exitArgs;
+    exitArgs.push_back({
+        .srcReg      = CallConv::host().intReturn,
+        .kind        = ABICall::PreparedArgKind::Direct,
+        .isFloat     = false,
+        .isAddressed = false,
+        .numBits     = 32,
+    });
+
+    builder.emitClearReg(CallConv::host().intReturn, MicroOpBits::B32);
+    const ABICall::PreparedCall preparedExit = ABICall::prepareArgs(builder, CallConvKind::Host, exitArgs.span());
+    ABICall::callExtern(builder, CallConvKind::Host, exitProcess, preparedExit);
+    builder.emitRet();
+
+    if (startup->code.emit(builder_.ctx(), builder) != Result::Continue)
+        return builder_.reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+
+    builder_.startup = std::move(startup);
     return Result::Continue;
 }
 

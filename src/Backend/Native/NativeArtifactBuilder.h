@@ -25,9 +25,6 @@ public:
     void   queryPaths(NativeArtifactPaths& outPaths, uint32_t numObjects = 0) const;
 
 private:
-    Result          prepareDataSections() const;
-    Result          buildStartup() const;
-    Result          partitionObjects() const;
     Result          clearOutputFolders(const NativeArtifactPaths& paths) const;
     Utf8            artifactName() const;
     Utf8            artifactExtension() const;
@@ -38,6 +35,10 @@ private:
     Utf8            automaticWorkDirName(const Utf8& name) const;
     static fs::path buildDir(const fs::path& workDir);
     Result          createBuildDir(const fs::path& buildDir) const;
+
+    Result prepareDataSections() const;
+    Result partitionObjects() const;
+    Result buildStartup() const;
 
     NativeBackendBuilder& builder_;
 };

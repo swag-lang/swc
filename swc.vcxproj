@@ -312,6 +312,7 @@
         <ClCompile Include="src\Main\Command.Info.cpp"/>
         <ClCompile Include="src\Main\Command.Sema.cpp"/>
         <ClCompile Include="src\Main\Command.Syntax.cpp"/>
+        <ClCompile Include="src\Main\Command.Test.cpp"/>
         <ClCompile Include="src\Main\Command.Build.cpp" />
         <ClCompile Include="src\Main\CommandLineParser.cpp"/>
         <ClCompile Include="src\Main\CommandLineParser.Help.cpp"/>

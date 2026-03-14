@@ -203,8 +203,8 @@ namespace
                 return "Compiler";
             case HelpOptionGroup::Diagnostics:
                 return "Diagnostics";
-            case HelpOptionGroup::LoggingAndOutput:
-                return "Logging/Output";
+            case HelpOptionGroup::Logging:
+                return "Logging";
             case HelpOptionGroup::Testing:
                 return "Testing";
             case HelpOptionGroup::Development:

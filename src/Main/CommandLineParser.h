@@ -28,7 +28,7 @@ enum class HelpOptionGroup : uint8_t
     Target,
     Compiler,
     Diagnostics,
-    LoggingAndOutput,
+    Logging,
     Testing,
     Development,
     Other

@@ -595,19 +595,19 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Diagnostics, "all", "--file-path-display", "-fpd", CommandLineType::EnumInt, &cmdLine_->filePathDisplay, "as-is|basename|absolute", "Control file path display style for diagnostics, stack traces and file locations.");
     addArg(HelpOptionGroup::Diagnostics, "all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
     addArg(HelpOptionGroup::Diagnostics, "all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
-    addArg(HelpOptionGroup::Diagnostics, "all", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, "Log diagnostics that are normally suppressed by the test command.");
-    addArg(HelpOptionGroup::Diagnostics, "all", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Filter --verbose-verify logs by matching a specific string.");
 
-    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
-    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
-    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
-    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
-    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
+    addArg(HelpOptionGroup::Logging, "all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
+    addArg(HelpOptionGroup::Logging, "all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
+    addArg(HelpOptionGroup::Logging, "all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
+    addArg(HelpOptionGroup::Logging, "all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
+    addArg(HelpOptionGroup::Logging, "all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
 
     addArg(HelpOptionGroup::Testing, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal C++ unit tests before executing command.");
     addArg(HelpOptionGroup::Testing, "all", "--verbose-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseUnittest, nullptr, "Print each internal unit test status.");
     addArg(HelpOptionGroup::Testing, "test", "--test-native", nullptr, CommandLineType::Bool, &cmdLine_->testNative, nullptr, "Enable native backend testing for #test sources.");
     addArg(HelpOptionGroup::Testing, "test", "--test-jit", nullptr, CommandLineType::Bool, &cmdLine_->testJit, nullptr, "Enable JIT execution for #test functions during testing.");
+    addArg(HelpOptionGroup::Testing, "all", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, "Log diagnostics that are normally suppressed by the test command.");
+    addArg(HelpOptionGroup::Testing, "all", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Filter --verbose-verify logs by matching a specific string.");
 
     addArg(HelpOptionGroup::Development, "all", "--devmode", nullptr, CommandLineType::Bool, &CompilerInstance::dbgDevMode, nullptr, "Open a message box in case of errors.");
 #if SWC_DEV_MODE

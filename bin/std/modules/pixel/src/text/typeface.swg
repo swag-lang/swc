@@ -163,10 +163,10 @@ public impl TypeFace
         var itf: FT_Outline_Funcs
 
         pathList.clear()
-        itf.move_to  = cast(*void) @mkcallback(&moveTo)
-        itf.line_to  = cast(*void) @mkcallback(&lineTo)
-        itf.conic_to = cast(*void) @mkcallback(&conicTo)
-        itf.cubic_to = cast(*void) @mkcallback(&bezierTo)
+        itf.move_to  = cast(*void) &moveTo
+        itf.line_to  = cast(*void) &lineTo
+        itf.conic_to = cast(*void) &conicTo
+        itf.cubic_to = cast(*void) &bezierTo
 
         FT_Set_Pixel_Sizes(.face, 0, size)
         FT_Load_Char(.face, cast(FT_ULong) c, FT_LOAD_NO_BITMAP)
@@ -190,10 +190,10 @@ public impl TypeFace
         var itf: FT_Outline_Funcs
 
         pathList.clear()
-        itf.move_to  = cast(*void) @mkcallback(&moveTo)
-        itf.line_to  = cast(*void) @mkcallback(&lineTo)
-        itf.conic_to = cast(*void) @mkcallback(&conicTo)
-        itf.cubic_to = cast(*void) @mkcallback(&bezierTo)
+        itf.move_to  = cast(*void) &moveTo
+        itf.line_to  = cast(*void) &lineTo
+        itf.conic_to = cast(*void) &conicTo
+        itf.cubic_to = cast(*void) &bezierTo
 
         try FT_Set_Pixel_Sizes(.face, 0, size)
 

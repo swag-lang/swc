@@ -29,7 +29,7 @@ func create(lambda: ThreadProc, userParam: u64)
     paramBC[1] = cast() userParam
 
     var id = 0'u32
-    let h  = CreateThread(null, 0, @mkcallback(lambda), cast(*void) &paramBC[0], 0, &id)
+    let h  = CreateThread(null, 0, lambda, cast(*void) &paramBC[0], 0, &id)
     var ew = WaitForSingleObject(h, INFINITE)
 }
 

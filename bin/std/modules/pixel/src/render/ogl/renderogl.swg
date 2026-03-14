@@ -291,7 +291,7 @@ impl RenderOgl
 
         //glEnable(GL_DEBUG_OUTPUT);
         //glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        //glDebugMessageCallback(@mkcallback(&GLDebugMessageCallback), null);
+        //glDebugMessageCallback(&GLDebugMessageCallback, null);
 
         glGenBuffers(1, &.vertexbuffer)
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)

@@ -279,7 +279,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicCVaArg:
-        case TokenId::IntrinsicMakeCallback:
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicIs:
         case TokenId::IntrinsicAs:

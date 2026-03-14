@@ -230,7 +230,6 @@ supported by the compiler or hardware. They can be used at both compile time and
 @dataof
 @mkslice
 @mkstring
-@mkcallback
 @mkany
 @mkinterface
 @dbgalloc

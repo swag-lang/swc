@@ -132,13 +132,13 @@ moduleprivate
 #init
 {
     g_Cb.vtbl                        = &g_Cbi
-    g_Cbi.onVoiceProcessingPassStart = @mkcallback(&onVoiceProcessingPassStart)
-    g_Cbi.onVoiceProcessingPassEnd   = @mkcallback(&onVoiceProcessingPassEnd)
-    g_Cbi.onStreamEnd                = @mkcallback(&onStreamEnd)
-    g_Cbi.onBufferStart              = @mkcallback(&onBufferStart)
-    g_Cbi.onBufferEnd                = @mkcallback(&onBufferEnd)
-    g_Cbi.onLoopEnd                  = @mkcallback(&onLoopEnd)
-    g_Cbi.onVoiceError               = @mkcallback(&onVoiceError)
+    g_Cbi.onVoiceProcessingPassStart = &onVoiceProcessingPassStart
+    g_Cbi.onVoiceProcessingPassEnd   = &onVoiceProcessingPassEnd
+    g_Cbi.onStreamEnd                = &onStreamEnd
+    g_Cbi.onBufferStart              = &onBufferStart
+    g_Cbi.onBufferEnd                = &onBufferEnd
+    g_Cbi.onLoopEnd                  = &onLoopEnd
+    g_Cbi.onVoiceError               = &onVoiceError
 }
 
 ///////////////////////////////////////////////////////////////

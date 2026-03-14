@@ -66,7 +66,7 @@ impl Thread
         elif tempAllocSize != 0 do
             .context.tempAllocator.setCapacity(cast(u64) tempAllocSize, .context.allocator)
 
-        .handle     = try CreateThread(null, 0, @mkcallback(&threadEntry), me, CREATE_SUSPENDED, &.id)
+        .handle     = try CreateThread(null, 0, &threadEntry, me, CREATE_SUSPENDED, &.id)
         .userLambda = lambda
         .requestEnd = false
 

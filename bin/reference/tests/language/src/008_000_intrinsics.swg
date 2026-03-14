@@ -61,7 +61,6 @@ Essential operations related to type and memory management for low-level or perf
 @mkstring();                    // Create a string from a data pointer and length.
 @mkany();                       // Create a generic 'any' from a value.
 @mkinterface();                 // Create an interface from an implementation.
-@mkcallback();                  // Create a callback from a function pointer.
 @tableof();                     // Interface table for a given type.
 
 #sizeof();                      // Size in bytes of a type or variable.

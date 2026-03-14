@@ -40,7 +40,7 @@ func create(lambda: func(*Thread), userParam: u64)
     th.param  = userParam
 
     var id = 0'u32
-    let h  = CreateThread(null, 0, @mkcallback(&entry), &th, 0, &id)
+    let h  = CreateThread(null, 0, &entry, &th, 0, &id)
     var ew = WaitForSingleObject(h, INFINITE)
 }
 

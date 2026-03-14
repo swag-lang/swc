@@ -4,6 +4,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -168,10 +169,17 @@ namespace
 
     Result codeGenUnaryTakeAddress(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
-
         const SemaNodeView        view    = codeGen.curViewType();
-        const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
+        const SemaNodeView        childView = codeGen.viewSymbol(nodeExprRef);
+        const CodeGenNodePayload& payload   = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
+        if (childView.sym() && childView.sym()->isFunction() && !codeGen.safePayload(nodeExprRef))
+        {
+            auto& symFunc = childView.sym()->cast<SymbolFunction>();
+            codeGen.builder().emitLoadRegPtrReloc(payload.reg, 0, ConstantRef::invalid(), &symFunc);
+            return Result::Continue;
+        }
+
+        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
         if (childPayload.isAddress())
             codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         else

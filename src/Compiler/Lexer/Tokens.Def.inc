@@ -312,7 +312,6 @@ SWC_TOKEN_DEF(IntrinsicMakeSlice, "@mkslice",  TokenIdKindE::Intrinsic | TokenId
 SWC_TOKEN_DEF(IntrinsicMakeString, "@mkstring",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicMakeAny, "@mkany",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicMakeInterface, "@mkinterface",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicMakeCallback, "@mkcallback",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicTableOf, "@tableof",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicDbgAlloc, "@dbgalloc",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicSysAlloc, "@sysalloc",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)

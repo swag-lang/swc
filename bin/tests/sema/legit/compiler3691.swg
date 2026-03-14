@@ -8,5 +8,5 @@ func titi(x: F) {}
 
 #test
 {
-    titi(@mkcallback(&toto))
+    titi(&toto)
 }

@@ -236,6 +236,16 @@ namespace
     Result semaTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
         SWC_UNUSED(node);
+        if (view.sym() && view.sym()->isFunction())
+        {
+            auto& symFunc = view.sym()->cast<SymbolFunction>();
+            if (SymbolFunction* currentFn = sema.frame().currentFunction())
+                currentFn->addCallDependency(&symFunc);
+
+            sema.setType(sema.curNodeRef(), view.typeRef());
+            return Result::Continue;
+        }
+
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
         if (view.type()->isConst())
             flags.add(TypeInfoFlagsE::Const);
@@ -359,13 +369,15 @@ namespace
 Result AstUnaryExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView view = sema.viewNodeTypeConstantSymbol(nodeExprRef);
+    const Token& tok  = sema.token(codeRef());
 
-    // Value-check
-    SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+    // Function declarations are addressable even if they are not plain value expressions.
+    const bool takesFunctionAddress = tok.id == TokenId::SymAmpersand && view.sym() && view.sym()->isFunction();
+    if (!takesFunctionAddress)
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
     sema.setIsValue(*this);
 
     // Force types
-    const Token& tok = sema.token(codeRef());
     SWC_RESULT(promote(sema, tok.id, view));
 
     // Type-check

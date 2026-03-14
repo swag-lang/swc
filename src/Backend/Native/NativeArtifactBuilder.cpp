@@ -1,10 +1,12 @@
 #include "pch.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
-#include "Backend/Native/NativeRDataCollector.h"
 #include "Backend/ABI/ABICall.h"
-#include "Backend/Native/NativeValidate.h"
+#include "Backend/Native/NativeRDataCollector.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
+#if SWC_HAS_NATIVE_VALIDATION
+#include "Backend/Native/NativeValidate.h"
+#endif
 
 SWC_BEGIN_NAMESPACE();
 
@@ -422,7 +424,7 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
     }
 
     // Keep the auto-generated work dir deterministic for a given command line so cleanup
-    // and incremental native builds operate on the same location.
+    // and incremental native builds operate in the same location.
     const uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(key.view()));
     return std::format("{}_{:08x}", FileSystem::sanitizeFileName(name), hash);
 }

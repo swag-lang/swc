@@ -85,7 +85,7 @@ namespace
 
             const fs::path&   path = entry.path();
             const std::string ext  = path.extension().string();
-            if (ext != ".swg" && ext != ".swgs")
+            if (ext != ".swg")
                 continue;
             if (!pathMatchesFilter(cmdLine, path))
                 continue;
@@ -317,7 +317,7 @@ namespace
 
     void sortAndUniqueFunctions(std::vector<SymbolFunction*>& values, const TaskContext& ctx)
     {
-        values.erase(std::remove(values.begin(), values.end(), nullptr), values.end());
+        std::erase(values, nullptr);
         std::ranges::sort(values, [&](const SymbolFunction* lhs, const SymbolFunction* rhs) {
             if (lhs == rhs)
                 return false;
@@ -329,7 +329,7 @@ namespace
             return lhs < rhs;
         });
 
-        values.erase(std::unique(values.begin(), values.end()), values.end());
+        values.erase(std::ranges::unique(values).begin(), values.end());
     }
 
     struct DataSegmentSnapshot
@@ -384,7 +384,7 @@ namespace
         }
     };
 
-    bool runJitFunction(TaskContext& ctx, SymbolFunction& function)
+    bool runJitFunction(TaskContext& ctx, const SymbolFunction& function)
     {
         if (!function.jitEntryAddress())
             return false;
@@ -427,19 +427,19 @@ namespace
             .snapshot = snapshotDataSegments(compiler),
         };
 
-        for (SymbolFunction* function : initFunctions)
+        for (const SymbolFunction* function : initFunctions)
         {
             if (!runJitFunction(ctx, *function))
                 return false;
         }
 
-        for (SymbolFunction* function : preMainFunctions)
+        for (const SymbolFunction* function : preMainFunctions)
         {
             if (!runJitFunction(ctx, *function))
                 return false;
         }
 
-        for (SymbolFunction* function : testFunctions)
+        for (const SymbolFunction* function : testFunctions)
         {
             if (!runJitFunction(ctx, *function))
                 return false;

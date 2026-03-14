@@ -238,7 +238,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     return Result::Continue;
 }
 
-Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
+Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen)
 {
     eraseConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
     return Result::Continue;

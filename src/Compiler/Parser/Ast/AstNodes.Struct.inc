@@ -616,11 +616,11 @@ struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
     AstNodeRef nodeTrueRef;
     AstNodeRef nodeFalseRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
-    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
-    Result     semaPostNode(Sema& sema);
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
+    Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
+    Result        semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

@@ -278,9 +278,9 @@ namespace
         if (files.empty())
             return true;
 
-        TaskContext ctx(compiler);
-        CommandLine cmdLine = compiler.cmdLine();
-        cmdLine.command     = command;
+        const TaskContext ctx(compiler);
+        CommandLine       cmdLine = compiler.cmdLine();
+        cmdLine.command           = command;
         cmdLine.directories.clear();
         cmdLine.files.clear();
         cmdLine.modulePath.clear();

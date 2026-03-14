@@ -62,19 +62,19 @@ struct CodeGenGvtdEntry
 struct ScopedDebugNoStep final
 {
     ScopedDebugNoStep(MicroBuilder& builder, const bool value) :
-        builder_(&builder),
-        savedValue_(builder.currentDebugNoStep())
+        builder(&builder),
+        savedValue(builder.currentDebugNoStep())
     {
         builder.setCurrentDebugNoStep(value);
     }
 
     ~ScopedDebugNoStep()
     {
-        builder_->setCurrentDebugNoStep(savedValue_);
+        builder->setCurrentDebugNoStep(savedValue);
     }
 
-    MicroBuilder* builder_    = nullptr;
-    bool          savedValue_ = false;
+    MicroBuilder* builder    = nullptr;
+    bool          savedValue = false;
 };
 
 class CodeGenFrame

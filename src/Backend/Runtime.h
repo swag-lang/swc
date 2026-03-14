@@ -407,6 +407,11 @@ namespace Runtime
         bool            hasSwagWatermark   = true;
     };
 
+    inline constexpr String DefaultRegisteredBuildCfgs = {
+        .ptr    = "fast-compile|debug|fast-debug|release",
+        .length = 37,
+    };
+
     struct BuildCfg
     {
         uint32_t moduleVersion  = 0;
@@ -446,6 +451,7 @@ namespace Runtime
         String         resAppCompany;
         String         resAppCopyright;
         BuildCfgGenDoc genDoc;
+        String         registeredConfigs = DefaultRegisteredBuildCfgs;
     };
 
     enum class CompilerMsgKind : uint32_t

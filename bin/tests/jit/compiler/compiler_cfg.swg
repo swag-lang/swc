@@ -6,6 +6,7 @@
     #assert(Cfg.backend.optimize == true or Cfg.backend.optimize == false)
     #assert(Cfg.backend.debugInfo == true)
     #assert(Cfg.backend.enableExceptions == true)
+    #assert(Cfg.registeredConfigs == "fast-compile|debug|fast-debug|release")
     #assert(Cfg.name == "")
     #assert(Cfg.outDir == "" or Cfg.outDir != "")
     #assert(Cfg.workDir == "" or Cfg.workDir != "")

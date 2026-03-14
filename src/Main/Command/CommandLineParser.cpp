@@ -20,7 +20,40 @@ constexpr size_t           SHORT_NO_PREFIX_LEN = 4;
 
 namespace
 {
-    void applyBuildCfgPreset(Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
+    std::string_view registeredBuildCfgsView(const Runtime::BuildCfg& buildCfg)
+    {
+        if (!buildCfg.registeredConfigs.ptr || !buildCfg.registeredConfigs.length)
+            return {};
+
+        return {buildCfg.registeredConfigs.ptr, buildCfg.registeredConfigs.length};
+    }
+
+    bool hasRegisteredBuildCfg(const Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
+    {
+        if (cfgName.empty())
+            return false;
+
+        const std::string_view registered = registeredBuildCfgsView(buildCfg);
+        size_t                 start      = 0;
+        while (start <= registered.size())
+        {
+            size_t end = registered.find('|', start);
+            if (end == std::string_view::npos)
+                end = registered.size();
+
+            if (registered.substr(start, end - start) == cfgName)
+                return true;
+
+            if (end == registered.size())
+                break;
+
+            start = end + 1;
+        }
+
+        return false;
+    }
+
+    bool applyBuildCfgPreset(Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
     {
         if (cfgName == "fast-compile")
         {
@@ -64,19 +97,20 @@ namespace
         }
         else
         {
-            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
-            buildCfg.sanity            = true;
-            buildCfg.errorStackTrace   = true;
-            buildCfg.debugAllocator    = true;
-            buildCfg.backend.optimize  = true;
-            buildCfg.backend.debugInfo = true;
+            return false;
         }
+
+        return true;
     }
 
     void updateDefaultBuildCfg(CommandLine& cmdLine)
     {
         Runtime::BuildCfg buildCfg{};
-        applyBuildCfgPreset(buildCfg, cmdLine.buildCfg.view());
+        if (cmdLine.defaultBuildCfg.registeredConfigs.ptr && cmdLine.defaultBuildCfg.registeredConfigs.length)
+            buildCfg.registeredConfigs = cmdLine.defaultBuildCfg.registeredConfigs;
+
+        SWC_ASSERT(hasRegisteredBuildCfg(buildCfg, cmdLine.buildCfg.view()));
+        SWC_INTERNAL_CHECK(applyBuildCfgPreset(buildCfg, cmdLine.buildCfg.view()));
 
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
@@ -571,6 +605,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     global_(&global)
 {
     updateDefaultBuildCfg(*cmdLine_);
+    const Utf8 registeredBuildCfgs = Utf8(cmdLine_->defaultBuildCfg.registeredConfigs);
 
     addArg(HelpOptionGroup::Input, "all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
     addArg(HelpOptionGroup::Input, "all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
@@ -579,7 +614,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Input, "all", "--runtime", "-rt", CommandLineType::Bool, &cmdLine_->runtime, nullptr, "Include runtime files in the input set.");
 
     addArg(HelpOptionGroup::Target, "sema test build run", "--arch", "-a", CommandLineType::EnumString, &cmdLine_->targetArchName, "x86_64", "Set the target architecture used by #arch and compiler target queries.");
-    addArg(HelpOptionGroup::Target, "sema test build run", "--build-cfg", "-bc", CommandLineType::String, &cmdLine_->buildCfg, nullptr, "Set the build configuration string used by #cfg and @compiler.getBuildCfg().");
+    addArg(HelpOptionGroup::Target, "sema test build run", "--build-cfg", "-bc", CommandLineType::EnumString, &cmdLine_->buildCfg, registeredBuildCfgs.c_str(), "Set the registered build configuration string used by #cfg and @compiler.getBuildCfg().");
     addArg(HelpOptionGroup::Target, "sema test build run", "--artifact-kind", "-ak", CommandLineType::EnumString, &cmdLine_->backendKindName, "exe|dll|lib", "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.");
     addArg(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu", CommandLineType::String, &cmdLine_->targetCpu, nullptr, "Set the target CPU string used by #cpu and compiler target queries.");
     addArg(HelpOptionGroup::Target, "sema test build run", "--artifact-name", "-n", CommandLineType::String, &cmdLine_->name, nullptr, "Set the artifact name exposed through @compiler.getBuildCfg() and used for native outputs.");

@@ -826,6 +826,7 @@ namespace Swag
         resAppCompany:                 string                               // For an executable, the associated company name
         resAppCopyright:               string                               // For an executable, the associated copyright notice
         genDoc:                        BuildCfgGenDoc                       // Parameters for document generation
+        registeredConfigs:             string = "fast-compile|debug|fast-debug|release" // Registered build configuration names used by --build-cfg and #cfg
     }
 
     // #########################################################

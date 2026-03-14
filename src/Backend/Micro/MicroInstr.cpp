@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroStorage.h"
 
@@ -133,6 +134,14 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
     {
         useDef.isCall   = true;
         useDef.callConv = ops[opcodeInfo.callConvIndex].callConv;
+
+        // Call instructions consume ABI argument registers implicitly. Keep them live so
+        // register allocation and later rewrites cannot reuse them before the call.
+        const CallConv& callConv = CallConv::get(useDef.callConv);
+        for (const MicroReg reg : callConv.intArgRegs)
+            useDef.addUse(reg);
+        for (const MicroReg reg : callConv.floatArgRegs)
+            useDef.addUse(reg);
     }
 
     const auto modes = resolveRegModes(opcodeInfo, ops);

@@ -62,3 +62,31 @@
     var buf: [2] u8
     var s = @mkslice(&buf[0], 0.0) // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#test
+{
+    func mkSliceWriteThrough()->bool
+    {
+        var buf: [4] u8 = [1, 2, 3, 4]
+        let sl = @mkslice(&buf[0], 4)
+        sl[2] = 9
+        return @countof(sl) == 4 and buf[2] == 9'u8 and sl[2] == 9'u8
+    }
+
+    const V = #run mkSliceWriteThrough()
+    #assert(V)
+}
+
+#test
+{
+    func mkStringToByteView()->bool
+    {
+        var buf: [5] u8 = [72, 101, 108, 108, 111]
+        let text = @mkstring(&buf[0], 5)
+        let bytes = cast(const [..] u8) text
+        return text == "Hello" and @countof(bytes) == 5 and bytes[0] == 72'u8 and bytes[4] == 111'u8
+    }
+
+    const V = #run mkStringToByteView()
+    #assert(V)
+}

@@ -29,8 +29,26 @@ const S1 = S0 orelse "abc"
 
 enum NullCEnum { A, B }
 
+var NullCoercCounter: s32
+var NullCoercValue:   s32 = 33
 
+func fallbackU32()->u32
+{
+    NullCoercCounter += 1
+    return 91'u32
+}
 
+func fallbackPointer()->*s32
+{
+    NullCoercCounter += 1
+    return &NullCoercValue
+}
+
+func fallbackString()->string
+{
+    NullCoercCounter += 1
+    return "fallback"
+}
 
 #test
 {
@@ -55,4 +73,44 @@ enum NullCEnum { A, B }
     @assert((s orelse "fallback") == "fallback")
     s = "ok"
     @assert((s orelse "fallback") == "ok")
+}
+
+#test
+{
+    NullCoercCounter = 0
+    let value = 12'u32 orelse fallbackU32()
+
+    @assert(value == 12'u32)
+    @assert(NullCoercCounter == 0)
+}
+
+#test
+{
+    NullCoercCounter = 0
+    var ptr: *s32 = null
+    let value = ptr orelse fallbackPointer()
+
+    @assert(value == &NullCoercValue)
+    @assert(dref value == 33)
+    @assert(NullCoercCounter == 1)
+}
+
+#test
+{
+    NullCoercCounter = 0
+    var s: string = null
+    let value = s orelse fallbackString()
+
+    @assert(value == "fallback")
+    @assert(NullCoercCounter == 1)
+}
+
+#test
+{
+    NullCoercCounter = 0
+    let s: string = "ok"
+    let value = s orelse fallbackString()
+
+    @assert(value == "ok")
+    @assert(NullCoercCounter == 0)
 }

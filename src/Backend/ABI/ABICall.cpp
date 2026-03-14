@@ -112,6 +112,16 @@ namespace
             builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(stackAdjust, 64), op, MicroOpBits::B64);
     }
 
+    void forbidFloatBitCarrierIntArgRegs(MicroBuilder& builder, const CallConv& conv, const ABICall::PreparedArg& arg)
+    {
+        if (!arg.isFloat || !arg.srcReg.isVirtualInt())
+            return;
+
+        // Float immediates can be lowered through integer virtual regs that carry raw IEEE bits.
+        // Those temporaries must stay out of integer ABI arg lanes or they can clobber live int args.
+        builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.intArgRegs);
+    }
+
     void emitReturnWriteBackIfNeeded(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret)
     {
         if (ret.isVoid || ret.isIndirect)
@@ -199,6 +209,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 continue;
 
             builder.addVirtualRegForbiddenPhysReg(arg.srcReg, regTmp);
+            forbidFloatBitCarrierIntArgRegs(builder, conv, arg);
         }
 
         const uint32_t       numRegArgsUsed = std::min(numPreparedArgs, numRegArgs);
@@ -300,6 +311,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
         const PreparedArg& arg = args[i];
+        forbidFloatBitCarrierIntArgRegs(builder, conv, arg);
 
         if (arg.srcReg.isVirtual())
         {

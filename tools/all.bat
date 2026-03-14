@@ -12,38 +12,38 @@ set "DLL_WORKDIR=%NATIVE_OUTPUT%\work\dll"
 set "LIB_WORKDIR=%NATIVE_OUTPUT%\work\lib"
 set "RUN_WORKDIR=%NATIVE_OUTPUT%\work\native-run"
 
-call "%~dp0test.bat" --cfg release %*
+call "%~dp0test.bat" --build-cfg release %*
 if errorlevel 1 exit /b %errorlevel%
-swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\release" --work-dir "%RUN_WORKDIR%\release" --cfg release %*
+swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\release" --work-dir "%RUN_WORKDIR%\release" --build-cfg release %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --backend-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --cfg release %*
+swc test --artifact-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --build-cfg release %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --backend-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --cfg release %*
-if errorlevel 1 exit /b %errorlevel%
-
-call "%~dp0test.bat" --cfg debug %*
-if errorlevel 1 exit /b %errorlevel%
-swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\debug" --work-dir "%RUN_WORKDIR%\debug" --cfg debug %*
-if errorlevel 1 exit /b %errorlevel%
-swc test --backend-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --cfg debug %*
-if errorlevel 1 exit /b %errorlevel%
-swc test --backend-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --cfg debug %*
+swc test --artifact-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --build-cfg release %*
 if errorlevel 1 exit /b %errorlevel%
 
-call "%~dp0test.bat" --cfg fast-debug %*
+call "%~dp0test.bat" --build-cfg debug %*
 if errorlevel 1 exit /b %errorlevel%
-swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-debug" --work-dir "%RUN_WORKDIR%\fast-debug" --cfg fast-debug %*
+swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\debug" --work-dir "%RUN_WORKDIR%\debug" --build-cfg debug %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --backend-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --cfg fast-debug %*
+swc test --artifact-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --build-cfg debug %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --backend-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --cfg fast-debug %*
+swc test --artifact-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --build-cfg debug %*
 if errorlevel 1 exit /b %errorlevel%
 
-call "%~dp0test.bat" --cfg fast-compile %*
+call "%~dp0test.bat" --build-cfg fast-debug %*
 if errorlevel 1 exit /b %errorlevel%
-swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-compile" --work-dir "%RUN_WORKDIR%\fast-compile" --cfg fast-compile %*
+swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-debug" --work-dir "%RUN_WORKDIR%\fast-debug" --build-cfg fast-debug %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --backend-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --cfg fast-compile %*
+swc test --artifact-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --build-cfg fast-debug %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --backend-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --cfg fast-compile %*
+swc test --artifact-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --build-cfg fast-debug %*
+if errorlevel 1 exit /b %errorlevel%
+
+call "%~dp0test.bat" --build-cfg fast-compile %*
+if errorlevel 1 exit /b %errorlevel%
+swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-compile" --work-dir "%RUN_WORKDIR%\fast-compile" --build-cfg fast-compile %*
+if errorlevel 1 exit /b %errorlevel%
+swc test --artifact-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --build-cfg fast-compile %*
+if errorlevel 1 exit /b %errorlevel%
+swc test --artifact-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --build-cfg fast-compile %*
 exit /b %errorlevel%

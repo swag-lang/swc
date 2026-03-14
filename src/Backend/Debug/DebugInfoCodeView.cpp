@@ -493,7 +493,7 @@ namespace
 
     Utf8 buildInfoCommandLine(const TaskContext& ctx)
     {
-        return std::format("{} --cfg {} --backend-kind {} --target-arch {}",
+        return std::format("{} --build-cfg {} --artifact-kind {} --arch {}",
                            codeViewPathString(Os::getExeFullName()),
                            ctx.cmdLine().buildCfg,
                            buildInfoBackendKindName(ctx.compiler().buildCfg().backendKind),

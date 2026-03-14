@@ -37,9 +37,9 @@ enum class HelpOptionGroup : uint8_t
 // Internal structure to hold argument metadata
 struct ArgInfo
 {
-    Utf8            commands;  // e.g., "all", "bu sc doc"
-    Utf8            longForm;  // e.g., "--silent"
-    Utf8            shortForm; // e.g., "-s"
+    Utf8            commands;  // Space-separated command names or "all"
+    Utf8            longForm;  // Primary long form shown in help
+    Utf8            shortForm; // Primary short form shown in help
     CommandLineType type;
     void*           target;     // Pointer to the variable to set
     Utf8            enumValues; // For enum types, pipe-separated values

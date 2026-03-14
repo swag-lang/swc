@@ -193,6 +193,14 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
         SWC_INTERNAL_CHECK(hasScratchRegs);
 
+        for (const PreparedArg& arg : args)
+        {
+            if (!arg.srcReg.isVirtualInt())
+                continue;
+
+            builder.addVirtualRegForbiddenPhysReg(arg.srcReg, regTmp);
+        }
+
         const uint32_t       numRegArgsUsed = std::min(numPreparedArgs, numRegArgs);
         SmallVector<uint8_t> regArgsUseHomeSlot;
         regArgsUseHomeSlot.resize(numRegArgsUsed, 0);
@@ -529,6 +537,12 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
 
     const CallConv& conv = CallConv::get(callConvKind);
+    if (targetReg.isVirtualInt())
+    {
+        builder.addVirtualRegForbiddenPhysRegs(targetReg, conv.intArgRegs);
+        builder.addVirtualRegForbiddenPhysReg(targetReg, conv.intReturn);
+    }
+
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
     builder.emitCallReg(targetReg, callConvKind);
     emitReturnWriteBackIfNeeded(builder, conv, ret);

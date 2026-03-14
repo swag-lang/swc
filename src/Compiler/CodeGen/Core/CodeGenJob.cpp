@@ -96,6 +96,7 @@ JobResult CodeGenJob::exec()
         const Result codeGenResult = codeGen_->exec(*symbolFunc_, root_);
         if (codeGenResult != Result::Continue)
             return toJobResult(codeGenResult);
+
         symbolFunc_->setCodeGenPreSolved(ctx());
 
         // Lowered microcode persisted on the symbol for later materialization.

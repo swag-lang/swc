@@ -284,8 +284,26 @@ namespace
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
 
-        const MicroReg rightReg = materializeAssignOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);
-        codeGen.builder().emitLoadMemReg(encodeCtx.target.payload.reg, 0, rightReg, encodeCtx.opBits);
+        MicroBuilder&      builder          = codeGen.builder();
+        CodeGenNodePayload rightPayload     = *encodeCtx.rightPayload;
+        MicroReg           targetAddressReg = encodeCtx.target.payload.reg;
+
+        if (targetAddressReg.isVirtualInt())
+        {
+            const MicroReg stableTargetReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(stableTargetReg, targetAddressReg, MicroOpBits::B64);
+            targetAddressReg = stableTargetReg;
+        }
+
+        if (rightPayload.isAddress() && rightPayload.reg.isVirtualInt())
+        {
+            const MicroReg stableSourceReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(stableSourceReg, rightPayload.reg, MicroOpBits::B64);
+            rightPayload.reg = stableSourceReg;
+        }
+
+        const MicroReg rightReg = materializeAssignOperand(codeGen, rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);
+        builder.emitLoadMemReg(targetAddressReg, 0, rightReg, encodeCtx.opBits);
         return Result::Continue;
     }
 

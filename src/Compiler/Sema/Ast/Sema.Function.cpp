@@ -55,8 +55,208 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstFunctionExpr::semaPreNode(Sema& sema) const
+{
+    if (sema.enteringState())
+    {
+        TaskContext& ctx = sema.ctx();
+        auto*        sym = Symbol::make<SymbolFunction>(ctx, this, tokRef(), SemaHelpers::getUniqueIdentifier(sema, "__lambda"), sema.frame().flagsForCurrentAccess());
+        SymbolMap*   map = SemaFrame::currentSymMap(sema);
+        SWC_ASSERT(map != nullptr);
+        map->addSymbol(ctx, sym, true);
+
+        sym->setExtraFlags(flags());
+        sym->setDeclNodeRef(sema.curNodeRef());
+        sym->setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, *sym));
+        sym->setDeclared(ctx);
+        sema.setSymbol(sema.curNodeRef(), sym);
+
+        if (SymbolFunction* currentFn = sema.frame().currentFunction())
+            currentFn->addCallDependency(sym);
+    }
+
+    auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    SemaFrame frame = sema.frame();
+    frame.setCurrentFunction(&sym);
+    sema.pushFramePopOnPostNode(frame);
+    return Result::Continue;
+}
+
 namespace
 {
+    SymbolFunction& functionExprSymbol(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (Symbol* sym = sema.viewSymbol(nodeRef).sym())
+            return sym->cast<SymbolFunction>();
+
+        const TypeRef typeRef = sema.viewType(nodeRef).typeRef();
+        SWC_ASSERT(typeRef.isValid());
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        SWC_ASSERT(typeInfo.isFunction());
+        return typeInfo.payloadSymFunction();
+    }
+
+    void registerRuntimeFunctionSymbol(Sema& sema, SymbolFunction& sym);
+
+    TypeRef unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
+    {
+        while (typeRef.isValid())
+        {
+            const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
+            const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
+            if (unwrapped.isValid())
+            {
+                typeRef = unwrapped;
+                continue;
+            }
+
+            if (typeInfo.isReference())
+            {
+                typeRef = typeInfo.payloadTypeRef();
+                continue;
+            }
+
+            break;
+        }
+
+        return typeRef;
+    }
+
+    const SymbolFunction* resolveLambdaBindingFunction(Sema& sema)
+    {
+        const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
+        for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
+        {
+            const TypeRef bindingTypeRef = unwrapLambdaBindingType(sema.ctx(), bindingTypes[bindingIndex - 1]);
+            if (!bindingTypeRef.isValid())
+                continue;
+
+            const TypeInfo& bindingType = sema.typeMgr().get(bindingTypeRef);
+            if (bindingType.isFunction())
+                return &bindingType.payloadSymFunction();
+        }
+
+        return nullptr;
+    }
+
+    SymbolFunction* callableTypeFunction(Sema& sema, TypeRef typeRef)
+    {
+        typeRef = unwrapLambdaBindingType(sema.ctx(), typeRef);
+        if (!typeRef.isValid())
+            return nullptr;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (!typeInfo.isFunction())
+            return nullptr;
+
+        return &typeInfo.payloadSymFunction();
+    }
+
+    bool lambdaHasExpressionBody(Sema& sema, AstNodeRef bodyRef)
+    {
+        return bodyRef.isValid() && sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock);
+    }
+
+    Result buildFunctionExprParameters(Sema& sema, const AstFunctionExpr& node, SymbolFunction& sym)
+    {
+        if (!sym.parameters().empty())
+            return Result::Continue;
+
+        TaskContext&             ctx             = sema.ctx();
+        const SymbolFunction*    bindingFunction = resolveLambdaBindingFunction(sema);
+        SmallVector<AstNodeRef> params;
+        sema.ast().appendNodes(params, node.spanArgsRef);
+
+        for (size_t paramIndex = 0; paramIndex < params.size(); paramIndex++)
+        {
+            const AstNodeRef      paramRef  = params[paramIndex];
+            const AstLambdaParam& param     = sema.node(paramRef).cast<AstLambdaParam>();
+            TypeRef               paramType = TypeRef::invalid();
+            if (param.nodeTypeRef.isValid())
+                paramType = sema.viewType(param.nodeTypeRef).typeRef();
+            else if (bindingFunction && paramIndex < bindingFunction->parameters().size())
+                paramType = bindingFunction->parameters()[paramIndex]->typeRef();
+
+            SWC_ASSERT(paramType.isValid());
+
+            IdentifierRef idRef = IdentifierRef::invalid();
+            if (param.hasFlag(AstLambdaParamFlagsE::Named))
+            {
+                const Token& tok = sema.token(param.codeRef());
+                if (tok.id == TokenId::Identifier)
+                    idRef = sema.idMgr().addIdentifier(ctx, param.codeRef());
+            }
+
+            auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
+            symVar->setTypeRef(paramType);
+            symVar->addExtraFlag(SymbolVariableFlagsE::Parameter);
+
+            sym.addParameter(symVar);
+            if (idRef.isValid())
+                sym.addSymbol(ctx, symVar, false);
+
+            symVar->setDeclared(ctx);
+            symVar->setTyped(ctx);
+            symVar->setSemaCompleted(ctx);
+        }
+
+        return Result::Continue;
+    }
+
+    Result prepareFunctionExprSignature(Sema& sema, const AstFunctionExpr& node, SymbolFunction& sym)
+    {
+        SWC_RESULT(buildFunctionExprParameters(sema, node, sym));
+
+        if (sym.returnTypeRef().isValid())
+            return Result::Continue;
+
+        if (node.nodeReturnTypeRef.isValid())
+        {
+            sym.setReturnTypeRef(sema.viewType(node.nodeReturnTypeRef).typeRef());
+            return Result::Continue;
+        }
+
+        if (const SymbolFunction* bindingFunction = resolveLambdaBindingFunction(sema))
+        {
+            sym.setReturnTypeRef(bindingFunction->returnTypeRef());
+            return Result::Continue;
+        }
+
+        if (!lambdaHasExpressionBody(sema, node.nodeBodyRef))
+            sym.setReturnTypeRef(sema.typeMgr().typeVoid());
+
+        return Result::Continue;
+    }
+
+    Result finalizeFunctionExprSignature(Sema& sema, const AstFunctionExpr& node, SymbolFunction& sym)
+    {
+        SWC_RESULT(prepareFunctionExprSignature(sema, node, sym));
+
+        if (!sym.returnTypeRef().isValid())
+        {
+            if (node.nodeBodyRef.isValid())
+                sym.setReturnTypeRef(sema.viewType(node.nodeBodyRef).typeRef());
+            else
+                sym.setReturnTypeRef(sema.typeMgr().typeVoid());
+        }
+
+        sym.setVariadicParamFlag(sema.ctx());
+
+        const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
+        const TypeRef  typeRef = sema.typeMgr().addType(ti);
+        sym.setTypeRef(typeRef);
+        SemaPurity::computePurityFlag(sema, sym);
+        sym.setTyped(sema.ctx());
+
+        SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));
+        SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
+        registerRuntimeFunctionSymbol(sema, sym);
+
+        sema.setIsValue(sema.curNodeRef());
+        sema.unsetIsLValue(sema.curNodeRef());
+        return Result::Continue;
+    }
+
     bool isInsideInlineRoot(const Sema& sema, AstNodeRef inlineRootRef)
     {
         if (inlineRootRef.isInvalid())
@@ -283,7 +483,7 @@ namespace
     template<typename T>
     Result semaCallExprCommon(Sema& sema, const T& node, bool tryIntrinsicFold)
     {
-        const SemaNodeView nodeCallee = sema.viewNodeSymbolList(node.nodeExprRef);
+        const SemaNodeView nodeCallee = sema.view(node.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
 
         SmallVector<AstNodeRef> args;
         node.collectArguments(args, sema.ast());
@@ -292,6 +492,11 @@ namespace
 
         SmallVector<Symbol*> symbols;
         nodeCallee.getSymbols(symbols);
+        if (symbols.empty() && sema.isValue(nodeCallee.nodeRef()))
+        {
+            if (auto* symFunc = callableTypeFunction(sema, nodeCallee.typeRef()))
+                symbols.push_back(symFunc);
+        }
 
         AstNodeRef ufcsArg = AstNodeRef::invalid();
         SWC_ASSERT(nodeCallee.node() != nullptr);
@@ -388,6 +593,24 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     return Result::Continue;
 }
 
+Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    SWC_RESULT(prepareFunctionExprSignature(sema, *this, sym));
+
+    auto frame = sema.frame();
+    if (sym.returnTypeRef().isValid())
+        frame.pushBindingType(sym.returnTypeRef());
+    sema.pushFramePopOnPostNode(frame);
+
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+    sema.curScope().setSymMap(&sym);
+    return Result::Continue;
+}
+
 Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
@@ -439,11 +662,31 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     return Result::Continue;
 }
 
+Result AstFunctionExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    return finalizeFunctionExprSignature(sema, *this, sym);
+}
+
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isForeign() && !sym.isEmpty())
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
+
+    sym.setSemaCompleted(sema.ctx());
+    sema.compiler().registerNativeCodeFunction(&sym);
+    return Result::Continue;
+}
+
+Result AstFunctionExpr::semaPostNode(Sema& sema) const
+{
+    auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    if (!sym.isTyped())
+        SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
     sym.setSemaCompleted(sema.ctx());
     sema.compiler().registerNativeCodeFunction(&sym);

@@ -255,6 +255,40 @@ namespace
         return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, materializedCstRef);
     }
 
+    void materializePreparedDirectScalarArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg)
+    {
+        if (!normalizedTypeRef.isValid() || !argPayload.isAddress() || normalizedArg.isIndirect)
+            return;
+
+        const TypeInfo& normalizedType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+        if (normalizedType.isReference())
+            return;
+
+        MicroReg    dstReg   = MicroReg::invalid();
+        MicroOpBits loadBits = MicroOpBits::Zero;
+        if (normalizedArg.isFloat)
+        {
+            if (normalizedArg.numBits != 32 && normalizedArg.numBits != 64)
+                return;
+
+            dstReg   = codeGen.nextVirtualFloatRegister();
+            loadBits = microOpBitsFromBitWidth(normalizedArg.numBits);
+        }
+        else if (normalizedArg.numBits == 64 && normalizedType.sizeOf(codeGen.ctx()) == sizeof(uint64_t))
+        {
+            dstReg   = codeGen.nextVirtualIntRegister();
+            loadBits = MicroOpBits::B64;
+        }
+        else
+        {
+            return;
+        }
+
+        codeGen.builder().emitLoadRegMem(dstReg, argPayload.reg, 0, loadBits);
+        argPayload.reg = dstReg;
+        argPayload.setIsValue();
+    }
+
     void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef)
     {
         if (normalizedTypeRef.isInvalid())
@@ -316,6 +350,12 @@ namespace
         }
 
         ABICall::PreparedArg preparedArg;
+        if (normalizedTypeRef.isValid())
+        {
+            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
+            materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
+        }
+
         preparedArg.srcReg = argPayload.reg;
 
         fillPreparedDirectArgType(preparedArg, codeGen, callConv, argPayload, normalizedTypeRef);
@@ -323,15 +363,40 @@ namespace
         outArgs.push_back(preparedArg);
     }
 
-    void emitFunctionCall(CodeGen& codeGen, SymbolFunction& calledFunction, const AstNodeRef& calleeRef, const ABICall::PreparedCall& preparedCall)
+    const CodeGenNodePayload* resolveCallPayload(CodeGen& codeGen, AstNodeRef calleeRef)
+    {
+        if (const CodeGenNodePayload* payload = codeGen.safePayload(calleeRef))
+            return payload;
+
+        const AstNodeRef resolvedRef = codeGen.viewZero(calleeRef).nodeRef();
+        if (resolvedRef.isValid() && resolvedRef != calleeRef)
+            return codeGen.safePayload(resolvedRef);
+
+        return nullptr;
+    }
+
+    MicroReg materializeCallTargetReg(CodeGen& codeGen, const CodeGenNodePayload& calleePayload, const CallConv& callConv)
+    {
+        MicroBuilder& builder   = codeGen.builder();
+        MicroReg      targetReg = codeGen.nextVirtualIntRegister();
+        if (calleePayload.isAddress())
+            builder.emitLoadRegMem(targetReg, calleePayload.reg, 0, MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(targetReg, calleePayload.reg, MicroOpBits::B64);
+
+        builder.addVirtualRegForbiddenPhysRegs(targetReg, callConv.intArgRegs);
+        builder.addVirtualRegForbiddenPhysReg(targetReg, callConv.intReturn);
+        return targetReg;
+    }
+
+    void emitFunctionCall(CodeGen& codeGen, SymbolFunction& calledFunction, const ABICall::PreparedCall& preparedCall, MicroReg callTargetReg)
     {
         MicroBuilder&             builder       = codeGen.builder();
         const CallConvKind        callConvKind  = calledFunction.callConvKind();
-        const CodeGenNodePayload* calleePayload = codeGen.safePayload(calleeRef);
 
-        if (calleePayload)
+        if (callTargetReg.isValid())
         {
-            ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall);
+            ABICall::callReg(builder, callConvKind, callTargetReg, preparedCall);
             return;
         }
 
@@ -662,12 +727,16 @@ namespace
 Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef)
 {
     MicroBuilder&                          builder        = codeGen.builder();
-    const SemaNodeView                     calleeView     = codeGen.viewZero(calleeRef);
     const SemaNodeView                     currentView    = codeGen.curViewTypeSymbol();
     auto&                                  calledFunction = currentView.sym()->cast<SymbolFunction>();
     const CallConvKind                     callConvKind   = calledFunction.callConvKind();
     const CallConv&                        callConv       = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, currentView.typeRef(), ABITypeNormalize::Usage::Return);
+    const CodeGenNodePayload*              calleePayload  = resolveCallPayload(codeGen, calleeRef);
+    MicroReg                               callTargetReg  = MicroReg::invalid();
+
+    if (calleePayload)
+        callTargetReg = materializeCallTargetReg(codeGen, *calleePayload, callConv);
 
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
@@ -688,7 +757,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet, hiddenRetStorageReg);
     CodeGenNodePayload&         nodePayload  = codeGen.setPayload(codeGen.curNodeRef(), currentView.typeRef());
-    emitFunctionCall(codeGen, calledFunction, calleeView.nodeRef(), preparedCall);
+    emitFunctionCall(codeGen, calledFunction, preparedCall, callTargetReg);
     if (transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
 

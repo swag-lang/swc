@@ -61,6 +61,27 @@ namespace
         return SemaClone::cloneAst(sema, nodeRef, cloneContextAsInline(cloneContext));
     }
 
+    void copyCallableClonePayload(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    {
+        const AstNode& sourceNode = sema.node(sourceRef);
+        if (sourceNode.isNot(AstNodeId::FunctionExpr) && sourceNode.isNot(AstNodeId::ClosureExpr))
+            return;
+
+        const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        if (storedView.hasSymbol())
+            sema.setSymbol(clonedRef, storedView.sym());
+        else if (storedView.typeRef().isValid())
+            sema.setType(clonedRef, storedView.typeRef());
+
+        if (sema.isValueStored(sourceRef))
+            sema.setIsValue(clonedRef);
+
+        if (sema.isLValueStored(sourceRef))
+            sema.setIsLValue(clonedRef);
+        else
+            sema.unsetIsLValue(clonedRef);
+    }
+
     SpanRef cloneSpan(Sema& sema, SpanRef spanRef, const CloneContext& cloneContext)
     {
         if (spanRef.isInvalid())
@@ -109,10 +130,14 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
     AstNode&   node      = sema.node(nodeRef);
     AstNodeRef clonedRef = Ast::nodeIdInfos(node.id()).semaClone(sema, node, cloneContext);
     if (clonedRef.isValid())
+    {
+        copyCallableClonePayload(sema, nodeRef, clonedRef);
         return clonedRef;
+    }
 
     clonedRef = cloneShallowNode(sema, node);
     SWC_ASSERT(clonedRef.isValid());
+    copyCallableClonePayload(sema, nodeRef, clonedRef);
     return clonedRef;
 }
 

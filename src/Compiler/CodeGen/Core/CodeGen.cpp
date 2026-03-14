@@ -60,6 +60,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         nextVirtualRegister_ = 1;
         localStackFrameSize_ = 0;
         localStackBaseReg_   = MicroReg::invalid();
+        currentFunctionIndirectReturnReg_ = MicroReg::invalid();
         clearGvtdScratchLayout();
         frames_.clear();
         frames_.emplace_back();
@@ -308,6 +309,8 @@ MicroReg CodeGen::offsetAddressReg(const MicroReg baseReg, const uint32_t offset
         return baseReg;
 
     const MicroReg addressReg = nextVirtualIntRegister();
+    if (baseReg.isInt())
+        builder().addVirtualRegForbiddenPhysReg(addressReg, baseReg);
     builder().emitLoadRegReg(addressReg, baseReg, MicroOpBits::B64);
     builder().emitOpBinaryRegImm(addressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
     return addressReg;

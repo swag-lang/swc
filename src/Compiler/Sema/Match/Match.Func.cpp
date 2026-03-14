@@ -16,6 +16,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SymbolFunction* callableTypeFunction(TaskContext& ctx, TypeRef typeRef)
+    {
+        while (typeRef.isValid())
+        {
+            const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+            if (typeInfo.isFunction())
+                return &typeInfo.payloadSymFunction();
+
+            const TypeRef unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
+            if (unwrapped.isValid())
+            {
+                typeRef = unwrapped;
+                continue;
+            }
+
+            if (typeInfo.isReference())
+            {
+                typeRef = typeInfo.payloadTypeRef();
+                continue;
+            }
+
+            break;
+        }
+
+        return nullptr;
+    }
+
     bool hasConcreteFunctionCandidate(std::span<Symbol*> symbols)
     {
         for (Symbol* const sym : symbols)
@@ -494,6 +521,7 @@ namespace
 
         CastRequest castRequest(castKind);
         castRequest.flags = castFlags;
+        castRequest.errorNodeRef = argRef;
         castRequest.setConstantFoldingSrc(argNodeView.cstRef());
         if (isUfcsArgument)
             castRequest.flags.add(CastFlagsE::UfcsArgument);
@@ -798,9 +826,7 @@ namespace
             }
             else if (s->isVariable())
             {
-                const TypeInfo& type = s->type(sema.ctx());
-                if (type.isFunction())
-                    fn = &type.payloadSymFunction();
+                fn = callableTypeFunction(sema.ctx(), s->typeRef());
             }
 
             if (!fn)

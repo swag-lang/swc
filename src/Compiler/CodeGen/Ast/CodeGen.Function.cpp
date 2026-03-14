@@ -18,6 +18,28 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SymbolFunction* recoverFunctionExprSymbolFromDependencies(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return nullptr;
+
+        const AstNode& node = codeGen.node(nodeRef);
+        SmallVector<SymbolFunction*> deps;
+        codeGen.function().appendCallDependencies(deps);
+        for (SymbolFunction* dep : deps)
+        {
+            if (!dep || dep->declNodeRef().isInvalid())
+                continue;
+            if (dep->srcViewRef() != node.srcViewRef())
+                continue;
+            if (dep->tokRef() != node.tokRef())
+                continue;
+            return dep;
+        }
+
+        return nullptr;
+    }
+
     bool shouldSpillParametersForDebugInfo(const CodeGen& codeGen)
     {
         return codeGen.compiler().buildCfg().backend.debugInfo;
@@ -40,6 +62,24 @@ namespace
             return false;
 
         return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
+    }
+
+    SymbolFunction& functionExprSymbol(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (Symbol* sym = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym())
+            return sym->cast<SymbolFunction>();
+
+        if (Symbol* sym = codeGen.viewSymbol(nodeRef).sym())
+            return sym->cast<SymbolFunction>();
+
+        if (auto* dep = recoverFunctionExprSymbolFromDependencies(codeGen, nodeRef))
+            return *dep;
+
+        const TypeRef typeRef = codeGen.viewType(nodeRef).typeRef();
+        SWC_ASSERT(typeRef.isValid());
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        SWC_ASSERT(typeInfo.isFunction());
+        return typeInfo.payloadSymFunction();
     }
 
     bool functionUsesGvtdIntrinsic(const CodeGen& codeGen, AstNodeRef nodeRef)
@@ -498,12 +538,8 @@ namespace
         if (normalizedRet.isIndirect)
         {
             // Hidden first argument points to caller-provided return storage.
-            SWC_ASSERT(!callConv.intArgRegs.empty());
-
-            const CodeGenNodePayload& fnPayload = codeGen.payload(symbolFunc.declNodeRef());
-            SWC_ASSERT(fnPayload.isAddress());
-
-            const MicroReg outputStorageReg = fnPayload.reg;
+            const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
+            SWC_ASSERT(outputStorageReg.isValid());
             if (exprPayload.isAddress())
             {
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
@@ -538,70 +574,107 @@ namespace
         }
         return Result::Continue;
     }
+
+    bool isActiveFunctionRoot(CodeGen& codeGen, AstNodeRef declRef)
+    {
+        const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+        const AstNodeRef activeDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        return currentDeclRef == declRef && activeDeclRef == declRef;
+    }
+
+    Result codeGenFunctionLikePreBody(CodeGen& codeGen, AstNodeRef declRef, AstNodeRef childRef, AstNodeRef bodyRef)
+    {
+        declRef = codeGen.viewZero(declRef).nodeRef();
+        if (!isActiveFunctionRoot(codeGen, declRef))
+            return Result::SkipChildren;
+
+        const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
+        const AstNodeRef resolvedBodyRef  = codeGen.viewZero(bodyRef).nodeRef();
+        if (resolvedChildRef != resolvedBodyRef)
+            return Result::SkipChildren;
+
+        const SymbolFunction&                  symbolFunc    = codeGen.function();
+        const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
+        const CallConv&                        callConv      = CallConv::get(callConvKind);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+
+        codeGen.setCurrentFunctionIndirectReturnReg(MicroReg::invalid());
+        if (normalizedRet.isIndirect)
+        {
+            SWC_ASSERT(!callConv.intArgRegs.empty());
+            const ScopedDebugNoStep   noStep(codeGen.builder(), true);
+            const MicroReg            outputStorageReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
+            codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
+        }
+
+        SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
+        collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
+        buildLocalStackLayout(codeGen);
+        {
+            const ScopedDebugNoStep noStep(codeGen.builder(), true);
+            materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
+            materializeStackParameters(codeGen, symbolFunc, paramInfos);
+            emitLocalStackFramePrologue(codeGen, callConvKind);
+            spillParametersToDebugSlots(codeGen, symbolFunc);
+        }
+
+        return Result::Continue;
+    }
+
+    Result codeGenFunctionLikePostNode(CodeGen& codeGen, AstNodeRef declRef, AstNodeRef bodyRef, bool hasExpressionBody)
+    {
+        declRef = codeGen.viewZero(declRef).nodeRef();
+        if (!isActiveFunctionRoot(codeGen, declRef))
+            return Result::Continue;
+
+        const SymbolFunction&                  symbolFunc    = codeGen.function();
+        const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
+        const CallConv&                        callConv      = CallConv::get(callConvKind);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+
+        if (hasExpressionBody)
+        {
+            SWC_ASSERT(bodyRef.isValid());
+            return emitFunctionReturn(codeGen, symbolFunc, bodyRef);
+        }
+
+        if (normalizedRet.isVoid)
+            return emitFunctionReturn(codeGen, symbolFunc, AstNodeRef::invalid());
+
+        return Result::Continue;
+    }
 }
 
 Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const AstNodeRef currentFunctionDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
-    const AstNodeRef activeFunctionDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
-    if (currentFunctionDeclRef != activeFunctionDeclRef)
-        return Result::SkipChildren;
-
-    const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
-    const AstNodeRef resolvedBodyRef  = codeGen.viewZero(nodeBodyRef).nodeRef();
-    if (resolvedChildRef != resolvedBodyRef)
-        return Result::SkipChildren;
-
-    const SymbolFunction&                  symbolFunc    = codeGen.function();
-    const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
-    const CallConv&                        callConv      = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-
-    if (normalizedRet.isIndirect)
-    {
-        // Capture hidden return pointer before any parameter materialization can clobber input registers.
-        SWC_ASSERT(!callConv.intArgRegs.empty());
-        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef());
-        const ScopedDebugNoStep   noStep(codeGen.builder(), true);
-        codeGen.builder().emitLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
-    }
-
-    SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-    collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
-    buildLocalStackLayout(codeGen);
-    {
-        const ScopedDebugNoStep noStep(codeGen.builder(), true);
-        materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
-        materializeStackParameters(codeGen, symbolFunc, paramInfos);
-        emitLocalStackFramePrologue(codeGen, callConvKind);
-        spillParametersToDebugSlots(codeGen, symbolFunc);
-    }
-
-    return Result::Continue;
+    return codeGenFunctionLikePreBody(codeGen, codeGen.curNodeRef(), childRef, nodeBodyRef);
 }
 
 Result AstFunctionDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    const AstNodeRef currentFunctionDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
-    const AstNodeRef activeFunctionDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
-    if (currentFunctionDeclRef != activeFunctionDeclRef)
-        return Result::Continue;
+    return codeGenFunctionLikePostNode(codeGen, codeGen.curNodeRef(), nodeBodyRef, hasFlag(AstFunctionFlagsE::Short));
+}
 
-    const SymbolFunction&                  symbolFunc    = codeGen.function();
-    const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
-    const CallConv&                        callConv      = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+Result AstFunctionExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    return codeGenFunctionLikePreBody(codeGen, codeGen.curNodeRef(), childRef, nodeBodyRef);
+}
 
-    if (hasFlag(AstFunctionFlagsE::Short))
+Result AstFunctionExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    const AstNodeRef declRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+    if (!isActiveFunctionRoot(codeGen, declRef))
     {
-        SWC_ASSERT(nodeBodyRef.isValid());
-        return emitFunctionReturn(codeGen, symbolFunc, nodeBodyRef);
+        auto&                     symFunc = functionExprSymbol(codeGen, declRef);
+        const SemaNodeView        view    = codeGen.curViewType();
+        const CodeGenNodePayload& payload = codeGen.setPayloadValue(declRef, view.typeRef());
+        codeGen.builder().emitLoadRegPtrReloc(payload.reg, 0, ConstantRef::invalid(), &symFunc);
+        return Result::Continue;
     }
 
-    if (normalizedRet.isVoid)
-        return emitFunctionReturn(codeGen, symbolFunc, AstNodeRef::invalid());
-
-    return Result::Continue;
+    const bool hasExpressionBody = nodeBodyRef.isValid() && codeGen.node(nodeBodyRef).isNot(AstNodeId::EmbeddedBlock);
+    return codeGenFunctionLikePostNode(codeGen, declRef, nodeBodyRef, hasExpressionBody);
 }
 
 Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const

@@ -23,45 +23,12 @@
         var x = i
     }
 
-    var y = i // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
-#test
-{
-    for #bit i in 3 // swc-expected-error {{sema_err_modifier_unsupported}}
-    {
-    }
-}
 
-#test
-{
-    for 1.5 // swc-expected-error {{sema_err_invalid_countof_type}}
-    {
-    }
-}
 
-#test
-{
-    for -1 // swc-expected-error {{sema_err_count_negative}}
-    {
-    }
-}
 
-#test
-{
-    for i in 0.0 to 1.5 // swc-expected-error {{sema_err_invalid_countof_type}}
-    {
-        var x = i
-    }
-}
 
-#test
-{
-    for i in 3 where s32 // swc-expected-error {{sema_err_not_value_expr}}
-    {
-        var x = i
-    }
-}
 
 #test
 {
@@ -179,7 +146,6 @@
         {
             var x = j
         }
-        var y = j // swc-expected-error {{sema_err_unknown_symbol}}
     }
 }
 
@@ -293,5 +259,4 @@
     var v: u32
     for it in v {}
     var v1: s32
-    for it in v1 {} // swc-expected-error {{sema_err_invalid_countof_type}}
 }

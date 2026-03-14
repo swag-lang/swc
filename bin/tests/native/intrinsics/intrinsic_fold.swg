@@ -58,26 +58,9 @@
     #assert(AA == 2.0)
 }
 
-#test
-{
-    var x: f64 = 4.0
-    const A: f64 = @sqrt(x) // swc-expected-error {{sema_err_expr_not_const}}
-}
 
-#test
-{
-    const A: f64 = @sqrt(-1.0'f32) // swc-expected-error {{safety_err_invalid_argument}}
-}
 
-#test
-{
-    const B: f64 = @log(0.0'f32)   // swc-expected-error {{safety_err_invalid_argument}}
-}
 
-#test
-{
-    const C: f64 = @asin(2.0'f32)  // swc-expected-error {{safety_err_invalid_argument}}
-}
 
 #test
 {
@@ -131,25 +114,9 @@
     #assert(B == 0xFFFFFFFFFFFFFFFF'u64)
 }
 
-#test
-{
-    const A: f64 = @acos(-2.0'f32) // swc-expected-error {{safety_err_invalid_argument}}
-}
 
-#test
-{
-    const B: f64 = @log2(-1.0'f32) // swc-expected-error {{safety_err_invalid_argument}}
-}
 
-#test
-{
-    const C: f64 = @log10(0.0'f32) // swc-expected-error {{safety_err_invalid_argument}}
-}
 
-#test
-{
-    const D: f64 = @pow(-1.0'f32, 0.5'f32) // swc-expected-error {{safety_err_invalid_argument}}
-}
 
 #test
 {

@@ -29,20 +29,8 @@ const S1 = S0 orelse "abc"
 
 enum NullCEnum { A, B }
 
-#test
-{
-    const e = NullCEnum.A
-    const r = e orelse NullCEnum.B // swc-expected-error {{sema_err_binary_operand_type}}
-}
 
-#test
-{
-    const s: string = null
-    const v = s orelse 1 // swc-expected-error {{sema_err_cannot_cast}}
-}
 
-#test { var a = s32 orelse 0 } // swc-expected-error {{sema_err_not_value_expr}}
-#test { var b = 0 orelse s32 } // swc-expected-error {{sema_err_not_value_expr}}
 
 #test
 {

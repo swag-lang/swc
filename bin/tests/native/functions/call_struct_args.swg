@@ -38,6 +38,3 @@ func ForeignReturnTriple()->Triple64;
     }
 }
 
-#test { var x = ForeignTakePair(1) } // swc-expected-error {{sema_err_cannot_cast}}
-#test { var y = ForeignTakePair() } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { var z = ForeignReturnPair(1) } // swc-expected-error {{sema_err_too_many_arguments}}

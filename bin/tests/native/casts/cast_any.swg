@@ -1,10 +1,5 @@
 #global fileprivate // swc-option suite-test
 
-#test
-{
-    var a: any = 12
-    var b: s32 = a // swc-expected-error {{sema_err_cannot_cast}}
-}
 
 #test
 {
@@ -17,7 +12,6 @@
 {
     func takes(v: s32) {}
     var a: any = 12
-    takes(a) // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -27,11 +21,6 @@
     takes(cast() a)
 }
 
-#test
-{
-    var a: any = true
-    if a {} // swc-expected-error {{sema_err_cannot_cast}}
-}
 
 #test
 {

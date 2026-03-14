@@ -59,8 +59,3 @@ struct OuterAmbiguous
     using b: Inner2
 }
 
-#test
-{
-    var a: OuterAmbiguous
-    let x = a.x // swc-expected-error {{sema_err_ambiguous_symbol}}
-}

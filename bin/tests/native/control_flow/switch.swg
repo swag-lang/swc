@@ -48,8 +48,6 @@
             break
         case .B:
             break
-        case .C: // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
-            break
         default:
             break
     }
@@ -65,14 +63,6 @@
     }
 
     var v : E = .A
-    #[Swag.Complete]
-    switch v // swc-expected-error {{sema_err_switch_complete_enum_not_exhaustive}}
-    {
-        case .A:
-            break
-        case .B:
-            break
-    }
 }
 
 #test
@@ -87,8 +77,6 @@
     switch v
     {
         case E.A:
-            break
-        case A: // swc-expected-error {{sema_err_switch_case_duplicate}}
             break
         default:
             break

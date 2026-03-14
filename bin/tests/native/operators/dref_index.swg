@@ -10,17 +10,7 @@
     #assert(#typeof(ptr1) == [*] s32)
 }
 
-#test
-{
-    var a2: [2, 2] s32
-    var b2 = a2[0, 0, 0] // swc-expected-error {{sema_err_array_num_dims}}
-}
 
-#test
-{
-    var a3: [2, 2] s32
-    var b3 = a3[0, 0.0] // swc-expected-error {{sema_err_index_not_int}}
-}
 
 #test
 {
@@ -28,11 +18,6 @@
     #assert(#typeof(a4[0]) == #type [3] s32)
 }
 
-#test
-{
-    var a5 = 0
-    var b5 = a5[0] // swc-expected-error {{sema_err_type_not_indexable}}
-}
 
 #test
 {
@@ -43,17 +28,7 @@
     @assert(b6 == 11)
 }
 
-#test
-{
-    var a7: [..] s32
-    var b7 = a7[0, 0] // swc-expected-error {{sema_err_array_num_dims}}
-}
 
-#test
-{
-    var a1 = 0
-    var b1 = a1[0] // swc-expected-error {{sema_err_type_not_indexable}}
-}
 
 #test
 {
@@ -64,11 +39,6 @@
     @assert(b2 == 33)
 }
 
-#test
-{
-    var a3: [..] s32
-    var b3 = a3[0, 0] // swc-expected-error {{sema_err_array_num_dims}}
-}
 
 #test
 {

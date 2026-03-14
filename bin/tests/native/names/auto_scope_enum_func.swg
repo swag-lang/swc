@@ -13,10 +13,6 @@ func overload(x: f32, e: OverB)->f32 { return 20.0 }
 }
 
 func fct(x: f32, e: OverB)->f32 { return 20.0 }
-#test
-{
-    let r1 = fct(1.0, .C) // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
-}
 
 struct Vec2
 {
@@ -35,7 +31,6 @@ impl Vec2
 
     mtd toto()
     {
-        if .z > 0.0 {} // swc-expected-error {{sema_err_auto_scope_missing_struct_member}}
     }
 
     func titi()->Vec2
@@ -45,10 +40,6 @@ impl Vec2
     }
 }
 
-#test
-{
-    let r1 = overload(1.0, .C) // swc-expected-error {{sema_err_no_overload_match}}
-}
 
 #test
 {

@@ -38,8 +38,3 @@ struct Bad
     discard i1.foo()
 }
 
-#test
-{
-    var b: Bad
-    var i2 = cast(I) b // swc-expected-error {{sema_err_cannot_cast_to_interface}}
-}

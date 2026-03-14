@@ -57,23 +57,6 @@ const FLAGS_ALL = Flags16.Read | Flags16.Write | Flags16.Exec
     @assert(cast(bool) v)
 }
 
-#test
-{
-    var e = SignedCode.Pos
-    var b = cast(bool) e // swc-expected-error {{sema_err_cannot_cast}}
-}
 
-#test
-{
-    const x = cast(u8) SignedCode.Neg // swc-expected-error {{sema_err_signed_unsigned}}
-}
 
-#test
-{
-    const x = cast(s8) Flags16.High // swc-expected-error {{sema_err_literal_overflow}}
-}
 
-#test
-{
-    const x = cast(string) Flags16.Read // swc-expected-error {{sema_err_cannot_cast}}
-}

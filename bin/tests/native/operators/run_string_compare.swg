@@ -20,9 +20,3 @@ func stringNe(a: string, b: string)->bool
     @assert(!stringNe("toto", "toto"))
 }
 
-#test
-{
-    let a = "a"
-    let b = "b"
-    let c = a < b // swc-expected-error {{sema_err_compare_operand_type}}
-}

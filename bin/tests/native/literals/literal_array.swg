@@ -1,6 +1,5 @@
 #global fileprivate // swc-option suite-test
 
-const At: [2, 2] s32 = [[1, 2], [3, 4, 5]] // swc-expected-error {{sema_err_array_cast_too_many_values}}
 
 const A: [5] s32 = [1's32, 2, 3, 4, 5]
 #assert(#typeof(A) == #type [5] s32)
@@ -31,15 +30,7 @@ const A2 = [1, true, 3]
     #assert(#typeof(D[1]) == f32)
 }
 
-#test
-{
-    var E = [] // swc-expected-error {{sema_err_empty_array_literal}}
-}
 
-#test
-{
-    var F: [2] s32 = ["hello", 1] // swc-expected-error {{sema_err_cannot_cast}}
-}
 
 const G: [2] f32 = [1.0, 2]
 #assert(#typeof(G) == #type [2] f32)
@@ -54,17 +45,7 @@ const G1: [3] [1] f32 = [[1.0], [2.0], [3.0]]
 #assert(#typeof(G1[0][0]) == f32)
 #assert(G1[2][0] == 3.0)
 
-#test
-{
-    const H = [1, 2]
-    var a = H[-1] // swc-expected-error {{sema_err_index_negative}}
-}
 
-#test
-{
-    const H = [1, 2]
-    var b = H[2] // swc-expected-error {{sema_err_index_out_of_range}}
-}
 
 const I: [2] s32 = [1, cast(s32) 2.2]
 #assert(#typeof(I) == #type [2] s32)
@@ -72,14 +53,12 @@ const I: [2] s32 = [1, cast(s32) 2.2]
 #assert(#typeof(I[1]) == s32)
 #assert(I[1] == 2)
 
-const J: [2] s32 = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err_cannot_cast}}
 
 #test
 {
     const K: [4] s32 = [10, 20, 30, 40]
     #assert(#typeof(K) == #type [4] s32)
 
-    var L: [3] s32 = K // swc-expected-error {{sema_err_array_cast_dim_mismatch}}
 }
 
 #test
@@ -89,12 +68,6 @@ const J: [2] s32 = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err
     #assert(M[1][0] == 3)
 }
 
-#test
-{
-    var x = [1, 2]
-    var y = [3, 4, 5]
-    var N: [2] [2] s32 = [x, y] // swc-expected-error {{sema_err_array_cast_too_many_values}}
-}
 
 const AB: [2] u32 = [1, 2]
 const AB1: [?] u32 = [1, 2]

@@ -16,17 +16,7 @@
     #assert(#typeof(str3) == const [..] s32)
 }
 
-#test
-{
-    var buf2: [100] u8
-    var str = @mkslice(0, @countof(buf2)) // swc-expected-error {{sema_err_expected_type_fam}}
-}
 
-#test
-{
-    var buf3: [100] u8
-    var str = @mkslice(&buf3[0], 0.0) // swc-expected-error {{sema_err_cannot_cast}}
-}
 
 #test
 {

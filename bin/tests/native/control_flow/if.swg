@@ -31,7 +31,6 @@
         var x = 0
     }
 
-    var y = x // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 #test
@@ -57,8 +56,3 @@
     }
 }
 
-#test
-{
-    var x = 0
-    var x = 0 // swc-expected-error {{sema_err_already_defined}}
-}

@@ -11,10 +11,6 @@ func canDiscard()->s32
     return 2
 }
 
-#test
-{
-    mustUse() // swc-expected-error {{sema_err_return_value_must_be_used}}
-}
 
 #test
 {

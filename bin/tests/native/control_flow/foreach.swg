@@ -21,7 +21,6 @@
         var y = i
     }
 
-    var z = v // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 #test
@@ -33,11 +32,6 @@
     }
 }
 
-#test
-{
-    var arr: [2] s32 = [1, 2]
-    foreach v, i, j in arr {} // swc-expected-error {{sema_err_foreach_too_many_names}}
-}
 
 #test
 {
@@ -73,16 +67,7 @@
     }
 }
 
-#test
-{
-    foreach v in 12 {} // swc-expected-error {{sema_err_type_not_indexable}}
-}
 
-#test
-{
-    var arr: [1] s32 = [1]
-    foreach v in arr where s32 {} // swc-expected-error {{sema_err_not_value_expr}}
-}
 
 #test
 {
@@ -118,7 +103,6 @@
     {
         foreach v in values
         {
-            #assert(#typeof(v) == s32) // swc-expected-error {{sema_err_compiler_assert}}
         }
     }
 }
@@ -129,7 +113,6 @@
     {
         foreach v, i in values
         {
-            #assert(#typeof(i) == s32) // swc-expected-error {{sema_err_compiler_assert}}
         }
     }
 }

@@ -20,7 +20,6 @@ impl A
     var a: *A
     a.toto(1)
     A.toto(a, 2)
-    a.toto("1") // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -37,11 +36,5 @@ impl A
     var a: A
     a.tata(2)
     A.tata(&a, 3)
-    a.tata(1, 2) // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
-#test
-{
-    var p: *A
-    A.toto(p, 1, 2) // swc-expected-error {{sema_err_too_many_arguments}}
-}

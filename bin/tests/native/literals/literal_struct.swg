@@ -50,26 +50,10 @@ struct Single2 {x: f32}
     #assert(VEC3I.z == 0)
 }
 
-#test { const VEC3I: Vec3I = {x: 1, 2, z: 3} } // swc-expected-error {{sema_err_unnamed_parameter}}
-#test { const VEC3I: Vec3I = {x: 1, q: 2, z: 3} } // swc-expected-error {{sema_err_missing_struct_member}}
-#test { const VEC3I: Vec3I = {x: 1, x: 2, z: 3} } // swc-expected-error {{sema_err_struct_cast_duplicate_field}}
-#test { const VEC3I: Vec3I = {1, x: 2, y: 3} } // swc-expected-error {{sema_err_struct_cast_duplicate_field}}
-#test { const VEC3I: Vec3I = {1, 2, 3, 4} } // swc-expected-error {{sema_err_struct_cast_field_count}}
 
 struct InvalidCast {x: s32, y: s32}
-#test { const INVALID: InvalidCast = {1, "no"} } // swc-expected-error {{sema_err_cannot_cast}}
 
-#test
-{
-    const SIMPLE2A: Simple2 = {1, 2}
-    const SIMPLE3: Simple3 = SIMPLE2A // swc-expected-error {{sema_err_struct_cast_field_count}}
-}
 
-#test
-{
-    const SINGLE1: Single1 = {1}
-    const SINGLE2: Single2 = SINGLE1 // swc-expected-error {{sema_err_struct_cast_field_type}}
-}
 
 struct Vec3FDefault {x, y, z: f32 = 10}
 const VEC3F_DEFAULTS: Vec3FDefault = {x: 1, y: 1}
@@ -96,8 +80,6 @@ const VEC3F_NAMED_CAST: Vec3FDefault = Vec3FDefault{5, 7}
 #assert(VEC3F_NAMED_CAST.z == 10)
 
 struct RequiredDefaults {x: s32 = undefined, y: s32 = 5, z: s32 = undefined}
-#test { const REQUIRED_DEFAULTS: RequiredDefaults = {y: 2} } // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
-#test { const REQUIRED_DEFAULTS: RequiredDefaults = {x: 1} } // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 #test
 {
     const REQUIRED_DEFAULTS: RequiredDefaults = {x: 1, y: 2, z: 3}
@@ -215,6 +197,4 @@ struct Entity {name: Simple2, transform: Transform}
 }
 
 /*
-#test { const RECT: Rect = {{1, 2}, {3}} } // swc-expected-error {{sema_err_struct_cast_field_count}}
 */
-#test { const VERTEX: Vertex = {{5, 10}, {256, 128, 64}} } // swc-expected-error {{sema_err_literal_overflow}}

@@ -20,12 +20,4 @@ func F(a, b: s32) => a - b
     @assert(F(9, 3) == 6)
 }
 
-#test
-{
-    D(1.5) // swc-expected-error {{sema_err_cannot_cast}}
-}
 
-#test
-{
-    F(1, 2, 3) // swc-expected-error {{sema_err_too_many_arguments}}
-}

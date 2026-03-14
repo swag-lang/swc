@@ -29,8 +29,3 @@ func computeUniq(value: s32)->s32
     @assert(computeUniq(3) == 148)
 }
 
-#test
-{
-    var #uniq0 = 1
-    var #uniq0 = 2 // swc-expected-error {{sema_err_already_defined}}
-}

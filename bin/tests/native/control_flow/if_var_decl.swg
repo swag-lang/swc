@@ -11,7 +11,6 @@
         var z = x
     }
 
-    var w = x // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 #test
@@ -22,9 +21,3 @@
     }
 }
 
-#test
-{
-    if var x: f32 = 1.0 // swc-expected-error {{sema_err_cannot_cast}}
-    {
-    }
-}

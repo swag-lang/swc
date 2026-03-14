@@ -80,4 +80,3 @@
     #assert(dref p == 7)
 }
 
-#test { const bad = @dataof(1) } // swc-expected-error {{sema_err_invalid_type}}

@@ -195,6 +195,9 @@
     <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\Native\NativeRDataCollector.cpp">
+      <Filter>src\Backend\Native</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Native\NativeValidate.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
@@ -849,6 +852,9 @@
       <Filter>src\Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeArtifactBuilder.h">
+      <Filter>src\Backend\Native</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Native\NativeRDataCollector.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeValidate.h">

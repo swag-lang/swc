@@ -1,9 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroTypes.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Core/RefTypes.h"
-#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -25,12 +23,9 @@ namespace CodeGenFunctionHelpers
 
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
-    ConstantRef           materializeStaticPayloadConstant(CodeGen& codeGen, TypeRef typeRef, ByteSpan payload);
-    ConstantRef           materializeRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count);
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
-    Result                codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef);
 }
 
 SWC_END_NAMESPACE();

@@ -2,7 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -143,7 +143,7 @@ namespace
         if (storageSize)
             ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{storageBytes.data(), storageBytes.size()}, cstRef, typeRef);
 
-        return CodeGenFunctionHelpers::materializeStaticPayloadConstant(codeGen, typeRef, ByteSpan{storageBytes.data(), storageBytes.size()});
+        return CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, typeRef, ByteSpan{storageBytes.data(), storageBytes.size()});
     }
 
     void emitPointerConstant(CodeGen& codeGen, MicroReg reg, const uint64_t value, ConstantRef cstRef)
@@ -223,7 +223,7 @@ namespace
             case ConstantKind::String:
             {
                 const std::string_view value               = cst.getString();
-                const ConstantRef      runtimeStringCstRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, codeGen.typeMgr().typeString(), value.data(), value.size());
+                const ConstantRef      runtimeStringCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, codeGen.typeMgr().typeString(), value.data(), value.size());
                 SWC_ASSERT(runtimeStringCstRef.isValid());
                 const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
@@ -259,7 +259,7 @@ namespace
                         std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
                         ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef);
 
-                        const ConstantRef    typedNullCstRef = CodeGenFunctionHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+                        const ConstantRef    typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
                         const ConstantValue& typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);
                         payload.setIsValue();
@@ -321,7 +321,7 @@ namespace
                     const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
                     if (targetType.isString())
                     {
-                        const ConstantRef runtimeStringCstRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, arrayBytes.data(), arrayBytes.size());
+                        const ConstantRef runtimeStringCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, arrayBytes.data(), arrayBytes.size());
                         SWC_ASSERT(runtimeStringCstRef.isValid());
                         const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
@@ -333,7 +333,7 @@ namespace
                     {
                         const TypeInfo&   elementType        = codeGen.typeMgr().get(targetType.payloadTypeRef());
                         const uint64_t    elementSize        = elementType.sizeOf(codeGen.ctx());
-                        const ConstantRef runtimeSliceCstRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, arrayBytes.data(), elementSize ? arrayBytes.size() / elementSize : 0);
+                        const ConstantRef runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, arrayBytes.data(), elementSize ? arrayBytes.size() / elementSize : 0);
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
@@ -356,7 +356,7 @@ namespace
                 SWC_ASSERT(sliceType.isSlice());
                 const TypeInfo&   elementType        = codeGen.typeMgr().get(sliceType.payloadTypeRef());
                 const uint64_t    elementSize        = elementType.sizeOf(codeGen.ctx());
-                const ConstantRef runtimeSliceCstRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), sliceBytes.data(), elementSize ? sliceBytes.size() / elementSize : 0);
+                const ConstantRef runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), sliceBytes.data(), elementSize ? sliceBytes.size() / elementSize : 0);
                 SWC_ASSERT(runtimeSliceCstRef.isValid());
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
@@ -428,7 +428,7 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
             std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
             ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, codeGen.cstMgr().cstNull(), targetTypeRef);
 
-            const ConstantRef         typedNullCstRef = CodeGenFunctionHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+            const ConstantRef         typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
             const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
             const CodeGenNodePayload& payload         = codeGen.setPayloadValue(codeGen.curNodeRef(), targetTypeRef);
             codeGen.builder().emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);

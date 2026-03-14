@@ -3,6 +3,7 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -617,7 +618,7 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    return CodeGenFunctionHelpers::codeGenCallExprCommon(codeGen, nodeExprRef);
+    return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, nodeExprRef);
 }
 
 SWC_END_NAMESPACE();

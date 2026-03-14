@@ -414,6 +414,12 @@
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
@@ -1005,6 +1011,12 @@
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h">

@@ -285,6 +285,8 @@
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp"/>
@@ -486,6 +488,8 @@
         <ClInclude Include="src\Backend\\Encoder\X64Unwind.Windows.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroReg.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>

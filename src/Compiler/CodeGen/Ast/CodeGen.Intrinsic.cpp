@@ -5,7 +5,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -345,7 +345,7 @@ namespace
 
         uint32_t sizeInBytes = 0;
         if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
-            return CodeGenFunctionHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
 
         const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
         const MicroReg srcReg = materializeIntrinsicIntArgReg(codeGen, srcPayload, MicroOpBits::B64);
@@ -367,7 +367,7 @@ namespace
 
         uint32_t sizeInBytes = 0;
         if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
-            return CodeGenFunctionHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
 
         const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
         if (isIntrinsicIntConstantZero(codeGen, valueRef))
@@ -395,7 +395,7 @@ namespace
 
         uint32_t sizeInBytes = 0;
         if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
-            return CodeGenFunctionHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
 
         const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
         const MicroReg srcReg = materializeIntrinsicIntArgReg(codeGen, srcPayload, MicroOpBits::B64);
@@ -417,7 +417,7 @@ namespace
 
         uint32_t sizeInBytes = 0;
         if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
-            return CodeGenFunctionHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
 
         const MicroReg            leftReg       = materializeIntrinsicIntArgReg(codeGen, leftPayload, MicroOpBits::B64);
         const MicroReg            rightReg      = materializeIntrinsicIntArgReg(codeGen, rightPayload, MicroOpBits::B64);
@@ -1400,7 +1400,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return Result::Continue;
 
         default:
-            return CodeGenFunctionHelpers::codeGenCallExprCommon(codeGen, nodeExprRef);
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, nodeExprRef);
     }
 }
 

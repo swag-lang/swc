@@ -2,7 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -177,7 +177,7 @@ namespace
             if (srcConst.isArray())
             {
                 const ByteSpan    arrayBytes       = srcConst.getArray();
-                const ConstantRef runtimeStringRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), arrayBytes.size());
+                const ConstantRef runtimeStringRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), arrayBytes.size());
                 SWC_ASSERT(runtimeStringRef.isValid());
                 const ConstantValue&      runtimeStringCst = codeGen.cstMgr().get(runtimeStringRef);
                 const CodeGenNodePayload& dstPayload       = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -226,7 +226,7 @@ namespace
             if (srcConst.isArray())
             {
                 const ByteSpan    arrayBytes      = srcConst.getArray();
-                const ConstantRef runtimeSliceRef = CodeGenFunctionHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), elementCount);
+                const ConstantRef runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), elementCount);
                 SWC_ASSERT(runtimeSliceRef.isValid());
                 const ConstantValue&      runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
                 const CodeGenNodePayload& dstPayload      = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -375,7 +375,7 @@ namespace
             const ConstantRef  nullCstRef   = srcConstView.cstRef().isValid() ? srcConstView.cstRef() : codeGen.cstMgr().cstNull();
             ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{typedNullBytes.data(), typedNullBytes.size()}, nullCstRef, dstTypeRef);
 
-            const ConstantRef         typedNullCstRef = CodeGenFunctionHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
+            const ConstantRef         typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, ByteSpan{typedNullBytes.data(), typedNullBytes.size()});
             const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
             const CodeGenNodePayload& dstPayload      = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             builder.emitLoadRegPtrReloc(dstPayload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);

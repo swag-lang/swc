@@ -13,13 +13,13 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/Logger.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

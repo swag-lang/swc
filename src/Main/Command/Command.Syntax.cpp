@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Main/Command.h"
+#include "Main/Command/Command.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Main/CompilerInstance.h"
@@ -8,8 +8,8 @@
 #include "Support/Memory/Heap.h"
 #include "Support/Thread/Job.h"
 #include "Support/Thread/JobManager.h"
-#include "Wmf/SourceFile.h"
-#include "Wmf/Verify.h"
+#include "Compiler/Core/SourceFile.h"
+#include "Compiler/Test/Verify.h"
 
 SWC_BEGIN_NAMESPACE();
 

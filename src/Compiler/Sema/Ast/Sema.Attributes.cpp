@@ -15,7 +15,7 @@
 #include "Main/Global.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

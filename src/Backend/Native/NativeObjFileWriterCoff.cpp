@@ -7,7 +7,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

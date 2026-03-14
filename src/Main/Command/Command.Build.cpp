@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Main/Command.h"
+#include "Main/Command/Command.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"

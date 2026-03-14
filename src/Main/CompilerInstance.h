@@ -6,7 +6,7 @@
 #include "Support/Memory/Arena.h"
 #include "Support/Thread/JobManager.h"
 #include "Support/Thread/RaceCondition.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

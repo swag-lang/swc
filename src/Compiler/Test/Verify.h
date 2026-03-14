@@ -8,6 +8,7 @@ SWC_BEGIN_NAMESPACE();
 class TaskContext;
 class Global;
 class Diagnostic;
+class SourceFile;
 struct SourceTrivia;
 
 struct VerifyDirective

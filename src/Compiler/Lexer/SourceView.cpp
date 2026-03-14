@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Backend/Runtime.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

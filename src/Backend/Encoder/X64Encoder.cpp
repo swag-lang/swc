@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroInstr.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();

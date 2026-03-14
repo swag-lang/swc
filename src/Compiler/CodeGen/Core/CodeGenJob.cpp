@@ -4,7 +4,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Global.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"

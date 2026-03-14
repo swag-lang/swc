@@ -9,7 +9,7 @@
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/ScopedTimedAction.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

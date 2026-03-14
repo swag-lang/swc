@@ -9,8 +9,8 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Main/Command.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/Command.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -23,7 +23,7 @@
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

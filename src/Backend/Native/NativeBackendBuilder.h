@@ -2,7 +2,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"

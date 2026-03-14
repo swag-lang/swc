@@ -9,7 +9,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

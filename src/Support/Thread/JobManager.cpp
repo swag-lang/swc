@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Support/Thread/JobManager.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/Stats.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"

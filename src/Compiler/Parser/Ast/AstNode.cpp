@@ -3,7 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

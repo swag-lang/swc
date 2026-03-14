@@ -1,6 +1,6 @@
 #pragma once
 #include "Support/Report/DiagnosticElement.h"
-#include "Wmf/SourceFile.h"
+#include "Compiler/Core/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

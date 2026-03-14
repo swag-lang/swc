@@ -9,12 +9,12 @@
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Thread/JobManager.h"
-#include "Wmf/Verify.h"
+#include "Compiler/Test/Verify.h"
 
 SWC_BEGIN_NAMESPACE();
 

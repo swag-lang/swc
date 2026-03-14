@@ -1,16 +1,16 @@
 #include "pch.h"
-#include "Main/Command.h"
+#include "Main/Command/Command.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Main/CommandLine.h"
-#include "Main/CommandLineParser.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/ScopedTimedAction.h"
-#include "Wmf/SourceFile.h"
-#include "Wmf/Verify.h"
+#include "Compiler/Core/SourceFile.h"
+#include "Compiler/Test/Verify.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -2,7 +2,7 @@
 #include "Support/Report/SyntaxColor.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Token.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"

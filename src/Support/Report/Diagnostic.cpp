@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Support/Report/Diagnostic.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -10,7 +10,7 @@
 #include "Support/Report/DiagnosticBuilder.h"
 #include "Support/Report/DiagnosticElement.h"
 #include "Support/Report/Logger.h"
-#include "Wmf/Verify.h"
+#include "Compiler/Test/Verify.h"
 
 SWC_BEGIN_NAMESPACE();
 

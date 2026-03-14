@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Support/Unittest/Unittest.h"
 #if SWC_HAS_UNITTEST
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"

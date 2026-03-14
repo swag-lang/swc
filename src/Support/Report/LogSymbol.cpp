@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/LogSymbol.h"
 

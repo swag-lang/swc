@@ -309,13 +309,13 @@
         <ClCompile Include="src\Support\Report\SyntaxColor.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
-        <ClCompile Include="src\Main\Command.Info.cpp"/>
-        <ClCompile Include="src\Main\Command.Sema.cpp"/>
-        <ClCompile Include="src\Main\Command.Syntax.cpp"/>
-        <ClCompile Include="src\Main\Command.Test.cpp"/>
-        <ClCompile Include="src\Main\Command.Build.cpp" />
-        <ClCompile Include="src\Main\CommandLineParser.cpp"/>
-        <ClCompile Include="src\Main\CommandLineParser.Help.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Info.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Sema.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Syntax.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Test.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Build.cpp" />
+        <ClCompile Include="src\Main\Command\CommandLineParser.cpp"/>
+        <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
@@ -438,8 +438,8 @@
         <ClCompile Include="src\Compiler\Sema\Type\TypeManager.cpp"/>
         <ClCompile Include="src\Support\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Support\Thread\RaceCondition.cpp"/>
-        <ClCompile Include="src\Wmf\SourceFile.cpp"/>
-        <ClCompile Include="src\Wmf\Verify.cpp"/>
+        <ClCompile Include="src\Compiler\Core\SourceFile.cpp"/>
+        <ClCompile Include="src\Compiler\Test\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
@@ -517,9 +517,9 @@
         <ClInclude Include="src\Compiler\Lexer\Token.h"/>
         <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc"/>
         <ClInclude Include="src\Support\Core\RefTypes.h"/>
-        <ClInclude Include="src\Main\CommandLine.h"/>
-        <ClInclude Include="src\Main\CommandLineParser.h"/>
-        <ClInclude Include="src\Main\Command.h"/>
+        <ClInclude Include="src\Main\Command\CommandLine.h"/>
+        <ClInclude Include="src\Main\Command\CommandLineParser.h"/>
+        <ClInclude Include="src\Main\Command\Command.h"/>
         <ClInclude Include="src\Main\Stats.h"/>
         <ClInclude Include="src\Main\TaskContext.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>
@@ -620,8 +620,8 @@
         <ClInclude Include="src\Support\Thread\Job.h"/>
         <ClInclude Include="src\Support\Thread\JobManager.h"/>
         <ClInclude Include="src\Support\Thread\RaceCondition.h"/>
-        <ClInclude Include="src\Wmf\SourceFile.h"/>
-        <ClInclude Include="src\Wmf\Verify.h"/>
+        <ClInclude Include="src\Compiler\Core\SourceFile.h"/>
+        <ClInclude Include="src\Compiler\Test\Verify.h"/>
     </ItemGroup>
     <ItemGroup>
         <Folder Include="src\Compiler\"/>

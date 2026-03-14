@@ -2,7 +2,7 @@
 #include "Support/Report/HardwareException.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Main/CommandLine.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"

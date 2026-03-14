@@ -4,6 +4,7 @@
 #include "Main/CommandLine.h"
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -19,17 +20,6 @@ constexpr size_t           SHORT_NO_PREFIX_LEN = 4;
 
 namespace
 {
-    Runtime::String runtimeStringFromUtf8(const Utf8& value)
-    {
-        if (value.empty())
-            return {};
-
-        return {
-            .ptr    = value.c_str(),
-            .length = value.length(),
-        };
-    }
-
     void applyBuildCfgPreset(Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
     {
         if (cfgName == "fast-compile")
@@ -106,9 +96,9 @@ namespace
             buildCfg.backend.enableExceptions = true;
         }
 
-        buildCfg.name           = runtimeStringFromUtf8(cmdLine.name);
-        buildCfg.outDir         = runtimeStringFromUtf8(cmdLine.outDirStorage);
-        buildCfg.workDir        = runtimeStringFromUtf8(cmdLine.workDirStorage);
+        buildCfg.name           = Utf8Helper::runtimeStringFromUtf8(cmdLine.name);
+        buildCfg.outDir         = Utf8Helper::runtimeStringFromUtf8(cmdLine.outDirStorage);
+        buildCfg.workDir        = Utf8Helper::runtimeStringFromUtf8(cmdLine.workDirStorage);
         cmdLine.defaultBuildCfg = buildCfg;
     }
 }

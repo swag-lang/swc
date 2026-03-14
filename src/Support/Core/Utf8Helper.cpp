@@ -1,7 +1,19 @@
 #include "pch.h"
+#include "Backend/Runtime.h"
 #include "Support/Core/Utf8Helper.h"
 
 SWC_BEGIN_NAMESPACE();
+
+Runtime::String Utf8Helper::runtimeStringFromUtf8(const Utf8& value)
+{
+    if (value.empty())
+        return {};
+
+    return {
+        .ptr    = value.c_str(),
+        .length = value.length(),
+    };
+}
 
 // Returns {next_ptr, code_point, bytes_consumed}.
 // On error: {nullptr, 0, 0}.

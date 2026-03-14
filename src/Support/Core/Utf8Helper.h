@@ -4,6 +4,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Utf8Helper
 {
+    Runtime::String                                runtimeStringFromUtf8(const Utf8& value);
     std::tuple<const char8_t*, char32_t, uint32_t> decodeOneChar(const char8_t* cur, const char8_t* end);
     const char8_t*                                 decodeOneChar(const char8_t* cur, const char8_t* end, char32_t& c, uint32_t& offset);
     uint32_t                                       countChars(std::string_view str);

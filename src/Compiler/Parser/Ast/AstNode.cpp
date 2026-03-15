@@ -7,6 +7,45 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    void walkBoundaryOnSameLine(const TaskContext& ctx, const Ast& ast, const SourceView& view, const AstNode& root, SourceViewRef baseViewRef, uint32_t baseLine, bool walkLeft, SourceCodeRange& boundaryLoc)
+    {
+        SmallVector<AstNodeRef> children;
+        const AstNode*          current = &root;
+        while (true)
+        {
+            children.clear();
+            Ast::nodeIdInfos(current->id()).collectChildren(children, ast, *current);
+            if (children.empty())
+                break;
+
+            const AstNodeRef childRef = walkLeft ? children.front() : children.back();
+            if (childRef.isInvalid())
+                break;
+
+            const AstNode& child = ast.node(childRef);
+            if (child.srcViewRef() != baseViewRef)
+                break;
+
+            const SourceCodeRange childLoc = view.token(child.tokRef()).codeRange(ctx, view);
+            if (childLoc.line != baseLine)
+                break;
+
+            current = &child;
+            if (walkLeft)
+            {
+                if (childLoc.offset < boundaryLoc.offset)
+                    boundaryLoc = childLoc;
+            }
+            else if (childLoc.offset > boundaryLoc.offset)
+            {
+                boundaryLoc = childLoc;
+            }
+        }
+    }
+}
+
 void AstNode::collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef)
 {
     ast.appendNodes(out, spanRef);
@@ -37,60 +76,21 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
 {
     SourceCodeRange codeRange{};
 
-    // Always use the SourceView of the node itself
     const SourceViewRef baseViewRef = codeRef_.srcViewRef;
     const SourceView&   view        = ctx.compiler().srcView(baseViewRef);
     if (codeRef_.tokRef.isInvalid() || view.tokens().empty())
         return codeRange;
 
-    // Baseline comes from this node token
     const Token&          baseTok  = view.token(codeRef_.tokRef);
     const SourceCodeRange baseLoc  = baseTok.codeRange(ctx, view);
     const uint32_t        baseLine = baseLoc.line;
 
-    // Descend left-most while staying on the same line and same SourceView
-    const auto*     leftMost = this;
     SourceCodeRange startLoc = baseLoc;
-    while (true)
-    {
-        SmallVector<AstNodeRef> children;
-        Ast::nodeIdInfos(leftMost->id()).collectChildren(children, ast, *leftMost);
-        if (children.empty() || children.front().isInvalid())
-            break;
-        const AstNode& child = ast.node(children.front());
-        if (child.srcViewRef() != baseViewRef)
-            break;
-        const Token&          childTok = view.token(child.tokRef());
-        const SourceCodeRange childLoc = childTok.codeRange(ctx, view);
-        if (childLoc.line != baseLine)
-            break;
-        leftMost = &child;
-        if (childLoc.offset < startLoc.offset)
-            startLoc = childLoc;
-    }
+    walkBoundaryOnSameLine(ctx, ast, view, *this, baseViewRef, baseLine, true, startLoc);
 
-    // Descend right-most while staying on the same line and same SourceView
-    const auto*     rightMost = this;
-    SourceCodeRange endLoc    = baseTok.codeRange(ctx, view);
-    while (true)
-    {
-        SmallVector<AstNodeRef> children;
-        Ast::nodeIdInfos(rightMost->id()).collectChildren(children, ast, *rightMost);
-        if (children.empty() || children.back().isInvalid())
-            break;
-        const AstNode& child = ast.node(children.back());
-        if (child.srcViewRef() != baseViewRef)
-            break;
-        const Token&          childTok = view.token(child.tokRef());
-        const SourceCodeRange childLoc = childTok.codeRange(ctx, view);
-        if (childLoc.line != baseLine)
-            break;
-        rightMost = &child;
-        if (childLoc.offset > endLoc.offset)
-            endLoc = childLoc;
-    }
+    SourceCodeRange endLoc = baseLoc;
+    walkBoundaryOnSameLine(ctx, ast, view, *this, baseViewRef, baseLine, false, endLoc);
 
-    // Compute span and fill location
     const uint32_t startOff = startLoc.offset;
     const uint32_t endByte  = endLoc.offset + endLoc.len;
     const uint32_t spanLen  = endByte > startOff ? (endByte - startOff) : 1u;

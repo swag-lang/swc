@@ -62,6 +62,7 @@ private:
     std::span<Symbol*>   symList_      = {};
     bool                 hasSymbol_    = false;
     bool                 hasSymList_   = false;
+    AstNodeRef           queryNodeRef_ = AstNodeRef::invalid();
     AstNodeRef           nodeRef_      = AstNodeRef::invalid();
     ConstantRef          cstRef_       = ConstantRef::invalid();
     TypeRef              typeRef_      = TypeRef::invalid();

@@ -21,13 +21,13 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
     symList_      = {};
     hasSymbol_    = false;
     hasSymList_   = false;
+    queryNodeRef_ = ref;
     nodeRef_      = AstNodeRef::invalid();
     cstRef_       = ConstantRef::invalid();
     typeRef_      = TypeRef::invalid();
     computedPart_ = part;
     mode_         = mode;
 
-    const AstNodeRef sourceNodeRef = ref;
     if (mode == SemaNodeViewResolveE::Stored)
         nodeRef_ = ref;
     else
@@ -61,47 +61,73 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
     if (!part.has(SemaNodeViewPartE::Symbol))
         return;
 
-    if (mode == SemaNodeViewResolveE::Stored ? sema.hasSymbolListStored(nodeRef_) : sema.hasSymbolList(nodeRef_))
-    {
-        hasSymList_                      = true;
-        const std::span<Symbol*> symbols = mode == SemaNodeViewResolveE::Stored ? sema.getSymbolListStored(nodeRef_) : sema.getSymbolList(nodeRef_);
-        hasSymbol_                       = !symbols.empty();
-        symList_                         = symbols;
+    const auto assignSymbolList = [this](std::span<Symbol*> symbols) {
+        hasSymList_ = true;
+        symList_    = symbols;
+        hasSymbol_  = !symbols.empty();
         if (hasSymbol_)
             sym_ = symbols.front();
-    }
-    else if (mode == SemaNodeViewResolveE::Stored ? sema.hasSymbolStored(nodeRef_) : sema.hasSymbol(nodeRef_))
-    {
-        hasSymbol_ = true;
-        sym_       = mode == SemaNodeViewResolveE::Stored ? &sema.symbolOfStored(nodeRef_) : &sema.symbolOf(nodeRef_);
-    }
+    };
+
+    const auto loadResolvedSymbols = [this, &assignSymbolList, &sema](AstNodeRef targetRef, SemaNodeViewResolveE resolveMode) {
+        if (resolveMode == SemaNodeViewResolveE::Stored)
+        {
+            if (sema.hasSymbolListStored(targetRef))
+            {
+                assignSymbolList(sema.getSymbolListStored(targetRef));
+                return true;
+            }
+
+            if (sema.hasSymbolStored(targetRef))
+            {
+                hasSymbol_ = true;
+                sym_       = &sema.symbolOfStored(targetRef);
+                return true;
+            }
+
+            return false;
+        }
+
+        if (sema.hasSymbolList(targetRef))
+        {
+            assignSymbolList(sema.getSymbolList(targetRef));
+            return true;
+        }
+
+        if (sema.hasSymbol(targetRef))
+        {
+            hasSymbol_ = true;
+            sym_       = &sema.symbolOf(targetRef);
+            return true;
+        }
+
+        return false;
+    };
+
+    if (loadResolvedSymbols(nodeRef_, mode))
+        return;
 
     if (mode == SemaNodeViewResolveE::Stored)
         return;
 
-    if (!hasSymList_ && !hasSymbol_ && sourceNodeRef.isValid() && sourceNodeRef != nodeRef_)
+    if (queryNodeRef_.isValid() && queryNodeRef_ != nodeRef_)
     {
-        if (sema.hasSymbolListRaw(sourceNodeRef))
+        if (sema.hasSymbolListRaw(queryNodeRef_))
         {
-            hasSymList_                      = true;
-            const std::span<Symbol*> symbols = sema.getSymbolListRaw(sourceNodeRef);
-            hasSymbol_                       = !symbols.empty();
-            symList_                         = symbols;
-            if (hasSymbol_)
-                sym_ = symbols.front();
+            assignSymbolList(sema.getSymbolListRaw(queryNodeRef_));
         }
-        else if (sema.hasSymbolRaw(sourceNodeRef))
+        else if (sema.hasSymbolRaw(queryNodeRef_))
         {
             hasSymbol_ = true;
-            sym_       = &sema.symbolOfRaw(sourceNodeRef);
+            sym_       = &sema.symbolOfRaw(queryNodeRef_);
         }
     }
 }
 
 void SemaNodeView::recompute(Sema& sema, SemaNodeViewPart part)
 {
-    SWC_ASSERT(nodeRef_.isValid());
-    compute(sema, nodeRef_, part, mode_);
+    SWC_ASSERT(queryNodeRef_.isValid());
+    compute(sema, queryNodeRef_, part, mode_);
 }
 
 void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const

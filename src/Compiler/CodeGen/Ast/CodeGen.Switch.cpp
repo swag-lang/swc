@@ -30,33 +30,14 @@ namespace
         std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload> caseStates;
     };
 
-    AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.viewZero(nodeRef).nodeRef();
-    }
-
     SwitchStmtCodeGenPayload* switchStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<SwitchStmtCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<SwitchStmtCodeGenPayload>(nodeRef);
     }
 
     SwitchStmtCodeGenPayload& setSwitchStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const SwitchStmtCodeGenPayload& payloadValue)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<SwitchStmtCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<SwitchStmtCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        *payload = payloadValue;
-        return *payload;
+        return codeGen.setNodePayload(nodeRef, payloadValue);
     }
 
     void eraseSwitchStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)

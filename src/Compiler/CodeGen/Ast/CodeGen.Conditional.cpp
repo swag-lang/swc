@@ -51,32 +51,14 @@ namespace
         return outReg;
     }
 
-    AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.viewZero(nodeRef).nodeRef();
-    }
-
     ConditionalExprCodeGenPayload* conditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<ConditionalExprCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(nodeRef);
     }
 
     ConditionalExprCodeGenPayload& ensureConditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<ConditionalExprCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<ConditionalExprCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        return *payload;
+        return codeGen.ensureNodePayload<ConditionalExprCodeGenPayload>(nodeRef);
     }
 
     void eraseConditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -91,25 +73,12 @@ namespace
 
     NullCoalescingCodeGenPayload* nullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<NullCoalescingCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(nodeRef);
     }
 
     NullCoalescingCodeGenPayload& ensureNullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<NullCoalescingCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<NullCoalescingCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        return *payload;
+        return codeGen.ensureNodePayload<NullCoalescingCodeGenPayload>(nodeRef);
     }
 
     void eraseNullCoalescingCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -138,10 +107,10 @@ namespace
 
 Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const AstNodeRef resolvedCondRef  = resolvedNodeRef(codeGen, nodeCondRef);
-    const AstNodeRef resolvedTrueRef  = resolvedNodeRef(codeGen, nodeTrueRef);
-    const AstNodeRef resolvedFalseRef = resolvedNodeRef(codeGen, nodeFalseRef);
-    const AstNodeRef resolvedChildRef = resolvedNodeRef(codeGen, childRef);
+    const AstNodeRef resolvedCondRef  = codeGen.resolvedNodeRef(nodeCondRef);
+    const AstNodeRef resolvedTrueRef  = codeGen.resolvedNodeRef(nodeTrueRef);
+    const AstNodeRef resolvedFalseRef = codeGen.resolvedNodeRef(nodeFalseRef);
+    const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
 
     const SemaNodeView resultView = codeGen.curViewType();
     SWC_ASSERT(resultView.type() != nullptr);
@@ -227,9 +196,9 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen)
 
 Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const AstNodeRef resolvedLeftRef  = resolvedNodeRef(codeGen, nodeLeftRef);
-    const AstNodeRef resolvedRightRef = resolvedNodeRef(codeGen, nodeRightRef);
-    const AstNodeRef resolvedChildRef = resolvedNodeRef(codeGen, childRef);
+    const AstNodeRef resolvedLeftRef  = codeGen.resolvedNodeRef(nodeLeftRef);
+    const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(nodeRightRef);
+    const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
 
     const SemaNodeView resultView    = codeGen.curViewType();
     const TypeRef      resultTypeRef = resultView.typeRef();

@@ -66,33 +66,14 @@ namespace
         bool            hasContinueJump = false;
     };
 
-    AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.viewZero(nodeRef).nodeRef();
-    }
-
     LoopStmtCodeGenPayload* loopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<LoopStmtCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<LoopStmtCodeGenPayload>(nodeRef);
     }
 
     LoopStmtCodeGenPayload& setLoopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const LoopStmtCodeGenPayload& payloadValue)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<LoopStmtCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<LoopStmtCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        *payload = payloadValue;
-        return *payload;
+        return codeGen.setNodePayload(nodeRef, payloadValue);
     }
 
     void eraseLoopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -104,26 +85,12 @@ namespace
 
     ForCStyleStmtCodeGenPayload* forCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<ForCStyleStmtCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<ForCStyleStmtCodeGenPayload>(nodeRef);
     }
 
     ForCStyleStmtCodeGenPayload& setForCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const ForCStyleStmtCodeGenPayload& payloadValue)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<ForCStyleStmtCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<ForCStyleStmtCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        *payload = payloadValue;
-        return *payload;
+        return codeGen.setNodePayload(nodeRef, payloadValue);
     }
 
     void eraseForCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -135,26 +102,12 @@ namespace
 
     ForeachStmtCodeGenPayload* foreachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<ForeachStmtCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<ForeachStmtCodeGenPayload>(nodeRef);
     }
 
     ForeachStmtCodeGenPayload& setForeachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const ForeachStmtCodeGenPayload& payloadValue)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<ForeachStmtCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<ForeachStmtCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        *payload = payloadValue;
-        return *payload;
+        return codeGen.setNodePayload(nodeRef, payloadValue);
     }
 
     void eraseForeachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -166,26 +119,12 @@ namespace
 
     ForStmtCodeGenPayload* forStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<ForStmtCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<ForStmtCodeGenPayload>(nodeRef);
     }
 
     ForStmtCodeGenPayload& setForStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const ForStmtCodeGenPayload& payloadValue)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<ForStmtCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<ForStmtCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        *payload = payloadValue;
-        return *payload;
+        return codeGen.setNodePayload(nodeRef, payloadValue);
     }
 
     void eraseForStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -326,7 +265,7 @@ namespace
 
     void emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)
     {
-        const AstNodeRef   exprRef   = resolvedNodeRef(codeGen, node.nodeExprRef);
+        const AstNodeRef   exprRef   = codeGen.resolvedNodeRef(node.nodeExprRef);
         const SemaNodeView exprView  = codeGen.viewType(exprRef);
         const TypeInfo&    indexType = *(exprView.type());
         const MicroOpBits  opBits    = CodeGenTypeHelpers::conditionBits(indexType, codeGen.ctx());
@@ -345,7 +284,7 @@ namespace
 
             if (rangeExpr.nodeExprDownRef.isValid())
             {
-                const AstNodeRef downRef = resolvedNodeRef(codeGen, rangeExpr.nodeExprDownRef);
+                const AstNodeRef downRef = codeGen.resolvedNodeRef(rangeExpr.nodeExprDownRef);
                 lowerReg                 = materializeLoopValueReg(codeGen, codeGen.payload(downRef), loopState.indexTypeRef);
             }
             else
@@ -353,7 +292,7 @@ namespace
                 lowerReg = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
             }
 
-            const AstNodeRef upRef = resolvedNodeRef(codeGen, rangeExpr.nodeExprUpRef);
+            const AstNodeRef upRef = codeGen.resolvedNodeRef(rangeExpr.nodeExprUpRef);
             upperReg               = materializeLoopValueReg(codeGen, codeGen.payload(upRef), loopState.indexTypeRef);
         }
         else
@@ -485,7 +424,7 @@ namespace
 
     void emitForeachInit(CodeGen& codeGen, const AstForeachStmt& node, ForeachStmtCodeGenPayload& loopState)
     {
-        const AstNodeRef          exprRef     = resolvedNodeRef(codeGen, node.nodeExprRef);
+        const AstNodeRef          exprRef     = codeGen.resolvedNodeRef(node.nodeExprRef);
         const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
         const TypeInfo&           exprType    = *(exprView.type());
@@ -558,9 +497,9 @@ Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
     const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef exprRef     = resolvedNodeRef(codeGen, nodeExprRef);
-    const AstNodeRef postStmtRef = resolvedNodeRef(codeGen, nodePostStmtRef);
-    const AstNodeRef bodyRef     = resolvedNodeRef(codeGen, nodeBodyRef);
+    const AstNodeRef exprRef     = codeGen.resolvedNodeRef(nodeExprRef);
+    const AstNodeRef postStmtRef = codeGen.resolvedNodeRef(nodePostStmtRef);
+    const AstNodeRef bodyRef     = codeGen.resolvedNodeRef(nodeBodyRef);
 
     if (childRef == exprRef)
     {
@@ -599,9 +538,9 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
     const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef exprRef     = resolvedNodeRef(codeGen, nodeExprRef);
-    const AstNodeRef postStmtRef = resolvedNodeRef(codeGen, nodePostStmtRef);
-    const AstNodeRef bodyRef     = resolvedNodeRef(codeGen, nodeBodyRef);
+    const AstNodeRef exprRef     = codeGen.resolvedNodeRef(nodeExprRef);
+    const AstNodeRef postStmtRef = codeGen.resolvedNodeRef(nodePostStmtRef);
+    const AstNodeRef bodyRef     = codeGen.resolvedNodeRef(nodeBodyRef);
 
     if (childRef == exprRef)
     {
@@ -670,8 +609,8 @@ Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& child
     const ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef whereRef = resolvedNodeRef(codeGen, nodeWhereRef);
-    const AstNodeRef bodyRef  = resolvedNodeRef(codeGen, nodeBodyRef);
+    const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
+    const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
     if (childRef != whereRef && !(childRef == bodyRef && whereRef.isInvalid()))
         return Result::Continue;
 
@@ -689,9 +628,9 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
     ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef exprRef  = resolvedNodeRef(codeGen, nodeExprRef);
-    const AstNodeRef whereRef = resolvedNodeRef(codeGen, nodeWhereRef);
-    const AstNodeRef bodyRef  = resolvedNodeRef(codeGen, nodeBodyRef);
+    const AstNodeRef exprRef  = codeGen.resolvedNodeRef(nodeExprRef);
+    const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
+    const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
 
     if (childRef == exprRef)
     {
@@ -784,8 +723,8 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
     const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef whereRef = resolvedNodeRef(codeGen, nodeWhereRef);
-    const AstNodeRef bodyRef  = resolvedNodeRef(codeGen, nodeBodyRef);
+    const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
+    const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
     if (childRef != whereRef && !(childRef == bodyRef && whereRef.isInvalid()))
         return Result::Continue;
 
@@ -803,9 +742,9 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef exprRef  = resolvedNodeRef(codeGen, nodeExprRef);
-    const AstNodeRef whereRef = resolvedNodeRef(codeGen, nodeWhereRef);
-    const AstNodeRef bodyRef  = resolvedNodeRef(codeGen, nodeBodyRef);
+    const AstNodeRef exprRef  = codeGen.resolvedNodeRef(nodeExprRef);
+    const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
+    const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
 
     if (childRef == exprRef)
     {
@@ -873,8 +812,8 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef exprRef = resolvedNodeRef(codeGen, nodeExprRef);
-    const AstNodeRef bodyRef = resolvedNodeRef(codeGen, nodeBodyRef);
+    const AstNodeRef exprRef = codeGen.resolvedNodeRef(nodeExprRef);
+    const AstNodeRef bodyRef = codeGen.resolvedNodeRef(nodeBodyRef);
 
     if (childRef == exprRef)
     {
@@ -899,8 +838,8 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef exprRef = resolvedNodeRef(codeGen, nodeExprRef);
-    const AstNodeRef bodyRef = resolvedNodeRef(codeGen, nodeBodyRef);
+    const AstNodeRef exprRef = codeGen.resolvedNodeRef(nodeExprRef);
+    const AstNodeRef bodyRef = codeGen.resolvedNodeRef(nodeBodyRef);
 
     if (childRef == exprRef)
     {
@@ -941,7 +880,7 @@ Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
 
 Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (childRef != resolvedNodeRef(codeGen, nodeBodyRef))
+    if (childRef != codeGen.resolvedNodeRef(nodeBodyRef))
         return Result::Continue;
 
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
@@ -959,7 +898,7 @@ Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
 
 Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (childRef != resolvedNodeRef(codeGen, nodeBodyRef))
+    if (childRef != codeGen.resolvedNodeRef(nodeBodyRef))
         return Result::Continue;
 
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());

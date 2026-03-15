@@ -44,32 +44,14 @@ namespace
         outReg = boolReg;
     }
 
-    AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.viewZero(nodeRef).nodeRef();
-    }
-
     LogicalExprCodeGenPayload* logicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<LogicalExprCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<LogicalExprCodeGenPayload>(nodeRef);
     }
 
     LogicalExprCodeGenPayload& ensureLogicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<LogicalExprCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<LogicalExprCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        return *payload;
+        return codeGen.ensureNodePayload<LogicalExprCodeGenPayload>(nodeRef);
     }
 
     void eraseLogicalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -83,9 +65,9 @@ namespace
 Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     const Token&     tok              = codeGen.token(codeRef());
-    const AstNodeRef resolvedLeftRef  = resolvedNodeRef(codeGen, nodeLeftRef);
-    const AstNodeRef resolvedRightRef = resolvedNodeRef(codeGen, nodeRightRef);
-    const AstNodeRef resolvedChildRef = resolvedNodeRef(codeGen, childRef);
+    const AstNodeRef resolvedLeftRef  = codeGen.resolvedNodeRef(nodeLeftRef);
+    const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(nodeRightRef);
+    const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
 
     if (resolvedLeftRef.isValid() && resolvedChildRef == resolvedLeftRef)
     {

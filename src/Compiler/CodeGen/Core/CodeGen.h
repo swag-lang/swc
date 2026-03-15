@@ -191,6 +191,7 @@ public:
 
     SemaNodeView view(AstNodeRef nodeRef) { return sema().view(nodeRef); }
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part) { return sema().view(nodeRef, part); }
+    AstNodeRef   resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
     SemaNodeView viewZero(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Zero); }
     SemaNodeView viewNode(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node); }
     SemaNodeView viewType(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Type); }
@@ -223,6 +224,39 @@ public:
     void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     SymbolFunction&       function() { return *(function_); }
     const SymbolFunction& function() const { return *(function_); }
+
+    template<typename T>
+    T* safeNodePayload(AstNodeRef nodeRef)
+    {
+        nodeRef = resolvedNodeRef(nodeRef);
+        if (nodeRef.isInvalid())
+            return nullptr;
+        return sema().codeGenPayload<T>(nodeRef);
+    }
+
+    template<typename T>
+    T& ensureNodePayload(AstNodeRef nodeRef)
+    {
+        nodeRef = resolvedNodeRef(nodeRef);
+        SWC_ASSERT(nodeRef.isValid());
+
+        T* payload = sema().codeGenPayload<T>(nodeRef);
+        if (!payload)
+        {
+            payload = compiler().allocate<T>();
+            sema().setCodeGenPayload(nodeRef, payload);
+        }
+
+        return *payload;
+    }
+
+    template<typename T>
+    T& setNodePayload(AstNodeRef nodeRef, const T& payloadValue)
+    {
+        T& payload = ensureNodePayload<T>(nodeRef);
+        payload    = payloadValue;
+        return payload;
+    }
 
     CodeGenNodePayload&              payload(AstNodeRef nodeRef);
     CodeGenNodePayload*              safePayload(AstNodeRef nodeRef);
@@ -258,7 +292,6 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
-    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
     void       setVisitors();
     Result     preNode(AstNode& node);
     Result     postNode(AstNode& node);

@@ -17,33 +17,14 @@ namespace
         bool          hasElseBlock = false;
     };
 
-    AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return codeGen.viewZero(nodeRef).nodeRef();
-    }
-
     IfStmtCodeGenPayload* ifStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        if (nodeRef.isInvalid())
-            return nullptr;
-        return codeGen.sema().codeGenPayload<IfStmtCodeGenPayload>(nodeRef);
+        return codeGen.safeNodePayload<IfStmtCodeGenPayload>(nodeRef);
     }
 
     IfStmtCodeGenPayload& setIfStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const IfStmtCodeGenPayload& payloadValue)
     {
-        nodeRef = resolvedNodeRef(codeGen, nodeRef);
-        SWC_ASSERT(nodeRef.isValid());
-
-        auto* payload = codeGen.sema().codeGenPayload<IfStmtCodeGenPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = codeGen.compiler().allocate<IfStmtCodeGenPayload>();
-            codeGen.sema().setCodeGenPayload(nodeRef, payload);
-        }
-
-        *payload = payloadValue;
-        return *payload;
+        return codeGen.setNodePayload(nodeRef, payloadValue);
     }
 
     void eraseIfStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -59,10 +40,10 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
 {
     MicroBuilder&    builder              = codeGen.builder();
     const AstNodeRef ifRef                = codeGen.curNodeRef();
-    const AstNodeRef resolvedConditionRef = resolvedNodeRef(codeGen, nodeConditionRef);
-    const AstNodeRef resolvedIfBlockRef   = resolvedNodeRef(codeGen, nodeIfBlockRef);
-    const AstNodeRef resolvedElseBlockRef = resolvedNodeRef(codeGen, nodeElseBlockRef);
-    const AstNodeRef resolvedChildRef     = resolvedNodeRef(codeGen, childRef);
+    const AstNodeRef resolvedConditionRef = codeGen.resolvedNodeRef(nodeConditionRef);
+    const AstNodeRef resolvedIfBlockRef   = codeGen.resolvedNodeRef(nodeIfBlockRef);
+    const AstNodeRef resolvedElseBlockRef = codeGen.resolvedNodeRef(nodeElseBlockRef);
+    const AstNodeRef resolvedChildRef     = codeGen.resolvedNodeRef(childRef);
 
     if (resolvedConditionRef.isValid() && resolvedChildRef == resolvedConditionRef)
     {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Main/Global.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -10,6 +11,30 @@ SWC_BEGIN_NAMESPACE();
 namespace TimedActionLog
 {
     constexpr size_t ACTION_CENTER_COLUMN = 24;
+
+    inline Utf8 buildCfgBackendKindName(const Runtime::BuildCfgBackendKind value)
+    {
+        switch (value)
+        {
+            case Runtime::BuildCfgBackendKind::Executable:
+                return "exe";
+            case Runtime::BuildCfgBackendKind::Library:
+                return "dll";
+            case Runtime::BuildCfgBackendKind::Export:
+                return "lib";
+            case Runtime::BuildCfgBackendKind::None:
+                return "none";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    inline Utf8 formatBuildConfiguration(const TaskContext& ctx)
+    {
+        const CommandLine&       cmdLine  = ctx.cmdLine();
+        const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
+        return std::format("{} ({})", cmdLine.buildCfg, buildCfgBackendKindName(buildCfg.backendKind));
+    }
 
     inline size_t actionLeadingSpaces(std::string_view action)
     {
@@ -32,8 +57,25 @@ namespace TimedActionLog
         if (!detail.empty())
         {
             Logger::print(ctx, " ");
-            Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::White));
-            Logger::print(ctx, detail);
+            const size_t parenPos = detail.find('(');
+            if (parenPos == std::string_view::npos)
+            {
+                Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::White));
+                Logger::print(ctx, detail);
+            }
+            else
+            {
+                const std::string_view prefix = detail.substr(0, parenPos);
+                const std::string_view suffix = detail.substr(parenPos);
+                if (!prefix.empty())
+                {
+                    Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::White));
+                    Logger::print(ctx, prefix);
+                }
+
+                Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Gray));
+                Logger::print(ctx, suffix);
+            }
         }
 
         Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Reset));
@@ -42,6 +84,7 @@ namespace TimedActionLog
 
         std::cout << std::flush;
     }
+
 }
 
 class ScopedTimedAction
@@ -83,5 +126,14 @@ private:
     Utf8               detail_;
     bool               active_    = true;
 };
+
+namespace TimedActionLog
+{
+    inline void printBuildConfiguration(const TaskContext& ctx)
+    {
+        ScopedTimedAction buildCfgAction(ctx, "BuildCfg", formatBuildConfiguration(ctx));
+        buildCfgAction.success();
+    }
+}
 
 SWC_END_NAMESPACE();

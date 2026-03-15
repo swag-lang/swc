@@ -2,7 +2,7 @@
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
-#include "Compiler/Core/SourceFile.h"
+#include "Compiler/SourceFile.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/NodePayload.h"

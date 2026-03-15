@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Support/Report/Diagnostic.h"
-#include "Compiler/Test/Verify.h"
+#include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"

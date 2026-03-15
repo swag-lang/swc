@@ -115,12 +115,6 @@
     <Filter Include="src\Support\Unittest">
       <UniqueIdentifier>{D16A3976-D5C6-B417-DEF3-141765A379DC}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Compiler\Core">
-      <UniqueIdentifier>{8D1F6C27-623C-491A-B35B-D7B06E5891C2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Compiler\Test">
-      <UniqueIdentifier>{A0A21456-CA70-46F2-AD13-FD93657859B7}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Backend\Backend.cpp">
@@ -849,11 +843,11 @@
     <ClCompile Include="src\Support\Thread\RaceCondition.cpp">
       <Filter>src\Support\Thread</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Core\SourceFile.cpp">
-      <Filter>src\Compiler\Core</Filter>
+    <ClCompile Include="src\Compiler\SourceFile.cpp">
+      <Filter>src\Compiler</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Test\Verify.cpp">
-      <Filter>src\Compiler\Test</Filter>
+    <ClCompile Include="src\Compiler\Verify.cpp">
+      <Filter>src\Compiler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1391,11 +1385,11 @@
     <ClInclude Include="src\Support\Thread\RaceCondition.h">
       <Filter>src\Support\Thread</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Core\SourceFile.h">
-      <Filter>src\Compiler\Core</Filter>
+    <ClInclude Include="src\Compiler\SourceFile.h">
+      <Filter>src\Compiler</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Test\Verify.h">
-      <Filter>src\Compiler\Test</Filter>
+    <ClInclude Include="src\Compiler\Verify.h">
+      <Filter>src\Compiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

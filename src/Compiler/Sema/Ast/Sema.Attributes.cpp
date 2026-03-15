@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Core/SourceFile.h"
+#include "Compiler/SourceFile.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"

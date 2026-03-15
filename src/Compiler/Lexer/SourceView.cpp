@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Core/SourceFile.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 

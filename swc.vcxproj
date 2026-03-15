@@ -438,8 +438,8 @@
         <ClCompile Include="src\Compiler\Sema\Type\TypeManager.cpp"/>
         <ClCompile Include="src\Support\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Support\Thread\RaceCondition.cpp"/>
-        <ClCompile Include="src\Compiler\Core\SourceFile.cpp"/>
-        <ClCompile Include="src\Compiler\Test\Verify.cpp"/>
+        <ClCompile Include="src\Compiler\SourceFile.cpp"/>
+        <ClCompile Include="src\Compiler\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
@@ -620,8 +620,8 @@
         <ClInclude Include="src\Support\Thread\Job.h"/>
         <ClInclude Include="src\Support\Thread\JobManager.h"/>
         <ClInclude Include="src\Support\Thread\RaceCondition.h"/>
-        <ClInclude Include="src\Compiler\Core\SourceFile.h"/>
-        <ClInclude Include="src\Compiler\Test\Verify.h"/>
+        <ClInclude Include="src\Compiler\SourceFile.h"/>
+        <ClInclude Include="src\Compiler\Verify.h"/>
     </ItemGroup>
     <ItemGroup>
         <Folder Include="src\Compiler\"/>

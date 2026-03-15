@@ -5,7 +5,7 @@
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
-#include "Compiler/Core/SourceFile.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Global.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"

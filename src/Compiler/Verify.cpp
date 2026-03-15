@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Test/Verify.h"
+#include "Compiler/Verify.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Main/Command/CommandLine.h"

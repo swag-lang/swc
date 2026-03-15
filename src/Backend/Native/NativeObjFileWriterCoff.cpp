@@ -3,7 +3,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Compiler/Core/SourceFile.h"
+#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Support/Math/Hash.h"

@@ -3,6 +3,7 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -39,46 +40,7 @@ namespace
         return Utf8(path.generic_string());
     }
 
-    Utf8 joinLabels(const std::vector<Utf8>& labels)
-    {
-        SWC_ASSERT(!labels.empty());
-
-        Utf8 result;
-        for (size_t i = 0; i < labels.size(); ++i)
-        {
-            if (i)
-                result += ", ";
-            result += labels[i];
-        }
-
-        return result;
-    }
-
-    std::vector<fs::path> collectChildRoots(const std::vector<fs::path>& roots, const fs::path& commonRoot)
-    {
-        std::vector<fs::path> result;
-        const size_t          commonCount = std::distance(commonRoot.begin(), commonRoot.end());
-
-        for (const fs::path& root : roots)
-        {
-            auto   it = root.begin();
-            size_t i  = 0;
-            while (it != root.end() && i < commonCount)
-            {
-                ++it;
-                ++i;
-            }
-
-            if (it != root.end())
-                result.push_back(commonRoot / *it);
-        }
-
-        std::ranges::sort(result);
-        result.erase(std::ranges::unique(result).begin(), result.end());
-        return result;
-    }
-
-    Utf8 formatSourceHierarchy(const std::vector<fs::path>& roots)
+    Utf8 formatSourceLocation(const std::vector<fs::path>& roots)
     {
         if (roots.empty())
             return "sources";
@@ -103,28 +65,9 @@ namespace
             return labels.front();
 
         if (!commonRoot.empty() && commonRoot != "." && commonRoot != commonRoot.root_path())
-        {
-            const auto childRoots = collectChildRoots(roots, commonRoot);
-            if (!childRoots.empty())
-            {
-                std::vector<Utf8> childLabels;
-                childLabels.reserve(childRoots.size());
-                for (const fs::path& childRoot : childRoots)
-                    childLabels.push_back(displayPath(childRoot));
-
-                if (childLabels.size() <= 3)
-                    return joinLabels(childLabels);
-
-                return std::format("{} (+{} more)", childLabels.front(), childLabels.size() - 1);
-            }
-
             return displayPath(commonRoot);
-        }
 
-        if (labels.size() <= 3)
-            return joinLabels(labels);
-
-        return std::format("{} (+{} more)", labels.front(), labels.size() - 1);
+        return std::format("{} locations", Utf8Helper::toNiceBigNumber(labels.size()));
     }
 
     Utf8 formatCommandSourceRoots(const CommandLine& cmdLine)
@@ -140,7 +83,7 @@ namespace
         for (const fs::path& file : cmdLine.files)
             roots.push_back(file.parent_path().empty() ? file : file.parent_path());
 
-        return formatSourceHierarchy(roots);
+        return formatSourceLocation(roots);
     }
 
     bool hasNewErrors(const uint64_t errorsBefore)
@@ -175,10 +118,10 @@ namespace
     {
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
-        ScopedTimedAction analyzeAction(ctx, "Analyze", formatCommandSourceRoots(ctx.cmdLine()));
+        ScopedTimedAction checkAction(ctx, "Check", formatCommandSourceRoots(ctx.cmdLine()));
         const uint64_t    errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
         Command::sema(compiler);
-        if (!finishAction(analyzeAction, errorsBefore))
+        if (!finishAction(checkAction, errorsBefore))
             return;
 
         const Runtime::BuildCfgBackendKind backendKind = compiler.buildCfg().backendKind;

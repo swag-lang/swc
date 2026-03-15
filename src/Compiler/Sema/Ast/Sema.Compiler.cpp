@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/SourceFile.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -14,9 +13,12 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/Logger.h"
@@ -32,6 +34,72 @@ namespace
 #else
         return Runtime::TargetOs::Linux;
 #endif
+    }
+
+    Result reportCompilerFileError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, const fs::path& path, const Utf8& because)
+    {
+        Diagnostic diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+        diag.last().addSpan(sema.node(nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast()), "", DiagnosticSeverity::Error);
+        SemaError::setReportArguments(sema, diag, nodeRef);
+        diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileName(&sema.ctx(), path));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result resolveCompilerIncludePath(Sema& sema, AstNodeRef nodeRef, std::string_view rawPath, fs::path& outPath)
+    {
+        fs::path includePath{std::string(rawPath)};
+        if (includePath.is_relative())
+        {
+            const SourceFile* sourceFile = sema.file();
+            if (sourceFile)
+                includePath = sourceFile->path().parent_path() / includePath;
+        }
+
+        std::error_code ec;
+        fs::path        resolvedPath = fs::absolute(includePath, ec);
+        if (ec)
+            return reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, includePath, FileSystem::normalizeSystemMessage(ec));
+
+        const fs::path normalizedPath = fs::weakly_canonical(resolvedPath, ec);
+        if (!ec)
+            resolvedPath = normalizedPath;
+        ec.clear();
+
+        if (!fs::exists(resolvedPath, ec))
+        {
+            const Utf8 because = ec ? FileSystem::normalizeSystemMessage(ec) : Utf8{"path does not exist"};
+            return reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, resolvedPath, because);
+        }
+
+        ec.clear();
+        if (!fs::is_regular_file(resolvedPath, ec))
+        {
+            const Utf8 because = ec ? FileSystem::normalizeSystemMessage(ec) : Utf8{"path is not a regular file"};
+            return reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, resolvedPath, because);
+        }
+
+        outPath = std::move(resolvedPath);
+        return Result::Continue;
+    }
+
+    Result loadCompilerIncludeBytes(Sema& sema, AstNodeRef nodeRef, const fs::path& resolvedPath, std::vector<std::byte>& outBytes)
+    {
+        std::ifstream file(resolvedPath, std::ios::binary | std::ios::ate);
+        if (!file)
+            return reportCompilerFileError(sema, DiagnosticId::io_err_open_file, nodeRef, resolvedPath, FileSystem::normalizeSystemMessage(Os::systemError()));
+
+        const std::streampos fileSize = file.tellg();
+        if (fileSize < 0)
+            return reportCompilerFileError(sema, DiagnosticId::io_err_read_file, nodeRef, resolvedPath, "cannot determine file size");
+
+        outBytes.resize(fileSize);
+        file.seekg(0, std::ios::beg);
+        if (!outBytes.empty() && !file.read(reinterpret_cast<char*>(outBytes.data()), fileSize))
+            return reportCompilerFileError(sema, DiagnosticId::io_err_read_file, nodeRef, resolvedPath, FileSystem::normalizeSystemMessage(Os::systemError()));
+
+        return Result::Continue;
     }
 }
 
@@ -592,6 +660,30 @@ namespace
         sema.compiler().registerForeignLib(view.cst()->getString());
         return Result::Continue;
     }
+
+    Result semaCompilerInclude(Sema& sema, const AstCompilerCallOne& node)
+    {
+        const TaskContext& ctx      = sema.ctx();
+        const AstNodeRef   childRef = node.nodeArgRef;
+        SWC_RESULT(SemaCheck::isConstant(sema, childRef));
+
+        const SemaNodeView view = sema.viewConstant(childRef);
+        SWC_ASSERT(view.cst());
+        if (!view.cst()->isString())
+            return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
+
+        fs::path               resolvedPath;
+        std::vector<std::byte> bytes;
+        SWC_RESULT(resolveCompilerIncludePath(sema, childRef, view.cst()->getString(), resolvedPath));
+        SWC_RESULT(loadCompilerIncludeBytes(sema, childRef, resolvedPath, bytes));
+
+        SmallVector4<uint64_t> dims;
+        dims.push_back(bytes.size());
+        const TypeRef       arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
+        const ConstantValue value        = ConstantValue::makeArray(ctx, arrayTypeRef, asByteSpan(bytes));
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+        return Result::Continue;
+    }
 }
 
 Result AstCompilerCallOne::semaPostNode(Sema& sema) const
@@ -623,13 +715,14 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerLocation(sema, *this);
         case TokenId::CompilerForeignLib:
             return semaCompilerForeignLib(sema, *this);
+        case TokenId::CompilerInclude:
+            return semaCompilerInclude(sema, *this);
 
         case TokenId::CompilerHasTag:
         case TokenId::CompilerRunes:
         case TokenId::CompilerIsConstExpr:
         case TokenId::CompilerSafety:
         case TokenId::CompilerInject:
-        case TokenId::CompilerInclude:
         case TokenId::CompilerLoad:
             // TODO
             SWC_INTERNAL_ERROR();
@@ -645,7 +738,7 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
         return Result::Continue;
 
     const Token& tok = sema.token(codeRef());
-    if (tok.id == TokenId::CompilerForeignLib)
+    if (tok.id == TokenId::CompilerForeignLib || tok.id == TokenId::CompilerInclude)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
 
     return Result::Continue;

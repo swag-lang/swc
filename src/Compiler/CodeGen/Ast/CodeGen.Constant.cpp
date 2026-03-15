@@ -112,8 +112,7 @@ namespace
             codeGen.builder().emitLoadMemReg(dstBaseReg, entry.offset, elementPayload.reg, storeBits);
         }
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadAddress(nodeRef, aggregateTypeRef);
-        nodePayload.reg                 = dstBaseReg;
+        codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);
         return Result::Continue;
     }
 

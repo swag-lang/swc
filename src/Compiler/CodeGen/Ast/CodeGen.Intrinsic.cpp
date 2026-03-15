@@ -429,8 +429,7 @@ namespace
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Any, value), ptrReg, MicroOpBits::B64);
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Any, type), typeInfoReg, MicroOpBits::B64);
 
-        CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
-        payload.reg                 = runtimeValueReg;
+        codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeValueReg, resultTypeRef);
         return Result::Continue;
     }
 

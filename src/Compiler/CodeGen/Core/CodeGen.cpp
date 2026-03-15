@@ -302,6 +302,14 @@ CodeGenNodePayload& CodeGen::setPayloadAddress(AstNodeRef nodeRef, TypeRef typeR
     return nodePayload;
 }
 
+CodeGenNodePayload& CodeGen::setPayloadAddressReg(AstNodeRef nodeRef, const MicroReg reg, TypeRef typeRef)
+{
+    SWC_ASSERT(reg.isValid());
+    CodeGenNodePayload& nodePayload = setPayloadAddress(nodeRef, typeRef);
+    nodePayload.reg                 = reg;
+    return nodePayload;
+}
+
 MicroReg CodeGen::offsetAddressReg(const MicroReg baseReg, const uint32_t offset)
 {
     SWC_ASSERT(baseReg.isValid());

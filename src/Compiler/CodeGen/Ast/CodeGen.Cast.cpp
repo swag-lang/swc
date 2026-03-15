@@ -218,8 +218,7 @@ namespace
             return Result::Continue;
         }
 
-        CodeGenNodePayload& dstPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), dstTypeRef);
-        dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.nextVirtualIntRegister(), dstTypeRef);
         builder.emitLoadRegReg(dstPayload.reg, valueAddrReg, MicroOpBits::B64);
         return Result::Continue;
     }
@@ -334,8 +333,7 @@ namespace
             builder.emitLoadRegPtrReloc(typeInfoReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
             builder.emitLoadMemReg(runtimeAnyReg, offsetof(Runtime::Any, type), typeInfoReg, MicroOpBits::B64);
 
-            CodeGenNodePayload& dstPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = runtimeAnyReg;
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeAnyReg, dstTypeRef);
             return Result::Continue;
         }
 
@@ -416,8 +414,7 @@ namespace
                 builder.emitLoadMemReg(runtimeItfReg, itableOffset + i * sizeof(void*), methodReg, MicroOpBits::B64);
             }
 
-            CodeGenNodePayload& dstPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = runtimeItfReg;
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeItfReg, dstTypeRef);
             return Result::Continue;
         }
 

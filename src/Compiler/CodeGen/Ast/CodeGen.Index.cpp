@@ -177,8 +177,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const TypeRef            resultTypeRef        = resolveIndexedResultTypeRef(codeGen, *indexedView.type());
     const CodeGenNodePayload indexedResultPayload = emitIndexAddress(codeGen, nodeArgRef, *indexedView.type(), indexedPayload, resultTypeRef);
-    CodeGenNodePayload&      resultPayload        = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
-    resultPayload.reg                             = indexedResultPayload.reg;
+    codeGen.setPayloadAddressReg(codeGen.curNodeRef(), indexedResultPayload.reg, resultTypeRef);
     return Result::Continue;
 }
 
@@ -200,8 +199,7 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
         currentTypeRef              = nextTypeRef;
     }
 
-    CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), currentTypeRef);
-    resultPayload.reg                 = currentPayload.reg;
+    codeGen.setPayloadAddressReg(codeGen.curNodeRef(), currentPayload.reg, currentTypeRef);
     return Result::Continue;
 }
 

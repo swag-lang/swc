@@ -1094,7 +1094,7 @@ TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExp
     return result;
 }
 
-TypeRef TypeInfo::dereferenceTypeRef(TaskContext& ctx) const
+TypeRef TypeInfo::dereferenceTypeRef(const TaskContext& ctx) const
 {
     SWC_UNUSED(ctx);
     SWC_ASSERT(isPointerOrReference());

@@ -175,7 +175,7 @@ namespace
             if (!global)
                 continue;
 
-            SymbolFunction* const target = global->globalFunctionInit();
+            const SymbolFunction* target = global->globalFunctionInit();
             if (!target)
                 continue;
             if (target->isForeign() || target->isEmpty() || target->isAttribute())

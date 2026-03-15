@@ -272,7 +272,7 @@ public:
     }
 
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
-    TypeRef dereferenceTypeRef(TaskContext& ctx) const;
+    TypeRef dereferenceTypeRef(const TaskContext& ctx) const;
 
     static TypeInfo makeBool();
     static TypeInfo makeChar();

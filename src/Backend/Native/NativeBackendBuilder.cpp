@@ -244,10 +244,7 @@ bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const ui
     if (entries.empty())
         return false;
 
-    const auto it = std::upper_bound(entries.begin(),
-                                     entries.end(),
-                                     sourceOffset,
-                                     [](const uint32_t lhs, const NativeRDataAllocationMapEntry& rhs) { return lhs < rhs.sourceOffset; });
+    const auto it = std::ranges::upper_bound(entries, sourceOffset, {}, &NativeRDataAllocationMapEntry::sourceOffset);
     if (it == entries.begin())
         return false;
 

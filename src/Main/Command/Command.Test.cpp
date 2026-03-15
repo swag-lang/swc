@@ -263,10 +263,10 @@ namespace
             std::error_code relEc;
             const fs::path  relative = fs::relative(path, currentPath, relEc);
             if (!relEc && !relative.empty())
-                return Utf8(relative.generic_string());
+                return Utf8{relative.generic_string()};
         }
 
-        return Utf8(path.generic_string());
+        return Utf8{path.generic_string()};
     }
 
     Utf8 formatSourceLocation(const std::vector<fs::path>& roots)

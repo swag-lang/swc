@@ -117,7 +117,7 @@ namespace
         if (!needsRetarget)
             return Result::Continue;
 
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
         if (!payload || payload->runtimeStorageSym == nullptr)
             return Result::Continue;
 

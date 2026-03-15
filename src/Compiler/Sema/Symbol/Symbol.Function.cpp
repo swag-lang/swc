@@ -206,7 +206,7 @@ void SymbolFunction::setVariadicParamFlag(TaskContext& ctx)
 void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
 {
     SWC_ASSERT(sym != nullptr);
-    if (std::ranges::find(localVariables_, sym) != localVariables_.end())
+    if (sym->isFunctionLocalVariable())
         return;
 
     sym->addExtraFlag(SymbolVariableFlagsE::FunctionLocal);

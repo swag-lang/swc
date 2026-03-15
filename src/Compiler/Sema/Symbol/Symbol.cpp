@@ -43,6 +43,13 @@ bool Symbol::isLetVariable() const noexcept
     return cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::Let);
 }
 
+bool Symbol::isFunctionLocalVariable() const noexcept
+{
+    if (!isVariable())
+        return false;
+    return cast<SymbolVariable>().isFunctionLocalVariable();
+}
+
 bool SymbolVariable::isUsingField() const noexcept
 {
     const AstNode* fieldDecl = decl();

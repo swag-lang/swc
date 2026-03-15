@@ -27,6 +27,8 @@
 - Individual tests must not run longer than **40 seconds**.
   (Compilation time is excluded from this limit.)
 
+- When done, don't forget to remove all the temporary files/folders created by you to investigate any issues.
+
 ---
 
 ## Coding Rules

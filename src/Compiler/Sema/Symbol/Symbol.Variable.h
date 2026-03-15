@@ -42,6 +42,9 @@ public:
     void*       codeGenPayload() const { return codeGenPayload_; }
     void        setCodeGenPayload(void* payload) const { codeGenPayload_ = payload; }
     bool        hasGlobalStorage() const { return hasGlobalStorage_; }
+    bool        isUsingField() const noexcept;
+    const SymbolStruct* usingTargetStruct(const TaskContext& ctx) const;
+    const SymbolStruct* usingTargetStruct(const TaskContext& ctx, bool& outIsPointer) const;
 
     void setGlobalStorage(DataSegmentKind kind, uint32_t offset)
     {

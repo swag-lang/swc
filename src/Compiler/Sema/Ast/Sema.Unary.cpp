@@ -288,13 +288,7 @@ namespace
 
     Result semaDRef(Sema& sema, AstUnaryExpr& node, const SemaNodeView& view)
     {
-        TypeRef resultTypeRef = view.type()->payloadTypeRef();
-        if (view.type()->isConst())
-        {
-            const TypeInfo ty = sema.typeMgr().get(resultTypeRef);
-            ty.flags().add(TypeInfoFlagsE::Const);
-            resultTypeRef = sema.typeMgr().addType(ty);
-        }
+        const TypeRef resultTypeRef = view.type()->dereferenceTypeRef(sema.ctx());
 
         SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeExprRef));
         sema.setType(sema.curNodeRef(), resultTypeRef);
@@ -305,7 +299,7 @@ namespace
     Result checkMoveRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
         SWC_UNUSED(node);
-        if (view.type()->isAnyPointer() || view.type()->isReference())
+        if (view.type()->isPointerOrReference())
             return Result::Continue;
         return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
     }

@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -19,40 +20,6 @@ namespace
         bool                  isPointer = false;
     };
 
-    bool isUsingMemberDecl(const AstNode* decl)
-    {
-        if (!decl)
-            return false;
-        if (decl->is(AstNodeId::SingleVarDecl))
-            return decl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
-        if (decl->is(AstNodeId::MultiVarDecl))
-            return decl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
-        return false;
-    }
-
-    const SymbolStruct* resolveUsingTargetStruct(CodeGen& codeGen, const SymbolVariable& symVar, bool& outIsPointer)
-    {
-        outIsPointer = false;
-
-        const TaskContext& ctx      = codeGen.ctx();
-        const TypeManager& typeMgr  = codeGen.typeMgr();
-        const TypeRef      typeRef  = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo&    typeInfo = typeMgr.get(typeRef);
-        if (typeInfo.isStruct())
-            return &typeInfo.payloadSymStruct();
-
-        if (!typeInfo.isAnyPointer())
-            return nullptr;
-
-        const TypeRef   pointeeTypeRef = typeMgr.get(typeInfo.payloadTypeRef()).unwrap(ctx, typeInfo.payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo& pointeeType    = typeMgr.get(pointeeTypeRef);
-        if (!pointeeType.isStruct())
-            return nullptr;
-
-        outIsPointer = true;
-        return &pointeeType.payloadSymStruct();
-    }
-
     bool resolveUsingMemberPathRec(CodeGen& codeGen, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<StructUsingPathStep>& outSteps, SmallVector<const SymbolStruct*>& visited)
     {
         if (&currentStruct == &targetStruct)
@@ -68,11 +35,11 @@ namespace
         for (const Symbol* fieldSym : currentStruct.fields())
         {
             const auto* field = fieldSym ? fieldSym->safeCast<SymbolVariable>() : nullptr;
-            if (!field || !isUsingMemberDecl(field->decl()))
+            if (!field || !field->isUsingField())
                 continue;
 
             bool                usingFieldIsPointer = false;
-            const SymbolStruct* usingTargetStruct   = resolveUsingTargetStruct(codeGen, *field, usingFieldIsPointer);
+            const SymbolStruct* usingTargetStruct   = field->usingTargetStruct(codeGen.ctx(), usingFieldIsPointer);
             if (!usingTargetStruct)
                 continue;
 
@@ -94,14 +61,14 @@ namespace
         if (!ownerStruct)
             return false;
 
-        TypeRef baseTypeRef = codeGen.typeMgr().get(leftTypeRef).unwrap(codeGen.ctx(), leftTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        TypeRef baseTypeRef = codeGen.typeMgr().get(leftTypeRef).unwrapAliasEnum(codeGen.ctx(), leftTypeRef);
         if (baseTypeRef.isInvalid())
             return false;
 
         const TypeInfo* baseTypeInfo = &codeGen.typeMgr().get(baseTypeRef);
-        if (baseTypeInfo->isAnyPointer() || baseTypeInfo->isReference())
+        if (baseTypeInfo->isPointerOrReference())
         {
-            baseTypeRef  = codeGen.typeMgr().get(baseTypeInfo->payloadTypeRef()).unwrap(codeGen.ctx(), baseTypeInfo->payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+            baseTypeRef  = codeGen.typeMgr().get(baseTypeInfo->payloadTypeRef()).unwrapAliasEnum(codeGen.ctx(), baseTypeInfo->payloadTypeRef());
             baseTypeInfo = &codeGen.typeMgr().get(baseTypeRef);
         }
 
@@ -151,7 +118,7 @@ namespace
             resolveStructMemberPath(codeGen, leftTypeView.typeRef(), symVar, usingPath);
 
         MicroReg baseAddressReg = leftPayload.reg;
-        if (leftTypeView.type() && (leftTypeView.type()->isAnyPointer() || leftTypeView.type()->isReference()))
+        if (leftTypeView.type() && leftTypeView.type()->isPointerOrReference())
         {
             if (leftPayload.isAddress())
             {
@@ -174,7 +141,7 @@ namespace
             if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)
             {
                 const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-                builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(leftSize)));
+                builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, CodeGenTypeHelpers::bitsFromStorageSize(leftSize));
                 baseAddressReg = spillAddrReg;
             }
         }

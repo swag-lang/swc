@@ -4,6 +4,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -21,41 +22,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isUsingMemberDecl(const AstNode* decl)
-    {
-        if (!decl)
-            return false;
-        if (decl->is(AstNodeId::SingleVarDecl))
-            return decl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
-        if (decl->is(AstNodeId::MultiVarDecl))
-            return decl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
-        return false;
-    }
-
-    const SymbolImpl* findInterfaceImpl(const SymbolStruct& symStruct, IdentifierRef interfaceIdRef)
-    {
-        for (const SymbolImpl* symImpl : symStruct.interfaces())
-        {
-            if (symImpl && symImpl->idRef() == interfaceIdRef)
-                return symImpl;
-        }
-
-        return nullptr;
-    }
-
-    const SymbolFunction* findImplMethod(const SymbolImpl& symImpl, IdentifierRef methodIdRef)
-    {
-        std::vector<const Symbol*> symbols;
-        symImpl.getAllSymbols(symbols);
-        for (const Symbol* symbol : symbols)
-        {
-            if (symbol && symbol->isFunction() && symbol->idRef() == methodIdRef)
-                return &symbol->cast<SymbolFunction>();
-        }
-
-        return nullptr;
-    }
-
     struct InterfaceCastInfo
     {
         const SymbolStruct*   objectStruct        = nullptr;
@@ -66,7 +32,7 @@ namespace
 
     bool resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo)
     {
-        if (const SymbolImpl* implSym = findInterfaceImpl(srcStruct, dstItf.idRef()))
+        if (const SymbolImpl* implSym = srcStruct.findInterfaceImpl(dstItf.idRef()))
         {
             outInfo.objectStruct = &srcStruct;
             outInfo.implSym      = implSym;
@@ -74,43 +40,22 @@ namespace
             return true;
         }
 
-        const TaskContext& ctx     = codeGen.ctx();
-        const TypeManager& typeMgr = codeGen.typeMgr();
         for (const SymbolVariable* field : srcStruct.fields())
         {
-            if (!field || !isUsingMemberDecl(field->decl()))
+            if (!field || !field->isUsingField())
                 continue;
 
-            const TypeRef   ultimateTypeRef = typeMgr.get(field->typeRef()).unwrap(ctx, field->typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-            const TypeInfo& ultimateType    = typeMgr.get(ultimateTypeRef);
-            if (ultimateType.isStruct())
+            bool                usingFieldIsPointer = false;
+            const SymbolStruct* targetStruct        = field->usingTargetStruct(codeGen.ctx(), usingFieldIsPointer);
+            if (!targetStruct)
+                continue;
+
+            if (const SymbolImpl* implSym = targetStruct->findInterfaceImpl(dstItf.idRef()))
             {
-                if (const SymbolImpl* implSym = findInterfaceImpl(ultimateType.payloadSymStruct(), dstItf.idRef()))
-                {
-                    outInfo.objectStruct        = &ultimateType.payloadSymStruct();
-                    outInfo.implSym             = implSym;
-                    outInfo.usingField          = field;
-                    outInfo.usingFieldIsPointer = false;
-                    return true;
-                }
-
-                continue;
-            }
-
-            if (!ultimateType.isAnyPointer())
-                continue;
-
-            const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.payloadTypeRef()).unwrap(ctx, ultimateType.payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-            const TypeInfo& pointeeUltimate    = typeMgr.get(pointeeUltimateRef);
-            if (!pointeeUltimate.isStruct())
-                continue;
-
-            if (const SymbolImpl* implSym = findInterfaceImpl(pointeeUltimate.payloadSymStruct(), dstItf.idRef()))
-            {
-                outInfo.objectStruct        = &pointeeUltimate.payloadSymStruct();
+                outInfo.objectStruct        = targetStruct;
                 outInfo.implSym             = implSym;
                 outInfo.usingField          = field;
-                outInfo.usingFieldIsPointer = true;
+                outInfo.usingFieldIsPointer = usingFieldIsPointer;
                 return true;
             }
         }
@@ -118,51 +63,10 @@ namespace
         return false;
     }
 
-    MicroOpBits castPayloadBits(const TypeInfo& typeInfo)
-    {
-        if (typeInfo.isFloat())
-        {
-            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
-            return microOpBitsFromBitWidth(floatBits);
-        }
-
-        if (typeInfo.isBool())
-            return MicroOpBits::B8;
-
-        if (typeInfo.isIntLike())
-        {
-            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
-            return microOpBitsFromBitWidth(intBits);
-        }
-
-        return MicroOpBits::Zero;
-    }
-
     bool anyCastAsValueBits(CodeGen& codeGen, const TypeInfo& dstType, MicroOpBits& outBits)
     {
-        outBits = MicroOpBits::Zero;
-
-        if (dstType.isFloat() || dstType.isIntLike() || dstType.isBool())
-        {
-            outBits = castPayloadBits(dstType);
-            return outBits != MicroOpBits::Zero;
-        }
-
-        const bool pointerLikeValue =
-            dstType.isAnyPointer() ||
-            dstType.isEnum() ||
-            dstType.isTypeInfo() ||
-            dstType.isFunction() ||
-            dstType.isCString();
-        if (!pointerLikeValue)
-            return false;
-
-        const uint64_t dstSize = dstType.sizeOf(codeGen.ctx());
-        if (dstSize != 1 && dstSize != 2 && dstSize != 4 && dstSize != 8)
-            return false;
-
-        outBits = microOpBitsFromChunkSize(static_cast<uint32_t>(dstSize));
-        return true;
+        outBits = CodeGenTypeHelpers::scalarStoreBits(dstType, codeGen.ctx());
+        return outBits != MicroOpBits::Zero;
     }
 
     Result emitArrayToStringCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType)
@@ -498,7 +402,7 @@ namespace
             {
                 const SymbolFunction* interfaceMethod = interfaceMethods[i];
                 SWC_ASSERT(interfaceMethod != nullptr);
-                const SymbolFunction* implMethod = findImplMethod(*castInfo.implSym, interfaceMethod->idRef());
+                const SymbolFunction* implMethod = castInfo.implSym->findFunction(interfaceMethod->idRef());
                 SWC_ASSERT(implMethod != nullptr);
                 codeGen.function().addCallDependency(const_cast<SymbolFunction*>(implMethod));
 
@@ -535,8 +439,8 @@ namespace
 
         if (srcIntLikeType && dstIntLikeType)
         {
-            const MicroOpBits srcOpBits = castPayloadBits(srcType);
-            const MicroOpBits dstOpBits = castPayloadBits(dstType);
+            const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+            const MicroOpBits dstOpBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
             SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
             SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
 
@@ -593,8 +497,8 @@ namespace
             return Result::Continue;
         }
 
-        const MicroOpBits srcOpBits = castPayloadBits(srcType);
-        const MicroOpBits dstOpBits = castPayloadBits(dstType);
+        const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+        const MicroOpBits dstOpBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         if (srcOpBits == MicroOpBits::Zero || dstOpBits == MicroOpBits::Zero)
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);

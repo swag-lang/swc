@@ -4,6 +4,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -16,22 +17,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef unwrapAliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return typeRef;
-
-        const TypeInfo& typeInfo         = codeGen.typeMgr().get(typeRef);
-        const TypeRef   unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
     bool isStringCompareType(CodeGen& codeGen, TypeRef typeRef)
     {
-        const TypeRef   unwrappedTypeRef = unwrapAliasEnumTypeRef(codeGen, typeRef);
+        const TypeRef   unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
         return typeInfo.isString();
     }
@@ -102,30 +90,6 @@ namespace
         return Result::Continue;
     }
 
-    MicroOpBits compareOpBits(const TypeInfo& typeInfo, TaskContext& ctx)
-    {
-        if (typeInfo.isFloat())
-        {
-            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
-            return microOpBitsFromBitWidth(floatBits);
-        }
-
-        if (typeInfo.isIntLike())
-        {
-            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
-            return microOpBitsFromBitWidth(intBits);
-        }
-
-        if (typeInfo.isBool())
-            return MicroOpBits::B8;
-
-        const uint64_t size = typeInfo.sizeOf(ctx);
-        if (size == 1 || size == 2 || size == 4 || size == 8)
-            return microOpBitsFromChunkSize(static_cast<uint32_t>(size));
-
-        return MicroOpBits::B64;
-    }
-
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, const SemaNodeView& leftView, const SemaNodeView& rightView)
     {
         if (leftView.type()->isScalarNumeric() && rightView.type()->isScalarNumeric())
@@ -138,7 +102,7 @@ namespace
     {
         outReg                                 = codeGen.nextVirtualRegisterForType(operandTypeRef);
         const TypeInfo&   operandType          = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits opBits               = compareOpBits(operandType, codeGen.ctx());
+        const MicroOpBits opBits               = CodeGenTypeHelpers::compareBits(operandType, codeGen.ctx());
         const bool        isAddressBackedValue = operandType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
 
         MicroBuilder& builder = codeGen.builder();
@@ -155,8 +119,8 @@ namespace
 
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
         const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
-        const MicroOpBits srcBits = compareOpBits(srcType, codeGen.ctx());
-        const MicroOpBits dstBits = compareOpBits(dstType, codeGen.ctx());
+        const MicroOpBits srcBits = CodeGenTypeHelpers::compareBits(srcType, codeGen.ctx());
+        const MicroOpBits dstBits = CodeGenTypeHelpers::compareBits(dstType, codeGen.ctx());
 
         MicroBuilder& builder = codeGen.builder();
 
@@ -256,7 +220,7 @@ namespace
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
 
         const TypeInfo&   compareType = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits      = compareOpBits(compareType, codeGen.ctx());
+        const MicroOpBits opBits      = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;
@@ -307,7 +271,7 @@ namespace
 
         const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
         const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits         = compareOpBits(compareType, codeGen.ctx());
+        const MicroOpBits opBits         = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;

@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -11,22 +12,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroOpBits indexOpBits(const TypeInfo& typeInfo)
-    {
-        if (!typeInfo.isIntLike())
-            return MicroOpBits::B64;
-
-        const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
-        return microOpBitsFromBitWidth(intBits);
-    }
-
     MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits)
     {
         const CodeGenNodePayload& indexPayload = codeGen.payload(indexRef);
         const SemaNodeView        indexView    = codeGen.viewType(indexRef);
         SWC_ASSERT(indexView.type());
 
-        outIndexBits           = indexOpBits(*indexView.type());
+        outIndexBits           = CodeGenTypeHelpers::copyBits(*indexView.type());
         const bool indexSigned = indexView.type()->isIntSigned();
 
         if (outIndexBits == MicroOpBits::B64 && indexPayload.isValue())
@@ -65,7 +57,7 @@ namespace
             return payload.reg;
 
         const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-        builder.emitLoadMemReg(spillAddrReg, 0, payload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
+        builder.emitLoadMemReg(spillAddrReg, 0, payload.reg, CodeGenTypeHelpers::bitsFromStorageSize(sizeOfValue));
         return spillAddrReg;
     }
 
@@ -80,7 +72,7 @@ namespace
             return materializeAddressFromValue(codeGen, indexedPayload, indexedType);
         }
 
-        if (indexedType.isValuePointer() || indexedType.isBlockPointer() || indexedType.isCString())
+        if (indexedType.isAnyPointer() || indexedType.isCString())
         {
             if (indexedPayload.isValue())
                 return indexedPayload.reg;
@@ -119,7 +111,7 @@ namespace
             return typeMgr.get(strideTypeRef).sizeOf(codeGen.ctx());
         }
 
-        if (indexedType.isBlockPointer() || indexedType.isSlice() || indexedType.isTypedVariadic() || indexedType.isValuePointer() || indexedType.isReference() || indexedType.isCString())
+        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic() || indexedType.isCString())
             return typeMgr.get(indexedType.payloadTypeRef()).sizeOf(codeGen.ctx());
         if (indexedType.isString())
             return typeMgr.get(typeMgr.typeU8()).sizeOf(codeGen.ctx());
@@ -146,7 +138,7 @@ namespace
             return typeMgr.addType(TypeInfo::makeArray(remainingDims.span(), indexedType.payloadArrayElemTypeRef(), indexedType.flags()));
         }
 
-        if (indexedType.isBlockPointer() || indexedType.isValuePointer() || indexedType.isReference() || indexedType.isSlice() || indexedType.isTypedVariadic() || indexedType.isCString())
+        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic() || indexedType.isCString())
             return indexedType.payloadTypeRef();
         if (indexedType.isString())
             return typeMgr.typeU8();

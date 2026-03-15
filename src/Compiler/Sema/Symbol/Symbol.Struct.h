@@ -44,6 +44,7 @@ public:
     void                     addInterface(SymbolImpl& symImpl);
     Result                   addInterface(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*> interfaces() const;
+    const SymbolImpl*        findInterfaceImpl(IdentifierRef interfaceIdRef) const;
     bool                     implementsInterface(const SymbolInterface& itf) const;
     bool                     implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
 

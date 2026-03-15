@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -28,19 +29,7 @@ namespace
             return MicroOpBits::B64;
 
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (typeInfo.isFloat())
-        {
-            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
-            return microOpBitsFromBitWidth(floatBits);
-        }
-
-        if (typeInfo.isIntLike())
-        {
-            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
-            return microOpBitsFromBitWidth(intBits);
-        }
-
-        return MicroOpBits::B64;
+        return CodeGenTypeHelpers::copyBits(typeInfo);
     }
 
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)

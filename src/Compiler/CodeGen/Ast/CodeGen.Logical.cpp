@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -14,30 +15,10 @@ namespace
         MicroLabelRef doneLabel = MicroLabelRef::invalid();
     };
 
-    MicroOpBits compareOpBits(const TypeInfo& typeInfo)
-    {
-        if (typeInfo.isFloat())
-        {
-            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
-            return microOpBitsFromBitWidth(floatBits);
-        }
-
-        if (typeInfo.isIntLike())
-        {
-            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
-            return microOpBitsFromBitWidth(intBits);
-        }
-
-        if (typeInfo.isBool())
-            return MicroOpBits::B8;
-
-        return MicroOpBits::B64;
-    }
-
     void materializeLogicalOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits operandBits = compareOpBits(operandType);
+        const MicroOpBits operandBits = CodeGenTypeHelpers::compareBits(operandType, codeGen.ctx());
 
         if (operandType.isBool() && operandPayload.isValue())
         {

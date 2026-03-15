@@ -39,6 +39,19 @@ void SymbolImpl::addFunction(const TaskContext& ctx, SymbolFunction* sym)
         specOps_.push_back(sym);
 }
 
+const SymbolFunction* SymbolImpl::findFunction(IdentifierRef functionIdRef) const
+{
+    std::vector<const Symbol*> symbols;
+    getAllSymbols(symbols);
+    for (const Symbol* symbol : symbols)
+    {
+        if (symbol && symbol->isFunction() && symbol->idRef() == functionIdRef)
+            return &symbol->cast<SymbolFunction>();
+    }
+
+    return nullptr;
+}
+
 std::vector<SymbolFunction*> SymbolImpl::specOps() const
 {
     const std::shared_lock lk(mutex_);

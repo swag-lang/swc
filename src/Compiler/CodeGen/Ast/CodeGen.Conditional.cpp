@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -20,26 +21,6 @@ namespace
         MicroLabelRef falseLabel = MicroLabelRef::invalid();
         MicroLabelRef doneLabel  = MicroLabelRef::invalid();
     };
-
-    MicroOpBits compareOpBits(const TypeInfo& typeInfo)
-    {
-        if (typeInfo.isFloat())
-        {
-            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
-            return microOpBitsFromBitWidth(floatBits);
-        }
-
-        if (typeInfo.isIntLike())
-        {
-            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
-            return microOpBitsFromBitWidth(intBits);
-        }
-
-        if (typeInfo.isBool())
-            return MicroOpBits::B8;
-
-        return MicroOpBits::B64;
-    }
 
     void materializeScalarOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
     {
@@ -63,7 +44,7 @@ namespace
             return resultReg;
         }
 
-        const MicroOpBits opBits = compareOpBits(typeInfo);
+        const MicroOpBits opBits = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
         MicroReg outReg;
         materializeScalarOperand(outReg, codeGen, operandPayload, operandTypeRef, opBits);
@@ -175,7 +156,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         const SemaNodeView        condView    = codeGen.viewType(nodeCondRef);
         const CodeGenNodePayload& condPayload = codeGen.payload(nodeCondRef);
         const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : condView.typeRef();
-        const MicroOpBits         condBits    = compareOpBits(codeGen.typeMgr().get(condTypeRef));
+        const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(condTypeRef), codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
 
         const MicroReg condReg = materializeTruthyOperand(codeGen, condPayload, condTypeRef);
@@ -203,7 +184,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         else
         {
             const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-            const MicroOpBits         resultBits    = compareOpBits(resultType);
+            const MicroOpBits         resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
             emitSelectedOperand(codeGen, resultPayload, truePayload, resultBits);
         }
@@ -227,7 +208,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         else
         {
             const TypeInfo&   resultType = codeGen.typeMgr().get(resultTypeRef);
-            const MicroOpBits resultBits = compareOpBits(resultType);
+            const MicroOpBits resultBits = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             emitSelectedOperand(codeGen, resultPayload, falsePayload, resultBits);
         }
 
@@ -260,7 +241,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         const SemaNodeView        leftView    = codeGen.viewType(nodeLeftRef);
         const CodeGenNodePayload& leftPayload = codeGen.payload(nodeLeftRef);
         const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        const MicroOpBits         condBits    = compareOpBits(codeGen.typeMgr().get(leftTypeRef));
+        const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(leftTypeRef), codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
 
         const MicroReg condReg = materializeTruthyOperand(codeGen, leftPayload, leftTypeRef);
@@ -280,7 +261,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         else
         {
             const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-            const MicroOpBits         resultBits    = compareOpBits(resultType);
+            const MicroOpBits         resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
             emitSelectedOperand(codeGen, resultPayload, leftPayload, resultBits);
         }
@@ -304,7 +285,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         else
         {
             const TypeInfo&   resultType = codeGen.typeMgr().get(resultTypeRef);
-            const MicroOpBits resultBits = compareOpBits(resultType);
+            const MicroOpBits resultBits = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             emitSelectedOperand(codeGen, resultPayload, rightPayload, resultBits);
         }
 

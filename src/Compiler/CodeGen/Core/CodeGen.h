@@ -49,6 +49,13 @@ struct CodeGenNodePayload
         else
             setIsValue();
     }
+
+    TypeRef effectiveTypeRef(TypeRef fallbackTypeRef) const
+    {
+        if (typeRef.isValid())
+            return typeRef;
+        return fallbackTypeRef;
+    }
 };
 
 struct CodeGenGvtdEntry

@@ -5,6 +5,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -194,30 +195,10 @@ namespace
             *payload = {};
     }
 
-    MicroOpBits conditionOpBits(const TypeInfo* typeInfo, TaskContext& ctx)
-    {
-        if (!typeInfo)
-            return MicroOpBits::B64;
-
-        switch (typeInfo->sizeOf(ctx))
-        {
-            case 1:
-                return MicroOpBits::B8;
-            case 2:
-                return MicroOpBits::B16;
-            case 4:
-                return MicroOpBits::B32;
-            case 8:
-                return MicroOpBits::B64;
-            default:
-                return MicroOpBits::B64;
-        }
-    }
-
     void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits = conditionOpBits(&typeInfo, codeGen.ctx());
+        const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
 
         MicroBuilder& builder = codeGen.builder();
@@ -253,7 +234,7 @@ namespace
     MicroReg materializeLoopValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits opBits   = conditionOpBits(&typeInfo, codeGen.ctx());
+        const MicroOpBits opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         const MicroReg    outReg   = codeGen.nextVirtualIntRegister();
 
         if (payload.isAddress())
@@ -267,7 +248,7 @@ namespace
     MicroReg materializeLoopZeroReg(CodeGen& codeGen, TypeRef typeRef)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits opBits   = conditionOpBits(&typeInfo, codeGen.ctx());
+        const MicroOpBits opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         const MicroReg    outReg   = codeGen.nextVirtualIntRegister();
         codeGen.builder().emitLoadRegImm(outReg, ApInt(0, 64), opBits);
         return outReg;
@@ -348,7 +329,7 @@ namespace
         const AstNodeRef   exprRef   = resolvedNodeRef(codeGen, node.nodeExprRef);
         const SemaNodeView exprView  = codeGen.viewType(exprRef);
         const TypeInfo&    indexType = *(exprView.type());
-        const MicroOpBits  opBits    = conditionOpBits(&indexType, codeGen.ctx());
+        const MicroOpBits  opBits    = CodeGenTypeHelpers::conditionBits(indexType, codeGen.ctx());
         MicroBuilder&      builder   = codeGen.builder();
 
         loopState.indexTypeRef = exprView.typeRef();
@@ -736,7 +717,7 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         }
 
         const TypeInfo&   indexType = codeGen.typeMgr().get(loopState->indexTypeRef);
-        const MicroOpBits opBits    = conditionOpBits(&indexType, codeGen.ctx());
+        const MicroOpBits opBits    = CodeGenTypeHelpers::conditionBits(indexType, codeGen.ctx());
         MicroBuilder&     builder   = codeGen.builder();
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);

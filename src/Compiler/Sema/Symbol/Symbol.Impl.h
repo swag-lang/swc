@@ -38,6 +38,7 @@ public:
     void          setSymEnum(SymbolEnum* sym);
 
     void                         addFunction(const TaskContext& ctx, SymbolFunction* sym);
+    const SymbolFunction*        findFunction(IdentifierRef functionIdRef) const;
     std::vector<SymbolFunction*> specOps() const;
 
 private:

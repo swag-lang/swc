@@ -149,6 +149,7 @@ public:
     bool usesUnsignedConditions() const noexcept { return isFloat() || isIntLikeUnsigned() || isPointerLike() || isBool() || isEnum(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
     bool isAnyPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
+    bool isPointerOrReference() const noexcept { return isAnyPointer() || isReference(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
 
@@ -265,7 +266,13 @@ public:
         return payloadAggregate_;
     }
 
+    TypeRef unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept
+    {
+        return unwrap(ctx, defaultTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    }
+
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
+    TypeRef dereferenceTypeRef(TaskContext& ctx) const;
 
     static TypeInfo makeBool();
     static TypeInfo makeChar();

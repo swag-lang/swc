@@ -7,6 +7,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -54,28 +55,11 @@ namespace
         Trunc = 3,
     };
 
-    MicroOpBits intrinsicNumericOpBits(const TypeInfo& typeInfo)
-    {
-        if (typeInfo.isFloat())
-        {
-            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
-            return microOpBitsFromBitWidth(floatBits);
-        }
-
-        if (typeInfo.isIntLike())
-        {
-            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
-            return microOpBitsFromBitWidth(intBits);
-        }
-
-        return MicroOpBits::Zero;
-    }
-
     void loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         outReg                        = codeGen.nextVirtualRegisterForType(operandTypeRef);
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits opBits      = intrinsicNumericOpBits(operandType);
+        const MicroOpBits opBits      = CodeGenTypeHelpers::numericBits(operandType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroBuilder& builder = codeGen.builder();
@@ -92,8 +76,8 @@ namespace
 
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
         const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
-        const MicroOpBits srcBits = intrinsicNumericOpBits(srcType);
-        const MicroOpBits dstBits = intrinsicNumericOpBits(dstType);
+        const MicroOpBits srcBits = CodeGenTypeHelpers::numericBits(srcType);
+        const MicroOpBits dstBits = CodeGenTypeHelpers::numericBits(dstType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
 
@@ -230,7 +214,7 @@ namespace
         const TypeRef             valueTypeRef   = intrinsicOperandTypeRef(codeGen, valueRef, valuePayload);
         const TypeRef             resultTypeRef  = codeGen.curViewType().typeRef();
         const TypeInfo&           resultTypeInfo = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits         = intrinsicNumericOpBits(resultTypeInfo);
+        const MicroOpBits         opBits         = CodeGenTypeHelpers::numericBits(resultTypeInfo);
         MicroBuilder&             builder        = codeGen.builder();
 
         SWC_ASSERT(resultTypeInfo.isIntLike());
@@ -279,7 +263,7 @@ namespace
         const TypeRef             valueTypeRef   = intrinsicOperandTypeRef(codeGen, valueRef, valuePayload);
         const TypeRef             resultTypeRef  = codeGen.curViewType().typeRef();
         const TypeInfo&           resultTypeInfo = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits         = intrinsicNumericOpBits(resultTypeInfo);
+        const MicroOpBits         opBits         = CodeGenTypeHelpers::numericBits(resultTypeInfo);
         MicroBuilder&             builder        = codeGen.builder();
 
         SWC_ASSERT(resultTypeInfo.isIntLike());
@@ -312,7 +296,7 @@ namespace
         const TypeRef             exchangeTypeRef = intrinsicOperandTypeRef(codeGen, exchangeRef, exchangePayload);
         const TypeRef             resultTypeRef   = codeGen.curViewType().typeRef();
         const TypeInfo&           resultTypeInfo  = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits          = intrinsicNumericOpBits(resultTypeInfo);
+        const MicroOpBits         opBits          = CodeGenTypeHelpers::numericBits(resultTypeInfo);
         MicroBuilder&             builder         = codeGen.builder();
 
         SWC_ASSERT(resultTypeInfo.isIntLike());
@@ -712,7 +696,7 @@ namespace
         const TypeRef             exprTypeRef   = exprPayload.typeRef.isValid() ? exprPayload.typeRef : exprView.typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits        = intrinsicNumericOpBits(resultType);
+        const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
         CodeGenNodePayload&       resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
         MicroReg                  materializedReg;
@@ -765,7 +749,7 @@ namespace
         const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
         const TypeRef             resultTypeRef       = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType          = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits              = intrinsicNumericOpBits(resultType);
+        const MicroOpBits         opBits              = CodeGenTypeHelpers::numericBits(resultType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;
@@ -818,7 +802,7 @@ namespace
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
         const TypeInfo&           countType     = codeGen.typeMgr().get(countTypeRef);
-        const MicroOpBits         resultBits    = intrinsicNumericOpBits(resultType);
+        const MicroOpBits         resultBits    = CodeGenTypeHelpers::numericBits(resultType);
         CodeGenNodePayload&       resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
         MicroReg                  materializedValue;
@@ -849,7 +833,7 @@ namespace
         const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         resultBits    = intrinsicNumericOpBits(resultType);
+        const MicroOpBits         resultBits    = CodeGenTypeHelpers::numericBits(resultType);
         CodeGenNodePayload&       resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
         MicroReg                  materializedValue;
@@ -876,7 +860,7 @@ namespace
         const TypeRef             valueTypeRef    = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
         const TypeRef             resultTypeRef   = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType      = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         resultBits      = intrinsicNumericOpBits(resultType);
+        const MicroOpBits         resultBits      = CodeGenTypeHelpers::numericBits(resultType);
         const uint32_t            logicalBitWidth = getNumBits(resultBits);
         CodeGenNodePayload&       resultPayload   = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder         = codeGen.builder();
@@ -939,7 +923,7 @@ namespace
         const TypeRef             cTypeRef      = cPayload.typeRef.isValid() ? cPayload.typeRef : cView.typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits        = intrinsicNumericOpBits(resultType);
+        const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
         SWC_ASSERT(resultType.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
 
@@ -968,7 +952,7 @@ namespace
         const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits        = intrinsicNumericOpBits(resultType);
+        const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
         SWC_ASSERT(resultType.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
 
@@ -995,7 +979,7 @@ namespace
         const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits        = intrinsicNumericOpBits(resultType);
+        const MicroOpBits         opBits        = CodeGenTypeHelpers::numericBits(resultType);
         SWC_ASSERT(resultType.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
 

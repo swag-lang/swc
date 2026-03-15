@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -37,52 +38,6 @@ namespace
         AssignEncodingKind        encodingKind = AssignEncodingKind::EqualStore;
     };
 
-    TypeRef resolveOperandTypeRef(const CodeGenNodePayload& payload, TypeRef fallbackTypeRef)
-    {
-        if (payload.typeRef.isValid())
-            return payload.typeRef;
-        return fallbackTypeRef;
-    }
-
-    TypeRef normalizeAssignmentTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return typeRef;
-
-        const TypeInfo& typeInfo      = codeGen.typeMgr().get(typeRef);
-        const TypeRef   normalizedRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (normalizedRef.isValid())
-            return normalizedRef;
-        return typeRef;
-    }
-
-    MicroOpBits scalarStoreOpBits(CodeGen& codeGen, const TypeInfo& typeInfo)
-    {
-        if (typeInfo.isFloat())
-        {
-            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
-            return microOpBitsFromBitWidth(floatBits);
-        }
-
-        if (typeInfo.isBool())
-            return MicroOpBits::B8;
-
-        if (typeInfo.isIntLike())
-        {
-            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
-            return microOpBitsFromBitWidth(intBits);
-        }
-
-        if (typeInfo.isEnum() || typeInfo.isAnyPointer() || typeInfo.isFunction() || typeInfo.isCString() || typeInfo.isTypeInfo())
-        {
-            const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
-            if (sizeOf == 1 || sizeOf == 2 || sizeOf == 4 || sizeOf == 8)
-                return microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOf));
-        }
-
-        return MicroOpBits::Zero;
-    }
-
     AssignEncodingKind resolveAssignEncodingKind(const TypeInfo& targetType, TokenId assignOp)
     {
         if (assignOp == TokenId::SymEqual)
@@ -103,7 +58,7 @@ namespace
             return false;
 
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        return scalarStoreOpBits(codeGen, typeInfo) != MicroOpBits::Zero;
+        return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx()) != MicroOpBits::Zero;
     }
 
     MicroOp intBinaryMicroOp(TokenId tokId, bool isSigned)
@@ -170,16 +125,13 @@ namespace
     uint64_t pointerStrideSize(CodeGen& codeGen, TypeRef pointerTypeRef)
     {
         const TypeInfo& pointerType = codeGen.typeMgr().get(pointerTypeRef);
-        SWC_ASSERT(pointerType.isBlockPointer());
-        const uint64_t stride = codeGen.typeMgr().get(pointerType.payloadTypeRef()).sizeOf(codeGen.ctx());
-        SWC_ASSERT(stride > 0);
-        return stride;
+        return CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), pointerType);
     }
 
     MicroReg materializeAssignPointerIndexReg(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits srcBits     = scalarStoreOpBits(codeGen, operandType);
+        const MicroOpBits srcBits     = CodeGenTypeHelpers::scalarStoreBits(operandType, codeGen.ctx());
         SWC_ASSERT(operandType.isIntLike());
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
 
@@ -213,7 +165,7 @@ namespace
         target.payload = codeGen.payload(leftRef);
 
         const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
-        const TypeRef      leftTypeRef  = resolveOperandTypeRef(target.payload, leftTypeView.typeRef());
+        const TypeRef      leftTypeRef  = target.payload.effectiveTypeRef(leftTypeView.typeRef());
         SWC_ASSERT(leftTypeRef.isValid());
 
         const TypeInfo& leftTypeInfo  = codeGen.typeMgr().get(leftTypeRef);
@@ -229,7 +181,7 @@ namespace
             SWC_ASSERT(target.payload.isAddress());
         }
 
-        const TypeRef opTypeRef = normalizeAssignmentTypeRef(codeGen, targetTypeRef);
+        const TypeRef opTypeRef = codeGen.typeMgr().get(targetTypeRef).unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
         target.typeRef          = targetTypeRef;
         target.opTypeRef        = opTypeRef;
         return target;
@@ -243,14 +195,14 @@ namespace
         SWC_ASSERT(encodeCtx.target.opTypeRef.isValid());
 
         encodeCtx.rightPayload = &rightPayload;
-        encodeCtx.rightTypeRef = resolveOperandTypeRef(*encodeCtx.rightPayload, rightTypeRef);
+        encodeCtx.rightTypeRef = encodeCtx.rightPayload->effectiveTypeRef(rightTypeRef);
         if (!encodeCtx.rightTypeRef.isValid())
             encodeCtx.rightTypeRef = encodeCtx.target.typeRef;
 
         const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
         if (isScalarAssignmentType(codeGen, encodeCtx.target.opTypeRef))
         {
-            encodeCtx.opBits = scalarStoreOpBits(codeGen, targetType);
+            encodeCtx.opBits = CodeGenTypeHelpers::scalarStoreBits(targetType, codeGen.ctx());
             SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
             encodeCtx.encodingKind = resolveAssignEncodingKind(targetType, assignOp);
             return encodeCtx;

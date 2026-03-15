@@ -46,40 +46,6 @@ namespace
         }
     }
 
-    bool isUsingMemberDecl(const AstNode* decl)
-    {
-        if (!decl)
-            return false;
-        if (decl->is(AstNodeId::SingleVarDecl))
-            return decl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
-        if (decl->is(AstNodeId::MultiVarDecl))
-            return decl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
-        return false;
-    }
-
-    const SymbolStruct* usingTargetStruct(Sema& sema, const SymbolVariable& symVar)
-    {
-        const TaskContext& ctx     = sema.ctx();
-        const TypeManager& typeMgr = sema.typeMgr();
-
-        // Resolve aliases so that `using v: AliasToStruct` works.
-        const TypeRef   ultimateTypeRef = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo& ultimateType    = typeMgr.get(ultimateTypeRef);
-
-        if (ultimateType.isStruct())
-            return &ultimateType.payloadSymStruct();
-
-        if (ultimateType.isAnyPointer())
-        {
-            const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.payloadTypeRef()).unwrap(ctx, ultimateType.payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-            const TypeInfo& pointeeUltimate    = typeMgr.get(pointeeUltimateRef);
-            if (pointeeUltimate.isStruct())
-                return &pointeeUltimate.payloadSymStruct();
-        }
-
-        return nullptr;
-    }
-
     void addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, uint16_t& searchOrder, SmallVector<const SymbolStruct*>& visited)
     {
         for (const Symbol* s : visited)
@@ -93,10 +59,10 @@ namespace
         for (const Symbol* field : symStruct.fields())
         {
             const auto& symVar = field->cast<SymbolVariable>();
-            if (!isUsingMemberDecl(symVar.decl()))
+            if (!symVar.isUsingField())
                 continue;
 
-            const SymbolStruct* target = usingTargetStruct(sema, symVar);
+            const SymbolStruct* target = symVar.usingTargetStruct(sema.ctx());
             if (!target)
                 continue;
 

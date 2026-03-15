@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -52,22 +53,6 @@ namespace
             *payload = {};
     }
 
-    MicroOpBits conditionOpBits(const TypeInfo& typeInfo, TaskContext& ctx)
-    {
-        switch (typeInfo.sizeOf(ctx))
-        {
-            case 1:
-                return MicroOpBits::B8;
-            case 2:
-                return MicroOpBits::B16;
-            case 4:
-                return MicroOpBits::B32;
-            case 8:
-                return MicroOpBits::B64;
-            default:
-                return MicroOpBits::B64;
-        }
-    }
 }
 
 Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
@@ -84,7 +69,7 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
         const CodeGenNodePayload& conditionPayload = codeGen.payload(nodeConditionRef);
         const SemaNodeView        conditionView    = codeGen.viewType(nodeConditionRef);
         SWC_ASSERT(conditionView.type() != nullptr);
-        const MicroOpBits condBits = conditionOpBits(*conditionView.type(), codeGen.ctx());
+        const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(*conditionView.type(), codeGen.ctx());
         const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
 
         if (conditionPayload.isAddress())

@@ -43,6 +43,48 @@ bool Symbol::isLetVariable() const noexcept
     return cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::Let);
 }
 
+bool SymbolVariable::isUsingField() const noexcept
+{
+    const AstNode* fieldDecl = decl();
+    if (!fieldDecl)
+        return false;
+
+    if (fieldDecl->is(AstNodeId::SingleVarDecl))
+        return fieldDecl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
+    if (fieldDecl->is(AstNodeId::MultiVarDecl))
+        return fieldDecl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
+
+    return false;
+}
+
+const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx) const
+{
+    bool isPointer = false;
+    return usingTargetStruct(ctx, isPointer);
+}
+
+const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bool& outIsPointer) const
+{
+    outIsPointer = false;
+
+    const TypeManager& typeMgr     = ctx.typeMgr();
+    const TypeRef      fieldTypeRef = typeMgr.get(typeRef()).unwrapAliasEnum(ctx, typeRef());
+    const TypeInfo&    fieldType    = typeMgr.get(fieldTypeRef);
+    if (fieldType.isStruct())
+        return &fieldType.payloadSymStruct();
+
+    if (!fieldType.isAnyPointer())
+        return nullptr;
+
+    const TypeRef   pointeeTypeRef = typeMgr.get(fieldType.payloadTypeRef()).unwrapAliasEnum(ctx, fieldType.payloadTypeRef());
+    const TypeInfo& pointeeType    = typeMgr.get(pointeeTypeRef);
+    if (!pointeeType.isStruct())
+        return nullptr;
+
+    outIsPointer = true;
+    return &pointeeType.payloadSymStruct();
+}
+
 void Symbol::setTyped(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::Typed))

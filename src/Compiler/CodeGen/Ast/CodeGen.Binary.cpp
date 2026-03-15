@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -52,49 +53,10 @@ namespace
         uint64_t                  pointerStride       = 0;
     };
 
-    TypeRef resolveOperandTypeRef(const CodeGenNodePayload& payload, TypeRef fallbackTypeRef)
-    {
-        if (payload.typeRef.isValid())
-            return payload.typeRef;
-        return fallbackTypeRef;
-    }
-
-    MicroOpBits arithmeticOpBits(const TypeInfo& type)
-    {
-        if (type.isFloat())
-        {
-            const uint32_t floatBits = type.payloadFloatBitsOr(64);
-            return microOpBitsFromBitWidth(floatBits);
-        }
-
-        if (type.isIntLike())
-        {
-            const uint32_t intBits = type.payloadIntLikeBitsOr(64);
-            return microOpBitsFromBitWidth(intBits);
-        }
-
-        return MicroOpBits::Zero;
-    }
-
-    TypeRef normalizeArithmeticTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return typeRef;
-
-        const TypeInfo& typeInfo      = codeGen.typeMgr().get(typeRef);
-        const TypeRef   normalizedRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (normalizedRef.isValid())
-            return normalizedRef;
-        return typeRef;
-    }
-
     uint64_t pointerStrideSize(CodeGen& codeGen, TypeRef pointerTypeRef)
     {
         const TypeInfo& pointerType = codeGen.typeMgr().get(pointerTypeRef);
-        SWC_ASSERT(pointerType.isBlockPointer());
-        const uint64_t stride = codeGen.typeMgr().get(pointerType.payloadTypeRef()).sizeOf(codeGen.ctx());
-        SWC_ASSERT(stride > 0);
-        return stride;
+        return CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), pointerType);
     }
 
     BinaryEncodingKind resolveBinaryEncodingKind(TokenId tokId, const TypeInfo& leftType, const TypeInfo& rightType)
@@ -137,10 +99,10 @@ namespace
 
         ctx.leftPayload         = &codeGen.payload(node.nodeLeftRef);
         ctx.rightPayload        = &codeGen.payload(node.nodeRightRef);
-        ctx.leftOperandTypeRef  = resolveOperandTypeRef(*ctx.leftPayload, leftView.typeRef());
-        ctx.rightOperandTypeRef = resolveOperandTypeRef(*ctx.rightPayload, rightView.typeRef());
-        ctx.leftOperandTypeRef  = normalizeArithmeticTypeRef(codeGen, ctx.leftOperandTypeRef);
-        ctx.rightOperandTypeRef = normalizeArithmeticTypeRef(codeGen, ctx.rightOperandTypeRef);
+        ctx.leftOperandTypeRef  = ctx.leftPayload->effectiveTypeRef(leftView.typeRef());
+        ctx.rightOperandTypeRef = ctx.rightPayload->effectiveTypeRef(rightView.typeRef());
+        ctx.leftOperandTypeRef  = codeGen.typeMgr().get(ctx.leftOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
+        ctx.rightOperandTypeRef = codeGen.typeMgr().get(ctx.rightOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
         ctx.resultTypeRef       = codeGen.curViewType().typeRef();
         ctx.operationTypeRef    = ctx.leftOperandTypeRef;
         SWC_ASSERT(ctx.leftOperandTypeRef.isValid());
@@ -181,8 +143,8 @@ namespace
 
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
         const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
-        const MicroOpBits srcBits = arithmeticOpBits(srcType);
-        const MicroOpBits dstBits = arithmeticOpBits(dstType);
+        const MicroOpBits srcBits = CodeGenTypeHelpers::numericBits(srcType);
+        const MicroOpBits dstBits = CodeGenTypeHelpers::numericBits(dstType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
 
@@ -254,7 +216,7 @@ namespace
     void materializeArithmeticOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
-        const MicroOpBits srcBits = arithmeticOpBits(srcType);
+        const MicroOpBits srcBits = CodeGenTypeHelpers::numericBits(srcType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
 
         materializeBinaryOperand(outReg, codeGen, operandPayload, srcTypeRef, srcBits);
@@ -274,7 +236,7 @@ namespace
     MicroReg materializePointerIndexReg(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits srcBits     = arithmeticOpBits(operandType);
+        const MicroOpBits srcBits     = CodeGenTypeHelpers::numericBits(operandType);
         SWC_ASSERT(operandType.isIntLike());
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
 
@@ -361,7 +323,7 @@ namespace
 
         const TypeInfo&   operationType = codeGen.typeMgr().get(encodeCtx.operationTypeRef);
         const MicroOp     op            = intBinaryMicroOp(tokId, !operationType.isIntLikeUnsigned());
-        const MicroOpBits opBits        = arithmeticOpBits(operationType);
+        const MicroOpBits opBits        = CodeGenTypeHelpers::numericBits(operationType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
@@ -385,7 +347,7 @@ namespace
 
         const TypeInfo&   operationType = codeGen.typeMgr().get(encodeCtx.operationTypeRef);
         const MicroOp     op            = floatBinaryMicroOp(tokId);
-        const MicroOpBits opBits        = arithmeticOpBits(operationType);
+        const MicroOpBits opBits        = CodeGenTypeHelpers::numericBits(operationType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);

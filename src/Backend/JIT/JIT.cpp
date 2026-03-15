@@ -402,7 +402,8 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 
 Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 {
-    for (const SymbolVariable* symVar : ctx.compiler().nativeGlobalVariables())
+    const auto globals = ctx.compiler().nativeGlobalVariablesSnapshot();
+    for (const SymbolVariable* symVar : globals)
     {
         if (!symVar)
             continue;

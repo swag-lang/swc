@@ -553,6 +553,12 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
         notifyAlive();
 }
 
+std::vector<SymbolVariable*> CompilerInstance::nativeGlobalVariablesSnapshot() const
+{
+    const std::shared_lock lock(mutex_);
+    return nativeGlobalVariables_;
+}
+
 ExitCode CompilerInstance::run()
 {
     logBefore();

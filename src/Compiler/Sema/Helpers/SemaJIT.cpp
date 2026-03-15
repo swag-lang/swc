@@ -169,7 +169,8 @@ namespace
 
     void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out)
     {
-        for (const SymbolVariable* global : sema.compiler().nativeGlobalVariables())
+        const auto globals = sema.compiler().nativeGlobalVariablesSnapshot();
+        for (const SymbolVariable* global : globals)
         {
             if (!global)
                 continue;

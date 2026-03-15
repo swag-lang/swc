@@ -58,13 +58,13 @@ namespace
     {
         if (typeInfo.isFloat())
         {
-            const uint32_t floatBits = typeInfo.payloadFloatBits() ? typeInfo.payloadFloatBits() : 64;
+            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
             return microOpBitsFromBitWidth(floatBits);
         }
 
         if (typeInfo.isIntLike())
         {
-            const uint32_t intBits = typeInfo.payloadIntLikeBits() ? typeInfo.payloadIntLikeBits() : 64;
+            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
             return microOpBitsFromBitWidth(intBits);
         }
 
@@ -504,7 +504,7 @@ namespace
         if (exprType->isIntUnsigned())
         {
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-            const uint32_t            intBits       = exprType->payloadIntBits() ? exprType->payloadIntBits() : 64;
+            const uint32_t            intBits       = exprType->payloadIntBitsOr(64);
             const MicroOpBits         opBits        = microOpBitsFromBitWidth(intBits);
             if (exprPayload.isAddress())
                 builder.emitLoadRegMem(resultPayload.reg, exprPayload.reg, 0, opBits);
@@ -685,7 +685,7 @@ namespace
         const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
         SWC_ASSERT(resultType.isFloat());
 
-        const uint32_t    floatBits = resultType.payloadFloatBits() ? resultType.payloadFloatBits() : 64;
+        const uint32_t    floatBits = resultType.payloadFloatBitsOr(64);
         const MicroOpBits opBits    = microOpBitsFromBitWidth(floatBits);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 

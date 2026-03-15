@@ -16,7 +16,7 @@ namespace
         if (!typeInfo.isIntLike())
             return MicroOpBits::B64;
 
-        const uint32_t intBits = typeInfo.payloadIntLikeBits() ? typeInfo.payloadIntLikeBits() : 64;
+        const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
         return microOpBitsFromBitWidth(intBits);
     }
 

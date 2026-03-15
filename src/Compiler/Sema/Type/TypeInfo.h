@@ -169,10 +169,22 @@ public:
         return payloadInt_.bits;
     }
 
+    uint32_t payloadIntBitsOr(uint32_t defaultBits) const noexcept
+    {
+        const uint32_t bits = payloadIntBits();
+        return bits ? bits : defaultBits;
+    }
+
     uint32_t payloadIntLikeBits() const noexcept
     {
         SWC_ASSERT(isIntLike());
         return isCharRune() ? 32 : payloadInt_.bits;
+    }
+
+    uint32_t payloadIntLikeBitsOr(uint32_t defaultBits) const noexcept
+    {
+        const uint32_t bits = payloadIntLikeBits();
+        return bits ? bits : defaultBits;
     }
 
     uint32_t payloadScalarNumericBits() const noexcept
@@ -181,10 +193,22 @@ public:
         return isIntLike() ? payloadIntLikeBits() : payloadFloatBits();
     }
 
+    uint32_t payloadScalarNumericBitsOr(uint32_t defaultBits) const noexcept
+    {
+        const uint32_t bits = payloadScalarNumericBits();
+        return bits ? bits : defaultBits;
+    }
+
     uint32_t payloadFloatBits() const noexcept
     {
         SWC_ASSERT(isFloat());
         return payloadFloat_.bits;
+    }
+
+    uint32_t payloadFloatBitsOr(uint32_t defaultBits) const noexcept
+    {
+        const uint32_t bits = payloadFloatBits();
+        return bits ? bits : defaultBits;
     }
 
     SymbolEnum& payloadSymEnum() const noexcept

@@ -122,7 +122,7 @@ namespace
     {
         if (typeInfo.isFloat())
         {
-            const uint32_t floatBits = typeInfo.payloadFloatBits() ? typeInfo.payloadFloatBits() : 64;
+            const uint32_t floatBits = typeInfo.payloadFloatBitsOr(64);
             return microOpBitsFromBitWidth(floatBits);
         }
 
@@ -131,7 +131,7 @@ namespace
 
         if (typeInfo.isIntLike())
         {
-            const uint32_t intBits = typeInfo.payloadIntLikeBits() ? typeInfo.payloadIntLikeBits() : 64;
+            const uint32_t intBits = typeInfo.payloadIntLikeBitsOr(64);
             return microOpBitsFromBitWidth(intBits);
         }
 

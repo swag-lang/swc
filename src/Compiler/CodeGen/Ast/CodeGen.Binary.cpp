@@ -63,13 +63,13 @@ namespace
     {
         if (type.isFloat())
         {
-            const uint32_t floatBits = type.payloadFloatBits() ? type.payloadFloatBits() : 64;
+            const uint32_t floatBits = type.payloadFloatBitsOr(64);
             return microOpBitsFromBitWidth(floatBits);
         }
 
         if (type.isIntLike())
         {
-            const uint32_t intBits = type.payloadIntLikeBits() ? type.payloadIntLikeBits() : 64;
+            const uint32_t intBits = type.payloadIntLikeBitsOr(64);
             return microOpBitsFromBitWidth(intBits);
         }
 

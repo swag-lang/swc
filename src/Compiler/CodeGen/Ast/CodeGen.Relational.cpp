@@ -4,6 +4,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -246,18 +247,29 @@ namespace
         }
     }
 
-    MicroCond relationalCondition(TokenId tokId, bool unsignedOrFloatCompare)
+    CodeGenCompareHelpers::CompareCondition buildCompareCondition(TokenId tokId, const TypeInfo& compareType)
     {
+        using CompareCondition            = CodeGenCompareHelpers::CompareCondition;
+        using FloatUnorderedMode          = CodeGenCompareHelpers::FloatUnorderedMode;
+        const bool unsignedOrFloatCompare = compareType.usesUnsignedConditions();
         switch (tokId)
         {
             case TokenId::SymLess:
-                return unsignedOrFloatCompare ? MicroCond::Below : MicroCond::Less;
+                return {.primaryCond        = unsignedOrFloatCompare ? MicroCond::Below : MicroCond::Less,
+                        .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
             case TokenId::SymLessEqual:
-                return unsignedOrFloatCompare ? MicroCond::BelowOrEqual : MicroCond::LessOrEqual;
+                return {.primaryCond        = unsignedOrFloatCompare ? MicroCond::BelowOrEqual : MicroCond::LessOrEqual,
+                        .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
             case TokenId::SymGreater:
-                return unsignedOrFloatCompare ? MicroCond::Above : MicroCond::Greater;
+                return {.primaryCond = unsignedOrFloatCompare ? MicroCond::Above : MicroCond::Greater};
             case TokenId::SymGreaterEqual:
-                return unsignedOrFloatCompare ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual;
+                return {.primaryCond = unsignedOrFloatCompare ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual};
+            case TokenId::SymEqualEqual:
+                return {.primaryCond        = MicroCond::Equal,
+                        .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
+            case TokenId::SymBangEqual:
+                return {.primaryCond        = MicroCond::NotEqual,
+                        .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::AcceptUnordered : FloatUnorderedMode::ExcludedByPrimary};
 
             default:
                 SWC_UNREACHABLE();
@@ -293,29 +305,8 @@ namespace
         MicroBuilder& builder             = codeGen.builder();
         builder.emitCmpRegReg(leftReg, rightReg, opBits);
 
-        auto cond = MicroCond::Equal;
-        switch (tokId)
-        {
-            case TokenId::SymEqualEqual:
-                cond = MicroCond::Equal;
-                break;
-            case TokenId::SymBangEqual:
-                cond = MicroCond::NotEqual;
-                break;
-
-            case TokenId::SymLess:
-            case TokenId::SymLessEqual:
-            case TokenId::SymGreater:
-            case TokenId::SymGreaterEqual:
-                cond = relationalCondition(tokId, compareType.usesUnsignedConditions());
-                break;
-
-            default:
-                SWC_UNREACHABLE();
-        }
-
-        builder.emitSetCondReg(resultPayload.reg, cond);
-        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        const CodeGenCompareHelpers::CompareCondition condition = buildCompareCondition(tokId, compareType);
+        CodeGenCompareHelpers::emitConditionBool(codeGen, resultPayload.reg, compareType, condition);
         return Result::Continue;
     }
 
@@ -342,17 +333,24 @@ namespace
 
         MicroBuilder& builder = codeGen.builder();
 
-        const bool      unsignedOrFloat = compareType.usesUnsignedConditions();
-        const MicroCond lessCond        = unsignedOrFloat ? MicroCond::Below : MicroCond::Less;
-        const MicroCond greatCond       = unsignedOrFloat ? MicroCond::Above : MicroCond::Greater;
+        const CodeGenCompareHelpers::CompareCondition lessCond  = buildCompareCondition(TokenId::SymLess, compareType);
+        const CodeGenCompareHelpers::CompareCondition greatCond = buildCompareCondition(TokenId::SymGreater, compareType);
 
         const MicroReg lessReg  = codeGen.nextVirtualIntRegister();
         const MicroReg greatReg = codeGen.nextVirtualIntRegister();
         builder.emitCmpRegReg(leftReg, rightReg, opBits);
-        builder.emitSetCondReg(lessReg, lessCond);
+        builder.emitSetCondReg(lessReg, lessCond.primaryCond);
         builder.emitLoadZeroExtendRegReg(lessReg, lessReg, MicroOpBits::B32, MicroOpBits::B8);
-        builder.emitSetCondReg(greatReg, greatCond);
+        builder.emitSetCondReg(greatReg, greatCond.primaryCond);
         builder.emitLoadZeroExtendRegReg(greatReg, greatReg, MicroOpBits::B32, MicroOpBits::B8);
+
+        if (CodeGenCompareHelpers::needsFloatUnorderedHandling(compareType, lessCond))
+        {
+            const MicroReg orderedReg = codeGen.nextVirtualIntRegister();
+            builder.emitSetCondReg(orderedReg, MicroCond::NotParity);
+            builder.emitLoadZeroExtendRegReg(orderedReg, orderedReg, MicroOpBits::B32, MicroOpBits::B8);
+            builder.emitOpBinaryRegReg(lessReg, orderedReg, MicroOp::And, MicroOpBits::B32);
+        }
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         builder.emitLoadRegReg(resultPayload.reg, greatReg, MicroOpBits::B32);

@@ -47,8 +47,8 @@
 #assert(cast #bit (s32) (cast #bit (u32) 0xFFFFFFFF'u32) == -1)
 #assert(cast #bit (u32) -11 == 0xFFFF_FFF5)
 #assert(cast #bit (u64) -11 == 0xFFFF_FFFF_FFFF_FFF5)
-#assert(cast #bit (f32) -11 == cast #bit (f32) -11's32)
-#assert(cast #bit (f64) -11 == cast #bit (f64) -11's64)
+#assert(cast #bit (u32) (cast #bit (f32) -11) == cast #bit (u32) (cast #bit (f32) -11's32))
+#assert(cast #bit (u64) (cast #bit (f64) -11) == cast #bit (u64) (cast #bit (f64) -11's64))
 
 #assert(cast #bit (u32) (cast #bit (f32) 0x7F800000'u32) == 0x7F800000)
 #assert(cast #bit (u32) (cast #bit (f32) 0xFF800000'u32) == 0xFF800000)

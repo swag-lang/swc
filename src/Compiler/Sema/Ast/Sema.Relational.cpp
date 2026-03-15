@@ -62,12 +62,6 @@ namespace
 
     Result constantFoldEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.cstRef() == nodeRightView.cstRef())
-        {
-            result = sema.cstMgr().cstTrue();
-            return Result::Continue;
-        }
-
         if (nodeLeftView.type()->isTypeValue() && nodeRightView.type()->isTypeValue())
         {
             result = sema.cstMgr().cstBool(*(nodeLeftView.type()) == *(nodeRightView.type()));
@@ -103,6 +97,12 @@ namespace
             return Result::Continue;
         }
 
+        if (leftCstRef == rightCstRef)
+        {
+            result = sema.cstMgr().cstTrue();
+            return Result::Continue;
+        }
+
         result = sema.cstMgr().cstBool(leftCstRef == rightCstRef);
         return Result::Continue;
     }
@@ -134,24 +134,17 @@ namespace
 
     Result constantFoldLessEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.cstRef() == nodeRightView.cstRef())
-        {
-            result = sema.cstMgr().cstTrue();
-            return Result::Continue;
-        }
-
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
 
         SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
-        if (leftCstRef == rightCstRef)
+        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
+        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
+        if (!leftCst.isFloat() && leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstTrue();
             return Result::Continue;
         }
-
-        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
 
         result = sema.cstMgr().cstBool(leftCst.le(rightCst));
         return Result::Continue;
@@ -178,24 +171,17 @@ namespace
 
     Result constantFoldGreaterEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.cstRef() == nodeRightView.cstRef())
-        {
-            result = sema.cstMgr().cstTrue();
-            return Result::Continue;
-        }
-
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
 
         SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
-        if (leftCstRef == rightCstRef)
+        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
+        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
+        if (!leftCst.isFloat() && leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstTrue();
             return Result::Continue;
         }
-
-        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
 
         result = sema.cstMgr().cstBool(leftCst.ge(rightCst));
         return Result::Continue;

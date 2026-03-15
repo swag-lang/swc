@@ -4,6 +4,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -200,13 +201,18 @@ namespace
 
         MicroBuilder& builder = codeGen.builder();
         builder.emitCmpRegReg(switchState.switchValueReg, caseReg, switchState.compareOpBits);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, successLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                 codeGen.typeMgr().get(switchState.compareTypeRef),
+                                                 {.primaryCond        = MicroCond::Equal,
+                                                  .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::RequireOrdered},
+                                                 successLabel);
         return Result::Continue;
     }
 
     void emitSwitchRangeFailJumps(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const AstRangeExpr& rangeExpr, MicroLabelRef failLabel)
     {
-        const bool unsignedOrFloat = switchState.useUnsignedCond;
+        const bool      unsignedOrFloat = switchState.useUnsignedCond;
+        const TypeInfo& compareType     = codeGen.typeMgr().get(switchState.compareTypeRef);
 
         if (rangeExpr.nodeExprDownRef.isValid())
         {
@@ -215,7 +221,12 @@ namespace
             loadPayloadToRegister(lowerReg, codeGen, lowerPayload, switchState.compareTypeRef, switchState.compareOpBits);
 
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, lowerReg, switchState.compareOpBits);
-            codeGen.builder().emitJumpToLabel(unsignedOrFloat ? MicroCond::Below : MicroCond::Less, MicroOpBits::B32, failLabel);
+            CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                     compareType,
+                                                     {.primaryCond        = unsignedOrFloat ? MicroCond::Below : MicroCond::Less,
+                                                      .floatUnorderedMode = compareType.isFloat() ? CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered
+                                                                                                  : CodeGenCompareHelpers::FloatUnorderedMode::ExcludedByPrimary},
+                                                     failLabel);
         }
 
         if (rangeExpr.nodeExprUpRef.isValid())
@@ -226,7 +237,12 @@ namespace
 
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, upperReg, switchState.compareOpBits);
             const MicroCond failCond = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive) ? (unsignedOrFloat ? MicroCond::Above : MicroCond::Greater) : (unsignedOrFloat ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual);
-            codeGen.builder().emitJumpToLabel(failCond, MicroOpBits::B32, failLabel);
+            CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                     compareType,
+                                                     {.primaryCond        = failCond,
+                                                      .floatUnorderedMode = compareType.isFloat() ? CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered
+                                                                                                  : CodeGenCompareHelpers::FloatUnorderedMode::ExcludedByPrimary},
+                                                     failLabel);
         }
     }
 

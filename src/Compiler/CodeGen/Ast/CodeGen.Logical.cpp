@@ -101,7 +101,7 @@ namespace
 
 Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const Token& tok = codeGen.token(codeRef());
+    const Token&     tok              = codeGen.token(codeRef());
     const AstNodeRef resolvedLeftRef  = resolvedNodeRef(codeGen, nodeLeftRef);
     const AstNodeRef resolvedRightRef = resolvedNodeRef(codeGen, nodeRightRef);
     const AstNodeRef resolvedChildRef = resolvedNodeRef(codeGen, childRef);
@@ -116,10 +116,10 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         MicroReg leftReg;
         materializeLogicalOperand(leftReg, codeGen, leftPayload, leftType);
 
-        LogicalExprCodeGenPayload& state = ensureLogicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
-        MicroBuilder&             builder = codeGen.builder();
-        state.reg                        = leftReg;
-        state.typeRef                    = codeGen.curViewType().typeRef();
+        LogicalExprCodeGenPayload& state   = ensureLogicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        MicroBuilder&              builder = codeGen.builder();
+        state.reg                          = leftReg;
+        state.typeRef                      = codeGen.curViewType().typeRef();
         state.setIsValue();
         state.doneLabel = builder.createLabel();
 
@@ -156,7 +156,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     return Result::Continue;
 }
 
-Result AstLogicalExpr::codeGenPostNode(CodeGen& codeGen) const
+Result AstLogicalExpr::codeGenPostNode(CodeGen& codeGen)
 {
     eraseLogicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
     return Result::Continue;

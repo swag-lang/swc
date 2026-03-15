@@ -58,10 +58,7 @@ bool DataSegment::findAllocation(DataSegmentAllocation& outAllocation, const uin
     if (allocations_.empty())
         return false;
 
-    const auto it = std::upper_bound(allocations_.begin(),
-                                     allocations_.end(),
-                                     offset,
-                                     [](const uint32_t lhs, const DataSegmentAllocation& rhs) { return lhs < rhs.offset; });
+    const auto it = std::ranges::upper_bound(allocations_, offset, {}, &DataSegmentAllocation::offset);
     if (it == allocations_.begin())
         return false;
 

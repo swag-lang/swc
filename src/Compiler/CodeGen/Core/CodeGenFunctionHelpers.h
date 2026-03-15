@@ -1,7 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroTypes.h"
-#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

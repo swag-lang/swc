@@ -377,8 +377,8 @@ namespace
 
     MicroReg materializeCallTargetReg(CodeGen& codeGen, const CodeGenNodePayload& calleePayload, const CallConv& callConv)
     {
-        MicroBuilder& builder   = codeGen.builder();
-        MicroReg      targetReg = codeGen.nextVirtualIntRegister();
+        MicroBuilder&  builder   = codeGen.builder();
+        const MicroReg targetReg = codeGen.nextVirtualIntRegister();
         if (calleePayload.isAddress())
             builder.emitLoadRegMem(targetReg, calleePayload.reg, 0, MicroOpBits::B64);
         else

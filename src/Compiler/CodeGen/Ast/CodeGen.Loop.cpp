@@ -171,12 +171,6 @@ namespace
         return unsignedCompare ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual;
     }
 
-    bool isFunctionLocalVariable(const CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        const auto& locals = codeGen.function().localVariables();
-        return std::ranges::find(locals, const_cast<SymbolVariable*>(&symVar)) != locals.end();
-    }
-
     MicroReg materializeLoopValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
@@ -299,7 +293,7 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
             return codeGen.resolveLocalStackPayload(symVar);
 
-        if (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar))
+        if (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
             return codeGen.resolveLocalStackPayload(symVar);
 
         SWC_UNREACHABLE();
@@ -321,7 +315,7 @@ namespace
                 symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
                 symVar.hasGlobalStorage() ||
                 CodeGen::variablePayload(symVar) ||
-                (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar)))
+                (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
                 return resolveForeachStoredVariablePayload(codeGen, symVar);
         }
 

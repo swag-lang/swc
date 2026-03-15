@@ -477,12 +477,6 @@ namespace
         return payload.reg;
     }
 
-    bool isFunctionLocalVariable(const CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        const auto& locals = codeGen.function().localVariables();
-        return std::ranges::find(locals, const_cast<SymbolVariable*>(&symVar)) != locals.end();
-    }
-
     CodeGenNodePayload resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
@@ -507,7 +501,7 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
             return codeGen.resolveLocalStackPayload(symVar);
 
-        if (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar))
+        if (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
             return codeGen.resolveLocalStackPayload(symVar);
 
         SWC_UNREACHABLE();
@@ -529,7 +523,7 @@ namespace
                 symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
                 symVar.hasGlobalStorage() ||
                 CodeGen::variablePayload(symVar) ||
-                (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar)))
+                (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
                 return resolveStoredVariablePayload(codeGen, symVar);
         }
 

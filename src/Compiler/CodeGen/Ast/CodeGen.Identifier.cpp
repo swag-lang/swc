@@ -16,12 +16,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isFunctionLocalVariable(const CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        const auto& locals = codeGen.function().localVariables();
-        return std::ranges::find(locals, const_cast<SymbolVariable*>(&symVar)) != locals.end();
-    }
-
     MicroOpBits identifierPayloadCopyBits(CodeGen& codeGen, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -48,7 +42,7 @@ namespace
             return codeGen.resolveLocalStackPayload(symVar);
         }
 
-        if (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar))
+        if (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
         {
             return codeGen.resolveLocalStackPayload(symVar);
         }

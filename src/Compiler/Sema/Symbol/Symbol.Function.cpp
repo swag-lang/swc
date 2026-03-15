@@ -209,6 +209,7 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
     if (std::ranges::find(localVariables_, sym) != localVariables_.end())
         return;
 
+    sym->addExtraFlag(SymbolVariableFlagsE::FunctionLocal);
     localVariables_.push_back(sym);
     while (numComputedLocals_ < localVariables_.size())
     {

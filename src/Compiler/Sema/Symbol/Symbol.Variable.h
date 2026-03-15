@@ -13,6 +13,7 @@ enum class SymbolVariableFlagsE : uint8_t
     ExplicitUndefined = 1 << 2,
     Parameter         = 1 << 3,
     CodeGenLocalStack = 1 << 4,
+    FunctionLocal     = 1 << 5,
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 

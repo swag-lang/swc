@@ -2,8 +2,8 @@
 #include "Main/Command/Command.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
@@ -274,7 +274,7 @@ namespace
         if (roots.empty())
             return "sources";
 
-        fs::path commonRoot;
+        fs::path          commonRoot;
         std::vector<Utf8> labels;
         for (const fs::path& root : roots)
         {
@@ -612,7 +612,7 @@ namespace
         SourceSuiteBuckets buckets;
         const TaskContext  ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
-        ScopedTimedAction  discoverAction(ctx, "Discover", formatCommandSourceRoots(cmdLine));
+        ScopedTimedAction discoverAction(ctx, "Discover", formatCommandSourceRoots(cmdLine));
         collectStandaloneSourceSuites(buckets, cmdLine);
         if (!buckets.hasSourceHints)
         {

@@ -67,7 +67,7 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
 {
     outIsPointer = false;
 
-    const TypeManager& typeMgr     = ctx.typeMgr();
+    const TypeManager& typeMgr      = ctx.typeMgr();
     const TypeRef      fieldTypeRef = typeMgr.get(typeRef()).unwrapAliasEnum(ctx, typeRef());
     const TypeInfo&    fieldType    = typeMgr.get(fieldTypeRef);
     if (fieldType.isStruct())

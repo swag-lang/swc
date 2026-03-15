@@ -114,7 +114,7 @@ namespace
             MicroReg srcReg = outReg;
             if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
             {
-                srcReg = codeGen.nextVirtualIntRegister();
+                srcReg                        = codeGen.nextVirtualIntRegister();
                 const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
                 if (srcType.isIntSigned())
                     builder.emitLoadSignedExtendRegReg(srcReg, outReg, widenedBits, srcBits);

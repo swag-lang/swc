@@ -24,7 +24,7 @@ namespace
         if (!rightType.isMoveReference())
             return payload;
 
-        ioRightTypeRef = rightType.payloadTypeRef();
+        ioRightTypeRef  = rightType.payloadTypeRef();
         payload.typeRef = ioRightTypeRef;
         if (payload.isAddress())
         {
@@ -220,7 +220,7 @@ namespace
         {
             if (getNumBits(srcOpBits) < 32 || (dstOpBits == MicroOpBits::B64 && getNumBits(srcOpBits) == 32))
             {
-                const MicroReg widenedReg  = codeGen.nextVirtualIntRegister();
+                const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
                 const MicroOpBits widenedBits = dstOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
                 if (srcType.isIntSigned())
                     builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
@@ -528,12 +528,12 @@ namespace
 
 Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token&              tok          = codeGen.token(codeRef());
-    CodeGenNodePayload        rightPayload = codeGen.payload(nodeRightRef);
-    const SemaNodeView        rightView    = codeGen.viewType(nodeRightRef);
-    TypeRef                   rightTypeRef = rightView.typeRef();
-    rightPayload                            = normalizeMoveAssignPayload(codeGen, rightPayload, rightTypeRef, modifierFlags);
-    const AstNodeRef          leftRef      = codeGen.viewZero(nodeLeftRef).nodeRef();
+    const Token&       tok          = codeGen.token(codeRef());
+    CodeGenNodePayload rightPayload = codeGen.payload(nodeRightRef);
+    const SemaNodeView rightView    = codeGen.viewType(nodeRightRef);
+    TypeRef            rightTypeRef = rightView.typeRef();
+    rightPayload                    = normalizeMoveAssignPayload(codeGen, rightPayload, rightTypeRef, modifierFlags);
+    const AstNodeRef leftRef        = codeGen.viewZero(nodeLeftRef).nodeRef();
 
     if (leftRef.isValid() && codeGen.node(leftRef).is(AstNodeId::AssignList))
     {

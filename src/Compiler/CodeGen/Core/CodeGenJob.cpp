@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Global.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"

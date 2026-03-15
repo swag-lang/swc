@@ -1,6 +1,6 @@
 #pragma once
-#include "Compiler/SourceFile.h"
 #include "Compiler/Lexer/Token.h"
+#include "Compiler/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

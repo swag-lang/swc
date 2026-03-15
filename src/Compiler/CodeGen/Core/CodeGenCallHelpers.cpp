@@ -127,7 +127,7 @@ namespace
                 outPayload.reg       = codeGen.nextVirtualFloatRegister();
                 if (value.bitWidth() == 32)
                 {
-                    const double   widenedValue = static_cast<double>(value.asFloat());
+                    const double   widenedValue = value.asFloat();
                     const uint64_t widenedBits  = std::bit_cast<uint64_t>(widenedValue);
                     const MicroReg widenedReg   = codeGen.nextVirtualFloatRegister();
                     builder.emitLoadRegImm(widenedReg, ApInt(widenedBits, 64), MicroOpBits::B64);
@@ -272,18 +272,18 @@ namespace
         if (normalizedType.isReference())
             return;
 
-        const TypeRef normalizedTypeUnwrapped = normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
-        const TypeRef dstTypeRef              = normalizedTypeUnwrapped.isValid() ? normalizedTypeUnwrapped : normalizedTypeRef;
-        const TypeInfo& dstType               = ctx.typeMgr().get(dstTypeRef);
+        const TypeRef   normalizedTypeUnwrapped = normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
+        const TypeRef   dstTypeRef              = normalizedTypeUnwrapped.isValid() ? normalizedTypeUnwrapped : normalizedTypeRef;
+        const TypeInfo& dstType                 = ctx.typeMgr().get(dstTypeRef);
 
         if (argPayload.typeRef.isValid())
         {
-            const TypeInfo& srcTypeInfo        = ctx.typeMgr().get(argPayload.typeRef);
-            const TypeRef   srcTypeUnwrapped   = srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
-            const TypeRef   srcTypeRef         = srcTypeUnwrapped.isValid() ? srcTypeUnwrapped : argPayload.typeRef;
-            const TypeInfo& srcType            = ctx.typeMgr().get(srcTypeRef);
-            const auto      srcBits            = CodeGenTypeHelpers::numericOrBoolBits(srcType);
-            const auto      dstBits            = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+            const TypeInfo& srcTypeInfo      = ctx.typeMgr().get(argPayload.typeRef);
+            const TypeRef   srcTypeUnwrapped = srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
+            const TypeRef   srcTypeRef       = srcTypeUnwrapped.isValid() ? srcTypeUnwrapped : argPayload.typeRef;
+            const TypeInfo& srcType          = ctx.typeMgr().get(srcTypeRef);
+            const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+            const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 
             if (srcType.isIntLike() && dstType.isFloat() && srcBits != MicroOpBits::Zero && dstBits != MicroOpBits::Zero)
             {
@@ -296,7 +296,7 @@ namespace
 
                 if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
                 {
-                    const MicroReg widenedReg = codeGen.nextVirtualIntRegister();
+                    const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
                     const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
                     if (srcType.isIntSigned())
                         builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcBits);
@@ -325,7 +325,7 @@ namespace
 
                 if (srcBits == dstBits)
                 {
-                    argPayload.reg = srcReg;
+                    argPayload.reg     = srcReg;
                     argPayload.typeRef = normalizedTypeRef;
                     argPayload.setIsValue();
                     return;

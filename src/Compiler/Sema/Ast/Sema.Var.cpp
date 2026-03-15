@@ -565,12 +565,12 @@ namespace
 
         const TypeInfo* explicitType = explicitTypeRef.isValid() ? &sema.typeMgr().get(explicitTypeRef) : nullptr;
 
-        const bool isConst                 = context.flags.has(AstVarDeclFlagsE::Const);
-        const bool isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
-        const bool isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
-        const bool isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
-        bool       isExplicitUndefinedInit = false;
-        SymbolFunction* globalFunctionInit = nullptr;
+        const bool      isConst                 = context.flags.has(AstVarDeclFlagsE::Const);
+        const bool      isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
+        const bool      isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
+        const bool      isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
+        bool            isExplicitUndefinedInit = false;
+        SymbolFunction* globalFunctionInit      = nullptr;
 
         // Initialized to 'undefined'
         if (context.nodeInitRef.isValid() && nodeInitView.cstRef() == sema.cstMgr().cstUndefined())

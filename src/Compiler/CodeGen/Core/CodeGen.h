@@ -293,12 +293,12 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
-    void       setVisitors();
-    Result     preNode(AstNode& node);
-    Result     postNode(AstNode& node);
-    Result     preNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result     postNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result     emitConstant(AstNodeRef nodeRef);
+    void   setVisitors();
+    Result preNode(AstNode& node);
+    Result postNode(AstNode& node);
+    Result preNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result postNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result emitConstant(AstNodeRef nodeRef);
 
     Sema*                         sema_ = nullptr;
     AstVisit                      visit_;

@@ -45,7 +45,7 @@ namespace
         if (roots.empty())
             return "sources";
 
-        fs::path commonRoot;
+        fs::path          commonRoot;
         std::vector<Utf8> labels;
         for (const fs::path& root : roots)
         {

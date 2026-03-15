@@ -1,8 +1,8 @@
 #include "pch.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -28,15 +28,15 @@ namespace
 
     struct SwitchStmtCodeGenPayload
     {
-        MicroLabelRef                                            doneLabel      = MicroLabelRef::invalid();
-        TypeRef                                                  compareTypeRef = TypeRef::invalid();
+        MicroLabelRef                                            doneLabel          = MicroLabelRef::invalid();
+        TypeRef                                                  compareTypeRef     = TypeRef::invalid();
         CodeGenNodePayload                                       switchValuePayload = {};
         MicroReg                                                 switchValueReg;
-        MicroOpBits                                              compareOpBits   = MicroOpBits::B64;
+        MicroOpBits                                              compareOpBits     = MicroOpBits::B64;
         SymbolFunction*                                          stringCmpFunction = nullptr;
-        bool                                                     hasExpression   = false;
-        bool                                                     useStringCompare = false;
-        bool                                                     useUnsignedCond = false;
+        bool                                                     hasExpression     = false;
+        bool                                                     useStringCompare  = false;
+        bool                                                     useUnsignedCond   = false;
         std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload> caseStates;
     };
 
@@ -313,12 +313,12 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
 
     if (childRef == nodeExprRef)
     {
-        const SemaNodeView        exprView       = codeGen.viewType(nodeExprRef);
-        const CodeGenNodePayload& exprPayload    = codeGen.payload(nodeExprRef);
-        const TypeInfo&           exprType       = codeGen.typeMgr().get(exprView.typeRef());
-        const TypeRef             compareTypeRef = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
-        const TypeInfo&           compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits         compareBits    = switchCompareOpBits(compareType, codeGen.ctx());
+        const SemaNodeView        exprView         = codeGen.viewType(nodeExprRef);
+        const CodeGenNodePayload& exprPayload      = codeGen.payload(nodeExprRef);
+        const TypeInfo&           exprType         = codeGen.typeMgr().get(exprView.typeRef());
+        const TypeRef             compareTypeRef   = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
+        const TypeInfo&           compareType      = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits         compareBits      = switchCompareOpBits(compareType, codeGen.ctx());
         const bool                useStringCompare = isStringCompareType(codeGen, compareTypeRef);
 
         const MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef);
@@ -327,12 +327,12 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         else
             codeGen.builder().emitLoadRegReg(switchValueReg, exprPayload.reg, compareBits);
 
-        switchState->compareTypeRef   = compareTypeRef;
+        switchState->compareTypeRef     = compareTypeRef;
         switchState->switchValuePayload = exprPayload;
-        switchState->switchValueReg   = switchValueReg;
-        switchState->compareOpBits    = compareBits;
-        switchState->useStringCompare = useStringCompare;
-        switchState->useUnsignedCond  = compareType.usesUnsignedConditions();
+        switchState->switchValueReg     = switchValueReg;
+        switchState->compareOpBits      = compareBits;
+        switchState->useStringCompare   = useStringCompare;
+        switchState->useUnsignedCond    = compareType.usesUnsignedConditions();
         if (useStringCompare)
             switchState->stringCmpFunction = runtimeStringCompareFunction(codeGen);
         return Result::Continue;

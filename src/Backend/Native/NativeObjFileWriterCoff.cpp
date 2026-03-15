@@ -3,9 +3,9 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
+#include "Compiler/SourceFile.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 

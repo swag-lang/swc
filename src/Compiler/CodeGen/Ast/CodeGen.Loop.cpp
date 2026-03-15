@@ -489,11 +489,11 @@ namespace
 
     void emitForeachInit(CodeGen& codeGen, const AstForeachStmt& node, ForeachStmtCodeGenPayload& loopState)
     {
-        const AstNodeRef          exprRef     = node.nodeExprRef;
-        const SemaNodeView        exprView    = foreachExprView(codeGen, exprRef);
-        const CodeGenNodePayload  exprPayload = foreachExprPayload(codeGen, exprRef);
-        const TypeInfo&           exprType    = *(exprView.type());
-        MicroBuilder&             builder     = codeGen.builder();
+        const AstNodeRef         exprRef     = node.nodeExprRef;
+        const SemaNodeView       exprView    = foreachExprView(codeGen, exprRef);
+        const CodeGenNodePayload exprPayload = foreachExprPayload(codeGen, exprRef);
+        const TypeInfo&          exprType    = *(exprView.type());
+        MicroBuilder&            builder     = codeGen.builder();
 
         loopState.baseReg  = MicroReg::invalid();
         loopState.countReg = codeGen.nextVirtualIntRegister();

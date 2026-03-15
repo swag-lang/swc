@@ -27,27 +27,27 @@ public:
     {
     }
 
-    uint32_t    offset() const { return offset_; }
-    void        setOffset(uint32_t offset) { offset_ = offset; }
-    uint32_t    parameterIndex() const { return parameterIndex_; }
-    bool        hasParameterIndex() const { return parameterIndex_ != K_INVALID_PARAMETER_INDEX; }
-    void        setParameterIndex(uint32_t index) { parameterIndex_ = index; }
-    ConstantRef cstRef() const { return cstRef_; }
-    void        setCstRef(ConstantRef ref) { cstRef_ = ref; }
-    ConstantRef defaultValueRef() const { return defaultValueRef_; }
-    void        setDefaultValueRef(ConstantRef ref) { defaultValueRef_ = ref; }
-    uint32_t    codeGenLocalSize() const { return codeGenLocalSize_; }
-    void        setCodeGenLocalSize(uint32_t size) { codeGenLocalSize_ = size; }
-    uint32_t    debugStackSlotOffset() const { return debugStackSlotOffset_; }
-    void        setDebugStackSlotOffset(uint32_t offset) { debugStackSlotOffset_ = offset; }
-    uint32_t    debugStackSlotSize() const { return debugStackSlotSize_; }
-    void        setDebugStackSlotSize(uint32_t size) { debugStackSlotSize_ = size; }
-    void*       codeGenPayload() const { return codeGenPayload_; }
-    void        setCodeGenPayload(void* payload) const { codeGenPayload_ = payload; }
-    bool        hasGlobalStorage() const { return hasGlobalStorage_; }
-    SymbolFunction* globalFunctionInit() const { return globalFunctionInit_; }
-    void            setGlobalFunctionInit(SymbolFunction* symbol) { globalFunctionInit_ = symbol; }
-    bool        isUsingField() const noexcept;
+    uint32_t            offset() const { return offset_; }
+    void                setOffset(uint32_t offset) { offset_ = offset; }
+    uint32_t            parameterIndex() const { return parameterIndex_; }
+    bool                hasParameterIndex() const { return parameterIndex_ != K_INVALID_PARAMETER_INDEX; }
+    void                setParameterIndex(uint32_t index) { parameterIndex_ = index; }
+    ConstantRef         cstRef() const { return cstRef_; }
+    void                setCstRef(ConstantRef ref) { cstRef_ = ref; }
+    ConstantRef         defaultValueRef() const { return defaultValueRef_; }
+    void                setDefaultValueRef(ConstantRef ref) { defaultValueRef_ = ref; }
+    uint32_t            codeGenLocalSize() const { return codeGenLocalSize_; }
+    void                setCodeGenLocalSize(uint32_t size) { codeGenLocalSize_ = size; }
+    uint32_t            debugStackSlotOffset() const { return debugStackSlotOffset_; }
+    void                setDebugStackSlotOffset(uint32_t offset) { debugStackSlotOffset_ = offset; }
+    uint32_t            debugStackSlotSize() const { return debugStackSlotSize_; }
+    void                setDebugStackSlotSize(uint32_t size) { debugStackSlotSize_ = size; }
+    void*               codeGenPayload() const { return codeGenPayload_; }
+    void                setCodeGenPayload(void* payload) const { codeGenPayload_ = payload; }
+    bool                hasGlobalStorage() const { return hasGlobalStorage_; }
+    SymbolFunction*     globalFunctionInit() const { return globalFunctionInit_; }
+    void                setGlobalFunctionInit(SymbolFunction* symbol) { globalFunctionInit_ = symbol; }
+    bool                isUsingField() const noexcept;
     const SymbolStruct* usingTargetStruct(const TaskContext& ctx) const;
     const SymbolStruct* usingTargetStruct(const TaskContext& ctx, bool& outIsPointer) const;
 

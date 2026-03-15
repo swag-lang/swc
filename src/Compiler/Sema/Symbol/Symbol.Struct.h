@@ -38,7 +38,7 @@ public:
         SWC_ASSERT(sym != nullptr);
         fields_.push_back(sym);
     }
-    
+
     void                                removeIgnoredFields();
     std::vector<SymbolVariable*>&       fields() { return fields_; }
     const std::vector<SymbolVariable*>& fields() const { return fields_; }

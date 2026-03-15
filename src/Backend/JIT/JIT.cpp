@@ -425,9 +425,7 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 
         uint64_t                 targetAddress = 0;
         RelocationResolveFailure failure;
-        const bool hasTargetAddress = targetFunction->isForeign() ?
-                                          resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) :
-                                          resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure);
+        const bool               hasTargetAddress = targetFunction->isForeign() ? resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure);
         if (!hasTargetAddress)
         {
             const DiagnosticId diagId = targetFunction->isForeign() ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;

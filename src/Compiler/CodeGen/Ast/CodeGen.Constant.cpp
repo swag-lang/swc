@@ -101,7 +101,7 @@ namespace
 
             const TypeRef   elementTypeRef = topLevelArrayElementTypeRef(codeGen, storageType);
             const TypeInfo& elementType    = codeGen.typeMgr().get(elementTypeRef);
-            const uint64_t elementSize = elementType.sizeOf(codeGen.ctx());
+            const uint64_t  elementSize    = elementType.sizeOf(codeGen.ctx());
             SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
 
             outLayout.reserve(elementRefs.size());
@@ -196,7 +196,7 @@ namespace
         SWC_INTERNAL_CHECK(hasLayout);
         SWC_INTERNAL_CHECK(totalSize == codeGen.typeMgr().get(aggregateTypeRef).sizeOf(codeGen.ctx()));
 
-        const MicroReg dstBaseReg = codeGen.runtimeStorageAddressReg(nodeRef);
+        const MicroReg  dstBaseReg  = codeGen.runtimeStorageAddressReg(nodeRef);
         const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
         if (storageType.isArray() || storageType.isStruct())
             emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg);
@@ -327,7 +327,7 @@ namespace
                 payload.reg          = codeGen.nextVirtualFloatRegister();
                 if (value.bitWidth() == 32)
                 {
-                    const double   widenedValue = static_cast<double>(value.asFloat());
+                    const double   widenedValue = value.asFloat();
                     const uint64_t widenedBits  = std::bit_cast<uint64_t>(widenedValue);
                     const MicroReg widenedReg   = codeGen.nextVirtualFloatRegister();
                     builder.emitLoadRegImm(widenedReg, ApInt(widenedBits, 64), MicroOpBits::B64);

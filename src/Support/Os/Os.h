@@ -39,7 +39,7 @@ namespace Os
 
     void initialize();
 
-    void panicBox(const char* expr);
+    void panicBox(std::string_view expr);
     Utf8 systemError();
 
     [[noreturn]]

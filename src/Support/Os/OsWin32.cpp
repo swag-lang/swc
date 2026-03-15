@@ -5,6 +5,8 @@
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/LogColor.h"
+#include "Support/Report/Logger.h"
 #include <dbghelp.h>
 #include <psapi.h>
 
@@ -507,24 +509,16 @@ namespace Os
         }
     }
 
-    void panicBox(const char* expr)
+    void panicBox(const std::string_view expr)
     {
-        std::println(stderr, "panic: {}", expr ? expr : "<null>");
-        (void) std::fflush(stderr);
+        const Utf8 logMsg = std::format("panic: {}\n", expr.empty() ? "<null>" : expr);
+        Logger::printStdErr(LogColor::Red, logMsg);
 
         if (!CompilerInstance::dbgDevMode)
             exit(ExitCode::PanicBox);
 
-        char msg[2048];
-        SWC_ASSERT(std::strlen(expr) < 1024);
-
-        (void) snprintf(msg, sizeof(msg),
-                        "%s\n\n"
-                        "Press 'Cancel' to exit\n"
-                        "Press 'Retry' to break\n",
-                        expr);
-
-        const int result = MessageBoxA(nullptr, msg, "Swc meditation!", MB_CANCELTRYCONTINUE | MB_ICONERROR);
+        const Utf8 boxMsg = std::format("{}\n\nPress 'Cancel' to exit\nPress 'Retry' to break\n", expr);
+        const int  result = MessageBoxA(nullptr, boxMsg.c_str(), "Swc meditation!", MB_CANCELTRYCONTINUE | MB_ICONERROR);
         switch (result)
         {
             case IDCANCEL:

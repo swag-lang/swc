@@ -47,7 +47,9 @@ public:
     bool                hasGlobalStorage() const { return hasGlobalStorage_; }
     SymbolFunction*     globalFunctionInit() const { return globalFunctionInit_; }
     void                setGlobalFunctionInit(SymbolFunction* symbol) { globalFunctionInit_ = symbol; }
-    bool                isFunctionLocalVariable() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::FunctionLocal); }
+    const SymbolFunction* ownerFunction() const noexcept;
+    bool                  isFunctionLocalVariable() const noexcept { return ownerFunction() != nullptr; }
+    bool                  isFunctionLocalVariable(const SymbolFunction& function) const noexcept { return ownerFunction() == &function; }
     bool                isUsingField() const noexcept;
     const SymbolStruct* usingTargetStruct(const TaskContext& ctx) const;
     const SymbolStruct* usingTargetStruct(const TaskContext& ctx, bool& outIsPointer) const;

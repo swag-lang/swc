@@ -50,6 +50,22 @@ bool Symbol::isFunctionLocalVariable() const noexcept
     return cast<SymbolVariable>().isFunctionLocalVariable();
 }
 
+const SymbolFunction* SymbolVariable::ownerFunction() const noexcept
+{
+    if (!hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+        return nullptr;
+
+    const SymbolMap* map = ownerSymMap();
+    while (map)
+    {
+        if (map->isFunction())
+            return &map->cast<SymbolFunction>();
+        map = map->ownerSymMap();
+    }
+
+    return nullptr;
+}
+
 bool SymbolVariable::isUsingField() const noexcept
 {
     const AstNode* fieldDecl = decl();

@@ -43,7 +43,7 @@ namespace
         if (var->hasExtraFlag(SymbolVariableFlagsE::Let))
             return false;
 
-        return var->isFunctionLocalVariable();
+        return var->isFunctionLocalVariable(fn);
     }
 
     bool isWritableAssignmentTarget(Sema& sema, const SymbolFunction& fn, AstNodeRef leftRef)

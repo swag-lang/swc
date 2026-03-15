@@ -15,6 +15,9 @@
     @assert(a == 1)
 }
 
-func toto() {}
+func toto()->bool { return true }
 
-#test toto()
+#test
+{
+    @assert(toto())
+}

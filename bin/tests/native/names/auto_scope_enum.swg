@@ -15,12 +15,14 @@ const D = A.R & ~.G
     let request = &requestStorage
     request.mode = .Realloc
     if request.mode == .Realloc {}
+    @assert(request.mode == .Realloc)
 }
 
 func toto()->A { return .R }
 #test
 {
     if(toto() == .R) {}
+    @assert(toto() == .R)
 }
 
 #test
@@ -50,4 +52,5 @@ impl E
     var f: F
     f.x = .G
     let a = f.x == .G
+    @assert(a)
 }

@@ -2,12 +2,12 @@
 
 #global fileprivate
 #global skip
-func toto(x: ...) {}
+func toto(x: ...)->u64 { return @countof(x) }
 
-func toto1(x: u32...) {}
+func toto1(x: u32...)->u64 { return @countof(x) }
 
 #test
 {
-    toto()
-    toto1()
+    @assert(toto() == 0)
+    @assert(toto1() == 0)
 }

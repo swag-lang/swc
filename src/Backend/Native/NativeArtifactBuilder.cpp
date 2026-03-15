@@ -432,7 +432,9 @@ Result NativeArtifactBuilder::buildStartup() const
 
     if (builder_->compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
-    if (builder_->mainFunctions.empty())
+    // Source-driven native tests can legitimately build an executable with
+    // #test entries and no user-defined #main.
+    if (builder_->mainFunctions.empty() && builder_->testFunctions.empty())
         return builder_->reportError(DiagnosticId::cmd_err_native_main_missing);
 
     auto         startup = std::make_unique<NativeStartupInfo>();

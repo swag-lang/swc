@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -111,13 +112,14 @@ namespace
         if (srcType.isIntLike() && dstType.isFloat())
         {
             MicroReg srcReg = outReg;
-            if (getNumBits(srcBits) < 32)
+            if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
             {
                 srcReg = codeGen.nextVirtualIntRegister();
+                const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
                 if (srcType.isIntSigned())
-                    builder.emitLoadSignedExtendRegReg(srcReg, outReg, MicroOpBits::B32, srcBits);
+                    builder.emitLoadSignedExtendRegReg(srcReg, outReg, widenedBits, srcBits);
                 else
-                    builder.emitLoadZeroExtendRegReg(srcReg, outReg, MicroOpBits::B32, srcBits);
+                    builder.emitLoadZeroExtendRegReg(srcReg, outReg, widenedBits, srcBits);
             }
 
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
@@ -475,11 +477,78 @@ namespace
         return payload.reg;
     }
 
+    bool isFunctionLocalVariable(const CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        const auto& locals = codeGen.function().localVariables();
+        return std::ranges::find(locals, const_cast<SymbolVariable*>(&symVar)) != locals.end();
+    }
+
+    CodeGenNodePayload resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
+            const SymbolFunction& symbolFunc = codeGen.function();
+            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+        }
+
+        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+            return *symbolPayload;
+
+        if (symVar.hasGlobalStorage())
+        {
+            CodeGenNodePayload globalPayload;
+            globalPayload.typeRef = symVar.typeRef();
+            globalPayload.setIsAddress();
+            globalPayload.reg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, symVar.globalStorageKind(), symVar.offset());
+            return globalPayload;
+        }
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            return codeGen.resolveLocalStackPayload(symVar);
+
+        if (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar))
+            return codeGen.resolveLocalStackPayload(symVar);
+
+        SWC_UNREACHABLE();
+    }
+
+    CodeGenNodePayload countOfExprPayload(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(exprRef))
+        {
+            if (payload->reg.isValid())
+                return *payload;
+        }
+
+        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
+        if (storedView.sym() && storedView.sym()->isVariable())
+        {
+            const auto& symVar = storedView.sym()->cast<SymbolVariable>();
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+                symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
+                symVar.hasGlobalStorage() ||
+                CodeGen::variablePayload(symVar) ||
+                (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar)))
+                return resolveStoredVariablePayload(codeGen, symVar);
+        }
+
+        return codeGen.payload(exprRef);
+    }
+
+    SemaNodeView countOfExprView(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
+        if (storedView.type() != nullptr)
+            return storedView;
+        return codeGen.viewType(exprRef);
+    }
+
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)
     {
         MicroBuilder&             builder       = codeGen.builder();
-        const SemaNodeView        exprView      = codeGen.viewType(exprRef);
-        const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
+        const SemaNodeView        exprView      = countOfExprView(codeGen, exprRef);
+        const CodeGenNodePayload& exprPayload   = countOfExprPayload(codeGen, exprRef);
         const TypeInfo* const     exprType      = exprView.type();
         const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
         SWC_ASSERT(exprType != nullptr);

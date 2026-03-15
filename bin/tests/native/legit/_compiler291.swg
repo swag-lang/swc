@@ -4,14 +4,15 @@
 using Swag
 
 //#[PrintBc]
-func test2(v: string, v1: string)
+func test2(v: string, v1: string)->bool
 {
     //@print(v);
     //@print(v1);
+    return v == "toto" and v1 == "titi"
 }
 
 //#[PrintBc]
 #test
 {
-    test2("toto", "titi")
+    @assert(test2("toto", "titi"))
 }

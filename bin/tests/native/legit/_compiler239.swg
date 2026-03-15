@@ -21,4 +21,5 @@ func main()
 #test
 {
     main()
+    @assert(main1() == 77)
 }

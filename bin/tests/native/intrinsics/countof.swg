@@ -12,6 +12,7 @@ const B = "XYZ"
 {
     const a = @countof(3)
     #assert(a == 3)
+    @assert(a == 3)
 }
 
 namespace NS {}
@@ -29,6 +30,9 @@ namespace NS {}
     var c: [4, 10] s32
     const d = @countof(c)
     #assert(d == 40)
+    @assert(b == 0)
+    @assert(csc == 0)
+    @assert(d == 40)
 }
 
 #test
@@ -36,6 +40,7 @@ namespace NS {}
     var a: [2, 3, 4] u8
     const b = @countof(a)
     #assert(b == 24)
+    @assert(b == 24)
 }
 
 #test
@@ -43,4 +48,5 @@ namespace NS {}
     var a: [7] bool
     const b = @countof(a)
     #assert(b == 7)
+    @assert(b == 7)
 }

@@ -8,6 +8,8 @@
 
     var ptr1 = &buf1[0]
     #assert(#typeof(ptr1) == [*] s32)
+    @assert(a1 == 0)
+    @assert(ptr1 == &buf1[0])
 }
 
 
@@ -16,6 +18,7 @@
 {
     var a4: [2, 3] s32
     #assert(#typeof(a4[0]) == #type [3] s32)
+    @assert(@countof(a4[0]) == 3)
 }
 
 

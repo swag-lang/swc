@@ -31,6 +31,7 @@ func castVariadicValue(x: ...)
 {
     var value: CastTriple
     castVariadicValue(value)
+    @assert(value.x == 456)
 }
 
 #test

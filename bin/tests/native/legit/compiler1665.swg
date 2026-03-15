@@ -31,4 +31,5 @@ func C(x: ...)
 {
     var x: TT
     C(x)
+    @assert(x.x == 456)
 }

@@ -15,4 +15,5 @@ enum B
 #test
 {
     using A, B
+    @assert(#typeof(A.AA) != #typeof(B.BB))
 }

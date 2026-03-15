@@ -14,14 +14,15 @@ struct TT
 alias myStruct = TT
 
 //#[Swag.PrintBc]
-func C(x: myStruct)
+func C(x: myStruct)->s64
 {
     //@print(cast(s64) x.value)
     @assert(x.value == 456)
+    return x.value
 }
 
 #test
 {
     var x: myStruct
-    C(x)
+    @assert(C(x) == 456)
 }

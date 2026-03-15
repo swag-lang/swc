@@ -3,12 +3,13 @@
 #global fileprivate
 using Swag
 
-func main()
+func main()->bool
 {
     @assert(true)
+    return true
 }
 
 #test
 {
-    main()
+    @assert(main())
 }

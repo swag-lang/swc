@@ -22,6 +22,7 @@ func assign(a: &Vec, b: Vec)
     out = #move moveref &v
     var rr: &&Vec = moveref &v
     out = #move rr
+    @assert(out.x == 1)
 }
 
 

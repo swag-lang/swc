@@ -18,4 +18,5 @@ struct TT
     //addr1[0] = &value
 
     //@print(addr[0].value)
+    @assert(addr[0] == &addr1)
 }

@@ -56,6 +56,8 @@
     #assert(Y == 2.0)
     #assert(Z == 1.0)
     #assert(AA == 2.0)
+    @assert(A == 2.0)
+    @assert(AA == 2.0)
 }
 
 
@@ -76,6 +78,8 @@
     const F: s32 = @max(1's32, 2's32)
     #assert(E == 1)
     #assert(F == 2)
+    @assert(C == -3)
+    @assert(F == 2)
 }
 
 #test
@@ -84,6 +88,7 @@
     const B: s64 = @max(-5's64, 3's64)
     #assert(A == -5)
     #assert(B == 3)
+    @assert(B == 3)
 }
 
 #test
@@ -92,6 +97,7 @@
     const B: u32 = @max(10'u32, 20'u32)
     #assert(A == 10'u32)
     #assert(B == 20'u32)
+    @assert(B == 20'u32)
 }
 
 #test
@@ -104,6 +110,7 @@
     const D: u16 = @max(3'u16, 1'u16)
     #assert(C == 1'u16)
     #assert(D == 3'u16)
+    @assert(D == 3'u16)
 }
 
 #test
@@ -112,6 +119,7 @@
     const B: u64 = @max(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
     #assert(A == 1'u64)
     #assert(B == 0xFFFFFFFFFFFFFFFF'u64)
+    @assert(B == 0xFFFFFFFFFFFFFFFF'u64)
 }
 
 
@@ -122,4 +130,5 @@
 {
     const E: f64 = @atan2(0.0'f32, 0.0'f32)
     #assert(E == 0.0)
+    @assert(E == 0.0)
 }

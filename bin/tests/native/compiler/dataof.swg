@@ -21,6 +21,11 @@
     var i: any
     var j = @dataof(i)
     #assert(#typeof(j) == [*] void)
+    @assert(#typeof(b) == [*] s32)
+    @assert(#typeof(d) == const [*] u8)
+    @assert(#typeof(f) == const [*] u8)
+    @assert(#typeof(h) == [*] s32)
+    @assert(#typeof(j) == [*] void)
 }
 
 #test
@@ -46,6 +51,7 @@
     var s: string = null
     var p = @dataof(s)
     #assert(#typeof(p) == const [*] u8)
+    @assert(p == null)
 }
 
 #test
@@ -62,6 +68,8 @@
     const p = @dataof(s)
     #assert(p != null)
     #assert(dref p == 'a''u8)
+    @assert(p != null)
+    @assert(dref p == 'a''u8)
 }
 
 #test
@@ -70,6 +78,8 @@
     const p = @dataof(s)
     #assert(p != null)
     #assert(dref p == 'a''u8)
+    @assert(p != null)
+    @assert(dref p == 'a''u8)
 }
 
 #test
@@ -78,5 +88,7 @@
     const p = @dataof(arr)
     #assert(p != null)
     #assert(dref p == 7)
+    @assert(p != null)
+    @assert(dref p == 7)
 }
 

@@ -4,7 +4,7 @@
 using Swag
 
 //#[PrintBc]
-func main()
+func main()->bool
 {
     if false
     {
@@ -16,9 +16,10 @@ func main()
     }
 
     @assert(true)
+    return true
 }
 
 #test
 {
-    main()
+    @assert(main())
 }

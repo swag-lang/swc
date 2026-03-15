@@ -27,63 +27,180 @@ namespace
         return ((value + align - 1) / align) * align;
     }
 
-    bool computeAggregateLayout(CodeGen& codeGen, TypeRef aggregateTypeRef, std::span<const AstNodeRef> elementRefs, SmallVector<AggregateElementLayout>& outLayout, uint32_t& outTotalSize)
+    TypeRef topLevelArrayElementTypeRef(CodeGen& codeGen, const TypeInfo& arrayType)
+    {
+        SWC_ASSERT(arrayType.isArray());
+        const auto& dims = arrayType.payloadArrayDims();
+        SWC_ASSERT(!dims.empty());
+
+        if (dims.size() == 1)
+            return arrayType.payloadArrayElemTypeRef();
+
+        SmallVector<uint64_t> remainingDims;
+        remainingDims.reserve(dims.size() - 1);
+        for (size_t i = 1; i < dims.size(); ++i)
+            remainingDims.push_back(dims[i]);
+
+        return codeGen.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+    }
+
+    bool computeLiteralLayout(CodeGen& codeGen, TypeRef storageTypeRef, std::span<const AstNodeRef> elementRefs, SmallVector<AggregateElementLayout>& outLayout, uint32_t& outTotalSize)
     {
         outLayout.clear();
         outTotalSize = 0;
-        if (aggregateTypeRef.isInvalid())
+        if (storageTypeRef.isInvalid())
             return false;
 
-        const TypeInfo& aggregateType = codeGen.typeMgr().get(aggregateTypeRef);
-        if (!aggregateType.isAggregateStruct() && !aggregateType.isAggregateArray())
+        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
+        if (storageType.isAggregateStruct() || storageType.isAggregateArray())
+        {
+            const auto& elementTypes = storageType.payloadAggregate().types;
+            if (elementTypes.size() != elementRefs.size())
+                return false;
+
+            outLayout.reserve(elementRefs.size());
+
+            uint32_t maxAlignment = 1;
+            uint64_t offset       = 0;
+            for (size_t i = 0; i < elementRefs.size(); ++i)
+            {
+                const TypeRef   elementTypeRef = elementTypes[i];
+                const TypeInfo& elementType    = codeGen.typeMgr().get(elementTypeRef);
+                uint32_t        alignment      = elementType.alignOf(codeGen.ctx());
+                if (!alignment)
+                    alignment = 1;
+
+                const uint64_t elementSize = elementType.sizeOf(codeGen.ctx());
+                if (!elementSize)
+                    continue;
+
+                SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
+                offset = alignUpTo(offset, alignment);
+                outLayout.push_back({
+                    .valueRef = elementRefs[i],
+                    .typeRef  = elementTypeRef,
+                    .offset   = static_cast<uint32_t>(offset),
+                });
+                offset += elementSize;
+                maxAlignment = std::max(maxAlignment, alignment);
+            }
+
+            offset = alignUpTo(offset, maxAlignment);
+            SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
+            outTotalSize = static_cast<uint32_t>(offset);
+            return true;
+        }
+
+        if (storageType.isArray())
+        {
+            const auto& dims = storageType.payloadArrayDims();
+            if (dims.empty())
+                return false;
+            if (elementRefs.size() > dims[0])
+                return false;
+
+            const TypeRef   elementTypeRef = topLevelArrayElementTypeRef(codeGen, storageType);
+            const TypeInfo& elementType    = codeGen.typeMgr().get(elementTypeRef);
+            const uint64_t elementSize = elementType.sizeOf(codeGen.ctx());
+            SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
+
+            outLayout.reserve(elementRefs.size());
+            for (size_t i = 0; i < elementRefs.size(); ++i)
+            {
+                const uint64_t elementOffset = i * elementSize;
+                SWC_ASSERT(elementOffset <= std::numeric_limits<uint32_t>::max());
+                outLayout.push_back({
+                    .valueRef = elementRefs[i],
+                    .typeRef  = elementTypeRef,
+                    .offset   = static_cast<uint32_t>(elementOffset),
+                });
+            }
+
+            const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());
+            SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
+            outTotalSize = static_cast<uint32_t>(totalSize);
+            return true;
+        }
+
+        if (!storageType.isStruct())
             return false;
 
-        const auto& elementTypes = aggregateType.payloadAggregate().types;
-        if (elementTypes.size() != elementRefs.size())
+        const auto& fields = storageType.payloadSymStruct().fields();
+        if (elementRefs.size() > fields.size())
             return false;
 
         outLayout.reserve(elementRefs.size());
-
-        uint32_t maxAlignment = 1;
-        uint64_t offset       = 0;
         for (size_t i = 0; i < elementRefs.size(); ++i)
         {
-            const TypeRef   elementTypeRef = elementTypes[i];
-            const TypeInfo& elementType    = codeGen.typeMgr().get(elementTypeRef);
-            uint32_t        alignment      = elementType.alignOf(codeGen.ctx());
-            if (!alignment)
-                alignment = 1;
+            const SymbolVariable* field = fields[i];
+            if (!field)
+                return false;
 
-            const uint64_t elementSize = elementType.sizeOf(codeGen.ctx());
-            if (!elementSize)
+            const TypeRef   fieldTypeRef = field->typeRef();
+            const TypeInfo& fieldType    = codeGen.typeMgr().get(fieldTypeRef);
+            const uint64_t  fieldSize    = fieldType.sizeOf(codeGen.ctx());
+            if (!fieldSize)
                 continue;
 
-            SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
-            offset = alignUpTo(offset, alignment);
             outLayout.push_back({
                 .valueRef = elementRefs[i],
-                .typeRef  = elementTypeRef,
-                .offset   = static_cast<uint32_t>(offset),
+                .typeRef  = fieldTypeRef,
+                .offset   = field->offset(),
             });
-            offset += elementSize;
-            maxAlignment = std::max(maxAlignment, alignment);
         }
 
-        offset = alignUpTo(offset, maxAlignment);
-        SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
-        outTotalSize = static_cast<uint32_t>(offset);
+        const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());
+        SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
+        outTotalSize = static_cast<uint32_t>(totalSize);
         return true;
+    }
+
+    void emitConcreteLiteralStorageInit(CodeGen& codeGen, TypeRef storageTypeRef, MicroReg dstBaseReg)
+    {
+        if (storageTypeRef.isInvalid())
+            return;
+
+        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
+        if (storageType.isArray())
+        {
+            const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());
+            if (!totalSize)
+                return;
+
+            SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
+            CodeGenMemoryHelpers::emitMemZero(codeGen, dstBaseReg, static_cast<uint32_t>(totalSize));
+            return;
+        }
+
+        if (!storageType.isStruct())
+            return;
+
+        const ConstantRef defaultValueRef = storageType.payloadSymStruct().computeDefaultValue(codeGen.sema(), storageTypeRef);
+        SWC_ASSERT(defaultValueRef.isValid());
+        const ConstantValue& defaultValue = codeGen.cstMgr().get(defaultValueRef);
+        SWC_ASSERT(defaultValue.isStruct());
+
+        const ByteSpan payloadBytes = defaultValue.getStruct();
+        SWC_ASSERT(payloadBytes.size() == storageType.sizeOf(codeGen.ctx()));
+
+        const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), defaultValueRef);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstBaseReg, payloadReg, static_cast<uint32_t>(payloadBytes.size()));
     }
 
     Result emitAggregateLiteralPayload(CodeGen& codeGen, AstNodeRef nodeRef, std::span<const AstNodeRef> elementRefs, TypeRef aggregateTypeRef)
     {
         SmallVector<AggregateElementLayout> layout;
         uint32_t                            totalSize = 0;
-        const bool                          hasLayout = computeAggregateLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
+        const bool                          hasLayout = computeLiteralLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
         SWC_INTERNAL_CHECK(hasLayout);
         SWC_INTERNAL_CHECK(totalSize == codeGen.typeMgr().get(aggregateTypeRef).sizeOf(codeGen.ctx()));
 
         const MicroReg dstBaseReg = codeGen.runtimeStorageAddressReg(nodeRef);
+        const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
+        if (storageType.isArray() || storageType.isStruct())
+            emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg);
+
         for (const AggregateElementLayout& entry : layout)
         {
             const CodeGenNodePayload& elementPayload = codeGen.payload(entry.valueRef);
@@ -116,12 +233,20 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef storedLiteralTypeRef(CodeGen& codeGen, AstNodeRef nodeRef)
+    TypeRef resolvedLiteralStorageTypeRef(CodeGen& codeGen, AstNodeRef nodeRef)
     {
+        const TypeRef currentTypeRef = codeGen.viewType(nodeRef).typeRef();
+        if (currentTypeRef.isValid())
+        {
+            const TypeInfo& currentType = codeGen.typeMgr().get(currentTypeRef);
+            if (currentType.isArray() || currentType.isStruct() || currentType.isAggregateArray() || currentType.isAggregateStruct())
+                return currentTypeRef;
+        }
+
         const TypeRef storedTypeRef = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Type).typeRef();
         if (storedTypeRef.isValid())
             return storedTypeRef;
-        return codeGen.viewType(nodeRef).typeRef();
+        return currentTypeRef;
     }
 
     ConstantRef materializeBorrowedStorageConstant(CodeGen& codeGen, ConstantRef cstRef, TypeRef typeRef)
@@ -199,10 +324,15 @@ namespace
             case ConstantKind::Float:
             {
                 const ApFloat& value = cst.getFloat();
+                payload.reg          = codeGen.nextVirtualFloatRegister();
                 if (value.bitWidth() == 32)
                 {
-                    const auto bits = std::bit_cast<uint32_t>(value.asFloat());
-                    builder.emitLoadRegImm(payload.reg, ApInt(bits, 64), MicroOpBits::B32);
+                    const double   widenedValue = static_cast<double>(value.asFloat());
+                    const uint64_t widenedBits  = std::bit_cast<uint64_t>(widenedValue);
+                    const MicroReg widenedReg   = codeGen.nextVirtualFloatRegister();
+                    builder.emitLoadRegImm(widenedReg, ApInt(widenedBits, 64), MicroOpBits::B64);
+                    builder.emitClearReg(payload.reg, MicroOpBits::B32);
+                    builder.emitOpBinaryRegReg(payload.reg, widenedReg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
                     payload.setIsValue();
                     return;
                 }
@@ -450,7 +580,7 @@ Result AstArrayLiteral::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<AstNodeRef> elementRefs;
     collectChildren(elementRefs, codeGen.ast());
 
-    const TypeRef aggregateTypeRef = storedLiteralTypeRef(codeGen, codeGen.curNodeRef());
+    const TypeRef aggregateTypeRef = resolvedLiteralStorageTypeRef(codeGen, codeGen.curNodeRef());
     return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
 }
 
@@ -459,7 +589,7 @@ Result AstStructLiteral::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<AstNodeRef> elementRefs;
     collectChildren(elementRefs, codeGen.ast());
 
-    const TypeRef aggregateTypeRef = storedLiteralTypeRef(codeGen, codeGen.curNodeRef());
+    const TypeRef aggregateTypeRef = resolvedLiteralStorageTypeRef(codeGen, codeGen.curNodeRef());
     return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
 }
 
@@ -468,7 +598,7 @@ Result AstStructInitializerList::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<AstNodeRef> elementRefs;
     codeGen.ast().appendNodes(elementRefs, spanArgsRef);
 
-    const TypeRef aggregateTypeRef = storedLiteralTypeRef(codeGen, codeGen.curNodeRef());
+    const TypeRef aggregateTypeRef = resolvedLiteralStorageTypeRef(codeGen, codeGen.curNodeRef());
     return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
 }
 

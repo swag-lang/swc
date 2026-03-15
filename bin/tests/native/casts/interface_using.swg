@@ -28,13 +28,13 @@ struct Bad
 {
     var s: S
     var i0 = cast(I) s
-    discard i0.foo()
+    @assert(i0.foo() == 1)
 }
 
 #test
 {
     var w: W
     var i1 = cast(I) w
-    discard i1.foo()
+    @assert(i1.foo() == 1)
 }
 

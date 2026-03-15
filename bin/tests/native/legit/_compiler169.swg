@@ -13,4 +13,5 @@ func main()->s32
 #test
 {
     var r = main()
+    @assert(r == 666)
 }

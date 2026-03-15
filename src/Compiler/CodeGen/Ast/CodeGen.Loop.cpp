@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -170,6 +171,12 @@ namespace
         return unsignedCompare ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual;
     }
 
+    bool isFunctionLocalVariable(const CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        const auto& locals = codeGen.function().localVariables();
+        return std::ranges::find(locals, const_cast<SymbolVariable*>(&symVar)) != locals.end();
+    }
+
     MicroReg materializeLoopValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
@@ -217,6 +224,13 @@ namespace
 
     CodeGenNodePayload resolveForeachVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
 
+    MicroReg materializeForeachInternalStackAddress(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        SWC_ASSERT(symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+        return codeGen.offsetAddressReg(codeGen.localStackBaseReg(), symVar.offset());
+    }
+
     MicroReg materializeForeachSourceAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState, const CodeGenNodePayload& sourcePayload, const TypeInfo& sourceType)
     {
         if (sourcePayload.isAddress())
@@ -227,11 +241,9 @@ namespace
             return sourcePayload.reg;
 
         SWC_ASSERT(loopState.sourceSpillSym != nullptr);
-        const CodeGenNodePayload spillPayload = resolveForeachVariablePayload(codeGen, *(loopState.sourceSpillSym));
-        SWC_ASSERT(spillPayload.isAddress());
 
         MicroBuilder&  builder      = codeGen.builder();
-        const MicroReg spillAddrReg = spillPayload.reg;
+        const MicroReg spillAddrReg = materializeForeachInternalStackAddress(codeGen, *(loopState.sourceSpillSym));
         builder.emitLoadMemReg(spillAddrReg, 0, sourcePayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
         return spillAddrReg;
     }
@@ -261,6 +273,67 @@ namespace
         regPayload.reg = codeGen.nextVirtualRegisterForType(symVar.typeRef());
         codeGen.setVariablePayload(symVar, regPayload);
         return regPayload;
+    }
+
+    CodeGenNodePayload resolveForeachStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
+            const SymbolFunction& symbolFunc = codeGen.function();
+            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+        }
+
+        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+            return *symbolPayload;
+
+        if (symVar.hasGlobalStorage())
+        {
+            CodeGenNodePayload globalPayload;
+            globalPayload.typeRef = symVar.typeRef();
+            globalPayload.setIsAddress();
+            globalPayload.reg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, symVar.globalStorageKind(), symVar.offset());
+            return globalPayload;
+        }
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            return codeGen.resolveLocalStackPayload(symVar);
+
+        if (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar))
+            return codeGen.resolveLocalStackPayload(symVar);
+
+        SWC_UNREACHABLE();
+    }
+
+    CodeGenNodePayload foreachExprPayload(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(exprRef))
+        {
+            if (payload->reg.isValid())
+                return *payload;
+        }
+
+        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
+        if (storedView.sym() && storedView.sym()->isVariable())
+        {
+            const auto& symVar = storedView.sym()->cast<SymbolVariable>();
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+                symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
+                symVar.hasGlobalStorage() ||
+                CodeGen::variablePayload(symVar) ||
+                (codeGen.localStackBaseReg().isValid() && isFunctionLocalVariable(codeGen, symVar)))
+                return resolveForeachStoredVariablePayload(codeGen, symVar);
+        }
+
+        return codeGen.payload(exprRef);
+    }
+
+    SemaNodeView foreachExprView(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
+        if (storedView.type() != nullptr)
+            return storedView;
+        return codeGen.viewType(exprRef);
     }
 
     void emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)
@@ -345,9 +418,7 @@ namespace
     MicroReg emitForeachStateAddressReg(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
     {
         SWC_ASSERT(loopState.stateSym != nullptr);
-        const CodeGenNodePayload statePayload = resolveForeachVariablePayload(codeGen, *(loopState.stateSym));
-        SWC_ASSERT(statePayload.isAddress());
-        return statePayload.reg;
+        return materializeForeachInternalStackAddress(codeGen, *(loopState.stateSym));
     }
 
     void emitForeachStoreLoopState(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
@@ -424,9 +495,9 @@ namespace
 
     void emitForeachInit(CodeGen& codeGen, const AstForeachStmt& node, ForeachStmtCodeGenPayload& loopState)
     {
-        const AstNodeRef          exprRef     = codeGen.resolvedNodeRef(node.nodeExprRef);
-        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
-        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        const AstNodeRef          exprRef     = node.nodeExprRef;
+        const SemaNodeView        exprView    = foreachExprView(codeGen, exprRef);
+        const CodeGenNodePayload  exprPayload = foreachExprPayload(codeGen, exprRef);
         const TypeInfo&           exprType    = *(exprView.type());
         MicroBuilder&             builder     = codeGen.builder();
 

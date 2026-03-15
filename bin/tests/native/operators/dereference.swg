@@ -11,6 +11,7 @@
     var v: *AA = &st
     var v1 = dref v
     #assert(#typeof(v1) == AA)
+    @assert(v1.x == 0)
 }
 
 #test
@@ -24,6 +25,7 @@
     var v: const *AA = &st
     var v1 = dref v
     #assert(#typeof(v1) == AA)
+    @assert(v1.x == 0)
 }
 
 #test
@@ -38,6 +40,7 @@
     var v1 = dref v
     #assert(#typeof(v) == *AA)
     #assert(#typeof(v1) == AA)
+    @assert(v1.x == 0)
 }
 
 #test
@@ -53,6 +56,7 @@
     var v1 = dref pp
     #assert(#typeof(pp) == **AA)
     #assert(#typeof(v1) == *AA)
+    @assert(v1 == v)
 }
 
 #test
@@ -65,4 +69,5 @@
     var st: AA
     var v1 = dref &st
     #assert(#typeof(v1) == AA)
+    @assert(v1.x == 0)
 }

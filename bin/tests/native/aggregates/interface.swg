@@ -26,6 +26,8 @@ interface I1 { mtd toto(); }
 struct T {}
 
 struct U { t: T }
+var gInterfaceTitiCalls: s32
+var gInterfaceImplTotoCalls: s32
 impl T
 {
     mtd toto(x: s32) {}
@@ -33,15 +35,17 @@ impl T
 
 impl I1 for T
 {
-    mtd impl toto() {}
-    func titi() {}
+    mtd impl toto() { gInterfaceImplTotoCalls += 1 }
+    func titi() { gInterfaceTitiCalls += 1 }
     mtd tata() { me.toto() }
     mtd tonton() { .toto() }
 }
 
 #test
 {
+    gInterfaceTitiCalls = 0
     T.I1.titi()
+    @assert(gInterfaceTitiCalls == 1)
 }
 
 #test
@@ -55,6 +59,8 @@ impl I1 for T
 {
     var t: T
     var i = cast(I1) t
+    gInterfaceImplTotoCalls = 0
     i.toto()
+    @assert(gInterfaceImplTotoCalls == 1)
 }
 

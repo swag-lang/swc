@@ -2,6 +2,9 @@
 
 #global fileprivate
 #global skip
-func toto() {}
+func toto()->bool { return true }
 
-#test toto()
+#test
+{
+    @assert(toto())
+}

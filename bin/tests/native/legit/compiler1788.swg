@@ -5,7 +5,8 @@
 //#[Swag.PrintBc]
 #test
 {
-    //    G += 1
+    G += 1
+    @assert(G == 1)
 }
 
 //#[Swag.PrintBc]

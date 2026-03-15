@@ -12,4 +12,8 @@ func test()
     @assert(val == 20)
 }
 
-#test test()
+#test
+{
+    test()
+    @assert(X[1] == 20)
+}

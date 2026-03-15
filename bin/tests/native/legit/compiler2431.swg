@@ -3,6 +3,7 @@
 #global fileprivate
 #global skip
 //var G = 0
+var G2431: s32
 
 func append(buf: #null *void, fmt: string, values: ...)
     verify
@@ -24,6 +25,7 @@ func append(buf: #null *void, fmt: string, values: ...)
 
         //@print(cast(s64) cptPercent)
         //@print("\n")
+        G2431 += cptPercent
         return true
     }
 {
@@ -31,8 +33,10 @@ func append(buf: #null *void, fmt: string, values: ...)
 
 #test
 {
+    G2431 = 0
     append(null, "toto")
     append(null, "toto %")
     append(null, "% toto %")
     append(null, "% toto %%")
+    @assert(G2431 == 4)
 }

@@ -2,14 +2,15 @@
 
 #global fileprivate
 #global skip
-func function(x: s32, y: s32 = 100)
+func function(x: s32, y: s32 = 100)->s32
 {
     @assert(x == 50)
     @assert(y == 100)
+    return y
 }
 
 #test
 {
     let ptr = &function
-    ptr(50)
+    @assert(ptr(50) == 100)
 }

@@ -23,6 +23,12 @@
 
     let c2 = p - off1
     #assert(#typeof(c2) == [*]s32)
+    @assert((a - p) == 1)
+    @assert((a2 - p) == 1)
+    @assert((b - p) == 1)
+    @assert((b2 - p) == 1)
+    @assert((p - c) == 1)
+    @assert((p - c2) == 1)
 }
 
 #assert(#typeof((cast([*]s32) null) - (cast([*]s32) null)) == s64)

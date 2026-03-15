@@ -71,6 +71,9 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
 
 CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
 {
+    if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+        return *symbolPayload;
+
     CodeGenNodePayload outPayload;
 
     outPayload.typeRef = symVar.typeRef();

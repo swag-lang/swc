@@ -4,18 +4,19 @@
 using Swag
 
 //#[PrintBc]
-func main(a: s32 = 6)
+func main(a: s32 = 6)->s32
 {
     @assert(a == 6)
+    return a
 }
 
 //#[PrintBc]
-func main1()
+func main1()->s32
 {
-    main()
+    return main()
 }
 
 #test
 {
-    main1()
+    @assert(main1() == 6)
 }

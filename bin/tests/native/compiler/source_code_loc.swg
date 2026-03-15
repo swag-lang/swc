@@ -3,10 +3,11 @@
 #test
 {
     var a: Swag.SourceCodeLocation
+    @assert(a.fileName == null)
 }
 
 const A = #curlocation
-#assert(A.lineStart == 8)
+#assert(A.lineStart == 9)
 #assert(A.colStart == 11)
 #assert(A.fileName != null)
 
@@ -26,4 +27,5 @@ const B = #curlocation
     const L = #curlocation
     #assert(L.fileName == A.fileName)
     #assert(L.lineStart > B.lineStart)
+    @assert(L.fileName == A.fileName)
 }

@@ -19,4 +19,5 @@ const NEXT = cast(const *Swag.TypeInfoPointer) NODE.fields[0].pointedType
     #assert(@countof(node.fields) == 1)
     const next = cast(const *Swag.TypeInfoPointer) node.fields[0].pointedType
     const ok   = next.pointedType == Node
+    @assert(ok)
 }

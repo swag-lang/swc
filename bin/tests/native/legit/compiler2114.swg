@@ -53,4 +53,5 @@ var toTreatCpt: u32
     //let itf = @compiler
     //itf.compileString("#run @print(\"toto\")")
     //@assert(GG() == 1234)
+    @assert(toTreatCpt == 2)
 }

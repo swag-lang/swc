@@ -12,26 +12,27 @@ struct TT
 }
 
 //#[Swag.PrintBc]
-func D(x: ...)
+func D(x: ...)->s64
 {
-    E(x[0])
+    return E(x[0])
 }
 
 //#[Swag.PrintBc]
-func E(x: any)
+func E(x: any)->s64
 {
-    C(cast(TT) x)
+    return C(cast(TT) x)
 }
 
 //#[Swag.PrintBc]
-func C(x: TT)
+func C(x: TT)->s64
 {
     //@print(cast(s64) x.value)
     @assert(x.value == 456)
+    return x.value
 }
 
 #test
 {
     var x: TT
-    D(x)
+    @assert(D(x) == 456)
 }

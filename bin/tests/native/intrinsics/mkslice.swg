@@ -14,6 +14,10 @@
     var ptr: const *s32
     let str3 = @mkslice(ptr, 20)
     #assert(#typeof(str3) == const [..] s32)
+    @assert(@countof(str) == 100)
+    @assert(@countof(str1) == 10)
+    @assert(@countof(str2) == 10)
+    @assert(@countof(str3) == 20)
 }
 
 
@@ -23,4 +27,5 @@
     var buf4: [100] u8
     let str4 = cast(string) @mkslice(&buf4[0], @countof(buf4))
     #assert(#typeof(str4) == string)
+    @assert(@countof(str4) == 100)
 }

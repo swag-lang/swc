@@ -6,12 +6,13 @@
 //#global testerror
 
 //#[Swag.PrintBc]
-func toto(x: ...)
+func toto(x: ...)->typeinfo
 {
     @assert(@kindof(x[0]).fullname == "s32")
+    return @kindof(x[0])
 }
 
 #test
 {
-    toto(5)
+    @assert(toto(5) == s32)
 }

@@ -26,4 +26,6 @@ struct Team { a, b: Thing }
 #test
 {
     var team = Team{a: Thing.init(1), b: Thing.init(2)}
+    @assert(team.a.number == 1)
+    @assert(team.b.number == 2)
 }

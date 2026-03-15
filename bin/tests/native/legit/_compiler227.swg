@@ -3,7 +3,7 @@
 #global fileprivate
 using Swag
 
-func main()
+func main()->s32
 {
     var a: s32
     var b: s32
@@ -11,15 +11,16 @@ func main()
     @assert(b == 100)
     a = 500; @assert(a == 500)
     @assert(b == 100)
+    return a + b
 }
 
 //#[PrintBc]
-func main1()
+func main1()->s32
 {
-    main()
+    return main()
 }
 
 #test
 {
-    main1()
+    @assert(main1() == 600)
 }

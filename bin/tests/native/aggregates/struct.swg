@@ -37,6 +37,7 @@ enum NonCyclicEnum
 
     var st: AA
     let x = st.x
+    @assert(x == 0)
 }
 
 #test

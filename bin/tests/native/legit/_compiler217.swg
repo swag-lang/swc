@@ -19,4 +19,5 @@ func main1()
 #test
 {
     main1()
+    @assert(main(6) == 7)
 }

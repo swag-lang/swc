@@ -10,4 +10,5 @@
 
     let m: u32 = 16
     x %= cast(u64) m
+    @assert(x == 15)
 }

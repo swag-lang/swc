@@ -35,7 +35,8 @@ ApInt::ApInt(const void* data, uint32_t bitWidth) :
 {
     SWC_ASSERT(bitWidth <= MAX_BITS);
     clearWords();
-    memcpy(words_, data, numWords_ * sizeof(uint64_t));
+    const uint32_t byteCount = (bitWidth + 7) / 8;
+    memcpy(words_, data, byteCount);
     normalize();
 }
 

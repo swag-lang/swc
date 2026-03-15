@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -123,10 +124,15 @@ namespace
             case ConstantKind::Float:
             {
                 const ApFloat& value = cst.getFloat();
+                outPayload.reg       = codeGen.nextVirtualFloatRegister();
                 if (value.bitWidth() == 32)
                 {
-                    const auto bits = std::bit_cast<uint32_t>(value.asFloat());
-                    builder.emitLoadRegImm(outPayload.reg, ApInt(bits, 64), MicroOpBits::B32);
+                    const double   widenedValue = static_cast<double>(value.asFloat());
+                    const uint64_t widenedBits  = std::bit_cast<uint64_t>(widenedValue);
+                    const MicroReg widenedReg   = codeGen.nextVirtualFloatRegister();
+                    builder.emitLoadRegImm(widenedReg, ApInt(widenedBits, 64), MicroOpBits::B64);
+                    builder.emitClearReg(outPayload.reg, MicroOpBits::B32);
+                    builder.emitOpBinaryRegReg(outPayload.reg, widenedReg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
                     outPayload.setIsValue();
                     return true;
                 }
@@ -257,11 +263,85 @@ namespace
 
     void materializePreparedDirectScalarArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg)
     {
-        if (!normalizedTypeRef.isValid() || !argPayload.isAddress() || normalizedArg.isIndirect)
+        if (!normalizedTypeRef.isValid() || normalizedArg.isIndirect)
             return;
 
-        const TypeInfo& normalizedType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+        TaskContext&    ctx            = codeGen.ctx();
+        MicroBuilder&   builder        = codeGen.builder();
+        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
         if (normalizedType.isReference())
+            return;
+
+        const TypeRef normalizedTypeUnwrapped = normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
+        const TypeRef dstTypeRef              = normalizedTypeUnwrapped.isValid() ? normalizedTypeUnwrapped : normalizedTypeRef;
+        const TypeInfo& dstType               = ctx.typeMgr().get(dstTypeRef);
+
+        if (argPayload.typeRef.isValid())
+        {
+            const TypeInfo& srcTypeInfo        = ctx.typeMgr().get(argPayload.typeRef);
+            const TypeRef   srcTypeUnwrapped   = srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
+            const TypeRef   srcTypeRef         = srcTypeUnwrapped.isValid() ? srcTypeUnwrapped : argPayload.typeRef;
+            const TypeInfo& srcType            = ctx.typeMgr().get(srcTypeRef);
+            const auto      srcBits            = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+            const auto      dstBits            = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+
+            if (srcType.isIntLike() && dstType.isFloat() && srcBits != MicroOpBits::Zero && dstBits != MicroOpBits::Zero)
+            {
+                MicroReg srcReg = argPayload.reg;
+                if (argPayload.isAddress())
+                {
+                    srcReg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegMem(srcReg, argPayload.reg, 0, srcBits);
+                }
+
+                if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
+                {
+                    const MicroReg widenedReg = codeGen.nextVirtualIntRegister();
+                    const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
+                    if (srcType.isIntSigned())
+                        builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcBits);
+                    else
+                        builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, widenedBits, srcBits);
+                    srcReg = widenedReg;
+                }
+
+                const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
+                builder.emitClearReg(dstReg, dstBits);
+                builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertIntToFloat, dstBits);
+                argPayload.reg     = dstReg;
+                argPayload.typeRef = normalizedTypeRef;
+                argPayload.setIsValue();
+                return;
+            }
+
+            if (srcType.isFloat() && dstType.isFloat() && srcBits != MicroOpBits::Zero && dstBits != MicroOpBits::Zero)
+            {
+                MicroReg srcReg = argPayload.reg;
+                if (argPayload.isAddress())
+                {
+                    srcReg = codeGen.nextVirtualFloatRegister();
+                    builder.emitLoadRegMem(srcReg, argPayload.reg, 0, srcBits);
+                }
+
+                if (srcBits == dstBits)
+                {
+                    argPayload.reg = srcReg;
+                    argPayload.typeRef = normalizedTypeRef;
+                    argPayload.setIsValue();
+                    return;
+                }
+
+                const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
+                builder.emitClearReg(dstReg, dstBits);
+                builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertFloatToFloat, srcBits);
+                argPayload.reg     = dstReg;
+                argPayload.typeRef = normalizedTypeRef;
+                argPayload.setIsValue();
+                return;
+            }
+        }
+
+        if (!argPayload.isAddress())
             return;
 
         MicroReg dstReg   = MicroReg::invalid();
@@ -284,7 +364,7 @@ namespace
             return;
         }
 
-        codeGen.builder().emitLoadRegMem(dstReg, argPayload.reg, 0, loadBits);
+        builder.emitLoadRegMem(dstReg, argPayload.reg, 0, loadBits);
         argPayload.reg = dstReg;
         argPayload.setIsValue();
     }

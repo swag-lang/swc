@@ -11,7 +11,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
-#include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -34,15 +33,15 @@ namespace
 
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
-        const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar);
-        if (symbolPayload)
-            return *symbolPayload;
-
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
             return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
+
+        const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar);
+        if (symbolPayload)
+            return *symbolPayload;
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {

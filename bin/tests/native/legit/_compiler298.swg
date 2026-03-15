@@ -17,4 +17,6 @@ func test2()->string
 
     //@print(res);
     //@print(test2.count);
+    @assert(res == "toto1")
+    @assert(@countof(res) == 5)
 }

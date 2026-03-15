@@ -2,13 +2,14 @@
 
 #global fileprivate
 #global skip
-func function(x: s32, y: ...)
+func function(x: s32, y: ...)->u64
 {
     @assert(x == 50)
+    return @countof(y)
 }
 
 #test
 {
     let ptr = &function
-    ptr(50)
+    @assert(ptr(50) == 0)
 }

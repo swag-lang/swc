@@ -1,10 +1,17 @@
 #include "pch.h"
+#include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -23,9 +30,12 @@ namespace
     {
         MicroLabelRef                                            doneLabel      = MicroLabelRef::invalid();
         TypeRef                                                  compareTypeRef = TypeRef::invalid();
+        CodeGenNodePayload                                       switchValuePayload = {};
         MicroReg                                                 switchValueReg;
         MicroOpBits                                              compareOpBits   = MicroOpBits::B64;
+        SymbolFunction*                                          stringCmpFunction = nullptr;
         bool                                                     hasExpression   = false;
+        bool                                                     useStringCompare = false;
         bool                                                     useUnsignedCond = false;
         std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload> caseStates;
     };
@@ -60,6 +70,13 @@ namespace
         }
 
         return CodeGenTypeHelpers::conditionBits(typeInfo, ctx);
+    }
+
+    bool isStringCompareType(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeRef   unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
+        const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
+        return typeInfo.isString();
     }
 
     void loadPayloadToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits)
@@ -105,15 +122,86 @@ namespace
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, trueLabel);
     }
 
-    void emitSwitchValueEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseExprRef, MicroLabelRef successLabel)
+    void appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
+    {
+        const TypeInfo&                        argType       = codeGen.typeMgr().get(argTypeRef);
+        const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
+
+        ABICall::PreparedArg preparedArg;
+        preparedArg.srcReg      = operandPayload.reg;
+        preparedArg.kind        = ABICall::PreparedArgKind::Direct;
+        preparedArg.isFloat     = normalizedArg.isFloat;
+        preparedArg.isAddressed = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
+        preparedArg.numBits     = normalizedArg.numBits;
+        outArgs.push_back(preparedArg);
+    }
+
+    SymbolFunction* runtimeStringCompareFunction(CodeGen& codeGen)
+    {
+        const IdentifierRef idRef = codeGen.idMgr().predefined(IdentifierManager::PredefinedName::RuntimeStringCmp);
+        if (idRef.isInvalid())
+            return nullptr;
+
+        return codeGen.compiler().runtimeFunctionSymbol(idRef);
+    }
+
+    Result emitStringCompareEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const CodeGenNodePayload& casePayload, MicroLabelRef successLabel)
+    {
+        SymbolFunction* stringCmpSymbol = switchState.stringCmpFunction;
+        if (!stringCmpSymbol)
+            stringCmpSymbol = runtimeStringCompareFunction(codeGen);
+
+        SWC_ASSERT(stringCmpSymbol != nullptr);
+        if (!stringCmpSymbol)
+            return Result::Error;
+
+        codeGen.function().addCallDependency(stringCmpSymbol);
+
+        auto&                             stringCmpFunction = *stringCmpSymbol;
+        const CallConvKind                callConvKind      = stringCmpFunction.callConvKind();
+        const CallConv&                   callConv          = CallConv::get(callConvKind);
+        const auto&                       params            = stringCmpFunction.parameters();
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(2);
+
+        SWC_ASSERT(params.size() >= 2);
+        SWC_ASSERT(params[0] != nullptr);
+        SWC_ASSERT(params[1] != nullptr);
+        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, switchState.switchValuePayload, params[0]->typeRef());
+        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, casePayload, params[1]->typeRef());
+
+        MicroBuilder&               builder      = codeGen.builder();
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        if (stringCmpFunction.isForeign())
+            ABICall::callExtern(builder, callConvKind, &stringCmpFunction, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &stringCmpFunction, preparedCall);
+
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!normalizedRet.isVoid);
+        SWC_ASSERT(!normalizedRet.isIndirect);
+        SWC_ASSERT(normalizedRet.numBits == 8);
+
+        const MicroReg compareReg = codeGen.nextVirtualIntRegister();
+        ABICall::materializeReturnToReg(builder, compareReg, callConvKind, normalizedRet);
+        builder.emitCmpRegImm(compareReg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, successLabel);
+        return Result::Continue;
+    }
+
+    Result emitSwitchValueEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseExprRef, MicroLabelRef successLabel)
     {
         const CodeGenNodePayload& casePayload = codeGen.payload(caseExprRef);
-        MicroReg                  caseReg     = MicroReg::invalid();
+        if (switchState.useStringCompare)
+            return emitStringCompareEqualsJump(codeGen, switchState, casePayload, successLabel);
+
+        MicroReg caseReg = MicroReg::invalid();
         loadPayloadToRegister(caseReg, codeGen, casePayload, switchState.compareTypeRef, switchState.compareOpBits);
 
         MicroBuilder& builder = codeGen.builder();
         builder.emitCmpRegReg(switchState.switchValueReg, caseReg, switchState.compareOpBits);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, successLabel);
+        return Result::Continue;
     }
 
     void emitSwitchRangeFailJumps(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const AstRangeExpr& rangeExpr, MicroLabelRef failLabel)
@@ -231,6 +319,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         const TypeRef             compareTypeRef = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
         const TypeInfo&           compareType    = codeGen.typeMgr().get(compareTypeRef);
         const MicroOpBits         compareBits    = switchCompareOpBits(compareType, codeGen.ctx());
+        const bool                useStringCompare = isStringCompareType(codeGen, compareTypeRef);
 
         const MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef);
         if (exprPayload.isAddress())
@@ -238,10 +327,14 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         else
             codeGen.builder().emitLoadRegReg(switchValueReg, exprPayload.reg, compareBits);
 
-        switchState->compareTypeRef  = compareTypeRef;
-        switchState->switchValueReg  = switchValueReg;
-        switchState->compareOpBits   = compareBits;
-        switchState->useUnsignedCond = compareType.usesUnsignedConditions();
+        switchState->compareTypeRef   = compareTypeRef;
+        switchState->switchValuePayload = exprPayload;
+        switchState->switchValueReg   = switchValueReg;
+        switchState->compareOpBits    = compareBits;
+        switchState->useStringCompare = useStringCompare;
+        switchState->useUnsignedCond  = compareType.usesUnsignedConditions();
+        if (useStringCompare)
+            switchState->stringCmpFunction = runtimeStringCompareFunction(codeGen);
         return Result::Continue;
     }
 
@@ -301,7 +394,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
                 }
                 else
                 {
-                    emitSwitchValueEqualsJump(codeGen, *switchState, caseExprRef, matchLabel);
+                    SWC_RESULT(emitSwitchValueEqualsJump(codeGen, *switchState, caseExprRef, matchLabel));
                 }
             }
 

@@ -12,4 +12,5 @@ struct A
 {
     var st: A
     st.y = 0
+    @assert(st.y == 0)
 }

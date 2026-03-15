@@ -10,13 +10,14 @@ struct TT
     value2: s64 = 456
 }
 
-func C(x: const &TT)
+func C(x: const &TT)->s64
 {
     @assert(x.value == 456)
+    return x.value
 }
 
 #test
 {
     var x: TT
-    C(x)
+    @assert(C(x) == 456)
 }

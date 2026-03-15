@@ -3,14 +3,15 @@
 #global fileprivate
 using Swag
 
-func main()
+func main()->s32
 {
     var a = 0b10101010
     a >>= 1; @assert(a == 0b1010101)
     a <<= 2; @assert(a == 0b101010100)
+    return a
 }
 
 #test
 {
-    main()
+    @assert(main() == 0b101010100)
 }

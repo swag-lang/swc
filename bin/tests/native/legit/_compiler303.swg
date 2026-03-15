@@ -35,4 +35,5 @@ func compare(str: string)
 #test
 {
     compare("toto")
+    @assert(@countof("toto") == 4)
 }

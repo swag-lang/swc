@@ -173,13 +173,14 @@ namespace
         if (srcType.isIntLike() && dstType.isFloat())
         {
             MicroReg srcReg = outReg;
-            if (getNumBits(srcBits) < 32)
+            if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
             {
                 srcReg = codeGen.nextVirtualIntRegister();
+                const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
                 if (srcType.isIntSigned())
-                    builder.emitLoadSignedExtendRegReg(srcReg, outReg, MicroOpBits::B32, srcBits);
+                    builder.emitLoadSignedExtendRegReg(srcReg, outReg, widenedBits, srcBits);
                 else
-                    builder.emitLoadZeroExtendRegReg(srcReg, outReg, MicroOpBits::B32, srcBits);
+                    builder.emitLoadZeroExtendRegReg(srcReg, outReg, widenedBits, srcBits);
             }
 
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);

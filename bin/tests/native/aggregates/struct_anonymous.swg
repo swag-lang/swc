@@ -9,6 +9,8 @@ func toto()->{x: s32, y: bool}
 {
     let s = toto()
     #assert(#typeof(s).kind == .Struct)
+    @assert(s.x == 42)
+    @assert(s.y)
 }
 
 #test
@@ -17,6 +19,8 @@ func toto()->{x: s32, y: bool}
     let a = st1.x == 1
     let b = st1.y == 2
     #assert(#sizeof(st1) == 8)
+    @assert(st1.x == 0)
+    @assert(st1.y == 0)
 }
 
 #test

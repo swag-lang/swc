@@ -6,7 +6,9 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -20,6 +22,17 @@ namespace
         AstNodeRef firstDefaultRef = AstNodeRef::invalid();
         bool       isComplete      = false;
     };
+
+    Result setupStringCompareRuntimeCall(Sema& sema)
+    {
+        SymbolFunction* stringCmpFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::StringCmp, stringCmpFn, sema.node(sema.curNodeRef()).codeRef()));
+        SWC_ASSERT(stringCmpFn != nullptr);
+
+        if (SymbolFunction* currentFn = sema.frame().currentFunction())
+            currentFn->addCallDependency(stringCmpFn);
+        return Result::Continue;
+    }
 }
 
 Result AstSwitchStmt::semaPreNode(Sema& sema) const
@@ -117,6 +130,9 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
         sema.semaPayload<SwitchPayload>(sema.curNodeRef())->exprTypeRef = exprView.typeRef();
+
+        if (finalType.isString())
+            SWC_RESULT(setupStringCompareRuntimeCall(sema));
 
         if (type.isEnum())
         {

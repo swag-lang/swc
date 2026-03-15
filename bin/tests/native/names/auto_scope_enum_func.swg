@@ -10,6 +10,7 @@ func overload(x: f32, e: OverB)->f32 { return 20.0 }
 {
     let r = overload(1.0, .A)
     #assert(#typeof(r) == f32)
+    @assert(r == 20.0)
 }
 
 func fct(x: f32, e: OverB)->f32 { return 20.0 }
@@ -45,10 +46,12 @@ impl Vec2
 {
     let r2 = overload(1's32, OverA.A)
     #assert(#typeof(r2) == s32)
+    @assert(r2 == 10)
 }
 
 #test
 {
     let r3 = fct(1.0, .A)
     #assert(#typeof(r3) == f32)
+    @assert(r3 == 20.0)
 }

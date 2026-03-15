@@ -3,9 +3,9 @@
 #global fileprivate
 #global skip
 #[Swag.Compiler]
-func titi() {}
+func titi()->bool { return true }
 
 #test
 {
-    titi()
+    @assert(titi())
 }

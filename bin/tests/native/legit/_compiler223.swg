@@ -15,4 +15,5 @@ func main()
 #test
 {
     main()
+    @assert(v == 666)
 }

@@ -76,18 +76,24 @@ struct Vec2
 }
 
 struct A {}
-func titi(a: &A) {}
+var gRefTitiCalls: s32
+var gRefTataCalls: s32
+func titi(a: &A) { gRefTitiCalls += 1 }
 #test
 {
     var a: A
+    gRefTitiCalls = 0
     titi(&a)
+    @assert(gRefTitiCalls == 1)
 }
 
-func tata(a: const &A) {}
+func tata(a: const &A) { gRefTataCalls += 1 }
 #test
 {
     var a: A
+    gRefTataCalls = 0
     tata(a)
+    @assert(gRefTataCalls == 1)
 }
 
 

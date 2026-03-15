@@ -22,4 +22,6 @@ func main()
 #test
 {
     main()
+    @assert(b0 == true)
+    @assert(b4 == 4)
 }

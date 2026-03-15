@@ -22,4 +22,5 @@ func C(x: ...)
 {
     var x: TT
     C(x)
+    @assert(x.value == 456)
 }

@@ -93,7 +93,23 @@ namespace
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, const SemaNodeView& leftView, const SemaNodeView& rightView)
     {
         if (leftView.type()->isScalarNumeric() && rightView.type()->isScalarNumeric())
-            return codeGen.typeMgr().promote(leftView.typeRef(), rightView.typeRef(), false);
+        {
+            const TypeRef promotedTypeRef = codeGen.typeMgr().promote(leftView.typeRef(), rightView.typeRef(), false);
+            if (!promotedTypeRef.isValid())
+                return promotedTypeRef;
+
+            const TypeInfo& promotedType = codeGen.typeMgr().get(promotedTypeRef);
+            if (promotedType.isIntLike() && promotedType.payloadIntLikeBitsOr(64) == 32)
+            {
+                const TypeInfo::Sign sign = promotedType.isIntUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
+                return codeGen.typeMgr().typeInt(64, sign);
+            }
+
+            if (promotedType.isFloat() && promotedType.payloadFloatBitsOr(64) == 32)
+                return codeGen.typeMgr().typeFloat(64);
+
+            return promotedTypeRef;
+        }
 
         return leftView.typeRef();
     }
@@ -152,13 +168,14 @@ namespace
         if (srcType.isIntLike() && dstType.isFloat())
         {
             MicroReg srcReg = outReg;
-            if (getNumBits(srcBits) < 32)
+            if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
             {
                 srcReg = codeGen.nextVirtualIntRegister();
+                const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
                 if (srcType.isIntSigned())
-                    builder.emitLoadSignedExtendRegReg(srcReg, outReg, MicroOpBits::B32, srcBits);
+                    builder.emitLoadSignedExtendRegReg(srcReg, outReg, widenedBits, srcBits);
                 else
-                    builder.emitLoadZeroExtendRegReg(srcReg, outReg, MicroOpBits::B32, srcBits);
+                    builder.emitLoadZeroExtendRegReg(srcReg, outReg, widenedBits, srcBits);
             }
 
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
@@ -184,6 +201,49 @@ namespace
     {
         loadCompareOperand(outReg, codeGen, operandPayload, operandTypeRef);
         convertCompareOperand(outReg, codeGen, operandTypeRef, compareTypeRef);
+    }
+
+    void widenCompareRegsIfNeeded(MicroReg& leftReg, MicroReg& rightReg, CodeGen& codeGen, const TypeInfo& compareType, MicroOpBits& ioOpBits)
+    {
+        if (ioOpBits != MicroOpBits::B32)
+            return;
+
+        MicroBuilder& builder = codeGen.builder();
+        if (compareType.isIntLike())
+        {
+            const MicroOpBits widenedBits = MicroOpBits::B64;
+            const MicroReg    widenedLeft = codeGen.nextVirtualIntRegister();
+            const MicroReg    widenedRight = codeGen.nextVirtualIntRegister();
+            if (compareType.isIntSigned())
+            {
+                builder.emitLoadSignedExtendRegReg(widenedLeft, leftReg, widenedBits, ioOpBits);
+                builder.emitLoadSignedExtendRegReg(widenedRight, rightReg, widenedBits, ioOpBits);
+            }
+            else
+            {
+                builder.emitLoadZeroExtendRegReg(widenedLeft, leftReg, widenedBits, ioOpBits);
+                builder.emitLoadZeroExtendRegReg(widenedRight, rightReg, widenedBits, ioOpBits);
+            }
+
+            leftReg   = widenedLeft;
+            rightReg  = widenedRight;
+            ioOpBits  = widenedBits;
+            return;
+        }
+
+        if (compareType.isFloat())
+        {
+            const MicroOpBits widenedBits = MicroOpBits::B64;
+            const MicroReg    widenedLeft = codeGen.nextVirtualFloatRegister();
+            const MicroReg    widenedRight = codeGen.nextVirtualFloatRegister();
+            builder.emitClearReg(widenedLeft, widenedBits);
+            builder.emitOpBinaryRegReg(widenedLeft, leftReg, MicroOp::ConvertFloatToFloat, ioOpBits);
+            builder.emitClearReg(widenedRight, widenedBits);
+            builder.emitOpBinaryRegReg(widenedRight, rightReg, MicroOp::ConvertFloatToFloat, ioOpBits);
+            leftReg  = widenedLeft;
+            rightReg = widenedRight;
+            ioOpBits = widenedBits;
+        }
     }
 
     MicroCond relationalCondition(TokenId tokId, bool unsignedOrFloatCompare)
@@ -220,12 +280,13 @@ namespace
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
 
         const TypeInfo&   compareType = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits      = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
+        MicroOpBits       opBits      = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;
         materializeCompareOperand(leftReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
         materializeCompareOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
+        widenCompareRegsIfNeeded(leftReg, rightReg, codeGen, compareType, opBits);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
@@ -271,12 +332,13 @@ namespace
 
         const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
         const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits         = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
+        MicroOpBits       opBits         = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;
         materializeCompareOperand(leftReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
         materializeCompareOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
+        widenCompareRegsIfNeeded(leftReg, rightReg, codeGen, compareType, opBits);
 
         MicroBuilder& builder = codeGen.builder();
 

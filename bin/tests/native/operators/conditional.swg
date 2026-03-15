@@ -19,9 +19,17 @@
 
     const d = true ? 20's32 : 10's16
     #assert(#typeof(d) == s32)
+    @assert(a == 10)
+    @assert(b == 20)
+    @assert(c == 1.0)
+    @assert(d == 20)
 }
 
-#test { var a = 0 ? 1 : 2 }
+#test
+{
+    var a = 0 ? 1 : 2
+    @assert(a == 2)
+}
 
 
 

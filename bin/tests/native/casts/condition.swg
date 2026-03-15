@@ -14,6 +14,12 @@
     if !e {}
     var f: typeinfo
     if !f {}
+    @assert(!a)
+    @assert(!b)
+    @assert(!c)
+    @assert(!d)
+    @assert(!e)
+    @assert(!f)
 }
 
 #test
@@ -21,6 +27,7 @@
     var a: *s32
     var b: *s32
     if !a or !b {}
+    @assert(!a or !b)
 }
 
 const A = ""
@@ -30,6 +37,7 @@ const A = ""
 {
     var a: s32
     if a and a {}
+    @assert((a and a) == false)
 }
 
 #test

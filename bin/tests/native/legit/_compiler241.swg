@@ -3,7 +3,7 @@
 #global fileprivate
 using Swag
 
-func main()
+func main()->s32
 {
     var a = 10
     while a > 0
@@ -13,9 +13,10 @@ func main()
         continue
     }
     @assert(a == 5)
+    return a
 }
 
 #test
 {
-    main()
+    @assert(main() == 5)
 }

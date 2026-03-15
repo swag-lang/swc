@@ -17,11 +17,13 @@ var state: s32
 #test
 {
     state += 100
+    @assert(state == 111)
 }
 
 #test
 {
     state += 1000
+    @assert(state == 1111)
 }
 
 #drop

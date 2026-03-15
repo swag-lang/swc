@@ -5,10 +5,10 @@ using A.B
 
 namespace A.B
 {
-    func main() {}
+    func main()->bool { return true }
 }
 
 #test
 {
-    main()
+    @assert(main())
 }

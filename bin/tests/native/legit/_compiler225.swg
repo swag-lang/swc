@@ -23,4 +23,7 @@ func main()
 #test
 {
     main()
+    @assert(b0 == false)
+    @assert(b1 == 50)
+    @assert(b2 == 4.0)
 }

@@ -28,6 +28,9 @@ const A2 = [1, true, 3]
     #assert(#typeof(D) == #type [2] f32)
     #assert(#typeof(D[0]) == f32)
     #assert(#typeof(D[1]) == f32)
+    @assert(B[0] == 1)
+    @assert(C[2] == 3)
+    @assert(D[1] == 2.0)
 }
 
 
@@ -58,7 +61,7 @@ const I: [2] s32 = [1, cast(s32) 2.2]
 {
     const K: [4] s32 = [10, 20, 30, 40]
     #assert(#typeof(K) == #type [4] s32)
-
+    @assert(K[3] == 40)
 }
 
 #test
@@ -66,6 +69,7 @@ const I: [2] s32 = [1, cast(s32) 2.2]
     const M: [2] [2] s32 = [[1, 2], [3, 4]]
     #assert(#typeof(M) == #type [2] [2] s32)
     #assert(M[1][0] == 3)
+    @assert(M[0][1] == 2)
 }
 
 

@@ -4,7 +4,7 @@
 using Swag
 
 //#[PrintBc]
-func main()
+func main()->s32
 {
     var a = 0xFFFFFF45
     a &= 0xFF; @assert(a == 0x45)
@@ -12,9 +12,10 @@ func main()
 
     var b = 0b1001
     b ^= 0b1111; @assert(b == 0b0110)
+    return a + b
 }
 
 #test
 {
-    main()
+    @assert(main() == 331)
 }

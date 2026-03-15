@@ -1,6 +1,7 @@
 #global fileprivate // swc-option suite-test
 
-func takes_u32(v: u32) {}
+var gIntU32: u32
+func takes_u32(v: u32) { gIntU32 = v }
 func takes_u8(v: u8) {}
 func takes_s32(v: s32) {}
 
@@ -14,6 +15,7 @@ func takes_s32(v: s32) {}
     const A: u64 = 255
     const B: u8 = A
     #assert(B == 255'u8)
+    @assert(B == 255'u8)
 }
 
 
@@ -22,6 +24,7 @@ func takes_s32(v: s32) {}
 {
     var a: u16 = 10
     takes_u32(a)
+    @assert(gIntU32 == 10)
 }
 
 #test
@@ -30,6 +33,8 @@ func takes_s32(v: s32) {}
     var b: u32 = 0
     b = a
     var c: u8 = 0
+    @assert(b == 10)
+    @assert(c == 0)
 }
 
 
@@ -43,5 +48,6 @@ func takes_s32(v: s32) {}
     const A: s32 = 42
     const B: u8 = A
     #assert(B == 42'u8)
+    @assert(B == 42'u8)
 }
 

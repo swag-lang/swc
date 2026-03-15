@@ -4,7 +4,7 @@
 using Swag
 
 //#[PrintBc]
-func toto()
+func toto()->s32
 {
     var a = 0
     while a < 10
@@ -17,9 +17,10 @@ func toto()
     }
 
     @assert(a == 10)
+    return a
 }
 
 #test
 {
-    toto()
+    @assert(toto() == 10)
 }

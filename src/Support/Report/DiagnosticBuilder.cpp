@@ -118,8 +118,11 @@ Utf8 DiagnosticBuilder::build()
 
     if (ctx_->cmdLine().diagOneLine)
     {
-        writeLocation(primary);
-        out_ += ": ";
+        if (primary.hasSpans())
+        {
+            writeLocation(primary);
+            out_ += ": ";
+        }
         writeLabelMsg(primary);
         return out_;
     }

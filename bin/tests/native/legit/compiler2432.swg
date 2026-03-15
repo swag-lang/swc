@@ -3,6 +3,7 @@
 #global fileprivate
 #global skip
 //var G = 0
+var G2432: u64
 
 func append(buf: #null *void, fmt: string, values: ...)
     verify
@@ -10,6 +11,7 @@ func append(buf: #null *void, fmt: string, values: ...)
         if !#isconstexpr(fmt) do
             return true
         var cpt = @countof(values)
+        G2432 = cpt
         return true
     }
 {
@@ -19,4 +21,5 @@ func append(buf: #null *void, fmt: string, values: ...)
 {
     let x, y, z = 0
     append(null, "toto", x, y, z)
+    @assert(G2432 == 3)
 }

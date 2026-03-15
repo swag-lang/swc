@@ -3,10 +3,10 @@
 #global fileprivate
 #test
 {
-    main()
+    @assert(main())
 }
 
-func main()
+func main()->bool
 {
-    return
+    return true
 }

@@ -28,4 +28,5 @@ func main1()
 #test
 {
     main1()
+    @assert(main(5, 7) == 7)
 }

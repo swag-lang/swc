@@ -103,6 +103,28 @@ namespace
 
         return TypeRef::invalid();
     }
+
+    Result retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
+            return Result::Continue;
+
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        const bool      needsRetarget =
+            (srcType.isAggregateArray() && dstType.isArray()) ||
+            (srcType.isAggregateStruct() && dstType.isStruct());
+        if (!needsRetarget)
+            return Result::Continue;
+
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (!payload || payload->runtimeStorageSym == nullptr)
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(&dstType, nodeRef));
+        payload->runtimeStorageSym->setTypeRef(dstTypeRef);
+        return Result::Continue;
+    }
 }
 
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
@@ -110,6 +132,8 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     const TaskContext& ctx        = sema.ctx();
     const SemaNodeView suffixView = sema.viewType(nodeSuffixRef);
     const TypeRef      typeRef    = suffixView.typeRef();
+    sema.setType(sema.curNodeRef(), typeRef);
+    sema.setIsValue(sema.curNodeRef());
 
     SemaNodeView nodeLiteralView = sema.viewNodeTypeConstant(nodeLiteralRef);
     SWC_ASSERT(nodeLiteralView.cstRef().isValid());
@@ -183,6 +207,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
 
     const SemaNodeView dstTypeView           = sema.curViewType();
+    SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, nodeExprView.nodeRef(), srcTypeView.typeRef(), dstTypeView.typeRef()));
     const TypeRef      runtimeStorageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeView, dstTypeView);
     if (runtimeStorageTypeRef.isValid() && sema.frame().currentFunction() != nullptr)
     {

@@ -9,7 +9,7 @@
         var x = 0
         i += 1
     }
-
+    @assert(i == 3)
 }
 
 #test

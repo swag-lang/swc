@@ -42,7 +42,8 @@ namespace
 
         for (const SymbolVariable* field : srcStruct.fields())
         {
-            if (!field || !field->isUsingField())
+            SWC_ASSERT(field != nullptr);
+            if (!field->isUsingField())
                 continue;
 
             bool                usingFieldIsPointer = false;
@@ -50,6 +51,8 @@ namespace
             if (!targetStruct)
                 continue;
 
+            // Interface implementation can come from a `using` field, but the runtime object pointer must
+            // still be adjusted to the embedded object before building the interface pair.
             if (const SymbolImpl* implSym = targetStruct->findInterfaceImpl(dstItf.idRef()))
             {
                 outInfo.objectStruct        = targetStruct;
@@ -375,6 +378,8 @@ namespace
             if (castInfo.usingField)
             {
                 const SymbolVariable& usingField = *castInfo.usingField;
+                // The temporary storage contains the full source object; move the runtime object pointer to the
+                // embedded `using` field when the interface implementation lives there instead of on the root.
                 if (castInfo.usingFieldIsPointer)
                 {
                     objectReg = codeGen.nextVirtualIntRegister();

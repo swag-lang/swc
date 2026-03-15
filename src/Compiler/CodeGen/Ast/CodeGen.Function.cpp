@@ -28,8 +28,12 @@ namespace
         codeGen.function().appendCallDependencies(deps);
         for (SymbolFunction* dep : deps)
         {
-            if (!dep || dep->declNodeRef().isInvalid())
+            SWC_ASSERT(dep != nullptr);
+            if (dep->declNodeRef().isInvalid())
                 continue;
+
+            // Nested function expressions can be lowered before the symbol view is rebound, so recover the
+            // callee by matching the declaration source location recorded in the dependency list.
             if (dep->srcViewRef() != node.srcViewRef())
                 continue;
             if (dep->tokRef() != node.tokRef())
@@ -490,6 +494,8 @@ namespace
                 futureSourceRegs.push_back(parameterSourcePhysReg(callConv, laterParamInfo));
             }
 
+            // Keep the allocator away from source argument registers that still need to be read for the
+            // remaining parameters, otherwise an early materialization can clobber a later one.
             builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs);
             CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
             symbolPayload.setValueOrAddress(paramInfo.isIndirect);

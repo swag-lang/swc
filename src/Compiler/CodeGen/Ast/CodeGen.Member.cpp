@@ -32,10 +32,10 @@ namespace
         }
 
         visited.push_back(&currentStruct);
-        for (const Symbol* fieldSym : currentStruct.fields())
+        for (const SymbolVariable* field : currentStruct.fields())
         {
-            const auto* field = fieldSym ? fieldSym->safeCast<SymbolVariable>() : nullptr;
-            if (!field || !field->isUsingField())
+            SWC_ASSERT(field != nullptr);
+            if (!field->isUsingField())
                 continue;
 
             bool                usingFieldIsPointer = false;
@@ -43,6 +43,7 @@ namespace
             if (!usingTargetStruct)
                 continue;
 
+            // Follow nested `using` fields until we reach the struct that actually owns the member.
             outSteps.push_back({.field = field, .isPointer = usingFieldIsPointer});
             if (resolveUsingMemberPathRec(codeGen, *usingTargetStruct, targetStruct, outSteps, visited))
                 return true;
@@ -140,6 +141,8 @@ namespace
 
             if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)
             {
+                // Member access still needs an address, so spill small by-value aggregates to temporary
+                // storage before computing the field offset.
                 const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
                 builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, CodeGenTypeHelpers::bitsFromStorageSize(leftSize));
                 baseAddressReg = spillAddrReg;

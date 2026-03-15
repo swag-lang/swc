@@ -3,6 +3,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class SymbolFunction;
+
 enum class SymbolVariableFlagsE : uint8_t
 {
     Zero              = 0,
@@ -42,6 +44,8 @@ public:
     void*       codeGenPayload() const { return codeGenPayload_; }
     void        setCodeGenPayload(void* payload) const { codeGenPayload_ = payload; }
     bool        hasGlobalStorage() const { return hasGlobalStorage_; }
+    SymbolFunction* globalFunctionInit() const { return globalFunctionInit_; }
+    void            setGlobalFunctionInit(SymbolFunction* symbol) { globalFunctionInit_ = symbol; }
     bool        isUsingField() const noexcept;
     const SymbolStruct* usingTargetStruct(const TaskContext& ctx) const;
     const SymbolStruct* usingTargetStruct(const TaskContext& ctx, bool& outIsPointer) const;
@@ -65,6 +69,7 @@ private:
     uint32_t        debugStackSlotSize_   = 0;
     DataSegmentKind globalStorageKind_    = DataSegmentKind::Zero;
     bool            hasGlobalStorage_     = false;
+    SymbolFunction* globalFunctionInit_   = nullptr;
     mutable void*   codeGenPayload_       = nullptr;
 };
 

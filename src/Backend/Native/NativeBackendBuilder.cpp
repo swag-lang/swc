@@ -105,6 +105,34 @@ namespace
         return changed;
     }
 
+    bool appendGlobalFunctionInitDependencies(std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
+    {
+        bool               changed = false;
+        std::unordered_set seenFunctions(functions.begin(), functions.end());
+        for (const SymbolVariable* global : globals)
+        {
+            if (!global)
+                continue;
+
+            SymbolFunction* const target = global->globalFunctionInit();
+            if (!target)
+                continue;
+            if (target->isForeign() || target->isEmpty() || target->isAttribute())
+                continue;
+            if (target->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+                continue;
+            if (!target->isSemaCompleted())
+                continue;
+            if (!seenFunctions.insert(target).second)
+                continue;
+
+            functions.push_back(target);
+            changed = true;
+        }
+
+        return changed;
+    }
+
     void rebuildFunctionInfos(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
     {
         builder.functionInfos.clear();
@@ -274,6 +302,7 @@ Result NativeBackendBuilder::prepare()
     sortAndUnique(dropFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(mainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(regularGlobals, [&](const SymbolVariable& symbol) { return makeVariableSortKey(*this, symbol); });
+    appendGlobalFunctionInitDependencies(functions, regularGlobals);
 
     while (true)
     {

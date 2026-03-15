@@ -17,6 +17,8 @@ Result JITExecManager::executeItem(const Item& item)
     const TaskScopedState scopedState(ctx);
     ctx.state().setRunJit(fn, item.request.nodeRef, item.request.codeRef);
 
+    SWC_RESULT(JIT::patchGlobalFunctionVariables(ctx));
+
     Result callResult;
     if (!item.request.jitArgs.empty() || item.request.hasJitReturn)
     {

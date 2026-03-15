@@ -167,6 +167,25 @@ namespace
         sema.setConstant(nodeRef, sema.cstMgr().addConstant(sema.ctx(), resultConstant));
     }
 
+    void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out)
+    {
+        for (const SymbolVariable* global : sema.compiler().nativeGlobalVariables())
+        {
+            if (!global)
+                continue;
+
+            SymbolFunction* const target = global->globalFunctionInit();
+            if (!target)
+                continue;
+            if (target->isForeign() || target->isEmpty() || target->isAttribute())
+                continue;
+            if (!target->isSemaCompleted())
+                continue;
+
+            target->appendJitOrder(out);
+        }
+    }
+
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
         TaskContext& ctx             = sema.ctx();
@@ -186,6 +205,7 @@ namespace
         {
             SmallVector<SymbolFunction*> jitOrder;
             symFn.appendJitOrder(jitOrder);
+            appendGlobalFunctionInitJitOrder(sema, jitOrder);
 
             for (SymbolFunction* function : jitOrder)
             {
@@ -211,6 +231,7 @@ namespace
 
             SmallVector<SymbolFunction*> expandedOrder;
             symFn.appendJitOrder(expandedOrder);
+            appendGlobalFunctionInitJitOrder(sema, expandedOrder);
             for (SymbolFunction* function : expandedOrder)
             {
                 if (function)
@@ -225,6 +246,7 @@ namespace
 
         SmallVector<SymbolFunction*> jitOrder;
         symFn.appendJitOrder(jitOrder);
+        appendGlobalFunctionInitJitOrder(sema, jitOrder);
         for (SymbolFunction* function : jitOrder)
         {
             if (!function)

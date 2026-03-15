@@ -33,6 +33,7 @@ class JIT final
 public:
     static void   prepare(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const std::byte> unwindInfo = {});
     static Result patch(TaskContext& ctx, const JITMemory& executableMemory, std::span<const MicroRelocation> relocations, const SymbolFunction* ownerFunction = nullptr);
+    static Result patchGlobalFunctionVariables(TaskContext& ctx);
     static void   finalize(JITMemory& executableMemory);
     static Result emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, std::span<const std::byte> unwindInfo = {}, const SymbolFunction* ownerFunction = nullptr);
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret);

@@ -59,6 +59,29 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    bool tryResolveFunctionAddressInitializer(Sema& sema, AstNodeRef initRef, SymbolFunction*& outTargetFunction)
+    {
+        outTargetFunction = nullptr;
+        if (!initRef.isValid())
+            return false;
+
+        const auto* unaryExpr = sema.node(initRef).safeCast<AstUnaryExpr>();
+        if (!unaryExpr)
+            return false;
+        if (sema.token(unaryExpr->codeRef()).id != TokenId::SymAmpersand)
+            return false;
+
+        SmallVector<Symbol*> symbols;
+        sema.viewSymbol(unaryExpr->nodeExprRef).getSymbols(symbols);
+        if (symbols.size() != 1)
+            return false;
+        if (!symbols.front()->isFunction())
+            return false;
+
+        outTargetFunction = &symbols.front()->cast<SymbolFunction>();
+        return true;
+    }
+
     Result allocateGlobalStorage(Sema& sema, SymbolVariable& symVar)
     {
         if (symVar.hasGlobalStorage())
@@ -91,9 +114,14 @@ namespace
         const bool      isCompilerGlobal   = symVar.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
         const bool      explicitUndefined  = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         const bool      hasInitializerData = symVar.cstRef().isValid() && !explicitUndefined;
+        const bool      hasFunctionInit    = symVar.globalFunctionInit() != nullptr && !explicitUndefined;
         DataSegmentKind storageKind        = isCompilerGlobal ? DataSegmentKind::Compiler : DataSegmentKind::GlobalZero;
         if (!isCompilerGlobal && explicitUndefined)
             storageKind = DataSegmentKind::GlobalInit;
+        if (!isCompilerGlobal && hasFunctionInit)
+            storageKind = DataSegmentKind::GlobalInit;
+
+        SWC_ASSERT(!(isCompilerGlobal && hasFunctionInit));
 
         std::vector<std::byte> loweredBytes;
         if (hasInitializerData)
@@ -121,6 +149,14 @@ namespace
                 const std::pair<ByteSpan, Ref> addRes = segment.addSpan(ByteSpan{loweredBytes.data(), loweredBytes.size()}, alignment);
                 offset                                = addRes.second;
             }
+        }
+        else if (hasFunctionInit)
+        {
+            SWC_ASSERT(storageKind == DataSegmentKind::GlobalInit);
+            SWC_ASSERT(storageTypeInfo.isFunction());
+
+            const std::pair<uint32_t, std::byte*> res = segment.reserveBytes(size, alignment, true);
+            offset                                    = res.first;
         }
         else
         {
@@ -534,6 +570,7 @@ namespace
         const bool isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
         const bool isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
         bool       isExplicitUndefinedInit = false;
+        SymbolFunction* globalFunctionInit = nullptr;
 
         // Initialized to 'undefined'
         if (context.nodeInitRef.isValid() && nodeInitView.cstRef() == sema.cstMgr().cstUndefined())
@@ -573,7 +610,12 @@ namespace
         if (context.nodeInitRef.isValid())
             storeFieldDefaultConstants(symbols, nodeInitView.cstRef());
 
-        if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && context.nodeInitRef.isValid())
+        const bool allowGlobalFunctionAddressInit = !sema.curScope().isLocal() &&
+                                                    !sema.curScope().isParameters() &&
+                                                    !isConst &&
+                                                    tryResolveFunctionAddressInitializer(sema, context.nodeInitRef, globalFunctionInit);
+
+        if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && context.nodeInitRef.isValid() && !allowGlobalFunctionAddressInit)
             SWC_RESULT(SemaCheck::isConstant(sema, nodeInitView.nodeRef()));
 
         const TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
@@ -631,6 +673,19 @@ namespace
         storeGlobalVariableConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
         storeParameterDefaultConstants(symbols, isParameter, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : ConstantRef::invalid());
         storeVariableDefaultConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
+
+        if (allowGlobalFunctionAddressInit)
+        {
+            for (Symbol* s : symbols)
+            {
+                auto* const symVar = getVariableSymbol(s);
+                if (!symVar)
+                    continue;
+                if (!isGlobalStorageVariable(*symVar))
+                    continue;
+                symVar->setGlobalFunctionInit(globalFunctionInit);
+            }
+        }
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {

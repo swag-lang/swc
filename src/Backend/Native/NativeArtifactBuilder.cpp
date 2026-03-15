@@ -341,6 +341,41 @@ Result NativeArtifactBuilder::prepareDataSections() const
             record.addend     = relocation.targetOffset;
             builder_->mergedData.relocations.push_back(record);
         }
+
+        for (const SymbolVariable* symbol : builder_->regularGlobals)
+        {
+            if (!symbol)
+                continue;
+            if (!symbol->hasGlobalStorage())
+                continue;
+            if (symbol->globalStorageKind() != DataSegmentKind::GlobalInit)
+                continue;
+
+            const SymbolFunction* const targetFunction = symbol->globalFunctionInit();
+            if (!targetFunction)
+                continue;
+
+            const uint64_t storageSize = builder_->ctx().typeMgr().get(symbol->typeRef()).sizeOf(builder_->ctx());
+            SWC_ASSERT(storageSize == sizeof(uint64_t));
+
+            NativeSectionRelocation record;
+            record.offset = symbol->offset();
+            if (targetFunction->isForeign())
+            {
+                record.symbolName = targetFunction->resolveForeignFunctionName(builder_->ctx());
+            }
+            else if (const auto it = builder_->functionBySymbol.find(const_cast<SymbolFunction*>(targetFunction)); it != builder_->functionBySymbol.end())
+            {
+                record.symbolName = it->second->symbolName;
+            }
+            else
+            {
+                return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+            }
+
+            record.addend = 0;
+            builder_->mergedData.relocations.push_back(record);
+        }
     }
 
     return Result::Continue;

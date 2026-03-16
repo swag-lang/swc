@@ -260,7 +260,7 @@ namespace
             return codeGen.resolveLocalStackPayload(symVar);
         }
 
-        // Foreach aliases are not guaranteed to be part of function local-variable reset,
+        // Foreach aliases are not guaranteed to be part of function-local-variable reset,
         // so always refresh their payload instead of reusing any cached symbol payload.
         CodeGenNodePayload regPayload;
         regPayload.typeRef = symVar.typeRef();
@@ -372,7 +372,7 @@ namespace
         if (loopState.reverse)
         {
             loopState.boundReg = lowerReg;
-            // Reverse loops start from the upper bound and pre-decrement when the range is exclusive so
+            // Reverse loops start from the upper bound and pre-decrement when the range is exclusive, so
             // the first visible value still belongs to the source interval.
             builder.emitCmpRegReg(upperReg, lowerReg, opBits);
             if (loopState.inclusive)

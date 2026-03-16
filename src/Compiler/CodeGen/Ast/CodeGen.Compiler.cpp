@@ -74,7 +74,8 @@ namespace
             return;
 
         const CallConv& callConv = CallConv::get(callConvKind);
-        codeGen.builder().emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
+        MicroBuilder&   builder  = codeGen.builder();
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
     }
 
     bool canUseDirectCallReturnWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
@@ -103,8 +104,9 @@ Result AstCompilerFunc::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
 Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen)
 {
     const CallConvKind callConvKind = codeGen.function().callConvKind();
+    MicroBuilder&      builder      = codeGen.builder();
     emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
-    codeGen.builder().emitRet();
+    builder.emitRet();
     return Result::Continue;
 }
 
@@ -120,7 +122,8 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     // Compiler-run entry points receive the caller output buffer in the first integer argument.
     const MicroReg            outputStorageReg = callConv.intArgRegs[0];
     const CodeGenNodePayload& nodePayload      = codeGen.setPayloadAddress(codeGen.curNodeRef());
-    codeGen.builder().emitLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
+    MicroBuilder&             builder          = codeGen.builder();
+    builder.emitLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
     return Result::Continue;
 }
 

@@ -331,7 +331,8 @@ namespace
             return;
 
         const CallConv& callConv = CallConv::get(callConvKind);
-        codeGen.builder().emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
+        MicroBuilder&   builder  = codeGen.builder();
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
     }
 
     void spillParametersToDebugSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc)
@@ -422,7 +423,8 @@ namespace
 
         const MicroOpBits storeBits = microOpBitsFromChunkSize(copySize);
         SWC_ASSERT(storeBits != MicroOpBits::Zero);
-        codeGen.builder().emitLoadMemReg(resultAddr, 0, exprPayload.reg, storeBits);
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitLoadMemReg(resultAddr, 0, exprPayload.reg, storeBits);
         return Result::Continue;
     }
 
@@ -435,7 +437,8 @@ namespace
         }
 
         SWC_ASSERT(doneLabel.isValid());
-        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
         return Result::Continue;
     }
 
@@ -613,11 +616,12 @@ namespace
         if (normalizedRet.isIndirect)
         {
             SWC_ASSERT(!callConv.intArgRegs.empty());
-            const ScopedDebugNoStep noStep(codeGen.builder(), true);
+            MicroBuilder&          builder = codeGen.builder();
+            const ScopedDebugNoStep noStep(builder, true);
             // Capture the hidden return-buffer argument before parameter materialization starts consuming
             // the ABI argument registers.
             const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
+            builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
             codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
         }
 
@@ -625,7 +629,8 @@ namespace
         collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
         buildLocalStackLayout(codeGen);
         {
-            const ScopedDebugNoStep noStep(codeGen.builder(), true);
+            MicroBuilder&          builder = codeGen.builder();
+            const ScopedDebugNoStep noStep(builder, true);
             materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
             materializeStackParameters(codeGen, symbolFunc, paramInfos);
             emitLocalStackFramePrologue(codeGen, callConvKind);
@@ -682,7 +687,8 @@ Result AstFunctionExpr::codeGenPostNode(CodeGen& codeGen) const
         auto&                     symFunc = functionExprSymbol(codeGen, declRef);
         const SemaNodeView        view    = codeGen.curViewType();
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(declRef, view.typeRef());
-        codeGen.builder().emitLoadRegPtrReloc(payload.reg, 0, ConstantRef::invalid(), &symFunc);
+        MicroBuilder&             builder = codeGen.builder();
+        builder.emitLoadRegPtrReloc(payload.reg, 0, ConstantRef::invalid(), &symFunc);
         return Result::Continue;
     }
 

@@ -74,11 +74,12 @@ namespace
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         const MicroReg    outReg   = codeGen.nextVirtualIntRegister();
+        MicroBuilder&     builder  = codeGen.builder();
 
         if (payload.isAddress())
-            codeGen.builder().emitLoadRegMem(outReg, payload.reg, 0, opBits);
+            builder.emitLoadRegMem(outReg, payload.reg, 0, opBits);
         else
-            codeGen.builder().emitLoadRegReg(outReg, payload.reg, opBits);
+            builder.emitLoadRegReg(outReg, payload.reg, opBits);
 
         return outReg;
     }
@@ -88,7 +89,8 @@ namespace
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         const MicroReg    outReg   = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegImm(outReg, ApInt(0, 64), opBits);
+        MicroBuilder&     builder  = codeGen.builder();
+        builder.emitLoadRegImm(outReg, ApInt(0, 64), opBits);
         return outReg;
     }
 
@@ -103,11 +105,12 @@ namespace
 
     bool currentInstructionIsTerminator(const CodeGen& codeGen)
     {
-        const MicroInstrRef lastRef = codeGen.builder().instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
+        const MicroBuilder& builder = codeGen.builder();
+        const MicroInstrRef lastRef = builder.instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
         if (lastRef.isInvalid())
             return false;
 
-        const MicroInstr* lastInst = codeGen.builder().instructions().ptr(lastRef);
+        const MicroInstr* lastInst = builder.instructions().ptr(lastRef);
         if (!lastInst || lastInst->op == MicroInstrOpcode::Label)
             return false;
 
@@ -186,11 +189,12 @@ namespace
 
 Result AstForCStyleStmt::codeGenPreNode(CodeGen& codeGen)
 {
+    MicroBuilder&                builder = codeGen.builder();
     ForCStyleStmtCodeGenPayload loopState;
-    loopState.loopLabel     = codeGen.builder().createLabel();
-    loopState.bodyLabel     = codeGen.builder().createLabel();
-    loopState.continueLabel = codeGen.builder().createLabel();
-    loopState.doneLabel     = codeGen.builder().createLabel();
+    loopState.loopLabel     = builder.createLabel();
+    loopState.bodyLabel     = builder.createLabel();
+    loopState.continueLabel = builder.createLabel();
+    loopState.doneLabel     = builder.createLabel();
     setForCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
@@ -203,16 +207,17 @@ Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
     const AstNodeRef exprRef     = codeGen.resolvedNodeRef(nodeExprRef);
     const AstNodeRef postStmtRef = codeGen.resolvedNodeRef(nodePostStmtRef);
     const AstNodeRef bodyRef     = codeGen.resolvedNodeRef(nodeBodyRef);
+    MicroBuilder&    builder     = codeGen.builder();
 
     if (childRef == exprRef)
     {
-        codeGen.builder().placeLabel(loopState->loopLabel);
+        builder.placeLabel(loopState->loopLabel);
         return Result::Continue;
     }
 
     if (childRef == postStmtRef)
     {
-        codeGen.builder().placeLabel(loopState->continueLabel);
+        builder.placeLabel(loopState->continueLabel);
 
         CodeGenFrame frame = codeGen.frame();
         frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
@@ -224,7 +229,7 @@ Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
 
     if (childRef == bodyRef)
     {
-        codeGen.builder().placeLabel(loopState->bodyLabel);
+        builder.placeLabel(loopState->bodyLabel);
 
         CodeGenFrame frame = codeGen.frame();
         frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
@@ -247,22 +252,24 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
     if (childRef == exprRef)
     {
+        MicroBuilder&               builder = codeGen.builder();
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
         const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         CodeGenCompareHelpers::emitConditionFalseJump(codeGen, exprPayload, exprView.typeRef(), loopState->doneLabel);
         if (postStmtRef.isValid())
         {
-            const ScopedDebugNoStep noStep(codeGen.builder(), true);
-            codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->bodyLabel);
+            const ScopedDebugNoStep noStep(builder, true);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->bodyLabel);
         }
         return Result::Continue;
     }
 
     if (childRef == postStmtRef)
     {
+        MicroBuilder& builder = codeGen.builder();
         {
-            const ScopedDebugNoStep noStep(codeGen.builder(), true);
-            codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
+            const ScopedDebugNoStep noStep(builder, true);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
         }
         codeGen.popFrame();
         return Result::Continue;
@@ -270,8 +277,9 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
     if (childRef == bodyRef)
     {
-        const ScopedDebugNoStep noStep(codeGen.builder(), true);
-        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, postStmtRef.isValid() ? loopState->continueLabel : loopState->loopLabel);
+        MicroBuilder&          builder = codeGen.builder();
+        const ScopedDebugNoStep noStep(builder, true);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, postStmtRef.isValid() ? loopState->continueLabel : loopState->loopLabel);
         codeGen.popFrame();
     }
 
@@ -283,17 +291,19 @@ Result AstForCStyleStmt::codeGenPostNode(CodeGen& codeGen)
     const ForCStyleStmtCodeGenPayload* loopState = forCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    codeGen.builder().placeLabel(loopState->doneLabel);
+    MicroBuilder& builder = codeGen.builder();
+    builder.placeLabel(loopState->doneLabel);
     eraseForCStyleStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     return Result::Continue;
 }
 
 Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const
 {
+    MicroBuilder&          builder = codeGen.builder();
     ForStmtCodeGenPayload loopState;
-    loopState.loopLabel     = codeGen.builder().createLabel();
-    loopState.continueLabel = codeGen.builder().createLabel();
-    loopState.doneLabel     = codeGen.builder().createLabel();
+    loopState.loopLabel     = builder.createLabel();
+    loopState.continueLabel = builder.createLabel();
+    loopState.doneLabel     = builder.createLabel();
     loopState.reverse       = modifierFlags.has(AstModifierFlagsE::Reverse);
 
     if (tokNameRef.isValid())
@@ -338,7 +348,8 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
     if (childRef == exprRef)
     {
         emitForInit(codeGen, *this, *loopState);
-        codeGen.builder().placeLabel(loopState->loopLabel);
+        MicroBuilder& builder = codeGen.builder();
+        builder.placeLabel(loopState->loopLabel);
         return Result::Continue;
     }
 
@@ -392,7 +403,8 @@ Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
     const ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    codeGen.builder().placeLabel(loopState->doneLabel);
+    MicroBuilder& builder = codeGen.builder();
+    builder.placeLabel(loopState->doneLabel);
     eraseForStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     return Result::Continue;
 }
@@ -418,7 +430,8 @@ Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
     if (continueLabel == MicroLabelRef::invalid())
         return Result::Continue;
 
-    codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, continueLabel);
+    MicroBuilder& builder = codeGen.builder();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, continueLabel);
     return Result::Continue;
 }
 

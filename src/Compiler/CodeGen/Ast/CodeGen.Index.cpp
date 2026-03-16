@@ -24,23 +24,23 @@ namespace
         if (outIndexBits == MicroOpBits::B64 && indexPayload.isValue())
             return indexPayload.reg;
 
-        const MicroReg indexReg     = codeGen.nextVirtualIntRegister();
-        MicroBuilder&  microBuilder = codeGen.builder();
+        const MicroReg indexReg = codeGen.nextVirtualIntRegister();
+        MicroBuilder&  builder  = codeGen.builder();
         if (indexPayload.isAddress())
         {
             if (outIndexBits == MicroOpBits::B64)
-                microBuilder.emitLoadRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64);
+                builder.emitLoadRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64);
             else if (indexSigned)
-                microBuilder.emitLoadSignedExtendRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64, outIndexBits);
+                builder.emitLoadSignedExtendRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64, outIndexBits);
             else
-                microBuilder.emitLoadZeroExtendRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64, outIndexBits);
+                builder.emitLoadZeroExtendRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64, outIndexBits);
         }
         else
         {
             if (indexSigned)
-                microBuilder.emitLoadSignedExtendRegReg(indexReg, indexPayload.reg, MicroOpBits::B64, outIndexBits);
+                builder.emitLoadSignedExtendRegReg(indexReg, indexPayload.reg, MicroOpBits::B64, outIndexBits);
             else
-                microBuilder.emitLoadZeroExtendRegReg(indexReg, indexPayload.reg, MicroOpBits::B64, outIndexBits);
+                builder.emitLoadZeroExtendRegReg(indexReg, indexPayload.reg, MicroOpBits::B64, outIndexBits);
         }
 
         outIndexBits = MicroOpBits::B64;
@@ -165,7 +165,8 @@ namespace
         resultPayload.typeRef = resultTypeRef;
         resultPayload.setIsAddress();
         resultPayload.reg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadAddressAmcRegMem(resultPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitLoadAddressAmcRegMem(resultPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
         return resultPayload;
     }
 }

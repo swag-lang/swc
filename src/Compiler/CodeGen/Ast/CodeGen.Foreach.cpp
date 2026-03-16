@@ -347,10 +347,10 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
         loopState.sourceSpillSym   = &symbols[spillIndex]->cast<SymbolVariable>();
     }
 
-    auto& microBuilder      = codeGen.builder();
-    loopState.loopLabel     = microBuilder.createLabel();
-    loopState.continueLabel = microBuilder.createLabel();
-    loopState.doneLabel     = microBuilder.createLabel();
+    MicroBuilder& builder   = codeGen.builder();
+    loopState.loopLabel     = builder.createLabel();
+    loopState.continueLabel = builder.createLabel();
+    loopState.doneLabel     = builder.createLabel();
     loopState.reverse       = modifierFlags.has(AstModifierFlagsE::Reverse);
     setForeachStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
     return Result::Continue;
@@ -384,21 +384,21 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
     const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
 
-    auto& microBuilder = codeGen.builder();
+    MicroBuilder& builder = codeGen.builder();
 
     if (childRef == exprRef)
     {
         emitForeachInit(codeGen, *this, *loopState);
-        microBuilder.placeLabel(loopState->loopLabel);
+        builder.placeLabel(loopState->loopLabel);
         // The loop head always reloads the persisted state because the previous iteration may have crossed
         // callbacks that invalidated the current virtual register assignments.
         emitForeachLoadLoopState(codeGen, *loopState);
-        microBuilder.emitCmpRegImm(loopState->countReg, ApInt(0, 64), MicroOpBits::B64);
-        microBuilder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
+        builder.emitCmpRegImm(loopState->countReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
         if (loopState->reverse)
         {
-            microBuilder.emitLoadRegReg(loopState->indexReg, loopState->countReg, MicroOpBits::B64);
-            microBuilder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitLoadRegReg(loopState->indexReg, loopState->countReg, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         }
         emitForeachBindSymbols(codeGen, *this, *loopState);
         return Result::Continue;
@@ -414,15 +414,15 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
     if (childRef == bodyRef)
     {
-        microBuilder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
-        microBuilder.setCurrentDebugNoStep(false);
-        microBuilder.placeLabel(loopState->continueLabel);
+        builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
+        builder.setCurrentDebugNoStep(false);
+        builder.placeLabel(loopState->continueLabel);
         emitForeachLoadLoopState(codeGen, *loopState);
         if (!loopState->reverse)
-            microBuilder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        microBuilder.emitOpBinaryRegImm(loopState->countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(loopState->countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         emitForeachStoreLoopState(codeGen, *loopState);
-        microBuilder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
         codeGen.popFrame();
         return Result::Continue;
     }
@@ -435,7 +435,8 @@ Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen)
     const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    codeGen.builder().placeLabel(loopState->doneLabel);
+    MicroBuilder& builder = codeGen.builder();
+    builder.placeLabel(loopState->doneLabel);
     eraseForeachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     return Result::Continue;
 }

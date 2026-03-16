@@ -34,9 +34,10 @@ namespace
 
 Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
 {
+    MicroBuilder&           builder = codeGen.builder();
     LoopStmtCodeGenPayload loopState;
-    loopState.continueLabel = codeGen.builder().createLabel();
-    loopState.doneLabel     = codeGen.builder().createLabel();
+    loopState.continueLabel = builder.createLabel();
+    loopState.doneLabel     = builder.createLabel();
     setLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
@@ -48,10 +49,11 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
 
     const AstNodeRef exprRef = codeGen.resolvedNodeRef(nodeExprRef);
     const AstNodeRef bodyRef = codeGen.resolvedNodeRef(nodeBodyRef);
+    MicroBuilder&    builder = codeGen.builder();
 
     if (childRef == exprRef)
     {
-        codeGen.builder().placeLabel(loopState->continueLabel);
+        builder.placeLabel(loopState->continueLabel);
         return Result::Continue;
     }
 
@@ -85,8 +87,9 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
     if (childRef == bodyRef)
     {
-        const ScopedDebugNoStep noStep(codeGen.builder(), true);
-        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
+        MicroBuilder&          builder = codeGen.builder();
+        const ScopedDebugNoStep noStep(builder, true);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
         codeGen.popFrame();
     }
 
@@ -98,16 +101,18 @@ Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    codeGen.builder().placeLabel(loopState->doneLabel);
+    MicroBuilder& builder = codeGen.builder();
+    builder.placeLabel(loopState->doneLabel);
     eraseLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     return Result::Continue;
 }
 
 Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
 {
+    MicroBuilder&           builder = codeGen.builder();
     LoopStmtCodeGenPayload loopState;
-    loopState.continueLabel = codeGen.builder().createLabel();
-    loopState.doneLabel     = codeGen.builder().createLabel();
+    loopState.continueLabel = builder.createLabel();
+    loopState.doneLabel     = builder.createLabel();
     setLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
@@ -120,7 +125,8 @@ Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    codeGen.builder().placeLabel(loopState->continueLabel);
+    MicroBuilder& builder = codeGen.builder();
+    builder.placeLabel(loopState->continueLabel);
 
     CodeGenFrame frame = codeGen.frame();
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
@@ -138,8 +144,9 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const ScopedDebugNoStep noStep(codeGen.builder(), true);
-    codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
+    MicroBuilder&          builder = codeGen.builder();
+    const ScopedDebugNoStep noStep(builder, true);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
     codeGen.popFrame();
     return Result::Continue;
 }
@@ -149,7 +156,8 @@ Result AstInfiniteLoopStmt::codeGenPostNode(CodeGen& codeGen)
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    codeGen.builder().placeLabel(loopState->doneLabel);
+    MicroBuilder& builder = codeGen.builder();
+    builder.placeLabel(loopState->doneLabel);
     eraseLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     return Result::Continue;
 }

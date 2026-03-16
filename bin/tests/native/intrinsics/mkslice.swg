@@ -29,3 +29,48 @@
     #assert(#typeof(str4) == string)
     @assert(@countof(str4) == 100)
 }
+
+#test
+{
+    var buf: [4] u8 = [10, 20, 30, 40]
+    let sl = @mkslice(&buf[2], 0)
+
+    #assert(#typeof(sl) == [..] u8)
+    @assert(@countof(sl) == 0)
+}
+
+#test
+{
+    var buf: [5] u8 = [1, 2, 3, 4, 5]
+    let sl = @mkslice(&buf[1], 3)
+
+    @assert(@countof(sl) == 3)
+    @assert(sl[0] == 2)
+    @assert(sl[1] == 3)
+    @assert(sl[2] == 4)
+}
+
+#test
+{
+    var buf: [4] u16 = [11, 22, 33, 44]
+    let sl = @mkslice(&buf[0], 4)
+
+    sl[1] = 77
+    sl[3] = 99
+
+    #assert(#typeof(sl) == [..] u16)
+    @assert(buf[1] == 77)
+    @assert(buf[3] == 99)
+}
+
+#test
+{
+    var buf: [3] s32 = [5, 6, 7]
+    let ptr: const *s32 = &buf[0]
+    let sl = @mkslice(ptr, 3)
+
+    #assert(#typeof(sl) == const [..] s32)
+    @assert(@countof(sl) == 3)
+    @assert(sl[0] == 5)
+    @assert(sl[2] == 7)
+}

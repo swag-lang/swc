@@ -155,8 +155,6 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     @assert(payload1.a3 == 4'u64)
 }
 
-// @BUG native backend crashes while lowering mixed constant arguments in this coverage block.
-/*
 #test
 {
     let p0 = passPointer(null)
@@ -177,7 +175,6 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     @assert(passAliasEnum(10, 20, AbiEnum.B, 30) == 183)
     @assert(passAliasEnum(-10, 20, AbiEnum.A, -30) == -3)
 }
-*/
 
 // @BUG native backend crashes while lowering some constant aggregate arguments in this coverage block.
 /*

@@ -517,7 +517,7 @@ namespace
                 return *payload;
         }
 
-        // `countof` can target a stored symbol that was not reached through the current AST walk, so fall
+        // `@countof` can target a stored symbol not reached through the current AST walk, so fall
         // back to sema-owned symbol/type views before using the transient node payload.
         const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
         if (storedView.sym() && storedView.sym()->isVariable())

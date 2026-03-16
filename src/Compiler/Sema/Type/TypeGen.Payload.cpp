@@ -332,8 +332,13 @@ namespace
 
                 Runtime::TypeValue& tv = paramsPtr[i];
 
-                const auto&    id = ctx.idMgr().get(symParam->idRef());
-                const Utf8     paramName{id.name};
+                Utf8 paramName;
+                if (symParam->idRef().isValid())
+                {
+                    const auto& id = ctx.idMgr().get(symParam->idRef());
+                    paramName      = Utf8{id.name};
+                }
+
                 const uint32_t elemOffset = paramsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                 tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), paramName);
 

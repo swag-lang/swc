@@ -32,12 +32,11 @@ const TYPEOF_SLICE = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] TypeOfPa
 #assert(#typeof(#type [..] TypeOfPair) == #type [..] TypeOfPair)
 #assert(TYPEOF_SLICE.pointedType == TypeOfPair)
 
-// @BUG #typeof(#type func(...)) is not typed reliably in native tests yet.
-// const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool)
-// #assert(#typeof(#type func(s32)->bool) == #type func(s32)->bool)
-// #assert(@countof(TYPEOF_FUNC.parameters) == 1)
-// #assert(TYPEOF_FUNC.parameters[0].pointedType == s32)
-// #assert(TYPEOF_FUNC.returnType == bool)
+const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool)
+#assert(#typeof(#type func(s32)->bool) == #type func(s32)->bool)
+#assert(@countof(TYPEOF_FUNC.parameters) == 1)
+#assert(TYPEOF_FUNC.parameters[0].pointedType == s32)
+#assert(TYPEOF_FUNC.returnType == bool)
 
 #test
 {

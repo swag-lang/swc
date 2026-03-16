@@ -143,8 +143,17 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
 
         // Be sure the type is completed.
         const LayoutKind kind = layoutKindOf(type);
-        if (const Symbol* sym = type.getSymbol())
+        if (type.isFunction())
+        {
+            // Anonymous '#type func(...)' signatures use a synthetic SymbolFunction that
+            // never goes through full declaration/body sema. Runtime type info only
+            // depends on the completed parameter and return types.
+            SWC_RESULT(sema.waitSemaCompleted(&type, ownerNodeRef));
+        }
+        else if (const Symbol* sym = type.getSymbol())
+        {
             SWC_RESULT(sema.waitSemaCompleted(sym, node.codeRef()));
+        }
 
         auto it = cache.entries.find(key);
         if (it == cache.entries.end())

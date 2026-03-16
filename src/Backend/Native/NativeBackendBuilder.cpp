@@ -266,7 +266,6 @@ Result NativeBackendBuilder::run()
     ScopedTimedAction buildAction(ctx_, "Build", paths.artifactPath.filename().string());
 
     SWC_RESULT(checkActionResult(prepare(), buildAction));
-
     SWC_RESULT(checkActionResult(artifactBuilder.build(), buildAction));
     SWC_RESULT(checkActionResult(writeObjects(), buildAction));
 

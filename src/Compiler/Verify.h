@@ -74,19 +74,19 @@ public:
     {
     }
 
-    void tokenize(TaskContext& ctx);
-    bool hasFlag(VerifyFlagsE flag) const { return flags_.has(flag); }
+    void           tokenize(TaskContext& ctx);
+    bool           hasFlag(VerifyFlagsE flag) const { return flags_.has(flag); }
     SourceTestKind sourceTestKind() const;
     bool           hasSourceTestHints() const;
-    bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
-    void verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const;
+    bool           verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
+    void           verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const;
 
 private:
     SourceFile*                  file_    = nullptr;
     SourceView*                  srcView_ = nullptr;
     std::vector<VerifyDirective> directives_;
     mutable std::mutex           directivesMutex_;
-    VerifyFlags                  flags_ = VerifyFlagsE::Zero;
+    VerifyFlags                  flags_                  = VerifyFlagsE::Zero;
     SourceTestKind               explicitSourceTestKind_ = SourceTestKind::Unknown;
     SourceTestKind               expectedSourceTestKind_ = SourceTestKind::Unknown;
 

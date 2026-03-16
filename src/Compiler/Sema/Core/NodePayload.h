@@ -53,6 +53,9 @@ class NodePayload
     friend class SemaJob;
 
 public:
+    NodePayload() = default;
+    ~NodePayload();
+
 #if SWC_HAS_STATS
     size_t memStorageUsed() const;
     size_t memStorageReserved() const;
@@ -118,6 +121,8 @@ protected:
     static void inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc);
 
 private:
+    struct Shard;
+
     struct SubstituteStorage
     {
         AstNodeRef       substNodeRef  = AstNodeRef::invalid();
@@ -142,6 +147,9 @@ private:
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
     SubstituteStorage*             substituteStorage(const AstNode& node);
     const SubstituteStorage*       substituteStorage(const AstNode& node) const;
+    Shard*                         ensureShard(uint32_t shardIdx);
+    Shard*                         tryGetShard(uint32_t shardIdx);
+    const Shard*                   tryGetShard(uint32_t shardIdx) const;
 
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;
@@ -156,7 +164,7 @@ private:
         std::unordered_map<AstNodeRef, SpanRef> resolvedCallArgsByNode;
     };
 
-    Shard shards_[NODE_PAYLOAD_SHARD_NUM];
+    std::array<std::atomic<Shard*>, NODE_PAYLOAD_SHARD_NUM> shards_{};
 };
 
 SWC_END_NAMESPACE();

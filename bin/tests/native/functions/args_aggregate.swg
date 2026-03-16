@@ -176,8 +176,6 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     @assert(passAliasEnum(-10, 20, AbiEnum.A, -30) == -3)
 }
 
-// @BUG native backend crashes while lowering some constant aggregate arguments in this coverage block.
-/*
 #test
 {
     const values0: [4] s32 = [11, 22, 33, 44]
@@ -193,4 +191,4 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     @assert(passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A))
     @assert(passNestedArray({p: {a: 10, b: 11}, q: {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}}, [{a: 20, b: 21}, {a: 30, b: 31}]) == 61)
 }
-*/
+

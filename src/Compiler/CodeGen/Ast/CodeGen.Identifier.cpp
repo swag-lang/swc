@@ -37,14 +37,9 @@ namespace
             return *symbolPayload;
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
-        {
             return codeGen.resolveLocalStackPayload(symVar);
-        }
-
         if (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
-        {
             return codeGen.resolveLocalStackPayload(symVar);
-        }
 
         if (symVar.hasGlobalStorage())
         {

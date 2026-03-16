@@ -240,7 +240,7 @@ uint32_t TypeInfo::hash() const
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadAlias_.sym));
             return h;
         case TypeInfoKind::Function:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadFunction_.sym));
+            h = Math::hashCombine(h, payloadFunction_.sym->typeSignatureHash());
             return h;
         case TypeInfoKind::Array:
             h = Math::hashCombine(h, payloadArray_.typeRef.get());

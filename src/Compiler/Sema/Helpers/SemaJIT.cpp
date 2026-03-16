@@ -185,6 +185,25 @@ namespace
         }
     }
 
+    void buildJitOrderWithGlobalFunctionInits(Sema& sema, SymbolFunction& symFn, SmallVector<SymbolFunction*>& out)
+    {
+        SmallVector<SymbolFunction*> rawOrder;
+        symFn.appendJitOrder(rawOrder);
+        appendGlobalFunctionInitJitOrder(sema, rawOrder);
+
+        std::unordered_set<SymbolFunction*> seen;
+        out.reserve(rawOrder.size());
+        for (SymbolFunction* function : rawOrder)
+        {
+            if (!function)
+                continue;
+            if (!seen.insert(function).second)
+                continue;
+
+            out.push_back(function);
+        }
+    }
+
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
         TaskContext& ctx             = sema.ctx();
@@ -203,14 +222,10 @@ namespace
         while (true)
         {
             SmallVector<SymbolFunction*> jitOrder;
-            symFn.appendJitOrder(jitOrder);
-            appendGlobalFunctionInitJitOrder(sema, jitOrder);
+            buildJitOrderWithGlobalFunctionInits(sema, symFn, jitOrder);
 
             for (SymbolFunction* function : jitOrder)
             {
-                if (!function)
-                    continue;
-
                 knownFunctions.insert(function);
                 if (!function->tryMarkCodeGenJobScheduled())
                     continue;
@@ -223,18 +238,14 @@ namespace
 
             for (const SymbolFunction* function : jitOrder)
             {
-                if (!function)
-                    continue;
                 SWC_RESULT(sema.waitCodeGenPreSolved(function, function->codeRef()));
             }
 
             SmallVector<SymbolFunction*> expandedOrder;
-            symFn.appendJitOrder(expandedOrder);
-            appendGlobalFunctionInitJitOrder(sema, expandedOrder);
+            buildJitOrderWithGlobalFunctionInits(sema, symFn, expandedOrder);
             for (SymbolFunction* function : expandedOrder)
             {
-                if (function)
-                    knownFunctions.insert(function);
+                knownFunctions.insert(function);
             }
 
             if (knownFunctions.size() == knownFunctionCount)
@@ -244,19 +255,17 @@ namespace
         }
 
         SmallVector<SymbolFunction*> jitOrder;
-        symFn.appendJitOrder(jitOrder);
-        appendGlobalFunctionInitJitOrder(sema, jitOrder);
+        buildJitOrderWithGlobalFunctionInits(sema, symFn, jitOrder);
         for (SymbolFunction* function : jitOrder)
         {
-            if (!function)
-                continue;
             SWC_RESULT(function->emit(ctx));
         }
 
         if (ctx.state().jitEmissionError)
             return Result::Error;
 
-        symFn.jit(ctx);
+        if (!SymbolFunction::jitBatch(ctx, jitOrder))
+            return Result::Error;
         if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
             return Result::Error;
 

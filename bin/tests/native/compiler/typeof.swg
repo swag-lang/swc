@@ -17,6 +17,28 @@ const TypedValue: s32 = 10
 #assert(#typeof(cast(*u8) null) == *u8)
 #assert(#typeof(true) == bool)
 #assert(#typeof("x") == string)
+// @BUG #typeof(function-type) does not compare equal to the corresponding #type func(...) in native tests yet.
+// #assert(#typeof(func()->s32) == #type func()->s32)
+
+struct TypeOfPair { left, right: s16 }
+
+const TYPEOF_ARRAY = cast(const *Swag.TypeInfoArray) #typeof(#type [2, 3] TypeOfPair)
+#assert(#typeof(#type [2, 3] TypeOfPair) == #type [2, 3] TypeOfPair)
+#assert(TYPEOF_ARRAY.count == 2)
+#assert(TYPEOF_ARRAY.totalCount == 6)
+#assert(TYPEOF_ARRAY.pointedType == #type [3] TypeOfPair)
+#assert(TYPEOF_ARRAY.finalType == TypeOfPair)
+
+const TYPEOF_SLICE = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] TypeOfPair)
+#assert(#typeof(#type [..] TypeOfPair) == #type [..] TypeOfPair)
+#assert(TYPEOF_SLICE.pointedType == TypeOfPair)
+
+// @BUG #typeof(#type func(...)) is not typed reliably in native tests yet.
+// const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool)
+// #assert(#typeof(#type func(s32)->bool) == #type func(s32)->bool)
+// #assert(@countof(TYPEOF_FUNC.parameters) == 1)
+// #assert(TYPEOF_FUNC.parameters[0].pointedType == s32)
+// #assert(TYPEOF_FUNC.returnType == bool)
 
 #test
 {
@@ -29,3 +51,18 @@ const TypedValue: s32 = 10
     @assert(local == 2'u16)
     @assert(ptr == null)
 }
+
+// @BUG native constant-relocation validation fails for local arrays of nested typeinfo values.
+// #test
+// {
+//     var types: [?] typeinfo = [#typeof(#type [2, 3] TypeOfPair), #typeof(#type [..] TypeOfPair)]
+//
+//     let arrayInfo = cast(const *Swag.TypeInfoArray) types[0]
+//     let sliceInfo = cast(const *Swag.TypeInfoSlice) types[1]
+//
+//     @assert(types[0] == #type [2, 3] TypeOfPair)
+//     @assert(types[1] == #type [..] TypeOfPair)
+//     @assert(arrayInfo.totalCount == 6)
+//     @assert(arrayInfo.finalType == TypeOfPair)
+//     @assert(sliceInfo.pointedType == TypeOfPair)
+// }

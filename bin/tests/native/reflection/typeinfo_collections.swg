@@ -7,6 +7,8 @@ enum ReflectMode: s16
     Third = 9
 }
 
+func isSecond(mode: ReflectMode)->bool => mode == .Second
+
 const ENUM_INFO = cast(const *Swag.TypeInfoEnum) #typeof(ReflectMode)
 #assert(#typeof(ReflectMode).kind == .Enum)
 #assert(ENUM_INFO.rawType == s16)
@@ -37,6 +39,13 @@ const SLICE_INFO = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] ReflectMod
 #assert(#typeof(#type [..] ReflectMode).kind == .Slice)
 #assert(SLICE_INFO.pointedType == ReflectMode)
 
+const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
+// @BUG #typeof(function symbol) does not compare equal to the matching #type func(...) in native tests yet.
+// #assert(#typeof(isSecond) == #type func(ReflectMode)->bool)
+#assert(@countof(FUNC_INFO.parameters) == 1)
+#assert(FUNC_INFO.parameters[0].pointedType == ReflectMode)
+#assert(FUNC_INFO.returnType == bool)
+
 #test
 {
     let enumInfo = cast(const *Swag.TypeInfoEnum) #typeof(ReflectMode)
@@ -51,3 +60,26 @@ const SLICE_INFO = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] ReflectMod
     @assert(arrayInfo.finalType == ReflectMode)
     @assert(sliceInfo.pointedType == ReflectMode)
 }
+
+// @BUG native constant-relocation validation fails for local arrays of reflected typeinfo values.
+// #test
+// {
+//     var types: [?] typeinfo = [#typeof(ReflectMode), #typeof(#type [2] ReflectMode), #typeof(#type [..] ReflectMode), #typeof(isSecond)]
+//
+//     let enumInfo = cast(const *Swag.TypeInfoEnum) types[0]
+//     let arrayInfo = cast(const *Swag.TypeInfoArray) types[1]
+//     let sliceInfo = cast(const *Swag.TypeInfoSlice) types[2]
+//     let funcInfo = cast(const *Swag.TypeInfoFunc) types[3]
+//
+//     @assert(types[0] == ReflectMode)
+//     @assert(types[1] == #type [2] ReflectMode)
+//     @assert(types[2] == #type [..] ReflectMode)
+//     // @BUG function typeinfo equality against #type func(...) fails in native tests.
+//     // @assert(types[3] == #type func(ReflectMode)->bool)
+//     @assert(enumInfo.rawType == s16)
+//     @assert(arrayInfo.count == 2)
+//     @assert(arrayInfo.pointedType == ReflectMode)
+//     @assert(sliceInfo.pointedType == ReflectMode)
+//     @assert(funcInfo.parameters[0].pointedType == ReflectMode)
+//     @assert(funcInfo.returnType == bool)
+// }

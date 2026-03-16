@@ -40,8 +40,7 @@ const SLICE_INFO = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] ReflectMod
 #assert(SLICE_INFO.pointedType == ReflectMode)
 
 const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
-// @BUG #typeof(function symbol) does not compare equal to the matching #type func(...) in native tests yet.
-// #assert(#typeof(isSecond) == #type func(ReflectMode)->bool)
+#assert(#typeof(isSecond) == #type func(ReflectMode)->bool)
 #assert(@countof(FUNC_INFO.parameters) == 1)
 #assert(FUNC_INFO.parameters[0].pointedType == ReflectMode)
 #assert(FUNC_INFO.returnType == bool)

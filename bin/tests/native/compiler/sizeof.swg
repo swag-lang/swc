@@ -1,0 +1,32 @@
+#global fileprivate // swc-option suite-test
+
+struct SizedPair
+{
+    a: s32
+    b: s64
+}
+
+#assert(#sizeof(u8) == 1)
+#assert(#sizeof(u16) == 2)
+#assert(#sizeof(u32) == 4)
+#assert(#sizeof(u64) == 8)
+#assert(#sizeof(s8) == 1)
+#assert(#sizeof(s16) == 2)
+#assert(#sizeof(s32) == 4)
+#assert(#sizeof(s64) == 8)
+#assert(#sizeof(f32) == 4)
+#assert(#sizeof(f64) == 8)
+#assert(#sizeof(bool) == 1)
+#assert(#sizeof(rune) == 4)
+#assert(#sizeof(any) == 16)
+#assert(#sizeof("r") == 16)
+#assert(#sizeof(*u8) == 8)
+#assert(#sizeof([4] u32) == 16)
+#assert(#sizeof(const [..] u32) == 16)
+#assert(#sizeof(SizedPair) == 16)
+
+#test
+{
+    @assert(#sizeof([2] s64) == 16)
+    @assert(#sizeof(SizedPair) == 16)
+}

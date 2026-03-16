@@ -169,10 +169,87 @@ namespace
         builder.emitLoadAddressAmcRegMem(resultPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
         return resultPayload;
     }
+
+    Result emitSliceValue(CodeGen& codeGen, const AstIndexExpr& node)
+    {
+        const auto&               range          = codeGen.node(node.nodeArgRef).cast<AstRangeExpr>();
+        const CodeGenNodePayload& indexedPayload = codeGen.payload(node.nodeExprRef);
+        const SemaNodeView        indexedView    = codeGen.viewType(node.nodeExprRef);
+        const SemaNodeView        resultView     = codeGen.curViewType();
+        SWC_ASSERT(indexedView.type());
+        SWC_ASSERT(resultView.type());
+
+        const TypeInfo& indexedType = *indexedView.type();
+        const TypeInfo& resultType  = *resultView.type();
+        MicroBuilder&   builder     = codeGen.builder();
+
+        const MicroReg baseReg = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
+
+        const MicroReg lowReg = codeGen.nextVirtualIntRegister();
+        if (range.nodeExprDownRef.isValid())
+        {
+            auto       lowBits   = MicroOpBits::B64;
+            const auto rawLowReg = materializeIndexReg(codeGen, range.nodeExprDownRef, lowBits);
+            builder.emitLoadRegReg(lowReg, rawLowReg, MicroOpBits::B64);
+        }
+        else
+        {
+            builder.emitLoadRegImm(lowReg, ApInt(0, 64), MicroOpBits::B64);
+        }
+
+        const MicroReg endExclusiveReg = codeGen.nextVirtualIntRegister();
+        if (range.nodeExprUpRef.isValid())
+        {
+            auto       upBits   = MicroOpBits::B64;
+            const auto rawUpReg = materializeIndexReg(codeGen, range.nodeExprUpRef, upBits);
+            builder.emitLoadRegReg(endExclusiveReg, rawUpReg, MicroOpBits::B64);
+            if (range.hasFlag(AstRangeExprFlagsE::Inclusive))
+                builder.emitOpBinaryRegImm(endExclusiveReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        }
+        else if (indexedType.isArray())
+        {
+            const uint64_t count = indexedType.payloadArrayDims().empty() ? 0 : indexedType.payloadArrayDims()[0];
+            builder.emitLoadRegImm(endExclusiveReg, ApInt(count, 64), MicroOpBits::B64);
+        }
+        else if (indexedType.isString())
+        {
+            builder.emitLoadRegMem(endExclusiveReg, indexedPayload.reg, offsetof(Runtime::String, length), MicroOpBits::B64);
+        }
+        else if (indexedType.isSlice())
+        {
+            builder.emitLoadRegMem(endExclusiveReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);
+        }
+        else
+        {
+            SWC_UNREACHABLE();
+        }
+
+        const uint64_t strideSize = resolveIndexStrideSize(codeGen, indexedType);
+        const MicroReg dataReg    = codeGen.nextVirtualIntRegister();
+        builder.emitLoadAddressAmcRegMem(dataReg, MicroOpBits::B64, baseReg, lowReg, strideSize, 0, MicroOpBits::B64);
+
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(countReg, endExclusiveReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(countReg, lowReg, MicroOp::Subtract, MicroOpBits::B64);
+
+        const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Slice<std::byte>, ptr), dataReg, MicroOpBits::B64);
+
+        const uint32_t countOffset = resultType.isString() ? offsetof(Runtime::String, length) : offsetof(Runtime::Slice<std::byte>, count);
+        builder.emitLoadMemReg(runtimeValueReg, countOffset, countReg, MicroOpBits::B64);
+
+        CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultView.typeRef());
+        payload.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(payload.reg, runtimeValueReg, MicroOpBits::B64);
+        return Result::Continue;
+    }
 }
 
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    if (codeGen.node(nodeArgRef).is(AstNodeId::RangeExpr))
+        return emitSliceValue(codeGen, *this);
+
     const CodeGenNodePayload& indexedPayload = codeGen.payload(nodeExprRef);
     const SemaNodeView        indexedView    = codeGen.viewType(nodeExprRef);
     const SemaNodeView        resultView     = codeGen.curViewType();

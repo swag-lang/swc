@@ -1049,17 +1049,21 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     }
 
     // Slicing
-    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::RangeExpr>(tokStart);
+    const auto [rangeRef, rangePtr] = ast_->makeNode<AstNodeId::RangeExpr>(tokStart);
     if (is(TokenId::KwdTo))
-        nodePtr->addFlag(AstRangeExprFlagsE::Inclusive);
+        rangePtr->addFlag(AstRangeExprFlagsE::Inclusive);
     consume();
-    nodePtr->nodeExprDownRef = nodeExpr;
+    rangePtr->nodeExprDownRef = nodeExpr;
     if (!is(TokenId::SymRightBracket))
-        nodePtr->nodeExprUpRef = parseExpression();
+        rangePtr->nodeExprUpRef = parseExpression();
     else
-        nodePtr->nodeExprUpRef.setInvalid();
+        rangePtr->nodeExprUpRef.setInvalid();
 
     expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
+
+    const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IndexExpr>(tokStart);
+    nodePtr->nodeExprRef             = nodeRef;
+    nodePtr->nodeArgRef              = rangeRef;
     return nodeParent;
 }
 

@@ -17,6 +17,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result     completeIndexRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
+    SymbolVariable& registerUniqueIndexRuntimeStorageSymbol(Sema& sema, const AstNode& node);
+
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
         if (!nodeArgView.type()->isInt())
@@ -47,6 +50,110 @@ namespace
             constIndex    = idxInt.asI64();
         }
 
+        return Result::Continue;
+    }
+
+    Result checkSliceBound(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
+    {
+        if (nodeArgRef.isInvalid())
+            return Result::Continue;
+        return checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex);
+    }
+
+    TypeRef sliceResultTypeRef(Sema& sema, const SemaNodeView& indexedView)
+    {
+        const TypeInfo& indexedType = *indexedView.type();
+
+        if (indexedType.isArray())
+        {
+            TypeInfoFlags flags = indexedType.flags();
+            return sema.typeMgr().addType(TypeInfo::makeSlice(indexedType.payloadArrayElemTypeRef(), flags));
+        }
+
+        if (indexedType.isSlice())
+            return indexedView.typeRef();
+
+        if (indexedType.isString())
+            return sema.typeMgr().typeString();
+
+        if (indexedType.isCString())
+            return sema.typeMgr().typeString();
+
+        if (indexedType.isAnyPointer())
+            return sema.typeMgr().addType(TypeInfo::makeSlice(indexedType.payloadTypeRef(), indexedType.flags()));
+
+        return TypeRef::invalid();
+    }
+
+    TypeRef sliceRuntimeStorageTypeRef(Sema& sema, TypeRef resultTypeRef, ConstantRef resultConstRef)
+    {
+        if (!resultTypeRef.isValid() || resultConstRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& resultType = sema.typeMgr().get(resultTypeRef);
+        if (resultType.isSlice() || resultType.isString())
+            return resultTypeRef;
+
+        return TypeRef::invalid();
+    }
+
+    Result completeSliceRuntimeStorage(Sema& sema, TypeRef storageTypeRef)
+    {
+        if (storageTypeRef.isInvalid() || sema.frame().currentFunction() == nullptr)
+            return Result::Continue;
+
+        auto& storageSym = registerUniqueIndexRuntimeStorageSymbol(sema, sema.node(sema.curNodeRef()));
+        storageSym.registerAttributes(sema);
+        storageSym.setDeclared(sema.ctx());
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeIndexRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
+            sema.setCodeGenPayload(sema.curNodeRef(), payload);
+        }
+
+        payload->runtimeStorageSym = &storageSym;
+        return Result::Continue;
+    }
+
+    Result semaSliceIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& nodeExprView)
+    {
+        const auto&         range        = sema.node(node.nodeArgRef).cast<AstRangeExpr>();
+        const SemaNodeView  nodeDownView = sema.viewTypeConstant(range.nodeExprDownRef);
+        const SemaNodeView  nodeUpView   = sema.viewTypeConstant(range.nodeExprUpRef);
+        int64_t             constDown    = 0;
+        int64_t             constUp      = 0;
+        bool                hasConstDown = false;
+        bool                hasConstUp   = false;
+        SWC_RESULT(checkSliceBound(sema, range.nodeExprDownRef, nodeDownView, constDown, hasConstDown));
+        SWC_RESULT(checkSliceBound(sema, range.nodeExprUpRef, nodeUpView, constUp, hasConstUp));
+
+        const TypeRef resultTypeRef = sliceResultTypeRef(sema, nodeExprView);
+        if (!resultTypeRef.isValid())
+            return SemaError::raiseTypeNotIndexable(sema, node.nodeExprRef, nodeExprView.typeRef());
+
+        if (!range.nodeExprUpRef.isValid() && (nodeExprView.type()->isAnyPointer() || nodeExprView.type()->isCString()))
+            return SemaError::raiseTypeNotIndexable(sema, node.nodeExprRef, nodeExprView.typeRef());
+
+        if (hasConstDown && hasConstUp)
+        {
+            const bool ok = range.hasFlag(AstRangeExprFlagsE::Inclusive) ? constDown <= constUp : constDown < constUp;
+            if (!ok)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, node.nodeArgRef);
+                diag.addArgument(Diagnostic::ARG_LEFT, nodeDownView.cstRef());
+                diag.addArgument(Diagnostic::ARG_RIGHT, nodeUpView.cstRef());
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+
+        sema.setType(sema.curNodeRef(), resultTypeRef);
+        sema.setIsValue(sema.node(sema.curNodeRef()));
+        SWC_RESULT(completeSliceRuntimeStorage(sema, sliceRuntimeStorageTypeRef(sema, resultTypeRef, ConstantRef::invalid())));
         return Result::Continue;
     }
 
@@ -124,6 +231,9 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeExprView = sema.viewTypeConstant(nodeExprRef);
     const SemaNodeView nodeArgView  = sema.viewTypeConstant(nodeArgRef);
+
+    if (sema.node(nodeArgRef).is(AstNodeId::RangeExpr))
+        return semaSliceIndex(sema, *this, nodeExprView);
 
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;

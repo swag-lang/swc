@@ -19,6 +19,9 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
         SWC_RESULT(SemaCheck::isValue(sema, nodeUpView.nodeRef()));
 
     TypeRef typeRef = TypeRef::invalid();
+    if (!nodeDownView.typeRef().isValid() && !nodeUpView.typeRef().isValid())
+        typeRef = sema.typeMgr().typeU64();
+
     if (nodeDownView.typeRef().isValid())
     {
         if (!nodeDownView.type()->isScalarNumeric())

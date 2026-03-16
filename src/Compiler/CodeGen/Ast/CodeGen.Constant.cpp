@@ -198,6 +198,8 @@ namespace
 
         const MicroReg  dstBaseReg  = codeGen.runtimeStorageAddressReg(nodeRef);
         const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
+        // Concrete arrays/structs start from their default storage so omitted literal elements keep the
+        // correct zeroed or default-initialized bytes.
         if (storageType.isArray() || storageType.isStruct())
             emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg);
 
@@ -212,6 +214,8 @@ namespace
 
             if (elementPayload.isAddress())
             {
+                // Address-backed elements already live in their final representation, so copy them verbatim
+                // into the aggregate slot.
                 MicroReg dstElementReg = dstBaseReg;
                 if (entry.offset != 0)
                 {

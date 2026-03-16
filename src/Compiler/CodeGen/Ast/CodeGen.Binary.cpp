@@ -113,6 +113,8 @@ namespace
         const TypeInfo& leftOperandType  = codeGen.typeMgr().get(ctx.leftOperandTypeRef);
         const TypeInfo& rightOperandType = codeGen.typeMgr().get(ctx.rightOperandTypeRef);
         ctx.encodingKind                 = resolveBinaryEncodingKind(tokId, leftOperandType, rightOperandType);
+        // Pointer arithmetic is expressed in element units, so capture the stride once and reuse it in
+        // both offset and difference lowering.
         if (ctx.encodingKind == BinaryEncodingKind::PointerOffset)
         {
             const TypeRef pointerTypeRef = leftOperandType.isBlockPointer() ? ctx.leftOperandTypeRef : ctx.rightOperandTypeRef;
@@ -418,6 +420,8 @@ namespace
         MicroBuilder&             builder       = codeGen.builder();
         builder.emitLoadRegReg(resultPayload.reg, leftReg, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(resultPayload.reg, rightReg, MicroOp::Subtract, MicroOpBits::B64);
+        // Pointer subtraction produces a byte delta first; normalize it back to an element count for the
+        // language-level result.
         if (encodeCtx.pointerStride != 1)
             builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(encodeCtx.pointerStride, 64), MicroOp::DivideSigned, MicroOpBits::B64);
         return Result::Continue;

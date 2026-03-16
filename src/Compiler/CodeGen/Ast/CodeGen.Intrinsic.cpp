@@ -230,6 +230,8 @@ namespace
         const MicroReg expectedReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(expectedReg, ptrReg, 0, opBits);
 
+        // Lower atomic rmw through a compare-exchange retry loop so it maps cleanly to the generic micro
+        // instruction set without needing dedicated rmw opcodes.
         const MicroLabelRef retryLabel = builder.createLabel();
         const MicroLabelRef doneLabel  = builder.createLabel();
         builder.placeLabel(retryLabel);
@@ -515,6 +517,8 @@ namespace
                 return *payload;
         }
 
+        // `countof` can target a stored symbol that was not reached through the current AST walk, so fall
+        // back to sema-owned symbol/type views before using the transient node payload.
         const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
         if (storedView.sym() && storedView.sym()->isVariable())
         {
@@ -563,6 +567,8 @@ namespace
         const MicroReg            baseReg       = materializeCountLikeBaseReg(codeGen, exprPayload);
         if (exprType->isCString())
         {
+            // C strings do not carry a cached length in their runtime representation, so count bytes until
+            // the terminating zero.
             const MicroReg cstrReg = codeGen.nextVirtualIntRegister();
             if (exprPayload.isAddress())
                 builder.emitLoadRegMem(cstrReg, baseReg, 0, MicroOpBits::B64);
@@ -1145,6 +1151,8 @@ namespace
         if (!codeGen.hasGvtdScratchLayout())
             return Result::Error;
 
+        // Rebuild the returned slice in frame-local scratch storage on each call so both the slice header
+        // and the entry array stay valid for the duration of the current function.
         const MicroReg scratchReg = gvtdScratchAddressReg(codeGen);
         MicroBuilder&  builder    = codeGen.builder();
         const auto     entries    = codeGen.gvtdScratchEntries();

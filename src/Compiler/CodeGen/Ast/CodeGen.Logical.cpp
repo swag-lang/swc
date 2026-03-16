@@ -86,6 +86,8 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         state.setIsValue();
         state.doneLabel = builder.createLabel();
 
+        // Short-circuit by keeping the lhs boolean as the provisional result and only evaluating rhs when
+        // the operator still needs it.
         if (leftInfo.isBool())
             builder.emitCmpRegImm(state.reg, ApInt(0, 64), MicroOpBits::B8);
         if (tok.id == TokenId::KwdAnd)
@@ -110,6 +112,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
         MicroReg rightReg;
         materializeLogicalOperand(rightReg, codeGen, rightPayload, rightType);
 
+        // Reuse the lhs result register so both control-flow paths converge on a single payload.
         if (state->reg != rightReg)
             codeGen.builder().emitLoadRegReg(state->reg, rightReg, MicroOpBits::B8);
         codeGen.builder().placeLabel(state->doneLabel);

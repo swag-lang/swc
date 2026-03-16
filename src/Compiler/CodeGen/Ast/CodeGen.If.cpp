@@ -64,6 +64,8 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
         state.doneLabel    = builder.createLabel();
         state.hasElseBlock = resolvedElseBlockRef.isValid();
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.falseLabel);
+        // The branch bodies are emitted in later child callbacks, so keep their labels attached to the
+        // `if` node until those callbacks run.
         setIfStmtCodeGenPayload(codeGen, ifRef, state);
 
         return Result::Continue;
@@ -82,6 +84,7 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
         if (state->hasElseBlock)
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state->doneLabel);
 
+        // Falling out of the `if` body either starts the `else` body or lands directly after the statement.
         builder.placeLabel(state->falseLabel);
 
         if (!state->hasElseBlock)

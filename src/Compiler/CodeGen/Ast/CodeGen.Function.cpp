@@ -213,6 +213,8 @@ namespace
         if (!functionUsesGvtdIntrinsic(codeGen, functionDecl->nodeBodyRef))
             return;
 
+        // `@gvtd` returns a slice built in the current frame, so reserve scratch space once in the local
+        // stack layout and keep the referenced drop helpers alive as dependencies.
         SmallVector<CodeGenGvtdEntry> entries;
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())
             collectGvtdEntriesRec(codeGen, *rootModule, entries);
@@ -242,6 +244,7 @@ namespace
         if (!shouldSpillParametersForDebugInfo(codeGen))
             return;
 
+        // Debug info wants a stable stack home even for parameters that arrive only in registers.
         const std::vector<SymbolVariable*>& params = codeGen.function().parameters();
         for (SymbolVariable* symVar : params)
         {
@@ -338,6 +341,8 @@ namespace
         if (!codeGen.hasLocalStackFrame())
             return;
 
+        // Once parameter payloads are materialized, mirror them into the synthetic debug slots so the
+        // debugger can recover them from a single stack location.
         MicroBuilder&                       builder = codeGen.builder();
         const MicroReg                      baseReg = CallConv::get(symbolFunc.callConvKind()).stackPointer;
         const std::vector<SymbolVariable*>& params  = symbolFunc.parameters();
@@ -609,6 +614,8 @@ namespace
         {
             SWC_ASSERT(!callConv.intArgRegs.empty());
             const ScopedDebugNoStep noStep(codeGen.builder(), true);
+            // Capture the hidden return-buffer argument before parameter materialization starts consuming
+            // the ABI argument registers.
             const MicroReg          outputStorageReg = codeGen.nextVirtualIntRegister();
             codeGen.builder().emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
             codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);

@@ -190,6 +190,8 @@ namespace
         SWC_ASSERT(srcPayload.isAddress());
 
         MicroBuilder&  builder      = codeGen.builder();
+        // Runtime `any` stores a type pointer plus an address to the erased value. Casting out of it only
+        // decides whether the destination expects that address directly or wants the pointed-to bits.
         const MicroReg valueAddrReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(valueAddrReg, srcPayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
 
@@ -273,6 +275,8 @@ namespace
             }
 
             SWC_ASSERT(dstSize <= std::numeric_limits<uint32_t>::max());
+            // Large pointer-like layouts cannot be represented as a raw zero immediate; materialize a
+            // typed zero blob that matches the destination runtime representation.
             SmallVector<std::byte> typedNullBytes;
             typedNullBytes.resize(dstSize);
             std::memset(typedNullBytes.data(), 0, typedNullBytes.size());

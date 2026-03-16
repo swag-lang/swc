@@ -121,6 +121,8 @@ namespace
         MicroReg baseAddressReg = leftPayload.reg;
         if (leftTypeView.type() && leftTypeView.type()->isPointerOrReference())
         {
+            // Member access through a pointer/reference works on the pointee object, not on the storage
+            // that currently holds that pointer value.
             if (leftPayload.isAddress())
             {
                 baseAddressReg = codeGen.nextVirtualIntRegister();
@@ -149,6 +151,8 @@ namespace
             }
         }
 
+        // Replay the resolved `using` chain so the final member offset is computed from the subobject that
+        // actually owns the requested field.
         for (const auto& step : usingPath)
         {
             SWC_ASSERT(step.field != nullptr);

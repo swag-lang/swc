@@ -145,6 +145,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         SWC_ASSERT(state != nullptr);
 
         const CodeGenNodePayload& truePayload = codeGen.payload(nodeTrueRef);
+        // The first selected branch allocates the destination payload; the other branch writes into that
+        // same storage after the join label.
         if (addressBacked)
         {
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
@@ -222,6 +224,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.falseLabel);
 
+        // When the lhs is present, null-coalescing resolves immediately and the rhs is skipped entirely.
         if (addressBacked)
         {
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);

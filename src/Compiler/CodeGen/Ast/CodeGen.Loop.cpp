@@ -235,6 +235,8 @@ namespace
 
         SWC_ASSERT(loopState.sourceSpillSym != nullptr);
 
+        // Foreach needs a stable base pointer across iterations, so spill small by-value sources into the
+        // hidden storage symbol reserved for the loop state.
         MicroBuilder&  builder      = codeGen.builder();
         const MicroReg spillAddrReg = materializeForeachInternalStackAddress(codeGen, *(loopState.sourceSpillSym));
         builder.emitLoadMemReg(spillAddrReg, 0, sourcePayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
@@ -370,6 +372,8 @@ namespace
         if (loopState.reverse)
         {
             loopState.boundReg = lowerReg;
+            // Reverse loops start from the upper bound and pre-decrement when the range is exclusive so
+            // the first visible value still belongs to the source interval.
             builder.emitCmpRegReg(upperReg, lowerReg, opBits);
             if (loopState.inclusive)
             {
@@ -420,6 +424,8 @@ namespace
         SWC_ASSERT(loopState.countReg.isValid());
         SWC_ASSERT(loopState.indexReg.isValid());
 
+        // Persist progress in the hidden state slot because loop callbacks and `continue` paths can
+        // allocate fresh virtual registers before the next iteration.
         MicroBuilder&  builder         = codeGen.builder();
         const MicroReg stateAddressReg = emitForeachStateAddressReg(codeGen, loopState);
         builder.emitLoadMemReg(stateAddressReg, offsetof(ForeachLoopRuntimeState, base), loopState.baseReg, MicroOpBits::B64);
@@ -814,6 +820,8 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     {
         emitForeachInit(codeGen, *this, *loopState);
         codeGen.builder().placeLabel(loopState->loopLabel);
+        // The loop head always reloads the persisted state because the previous iteration may have crossed
+        // callbacks that invalidated the current virtual register assignments.
         emitForeachLoadLoopState(codeGen, *loopState);
         codeGen.builder().emitCmpRegImm(loopState->countReg, ApInt(0, 64), MicroOpBits::B64);
         codeGen.builder().emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);

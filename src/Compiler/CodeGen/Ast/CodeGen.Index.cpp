@@ -56,6 +56,8 @@ namespace
         if (sizeOfValue != 1 && sizeOfValue != 2 && sizeOfValue != 4 && sizeOfValue != 8)
             return payload.reg;
 
+        // Indexing a by-value array still needs a stable base address, so spill register-sized values to a
+        // temporary storage slot first.
         const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         builder.emitLoadMemReg(spillAddrReg, 0, payload.reg, CodeGenTypeHelpers::bitsFromStorageSize(sizeOfValue));
         return spillAddrReg;
@@ -154,6 +156,8 @@ namespace
         const MicroReg indexReg  = materializeIndexReg(codeGen, indexRef, indexBits);
         const MicroReg baseReg   = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
 
+        // Multidimensional indexing is just repeated address computation with the stride of the current
+        // element type.
         const uint64_t resultSize = resolveIndexStrideSize(codeGen, indexedType);
         SWC_ASSERT(resultSize > 0);
 

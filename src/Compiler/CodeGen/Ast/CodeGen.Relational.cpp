@@ -100,6 +100,8 @@ namespace
                 return promotedTypeRef;
 
             const TypeInfo& promotedType = codeGen.typeMgr().get(promotedTypeRef);
+            // Widen 32-bit numeric compares to the backend's 64-bit comparison form so arithmetic and
+            // relational lowering agree on the register representation.
             if (promotedType.isIntLike() && promotedType.payloadIntLikeBitsOr(64) == 32)
             {
                 const TypeInfo::Sign sign = promotedType.isIntUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
@@ -352,6 +354,8 @@ namespace
         }
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        // `<=>` is reconstructed from two predicates: `left > right` minus `left < right` yields
+        // {+1, 0, -1} without needing a dedicated three-way compare opcode.
         builder.emitLoadRegReg(resultPayload.reg, greatReg, MicroOpBits::B32);
         builder.emitOpBinaryRegReg(resultPayload.reg, lessReg, MicroOp::Subtract, MicroOpBits::B32);
         return Result::Continue;

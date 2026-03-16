@@ -61,6 +61,8 @@ namespace
 
         if (operandTypeInfo.isFloat())
         {
+            // The micro layer exposes float subtraction but no dedicated float negate, so lower `-x` as
+            // `0 - x`.
             const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
             builder.emitClearReg(zeroReg, opBits);
             builder.emitOpBinaryRegReg(zeroReg, resultPayload.reg, MicroOp::FloatSubtract, opBits);
@@ -133,6 +135,8 @@ namespace
         const CodeGenNodePayload& payload   = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
         if (childView.sym() && childView.sym()->isFunction() && !codeGen.safePayload(nodeExprRef))
         {
+            // Function symbols do not materialize an lvalue payload, so taking their address loads the
+            // code pointer directly.
             auto& symFunc = childView.sym()->cast<SymbolFunction>();
             codeGen.builder().emitLoadRegPtrReloc(payload.reg, 0, ConstantRef::invalid(), &symFunc);
             return Result::Continue;

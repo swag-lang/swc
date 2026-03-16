@@ -24,6 +24,8 @@ namespace
 
         const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
         uint64_t        frameSize = 0;
+        // Sema already fixed the per-local offsets. Codegen only turns that sparse layout into one
+        // contiguous stack frame and marks each symbol as stack-backed.
         for (SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
@@ -115,6 +117,7 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     const CallConv&    callConv     = CallConv::get(callConvKind);
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
+    // Compiler-run entry points receive the caller output buffer in the first integer argument.
     const MicroReg            outputStorageReg = callConv.intArgRegs[0];
     const CodeGenNodePayload& nodePayload      = codeGen.setPayloadAddress(codeGen.curNodeRef());
     codeGen.builder().emitLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
@@ -151,6 +154,8 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
             auto*          spillData = codeGen.compiler().allocateArray<std::byte>(spillSize);
             std::memset(spillData, 0, spillSize);
 
+            // Indirect ABI returns still need an address source, so spill direct register results to
+            // temporary storage before copying them to the caller buffer.
             const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
 
             builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
@@ -160,6 +165,8 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
+        // A direct call expression may still own the ABI return registers, so write them back without
+        // round-tripping through a freshly materialized virtual value.
         if (canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet))
             ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
         else

@@ -317,6 +317,8 @@ namespace
         TypeRef         targetTypeRef = leftTypeRef;
         if (leftTypeInfo.isReference())
         {
+            // All assignment encodings store through an address, so references are normalized to the
+            // address of their referent before the actual store logic runs.
             SWC_ASSERT(!target.payload.isAddress());
             target.payload.setIsAddress();
             targetTypeRef = leftTypeInfo.payloadTypeRef();
@@ -385,6 +387,8 @@ namespace
         CodeGenNodePayload rightPayload     = *encodeCtx.rightPayload;
         MicroReg           targetAddressReg = encodeCtx.target.payload.reg;
 
+        // Scalar rhs materialization may allocate extra temporaries, so keep source and destination
+        // addresses in stable virtual registers before emitting the final store.
         if (targetAddressReg.isVirtualInt())
         {
             const MicroReg stableTargetReg = codeGen.nextVirtualIntRegister();

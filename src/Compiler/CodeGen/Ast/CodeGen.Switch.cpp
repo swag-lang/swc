@@ -264,6 +264,8 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
     switchState.doneLabel     = codeGen.builder().createLabel();
     switchState.hasExpression = nodeExprRef.isValid();
 
+    // Build the whole case label graph up front so `fallthrough` and "next test" edges are stable before
+    // any case body starts emitting code.
     SmallVector<AstNodeRef> caseRefs;
     codeGen.ast().appendNodes(caseRefs, spanChildrenRef);
     for (const AstNodeRef caseRef : caseRefs)
@@ -399,6 +401,8 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             codeGen.ast().appendNodes(caseExprRefs, spanExprRef);
 
             const bool          hasWhere   = nodeWhereRef.isValid();
+            // A `where` clause only runs after one case expression matched, so all successful tests funnel
+            // through a shared label before entering the body.
             const MicroLabelRef matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
             for (const AstNodeRef caseExprRef : caseExprRefs)
             {
@@ -494,6 +498,8 @@ Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRe
     const SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
     SWC_ASSERT(switchState != nullptr);
 
+    // Only non-fallthrough cases jump to the switch exit; explicit `fallthrough` leaves control to the
+    // next case's test/body sequence.
     codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, switchState->doneLabel);
     return Result::Continue;
 }

@@ -117,6 +117,8 @@ namespace
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid())
         {
+            // Stack locals are committed to memory immediately, so later address-taking observes a stable
+            // location, regardless of how the initializer was produced.
             const uint32_t localSize = symVar.codeGenLocalSize();
             SWC_ASSERT(localSize > 0);
             const CodeGenNodePayload symbolPayload = codeGen.resolveLocalStackPayload(symVar);
@@ -152,6 +154,8 @@ namespace
                 }
                 else
                 {
+                    // Prefer the declared default storage blob before falling back to zero-init for plain
+                    // uninitialized stack locals.
                     if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
                         CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
                 }

@@ -474,9 +474,13 @@ namespace
                     }
                 }
 
+                const ConstantRef safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
+                SWC_ASSERT(safeCstRef.isValid());
+                const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);
+
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
-                SWC_ASSERT(arrayBytes.size() == storageSize);
-                builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
+                SWC_ASSERT(safeCst.getArray().size() == storageSize);
+                builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(safeCst.getArray().data()), safeCstRef);
                 payload.setIsAddress();
                 return;
             }

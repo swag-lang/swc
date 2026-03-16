@@ -50,17 +50,16 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
     @assert(ptr == null)
 }
 
-// @BUG native constant-relocation validation fails for local arrays of nested typeinfo values.
-// #test
-// {
-//     var types: [?] typeinfo = [#typeof(#type [2, 3] TypeOfPair), #typeof(#type [..] TypeOfPair)]
-//
-//     let arrayInfo = cast(const *Swag.TypeInfoArray) types[0]
-//     let sliceInfo = cast(const *Swag.TypeInfoSlice) types[1]
-//
-//     @assert(types[0] == #type [2, 3] TypeOfPair)
-//     @assert(types[1] == #type [..] TypeOfPair)
-//     @assert(arrayInfo.totalCount == 6)
-//     @assert(arrayInfo.finalType == TypeOfPair)
-//     @assert(sliceInfo.pointedType == TypeOfPair)
-// }
+#test
+{
+    var types: [?] typeinfo = [#typeof(#type [2, 3] TypeOfPair), #typeof(#type [..] TypeOfPair)]
+
+    let arrayInfo = cast(const *Swag.TypeInfoArray) types[0]
+    let sliceInfo = cast(const *Swag.TypeInfoSlice) types[1]
+
+    @assert(types[0] == #type [2, 3] TypeOfPair)
+    @assert(types[1] == #type [..] TypeOfPair)
+    @assert(arrayInfo.totalCount == 6)
+    @assert(arrayInfo.finalType == TypeOfPair)
+    @assert(sliceInfo.pointedType == TypeOfPair)
+}

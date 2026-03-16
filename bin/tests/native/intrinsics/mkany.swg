@@ -122,3 +122,32 @@ enum MkanyKind: u16
     @assert(@kindof(boxed) == s64)
     @assert(dref p == 9000)
 }
+
+#test
+{
+    var text: string = "alpha"
+    let boxed: any = @mkany(&text, string)
+    let ptr = cast(*string) @dataof(boxed)
+
+    text = "beta"
+
+    @assert(@kindof(boxed) == string)
+    @assert(dref ptr == "beta")
+    @assert(@countof(dref ptr) == 4)
+}
+
+#test
+{
+    var buffer: [4] s32 = [3, 6, 9, 12]
+    var values: [..] s32 = buffer
+    let boxed: any = @mkany(&values, [..] s32)
+    let ptr = cast(*[..] s32) @dataof(boxed)
+
+    values[1] = 77
+    values = buffer[1 to 3]
+
+    @assert(@kindof(boxed) == [..] s32)
+    @assert(@countof(dref ptr) == 3)
+    @assert((dref ptr)[0] == 77)
+    @assert((dref ptr)[2] == 12)
+}

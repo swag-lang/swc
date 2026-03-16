@@ -384,7 +384,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             SmallVector<AstNodeRef> caseExprRefs;
             codeGen.ast().appendNodes(caseExprRefs, spanExprRef);
 
-            const bool          hasWhere   = nodeWhereRef.isValid();
+            const bool hasWhere = nodeWhereRef.isValid();
             // A `where` clause only runs after one case expression matched, so all successful tests funnel
             // through a shared label before entering the body.
             const MicroLabelRef matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;

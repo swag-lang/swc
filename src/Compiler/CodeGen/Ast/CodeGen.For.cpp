@@ -27,8 +27,8 @@ namespace
         MicroLabelRef   doneLabel       = MicroLabelRef::invalid();
         MicroReg        indexReg        = MicroReg::invalid();
         MicroReg        boundReg        = MicroReg::invalid();
-        SymbolVariable* indexSym        = nullptr;
         TypeRef         indexTypeRef    = TypeRef::invalid();
+        SymbolVariable* indexSym        = nullptr;
         bool            reverse         = false;
         bool            inclusive       = false;
         bool            unsignedCmp     = false;
@@ -175,9 +175,8 @@ namespace
             loopState.boundReg = upperReg;
             builder.emitLoadRegReg(loopState.indexReg, lowerReg, opBits);
             builder.emitCmpRegReg(loopState.indexReg, upperReg, opBits);
-            builder.emitJumpToLabel(loopState.inclusive ? CodeGenCompareHelpers::greaterCond(loopState.unsignedCmp) : CodeGenCompareHelpers::greaterEqualCond(loopState.unsignedCmp),
-                                    MicroOpBits::B32,
-                                    loopState.doneLabel);
+            const auto cpuCond = loopState.inclusive ? CodeGenCompareHelpers::greaterCond(loopState.unsignedCmp) : CodeGenCompareHelpers::greaterEqualCond(loopState.unsignedCmp);
+            builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, loopState.doneLabel);
         }
 
         if (loopState.indexSym != nullptr)
@@ -377,9 +376,8 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         {
             builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
             builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
-            builder.emitJumpToLabel(loopState->inclusive ? CodeGenCompareHelpers::lessEqualCond(loopState->unsignedCmp) : CodeGenCompareHelpers::lessCond(loopState->unsignedCmp),
-                                    MicroOpBits::B32,
-                                    loopState->loopLabel);
+            const auto cpuCond = loopState->inclusive ? CodeGenCompareHelpers::lessEqualCond(loopState->unsignedCmp) : CodeGenCompareHelpers::lessCond(loopState->unsignedCmp);
+            builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, loopState->loopLabel);
         }
 
         codeGen.popFrame();

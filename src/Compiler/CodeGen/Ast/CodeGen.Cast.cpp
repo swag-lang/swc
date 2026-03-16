@@ -189,7 +189,7 @@ namespace
 
         SWC_ASSERT(srcPayload.isAddress());
 
-        MicroBuilder&  builder      = codeGen.builder();
+        MicroBuilder& builder = codeGen.builder();
         // Runtime `any` stores a type pointer plus an address to the erased value. Casting out of it only
         // decides whether the destination expects that address directly or wants the pointed-to bits.
         const MicroReg valueAddrReg = codeGen.nextVirtualIntRegister();

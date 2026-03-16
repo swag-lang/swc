@@ -616,7 +616,7 @@ namespace
             const ScopedDebugNoStep noStep(codeGen.builder(), true);
             // Capture the hidden return-buffer argument before parameter materialization starts consuming
             // the ABI argument registers.
-            const MicroReg          outputStorageReg = codeGen.nextVirtualIntRegister();
+            const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
             codeGen.builder().emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
             codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
         }

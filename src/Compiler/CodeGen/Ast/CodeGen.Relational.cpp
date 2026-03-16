@@ -249,7 +249,6 @@ namespace
 
     CodeGenCompareHelpers::CompareCondition buildCompareCondition(TokenId tokId, const TypeInfo& compareType)
     {
-        using CompareCondition            = CodeGenCompareHelpers::CompareCondition;
         using FloatUnorderedMode          = CodeGenCompareHelpers::FloatUnorderedMode;
         const bool unsignedOrFloatCompare = compareType.usesUnsignedConditions();
         switch (tokId)

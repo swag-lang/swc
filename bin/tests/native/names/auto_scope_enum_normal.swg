@@ -26,8 +26,8 @@ func isGreen(value: A)->bool
 {
     let value: A = .G
     let holder: Holder = {value: A.B}
-    // @BUG native cannot compute auto scope in typed array literals yet: let values: [3] A = [.R, .G, .B]
-    let values: [3] A = [A.R, A.G, A.B]
+    let values: [3] A = [.R, .G, .B]
+    let matrix: [2, 2] A = [[.R, .G], [.B, .R]]
 
     @assert(value == A.G)
     @assert(isGreen(value))
@@ -35,6 +35,10 @@ func isGreen(value: A)->bool
     @assert(values[0] == .R)
     @assert(values[1] == .G)
     @assert(values[2] == .B)
+    @assert(matrix[0][0] == .R)
+    @assert(matrix[0][1] == .G)
+    @assert(matrix[1][0] == .B)
+    @assert(matrix[1][1] == .R)
     @assert(pickA(true) == .R)
     @assert(pickA(false) == .B)
 }

@@ -14,6 +14,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef normalizeAutoMemberBindingType(TaskContext& ctx, TypeRef typeRef)
+    {
+        while (typeRef.isValid())
+        {
+            const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+            if (typeInfo.isAlias())
+            {
+                typeRef = typeInfo.payloadSymAlias().underlyingTypeRef();
+                continue;
+            }
+
+            if (typeInfo.isReference() || typeInfo.isSlice() || typeInfo.isTypedVariadic())
+            {
+                typeRef = typeInfo.payloadTypeRef();
+                continue;
+            }
+
+            // Array literals inherit the binding type from their parent expression.
+            // Drill through nested array layers so `.EnumValue` can bind to the element enum.
+            if (typeInfo.isArray())
+            {
+                typeRef = typeInfo.payloadArrayElemTypeRef();
+                continue;
+            }
+
+            break;
+        }
+
+        return typeRef;
+    }
+
     struct AutoMemberCandidate
     {
         const SymbolMap*      symMap = nullptr;
@@ -109,7 +140,11 @@ namespace
                 if (!hintType.isValid())
                     continue;
 
-                const TypeInfo& typeInfo = sema.typeMgr().get(hintType);
+                const TypeRef normalizedTypeRef = normalizeAutoMemberBindingType(sema.ctx(), hintType);
+                if (!normalizedTypeRef.isValid())
+                    continue;
+
+                const TypeInfo& typeInfo = sema.typeMgr().get(normalizedTypeRef);
                 SWC_RESULT(addCandidate(&typeInfo, nullptr));
             }
         }

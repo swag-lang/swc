@@ -115,9 +115,9 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
 
 Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache)
 {
-    TaskContext&       ctx  = sema.ctx();
-    TypeManager&       tm   = ctx.typeMgr();
-    const AstNode&     node = sema.node(ownerNodeRef);
+    TaskContext&   ctx  = sema.ctx();
+    TypeManager&   tm   = ctx.typeMgr();
+    const AstNode& node = sema.node(ownerNodeRef);
 
     // Non-recursive (explicit stack) type-info generation.
     //

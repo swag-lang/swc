@@ -189,7 +189,7 @@ namespace
 
 Result AstForCStyleStmt::codeGenPreNode(CodeGen& codeGen)
 {
-    MicroBuilder&                builder = codeGen.builder();
+    MicroBuilder&               builder = codeGen.builder();
     ForCStyleStmtCodeGenPayload loopState;
     loopState.loopLabel     = builder.createLabel();
     loopState.bodyLabel     = builder.createLabel();
@@ -252,7 +252,7 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
     if (childRef == exprRef)
     {
-        MicroBuilder&               builder = codeGen.builder();
+        MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
         const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         CodeGenCompareHelpers::emitConditionFalseJump(codeGen, exprPayload, exprView.typeRef(), loopState->doneLabel);
@@ -277,7 +277,7 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
     if (childRef == bodyRef)
     {
-        MicroBuilder&          builder = codeGen.builder();
+        MicroBuilder&           builder = codeGen.builder();
         const ScopedDebugNoStep noStep(builder, true);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, postStmtRef.isValid() ? loopState->continueLabel : loopState->loopLabel);
         codeGen.popFrame();
@@ -299,7 +299,7 @@ Result AstForCStyleStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const
 {
-    MicroBuilder&          builder = codeGen.builder();
+    MicroBuilder&         builder = codeGen.builder();
     ForStmtCodeGenPayload loopState;
     loopState.loopLabel     = builder.createLabel();
     loopState.continueLabel = builder.createLabel();

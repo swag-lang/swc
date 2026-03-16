@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -94,19 +94,19 @@ namespace
         return Result::Continue;
     }
 
-    Result emitTypeInfoCompareBool(CodeGen& codeGen,
-                                   TokenId tokId,
+    Result emitTypeInfoCompareBool(CodeGen&                  codeGen,
+                                   TokenId                   tokId,
                                    const CodeGenNodePayload& leftPayload,
-                                   TypeRef leftOperandTypeRef,
+                                   TypeRef                   leftOperandTypeRef,
                                    const CodeGenNodePayload& rightPayload,
-                                   TypeRef rightOperandTypeRef,
-                                   TypeRef compareTypeRef)
+                                   TypeRef                   rightOperandTypeRef,
+                                   TypeRef                   compareTypeRef)
     {
         MicroReg leftPtrReg, rightPtrReg;
         materializeCompareOperand(leftPtrReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
         materializeCompareOperand(rightPtrReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
 
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&  builder     = codeGen.builder();
         const MicroReg leftCrcReg  = codeGen.nextVirtualIntRegister();
         const MicroReg rightCrcReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(leftCrcReg, leftPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
@@ -325,7 +325,7 @@ namespace
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && compareType.isAnyTypeInfo(codeGen.ctx()))
             return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, compareTypeRef);
 
-        MicroOpBits     opBits      = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
+        MicroOpBits opBits = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;

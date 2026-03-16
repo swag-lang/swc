@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"

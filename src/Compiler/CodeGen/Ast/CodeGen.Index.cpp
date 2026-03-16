@@ -164,7 +164,7 @@ namespace
         CodeGenNodePayload resultPayload;
         resultPayload.typeRef = resultTypeRef;
         resultPayload.setIsAddress();
-        resultPayload.reg = codeGen.nextVirtualIntRegister();
+        resultPayload.reg     = codeGen.nextVirtualIntRegister();
         MicroBuilder& builder = codeGen.builder();
         builder.emitLoadAddressAmcRegMem(resultPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
         return resultPayload;

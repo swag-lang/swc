@@ -616,7 +616,7 @@ namespace
         if (normalizedRet.isIndirect)
         {
             SWC_ASSERT(!callConv.intArgRegs.empty());
-            MicroBuilder&          builder = codeGen.builder();
+            MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
             // Capture the hidden return-buffer argument before parameter materialization starts consuming
             // the ABI argument registers.
@@ -629,7 +629,7 @@ namespace
         collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
         buildLocalStackLayout(codeGen);
         {
-            MicroBuilder&          builder = codeGen.builder();
+            MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
             materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
             materializeStackParameters(codeGen, symbolFunc, paramInfos);

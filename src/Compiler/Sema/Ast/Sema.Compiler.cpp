@@ -638,11 +638,11 @@ namespace
 
     Result semaCompilerIsConstExpr(Sema& sema, const AstCompilerCallOne& node)
     {
-        const TaskContext& ctx      = sema.ctx();
-        const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view     = sema.viewConstant(childRef);
-        const bool         result   = view.hasConstant() || sema.isFoldedTypedConst(childRef);
-        const ConstantValue value   = ConstantValue::makeBool(ctx, result);
+        const TaskContext&  ctx      = sema.ctx();
+        const AstNodeRef    childRef = node.nodeArgRef;
+        const SemaNodeView  view     = sema.viewConstant(childRef);
+        const bool          result   = view.hasConstant() || sema.isFoldedTypedConst(childRef);
+        const ConstantValue value    = ConstantValue::makeBool(ctx, result);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }

@@ -4,8 +4,8 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
@@ -208,7 +208,7 @@ namespace
         const auto        values     = collectEnumValues(symEnum);
 
         rtType.values.ptr       = nullptr;
-        rtType.values.count     = static_cast<uint64_t>(values.size());
+        rtType.values.count     = values.size();
         rtType.rawType          = nullptr;
         rtType.attributes.ptr   = nullptr;
         rtType.attributes.count = 0;
@@ -226,7 +226,7 @@ namespace
             const SymbolEnumValue* symValue = values[i];
             SWC_ASSERT(symValue);
 
-            Runtime::TypeValue& tv = valuesPtr[i];
+            Runtime::TypeValue& tv         = valuesPtr[i];
             const uint32_t      elemOffset = valuesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
             const Utf8          name{symValue->name(ctx)};
             tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), name);
@@ -238,12 +238,12 @@ namespace
             if (!valueSize)
                 continue;
 
-            const ConstantValue& enumCst     = ctx.cstMgr().get(symValue->cstRef());
+            const ConstantValue&   enumCst     = ctx.cstMgr().get(symValue->cstRef());
             const ConstantRef      rawValueRef = enumCst.isEnumValue() ? enumCst.getEnumValue() : symValue->cstRef();
             std::vector<std::byte> valueBytes(valueSize, std::byte{0});
             ConstantLower::lowerToBytes(sema, valueBytes, rawValueRef, rawTypeRef);
 
-            uint32_t valueOffset = INVALID_REF;
+            uint32_t     valueOffset    = INVALID_REF;
             const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, rawTypeRef, valueBytes);
             SWC_ASSERT(materializeRes == Result::Continue);
             SWC_ASSERT(valueOffset != INVALID_REF);

@@ -34,7 +34,7 @@ namespace
 
 Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
 {
-    MicroBuilder&           builder = codeGen.builder();
+    MicroBuilder&          builder = codeGen.builder();
     LoopStmtCodeGenPayload loopState;
     loopState.continueLabel = builder.createLabel();
     loopState.doneLabel     = builder.createLabel();
@@ -87,7 +87,7 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
     if (childRef == bodyRef)
     {
-        MicroBuilder&          builder = codeGen.builder();
+        MicroBuilder&           builder = codeGen.builder();
         const ScopedDebugNoStep noStep(builder, true);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
         codeGen.popFrame();
@@ -109,7 +109,7 @@ Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
 {
-    MicroBuilder&           builder = codeGen.builder();
+    MicroBuilder&          builder = codeGen.builder();
     LoopStmtCodeGenPayload loopState;
     loopState.continueLabel = builder.createLabel();
     loopState.doneLabel     = builder.createLabel();
@@ -144,7 +144,7 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    MicroBuilder&          builder = codeGen.builder();
+    MicroBuilder&           builder = codeGen.builder();
     const ScopedDebugNoStep noStep(builder, true);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
     codeGen.popFrame();

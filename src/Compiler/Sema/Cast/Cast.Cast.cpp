@@ -508,7 +508,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isStruct());
-                const uint64_t ptr = reinterpret_cast<uint64_t>(srcCst.getStruct().data());
+                const uint64_t      ptr    = reinterpret_cast<uint64_t>(srcCst.getStruct().data());
                 const ConstantValue refCst = ConstantValue::makeValuePointer(sema.ctx(), dstPointeeTypeRef, ptr, dstType.flags());
                 castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), refCst));
             }

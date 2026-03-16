@@ -16,6 +16,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isNullComparableConstant(const ConstantValue& cst) noexcept
+    {
+        if (cst.isNull())
+            return true;
+        if (cst.isValuePointer())
+            return cst.getValuePointer() == 0;
+        if (cst.isBlockPointer())
+            return cst.getBlockPointer() == 0;
+        return false;
+    }
+
     bool sameTypeValuePayload(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
         if (leftTypeRef == rightTypeRef)
@@ -112,9 +123,9 @@ namespace
             return Result::Continue;
         }
 
-        if (nodeLeftView.cst()->isNull() || nodeRightView.cst()->isNull())
+        if (isNullComparableConstant(*nodeLeftView.cst()) || isNullComparableConstant(*nodeRightView.cst()))
         {
-            result = sema.cstMgr().cstBool(nodeLeftView.cst()->isNull() && nodeRightView.cst()->isNull());
+            result = sema.cstMgr().cstBool(isNullComparableConstant(*nodeLeftView.cst()) && isNullComparableConstant(*nodeRightView.cst()));
             return Result::Continue;
         }
 

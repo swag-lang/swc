@@ -1,4 +1,4 @@
-#global #if #os == Swag.TargetOs.Windows
+#global #if #os == Swag.TargetOs.Windows // swc-option suite-jit
 
 alias HANDLE     = const [*] void
 alias DWORD      = u32

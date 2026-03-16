@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 
 alias PassAlias = s32
 enum PassEnum: u16

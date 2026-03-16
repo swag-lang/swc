@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 
 alias UnaryFn = func(s32)->s32
 

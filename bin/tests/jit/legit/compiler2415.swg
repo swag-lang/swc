@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 #global skip
 var G = 0
 

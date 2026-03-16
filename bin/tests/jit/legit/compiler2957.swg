@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 #global skip
 #[Swag.ConstExpr]
 struct V { x, y, z: f32 = 666 }

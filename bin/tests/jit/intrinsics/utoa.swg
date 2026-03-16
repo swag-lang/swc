@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 func utoaCopy(result: [*] u8, value: u64)->[*] u8
 {
     const conv = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"

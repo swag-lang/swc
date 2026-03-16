@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 #global skip
 func toto(x, y: s32)->{ x: s32, y: s32 }
 {

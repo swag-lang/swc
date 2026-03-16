@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 #global #[Swag.Safety(.All, .All, false)]
 
 func eqF32(a: f32, b: f32)->bool { return a == b }

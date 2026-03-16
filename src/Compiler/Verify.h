@@ -50,6 +50,15 @@ struct VerifyDirective
     }
 };
 
+enum class SourceTestKind : uint8_t
+{
+    Unknown,
+    Syntax,
+    Sema,
+    Jit,
+    Native,
+};
+
 enum class VerifyFlagsE : uint32_t
 {
     Zero    = 0,
@@ -67,6 +76,8 @@ public:
 
     void tokenize(TaskContext& ctx);
     bool hasFlag(VerifyFlagsE flag) const { return flags_.has(flag); }
+    SourceTestKind sourceTestKind() const;
+    bool           hasSourceTestHints() const;
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
     void verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const;
 
@@ -76,6 +87,8 @@ private:
     std::vector<VerifyDirective> directives_;
     mutable std::mutex           directivesMutex_;
     VerifyFlags                  flags_ = VerifyFlagsE::Zero;
+    SourceTestKind               explicitSourceTestKind_ = SourceTestKind::Unknown;
+    SourceTestKind               expectedSourceTestKind_ = SourceTestKind::Unknown;
 
     void tokenizeOption(const TaskContext& ctx, std::string_view comment);
     void tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment);

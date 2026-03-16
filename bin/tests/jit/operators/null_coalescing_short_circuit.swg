@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 
 var GNullCoercCounter: s32
 var GNullCoercValue:   s32 = 33

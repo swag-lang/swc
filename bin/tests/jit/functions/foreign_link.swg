@@ -1,4 +1,4 @@
-#global #if #os == Swag.TargetOs.Windows
+#global #if #os == Swag.TargetOs.Windows // swc-option suite-jit
 
 #[Swag.Foreign(link: "ucrt", function: "abs", module: "ucrtbase")]
 func CAbs(value: s32)->s32;

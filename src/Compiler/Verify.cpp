@@ -2,6 +2,7 @@
 #include "Compiler/Verify.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Lexer.h"
+#include "Compiler/Parser/Ast/Ast.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -13,6 +14,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SourceTestKind sourceTestKindFromOption(std::string_view option) noexcept
+    {
+        if (option == "suite-syntax")
+            return SourceTestKind::Syntax;
+        if (option == "suite-sema")
+            return SourceTestKind::Sema;
+        if (option == "suite-jit")
+            return SourceTestKind::Jit;
+        if (option == "suite-test")
+            return SourceTestKind::Native;
+        return SourceTestKind::Unknown;
+    }
+
+    SourceTestKind sourceTestKindFromExpectedMatch(std::string_view match) noexcept
+    {
+        if (match.starts_with("lex_") || match.starts_with("parser_"))
+            return SourceTestKind::Syntax;
+        if (!match.empty())
+            return SourceTestKind::Sema;
+        return SourceTestKind::Unknown;
+    }
+
+    void mergeExpectedSourceTestKind(SourceTestKind& inOutCurrent, const SourceTestKind newKind) noexcept
+    {
+        if (newKind == SourceTestKind::Unknown)
+            return;
+
+        if (inOutCurrent == SourceTestKind::Unknown || newKind == SourceTestKind::Syntax)
+            inOutCurrent = newKind;
+    }
+
     bool isDigit(char c) noexcept
     {
         return c >= '0' && c <= '9';
@@ -219,7 +251,14 @@ void Verify::tokenize(TaskContext& ctx)
     if (!ctx.cmdLine().isTestMode())
         return;
 
-    srcView_ = &ctx.compiler().addSourceView(file_->ref());
+    srcView_ = &file_->ast().srcView();
+    srcView_->trivia().clear();
+    srcView_->triviaStart().clear();
+    srcView_->identifiers().clear();
+    directives_.clear();
+    flags_                  = VerifyFlagsE::Zero;
+    explicitSourceTestKind_ = SourceTestKind::Unknown;
+    expectedSourceTestKind_ = SourceTestKind::Unknown;
 
     // Get all comments from the file
     Lexer lexer;
@@ -235,6 +274,22 @@ void Verify::tokenize(TaskContext& ctx)
             tokenizeOption(ctx, comment);
         }
     }
+}
+
+SourceTestKind Verify::sourceTestKind() const
+{
+    if (explicitSourceTestKind_ != SourceTestKind::Unknown)
+        return explicitSourceTestKind_;
+
+    if (flags_.has(VerifyFlagsE::LexOnly))
+        return SourceTestKind::Syntax;
+
+    return expectedSourceTestKind_;
+}
+
+bool Verify::hasSourceTestHints() const
+{
+    return sourceTestKind() != SourceTestKind::Unknown;
 }
 
 bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const
@@ -321,6 +376,12 @@ void Verify::tokenizeOption(const TaskContext& ctx, std::string_view comment)
             // Handle known options
             if (kindWord == "lex-only")
                 flags_.add(VerifyFlagsE::LexOnly);
+            else
+            {
+                const SourceTestKind sourceTestKind = sourceTestKindFromOption(kindWord);
+                if (sourceTestKind != SourceTestKind::Unknown)
+                    explicitSourceTestKind_ = sourceTestKind;
+            }
 
             // If options might be comma-separated, skip trailing commas/spacers
             while (i < comment.size() && (langSpec.isBlank(static_cast<char8_t>(comment[i])) || comment[i] == ','))
@@ -397,6 +458,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
             VerifyDirective dir = directive;
             dir.match           = comment.substr(open + 2, close - (open + 2));
             dir.match           = Utf8Helper::trim(dir.match);
+            mergeExpectedSourceTestKind(expectedSourceTestKind_, sourceTestKindFromExpectedMatch(dir.match));
             directives_.emplace_back(std::move(dir));
 
             i = close + 2;

@@ -16,14 +16,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    enum class TestSuiteKind
-    {
-        Unknown,
-        Syntax,
-        Sema,
-        Jit,
-        Native,
-    };
+    using TestSuiteKind = SourceTestKind;
 
     struct SourceSuiteBuckets
     {
@@ -34,164 +27,40 @@ namespace
         bool                  hasSourceHints = false;
     };
 
-    constexpr std::string_view VERIFY_OPTION_PREFIX_A = "swc-option ";
-    constexpr std::string_view VERIFY_OPTION_PREFIX_B = "swc-options ";
-    constexpr std::string_view VERIFY_SUITE_SYNTAX    = "suite-syntax";
-    constexpr std::string_view VERIFY_SUITE_SEMA      = "suite-sema";
-    constexpr std::string_view VERIFY_SUITE_JIT       = "suite-jit";
-    constexpr std::string_view VERIFY_SUITE_TEST      = "suite-test";
-    constexpr std::string_view VERIFY_LEX_ONLY        = "lex-only";
-    constexpr std::string_view EXPECTED_PARSER_ID     = "{{parser_";
-    constexpr std::string_view EXPECTED_LEX_ID        = "{{lex_";
-    constexpr std::string_view EXPECTED_SEMA_ID       = "{{sema_";
+#if SWC_HAS_STATS
+    struct DiscoveryStatsGuard
+    {
+        DiscoveryStatsGuard()
+        {
+            auto& stats   = Stats::get();
+            timeLoadFile_ = stats.timeLoadFile.load(std::memory_order_relaxed);
+            timeLexer_    = stats.timeLexer.load(std::memory_order_relaxed);
+            numFiles_     = stats.numFiles.load(std::memory_order_relaxed);
+        }
+
+        ~DiscoveryStatsGuard()
+        {
+            auto& stats = Stats::get();
+            stats.timeLoadFile.store(timeLoadFile_, std::memory_order_relaxed);
+            stats.timeLexer.store(timeLexer_, std::memory_order_relaxed);
+            stats.numFiles.store(numFiles_, std::memory_order_relaxed);
+        }
+
+        uint64_t timeLoadFile_ = 0;
+        uint64_t timeLexer_    = 0;
+        size_t   numFiles_     = 0;
+    };
+#endif
 
     bool shouldRunNativeTests(const CommandLine& cmdLine)
     {
         return cmdLine.testNative;
     }
 
-    bool pathMatchesFilter(const CommandLine& cmdLine, const fs::path& path)
+    void appendStandaloneSourceFile(SourceSuiteBuckets& outBuckets, const fs::path& path, const Verify& verify)
     {
-        if (cmdLine.fileFilter.empty())
-            return true;
-
-        const std::string pathString = path.string();
-        for (const Utf8& filter : cmdLine.fileFilter)
-        {
-            if (!pathString.contains(filter))
-                return false;
-        }
-
-        return true;
-    }
-
-    void collectSwagFilesRec(std::vector<fs::path>& outFiles, const CommandLine& cmdLine, const fs::path& folder)
-    {
-        std::error_code ec;
-        for (fs::recursive_directory_iterator it(folder, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-            {
-                ec.clear();
-                continue;
-            }
-
-            const fs::directory_entry& entry = *it;
-            if (!entry.is_regular_file(ec))
-            {
-                ec.clear();
-                continue;
-            }
-
-            const fs::path&   path = entry.path();
-            const std::string ext  = path.extension().string();
-            if (ext != ".swg")
-                continue;
-            if (!pathMatchesFilter(cmdLine, path))
-                continue;
-
-            outFiles.push_back(path);
-        }
-    }
-
-    void replaceCrLf(std::string& content)
-    {
-        std::erase(content, '\r');
-    }
-
-    bool containsVerifyOption(std::string_view content, std::string_view option)
-    {
-        return content.contains(std::string(VERIFY_OPTION_PREFIX_A) + std::string(option)) ||
-               content.contains(std::string(VERIFY_OPTION_PREFIX_B) + std::string(option));
-    }
-
-    bool pathContainsComponent(const fs::path& path, std::string_view component)
-    {
-        for (const fs::path& part : path)
-        {
-            if (part.string() == component)
-                return true;
-        }
-
-        return false;
-    }
-
-    bool classifySourceFile(TestSuiteKind& outKind, const fs::path& path)
-    {
-        outKind = TestSuiteKind::Unknown;
-
-        std::ifstream file(path, std::ios::binary | std::ios::ate);
-        if (!file)
-            return false;
-
-        const std::streamsize fileSize = file.tellg();
-        if (fileSize <= 0)
-            return false;
-
-        std::string content;
-        content.resize(static_cast<size_t>(fileSize));
-        file.seekg(0, std::ios::beg);
-        if (!file.read(content.data(), fileSize))
-            return false;
-
-        replaceCrLf(content);
-
-        if (containsVerifyOption(content, VERIFY_SUITE_SYNTAX))
-        {
-            outKind = TestSuiteKind::Syntax;
-            return true;
-        }
-
-        if (containsVerifyOption(content, VERIFY_SUITE_SEMA))
-        {
-            outKind = TestSuiteKind::Sema;
-            return true;
-        }
-
-        if (containsVerifyOption(content, VERIFY_SUITE_JIT))
-        {
-            outKind = TestSuiteKind::Jit;
-            return true;
-        }
-
-        if (containsVerifyOption(content, VERIFY_SUITE_TEST))
-        {
-            outKind = TestSuiteKind::Native;
-            return true;
-        }
-
-        if (containsVerifyOption(content, VERIFY_LEX_ONLY))
-        {
-            outKind = TestSuiteKind::Syntax;
-            return true;
-        }
-
-        if (content.contains("#test") && pathContainsComponent(path, "jit"))
-        {
-            outKind = TestSuiteKind::Jit;
-            return true;
-        }
-
-        if (content.contains(EXPECTED_PARSER_ID) || content.contains(EXPECTED_LEX_ID))
-        {
-            outKind = TestSuiteKind::Syntax;
-            return true;
-        }
-
-        if (content.contains("#run") || content.contains(EXPECTED_SEMA_ID))
-        {
-            outKind = TestSuiteKind::Sema;
-            return true;
-        }
-
-        return false;
-    }
-
-    void appendStandaloneSourceFile(SourceSuiteBuckets& outBuckets, const fs::path& path)
-    {
-        auto       kind           = TestSuiteKind::Unknown;
-        const bool hasSourceHints = classifySourceFile(kind, path);
-        outBuckets.hasSourceHints |= hasSourceHints;
+        const TestSuiteKind kind = verify.sourceTestKind();
+        outBuckets.hasSourceHints |= verify.hasSourceTestHints();
 
         switch (kind)
         {
@@ -211,32 +80,30 @@ namespace
         }
     }
 
-    void collectStandaloneSourceSuites(SourceSuiteBuckets& outBuckets, const CommandLine& cmdLine)
+    void collectStandaloneSourceSuites(SourceSuiteBuckets& outBuckets, CompilerInstance& compiler)
     {
-        std::vector<fs::path> collected;
+        CommandLine cmdLine = compiler.cmdLine();
+        cmdLine.runtime     = false;
 
-        for (const fs::path& folder : cmdLine.directories)
+        CompilerInstance discoveryCompiler(compiler.global(), cmdLine);
+        TaskContext       ctx(discoveryCompiler);
+        ctx.setSilentDiagnostic(true);
+
+#if SWC_HAS_STATS
+        const DiscoveryStatsGuard statsGuard;
+#endif
+
+        if (discoveryCompiler.collectFiles(ctx) != Result::Continue)
+            return;
+
+        for (SourceFile* const file : discoveryCompiler.files())
         {
-            collected.clear();
-            collectSwagFilesRec(collected, cmdLine, folder);
-            std::ranges::sort(collected);
-
-            for (const fs::path& path : collected)
-                appendStandaloneSourceFile(outBuckets, path);
-        }
-
-        collected.clear();
-        for (const fs::path& path : cmdLine.files)
-        {
-            if (!pathMatchesFilter(cmdLine, path))
+            if (file->loadContent(ctx) != Result::Continue)
                 continue;
-            collected.push_back(path);
+
+            file->unitTest().tokenize(ctx);
+            appendStandaloneSourceFile(outBuckets, file->path(), file->unitTest());
         }
-
-        std::ranges::sort(collected);
-
-        for (const fs::path& path : collected)
-            appendStandaloneSourceFile(outBuckets, path);
     }
 
     fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
@@ -613,7 +480,7 @@ namespace
         const TaskContext  ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         ScopedTimedAction discoverAction(ctx, "Discover", formatCommandSourceRoots(cmdLine));
-        collectStandaloneSourceSuites(buckets, cmdLine);
+        collectStandaloneSourceSuites(buckets, compiler);
         if (!buckets.hasSourceHints)
         {
             discoverAction.fail();

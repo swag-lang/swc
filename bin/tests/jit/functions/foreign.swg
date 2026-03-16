@@ -1,4 +1,4 @@
-#global #if #os == Swag.TargetOs.Windows
+#global #if #os == Swag.TargetOs.Windows // swc-option suite-jit
 
 #[Swag.Foreign("kernel32", "GetCurrentProcessId")]
 func GetPidAlias()->u32;

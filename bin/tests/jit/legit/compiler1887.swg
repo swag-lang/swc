@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option suite-jit
 #global skip
 //#[Swag.Compiler]
 func(T) checker()

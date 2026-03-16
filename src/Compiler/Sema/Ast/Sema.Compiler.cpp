@@ -632,6 +632,17 @@ namespace
         return Result::Continue;
     }
 
+    Result semaCompilerIsConstExpr(Sema& sema, const AstCompilerCallOne& node)
+    {
+        const TaskContext& ctx      = sema.ctx();
+        const AstNodeRef   childRef = node.nodeArgRef;
+        const SemaNodeView view     = sema.viewConstant(childRef);
+        const bool         result   = view.hasConstant() || sema.isFoldedTypedConst(childRef);
+        const ConstantValue value   = ConstantValue::makeBool(ctx, result);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+        return Result::Continue;
+    }
+
     Result semaCompilerLocation(Sema& sema, const AstCompilerCallOne& node)
     {
         TypeRef typeRef = TypeRef::invalid();
@@ -711,6 +722,8 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerAlignOf(sema, *this);
         case TokenId::CompilerDefined:
             return semaCompilerDefined(sema, *this);
+        case TokenId::CompilerIsConstExpr:
+            return semaCompilerIsConstExpr(sema, *this);
         case TokenId::CompilerLocation:
             return semaCompilerLocation(sema, *this);
         case TokenId::CompilerForeignLib:
@@ -720,7 +733,6 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerHasTag:
         case TokenId::CompilerRunes:
-        case TokenId::CompilerIsConstExpr:
         case TokenId::CompilerSafety:
         case TokenId::CompilerInject:
         case TokenId::CompilerLoad:

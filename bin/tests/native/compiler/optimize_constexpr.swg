@@ -1,5 +1,4 @@
 #global fileprivate // swc-option suite-test
-#global skip // @BUG native constexpr optimization coverage is still skipped in this suite
 
 const Cfg = #run dref @compiler.getBuildCfg()
 

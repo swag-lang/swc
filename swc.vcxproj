@@ -268,6 +268,8 @@
         <ClCompile Include="src\Backend\\Encoder\X64Unwind.cpp"/>
         <ClCompile Include="src\Backend\\Encoder\X64Unwind.Windows.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.For.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Foreach.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.If.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Loop.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Switch.cpp"/>

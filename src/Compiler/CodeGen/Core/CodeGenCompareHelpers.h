@@ -1,10 +1,31 @@
 #pragma once
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace CodeGenCompareHelpers
 {
+    inline MicroCond lessCond(bool useUnsignedCond)
+    {
+        return useUnsignedCond ? MicroCond::Below : MicroCond::Less;
+    }
+
+    inline MicroCond lessEqualCond(bool useUnsignedCond)
+    {
+        return useUnsignedCond ? MicroCond::BelowOrEqual : MicroCond::LessOrEqual;
+    }
+
+    inline MicroCond greaterCond(bool useUnsignedCond)
+    {
+        return useUnsignedCond ? MicroCond::Above : MicroCond::Greater;
+    }
+
+    inline MicroCond greaterEqualCond(bool useUnsignedCond)
+    {
+        return useUnsignedCond ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual;
+    }
+
     enum class FloatUnorderedMode : uint8_t
     {
         ExcludedByPrimary,
@@ -61,6 +82,22 @@ namespace CodeGenCompareHelpers
         builder.emitJumpToLabel(MicroCond::Parity, MicroOpBits::B32, skipLabel);
         builder.emitJumpToLabel(condition.primaryCond, MicroOpBits::B32, labelRef);
         builder.placeLabel(skipLabel);
+    }
+
+    inline void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
+    {
+        const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
+        const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
+        const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
+
+        MicroBuilder& builder = codeGen.builder();
+        if (payload.isAddress())
+            builder.emitLoadRegMem(condReg, payload.reg, 0, condBits);
+        else
+            builder.emitLoadRegReg(condReg, payload.reg, condBits);
+
+        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
     }
 }
 

@@ -180,8 +180,6 @@ namespace
                 continue;
             if (target->isForeign() || target->isEmpty() || target->isAttribute())
                 continue;
-            if (!target->isSemaCompleted())
-                continue;
 
             target->appendJitOrder(out);
         }

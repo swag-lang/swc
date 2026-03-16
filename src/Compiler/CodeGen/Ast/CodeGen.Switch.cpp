@@ -91,22 +91,6 @@ namespace
             builder.emitLoadRegReg(outReg, payload.reg, opBits);
     }
 
-    void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
-    {
-        const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
-        const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
-
-        MicroBuilder& builder = codeGen.builder();
-        if (payload.isAddress())
-            builder.emitLoadRegMem(condReg, payload.reg, 0, condBits);
-        else
-            builder.emitLoadRegReg(condReg, payload.reg, condBits);
-
-        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
-    }
-
     void emitConditionTrueJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef trueLabel)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
@@ -223,7 +207,7 @@ namespace
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, lowerReg, switchState.compareOpBits);
             CodeGenCompareHelpers::emitConditionJump(codeGen,
                                                      compareType,
-                                                     {.primaryCond        = unsignedOrFloat ? MicroCond::Below : MicroCond::Less,
+                                                     {.primaryCond        = CodeGenCompareHelpers::lessCond(unsignedOrFloat),
                                                       .floatUnorderedMode = compareType.isFloat() ? CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered
                                                                                                   : CodeGenCompareHelpers::FloatUnorderedMode::ExcludedByPrimary},
                                                      failLabel);
@@ -236,7 +220,7 @@ namespace
             loadPayloadToRegister(upperReg, codeGen, upperPayload, switchState.compareTypeRef, switchState.compareOpBits);
 
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, upperReg, switchState.compareOpBits);
-            const MicroCond failCond = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive) ? (unsignedOrFloat ? MicroCond::Above : MicroCond::Greater) : (unsignedOrFloat ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual);
+            const MicroCond failCond = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive) ? CodeGenCompareHelpers::greaterCond(unsignedOrFloat) : CodeGenCompareHelpers::greaterEqualCond(unsignedOrFloat);
             CodeGenCompareHelpers::emitConditionJump(codeGen,
                                                      compareType,
                                                      {.primaryCond        = failCond,
@@ -424,7 +408,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
                 builder.placeLabel(matchLabel);
                 const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
                 const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
+                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
                 builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
             }
         }
@@ -434,7 +418,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             {
                 const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
                 const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
+                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
             }
 
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
@@ -462,7 +446,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
                 builder.placeLabel(matchLabel);
                 const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
                 const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
+                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
                 builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
             }
         }
@@ -472,7 +456,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             {
                 const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
                 const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
+                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
             }
 
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);

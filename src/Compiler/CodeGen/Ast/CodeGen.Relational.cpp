@@ -256,15 +256,15 @@ namespace
         switch (tokId)
         {
             case TokenId::SymLess:
-                return {.primaryCond        = unsignedOrFloatCompare ? MicroCond::Below : MicroCond::Less,
+                return {.primaryCond        = CodeGenCompareHelpers::lessCond(unsignedOrFloatCompare),
                         .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
             case TokenId::SymLessEqual:
-                return {.primaryCond        = unsignedOrFloatCompare ? MicroCond::BelowOrEqual : MicroCond::LessOrEqual,
+                return {.primaryCond        = CodeGenCompareHelpers::lessEqualCond(unsignedOrFloatCompare),
                         .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
             case TokenId::SymGreater:
-                return {.primaryCond = unsignedOrFloatCompare ? MicroCond::Above : MicroCond::Greater};
+                return {.primaryCond = CodeGenCompareHelpers::greaterCond(unsignedOrFloatCompare)};
             case TokenId::SymGreaterEqual:
-                return {.primaryCond = unsignedOrFloatCompare ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual};
+                return {.primaryCond = CodeGenCompareHelpers::greaterEqualCond(unsignedOrFloatCompare)};
             case TokenId::SymEqualEqual:
                 return {.primaryCond        = MicroCond::Equal,
                         .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};

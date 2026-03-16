@@ -363,6 +363,12 @@
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.For.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Foreach.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.If.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>

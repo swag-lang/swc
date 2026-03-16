@@ -553,6 +553,26 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
         notifyAlive();
 }
 
+void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        inserted = appendUnique(nativeGlobalFunctionInitTargets_, symbol);
+    }
+
+    if (inserted)
+        notifyAlive();
+}
+
+std::vector<SymbolFunction*> CompilerInstance::nativeGlobalFunctionInitTargetsSnapshot() const
+{
+    const std::shared_lock lock(mutex_);
+    return nativeGlobalFunctionInitTargets_;
+}
+
 std::vector<SymbolVariable*> CompilerInstance::nativeGlobalVariablesSnapshot() const
 {
     const std::shared_lock lock(mutex_);

@@ -684,6 +684,7 @@ namespace
                 if (!isGlobalStorageVariable(*symVar))
                     continue;
                 symVar->setGlobalFunctionInit(globalFunctionInit);
+                sema.compiler().registerNativeGlobalFunctionInitTarget(globalFunctionInit);
             }
         }
 

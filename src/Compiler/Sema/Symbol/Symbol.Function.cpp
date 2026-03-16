@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Math/Hash.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -147,6 +148,61 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
 
     out += hasExtraFlag(SymbolFunctionFlagsE::Throwable) ? " throw" : "";
     return out;
+}
+
+uint32_t SymbolFunction::typeSignatureHash() const noexcept
+{
+    uint32_t h = Math::hash(returnType_.get());
+    h          = Math::hashCombine(h, static_cast<uint32_t>(callConvKind_));
+    h          = Math::hashCombine(h, isClosure() ? 1u : 0u);
+    h          = Math::hashCombine(h, isMethod() ? 1u : 0u);
+    h          = Math::hashCombine(h, isThrowable() ? 1u : 0u);
+    h          = Math::hashCombine(h, isConst() ? 1u : 0u);
+    h          = Math::hashCombine(h, hasVariadicParam() ? 1u : 0u);
+    h          = Math::hashCombine(h, static_cast<uint32_t>(parameters_.size()));
+    for (const SymbolVariable* param : parameters_)
+    {
+        SWC_ASSERT(param != nullptr);
+        h = Math::hashCombine(h, param->typeRef().get());
+    }
+
+    return h;
+}
+
+bool SymbolFunction::sameTypeSignature(const SymbolFunction& otherFunc) const noexcept
+{
+    if (this == &otherFunc)
+        return true;
+
+    if (returnTypeRef() != otherFunc.returnTypeRef())
+        return false;
+    if (callConvKind() != otherFunc.callConvKind())
+        return false;
+    if (isClosure() != otherFunc.isClosure())
+        return false;
+    if (isMethod() != otherFunc.isMethod())
+        return false;
+    if (isThrowable() != otherFunc.isThrowable())
+        return false;
+    if (isConst() != otherFunc.isConst())
+        return false;
+    if (hasVariadicParam() != otherFunc.hasVariadicParam())
+        return false;
+
+    const auto& params1 = parameters();
+    const auto& params2 = otherFunc.parameters();
+    if (params1.size() != params2.size())
+        return false;
+
+    for (uint32_t i = 0; i < params1.size(); ++i)
+    {
+        SWC_ASSERT(params1[i] != nullptr);
+        SWC_ASSERT(params2[i] != nullptr);
+        if (params1[i]->typeRef() != params2[i]->typeRef())
+            return false;
+    }
+
+    return true;
 }
 
 void SymbolFunction::setPure(bool value) noexcept
@@ -452,25 +508,12 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
 
     if (idRef() != otherFunc.idRef())
         return false;
-    if (returnTypeRef() != otherFunc.returnTypeRef())
+    if (!sameTypeSignature(otherFunc))
         return false;
     if (extraFlags() != otherFunc.extraFlags())
         return false;
-    if (callConvKind() != otherFunc.callConvKind())
-        return false;
     if (rtAttributeFlags() != otherFunc.rtAttributeFlags())
         return false;
-
-    const auto& params1 = parameters();
-    const auto& params2 = otherFunc.parameters();
-    if (params1.size() != params2.size())
-        return false;
-
-    for (uint32_t i = 0; i < params1.size(); ++i)
-    {
-        if (params1[i]->typeRef() != params2[i]->typeRef())
-            return false;
-    }
 
     return true;
 }

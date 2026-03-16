@@ -40,7 +40,10 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 #endif
 
     const auto codeSize = encoder.size();
-    SWC_ASSERT(codeSize != 0);
+    // Diagnostics can abort lowering before any encodable instruction is produced.
+    // Propagate the existing failure instead of crashing in the test runner.
+    if (codeSize == 0)
+        return Result::Error;
 
     bytes.resize(codeSize);
     encoder.copyTo(bytes);

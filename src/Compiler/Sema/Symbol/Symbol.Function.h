@@ -47,6 +47,8 @@ public:
     void                                setVariadicParamFlag(TaskContext& ctx);
     void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;
+    uint32_t                            typeSignatureHash() const noexcept;
+    bool                                sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;

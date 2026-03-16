@@ -16,12 +16,32 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool sameTypeValuePayload(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef)
+    {
+        if (leftTypeRef == rightTypeRef)
+            return true;
+        if (!leftTypeRef.isValid() || !rightTypeRef.isValid())
+            return false;
+
+        const TypeInfo& leftType  = sema.typeMgr().get(leftTypeRef);
+        const TypeInfo& rightType = sema.typeMgr().get(rightTypeRef);
+        if (leftType.kind() != rightType.kind())
+            return false;
+        if (leftType.flags() != rightType.flags())
+            return false;
+
+        if (leftType.isFunction())
+            return leftType.payloadSymFunction().sameTypeSignature(rightType.payloadSymFunction());
+
+        return leftType == rightType;
+    }
+
     bool sameTypeInfoIdentity(Sema& sema, ConstantRef leftCstRef, ConstantRef rightCstRef)
     {
         const TypeRef leftTypeRef  = sema.cstMgr().makeTypeValue(sema, leftCstRef);
         const TypeRef rightTypeRef = sema.cstMgr().makeTypeValue(sema, rightCstRef);
         if (leftTypeRef.isValid() && rightTypeRef.isValid())
-            return leftTypeRef == rightTypeRef;
+            return sameTypeValuePayload(sema, leftTypeRef, rightTypeRef);
 
         const auto* leftTypeInfo  = reinterpret_cast<const Runtime::TypeInfo*>(sema.cstMgr().get(leftCstRef).getValuePointer());
         const auto* rightTypeInfo = reinterpret_cast<const Runtime::TypeInfo*>(sema.cstMgr().get(rightCstRef).getValuePointer());
@@ -80,7 +100,9 @@ namespace
     {
         if (nodeLeftView.type()->isTypeValue() && nodeRightView.type()->isTypeValue())
         {
-            result = sema.cstMgr().cstBool(*(nodeLeftView.type()) == *(nodeRightView.type()));
+            SWC_ASSERT(nodeLeftView.cst() != nullptr);
+            SWC_ASSERT(nodeRightView.cst() != nullptr);
+            result = sema.cstMgr().cstBool(sameTypeValuePayload(sema, nodeLeftView.cst()->getTypeValue(), nodeRightView.cst()->getTypeValue()));
             return Result::Continue;
         }
 

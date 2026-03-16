@@ -17,8 +17,7 @@ const TypedValue: s32 = 10
 #assert(#typeof(cast(*u8) null) == *u8)
 #assert(#typeof(true) == bool)
 #assert(#typeof("x") == string)
-// @BUG #typeof(function-type) does not compare equal to the corresponding #type func(...) in native tests yet.
-// #assert(#typeof(func()->s32) == #type func()->s32)
+#assert(#typeof(func()->s32) == #type func()->s32)
 
 struct TypeOfPair { left, right: s16 }
 

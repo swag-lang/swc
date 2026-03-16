@@ -7,13 +7,19 @@
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"
+#include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
@@ -48,6 +54,41 @@ namespace
             return {};
 
         return symbol->getFullScopedName(ctx);
+    }
+
+    bool ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction)
+    {
+        if (targetFunction.jitPatchAddress())
+            return true;
+
+        if (targetFunction.loweredCode().bytes.empty())
+        {
+            const SourceView& targetSrcView = ctx.compiler().srcView(targetFunction.srcViewRef());
+            const FileRef     fileRef       = targetSrcView.fileRef();
+            if (!fileRef.isValid())
+                return false;
+
+            SourceFile& targetFile = ctx.compiler().file(fileRef);
+            Sema        baseSema(ctx, targetFile.nodePayloadContext(), false);
+            if (targetFunction.tryMarkCodeGenJobScheduled())
+            {
+                const AstNodeRef declRoot = targetFunction.declNodeRef();
+                if (declRoot.isInvalid())
+                    return false;
+
+                auto* job = heapNew<CodeGenJob>(ctx, baseSema, targetFunction, declRoot);
+                ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
+            }
+
+            Sema::waitDone(ctx, ctx.compiler().jobClientId());
+            if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
+                return false;
+            if (targetFunction.loweredCode().bytes.empty())
+                return false;
+        }
+
+        targetFunction.jit(ctx);
+        return targetFunction.jitPatchAddress() != nullptr;
     }
 
     ABICall::Arg packArgValue(const ABITypeNormalize::NormalizedType& argType, const void* valuePtr)
@@ -132,6 +173,8 @@ namespace
 
         auto& targetFunction = targetSymbol->cast<SymbolFunction>();
         void* entryAddress   = targetFunction.jitPatchAddress();
+        if (!entryAddress && ensureLocalFunctionTargetPrepared(ctx, targetFunction))
+            entryAddress = targetFunction.jitPatchAddress();
         if (!entryAddress && !targetFunction.loweredCode().bytes.empty())
         {
             targetFunction.jit(ctx);

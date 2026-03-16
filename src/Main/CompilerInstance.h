@@ -85,6 +85,8 @@ public:
     void                                registerNativeDropFunction(SymbolFunction* symbol);
     void                                registerNativeMainFunction(SymbolFunction* symbol);
     void                                registerNativeGlobalVariable(SymbolVariable* symbol);
+    void                                registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol);
+    std::vector<SymbolFunction*>        nativeGlobalFunctionInitTargetsSnapshot() const;
     std::vector<SymbolVariable*>        nativeGlobalVariablesSnapshot() const;
     const std::vector<SymbolFunction*>& nativeCodeSegment() const { return nativeCodeSegment_; }
     const std::vector<SymbolFunction*>& nativeTestFunctions() const { return nativeTestFunctions_; }
@@ -205,6 +207,7 @@ private:
     std::vector<SymbolFunction*>                       nativePreMainFunctions_;
     std::vector<SymbolFunction*>                       nativeDropFunctions_;
     std::vector<SymbolFunction*>                       nativeMainFunctions_;
+    std::vector<SymbolFunction*>                       nativeGlobalFunctionInitTargets_;
     std::vector<SymbolVariable*>                       nativeGlobalVariables_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);

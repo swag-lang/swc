@@ -169,13 +169,9 @@ namespace
 
     void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out)
     {
-        const auto globals = sema.compiler().nativeGlobalVariablesSnapshot();
-        for (const SymbolVariable* global : globals)
+        const auto targets = sema.compiler().nativeGlobalFunctionInitTargetsSnapshot();
+        for (const SymbolFunction* target : targets)
         {
-            if (!global)
-                continue;
-
-            const SymbolFunction* target = global->globalFunctionInit();
             if (!target)
                 continue;
             if (target->isForeign() || target->isEmpty() || target->isAttribute())
@@ -185,7 +181,7 @@ namespace
         }
     }
 
-    void buildJitOrderWithGlobalFunctionInits(Sema& sema, SymbolFunction& symFn, SmallVector<SymbolFunction*>& out)
+    void buildJitOrderWithNativeRoots(Sema& sema, SymbolFunction& symFn, SmallVector<SymbolFunction*>& out)
     {
         SmallVector<SymbolFunction*> rawOrder;
         symFn.appendJitOrder(rawOrder);
@@ -222,7 +218,7 @@ namespace
         while (true)
         {
             SmallVector<SymbolFunction*> jitOrder;
-            buildJitOrderWithGlobalFunctionInits(sema, symFn, jitOrder);
+            buildJitOrderWithNativeRoots(sema, symFn, jitOrder);
 
             for (SymbolFunction* function : jitOrder)
             {
@@ -242,7 +238,7 @@ namespace
             }
 
             SmallVector<SymbolFunction*> expandedOrder;
-            buildJitOrderWithGlobalFunctionInits(sema, symFn, expandedOrder);
+            buildJitOrderWithNativeRoots(sema, symFn, expandedOrder);
             for (SymbolFunction* function : expandedOrder)
             {
                 knownFunctions.insert(function);
@@ -255,7 +251,7 @@ namespace
         }
 
         SmallVector<SymbolFunction*> jitOrder;
-        buildJitOrderWithGlobalFunctionInits(sema, symFn, jitOrder);
+        buildJitOrderWithNativeRoots(sema, symFn, jitOrder);
         for (SymbolFunction* function : jitOrder)
         {
             SWC_RESULT(function->emit(ctx));

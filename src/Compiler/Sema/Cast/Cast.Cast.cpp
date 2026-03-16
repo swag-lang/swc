@@ -17,37 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool sameFunctionSignature(const SymbolFunction& srcFunc, const SymbolFunction& dstFunc)
-    {
-        if (srcFunc.returnTypeRef() != dstFunc.returnTypeRef())
-            return false;
-        if (srcFunc.callConvKind() != dstFunc.callConvKind())
-            return false;
-        if (srcFunc.isClosure() != dstFunc.isClosure())
-            return false;
-        if (srcFunc.isMethod() != dstFunc.isMethod())
-            return false;
-        if (srcFunc.isThrowable() != dstFunc.isThrowable())
-            return false;
-        if (srcFunc.isConst() != dstFunc.isConst())
-            return false;
-        if (srcFunc.hasVariadicParam() != dstFunc.hasVariadicParam())
-            return false;
-
-        const auto& srcParams = srcFunc.parameters();
-        const auto& dstParams = dstFunc.parameters();
-        if (srcParams.size() != dstParams.size())
-            return false;
-
-        for (size_t i = 0; i < srcParams.size(); ++i)
-        {
-            if (srcParams[i]->typeRef() != dstParams[i]->typeRef())
-                return false;
-        }
-
-        return true;
-    }
-
     void setEnumUnderlyingCastNote(CastRequest& castRequest, TypeRef enumTypeRef, TypeRef underlyingTypeRef)
     {
         castRequest.failure.srcTypeRef = enumTypeRef;
@@ -840,7 +809,7 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-    if (srcType.isFunction() && sameFunctionSignature(srcType.payloadSymFunction(), dstType.payloadSymFunction()))
+    if (srcType.isFunction() && srcType.payloadSymFunction().sameTypeSignature(dstType.payloadSymFunction()))
         return Result::Continue;
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

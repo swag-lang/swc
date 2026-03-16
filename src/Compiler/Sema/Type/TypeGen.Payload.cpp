@@ -1,8 +1,11 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
@@ -29,6 +32,34 @@ namespace
 
         const auto** ptrField = storage.ptr<const Runtime::TypeInfo*>(baseOffset + fieldOffset);
         *ptrField             = storage.ptr<Runtime::TypeInfo>(targetOffset);
+    }
+
+    TypeRef resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType)
+    {
+        SWC_ASSERT(arrayType.isArray());
+        const auto& dims = arrayType.payloadArrayDims();
+        SWC_ASSERT(!dims.empty());
+
+        if (dims.size() == 1)
+            return arrayType.payloadArrayElemTypeRef();
+
+        SmallVector<uint64_t> remainingDims;
+        remainingDims.reserve(dims.size() - 1);
+        for (size_t i = 1; i < dims.size(); ++i)
+            remainingDims.push_back(dims[i]);
+
+        return tm.addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+    }
+
+    TypeRef resolveArrayFinalTypeRef(TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
+    {
+        SWC_ASSERT(arrayType.isArray());
+
+        TypeRef finalTypeRef = arrayType.payloadArrayElemTypeRef();
+        while (tm.get(finalTypeRef).isArray())
+            finalTypeRef = tm.get(finalTypeRef).payloadArrayElemTypeRef();
+
+        return tm.get(finalTypeRef).unwrap(ctx, finalTypeRef, TypeExpandE::Alias);
     }
 
     template<typename T>
@@ -144,6 +175,83 @@ namespace
             rtType.totalCount *= dims[i];
     }
 
+    bool compareEnumValueOrder(const SymbolEnumValue* left, const SymbolEnumValue* right)
+    {
+        SWC_ASSERT(left);
+        SWC_ASSERT(right);
+        return left->tokRef().get() < right->tokRef().get();
+    }
+
+    std::vector<const SymbolEnumValue*> collectEnumValues(const SymbolEnum& symEnum)
+    {
+        std::vector<const Symbol*> symbols;
+        symEnum.getAllSymbols(symbols);
+
+        std::vector<const SymbolEnumValue*> result;
+        result.reserve(symbols.size());
+        for (const Symbol* symbol : symbols)
+        {
+            const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
+            if (enumValue)
+                result.push_back(enumValue);
+        }
+
+        std::ranges::sort(result, compareEnumValueOrder);
+        return result;
+    }
+
+    void initEnum(Sema& sema, DataSegment& storage, Runtime::TypeInfoEnum& rtType, uint32_t offset, const TypeInfo& type)
+    {
+        TaskContext&      ctx        = sema.ctx();
+        const SymbolEnum& symEnum    = type.payloadSymEnum();
+        const TypeRef     rawTypeRef = symEnum.underlyingTypeRef();
+        const auto        values     = collectEnumValues(symEnum);
+
+        rtType.values.ptr       = nullptr;
+        rtType.values.count     = static_cast<uint64_t>(values.size());
+        rtType.rawType          = nullptr;
+        rtType.attributes.ptr   = nullptr;
+        rtType.attributes.count = 0;
+
+        if (values.empty())
+            return;
+
+        const auto [valuesOffset, valuesPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(values.size()));
+        rtType.values.ptr                    = valuesPtr;
+        storage.addRelocation(offset + offsetof(Runtime::TypeInfoEnum, values.ptr), valuesOffset);
+
+        const uint64_t valueSize = ctx.typeMgr().get(rawTypeRef).sizeOf(ctx);
+        for (uint32_t i = 0; i < values.size(); ++i)
+        {
+            const SymbolEnumValue* symValue = values[i];
+            SWC_ASSERT(symValue);
+
+            Runtime::TypeValue& tv = valuesPtr[i];
+            const uint32_t      elemOffset = valuesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+            const Utf8          name{symValue->name(ctx)};
+            tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), name);
+
+            // Enum values keep their declared enum type, while the pointed payload stores the lowered raw bytes.
+            storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, pointedType), offset);
+            tv.pointedType = storage.ptr<Runtime::TypeInfo>(offset);
+
+            if (!valueSize)
+                continue;
+
+            const ConstantValue& enumCst     = ctx.cstMgr().get(symValue->cstRef());
+            const ConstantRef      rawValueRef = enumCst.isEnumValue() ? enumCst.getEnumValue() : symValue->cstRef();
+            std::vector<std::byte> valueBytes(valueSize, std::byte{0});
+            ConstantLower::lowerToBytes(sema, valueBytes, rawValueRef, rawTypeRef);
+
+            uint32_t valueOffset = INVALID_REF;
+            const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, rawTypeRef, valueBytes);
+            SWC_ASSERT(materializeRes == Result::Continue);
+            SWC_ASSERT(valueOffset != INVALID_REF);
+            storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
+            tv.value = storage.ptr<std::byte>(valueOffset);
+        }
+    }
+
     void initStruct(Sema& sema, DataSegment& storage, Runtime::TypeInfoStruct& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry)
     {
         const TaskContext& ctx = sema.ctx();
@@ -252,6 +360,10 @@ void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::Typ
             initNative(*reinterpret_cast<Runtime::TypeInfoNative*>(&rtType), type);
             break;
 
+        case LayoutKind::Enum:
+            initEnum(sema, storage, *reinterpret_cast<Runtime::TypeInfoEnum*>(&rtType), offset, type);
+            break;
+
         case LayoutKind::Array:
             initArray(*reinterpret_cast<Runtime::TypeInfoArray*>(&rtType), type);
             break;
@@ -315,7 +427,7 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
 void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGenCache::Entry& entry, LayoutKind kind)
 {
     const TaskContext& ctx     = sema.ctx();
-    const TypeManager& typeMgr = sema.typeMgr();
+    TypeManager&       typeMgr = sema.typeMgr();
 
     const auto requireEntry = [&cache](TypeRef depKey) -> const TypeGenCache::Entry& {
         const auto it = cache.entries.find(depKey);
@@ -325,6 +437,14 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
     switch (kind)
     {
+        case LayoutKind::Enum:
+        {
+            const TypeRef depKey = typeMgr.get(key).payloadSymEnum().underlyingTypeRef();
+            const auto&   dep    = requireEntry(depKey);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoEnum, rawType), dep.offset);
+            break;
+        }
+
         case LayoutKind::Pointer:
         {
             const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
@@ -343,11 +463,12 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Array:
         {
-            const TypeRef elemTypeRef = typeMgr.get(key).payloadArrayElemTypeRef();
-            const auto&   dep         = requireEntry(elemTypeRef);
+            const TypeInfo& type           = typeMgr.get(key);
+            const TypeRef   pointedTypeRef = resolveArrayPointedTypeRef(typeMgr, type);
+            const auto&     dep            = requireEntry(pointedTypeRef);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
-            const TypeRef finalTypeRef = typeMgr.get(elemTypeRef).unwrap(ctx, elemTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+            const TypeRef finalTypeRef = resolveArrayFinalTypeRef(typeMgr, ctx, type);
             const auto&   fin          = requireEntry(finalTypeRef);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), fin.offset);
             break;

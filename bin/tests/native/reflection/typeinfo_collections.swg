@@ -1,5 +1,4 @@
 #global fileprivate // swc-option suite-test
-#global skip // @BUG native enum/array/slice reflection payloads assert or materialize empty in native
 
 enum ReflectMode: s16
 {

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -15,6 +16,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool sameTypeInfoIdentity(Sema& sema, ConstantRef leftCstRef, ConstantRef rightCstRef)
+    {
+        const TypeRef leftTypeRef  = sema.cstMgr().makeTypeValue(sema, leftCstRef);
+        const TypeRef rightTypeRef = sema.cstMgr().makeTypeValue(sema, rightCstRef);
+        if (leftTypeRef.isValid() && rightTypeRef.isValid())
+            return leftTypeRef == rightTypeRef;
+
+        const auto* leftTypeInfo  = reinterpret_cast<const Runtime::TypeInfo*>(sema.cstMgr().get(leftCstRef).getValuePointer());
+        const auto* rightTypeInfo = reinterpret_cast<const Runtime::TypeInfo*>(sema.cstMgr().get(rightCstRef).getValuePointer());
+        if (!leftTypeInfo || !rightTypeInfo)
+            return leftTypeInfo == rightTypeInfo;
+
+        return leftTypeInfo->crc == rightTypeInfo->crc;
+    }
+
     TypeRef unwrapAliasEnumTypeRef(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -70,9 +86,7 @@ namespace
 
         if (nodeLeftView.type()->isAnyTypeInfo(sema.ctx()) && nodeRightView.type()->isAnyTypeInfo(sema.ctx()))
         {
-            const ConstantValue& leftCst  = sema.cstMgr().get(nodeLeftView.cstRef());
-            const ConstantValue& rightCst = sema.cstMgr().get(nodeRightView.cstRef());
-            result                        = sema.cstMgr().cstBool(leftCst.getValuePointer() == rightCst.getValuePointer());
+            result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, nodeLeftView.cstRef(), nodeRightView.cstRef()));
             return Result::Continue;
         }
 

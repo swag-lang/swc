@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -9,12 +10,47 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SmallVector<TypeRef> TypeGen::computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind)
+namespace
+{
+    TypeRef resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType)
+    {
+        SWC_ASSERT(arrayType.isArray());
+        const auto& dims = arrayType.payloadArrayDims();
+        SWC_ASSERT(!dims.empty());
+
+        if (dims.size() == 1)
+            return arrayType.payloadArrayElemTypeRef();
+
+        SmallVector<uint64_t> remainingDims;
+        remainingDims.reserve(dims.size() - 1);
+        for (size_t i = 1; i < dims.size(); ++i)
+            remainingDims.push_back(dims[i]);
+
+        return tm.addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+    }
+
+    TypeRef resolveArrayFinalTypeRef(TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
+    {
+        SWC_ASSERT(arrayType.isArray());
+
+        TypeRef finalTypeRef = arrayType.payloadArrayElemTypeRef();
+        while (tm.get(finalTypeRef).isArray())
+            finalTypeRef = tm.get(finalTypeRef).payloadArrayElemTypeRef();
+
+        return tm.get(finalTypeRef).unwrap(ctx, finalTypeRef, TypeExpandE::Alias);
+    }
+}
+
+SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind)
 {
     SmallVector<TypeRef> deps;
 
     switch (kind)
     {
+        case LayoutKind::Enum:
+            deps.push_back(type.payloadSymEnum().underlyingTypeRef());
+            break;
+
         case LayoutKind::Pointer:
         case LayoutKind::Slice:
             deps.push_back(type.payloadTypeRef());
@@ -22,11 +58,11 @@ SmallVector<TypeRef> TypeGen::computeDeps(const TypeManager& tm, const TaskConte
 
         case LayoutKind::Array:
         {
-            const TypeRef elemTypeRef = type.payloadArrayElemTypeRef();
-            deps.push_back(elemTypeRef);
+            const TypeRef pointedTypeRef = resolveArrayPointedTypeRef(tm, type);
+            deps.push_back(pointedTypeRef);
 
-            const TypeRef finalTypeRef = tm.get(elemTypeRef).unwrap(ctx, elemTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-            if (finalTypeRef != elemTypeRef)
+            const TypeRef finalTypeRef = resolveArrayFinalTypeRef(tm, ctx, type);
+            if (finalTypeRef != pointedTypeRef)
                 deps.push_back(finalTypeRef);
             break;
         }
@@ -80,7 +116,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(const TypeManager& tm, const TaskConte
 Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache)
 {
     TaskContext&       ctx  = sema.ctx();
-    const TypeManager& tm   = ctx.typeMgr();
+    TypeManager&       tm   = ctx.typeMgr();
     const AstNode&     node = sema.node(ownerNodeRef);
 
     // Non-recursive (explicit stack) type-info generation.

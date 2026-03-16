@@ -483,7 +483,11 @@ namespace
             view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
 
-        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), view.typeRef()));
+        TypeRef typeRef = view.typeRef();
+        if (view.type() && view.type()->isTypeValue())
+            typeRef = view.type()->payloadTypeRef();
+
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
         sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }

@@ -2,6 +2,7 @@
 setlocal EnableDelayedExpansion
 
 for %%I in ("%~dp0..") do set "ROOT=%%~fI"
+set "EXTRA_ARGS=%*"
 set "NATIVE_OUTPUT=%ROOT%\.output"
 set "EXE_OUTPUT=%NATIVE_OUTPUT%\exe"
 set "DLL_OUTPUT=%NATIVE_OUTPUT%\dll"
@@ -12,68 +13,37 @@ set "DLL_WORKDIR=%NATIVE_OUTPUT%\work\dll"
 set "LIB_WORKDIR=%NATIVE_OUTPUT%\work\lib"
 set "RUN_WORKDIR=%NATIVE_OUTPUT%\work\native-run"
 
-call "%~dp0test_dm.bat" --build-cfg release %*
+call :run_cfg release
 if errorlevel 1 exit /b %errorlevel%
-swc_devmode run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\release" --work-dir "%RUN_WORKDIR%\release" --build-cfg release %*
+call :run_cfg debug
 if errorlevel 1 exit /b %errorlevel%
-for %%K in (dll lib) do (
-    for %%S in (lexer parser sema jit native) do (
-        set "STAGE_ARGS="
-        if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
-        if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
-        if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
-        if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
-        swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\%%S" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg release !STAGE_ARGS! %*
-        if errorlevel 1 exit /b 1
-    )
+call :run_cfg fast-debug
+if errorlevel 1 exit /b %errorlevel%
+call :run_cfg fast-compile
+if errorlevel 1 exit /b %errorlevel%
+
+exit /b 0
+
+:run_cfg
+set "BUILD_CFG=%~1"
+
+for %%S in (lexer parser sema jit) do (
+    set "STAGE_ARGS="
+    if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
+    if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
+    if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
+    if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
+    swc_devmode test -d "%ROOT%\bin\tests\%%S" --build-cfg !BUILD_CFG! !STAGE_ARGS! !EXTRA_ARGS!
+    if errorlevel 1 exit /b 1
 )
 
-call "%~dp0test_dm.bat" --build-cfg debug %*
-if errorlevel 1 exit /b %errorlevel%
-swc_devmode run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\debug" --work-dir "%RUN_WORKDIR%\debug" --build-cfg debug %*
-if errorlevel 1 exit /b %errorlevel%
+swc_devmode test --artifact-kind exe -d "%ROOT%\bin\tests\native" --out-dir "%EXE_OUTPUT%" --work-dir "%EXE_WORKDIR%" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+if errorlevel 1 exit /b 1
+swc_devmode run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\!BUILD_CFG!" --work-dir "%RUN_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+if errorlevel 1 exit /b 1
 for %%K in (dll lib) do (
-    for %%S in (lexer parser sema jit native) do (
-        set "STAGE_ARGS="
-        if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
-        if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
-        if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
-        if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
-        swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\%%S" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg debug !STAGE_ARGS! %*
-        if errorlevel 1 exit /b 1
-    )
-)
-
-call "%~dp0test_dm.bat" --build-cfg fast-debug %*
-if errorlevel 1 exit /b %errorlevel%
-swc_devmode run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-debug" --work-dir "%RUN_WORKDIR%\fast-debug" --build-cfg fast-debug %*
-if errorlevel 1 exit /b %errorlevel%
-for %%K in (dll lib) do (
-    for %%S in (lexer parser sema jit native) do (
-        set "STAGE_ARGS="
-        if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
-        if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
-        if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
-        if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
-        swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\%%S" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg fast-debug !STAGE_ARGS! %*
-        if errorlevel 1 exit /b 1
-    )
-)
-
-call "%~dp0test_dm.bat" --build-cfg fast-compile %*
-if errorlevel 1 exit /b %errorlevel%
-swc_devmode run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-compile" --work-dir "%RUN_WORKDIR%\fast-compile" --build-cfg fast-compile %*
-if errorlevel 1 exit /b %errorlevel%
-for %%K in (dll lib) do (
-    for %%S in (lexer parser sema jit native) do (
-        set "STAGE_ARGS="
-        if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
-        if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
-        if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
-        if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
-        swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\%%S" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg fast-compile !STAGE_ARGS! %*
-        if errorlevel 1 exit /b 1
-    )
+    swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\native" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+    if errorlevel 1 exit /b 1
 )
 
 exit /b 0

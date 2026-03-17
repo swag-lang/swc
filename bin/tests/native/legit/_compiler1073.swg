@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 #test
 {
     @assert(G == 100)
@@ -18,3 +17,4 @@ var G: s32 = undefined
 {
     @assert(G == 100)
 }
+

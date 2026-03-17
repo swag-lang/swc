@@ -44,7 +44,9 @@ void NativeValidate::validate() const
         if (symbol->globalStorageKind() != DataSegmentKind::GlobalInit)
             continue;
 
-        SWC_ASSERT(!symbol->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined));
+        if (symbol->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            continue;
+
         if (!symbol->cstRef().isValid())
             continue;
 

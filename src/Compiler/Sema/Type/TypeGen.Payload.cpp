@@ -51,7 +51,7 @@ namespace
         return tm.addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
     }
 
-    TypeRef resolveArrayFinalTypeRef(TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
+    TypeRef resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
     {
         SWC_ASSERT(arrayType.isArray());
 
@@ -238,9 +238,9 @@ namespace
             if (!valueSize)
                 continue;
 
-            const ConstantValue&   enumCst     = ctx.cstMgr().get(symValue->cstRef());
-            const ConstantRef      rawValueRef = enumCst.isEnumValue() ? enumCst.getEnumValue() : symValue->cstRef();
-            std::vector<std::byte> valueBytes(valueSize, std::byte{0});
+            const ConstantValue& enumCst     = ctx.cstMgr().get(symValue->cstRef());
+            const ConstantRef    rawValueRef = enumCst.isEnumValue() ? enumCst.getEnumValue() : symValue->cstRef();
+            std::vector          valueBytes(valueSize, std::byte{0});
             ConstantLower::lowerToBytes(sema, valueBytes, rawValueRef, rawTypeRef);
 
             uint32_t     valueOffset    = INVALID_REF;

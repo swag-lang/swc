@@ -181,7 +181,7 @@ namespace
         }
     }
 
-    void buildJitOrderWithNativeRoots(Sema& sema, SymbolFunction& symFn, SmallVector<SymbolFunction*>& out)
+    void buildJitOrderWithNativeRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& out)
     {
         SmallVector<SymbolFunction*> rawOrder;
         symFn.appendJitOrder(rawOrder);

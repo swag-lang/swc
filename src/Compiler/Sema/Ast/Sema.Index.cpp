@@ -66,19 +66,16 @@ namespace
 
         if (indexedType.isArray())
         {
-            TypeInfoFlags flags = indexedType.flags();
+            const TypeInfoFlags flags = indexedType.flags();
             return sema.typeMgr().addType(TypeInfo::makeSlice(indexedType.payloadArrayElemTypeRef(), flags));
         }
 
         if (indexedType.isSlice())
             return indexedView.typeRef();
-
         if (indexedType.isString())
             return sema.typeMgr().typeString();
-
         if (indexedType.isCString())
             return sema.typeMgr().typeString();
-
         if (indexedType.isAnyPointer())
             return sema.typeMgr().addType(TypeInfo::makeSlice(indexedType.payloadTypeRef(), indexedType.flags()));
 

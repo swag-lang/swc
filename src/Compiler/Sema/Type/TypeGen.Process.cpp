@@ -29,7 +29,7 @@ namespace
         return tm.addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
     }
 
-    TypeRef resolveArrayFinalTypeRef(TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
+    TypeRef resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
     {
         SWC_ASSERT(arrayType.isArray());
 

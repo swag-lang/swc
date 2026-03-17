@@ -428,7 +428,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitInlineReturn(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef, MicroLabelRef doneLabel)
+    Result emitInlineReturn(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
     {
         if (inlinePayload.returnTypeRef != codeGen.typeMgr().typeVoid())
         {
@@ -436,7 +436,14 @@ namespace
             SWC_RESULT(emitInlineResultStore(codeGen, inlinePayload, exprRef));
         }
 
-        SWC_ASSERT(doneLabel.isValid());
+        CodeGenFrame& frame     = codeGen.frame();
+        MicroLabelRef doneLabel = frame.currentInlineContext().doneLabel;
+        if (doneLabel == MicroLabelRef::invalid())
+        {
+            doneLabel = codeGen.builder().createLabel();
+            frame.setCurrentInlineDoneLabel(doneLabel);
+        }
+
         MicroBuilder& builder = codeGen.builder();
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
         return Result::Continue;
@@ -702,7 +709,7 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
     {
         const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
         SWC_ASSERT(inlineCtx.payload != nullptr);
-        return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef, inlineCtx.doneLabel);
+        return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef);
     }
 
     return emitFunctionReturn(codeGen, codeGen.function(), nodeExprRef);

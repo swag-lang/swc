@@ -120,12 +120,61 @@ func runForced()->bool
     return forceExpr(#code base * 3) == 30
 }
 
+func runBreakReplacementAsContinue()->s32
+{
+    var count: s32 = 0
+    for 4
+    {
+        count += 1
+        #inject(#code { break }, break = continue)
+    }
+
+    return count
+}
+
+func runBreakReplacementAsScopeBreak()->s32
+{
+    var count: s32 = 0
+    #scope(Outer)
+    {
+        for 4
+        {
+            count += 1
+            #inject(#code { break }, break = break to Outer)
+        }
+
+        count = -10
+    }
+
+    return count
+}
+
+func runContinueReplacementAsScopeBreak()->s32
+{
+    var count: s32 = 0
+    #scope(Outer)
+    {
+        for 4
+        {
+            count += 1
+            #inject(#code { continue }, continue = break to Outer)
+        }
+
+        count = -10
+    }
+
+    return count
+}
+
 const ImplicitExprOk = #run runImplicitExpr()
 const ExplicitStmtOk = #run runExplicitStmt()
 const NamedArgsOk    = #run runNamed()
 const DefaultArgOk   = #run runDefault()
 const ForwardedOk    = #run runForwarded()
 const ForcedOk       = #run runForced()
+const BreakAsContinueOk      = #run runBreakReplacementAsContinue() == 4
+const BreakAsScopeBreakOk    = #run runBreakReplacementAsScopeBreak() == 1
+const ContinueAsScopeBreakOk = #run runContinueReplacementAsScopeBreak() == 1
 
 #assert(ImplicitExprOk)
 #assert(ExplicitStmtOk)
@@ -133,3 +182,6 @@ const ForcedOk       = #run runForced()
 #assert(DefaultArgOk)
 #assert(ForwardedOk)
 #assert(ForcedOk)
+#assert(BreakAsContinueOk)
+#assert(BreakAsScopeBreakOk)
+#assert(ContinueAsScopeBreakOk)

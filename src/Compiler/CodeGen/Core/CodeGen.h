@@ -138,6 +138,7 @@ public:
         inlineContext_.payload     = payload;
         inlineContext_.doneLabel   = doneLabel;
     }
+    void setCurrentInlineDoneLabel(MicroLabelRef doneLabel) { inlineContext_.doneLabel = doneLabel; }
     bool hasCurrentInlineContext() const { return inlineContext_.payload != nullptr && inlineContext_.rootNodeRef.isValid(); }
 
 private:

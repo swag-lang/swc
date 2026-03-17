@@ -416,7 +416,7 @@ Result CodeGen::preNode(AstNode& node)
     if (inlinePayload && inlinePayload->inlineRootRef == curNodeRef())
     {
         CodeGenFrame frame = this->frame();
-        frame.setCurrentInlineContext(curNodeRef(), inlinePayload, builder().createLabel());
+        frame.setCurrentInlineContext(curNodeRef(), inlinePayload, MicroLabelRef::invalid());
         pushFrame(frame);
     }
 

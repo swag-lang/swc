@@ -164,7 +164,8 @@ namespace
         return resultRef;
     }
 
-    Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef)
+    Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef, AstNodeRef replaceBreakRef = AstNodeRef::invalid(),
+                                    AstNodeRef replaceContinueRef = AstNodeRef::invalid())
     {
         SWC_RESULT(validateInjectArgument(sema, exprRef));
 
@@ -172,8 +173,8 @@ namespace
         if (rawRef.isInvalid())
             return Result::Error;
 
-        const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
-        const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, rawRef, noBindings);
+        const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}, replaceBreakRef, replaceContinueRef};
+        const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
         if (clonedRef.isInvalid())
             return Result::Error;
 
@@ -920,14 +921,13 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
 
 Result AstCompilerInject::semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef)
 {
-    SWC_UNUSED(sema);
-    SWC_UNUSED(childRef);
-    return Result::Continue;
+    const auto& node = sema.curNode().cast<AstCompilerInject>();
+    return childRef == node.nodeExprRef ? Result::Continue : Result::SkipChildren;
 }
 
 Result AstCompilerInject::semaPostNode(Sema& sema) const
 {
-    return substituteCompilerInject(sema, sema.curNodeRef(), nodeExprRef);
+    return substituteCompilerInject(sema, sema.curNodeRef(), nodeExprRef, nodeReplaceBreakRef, nodeReplaceContinueRef);
 }
 
 Result AstCompilerCall::semaPostNode(const Sema& sema) const

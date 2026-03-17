@@ -15,6 +15,6 @@ struct TT
     addr[0] = cast([*] [*] s64) &addr1
     addr1   = cast([*] s64) &value
 
-    @assert(addr[0, 0, 0] == 666)
+    @assert(addr[0][0][0] == 666)
 }
 

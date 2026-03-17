@@ -1,5 +1,6 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 
+#[Swag.Compiler]
 func failJitFlag()->s32
 {
     @assert(@jit)
@@ -7,6 +8,7 @@ func failJitFlag()->s32
     return 1
 }
 
+#[Swag.Compiler]
 func failContextSum()->s32
 {
     let a = 1 + 2 + 3 + 4 + 5 + 6

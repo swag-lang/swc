@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //#[Swag.PrintBc, Swag.Optimize(.All, false), Swag.Safety(.All, .All, false)]
 #test

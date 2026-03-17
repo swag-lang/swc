@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 func bitXor(a: u32, b: u32)->u32
 {

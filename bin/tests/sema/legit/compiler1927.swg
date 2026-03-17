@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 alias A = [2] s32
 var x: A

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 const At: [2, 2] s32 = [[1, 2], [3, 4, 5]] // swc-expected-error {{sema_err_array_cast_too_many_values}}
 

@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 var A: [..] s32
 #assert(#typeof(A) == [..] s32)

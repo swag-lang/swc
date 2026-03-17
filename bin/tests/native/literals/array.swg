@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 
 const A: [5] s32 = [1's32, 2, 3, 4, 5]

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 const A = 0
 #assert(#stringof(A) == "0")

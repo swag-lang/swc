@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 func directRegular(n: s32)->s32
 {

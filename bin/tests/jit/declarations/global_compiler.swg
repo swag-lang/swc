@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 
 struct Pair
 {
@@ -12,6 +12,7 @@ var CGZero: s32
 #[Swag.Compiler]
 var CGPair: Pair = {x: 1, y: 2}
 
+#[Swag.Compiler]
 func updateCompilerGlobals()->s32
 {
     CGZero = 11

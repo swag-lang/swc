@@ -1,4 +1,5 @@
-// swc-option suite-syntax
+#global fileprivate
+// swc-option syntax-only
 
 #assert(cast #bit (s32) 9)
 #assert(cast #unconst (s32) 9)

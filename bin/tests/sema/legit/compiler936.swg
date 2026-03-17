@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 var x: any = 666.0'f64
 

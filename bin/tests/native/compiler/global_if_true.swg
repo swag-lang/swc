@@ -1,4 +1,5 @@
-#global #if true // swc-option suite-test
+#global #if true // 
+#global fileprivate
 #global namespace GIf
 
 func makeValue()->s32

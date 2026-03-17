@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 func minMax(array: const [..] s32)->{ min: s32, max: s32 }
 {

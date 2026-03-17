@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 var g: u8 = cast(u8) 'c''rune
 

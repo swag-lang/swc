@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 struct Vector3 { x, y, z: s32 = 666 }
 

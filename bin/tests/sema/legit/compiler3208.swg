@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //#global skip
 func ReleaseDC()->s32 => 0

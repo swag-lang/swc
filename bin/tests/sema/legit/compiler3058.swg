@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #[Swag.Compiler]
 const X = [10, 10, 20, 40]

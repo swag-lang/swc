@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 
 #[Swag.Strict]
 alias LocalStrict = s32

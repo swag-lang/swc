@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 #[Swag.NoInline]
 func absS8(value: s8)->s8 => @abs(value)

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #[Swag.ConstExpr]
 func plus(xx, yy: s32) => xx + yy

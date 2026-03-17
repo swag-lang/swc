@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 func toto()->{x: s32, y: bool}
 {

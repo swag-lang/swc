@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //#[Swag.PrintBc]
 func clamp(x: f32, min: f32, max: f32)->f32

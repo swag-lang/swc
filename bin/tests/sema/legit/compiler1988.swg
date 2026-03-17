@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 func(T) sort(value: T, cb: func(T, T)->s32) {}
 

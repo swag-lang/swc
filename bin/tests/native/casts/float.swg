@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 var gFloatF32: f32
 var gFloatF64: f64

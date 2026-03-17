@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #[Swag.ConstExpr, Swag.Overload]
 func toto(x: f32) => 0'f32

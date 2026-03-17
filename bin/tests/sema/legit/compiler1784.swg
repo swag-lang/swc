@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 const decimal_int     = 98222
 const hex_int         = 0xff

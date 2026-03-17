@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 //#global testerror
 var main: bool
 namespace A

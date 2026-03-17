@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 
 const Cfg = #run dref @compiler.getBuildCfg()
 

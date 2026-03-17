@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 func(T, N: u64) dot(x, y: const [N] T)->T
 {

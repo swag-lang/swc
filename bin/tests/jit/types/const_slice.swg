@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 
 func pick(values: const [..] s32, idx: s32)->s32
 {

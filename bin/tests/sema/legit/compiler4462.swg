@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 const Pi         = 3.1415
 const solar_mass = 4 * Pi * Pi

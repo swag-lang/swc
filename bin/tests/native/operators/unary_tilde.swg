@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 func unaryTildeU32(a: u32)->u32
 {

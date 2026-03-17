@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 var gMustUseCalls: s32
 var gCanDiscardCalls: s32

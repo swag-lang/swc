@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #assert('\n''u8 == 10)
 #assert('\n''u16 == 10)

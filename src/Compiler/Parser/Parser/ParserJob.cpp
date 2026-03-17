@@ -30,7 +30,7 @@ JobResult ParserJob::exec()
     if (ast.srcView().mustSkip())
         return JobResult::Done;
 
-    if (file_->unitTest().hasFlag(VerifyFlagsE::LexOnly))
+    if (!ast.srcView().runsParser())
         return JobResult::Done;
 
     Parser parser;

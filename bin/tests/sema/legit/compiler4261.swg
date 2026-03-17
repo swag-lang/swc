@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #[Swag.Inline]
 func HIWORD(l: u64) => cast(s32) cast #bit (s16) ((l >> 16) & 0xffff)

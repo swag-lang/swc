@@ -1,4 +1,5 @@
-// swc-option suite-syntax
+#global fileprivate
+// swc-option syntax-only
 
 enum TOTO: const [..] s32
 {

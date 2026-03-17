@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 enum A { R, G, B }
 enum AA { R, G, B }

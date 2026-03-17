@@ -567,6 +567,29 @@ void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* sy
         notifyAlive();
 }
 
+void CompilerInstance::registerPreparedJitFunction(SymbolFunction* symbol)
+{
+    SWC_ASSERT(symbol != nullptr);
+
+    const std::unique_lock lock(mutex_);
+    appendUnique(jitPreparedFunctions_, symbol);
+}
+
+void CompilerInstance::resetPreparedJitFunctions()
+{
+    std::vector<SymbolFunction*> preparedFunctions;
+    {
+        const std::unique_lock lock(mutex_);
+        preparedFunctions.swap(jitPreparedFunctions_);
+    }
+
+    for (SymbolFunction* function : preparedFunctions)
+    {
+        if (function)
+            function->resetJitState();
+    }
+}
+
 std::vector<SymbolFunction*> CompilerInstance::nativeGlobalFunctionInitTargetsSnapshot() const
 {
     const std::shared_lock lock(mutex_);

@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 #global skip
 #[Swag.Inline]
 public func toto2407()

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #global skip // remove typeset from language the 21 july 2021
 public typeset A2150

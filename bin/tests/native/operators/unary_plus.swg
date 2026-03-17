@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 func unaryPlusU32(a: u32)->u32
 {

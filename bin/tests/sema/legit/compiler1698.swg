@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 var decimalDouble       = 12.1875
 var exponentDouble      = 1.21875e1

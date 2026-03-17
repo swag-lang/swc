@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 const A = plus(4, 5) + minus(5, 4)
 #assert(A == 10)

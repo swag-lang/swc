@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 alias a = u32
 alias b = f32
 alias c = bool

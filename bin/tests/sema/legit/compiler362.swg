@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //#[Swag.PrintBc]
 func test(arr: [2] s32, idx: s32, val: s32)

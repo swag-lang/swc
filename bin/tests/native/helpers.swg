@@ -1,4 +1,4 @@
-// swc-option suite-test
+// 
 
 var Counter: s32
 var Seed: s32 = 7

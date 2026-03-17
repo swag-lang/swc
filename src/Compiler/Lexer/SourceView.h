@@ -21,6 +21,16 @@ struct SourceIdentifier
     uint32_t byteStart = 0; // Byte offset in the source file buffer
 };
 
+enum class SourceViewFlagsE : uint32_t
+{
+    Zero       = 0,
+    MustSkip   = 1 << 0,
+    LexOnly    = 1 << 1,
+    SyntaxOnly = 1 << 2,
+    SemaOnly   = 1 << 3,
+};
+using SourceViewFlags = EnumFlags<SourceViewFlagsE>;
+
 class SourceView
 {
 public:
@@ -44,8 +54,21 @@ public:
     uint32_t                             numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
     const std::vector<uint32_t>&         triviaStart() const { return triviaStart_; }
     std::vector<uint32_t>&               triviaStart() { return triviaStart_; }
-    bool                                 mustSkip() const { return mustSkip_; }
-    void                                 setMustSkip() { mustSkip_ = true; }
+    bool                                 hasParseFlag(SourceViewFlagsE flag) const { return parseFlags_.has(flag); }
+    void                                 addParseFlag(SourceViewFlagsE flag) { parseFlags_.add(flag); }
+    void                                 clearParseFlags() { parseFlags_.clear(); }
+    bool                                 mustSkip() const { return parseFlags_.has(SourceViewFlagsE::MustSkip); }
+    void                                 setMustSkip() { parseFlags_.add(SourceViewFlagsE::MustSkip); }
+    bool                                 isLexOnly() const { return parseFlags_.has(SourceViewFlagsE::LexOnly); }
+    void                                 setLexOnly() { parseFlags_.add(SourceViewFlagsE::LexOnly); }
+    bool                                 isSyntaxOnly() const { return parseFlags_.has(SourceViewFlagsE::SyntaxOnly); }
+    void                                 setSyntaxOnly() { parseFlags_.add(SourceViewFlagsE::SyntaxOnly); }
+    bool                                 isSemaOnly() const { return parseFlags_.has(SourceViewFlagsE::SemaOnly); }
+    void                                 setSemaOnly() { parseFlags_.add(SourceViewFlagsE::SemaOnly); }
+    bool                                 runsParser() const { return parseFlags_.hasNot(SourceViewFlagsE::LexOnly); }
+    bool                                 runsSema() const { return runsParser() && parseFlags_.hasNot(SourceViewFlagsE::SyntaxOnly); }
+    bool                                 runsJit() const { return runsSema() && parseFlags_.hasNot(SourceViewFlagsE::SemaOnly); }
+    bool                                 runsNativeArtifact() const { return runsJit(); }
     bool                                 isRuntimeFile() const { return file_ && file_->isRuntime(); }
 
     SourceCodeRange               tokenCodeRange(const TaskContext& ctx, TokenRef tokRef) const;
@@ -67,7 +90,7 @@ private:
     std::vector<SourceTrivia>     trivia_;
     std::vector<uint32_t>         triviaStart_;
     std::vector<SourceIdentifier> identifiers_;
-    bool                          mustSkip_ = false;
+    SourceViewFlags               parseFlags_ = SourceViewFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE();

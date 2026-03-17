@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #assert(cast #bit (u32) 1.0'f32 == 0x3F800000)
 #assert(cast #bit (u32) 0.0'f32 == 0x00000000)

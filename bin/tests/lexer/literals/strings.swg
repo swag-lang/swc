@@ -1,4 +1,5 @@
-// swc-option suite-syntax
+#global fileprivate
+// swc-option lex-only
 
 // swc-option lex-only
 

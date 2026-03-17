@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 #[Swag.NoInline]
 func minS32(a: s32, b: s32)->s32 => @min(a, b)

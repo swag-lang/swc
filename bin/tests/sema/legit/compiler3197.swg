@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 public func toto3197()->#null func(s32)->#null string throw throw
 {

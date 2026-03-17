@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 func stepForward(input: s32)            => input + 1
 func stepBackward(input: s32)           => input - 1

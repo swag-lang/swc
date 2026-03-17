@@ -1,4 +1,5 @@
-#global #if #os == Swag.TargetOs.Windows // swc-option suite-test
+#global #if #os == Swag.TargetOs.Windows // 
+#global fileprivate
 
 struct Pair32
 {

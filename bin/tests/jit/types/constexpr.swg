@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 
 #[Swag.ConstExpr]
 func constMul(a: s32, b: s32)->s32

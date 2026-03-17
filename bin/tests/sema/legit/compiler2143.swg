@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 // A simple point with 2 float coordinates X and Y
 struct(T) P

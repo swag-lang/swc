@@ -1,4 +1,5 @@
-// swc-option suite-syntax
+#global fileprivate
+// swc-option syntax-only
 
 // Expressions
 var a = @countof()                      // swc-expected-error {{parser_err_too_few_arguments}}

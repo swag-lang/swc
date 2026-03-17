@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #[Swag.EnumFlags]
 enum A { R = 1, G = 2, B = 4 }

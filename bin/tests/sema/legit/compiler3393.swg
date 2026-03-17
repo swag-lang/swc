@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //#global skip
 func(A, B) toto(x: { a: A, b: B })

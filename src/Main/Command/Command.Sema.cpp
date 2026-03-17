@@ -45,6 +45,8 @@ namespace Command
             const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
                 continue;
+            if (!srcView.runsSema())
+                continue;
             if (f->hasError())
                 continue;
             files.push_back(f);

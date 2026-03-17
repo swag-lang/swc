@@ -1,4 +1,4 @@
-// swc-option suite-test
+// 
 
 #global fileprivate
 func test1()->s32 { return 666; }

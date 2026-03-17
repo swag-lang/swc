@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #assert(true and true == true)
 #assert(true and false == false)

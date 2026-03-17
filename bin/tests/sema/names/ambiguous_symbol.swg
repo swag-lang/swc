@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 func Amb() {}
 func Amb(a: s32) {}

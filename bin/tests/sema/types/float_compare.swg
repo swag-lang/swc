@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #assert(1.5575 == 1.5575)
 #assert(-1.5575 == -1.5575)

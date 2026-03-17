@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 func pureAdd(a: s32, b: s32)->s32
 {

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #assert(#sizeof(u8) == 1)
 #assert(#sizeof(u16) == 2)

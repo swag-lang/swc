@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 var gIntU32: u32
 func takes_u32(v: u32) { gIntU32 = v }

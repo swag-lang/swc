@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 const A: s32 = 1
 const B: bool = cast() A

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #warning("toto") // swc-expected-warning {{sema_warn_compiler_warning}}
 

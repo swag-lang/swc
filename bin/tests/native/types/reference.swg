@@ -1,4 +1,4 @@
-// swc-option suite-test
+// 
 
 #global fileprivate
 struct Vec2

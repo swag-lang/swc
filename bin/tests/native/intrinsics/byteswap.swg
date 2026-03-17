@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 #[Swag.NoInline]
 func bswapU16(value: u16)->u16 => @byteswap(value)

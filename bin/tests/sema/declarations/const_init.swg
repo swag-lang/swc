@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 const A: s32 = 10
 const B: s32 = 10's8

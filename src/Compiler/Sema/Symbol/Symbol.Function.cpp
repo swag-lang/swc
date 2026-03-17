@@ -356,6 +356,14 @@ bool SymbolFunction::hasLoweredCode() const noexcept
     return !loweredMicroCode_.bytes.empty();
 }
 
+void SymbolFunction::resetJitState() noexcept
+{
+    const std::scoped_lock lock(emitMutex_);
+    jitExecMemory_.reset();
+    jitPreparedAddress_.store(nullptr, std::memory_order_release);
+    jitEntryAddress_.store(nullptr, std::memory_order_release);
+}
+
 void SymbolFunction::jit(TaskContext& ctx)
 {
     if (ctx.state().jitEmissionError)
@@ -452,6 +460,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
     }
 
     jitPreparedAddress_.store(entry, std::memory_order_release);
+    ctx.compiler().registerPreparedJitFunction(this);
     return true;
 }
 

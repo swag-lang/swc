@@ -1,1 +1,1 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only

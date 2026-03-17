@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 #global skip
 var CPT: s32 = undefined
 

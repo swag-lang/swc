@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 var GNullShortCounter: s32
 var GNullShortValue:   s32 = 33

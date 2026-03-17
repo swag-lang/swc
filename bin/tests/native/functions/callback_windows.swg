@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 #global #if #os == Swag.TargetOs.Windows
 
 alias HANDLE     = const [*] void

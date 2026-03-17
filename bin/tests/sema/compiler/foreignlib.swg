@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #foreignlib("user32")
 #foreignlib("user32")

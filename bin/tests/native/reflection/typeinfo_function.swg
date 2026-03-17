@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 func add(x: s32, y: bool)->f32 => 1.0
 func consume(value: string) {}

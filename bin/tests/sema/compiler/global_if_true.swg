@@ -1,4 +1,5 @@
-#global #if true
+#global #if true // swc-option sema-only
+#global fileprivate
 #global namespace GIf
 
 func makeValue()->s32

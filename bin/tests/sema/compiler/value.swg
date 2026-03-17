@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 #if #os == Swag.TargetOs.Windows
 {

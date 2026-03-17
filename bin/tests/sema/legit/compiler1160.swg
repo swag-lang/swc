@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #[Swag.Inline]
 func min(x, y: s32) => x < y ? x : y

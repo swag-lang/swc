@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 func takes_u32(v: u32) {}
 func takes_u8(v: u8) {}

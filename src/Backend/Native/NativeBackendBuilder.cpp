@@ -5,6 +5,7 @@
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
 #include "Support/Math/Hash.h"
@@ -73,7 +74,35 @@ namespace
         return result;
     }
 
-    bool appendCodeGenDependencies(std::vector<SymbolFunction*>& functions)
+    template<typename T>
+    const SourceFile* sourceFileForSymbol(const NativeBackendBuilder& builder, const T& symbol)
+    {
+        return builder.compiler().srcView(symbol.srcViewRef()).file();
+    }
+
+    bool shouldPrepareFile(const SourceFile* file)
+    {
+        if (!file)
+            return true;
+
+        return file->ast().srcView().runsNativeArtifact();
+    }
+
+    template<typename T>
+    bool shouldPrepareSymbol(const NativeBackendBuilder& builder, const T& symbol)
+    {
+        return shouldPrepareFile(sourceFileForSymbol(builder, symbol));
+    }
+
+    template<typename T>
+    void filterPreparedSymbols(std::vector<T*>& values, const NativeBackendBuilder& builder)
+    {
+        std::erase_if(values, [&](const T* symbol) {
+            return symbol == nullptr || !shouldPrepareSymbol(builder, *symbol);
+        });
+    }
+
+    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
     {
         bool               changed = false;
         std::unordered_set seenFunctions(functions.begin(), functions.end());
@@ -94,6 +123,8 @@ namespace
                     continue;
                 if (!dep->isSemaCompleted())
                     continue;
+                if (!shouldPrepareSymbol(builder, *dep))
+                    continue;
                 if (!seenFunctions.insert(dep).second)
                     continue;
 
@@ -105,7 +136,7 @@ namespace
         return changed;
     }
 
-    bool appendGlobalFunctionInitDependencies(std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
+    bool appendGlobalFunctionInitDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
     {
         bool               changed = false;
         std::unordered_set seenFunctions(functions.begin(), functions.end());
@@ -122,6 +153,8 @@ namespace
             if (target->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
                 continue;
             if (!target->isSemaCompleted())
+                continue;
+            if (!shouldPrepareSymbol(builder, *target))
                 continue;
             if (!seenFunctions.insert(target).second)
                 continue;
@@ -290,24 +323,31 @@ Result NativeBackendBuilder::prepare()
     dropFunctions    = compiler_.nativeDropFunctions();
     mainFunctions    = compiler_.nativeMainFunctions();
     regularGlobals   = compiler_.nativeGlobalVariables();
+    filterPreparedSymbols(testFunctions, *this);
+    filterPreparedSymbols(initFunctions, *this);
+    filterPreparedSymbols(preMainFunctions, *this);
+    filterPreparedSymbols(dropFunctions, *this);
+    filterPreparedSymbols(mainFunctions, *this);
+    filterPreparedSymbols(regularGlobals, *this);
 
     auto functions = compiler_.nativeCodeSegment();
+    filterPreparedSymbols(functions, *this);
     sortAndUnique(testFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(initFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(preMainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(dropFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(mainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
     sortAndUnique(regularGlobals, [&](const SymbolVariable& symbol) { return makeVariableSortKey(*this, symbol); });
-    appendGlobalFunctionInitDependencies(functions, regularGlobals);
+    appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
 
     while (true)
     {
-        appendCodeGenDependencies(functions);
+        appendCodeGenDependencies(*this, functions);
         sortAndUnique(functions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
         rebuildFunctionInfos(*this, functions);
         SWC_RESULT(scheduleCodeGen(*this));
 
-        if (!appendCodeGenDependencies(functions))
+        if (!appendCodeGenDependencies(*this, functions))
             return Result::Continue;
     }
 }

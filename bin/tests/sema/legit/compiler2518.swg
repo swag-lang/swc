@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 var t: const [..] u16 = [1, 2, 3, 4]
 

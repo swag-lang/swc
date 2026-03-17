@@ -855,7 +855,6 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
 
     {
         std::ofstream output(sourcePath, std::ios::binary);
-        output << "// swc-option suite-test\n";
         output << "#test\n";
         output << "{\n";
         output << "    var acc: s32 = 0\n";

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 var x  = 21474838'f32
 var x1 = 21474837'f32

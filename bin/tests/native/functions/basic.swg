@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 var gBasicF0Calls: s32
 var gBasicF1Last: s32

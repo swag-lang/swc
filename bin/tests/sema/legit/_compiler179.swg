@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #[Swag.ConstExpr]
 {
     func main()->bool { return true; }

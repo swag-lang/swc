@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //#[Swag.PrintAsm]
 func roundDownToPowerOf2A(x: u32)->u32

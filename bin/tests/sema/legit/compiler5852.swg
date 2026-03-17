@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #[Swag.Macro]
 func assert(expr: #code bool, msg: #code string = null)

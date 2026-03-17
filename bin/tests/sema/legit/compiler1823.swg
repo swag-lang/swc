@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 func toto()->s32 => 0
 func titi()->s32 => 0

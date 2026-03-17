@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 #[Swag.NoInline]
 func nzU8(value: u8)->u8 => @bitcountnz(value)

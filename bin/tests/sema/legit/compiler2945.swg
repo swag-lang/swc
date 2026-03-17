@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 alias V = f32
 func toto(x: [4, 4] f32) {}

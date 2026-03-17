@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 struct V {x, y, z: f32}
 const A: [2] V = [{1, 2, 3}, {4, 5, 6}]

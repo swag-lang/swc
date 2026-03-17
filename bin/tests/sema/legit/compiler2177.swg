@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 const TicksPerMillisecond: u64 = 10000
 const TicksPerSecond:      u64 = TicksPerMillisecond * 1000

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 const AA = [[[1], [2]],
 [[30], [40]],

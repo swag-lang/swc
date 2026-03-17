@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 #global skip
 //#global testerror "Err0820"
 #assert(#run @compiler.getBuildCfg().byteCodeOptimizeLevel >= 0

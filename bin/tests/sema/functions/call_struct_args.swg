@@ -1,4 +1,5 @@
-#global #if #os == Swag.TargetOs.Windows
+#global #if #os == Swag.TargetOs.Windows // swc-option sema-only
+#global fileprivate
 
 struct Pair32
 {

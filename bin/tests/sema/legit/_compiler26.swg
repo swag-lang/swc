@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 var x0 = 'A''rune
 var x1 = '0''rune

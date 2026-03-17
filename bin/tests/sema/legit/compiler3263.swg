@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //#global testerror
 func(N: s32) toto(v: [N] f32)

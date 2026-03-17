@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 
 alias LambdaUntypedVariadic = func(bool, ...)->s32
 

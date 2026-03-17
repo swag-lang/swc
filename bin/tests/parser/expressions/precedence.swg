@@ -1,4 +1,5 @@
-// swc-option suite-syntax
+#global fileprivate
+// swc-option syntax-only
 
 #assert((A))
 #assert((A and B))

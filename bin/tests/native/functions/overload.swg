@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 var gOverloadA0Calls: s32
 var gOverloadA1Last: s32

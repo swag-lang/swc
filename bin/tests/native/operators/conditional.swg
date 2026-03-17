@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 #assert((true ? 10 : 20) == 10)
 #assert((false ? 10 : 20) == 20)

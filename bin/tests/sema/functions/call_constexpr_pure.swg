@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 func pureAdd(a: s32, b: s32)->s32
 {

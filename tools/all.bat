@@ -16,34 +16,44 @@ call "%~dp0test.bat" --build-cfg release %*
 if errorlevel 1 exit /b %errorlevel%
 swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\release" --work-dir "%RUN_WORKDIR%\release" --build-cfg release %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --artifact-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --build-cfg release %*
-if errorlevel 1 exit /b %errorlevel%
-swc test --artifact-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --build-cfg release %*
-if errorlevel 1 exit /b %errorlevel%
+for %%K in (dll lib) do (
+    for %%S in (lexer parser sema jit native) do (
+        swc test --artifact-kind %%K -d "%ROOT%\bin\tests\%%S" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg release %*
+        if errorlevel 1 exit /b 1
+    )
+)
 
 call "%~dp0test.bat" --build-cfg debug %*
 if errorlevel 1 exit /b %errorlevel%
 swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\debug" --work-dir "%RUN_WORKDIR%\debug" --build-cfg debug %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --artifact-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --build-cfg debug %*
-if errorlevel 1 exit /b %errorlevel%
-swc test --artifact-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --build-cfg debug %*
-if errorlevel 1 exit /b %errorlevel%
+for %%K in (dll lib) do (
+    for %%S in (lexer parser sema jit native) do (
+        swc test --artifact-kind %%K -d "%ROOT%\bin\tests\%%S" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg debug %*
+        if errorlevel 1 exit /b 1
+    )
+)
 
 call "%~dp0test.bat" --build-cfg fast-debug %*
 if errorlevel 1 exit /b %errorlevel%
 swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-debug" --work-dir "%RUN_WORKDIR%\fast-debug" --build-cfg fast-debug %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --artifact-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --build-cfg fast-debug %*
-if errorlevel 1 exit /b %errorlevel%
-swc test --artifact-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --build-cfg fast-debug %*
-if errorlevel 1 exit /b %errorlevel%
+for %%K in (dll lib) do (
+    for %%S in (lexer parser sema jit native) do (
+        swc test --artifact-kind %%K -d "%ROOT%\bin\tests\%%S" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg fast-debug %*
+        if errorlevel 1 exit /b 1
+    )
+)
 
 call "%~dp0test.bat" --build-cfg fast-compile %*
 if errorlevel 1 exit /b %errorlevel%
 swc run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\fast-compile" --work-dir "%RUN_WORKDIR%\fast-compile" --build-cfg fast-compile %*
 if errorlevel 1 exit /b %errorlevel%
-swc test --artifact-kind dll -d "%ROOT%\bin\tests" --out-dir "%DLL_OUTPUT%" --work-dir "%DLL_WORKDIR%" --build-cfg fast-compile %*
-if errorlevel 1 exit /b %errorlevel%
-swc test --artifact-kind lib -d "%ROOT%\bin\tests" --out-dir "%LIB_OUTPUT%" --work-dir "%LIB_WORKDIR%" --build-cfg fast-compile %*
-exit /b %errorlevel%
+for %%K in (dll lib) do (
+    for %%S in (lexer parser sema jit native) do (
+        swc test --artifact-kind %%K -d "%ROOT%\bin\tests\%%S" --out-dir "%NATIVE_OUTPUT%\%%K" --work-dir "%NATIVE_OUTPUT%\work\%%K" --build-cfg fast-compile %*
+        if errorlevel 1 exit /b 1
+    )
+)
+
+exit /b 0

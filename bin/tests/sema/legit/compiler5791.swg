@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //#global skip
 const CharProperties: [4] bool = [false, false, false, false]

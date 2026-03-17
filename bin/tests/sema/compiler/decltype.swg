@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 var a: s32 = 0
 var b: #decltype(a) = 5

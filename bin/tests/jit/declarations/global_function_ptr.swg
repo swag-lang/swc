@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-jit
+#global fileprivate
 
 alias UnaryFn = func(s32)->s32
 
@@ -15,6 +15,7 @@ func mulTwo(value: s32)->s32
 var GAddOne: UnaryFn = &addOne
 var GMulTwo: UnaryFn = &mulTwo
 
+#[Swag.Compiler]
 func runGlobalFunctionPointers()->bool
 {
     return GAddOne(41) == 42 and GMulTwo(21) == 42

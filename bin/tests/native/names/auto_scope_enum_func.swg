@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 enum OverA { A, B }
 enum OverB { A, B }

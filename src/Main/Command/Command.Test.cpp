@@ -6,7 +6,6 @@
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Core/Utf8Helper.h"
@@ -16,97 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using TestSuiteKind = SourceTestKind;
-
-    struct SourceSuiteBuckets
-    {
-        std::vector<fs::path> syntaxFiles;
-        std::vector<fs::path> semaFiles;
-        std::vector<fs::path> jitFiles;
-        std::vector<fs::path> nativeFiles;
-        bool                  hasSourceHints = false;
-    };
-
-#if SWC_HAS_STATS
-    struct DiscoveryStatsGuard
-    {
-        DiscoveryStatsGuard()
-        {
-            const auto& stats = Stats::get();
-            timeLoadFile_     = stats.timeLoadFile.load(std::memory_order_relaxed);
-            timeLexer_        = stats.timeLexer.load(std::memory_order_relaxed);
-            numFiles_         = stats.numFiles.load(std::memory_order_relaxed);
-        }
-
-        ~DiscoveryStatsGuard()
-        {
-            auto& stats = Stats::get();
-            stats.timeLoadFile.store(timeLoadFile_, std::memory_order_relaxed);
-            stats.timeLexer.store(timeLexer_, std::memory_order_relaxed);
-            stats.numFiles.store(numFiles_, std::memory_order_relaxed);
-        }
-
-        uint64_t timeLoadFile_ = 0;
-        uint64_t timeLexer_    = 0;
-        size_t   numFiles_     = 0;
-    };
-#endif
-
-    bool shouldRunNativeTests(const CommandLine& cmdLine)
-    {
-        return cmdLine.testNative;
-    }
-
-    void registerSourceFile(SourceSuiteBuckets& outBuckets, const fs::path& path, const Verify& verify)
-    {
-        const TestSuiteKind kind = verify.sourceTestKind();
-        outBuckets.hasSourceHints |= verify.hasSourceTestHints();
-
-        switch (kind)
-        {
-            case TestSuiteKind::Syntax:
-                outBuckets.syntaxFiles.push_back(path);
-                break;
-            case TestSuiteKind::Jit:
-                outBuckets.jitFiles.push_back(path);
-                break;
-            case TestSuiteKind::Native:
-                outBuckets.nativeFiles.push_back(path);
-                break;
-            case TestSuiteKind::Sema:
-            case TestSuiteKind::Unknown:
-                outBuckets.semaFiles.push_back(path);
-                break;
-        }
-    }
-
-    void collectStandaloneSourceSuites(SourceSuiteBuckets& outBuckets, CompilerInstance& compiler)
-    {
-        CommandLine cmdLine = compiler.cmdLine();
-        cmdLine.runtime     = false;
-
-        CompilerInstance discoveryCompiler(compiler.global(), cmdLine);
-        TaskContext      ctx(discoveryCompiler);
-
-        ctx.setSilentDiagnostic(true);
-
-#if SWC_HAS_STATS
-        const DiscoveryStatsGuard statsGuard;
-#endif
-
-        if (discoveryCompiler.collectFiles(ctx) != Result::Continue)
-            return;
-
-        for (SourceFile* const file : discoveryCompiler.files())
-        {
-            if (file->loadContent(ctx) != Result::Continue)
-                continue;
-
-            file->unitTest().tokenize(ctx);
-            registerSourceFile(outBuckets, file->path(), file->unitTest());
-        }
-    }
-
     fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
     {
         fs::path result;
@@ -167,16 +75,6 @@ namespace
         return std::format("{} locations", Utf8Helper::toNiceBigNumber(labels.size()));
     }
 
-    Utf8 formatSourceFilesLocation(const std::vector<fs::path>& files)
-    {
-        std::vector<fs::path> roots;
-        roots.reserve(files.size());
-        for (const fs::path& file : files)
-            roots.push_back(file.parent_path().empty() ? file : file.parent_path());
-
-        return formatSourceLocation(roots);
-    }
-
     Utf8 formatCommandSourceRoots(const CommandLine& cmdLine)
     {
         std::vector<fs::path> roots;
@@ -205,6 +103,59 @@ namespace
 
         action.success();
         return true;
+    }
+
+    bool shouldRunNativeTests(const CommandLine& cmdLine)
+    {
+        return cmdLine.testNative;
+    }
+
+    bool hasJitEligibleInputs(const CompilerInstance& compiler)
+    {
+        for (SourceFile* const file : compiler.files())
+        {
+            if (!file || file->isRuntime())
+                continue;
+            const SourceView& srcView = file->ast().srcView();
+            if (srcView.mustSkip())
+                continue;
+            if (srcView.runsJit())
+                return true;
+        }
+
+        return false;
+    }
+
+    bool shouldRunJitFunction(const CompilerInstance& compiler, const SymbolFunction& function)
+    {
+        const SourceFile* const file = compiler.srcView(function.srcViewRef()).file();
+        return !file || file->ast().srcView().runsJit();
+    }
+
+    bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)
+    {
+        const SourceFile* const file = compiler.srcView(function.srcViewRef()).file();
+        return !file || file->ast().srcView().runsNativeArtifact();
+    }
+
+    bool hasArtifactEntryPoints(const CompilerInstance& compiler)
+    {
+        if (compiler.compilerSegment().size() != 0 || compiler.constantSegment().size() != 0)
+            return false;
+
+        for (SymbolFunction* const function : compiler.nativeTestFunctions())
+        {
+            if (function && shouldRunNativeArtifactFunction(compiler, *function))
+                return true;
+        }
+
+        for (SymbolFunction* const function : compiler.nativeMainFunctions())
+        {
+            if (function && shouldRunNativeArtifactFunction(compiler, *function))
+                return true;
+        }
+
+        return false;
     }
 
     void verifyExpectedMarkers(TaskContext& ctx)
@@ -346,16 +297,22 @@ namespace
 
     bool runJitTests(CompilerInstance& compiler)
     {
+        if (!hasJitEligibleInputs(compiler))
+            return true;
+
         NativeBackendBuilder nativeBuilder(compiler, false);
         if (nativeBuilder.prepare() != Result::Continue)
             return false;
 
         TaskContext ctx(compiler);
 
-        auto allFunctions     = compiler.nativeCodeSegment();
-        auto initFunctions    = compiler.nativeInitFunctions();
-        auto preMainFunctions = compiler.nativePreMainFunctions();
-        auto testFunctions    = compiler.nativeTestFunctions();
+        auto allFunctions = compiler.nativeCodeSegment();
+        std::erase_if(allFunctions, [&](const SymbolFunction* function) {
+            return function == nullptr || !shouldRunJitFunction(compiler, *function);
+        });
+        auto initFunctions    = nativeBuilder.initFunctions;
+        auto preMainFunctions = nativeBuilder.preMainFunctions;
+        auto testFunctions    = nativeBuilder.testFunctions;
 
         sortAndUniqueFunctions(allFunctions, ctx);
         sortAndUniqueFunctions(initFunctions, ctx);
@@ -399,7 +356,7 @@ namespace
         if (compiler.cmdLine().testJit && !runJitTests(compiler))
             return false;
 
-        if (shouldRunNativeTests(compiler.cmdLine()))
+        if (shouldRunNativeTests(compiler.cmdLine()) && hasArtifactEntryPoints(compiler))
             return runNativeBackends(compiler);
 
         TaskContext ctx(compiler);
@@ -407,111 +364,8 @@ namespace
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
 
-    bool runCompilerSubset(CompilerInstance& compiler, const CommandKind command, const std::vector<fs::path>& files, std::string_view backendKindName = {}, const std::optional<bool> testJit = std::nullopt, const std::optional<bool> testNative = std::nullopt)
-    {
-        if (files.empty())
-            return true;
-
-        const TaskContext ctx(compiler);
-        CommandLine       cmdLine = compiler.cmdLine();
-        cmdLine.command           = command;
-        cmdLine.directories.clear();
-        cmdLine.files.clear();
-        cmdLine.modulePath.clear();
-        cmdLine.files.insert(files.begin(), files.end());
-        if (!backendKindName.empty())
-            cmdLine.backendKindName = backendKindName;
-        if (testJit.has_value())
-            cmdLine.testJit = testJit.value();
-        if (testNative.has_value())
-            cmdLine.testNative = testNative.value();
-        if (command == CommandKind::Syntax)
-            cmdLine.runtime = false;
-
-        CommandLineParser::refreshBuildCfg(cmdLine);
-
-        const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
-        CompilerInstance subCompiler(compiler.global(), cmdLine);
-
-        switch (command)
-        {
-            case CommandKind::Syntax:
-            {
-                ScopedTimedAction parseAction(ctx, "Parse", formatSourceFilesLocation(files));
-                Command::syntax(subCompiler);
-                finishAction(parseAction, errorsBefore);
-                break;
-            }
-
-            case CommandKind::Sema:
-            {
-                ScopedTimedAction checkAction(ctx, "Check", formatSourceFilesLocation(files));
-                Command::sema(subCompiler);
-                finishAction(checkAction, errorsBefore);
-                break;
-            }
-
-            case CommandKind::Test:
-            {
-                ScopedTimedAction checkAction(ctx, "Check", formatSourceFilesLocation(files));
-                Command::sema(subCompiler);
-                if (finishAction(checkAction, errorsBefore))
-                    finishTestCommand(subCompiler);
-                break;
-            }
-
-            default:
-                SWC_UNREACHABLE();
-        }
-
-        return !hasNewErrors(errorsBefore);
-    }
-
-    bool runStandaloneSourceDrivenSuites(CompilerInstance& compiler)
-    {
-        const CommandLine& cmdLine = compiler.cmdLine();
-        SWC_ASSERT(cmdLine.isTestCommand());
-
-        if (!cmdLine.modulePath.empty())
-            return false;
-        if (cmdLine.directories.empty() && cmdLine.files.empty())
-            return false;
-
-        SourceSuiteBuckets buckets;
-        const TaskContext  ctx(compiler);
-        TimedActionLog::printBuildConfiguration(ctx);
-        ScopedTimedAction discoverAction(ctx, "Discover", formatCommandSourceRoots(cmdLine));
-        collectStandaloneSourceSuites(buckets, compiler);
-        if (!buckets.hasSourceHints)
-        {
-            discoverAction.fail();
-            return false;
-        }
-
-        if (buckets.syntaxFiles.empty() && buckets.semaFiles.empty() && buckets.jitFiles.empty() && buckets.nativeFiles.empty())
-        {
-            discoverAction.fail();
-            return false;
-        }
-
-        discoverAction.success();
-
-        if (!runCompilerSubset(compiler, CommandKind::Syntax, buckets.syntaxFiles))
-            return true;
-        if (!runCompilerSubset(compiler, CommandKind::Sema, buckets.semaFiles))
-            return true;
-        if (!runCompilerSubset(compiler, CommandKind::Test, buckets.jitFiles, compiler.cmdLine().backendKindName, compiler.cmdLine().testJit, false))
-            return true;
-
-        runCompilerSubset(compiler, CommandKind::Test, buckets.nativeFiles, compiler.cmdLine().backendKindName, compiler.cmdLine().testJit, compiler.cmdLine().testNative);
-        return true;
-    }
-
     void runNativeTestCommand(CompilerInstance& compiler)
     {
-        if (runStandaloneSourceDrivenSuites(compiler))
-            return;
-
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         ScopedTimedAction checkAction(ctx, "Check", formatCommandSourceRoots(ctx.cmdLine()));

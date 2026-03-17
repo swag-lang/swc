@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #global skip // no more relative pointers (18 july 2021)
 //#[Swag.PrintBc]

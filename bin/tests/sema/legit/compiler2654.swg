@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 //func(T) min(x, y: T) => x < y ? x : y
 //func(T) min(x, y, z: T) => min(min(x, y), z)

@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 
 enum OverA { A, B }
 enum OverB { A, B }

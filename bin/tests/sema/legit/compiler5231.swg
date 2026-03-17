@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 struct A { x, y: s32 }
 struct B { x, y: s32 }

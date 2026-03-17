@@ -1,4 +1,4 @@
-#global fileprivate
+#global fileprivate // swc-option sema-only
 #global skip
 #[Swag.ConstExpr]
 func toto() => {1's64, 2's64}

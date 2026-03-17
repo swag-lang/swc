@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 #[Swag.EnumFlags]
 enum TestFlags: u32

@@ -1,4 +1,4 @@
-#global fileprivate // swc-option suite-test
+#global fileprivate // 
 
 const ANONYMOUS = {1's32, 2}
 

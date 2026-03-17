@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #ast "const tt: [?] s64 = [0, 1, 2, 3]"
 

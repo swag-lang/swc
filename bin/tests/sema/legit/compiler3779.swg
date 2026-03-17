@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 //#[Swag.PrintBc]
 func toto(x: s64)->s32

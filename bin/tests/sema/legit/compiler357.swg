@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 var a = ["0", "1.0"]
 var b = [1, 2, 3, 4, 5, 6]

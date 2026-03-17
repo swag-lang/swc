@@ -1,3 +1,3 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 alias X = func()

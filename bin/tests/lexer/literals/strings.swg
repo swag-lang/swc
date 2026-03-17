@@ -1,7 +1,5 @@
 #global fileprivate
-// swc-option lex-only
 
-// swc-option lex-only
 
 // --- Valid single character literals ---
 'a'

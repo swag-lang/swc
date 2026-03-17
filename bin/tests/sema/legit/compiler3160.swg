@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Discardable]
 func printf(format: cstring, args: cvarargs)->s64

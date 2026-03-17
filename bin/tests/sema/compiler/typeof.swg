@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 const A: s32 = 10
 #assert(#typeof(A) == s32)

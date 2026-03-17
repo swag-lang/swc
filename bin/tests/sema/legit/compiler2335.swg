@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Sanity(false)]
 func toto()->{ a: rune, b: u32 }

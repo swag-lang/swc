@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 #assert(1 + 1 == 2)
 #assert(1's32 + 1 == 2)

@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 using Swag
 
 func main(a: s32 = 6) {}

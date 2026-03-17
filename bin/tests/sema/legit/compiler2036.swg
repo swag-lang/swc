@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 struct Argb2036 { a, r, g, b: u8 }
 

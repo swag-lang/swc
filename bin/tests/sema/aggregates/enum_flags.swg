@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 enum AA { A, B }
 const BB = AA.A | 1 // swc-expected-error {{sema_err_invalid_op_enum}}

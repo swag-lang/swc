@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 #assert(#file == #file)
 #assert(#line == 4)

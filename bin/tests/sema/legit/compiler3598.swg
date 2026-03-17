@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 enum RGB { R, G, B }
 enum RGB1 { R1, G1, B1 }

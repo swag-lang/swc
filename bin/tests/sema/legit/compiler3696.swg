@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 func write_chunk(chunk_type: const [4] u8, buf: #null const *u8, length: u64)
 {

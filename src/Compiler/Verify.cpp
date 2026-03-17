@@ -227,6 +227,13 @@ void Verify::tokenize(TaskContext& ctx)
     directives_.clear();
     srcView_->clearParseFlags();
 
+    if (ctx.cmdLine().lexOnly)
+        srcView_->setLexOnly();
+    else if (ctx.cmdLine().syntaxOnly)
+        srcView_->setSyntaxOnly();
+    else if (ctx.cmdLine().semaOnly)
+        srcView_->setSemaOnly();
+
     // Get all comments from the file
     Lexer lexer;
     lexer.tokenizeRaw(ctx, *srcView_);
@@ -238,7 +245,6 @@ void Verify::tokenize(TaskContext& ctx)
         if (trivia.tok.is(TokenId::CommentLine))
         {
             tokenizeExpected(ctx, trivia, comment);
-            tokenizeOption(ctx, comment);
         }
     }
 }
@@ -285,62 +291,6 @@ void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView
             diag.last().addSpan(directive.myCodeRange, "");
             diag.report(ctx);
         }
-    }
-}
-
-void Verify::tokenizeOption(const TaskContext& ctx, std::string_view comment)
-{
-    const LangSpec& langSpec = ctx.global().langSpec();
-
-    size_t pos = 0;
-    while (true)
-    {
-        const size_t found = comment.find(LangSpec::VERIFY_COMMENT_OPTION, pos);
-        if (found == std::string_view::npos)
-            break;
-
-        size_t i = found + LangSpec::VERIFY_COMMENT_OPTION.size();
-
-        // Skip blanks and any non-ASCII noise safely
-        while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
-            ++i;
-
-        // There can be multiple options after "swc-option"
-        // Parse words until we hit something that's not an option token
-        while (i < comment.size())
-        {
-            // Skip any extra blanks / non-ASCII between options
-            while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
-                ++i;
-
-            // Collect the option token
-            const size_t start = i;
-            while (i < comment.size() && langSpec.isOption(static_cast<char8_t>(comment[i])))
-                ++i;
-
-            // No token? we're done with this swc-option block
-            if (i == start)
-                break;
-
-            const std::string_view kindWord = comment.substr(start, i - start);
-
-            // Handle known options
-            if (kindWord == "lex-only")
-                srcView_->setLexOnly();
-            else if (kindWord == "syntax-only")
-                srcView_->setSyntaxOnly();
-            else if (kindWord == "sema-only")
-                srcView_->setSemaOnly();
-
-            // If options might be comma-separated, skip trailing commas/spacers
-            while (i < comment.size() && (langSpec.isBlank(static_cast<char8_t>(comment[i])) || comment[i] == ','))
-                ++i;
-        }
-
-        // Move past this occurrence so we can find the next one
-        pos = std::max(i, found + LangSpec::VERIFY_COMMENT_OPTION.size());
-        if (pos == found) // paranoia: guarantee forward progress on pathological inputs
-            ++pos;
     }
 }
 

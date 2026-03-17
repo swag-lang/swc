@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 // You can use special type 'alias' to create a named alias
 // for an identifier

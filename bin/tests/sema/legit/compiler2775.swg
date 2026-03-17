@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Overload]
 public func toto2775(x: s64)->s64 => 0

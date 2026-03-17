@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 struct Point { x, y: s32 }
 //#[Swag.PrintBc]

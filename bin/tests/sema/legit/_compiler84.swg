@@ -1,2 +1,2 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 alias tt = bool

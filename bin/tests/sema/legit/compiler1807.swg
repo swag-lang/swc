@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 const C = plus1()
 #[Swag.ConstExpr]

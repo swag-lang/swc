@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.EnumFlags]
 enum Dir { Z = 0, A = 5 }

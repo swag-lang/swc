@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #global skip
 var arr: [4] s64 = [10, 20, 30, 40]

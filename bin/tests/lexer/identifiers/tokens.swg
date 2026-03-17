@@ -1,11 +1,9 @@
 #global fileprivate
-// swc-option lex-only
 
 // ============================================================================
 // Lexer Identifiers Ok
 // ============================================================================
 
-// swc-option lex-only
 
 // Identifiers & keywords coverage
 

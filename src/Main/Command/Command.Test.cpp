@@ -107,7 +107,7 @@ namespace
 
     bool shouldRunNativeTests(const CommandLine& cmdLine)
     {
-        return cmdLine.testNative;
+        return cmdLine.testNative && cmdLine.output;
     }
 
     bool hasJitEligibleInputs(const CompilerInstance& compiler)

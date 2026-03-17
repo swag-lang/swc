@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 public func llvm_crap_join32(titi: string) {}
 

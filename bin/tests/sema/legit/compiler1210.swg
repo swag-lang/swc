@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Inline]
 func lerp(x, y, factor: f32)->f32 => ((1 - factor) * x) + (factor * y)

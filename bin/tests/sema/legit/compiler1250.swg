@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 func getChar(buffer: const [*] u8)->{ a: const [*] u8, b: rune }
 {

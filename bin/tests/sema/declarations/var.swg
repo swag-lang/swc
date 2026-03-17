@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 var A: s32 = true                 // swc-expected-error {{sema_err_cannot_cast}}
 var B: s32

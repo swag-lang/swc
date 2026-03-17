@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.ConstExpr]
 func isStruct(t: typeinfo) => t.kind == Swag.TypeInfoKind.Struct

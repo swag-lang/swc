@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 //#[Swag.PrintBc]
 func insertionSort(cb: func||(s32, s32)->s32)

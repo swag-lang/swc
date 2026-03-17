@@ -1,3 +1,3 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 alias myType = u32
 var a: myType

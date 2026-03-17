@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 func toto(x: const [..] s32 = [1, 2, 3])
 {

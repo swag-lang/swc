@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #assert(A.Red == 0)
 #assert(A.Green == 1)
 #assert(A.Blue == 2)

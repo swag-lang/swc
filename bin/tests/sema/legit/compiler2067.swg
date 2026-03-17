@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 var g_Argv: [128] string
 var g_Argc  = 0'u32

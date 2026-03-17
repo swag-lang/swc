@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 public func append2430(buf: #null *void, fmt: string, values: ...)
     verify

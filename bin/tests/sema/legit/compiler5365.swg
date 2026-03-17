@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 //#global testerror "Err0576"
 struct A { x: s32 }

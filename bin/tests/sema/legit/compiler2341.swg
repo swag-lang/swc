@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.ConstExpr, Swag.Macro]
 func toto1(cpt: u32)->u32 => cpt

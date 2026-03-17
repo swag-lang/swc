@@ -1,7 +1,5 @@
 #global fileprivate
-// swc-option lex-only
 
-// swc-options lex-only
 
 // ============================================================================
 // COMMENTS AT END OF FILE

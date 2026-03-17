@@ -174,6 +174,10 @@ namespace
         printInfoLine(ctx, "sourceDrivenTest", boolToUtf8(cmdLine.isTestMode()));
         printInfoLine(ctx, "testNative", boolToUtf8(cmdLine.testNative));
         printInfoLine(ctx, "testJit", boolToUtf8(cmdLine.testJit));
+        printInfoLine(ctx, "lexOnly", boolToUtf8(cmdLine.lexOnly));
+        printInfoLine(ctx, "syntaxOnly", boolToUtf8(cmdLine.syntaxOnly));
+        printInfoLine(ctx, "semaOnly", boolToUtf8(cmdLine.semaOnly));
+        printInfoLine(ctx, "output", boolToUtf8(cmdLine.output));
         printInfoLine(ctx, "unittest", boolToUtf8(cmdLine.unittest));
         printInfoLine(ctx, "verboseUnittest", boolToUtf8(cmdLine.verboseUnittest));
         printInfoLine(ctx, "runtime", boolToUtf8(cmdLine.runtime));

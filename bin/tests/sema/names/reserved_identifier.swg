@@ -1,5 +1,5 @@
 #global fileprivate
-#test // swc-option sema-only
+#test
 {
     var _ok = 10
     #assert(_ok == 10)

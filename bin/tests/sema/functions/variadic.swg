@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 func titi(a: ...) {}
 func tata(a: s32...) {}

@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 func main(argc: u32) {}
 
 var a: bool

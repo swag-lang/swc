@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 const X: u32 = true ? 0xFF : 0
 #assert(X == 0xFF)

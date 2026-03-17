@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 //#[Swag.PrintBc]
 struct TT { x, y: s32 }

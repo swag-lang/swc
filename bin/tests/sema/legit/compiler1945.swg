@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 func foozle(ptr: const *Swag.TypeInfo)->bool
 {

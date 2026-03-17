@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 var G: [?] u8 = [1, 2, 3]
 var G1 = 0

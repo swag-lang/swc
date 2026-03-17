@@ -1,5 +1,4 @@
 #global fileprivate
-// swc-option syntax-only
 
 #assert(A())
 #assert(A(1, 2, 3))

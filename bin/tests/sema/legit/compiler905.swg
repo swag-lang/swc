@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 func arithmeticMean(numbers: f64...)->f64
 {

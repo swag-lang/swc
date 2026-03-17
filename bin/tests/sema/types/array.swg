@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 var A: [?] s32
 #assert(#nameof(#typeof(A)) == "[?] s32")

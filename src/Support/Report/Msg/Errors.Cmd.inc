@@ -1,6 +1,7 @@
 SWC_DIAG_DEF(cmdline_err_invalid_arg)
 SWC_DIAG_DEF(cmdline_err_invalid_cmd_arg)
 SWC_DIAG_DEF(cmdline_err_invalid_enum)
+SWC_DIAG_DEF(cmdline_err_conflicting_arg)
 SWC_DIAG_DEF(cmdline_err_missing_arg_val)
 SWC_DIAG_DEF(cmdline_err_invalid_bool)
 SWC_DIAG_DEF(cmdline_err_missing_command)

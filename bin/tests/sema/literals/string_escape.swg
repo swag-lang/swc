@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 #assert('\x41' == 'A')
 #assert('\x61' == 'a')

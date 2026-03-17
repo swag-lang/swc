@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #global testwarning "Wrn0001"
 #global #[Swag.Warning("Wrn0001", Swag.WarningLevel.Enable)]

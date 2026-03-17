@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Overload]
 public func(T) toto2012(cb: func(T)->T)

@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 enum A
 {
     Red   = cast(A) B.Red

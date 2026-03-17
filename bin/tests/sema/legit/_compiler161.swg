@@ -1,2 +1,2 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 func main(argv = true) {}

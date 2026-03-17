@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #assert(!#defined(TOIKTOI))
 #assert(#defined(G))

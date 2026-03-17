@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 var maximumNumberOfLoginAttempts = 10
 var currentLoginAttempt          = 0

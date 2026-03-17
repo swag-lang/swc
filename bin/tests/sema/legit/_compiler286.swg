@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 //#[Swag.PrintBc]
 func main()
 {

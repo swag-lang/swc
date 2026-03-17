@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 enum AA: u32 { A }
 enum BB { A }

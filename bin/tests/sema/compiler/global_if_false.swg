@@ -1,4 +1,4 @@
 #global fileprivate
-#global #if false // swc-option sema-only
+#global #if false
 
 #assert(false)

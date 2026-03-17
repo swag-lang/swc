@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 var y:   s32 = add(10, x)
 const x: s32 = add(12, 34)

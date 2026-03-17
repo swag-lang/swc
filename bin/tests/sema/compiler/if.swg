@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 #if false { const A = 0 } #else { const A = 1 }
 #assert(A == 1)

@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 const A = "hello world"
 #assert(A[0] == 'h')

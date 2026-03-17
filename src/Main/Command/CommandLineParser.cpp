@@ -20,6 +20,32 @@ constexpr size_t           SHORT_NO_PREFIX_LEN = 4;
 
 namespace
 {
+    bool validateStageSelection(TaskContext& ctx, const CommandLine& cmdLine)
+    {
+        std::string_view selectedArg;
+
+        const auto checkArg = [&](const bool enabled, const std::string_view argName) -> bool {
+            if (!enabled)
+                return true;
+
+            if (selectedArg.empty())
+            {
+                selectedArg = argName;
+                return true;
+            }
+
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
+            diag.addArgument(Diagnostic::ARG_ARG, argName);
+            diag.addArgument(Diagnostic::ARG_VALUE, selectedArg);
+            diag.report(ctx);
+            return false;
+        };
+
+        return checkArg(cmdLine.lexOnly, "--lex-only") &&
+               checkArg(cmdLine.syntaxOnly, "--syntax-only") &&
+               checkArg(cmdLine.semaOnly, "--sema-only");
+    }
+
     std::string_view registeredBuildCfgsView(const Runtime::BuildCfg& buildCfg)
     {
         if (!buildCfg.registeredConfigs.ptr || !buildCfg.registeredConfigs.length)
@@ -304,21 +330,21 @@ std::optional<ArgInfo> CommandLineParser::findArgument(TaskContext& ctx, const U
 
 std::optional<ArgInfo> CommandLineParser::findLongFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
-    if (arg.substr(0, LONG_NO_PREFIX_LEN) == LONG_NO_PREFIX && arg.length() > LONG_NO_PREFIX_LEN)
-        return findNegatedArgument(ctx, arg, LONG_PREFIX, LONG_NO_PREFIX_LEN, longFormMap_, invertBoolean);
     const auto it = longFormMap_.find(arg);
     if (it != longFormMap_.end())
         return it->second;
+    if (arg.substr(0, LONG_NO_PREFIX_LEN) == LONG_NO_PREFIX && arg.length() > LONG_NO_PREFIX_LEN)
+        return findNegatedArgument(ctx, arg, LONG_PREFIX, LONG_NO_PREFIX_LEN, longFormMap_, invertBoolean);
     return std::nullopt;
 }
 
 std::optional<ArgInfo> CommandLineParser::findShortFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
-    if (arg.substr(0, SHORT_NO_PREFIX_LEN) == SHORT_NO_PREFIX && arg.length() > SHORT_NO_PREFIX_LEN)
-        return findNegatedArgument(ctx, arg, SHORT_PREFIX, SHORT_NO_PREFIX_LEN, shortFormMap_, invertBoolean);
     const auto it = shortFormMap_.find(arg);
     if (it != shortFormMap_.end())
         return it->second;
+    if (arg.substr(0, SHORT_NO_PREFIX_LEN) == SHORT_NO_PREFIX && arg.length() > SHORT_NO_PREFIX_LEN)
+        return findNegatedArgument(ctx, arg, SHORT_PREFIX, SHORT_NO_PREFIX_LEN, shortFormMap_, invertBoolean);
     return std::nullopt;
 }
 
@@ -505,6 +531,9 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     if (cmdLine_->isTestCommand())
         cmdLine_->sourceDrivenTest = true;
 
+    if (cmdLine_->isTestCommand() && !validateStageSelection(ctx, *cmdLine_))
+        return Result::Error;
+
     if (!cmdLine_->verboseVerifyFilter.empty())
         cmdLine_->verboseVerify = true;
 
@@ -640,6 +669,10 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Testing, "all", "--verbose-unittest", "-vu", CommandLineType::Bool, &cmdLine_->verboseUnittest, nullptr, "Print each internal unit test status.");
     addArg(HelpOptionGroup::Testing, "test", "--test-native", "-tn", CommandLineType::Bool, &cmdLine_->testNative, nullptr, "Enable native backend testing for #test sources.");
     addArg(HelpOptionGroup::Testing, "test", "--test-jit", "-tj", CommandLineType::Bool, &cmdLine_->testJit, nullptr, "Enable JIT execution for #test functions during testing.");
+    addArg(HelpOptionGroup::Testing, "test", "--lex-only", nullptr, CommandLineType::Bool, &cmdLine_->lexOnly, nullptr, "Stop test inputs after lexing. Cannot be combined with --syntax-only or --sema-only.");
+    addArg(HelpOptionGroup::Testing, "test", "--syntax-only", nullptr, CommandLineType::Bool, &cmdLine_->syntaxOnly, nullptr, "Stop test inputs after parsing. Cannot be combined with --lex-only or --sema-only.");
+    addArg(HelpOptionGroup::Testing, "test", "--sema-only", nullptr, CommandLineType::Bool, &cmdLine_->semaOnly, nullptr, "Stop test inputs after semantic analysis. Cannot be combined with --lex-only or --syntax-only.");
+    addArg(HelpOptionGroup::Testing, "test", "--output", nullptr, CommandLineType::Bool, &cmdLine_->output, nullptr, "Enable native artifact generation during testing. Use --no-output to keep JIT-only test runs in-memory.");
     addArg(HelpOptionGroup::Testing, "test", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, "Show diagnostics normally matched and suppressed by source-driven tests.");
     addArg(HelpOptionGroup::Testing, "test", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Restrict --verbose-verify output to messages or diagnostic IDs matching a specific string.");
 

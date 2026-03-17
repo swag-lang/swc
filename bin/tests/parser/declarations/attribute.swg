@@ -1,5 +1,4 @@
 #global fileprivate
-// swc-option syntax-only
 
 #[A]
 enum B { Z }

@@ -1,5 +1,4 @@
 #global fileprivate
-// swc-option syntax-only
 
 #error(B)
 #warning(B)

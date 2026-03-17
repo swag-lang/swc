@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 
 #assert(cast(s8) 1 == 1)
 #assert(cast(s8) -1 == -1)

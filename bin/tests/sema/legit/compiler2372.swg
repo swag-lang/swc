@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 func titi()->{ a, b: u32 } => {0, 0}
 

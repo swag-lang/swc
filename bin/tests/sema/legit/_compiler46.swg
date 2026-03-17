@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 var a:   bool
 var b:   bool
 var c:   bool

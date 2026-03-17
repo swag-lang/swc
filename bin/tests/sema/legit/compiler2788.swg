@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 func myFunc(val: s32, x: func(s32)->s32)
 {

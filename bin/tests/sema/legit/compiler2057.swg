@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Discardable]
 func itoa(result: [*] u8, value: s64)->[*] u8

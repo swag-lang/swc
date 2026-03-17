@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 using Swag
 #assert(1 | 2 == 3)
 #assert(1 & 2 == 0)

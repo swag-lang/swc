@@ -68,7 +68,6 @@ private:
     std::vector<VerifyDirective> directives_;
     mutable std::mutex           directivesMutex_;
 
-    void tokenizeOption(const TaskContext& ctx, std::string_view comment);
     void tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment);
 };
 

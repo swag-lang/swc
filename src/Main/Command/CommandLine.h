@@ -64,6 +64,10 @@ struct CommandLine
     bool sourceDrivenTest = false;
     bool testNative       = true;
     bool testJit          = true;
+    bool lexOnly          = false;
+    bool syntaxOnly       = false;
+    bool semaOnly         = false;
+    bool output           = true;
     bool unittest         = true;
     bool verboseUnittest  = false;
     bool runtime          = true;

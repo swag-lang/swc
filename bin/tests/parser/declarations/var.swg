@@ -1,5 +1,4 @@
 #global fileprivate
-// swc-option syntax-only
 
 var a: s32
 var a, b: *s32

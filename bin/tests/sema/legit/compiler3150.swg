@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #global #if #os == Swag.TargetOs.Windows and #arch == Swag.TargetArch.X86_64
 

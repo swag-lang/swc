@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.CanOverflow(true)]
 func mulU64(x, y: u64)->{ hi: u64, lo: u64 }

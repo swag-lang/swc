@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 const AA = [[1, 2, 3], [30, 40, 50]]
 #assert(AA[1, 2] == 50)

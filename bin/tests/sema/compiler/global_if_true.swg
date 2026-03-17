@@ -1,4 +1,4 @@
-#global #if true // swc-option sema-only
+#global #if true
 #global fileprivate
 #global namespace GIf
 

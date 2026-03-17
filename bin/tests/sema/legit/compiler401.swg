@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 var Table: [256] u64 = [
     0x0000000000000000'u64, 0x42f0e1eba9ea3693'u64, 0x85e1c3d753d46d26'u64, 0xc711223cfa3e5bb5'u64, 0x493366450e42ecdf'u64,

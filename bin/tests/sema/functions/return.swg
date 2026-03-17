@@ -1,5 +1,5 @@
 #global fileprivate
-func test1() // swc-option sema-only
+func test1()
 {
     return;
 }

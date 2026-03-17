@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #global skip // no more relative pointers (18 july 2021)
 var G = 666

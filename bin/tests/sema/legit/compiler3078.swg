@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 // Multiple strings are compiled as one
 const a = "this is " ++ "a" ++ " string"

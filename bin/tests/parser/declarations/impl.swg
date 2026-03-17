@@ -1,5 +1,4 @@
 #global fileprivate
-// swc-option syntax-only
 
 impl A for B { }
 impl A.B for B { }

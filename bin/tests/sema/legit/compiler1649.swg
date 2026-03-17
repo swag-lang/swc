@@ -1,3 +1,3 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 func aa(x: u32, y: ...) {}

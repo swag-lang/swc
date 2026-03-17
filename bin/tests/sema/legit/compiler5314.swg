@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 const pad: [7, 7] s32 = [
     [0, 0, 0, 0, 0, 0, 0],

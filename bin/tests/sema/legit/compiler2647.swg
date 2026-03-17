@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Macro]
 func(T) toto(v: T, stmt: #code void)

@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Mixin, Swag.CalleeReturn]
 func mac(stmt: #code void)

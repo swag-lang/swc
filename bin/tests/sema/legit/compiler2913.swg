@@ -1,4 +1,4 @@
-#global fileprivate // swc-option sema-only
+#global fileprivate
 #global skip
 #[Swag.Warning("Wrn0003", Swag.WarningLevel.Disable)]
 func toto()

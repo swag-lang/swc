@@ -663,8 +663,8 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-        bool hasCodeParam = false;
+        auto& sym          = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        bool  hasCodeParam = false;
         for (const SymbolVariable* param : sym.parameters())
         {
             if (param && param->type(sema.ctx()).isCodeBlock())

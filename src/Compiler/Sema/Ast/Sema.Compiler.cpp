@@ -128,7 +128,7 @@ namespace
 
     AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef)
     {
-        AstNodeRef resultRef = nodeRef;
+        AstNodeRef       resultRef   = nodeRef;
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
         if (resolvedRef.isValid())
             resultRef = resolvedRef;
@@ -721,7 +721,7 @@ namespace
             return Result::Continue;
         }
 
-        const SemaNodeView view     = sema.viewConstant(childRef);
+        const SemaNodeView view = sema.viewConstant(childRef);
 
         if (view.cst())
         {

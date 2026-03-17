@@ -40,13 +40,13 @@ namespace
             return AstNodeRef::invalid();
 
         const TypeRef  payloadTypeRef = param.type(sema.ctx()).payloadTypeRef();
-        const AstNode& argNode = sema.node(argRef);
+        const AstNode& argNode        = sema.node(argRef);
         if (argNode.is(AstNodeId::CompilerCodeBlock))
         {
             auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeBlock>(argNode.tokRef());
             wrappedPtr->setCodeRef(argNode.codeRef());
-            wrappedPtr->nodeBodyRef     = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
-            wrappedPtr->payloadTypeRef  = payloadTypeRef;
+            wrappedPtr->nodeBodyRef    = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
+            wrappedPtr->payloadTypeRef = payloadTypeRef;
             return wrappedRef;
         }
 
@@ -54,8 +54,8 @@ namespace
         {
             auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeExpr>(argNode.tokRef());
             wrappedPtr->setCodeRef(argNode.codeRef());
-            wrappedPtr->nodeExprRef      = argNode.cast<AstCompilerCodeExpr>().nodeExprRef;
-            wrappedPtr->payloadTypeRef   = payloadTypeRef;
+            wrappedPtr->nodeExprRef    = argNode.cast<AstCompilerCodeExpr>().nodeExprRef;
+            wrappedPtr->payloadTypeRef = payloadTypeRef;
             return wrappedRef;
         }
 

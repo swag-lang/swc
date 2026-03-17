@@ -119,10 +119,10 @@ namespace
             resolveStructMemberPath(codeGen, leftTypeView.typeRef(), symVar, usingPath);
 
         MicroReg baseAddressReg = leftPayload.reg;
-        if (leftTypeView.type() && leftTypeView.type()->isPointerOrReference())
+        if (leftTypeView.type() && (leftTypeView.type()->isPointerOrReference() || leftTypeView.type()->isTypeInfo()))
         {
-            // Member access through a pointer/reference works on the pointee object, not on the storage
-            // that currently holds that pointer value.
+            // Member access through a pointer/reference or `typeinfo` works on the pointee object, not
+            // on the storage that currently holds that pointer value.
             if (leftPayload.isAddress())
             {
                 baseAddressReg = codeGen.nextVirtualIntRegister();

@@ -369,8 +369,11 @@ struct AstCompilerRunExpr : AstNodeT<AstNodeId::CompilerRunExpr>
 struct AstCompilerCodeBlock : AstNodeT<AstNodeId::CompilerCodeBlock>
 {
     AstNodeRef nodeBodyRef;
+    TypeRef    payloadTypeRef = TypeRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -378,8 +381,11 @@ struct AstCompilerCodeBlock : AstNodeT<AstNodeId::CompilerCodeBlock>
 struct AstCompilerCodeExpr : AstNodeT<AstNodeId::CompilerCodeExpr>
 {
     AstNodeRef nodeExprRef;
+    TypeRef    payloadTypeRef = TypeRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -984,6 +990,7 @@ struct AstCodeType : AstNodeT<AstNodeId::CodeType>
     AstNodeRef nodeTypeRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1557,6 +1564,8 @@ struct AstCompilerInject : AstNodeT<AstNodeId::CompilerInject>
     AstNodeRef nodeReplaceContinueRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeReplaceBreakRef, nodeReplaceContinueRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

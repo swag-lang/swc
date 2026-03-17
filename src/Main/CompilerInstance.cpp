@@ -49,6 +49,8 @@ namespace
         return !symbol.isForeign() &&
                !symbol.isEmpty() &&
                !symbol.isAttribute() &&
+               !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
+               !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) &&
                !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
     }
 

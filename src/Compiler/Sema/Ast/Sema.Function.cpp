@@ -84,6 +84,14 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
 
 namespace
 {
+    Result reportCodeTypeRestricted(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_code_type_restricted, nodeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     SymbolFunction& functionExprSymbol(Sema& sema, AstNodeRef nodeRef)
     {
         if (Symbol* sym = sema.viewSymbol(nodeRef).sym())
@@ -150,6 +158,92 @@ namespace
             return nullptr;
 
         return &typeInfo.payloadSymFunction();
+    }
+
+    const SymbolFunction* uniqueInlineFunctionForCodeArgs(Sema& sema, AstNodeRef calleeRef)
+    {
+        SmallVector<Symbol*> symbols;
+        sema.viewSymbol(calleeRef).getSymbols(symbols);
+
+        const AstNode& calleeNode = sema.node(calleeRef);
+        if (calleeNode.is(AstNodeId::MemberAccessExpr) || calleeNode.is(AstNodeId::AutoMemberAccessExpr))
+            return nullptr;
+
+        if (symbols.empty() && sema.isValue(calleeRef))
+        {
+            if (auto* symFunc = callableTypeFunction(sema, sema.viewType(calleeRef).typeRef()))
+                symbols.push_back(symFunc);
+        }
+
+        if (symbols.size() != 1)
+            return nullptr;
+
+        const SymbolFunction* fn = nullptr;
+        if (symbols.front()->isFunction())
+        {
+            fn = &symbols.front()->cast<SymbolFunction>();
+        }
+        else if (symbols.front()->isVariable())
+        {
+            fn = callableTypeFunction(sema, symbols.front()->typeRef());
+        }
+
+        if (!fn || !SemaInline::canInlineCall(sema, *fn))
+            return nullptr;
+
+        return fn;
+    }
+
+    const SymbolVariable* mappedCodeParameter(Sema& sema, const AstCallExpr& call, const SymbolFunction& fn, AstNodeRef childRef)
+    {
+        SmallVector<AstNodeRef> args;
+        call.collectArguments(args, sema.ast());
+
+        const auto& params = fn.parameters();
+        if (params.empty())
+            return nullptr;
+
+        const AstNode& childNode = sema.node(childRef);
+        if (childNode.is(AstNodeId::NamedArgument))
+        {
+            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
+            for (const SymbolVariable* param : params)
+            {
+                if (param && param->idRef() == idRef)
+                    return param->type(sema.ctx()).isCodeBlock() ? param : nullptr;
+            }
+
+            return nullptr;
+        }
+
+        uint32_t positionalIndex = 0;
+        bool     seenNamed       = false;
+        for (const AstNodeRef argRef : args)
+        {
+            const AstNode& argNode = sema.node(argRef);
+            if (argNode.is(AstNodeId::NamedArgument))
+            {
+                seenNamed = true;
+                continue;
+            }
+
+            if (seenNamed)
+                return nullptr;
+
+            if (argRef != childRef)
+            {
+                ++positionalIndex;
+                continue;
+            }
+
+            if (positionalIndex >= params.size())
+                return nullptr;
+
+            const SymbolVariable* param = params[positionalIndex];
+            return param && param->type(sema.ctx()).isCodeBlock() ? param : nullptr;
+        }
+
+        return nullptr;
     }
 
     bool lambdaHasExpressionBody(Sema& sema, AstNodeRef bodyRef)
@@ -519,12 +613,14 @@ namespace
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
             const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+            const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
             if (currentFn->decl() &&
                 calledFn.decl() &&
                 calledFn.declNodeRef().isValid() &&
                 !calledFn.isForeign() &&
                 !calledFn.isEmpty() &&
-                !isMixinCall)
+                !isMixinCall &&
+                !isMacroCall)
             {
                 currentFn->addCallDependency(&calledFn);
             }
@@ -568,7 +664,17 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     else if (childRef == nodeBodyRef)
     {
         auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        bool hasCodeParam = false;
+        for (const SymbolVariable* param : sym.parameters())
+        {
+            if (param && param->type(sema.ctx()).isCodeBlock())
+            {
+                hasCodeParam = true;
+                break;
+            }
+        }
+
+        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) || (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && hasCodeParam))
         {
             const bool shortWithoutExplicitReturnType = hasFlag(AstFunctionFlagsE::Short) && nodeReturnTypeRef.isInvalid();
             if (!shortWithoutExplicitReturnType)
@@ -643,6 +749,9 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
     if (setIsTyped)
     {
+        if (sym.returnTypeRef().isValid() && sema.typeMgr().get(sym.returnTypeRef()).isCodeBlock())
+            return reportCodeTypeRestricted(sema, nodeReturnTypeRef.isValid() ? nodeReturnTypeRef : childRef, sym.returnTypeRef());
+
         sym.setVariadicParamFlag(sema.ctx());
 
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
@@ -712,6 +821,15 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 
 Result AstCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    if (childRef != nodeExprRef)
+    {
+        if (const SymbolFunction* fn = uniqueInlineFunctionForCodeArgs(sema, nodeExprRef))
+        {
+            if (mappedCodeParameter(sema, *this, *fn, childRef))
+                return Result::SkipChildren;
+        }
+    }
+
     if (childRef != nodeExprRef && hasFlag(AstCallExprFlagsE::AttributeContext))
         SemaHelpers::pushConstExprRequirement(sema, childRef);
     return Result::Continue;

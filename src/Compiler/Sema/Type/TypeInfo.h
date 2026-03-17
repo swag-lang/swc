@@ -49,6 +49,7 @@ enum class TypeInfoKind : uint8_t
     Function,
     Variadic,
     TypedVariadic,
+    CodeBlock,
     TypeInfo,
 };
 
@@ -127,6 +128,7 @@ public:
     bool isFunction() const noexcept { return kind_ == TypeInfoKind::Function; }
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
     bool isTypedVariadic() const noexcept { return kind_ == TypeInfoKind::TypedVariadic; }
+    bool isCodeBlock() const noexcept { return kind_ == TypeInfoKind::CodeBlock; }
 
     bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && payloadInt_.bits == 0; }
     bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && payloadFloat_.bits == 0; }
@@ -244,7 +246,7 @@ public:
 
     TypeRef payloadTypeRef() const noexcept
     {
-        SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic());
+        SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isCodeBlock());
         return payloadTypeRef_.typeRef;
     }
 
@@ -302,6 +304,7 @@ public:
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
+    static TypeInfo makeCodeBlock(TypeRef typeRef);
 
     uint32_t hash() const;
     uint64_t sizeOf(TaskContext& ctx) const;

@@ -21,6 +21,8 @@ TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
         return LayoutKind::Alias;
     if (type.isAnyVariadic())
         return type.isTypedVariadic() ? LayoutKind::TypedVariadic : LayoutKind::Variadic;
+    if (type.isCodeBlock())
+        return LayoutKind::CodeBlock;
     if (type.isFunction())
         return LayoutKind::Func;
     if (type.isPointerLike())
@@ -50,6 +52,7 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
         case LayoutKind::Alias: predefinedName = Pn::TypeInfoAlias; break;
         case LayoutKind::Variadic: predefinedName = Pn::TypeInfoVariadic; break;
         case LayoutKind::TypedVariadic: predefinedName = Pn::TypeInfoVariadic; break;
+        case LayoutKind::CodeBlock: predefinedName = Pn::TypeInfoCodeBlock; break;
         case LayoutKind::Func: predefinedName = Pn::TypeInfoFunc; break;
         case LayoutKind::Base: predefinedName = Pn::TypeInfo; break;
     }

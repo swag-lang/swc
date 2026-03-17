@@ -99,6 +99,15 @@ Result AstTypedVariadicType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstCodeType::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView view    = sema.viewType(nodeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeCodeBlock(view.typeRef());
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+    sema.setType(sema.curNodeRef(), typeRef);
+    return Result::Continue;
+}
+
 Result AstValuePointerType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);

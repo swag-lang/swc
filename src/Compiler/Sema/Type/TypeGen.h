@@ -66,6 +66,7 @@ private:
         Alias,
         Variadic,
         TypedVariadic,
+        CodeBlock,
         Func,
     };
 

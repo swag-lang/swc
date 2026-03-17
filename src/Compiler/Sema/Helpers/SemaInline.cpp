@@ -34,6 +34,64 @@ namespace
         return AstNodeRef::invalid();
     }
 
+    AstNodeRef wrapCodeArgument(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const TypeRef  payloadTypeRef = param.type(sema.ctx()).payloadTypeRef();
+        const AstNode& argNode = sema.node(argRef);
+        if (argNode.is(AstNodeId::CompilerCodeBlock))
+        {
+            auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeBlock>(argNode.tokRef());
+            wrappedPtr->setCodeRef(argNode.codeRef());
+            wrappedPtr->nodeBodyRef     = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
+            wrappedPtr->payloadTypeRef  = payloadTypeRef;
+            return wrappedRef;
+        }
+
+        if (argNode.is(AstNodeId::CompilerCodeExpr))
+        {
+            auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeExpr>(argNode.tokRef());
+            wrappedPtr->setCodeRef(argNode.codeRef());
+            wrappedPtr->nodeExprRef      = argNode.cast<AstCompilerCodeExpr>().nodeExprRef;
+            wrappedPtr->payloadTypeRef   = payloadTypeRef;
+            return wrappedRef;
+        }
+
+        if (argNode.is(AstNodeId::EmbeddedBlock))
+        {
+            auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeBlock>(argNode.tokRef());
+            wrappedPtr->setCodeRef(argNode.codeRef());
+            wrappedPtr->nodeBodyRef    = argRef;
+            wrappedPtr->payloadTypeRef = payloadTypeRef;
+            return wrappedRef;
+        }
+
+        auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeExpr>(argNode.tokRef());
+        wrappedPtr->setCodeRef(argNode.codeRef());
+        wrappedPtr->nodeExprRef    = argRef;
+        wrappedPtr->payloadTypeRef = payloadTypeRef;
+        return wrappedRef;
+    }
+
+    AstNodeRef bindingArgumentRef(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const TypeInfo& paramType = param.type(sema.ctx());
+        if (paramType.isCodeBlock())
+        {
+            const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
+            if (resolvedRef.isValid())
+                return wrapCodeArgument(sema, param, resolvedRef);
+            return wrapCodeArgument(sema, param, argRef);
+        }
+
+        return sema.viewZero(argRef).nodeRef();
+    }
+
     bool tryGetSimpleInlineConstant(Sema& sema, AstNodeRef inlineRootRef, ConstantRef& outConstant)
     {
         outConstant = ConstantRef::invalid();
@@ -324,7 +382,7 @@ namespace
 
         if (ufcsArg.isValid())
         {
-            const AstNodeRef ufcsRef = sema.viewZero(ufcsArg).nodeRef();
+            const AstNodeRef ufcsRef = bindingArgumentRef(sema, *params[0], ufcsArg);
             if (numFixed > 0)
             {
                 bound[0]  = ufcsRef;
@@ -362,7 +420,7 @@ namespace
             if (paramIndex >= params.size())
                 return false;
 
-            const AstNodeRef argValueRef = sema.viewZero(namedArg.nodeArgRef).nodeRef();
+            const AstNodeRef argValueRef = bindingArgumentRef(sema, *params[paramIndex], namedArg.nodeArgRef);
             if (hasAnyVariadic && paramIndex == numFixed)
             {
                 outVariadic.argRefs.push_back(argValueRef);
@@ -386,7 +444,7 @@ namespace
             while (nextParam < numFixed && bound[nextParam].isValid())
                 nextParam++;
 
-            const AstNodeRef argValueRef = sema.viewZero(argRef).nodeRef();
+            const AstNodeRef argValueRef = nextParam < numFixed ? bindingArgumentRef(sema, *params[nextParam], argRef) : sema.viewZero(argRef).nodeRef();
             if (nextParam < numFixed)
             {
                 bound[nextParam++] = argValueRef;
@@ -415,7 +473,7 @@ namespace
                 if (!param->hasExtraFlag(SymbolVariableFlagsE::Initialized))
                     return false;
 
-                const AstNodeRef defaultRef = sema.viewZero(defaultArgumentExprRef(*param)).nodeRef();
+                const AstNodeRef defaultRef = bindingArgumentRef(sema, *param, defaultArgumentExprRef(*param));
                 if (defaultRef.isInvalid())
                     return false;
                 bound[i] = defaultRef;

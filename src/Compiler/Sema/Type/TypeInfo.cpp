@@ -59,6 +59,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::CodeBlock:
             payloadTypeRef_ = other.payloadTypeRef_;
             break;
 
@@ -129,6 +130,7 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::CodeBlock:
             payloadTypeRef_ = other.payloadTypeRef_;
             break;
 
@@ -217,6 +219,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::CodeBlock:
             h = Math::hashCombine(h, payloadTypeRef_.typeRef.get());
             return h;
 
@@ -285,6 +288,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::CodeBlock:
             return payloadTypeRef_.typeRef == other.payloadTypeRef_.typeRef;
 
         case TypeInfoKind::AggregateStruct:
@@ -369,6 +373,12 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         case TypeInfoKind::CString:
             out += "cstring";
             break;
+        case TypeInfoKind::CodeBlock:
+        {
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
+            out += std::format("#code {}", type.toName(ctx));
+            break;
+        }
         case TypeInfoKind::TypeInfo:
             out += "typeinfo";
             break;
@@ -536,6 +546,8 @@ Utf8 TypeInfo::toFamily(const TaskContext& ctx) const
             return "alias";
         case TypeInfoKind::Function:
             return "function";
+        case TypeInfoKind::CodeBlock:
+            return "code";
         case TypeInfoKind::TypeInfo:
         case TypeInfoKind::TypeValue:
             return "typeinfo";
@@ -767,6 +779,14 @@ TypeInfo TypeInfo::makeTypedVariadic(TypeRef typeRef)
     return ti;
 }
 
+TypeInfo TypeInfo::makeCodeBlock(TypeRef typeRef)
+{
+    TypeInfo ti{TypeInfoKind::CodeBlock};
+    ti.payloadTypeRef_ = {.typeRef = typeRef};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
 {
     switch (kind_)
@@ -794,6 +814,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::MoveReference:
         case TypeInfoKind::Null:
         case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::CodeBlock:
             return 8;
 
         case TypeInfoKind::Function:
@@ -881,6 +902,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
         case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::CodeBlock:
             return 8;
 
         case TypeInfoKind::AggregateStruct:
@@ -937,6 +959,8 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         case TypeInfoKind::TypedVariadic:
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
+        case TypeInfoKind::CodeBlock:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
@@ -1017,6 +1041,8 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
         case TypeInfoKind::TypeValue:
             return getTypeBlockingSymbol(payloadTypeRef_.typeRef);
         case TypeInfoKind::TypedVariadic:
+            return getTypeBlockingSymbol(payloadTypeRef_.typeRef);
+        case TypeInfoKind::CodeBlock:
             return getTypeBlockingSymbol(payloadTypeRef_.typeRef);
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:

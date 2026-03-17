@@ -683,6 +683,7 @@ namespace
         {
             const AstNodeRef argRef  = mapping.paramArgs[i].argRef;
             const TypeRef    paramTy = params[i]->typeRef();
+            const TypeInfo&  param   = sema.typeMgr().get(paramTy);
 
             if (argRef.isInvalid())
             {
@@ -694,6 +695,12 @@ namespace
                 }
 
                 outCandidate.usedDefaults++;
+                continue;
+            }
+
+            if (param.isCodeBlock())
+            {
+                outCandidate.perArg.push_back(ConvRank::Exact);
                 continue;
             }
 
@@ -911,7 +918,7 @@ namespace
         {
             const AstNodeRef argRef  = mapping.paramArgs[i].argRef;
             const TypeRef    paramTy = params[i]->typeRef();
-            if (argRef.isValid())
+            if (argRef.isValid() && !sema.typeMgr().get(paramTy).isCodeBlock())
                 SWC_RESULT(resolveAutoEnumArgFinal(sema, argRef, paramTy));
         }
 
@@ -989,6 +996,9 @@ namespace
         {
             const AstNodeRef argRef = mapping.paramArgs[i].argRef;
             if (argRef.isInvalid())
+                continue;
+
+            if (params[i]->type(sema.ctx()).isCodeBlock())
                 continue;
 
             SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);

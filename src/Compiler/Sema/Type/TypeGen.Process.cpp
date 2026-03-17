@@ -72,6 +72,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
             break;
 
         case LayoutKind::TypedVariadic:
+        case LayoutKind::CodeBlock:
             deps.push_back(type.payloadTypeRef());
             break;
 

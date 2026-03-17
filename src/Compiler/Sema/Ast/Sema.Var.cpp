@@ -82,6 +82,14 @@ namespace
         return true;
     }
 
+    Result reportCodeTypeRestricted(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_code_type_restricted, codeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     Result allocateGlobalStorage(Sema& sema, SymbolVariable& symVar)
     {
         if (symVar.hasGlobalStorage())
@@ -569,6 +577,7 @@ namespace
         const bool      isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
         const bool      isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
         const bool      isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
+        const bool      codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
         bool            isExplicitUndefinedInit = false;
         SymbolFunction* globalFunctionInit      = nullptr;
 
@@ -589,21 +598,24 @@ namespace
         }
 
         // Implicit cast from initializer to the specified type
-        if (nodeInitView.typeRef().isValid() && explicitTypeRef.isValid())
+        if (!codeParameterDefault)
         {
-            SWC_RESULT(Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization));
-        }
-        else if (nodeInitView.cstRef().isValid())
-        {
-            ConstantRef newCstRef;
-            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown, !isConst));
-            sema.setConstant(nodeInitView.nodeRef(), newCstRef);
-            nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-
-            if (nodeInitView.type()->isInt())
+            if (nodeInitView.typeRef().isValid() && explicitTypeRef.isValid())
             {
-                const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef(), nodeInitView.typeRef(), false);
-                SWC_RESULT(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
+                SWC_RESULT(Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization));
+            }
+            else if (nodeInitView.cstRef().isValid())
+            {
+                ConstantRef newCstRef;
+                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown, !isConst));
+                sema.setConstant(nodeInitView.nodeRef(), newCstRef);
+                nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
+                if (nodeInitView.type()->isInt())
+                {
+                    const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef(), nodeInitView.typeRef(), false);
+                    SWC_RESULT(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
+                }
             }
         }
 
@@ -622,6 +634,18 @@ namespace
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
         if (isConst && isRefType)
             return SemaError::raise(sema, DiagnosticId::sema_err_const_ref_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+
+        if (finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isCodeBlock())
+        {
+            const bool allowedCodeParam = isParameter &&
+                                          sema.frame().currentFunction() &&
+                                          sema.frame().currentFunction()->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+            if (!allowedCodeParam)
+            {
+                const SourceCodeRef errorRef = context.nodeTypeRef.isValid() ? sema.node(context.nodeTypeRef).codeRef() : sema.node(context.nodeInitRef).codeRef();
+                return reportCodeTypeRestricted(sema, errorRef, finalTypeRef);
+            }
+        }
 
         if (isUsing && finalTypeRef.isValid())
         {

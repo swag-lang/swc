@@ -391,6 +391,7 @@ AstNodeRef AstCompilerCodeBlock::semaClone(Sema& sema, const CloneContext& clone
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerCodeBlock>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstCompilerCodeBlock>();
     cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    cloned.payloadTypeRef   = payloadTypeRef;
     return newRef;
 }
 
@@ -835,6 +836,7 @@ AstNodeRef AstCompilerCodeExpr::semaClone(Sema& sema, const CloneContext& cloneC
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeExpr>(tokRef());
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->payloadTypeRef = payloadTypeRef;
     return newRef;
 }
 

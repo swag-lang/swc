@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
@@ -27,6 +28,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef);
+
     constexpr Runtime::TargetOs nativeTargetOs()
     {
 #ifdef _WIN32
@@ -101,6 +104,105 @@ namespace
 
         return Result::Continue;
     }
+
+    TypeRef makeCodeType(Sema& sema, TypeRef payloadTypeRef)
+    {
+        return sema.typeMgr().addType(TypeInfo::makeCodeBlock(payloadTypeRef));
+    }
+
+    Result validateInjectArgument(Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNodeRef rawRef = rawInjectedNodeRef(sema, nodeRef);
+        if (rawRef != nodeRef)
+            return Result::Continue;
+
+        const TypeRef typeRef = sema.viewType(nodeRef).typeRef();
+        if (typeRef.isValid() && sema.typeMgr().get(typeRef).isCodeBlock())
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_inject_requires_code, nodeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef.isValid() ? sema.typeMgr().get(typeRef).toName(sema.ctx()) : Utf8{"<unknown>"});
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef)
+    {
+        AstNodeRef resultRef = nodeRef;
+        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        if (resolvedRef.isValid())
+            resultRef = resolvedRef;
+
+        const AstNode& resultNode = sema.node(resultRef);
+        if (resultNode.is(AstNodeId::CompilerCodeExpr))
+            return resultNode.cast<AstCompilerCodeExpr>().nodeExprRef;
+        if (resultNode.is(AstNodeId::CompilerCodeBlock))
+            return resultNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
+
+        return resultRef;
+    }
+
+    Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef)
+    {
+        SWC_RESULT(validateInjectArgument(sema, exprRef));
+
+        const AstNodeRef rawRef = rawInjectedNodeRef(sema, exprRef);
+        if (rawRef.isInvalid())
+            return Result::Error;
+
+        const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
+        const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, rawRef, noBindings);
+        if (clonedRef.isInvalid())
+            return Result::Error;
+
+        sema.setSubstitute(ownerRef, clonedRef);
+        sema.visit().restartCurrentNode(clonedRef);
+        return Result::Continue;
+    }
+
+    bool tryGetCodeString(Sema& sema, AstNodeRef nodeRef, Utf8& outValue)
+    {
+        const AstNodeRef rawRef = rawInjectedNodeRef(sema, nodeRef);
+        if (rawRef == nodeRef)
+            return false;
+
+        const SourceCodeRange codeRange = sema.node(rawRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+        if (!codeRange.srcView || !codeRange.len)
+            return false;
+
+        outValue = Utf8{codeRange.srcView->codeView(codeRange.offset, codeRange.len)};
+        return true;
+    }
+}
+
+Result AstCompilerCodeBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    SWC_UNUSED(sema);
+    return childRef == nodeBodyRef ? Result::SkipChildren : Result::Continue;
+}
+
+Result AstCompilerCodeBlock::semaPostNode(Sema& sema) const
+{
+    const TypeRef payloadTypeRef = this->payloadTypeRef.isValid() ? this->payloadTypeRef : sema.typeMgr().typeVoid();
+    sema.setType(sema.curNodeRef(), makeCodeType(sema, payloadTypeRef));
+    sema.setIsValue(sema.curNodeRef());
+    sema.unsetIsLValue(sema.curNodeRef());
+    return Result::Continue;
+}
+
+Result AstCompilerCodeExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    SWC_UNUSED(sema);
+    return childRef == nodeExprRef ? Result::SkipChildren : Result::Continue;
+}
+
+Result AstCompilerCodeExpr::semaPostNode(Sema& sema) const
+{
+    const TypeRef payloadTypeRef = this->payloadTypeRef.isValid() ? this->payloadTypeRef : sema.typeMgr().typeAny();
+    sema.setType(sema.curNodeRef(), makeCodeType(sema, payloadTypeRef));
+    sema.setIsValue(sema.curNodeRef());
+    sema.unsetIsLValue(sema.curNodeRef());
+    return Result::Continue;
 }
 
 Result AstCompilerExpression::semaPostNode(Sema& sema)
@@ -611,6 +713,14 @@ namespace
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
+        Utf8               codeValue;
+        if (tryGetCodeString(sema, childRef, codeValue))
+        {
+            const ConstantValue value = ConstantValue::makeString(ctx, codeValue);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            return Result::Continue;
+        }
+
         const SemaNodeView view     = sema.viewConstant(childRef);
 
         if (view.cst())
@@ -734,11 +844,12 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerForeignLib(sema, *this);
         case TokenId::CompilerInclude:
             return semaCompilerInclude(sema, *this);
+        case TokenId::CompilerInject:
+            return substituteCompilerInject(sema, sema.curNodeRef(), nodeArgRef);
 
         case TokenId::CompilerHasTag:
         case TokenId::CompilerRunes:
         case TokenId::CompilerSafety:
-        case TokenId::CompilerInject:
         case TokenId::CompilerLoad:
             // TODO
             SWC_INTERNAL_ERROR();
@@ -758,6 +869,18 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
         SemaHelpers::pushConstExprRequirement(sema, childRef);
 
     return Result::Continue;
+}
+
+Result AstCompilerInject::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    SWC_UNUSED(sema);
+    SWC_UNUSED(childRef);
+    return Result::Continue;
+}
+
+Result AstCompilerInject::semaPostNode(Sema& sema) const
+{
+    return substituteCompilerInject(sema, sema.curNodeRef(), nodeExprRef);
 }
 
 Result AstCompilerCall::semaPostNode(const Sema& sema) const

@@ -417,6 +417,9 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
         case LayoutKind::TypedVariadic:
             return reservePayload<Runtime::TypeInfoVariadic>(storage, Runtime::TypeInfoKind::TypedVariadic);
 
+        case LayoutKind::CodeBlock:
+            return reservePayload<Runtime::TypeInfoCodeBlock>(storage, Runtime::TypeInfoKind::CodeBlock);
+
         case LayoutKind::Func:
             return reservePayload<Runtime::TypeInfoFunc>(storage, Runtime::TypeInfoKind::Func);
 
@@ -492,6 +495,14 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
             const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
             const auto&   dep    = requireEntry(depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), dep.offset);
+            break;
+        }
+
+        case LayoutKind::CodeBlock:
+        {
+            const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
+            const auto&   dep    = requireEntry(depKey);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoCodeBlock, rawType), dep.offset);
             break;
         }
 

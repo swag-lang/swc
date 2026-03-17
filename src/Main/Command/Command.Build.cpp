@@ -112,7 +112,7 @@ namespace
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         TimedActionLog::printStep(ctx, "Sema", formatCommandSourceRoots(ctx.cmdLine()));
-        const uint64_t    errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+        const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
         Command::sema(compiler);
         if (hasErrors(errorsBefore))
             return;

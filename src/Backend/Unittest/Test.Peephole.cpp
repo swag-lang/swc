@@ -344,9 +344,9 @@ SWC_TEST_BEGIN(Peephole_FoldsLoadOpStoreIntoMemImm)
     MicroBuilder builder(ctx);
     setPeepholeOptimizeLevel(builder);
 
-    constexpr MicroReg rsp = MicroReg::intReg(4);
-    constexpr MicroReg r8  = MicroReg::intReg(8);
-    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg  rsp       = MicroReg::intReg(4);
+    constexpr MicroReg  r8        = MicroReg::intReg(8);
+    constexpr MicroReg  r9        = MicroReg::intReg(9);
     const MicroLabelRef doneLabel = builder.createLabel();
 
     builder.emitLoadRegMem(r8, rsp, 0x20, MicroOpBits::B64);
@@ -374,8 +374,8 @@ SWC_TEST_BEGIN(Peephole_KeepsLoadOpStoreWhenResultRegIsUsed)
     MicroBuilder builder(ctx);
     setPeepholeOptimizeLevel(builder);
 
-    constexpr MicroReg rsp = MicroReg::intReg(4);
-    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg  rsp       = MicroReg::intReg(4);
+    constexpr MicroReg  r8        = MicroReg::intReg(8);
     const MicroLabelRef doneLabel = builder.createLabel();
 
     builder.emitLoadRegMem(r8, rsp, 0x20, MicroOpBits::B64);
@@ -402,13 +402,13 @@ SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadOpStoreIntoMemImm)
     MicroBuilder builder(ctx);
     setPeepholeOptimizeLevel(builder);
 
-    constexpr MicroReg rsp = MicroReg::intReg(4);
-    constexpr MicroReg rcx = MicroReg::intReg(1);
-    constexpr MicroReg r8  = MicroReg::intReg(8);
-    constexpr MicroReg r9  = MicroReg::intReg(9);
-    constexpr MicroReg r10 = MicroReg::intReg(10);
+    constexpr MicroReg  rsp           = MicroReg::intReg(4);
+    constexpr MicroReg  rcx           = MicroReg::intReg(1);
+    constexpr MicroReg  r8            = MicroReg::intReg(8);
+    constexpr MicroReg  r9            = MicroReg::intReg(9);
+    constexpr MicroReg  r10           = MicroReg::intReg(10);
     const MicroLabelRef continueLabel = builder.createLabel();
-    const MicroLabelRef doneLabel = builder.createLabel();
+    const MicroLabelRef doneLabel     = builder.createLabel();
 
     builder.emitLoadRegMem(rcx, rsp, 0x40, MicroOpBits::B64);
     builder.emitLoadRegMem(r8, rsp, 0x48, MicroOpBits::B64);

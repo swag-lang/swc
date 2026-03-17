@@ -58,9 +58,9 @@ public:
     {
     }
 
-    void           tokenize(TaskContext& ctx);
-    bool           verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
-    void           verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const;
+    void tokenize(TaskContext& ctx);
+    bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
+    void verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const;
 
 private:
     SourceFile*                  file_    = nullptr;

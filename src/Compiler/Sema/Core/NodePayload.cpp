@@ -279,7 +279,7 @@ AstNodeRef NodePayload::getSubstituteRef(AstNodeRef nodeRef) const
         if (info.kind != NodePayloadKind::Substitute)
             break;
 
-        const Shard*             shard   = tryGetShard(info.shardIdx);
+        const Shard* shard = tryGetShard(info.shardIdx);
         SWC_ASSERT(shard != nullptr);
         const SubstituteStorage* storage = shard->store.ptr<SubstituteStorage>(info.ref);
         SWC_ASSERT(storage);
@@ -360,13 +360,13 @@ const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 {
     SWC_UNUSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
-    const AstNode&       node     = ast().node(nodeRef);
-    const PayloadInfo    info     = payloadInfo(node);
-    const uint32_t       shardIdx = info.shardIdx;
-    const Shard*         shard    = tryGetShard(shardIdx);
+    const AstNode&    node     = ast().node(nodeRef);
+    const PayloadInfo info     = payloadInfo(node);
+    const uint32_t    shardIdx = info.shardIdx;
+    const Shard*      shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
-    const Symbol* const* slot     = (shard->store.ptr<Symbol*>(info.ref));
-    const Symbol&        value    = *(*slot);
+    const Symbol* const* slot  = (shard->store.ptr<Symbol*>(info.ref));
+    const Symbol&        value = *(*slot);
     return value;
 }
 
@@ -379,8 +379,8 @@ Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
     const uint32_t    shardIdx = info.shardIdx;
     Shard*            shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
-    Symbol**          slot     = (shard->store.ptr<Symbol*>(info.ref));
-    Symbol&           value    = *(*slot);
+    Symbol** slot  = (shard->store.ptr<Symbol*>(info.ref));
+    Symbol&  value = *(*slot);
     return value;
 }
 
@@ -416,7 +416,7 @@ std::span<const Symbol* const> NodePayload::getSymbolListImpl(AstNodeRef nodeRef
     const uint32_t    shardIdx = info.shardIdx;
     const Shard*      shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
-    const auto        spanView = shard->store.span<const Symbol*>(info.ref);
+    const auto spanView = shard->store.span<const Symbol*>(info.ref);
 
     if (spanView.empty())
         return {};
@@ -509,7 +509,7 @@ void NodePayload::updatePayloadFlags(AstNode& node, std::span<const Symbol*> sym
 void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args)
 {
     SWC_ASSERT(nodeRef.isValid());
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     if (args.empty())
     {
         Shard* shard = tryGetShard(shardIdx);
@@ -530,8 +530,8 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
 {
     if (nodeRef.isInvalid())
         return;
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*           shard    = tryGetShard(shardIdx);
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
         return;
 
@@ -552,8 +552,8 @@ bool NodePayload::hasCodeGenPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*           shard    = tryGetShard(shardIdx);
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
         return false;
 
@@ -576,8 +576,8 @@ void* NodePayload::getCodeGenPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*           shard    = tryGetShard(shardIdx);
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
         return nullptr;
 
@@ -592,8 +592,8 @@ bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*           shard    = tryGetShard(shardIdx);
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
         return false;
 
@@ -617,8 +617,8 @@ void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*           shard    = tryGetShard(shardIdx);
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
         return nullptr;
 
@@ -633,8 +633,8 @@ void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return;
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    Shard*                 shard    = tryGetShard(shardIdx);
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*         shard    = tryGetShard(shardIdx);
     if (!shard)
         return;
 
@@ -677,7 +677,7 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
         {
             const Shard* shard = tryGetShard(info.shardIdx);
             SWC_ASSERT(shard != nullptr);
-            const auto*  storage = shard->store.ptr<SubstituteStorage>(info.ref);
+            const auto* storage = shard->store.ptr<SubstituteStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
                 .kind     = storage->originalKind,
@@ -706,7 +706,7 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
         {
             const Shard* shard = tryGetShard(info.shardIdx);
             SWC_ASSERT(shard != nullptr);
-            const auto*  storage = shard->store.ptr<SubstituteStorage>(info.ref);
+            const auto* storage = shard->store.ptr<SubstituteStorage>(info.ref);
             SWC_ASSERT(storage);
             flags = storage->originalFlags;
             info  = {

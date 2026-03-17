@@ -138,7 +138,7 @@ namespace SemaRuntime
         outSymbols.clear();
         outSymbols.reserve(inSymbols.size());
 
-        const bool runtimeContext = isRuntimeArtifactContext(sema);
+        const bool    runtimeContext     = isRuntimeArtifactContext(sema);
         const Symbol* compilerOnlySymbol = nullptr;
         for (T symbol : inSymbols)
         {

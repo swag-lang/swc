@@ -17,7 +17,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result     completeIndexRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
+    Result          completeIndexRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     SymbolVariable& registerUniqueIndexRuntimeStorageSymbol(Sema& sema, const AstNode& node);
 
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
@@ -121,13 +121,13 @@ namespace
 
     Result semaSliceIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& nodeExprView)
     {
-        const auto&         range        = sema.node(node.nodeArgRef).cast<AstRangeExpr>();
-        const SemaNodeView  nodeDownView = sema.viewTypeConstant(range.nodeExprDownRef);
-        const SemaNodeView  nodeUpView   = sema.viewTypeConstant(range.nodeExprUpRef);
-        int64_t             constDown    = 0;
-        int64_t             constUp      = 0;
-        bool                hasConstDown = false;
-        bool                hasConstUp   = false;
+        const auto&        range        = sema.node(node.nodeArgRef).cast<AstRangeExpr>();
+        const SemaNodeView nodeDownView = sema.viewTypeConstant(range.nodeExprDownRef);
+        const SemaNodeView nodeUpView   = sema.viewTypeConstant(range.nodeExprUpRef);
+        int64_t            constDown    = 0;
+        int64_t            constUp      = 0;
+        bool               hasConstDown = false;
+        bool               hasConstUp   = false;
         SWC_RESULT(checkSliceBound(sema, range.nodeExprDownRef, nodeDownView, constDown, hasConstDown));
         SWC_RESULT(checkSliceBound(sema, range.nodeExprUpRef, nodeUpView, constUp, hasConstUp));
 

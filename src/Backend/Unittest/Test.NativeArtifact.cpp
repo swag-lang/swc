@@ -125,7 +125,7 @@ namespace
         return function;
     }
 
-    ConstantRef addStringConstant(TaskContext& ctx, CompilerInstance& compiler, DataSegment& segment, std::string_view value, Runtime::String*& outStorage)
+    ConstantRef addStringConstant(const TaskContext& ctx, CompilerInstance& compiler, DataSegment& segment, std::string_view value, Runtime::String*& outStorage)
     {
         const auto [stringView, stringOffset]                  = segment.addString(value);
         const auto [runtimeStringOffset, runtimeStringStorage] = segment.reserve<Runtime::String>();

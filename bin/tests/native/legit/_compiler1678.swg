@@ -1,7 +1,7 @@
 // 
 
 #global fileprivate
-#global skip
+ 
 struct TT
 {
     value:      s64 = 456
@@ -19,7 +19,7 @@ func D(x: TT)->s64
 //#[Swag.PrintBc]
 func C(x: any)->s64
 {
-    return D(x)
+    return D(cast(TT) x)
 }
 
 #test

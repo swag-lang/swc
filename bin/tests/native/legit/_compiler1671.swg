@@ -1,7 +1,6 @@
 //
 
 #global fileprivate
-#global skip
 
 //
 //#global testerror
@@ -9,7 +8,7 @@
 //#[Swag.PrintBc]
 func toto(x: ...)->typeinfo
 {
-    @assert(@kindof(x[0]).fullname == "s32")
+    @assert(@kindof(x[0]) == s32)
     return @kindof(x[0])
 }
 

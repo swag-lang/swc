@@ -1,7 +1,8 @@
-// 
+//
 
 #global fileprivate
 #global skip
+
 using Swag
 
 #[AttrUsage(AttributeUsage.Function)]
@@ -19,8 +20,8 @@ var toTreatCpt: u32
 //#[Swag.PrintBc]
 #message(CompilerMsgMask.SemFunctions)
 {
-    let itf = @compiler
-    let msg = itf.getMessage()
+    let compilerItf = @compiler
+    let msg = compilerItf.getMessage()
     if msg.type.kind != TypeInfoKind.Func do
         return
 
@@ -38,8 +39,8 @@ var toTreatCpt: u32
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    let itf = @compiler
-    itf.compileString("func GG() => 1234")
+    let compilerItf = @compiler
+    compilerItf.compileString("func GG() => 1234")
 
     for toTreatCpt
     {

@@ -1,8 +1,8 @@
 // 
 
 #global fileprivate
-#global skip
-#global skip
+ 
+ 
 struct TT
 {
     value:  s64 = 456

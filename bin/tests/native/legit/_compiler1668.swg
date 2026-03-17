@@ -1,7 +1,7 @@
 // 
 
 #global fileprivate
-#global skip
+ 
 func function(x: s32, y: s32 = 100)->s32
 {
     @assert(x == 50)

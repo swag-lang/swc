@@ -200,7 +200,7 @@ namespace
             return Result::Continue;
 
         SourceFile* firstFile = nullptr;
-        for (SourceFile* const file : builder.compiler().files())
+        for (SourceFile* file : builder.compiler().files())
         {
             if (file)
             {

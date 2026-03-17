@@ -692,7 +692,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
     if (Stats::get().numErrors.load() == 0 && ctx.cmdLine().command != CommandKind::Test)
     {
-        for (SourceFile* const f : ctx.compiler().files())
+        for (SourceFile* f : ctx.compiler().files())
         {
             const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())

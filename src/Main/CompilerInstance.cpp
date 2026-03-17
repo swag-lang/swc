@@ -292,7 +292,7 @@ void CompilerInstance::logStats()
 
         for (const std::unique_ptr<SourceFile>& file : files_)
         {
-            const SourceFile* const srcFile = file.get();
+            const SourceFile* srcFile = file.get();
             SWC_ASSERT(srcFile != nullptr);
             memFrontendSource += srcFile->content().capacity() * sizeof(char8_t);
             memFrontendAstReserved += srcFile->ast().memStorageReserved();
@@ -669,7 +669,7 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
         if (!srcView)
             continue;
 
-        const SourceFile* const sourceFile = srcView->file();
+        const SourceFile* sourceFile = srcView->file();
         if (!sourceFile)
             continue;
 

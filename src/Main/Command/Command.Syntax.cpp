@@ -25,7 +25,7 @@ namespace Command
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        for (SourceFile* const f : compiler.files())
+        for (SourceFile* f : compiler.files())
         {
             auto* job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
@@ -35,7 +35,7 @@ namespace Command
 
         if (Stats::get().numErrors.load() == 0)
         {
-            for (SourceFile* const f : compiler.files())
+            for (SourceFile* f : compiler.files())
             {
                 const SourceView& srcView = f->ast().srcView();
                 if (srcView.mustSkip())

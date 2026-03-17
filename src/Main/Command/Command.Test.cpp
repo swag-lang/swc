@@ -112,7 +112,7 @@ namespace
 
     bool hasJitEligibleInputs(const CompilerInstance& compiler)
     {
-        for (SourceFile* const file : compiler.files())
+        for (SourceFile* file : compiler.files())
         {
             if (!file || file->isRuntime())
                 continue;
@@ -128,25 +128,25 @@ namespace
 
     bool shouldRunJitFunction(const CompilerInstance& compiler, const SymbolFunction& function)
     {
-        const SourceFile* const file = compiler.srcView(function.srcViewRef()).file();
+        const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
         return !file || file->ast().srcView().runsJit();
     }
 
     bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)
     {
-        const SourceFile* const file = compiler.srcView(function.srcViewRef()).file();
+        const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
         return !file || file->ast().srcView().runsNativeArtifact();
     }
 
     bool hasArtifactEntryPoints(const CompilerInstance& compiler)
     {
-        for (SymbolFunction* const function : compiler.nativeTestFunctions())
+        for (const SymbolFunction* function : compiler.nativeTestFunctions())
         {
             if (function && shouldRunNativeArtifactFunction(compiler, *function))
                 return true;
         }
 
-        for (SymbolFunction* const function : compiler.nativeMainFunctions())
+        for (const SymbolFunction* function : compiler.nativeMainFunctions())
         {
             if (function && shouldRunNativeArtifactFunction(compiler, *function))
                 return true;
@@ -160,7 +160,7 @@ namespace
         if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
             return;
 
-        for (SourceFile* const file : ctx.compiler().files())
+        for (SourceFile* file : ctx.compiler().files())
         {
             if (!file)
                 continue;
@@ -231,7 +231,7 @@ namespace
 
         values.clear();
         values.reserve(entries.size());
-        SymbolFunction* previous = nullptr;
+        const SymbolFunction* previous = nullptr;
         for (const auto& entry : entries)
         {
             if (entry.symbol == previous)
@@ -382,7 +382,7 @@ namespace
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         TimedActionLog::printStep(ctx, "Sema", formatCommandSourceRoots(ctx.cmdLine()));
-        const uint64_t    errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+        const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
         Command::sema(compiler);
         if (hasErrors(errorsBefore))
             return;

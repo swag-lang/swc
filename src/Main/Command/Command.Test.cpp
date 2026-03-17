@@ -140,9 +140,6 @@ namespace
 
     bool hasArtifactEntryPoints(const CompilerInstance& compiler)
     {
-        if (compiler.compilerSegment().size() != 0 || compiler.constantSegment().size() != 0)
-            return false;
-
         for (SymbolFunction* const function : compiler.nativeTestFunctions())
         {
             if (function && shouldRunNativeArtifactFunction(compiler, *function))

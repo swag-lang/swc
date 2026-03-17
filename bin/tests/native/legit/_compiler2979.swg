@@ -6,14 +6,10 @@
 const X: [2] s32 = [10, 20]
 
 #[Swag.Optimize(false), Swag.Compiler]
-func test()
+func test()->bool
 {
     let val = X[1]
-    @assert(val == 20)
+    return val == 20 and X[1] == 20
 }
 
-#test
-{
-    test()
-    @assert(X[1] == 20)
-}
+#assert(#run test())

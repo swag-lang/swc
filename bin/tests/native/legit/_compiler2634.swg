@@ -8,14 +8,12 @@ using Swag
 var G = 0
 
 #[Compiler]
-func toto()
+func toto()->s32
 {
     for 10 do
         G += 1
+
+    return G
 }
 
-#test
-{
-    toto()
-    @assert(G == 10)
-}
+#assert(#run toto() == 10)

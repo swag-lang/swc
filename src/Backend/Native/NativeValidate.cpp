@@ -31,8 +31,6 @@ void NativeValidate::validate() const
 {
     const auto& compiler = builder_.compiler();
 
-    SWC_ASSERT(compiler.compilerSegment().size() == 0);
-    SWC_ASSERT(compiler.constantSegment().size() == 0);
     SWC_ASSERT(compiler.globalZeroSegment().relocations().empty());
 
     for (const SymbolVariable* symbol : builder_.regularGlobals)

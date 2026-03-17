@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -84,29 +85,31 @@ namespace
     {
         SmallVector<const Symbol*> filteredSymbols;
         removeEmptyFunctionDeclarations(foundSymbols, filteredSymbols);
+        SmallVector<const Symbol*> runtimeSymbols;
+        SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, filteredSymbols.span(), runtimeSymbols));
 
-        const size_t n = filteredSymbols.size();
+        const size_t n = runtimeSymbols.size();
 
         if (n <= 1)
         {
-            sema.setSymbolList(nodeRef, filteredSymbols);
+            sema.setSymbolList(nodeRef, runtimeSymbols);
             return Result::Continue;
         }
 
         // Multiple candidates.
         if (!allowOverloadSetForCallCallee)
-            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, filteredSymbols);
+            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, runtimeSymbols);
 
         // Call-callee context: keep only callables if any exist.
         SmallVector<const Symbol*> callables;
-        if (filterCallCalleeCandidates(filteredSymbols, callables))
+        if (filterCallCalleeCandidates(runtimeSymbols, callables))
         {
             sema.setSymbolList(nodeRef, callables);
             return Result::Continue;
         }
 
         // No callable candidates and multiple results => true ambiguity (e.g. multiple vars/namespaces/etc.).
-        return SemaError::raiseAmbiguousSymbol(sema, nodeRef, filteredSymbols);
+        return SemaError::raiseAmbiguousSymbol(sema, nodeRef, runtimeSymbols);
     }
 
 }

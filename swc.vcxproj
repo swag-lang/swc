@@ -448,6 +448,7 @@
         <ClInclude Include="src\Backend\Micro\MicroDenseRegIndex.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h" />
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>

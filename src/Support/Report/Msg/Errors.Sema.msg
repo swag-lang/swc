@@ -20,6 +20,7 @@ SWC_DIAG_DEF(sema_err_enum_underlying_cast, Error, "enum cast uses wrong type; e
 SWC_DIAG_DEF(sema_err_compiler_panic, Error, "compiler panic: {because}")
 SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler error: {because}")
 SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")
+SWC_DIAG_DEF(sema_err_runtime_uses_compiler_only_symbol, Error, "function '{what}' cannot use compiler-only symbol '{sym}'")
 SWC_DIAG_DEF(sema_err_assert_failed, Error, "assertion failed")
 SWC_DIAG_DEF(sema_err_cannot_compute_auto_scope, Error, "cannot compute auto scope")
 SWC_DIAG_DEF(sema_err_auto_scope_missing_enum_value, Error, "the enum value '{value}' does not exist in the enum '{requested-type}'")

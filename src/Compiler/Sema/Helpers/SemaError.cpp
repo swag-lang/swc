@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -124,6 +125,20 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const Symbol& atSymbol
 Result SemaError::raise(Sema& sema, DiagnosticId id, const Symbol& atSymbol)
 {
     const auto diag = report(sema, id, atSymbol);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
+Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNodeRef, const Symbol& symbol)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_runtime_uses_compiler_only_symbol, atNodeRef);
+    setReportArguments(sema, diag, &symbol);
+
+    if (const SymbolFunction* currentFunction = sema.frame().currentFunction())
+        diag.addArgument(Diagnostic::ARG_WHAT, currentFunction->getFullScopedName(sema.ctx()));
+
+    diag.addNote(DiagnosticId::sema_note_compiler_only_symbol);
+    diag.last().addSpan(symbol.codeRange(sema.ctx()));
     diag.report(sema.ctx());
     return Result::Error;
 }

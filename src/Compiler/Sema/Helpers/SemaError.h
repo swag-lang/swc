@@ -44,6 +44,7 @@ namespace SemaError
     Result     raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result     raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result     raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols);
+    Result     raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNodeRef, const Symbol& symbol);
     Result     raiseLiteralTooBig(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal);
     Diagnostic reportFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Token);
     Result     raiseFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRef atNodeRef, AstNodeRef nodeValueRef = AstNodeRef::invalid(), ReportLocation location = ReportLocation::Token);

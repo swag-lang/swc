@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1284,7 +1285,9 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     }
 
     SmallVector<Symbol*> concreteSymbols;
-    removeEmptyFunctionDeclarations(filteredSymbols, concreteSymbols);
+    SmallVector<Symbol*> runtimeSymbols;
+    SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols.span(), runtimeSymbols));
+    removeEmptyFunctionDeclarations(runtimeSymbols, concreteSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());

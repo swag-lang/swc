@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 #test
 {
@@ -10,3 +9,4 @@
     let slice = cast([..] u8) @mkslice(&arr[0], cast(u64) cpt)
     @assert(@countof(slice) == 3)
 }
+

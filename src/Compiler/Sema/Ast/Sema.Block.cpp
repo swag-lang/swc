@@ -114,7 +114,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     {
         const SemaNodeView view = sema.viewSymbol(nodeRef);
         SWC_ASSERT(view.sym());
-        SWC_ASSERT(view.sym()->isNamespace());
+        SWC_ASSERT(view.sym()->isSymMap());
         sema.curScope().addUsingSymMap(view.sym()->asSymMap());
     }
 

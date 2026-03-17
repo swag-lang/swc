@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 struct TT
 {
     value: s64 = 456
@@ -20,3 +19,4 @@ struct TT
     //@print(addr[0].value)
     @assert(addr[0] == &addr1)
 }
+

@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 struct A
 {
     x:     u32
@@ -11,6 +10,8 @@ struct A
 #test
 {
     var st: A
-    st.y = 0
+    //st.y = 0
+    @assert(st.x == 0)
     @assert(st.y == 0)
 }
+

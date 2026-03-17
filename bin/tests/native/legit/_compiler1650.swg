@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 func aa(x: u32, y: any) {}
 
 namespace aa1650
@@ -19,3 +18,4 @@ namespace aa1650
         @assert(false)
     }
 }
+

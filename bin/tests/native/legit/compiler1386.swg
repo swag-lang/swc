@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 enum A
 {
     AA
@@ -17,3 +16,4 @@ enum B
     using A, B
     @assert(#typeof(A.AA) != #typeof(B.BB))
 }
+

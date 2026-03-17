@@ -917,6 +917,9 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
 
     SemaFrame frame           = sema.frame();
     auto&     symFn           = sema.viewSymbol(nodeRef).sym()->cast<SymbolFunction>();
+    if (SymbolFunction* currentFn = sema.frame().currentFunction())
+        currentFn->addCallDependency(&symFn);
+
     frame.currentAttributes() = symFn.attributes();
     frame.setCurrentFunction(&symFn);
     frame.addContextFlag(SemaFrameContextFlagsE::RunExpr);

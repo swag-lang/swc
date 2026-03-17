@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 #test
 {
     var arr: [64] u8
@@ -9,3 +8,4 @@
     ptr[0] = null
     @assert(ptr[0] == null)
 }
+

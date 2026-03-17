@@ -1,7 +1,5 @@
-// 
-
+//
 #global fileprivate
-#global skip
 struct TT
 {
     value: s64 = 456
@@ -19,3 +17,4 @@ struct TT
 
     @assert(addr[0, 0, 0] == 666)
 }
+

@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 //#global testerror
 
 struct A
@@ -16,3 +15,4 @@ struct A
     st.y = 0
     @assert(st.y == 0)
 }
+

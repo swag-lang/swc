@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 func toto1(x: any)->s32
 {
@@ -14,3 +13,4 @@ func toto1(x: any)->s32
 {
     @assert(toto1(100) == 100)
 }
+

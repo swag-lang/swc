@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 #test
 {
     enum Color
@@ -21,3 +20,4 @@ func toto()->bool { return true }
 {
     @assert(toto())
 }
+

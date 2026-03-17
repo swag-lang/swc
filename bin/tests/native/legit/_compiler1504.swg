@@ -1,7 +1,6 @@
-// 
+﻿// 
 
 #global fileprivate
-#global skip
 var X: u32 = undefined
 
 #[Swag.Compiler]
@@ -16,3 +15,4 @@ func set()
     #run set()
     @assert(X == 6)
 }
+

@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 #test
 {
@@ -12,3 +11,4 @@
     x %= cast(u64) m
     @assert(x == 15)
 }
+

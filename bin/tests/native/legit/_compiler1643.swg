@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 #test
 {
@@ -11,3 +10,4 @@
     @assert(tbl[0] == cast(u8) '0''rune)
     @assert(tbl[1] == cast(u8) '1''rune)
 }
+

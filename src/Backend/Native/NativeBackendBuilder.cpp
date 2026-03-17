@@ -127,8 +127,6 @@ namespace
                     continue;
                 if (dep->isForeign() || dep->isEmpty() || dep->isAttribute())
                     continue;
-                if (dep->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
-                    continue;
                 if (!dep->isSemaCompleted())
                     continue;
                 if (!shouldPrepareSymbol(builder, *dep))
@@ -157,8 +155,6 @@ namespace
             if (!target)
                 continue;
             if (target->isForeign() || target->isEmpty() || target->isAttribute())
-                continue;
-            if (target->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
                 continue;
             if (!target->isSemaCompleted())
                 continue;

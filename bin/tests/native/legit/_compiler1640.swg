@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 #test
 {
@@ -11,3 +10,4 @@
     usedBuckets = c ? 1 : 0
     @assert(usedBuckets == 1)
 }
+

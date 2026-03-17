@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 #test
 {
@@ -10,3 +9,4 @@
     let c     = tbl[x]
     @assert(c == cast(u8) '1''rune)
 }
+

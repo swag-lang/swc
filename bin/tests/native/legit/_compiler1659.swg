@@ -1,7 +1,6 @@
 // 
 
 #global fileprivate
-#global skip
 //#[Swag.PrintBc]
 #test
 {
@@ -9,3 +8,4 @@
     let roundValue = 0.5 / (10 * precision)
     @assert(roundValue == 0.01)
 }
+

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Main/Global.h"
-#include "Backend/Backend.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Logger.h"
@@ -22,7 +22,7 @@ Global::Global()
 void Global::initialize(const CommandLine& cmdLine) const
 {
     Os::initialize();
-    Backend::setup();
+    CallConv::setup();
     langSpec_->setup();
     jobManager_->setup(cmdLine);
 }

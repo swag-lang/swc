@@ -186,7 +186,6 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Backend\Backend.cpp"/>
         <ClCompile Include="src\Backend\Unittest\UnittestHelpers.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.BranchFolding.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp"/>
@@ -444,7 +443,6 @@
         <ClCompile Include="src\Compiler\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
-        <ClInclude Include="src\Backend\Backend.h"/>
         <ClInclude Include="src\Backend\Micro\MicroDenseRegIndex.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>

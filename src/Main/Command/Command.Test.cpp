@@ -32,10 +32,10 @@ namespace
     {
         DiscoveryStatsGuard()
         {
-            auto& stats   = Stats::get();
-            timeLoadFile_ = stats.timeLoadFile.load(std::memory_order_relaxed);
-            timeLexer_    = stats.timeLexer.load(std::memory_order_relaxed);
-            numFiles_     = stats.numFiles.load(std::memory_order_relaxed);
+            const auto& stats = Stats::get();
+            timeLoadFile_     = stats.timeLoadFile.load(std::memory_order_relaxed);
+            timeLexer_        = stats.timeLexer.load(std::memory_order_relaxed);
+            numFiles_         = stats.numFiles.load(std::memory_order_relaxed);
         }
 
         ~DiscoveryStatsGuard()
@@ -57,7 +57,7 @@ namespace
         return cmdLine.testNative;
     }
 
-    void appendStandaloneSourceFile(SourceSuiteBuckets& outBuckets, const fs::path& path, const Verify& verify)
+    void registerSourceFile(SourceSuiteBuckets& outBuckets, const fs::path& path, const Verify& verify)
     {
         const TestSuiteKind kind = verify.sourceTestKind();
         outBuckets.hasSourceHints |= verify.hasSourceTestHints();
@@ -86,7 +86,8 @@ namespace
         cmdLine.runtime     = false;
 
         CompilerInstance discoveryCompiler(compiler.global(), cmdLine);
-        TaskContext       ctx(discoveryCompiler);
+        TaskContext      ctx(discoveryCompiler);
+
         ctx.setSilentDiagnostic(true);
 
 #if SWC_HAS_STATS
@@ -102,7 +103,7 @@ namespace
                 continue;
 
             file->unitTest().tokenize(ctx);
-            appendStandaloneSourceFile(outBuckets, file->path(), file->unitTest());
+            registerSourceFile(outBuckets, file->path(), file->unitTest());
         }
     }
 

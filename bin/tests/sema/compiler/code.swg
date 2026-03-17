@@ -18,6 +18,12 @@ func continueAsScopeBreak(stmt: #code void)
     #inject(stmt, continue = break to Outer)
 }
 
+#[Swag.Macro]
+func remapLoopFlow(stmt: #code void)
+{
+    #inject(stmt, continue = break to Outer, break = continue)
+}
+
 #test
 {
     var count = 0
@@ -49,6 +55,30 @@ func continueAsScopeBreak(stmt: #code void)
     }
 
     @assert(count == 1)
+}
+
+#test
+{
+    var count = 0
+    #scope(Outer)
+    {
+        for 4
+        {
+            count += 1
+            remapLoopFlow(#code {
+                if count == 1 do
+                    break
+
+                continue
+            })
+
+            count = -10
+        }
+
+        count = -20
+    }
+
+    @assert(count == 2)
 }
 
 #test

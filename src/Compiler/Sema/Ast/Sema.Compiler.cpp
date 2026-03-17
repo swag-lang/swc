@@ -164,8 +164,46 @@ namespace
         return resultRef;
     }
 
-    Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef, AstNodeRef replaceBreakRef = AstNodeRef::invalid(),
-                                    AstNodeRef replaceContinueRef = AstNodeRef::invalid())
+    AstNodeId injectReplacementNodeId(TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::KwdBreak:
+                return AstNodeId::BreakStmt;
+            case TokenId::KwdContinue:
+                return AstNodeId::ContinueStmt;
+            default:
+                return AstNodeId::Invalid;
+        }
+    }
+
+    void appendInjectReplacement(SmallVector<SemaClone::NodeReplacement>& outReplacements, AstNodeId nodeId, AstNodeRef replacementRef)
+    {
+        if (replacementRef.isInvalid())
+            return;
+
+        outReplacements.push_back({nodeId, replacementRef});
+    }
+
+    void appendInjectReplacements(Sema& sema, const AstCompilerInject& node, SmallVector<SemaClone::NodeReplacement>& outReplacements)
+    {
+        SmallVector<TokenRef>   replacementInstructionRefs;
+        SmallVector<AstNodeRef> replacementNodeRefs;
+        sema.ast().appendTokens(replacementInstructionRefs, node.spanReplaceInstructionRef);
+        sema.ast().appendNodes(replacementNodeRefs, node.spanReplaceNodeRef);
+        SWC_ASSERT(replacementInstructionRefs.size() == replacementNodeRefs.size());
+
+        for (uint32_t i = 0; i < replacementInstructionRefs.size(); i++)
+        {
+            const TokenId  replacementId = sema.srcView(node.srcViewRef()).token(replacementInstructionRefs[i]).id;
+            const AstNodeId nodeId        = injectReplacementNodeId(replacementId);
+            SWC_ASSERT(nodeId != AstNodeId::Invalid);
+            appendInjectReplacement(outReplacements, nodeId, replacementNodeRefs[i]);
+        }
+    }
+
+    Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef,
+                                    std::span<const SemaClone::NodeReplacement> replacements = std::span<const SemaClone::NodeReplacement>{})
     {
         SWC_RESULT(validateInjectArgument(sema, exprRef));
 
@@ -173,7 +211,7 @@ namespace
         if (rawRef.isInvalid())
             return Result::Error;
 
-        const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}, replaceBreakRef, replaceContinueRef};
+        const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}, replacements};
         const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
         if (clonedRef.isInvalid())
             return Result::Error;
@@ -927,7 +965,9 @@ Result AstCompilerInject::semaPreNodeChild(const Sema& sema, const AstNodeRef& c
 
 Result AstCompilerInject::semaPostNode(Sema& sema) const
 {
-    return substituteCompilerInject(sema, sema.curNodeRef(), nodeExprRef, nodeReplaceBreakRef, nodeReplaceContinueRef);
+    SmallVector<SemaClone::NodeReplacement> replacements;
+    appendInjectReplacements(sema, *this, replacements);
+    return substituteCompilerInject(sema, sema.curNodeRef(), nodeExprRef, replacements.span());
 }
 
 Result AstCompilerCall::semaPostNode(const Sema& sema) const

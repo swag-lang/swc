@@ -19,7 +19,7 @@ namespace
         return reinterpret_cast<const SemaClone::CloneContext&>(cloneContext);
     }
 
-    SemaClone::CloneContext cloneContextWithoutControlFlowReplacements(const CloneContext& cloneContext)
+    SemaClone::CloneContext cloneContextWithoutReplacements(const CloneContext& cloneContext)
     {
         const auto& inlineContext = cloneContextAsInline(cloneContext);
         return SemaClone::CloneContext{inlineContext.bindings};
@@ -31,6 +31,17 @@ namespace
         {
             if (binding.idRef == idRef)
                 return &binding;
+        }
+
+        return nullptr;
+    }
+
+    const SemaClone::NodeReplacement* findReplacement(const CloneContext& cloneContext, AstNodeId nodeId)
+    {
+        for (const SemaClone::NodeReplacement& replacement : cloneContextAsInline(cloneContext).replacements)
+        {
+            if (replacement.nodeId == nodeId)
+                return &replacement;
         }
 
         return nullptr;
@@ -67,31 +78,22 @@ namespace
         return SemaClone::cloneAst(sema, nodeRef, cloneContextAsInline(cloneContext));
     }
 
-    AstNodeRef cloneNodeRefWithoutControlFlowReplacements(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
+    AstNodeRef cloneNodeRefWithoutReplacements(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
     {
         if (nodeRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const auto noControlFlowReplacements = cloneContextWithoutControlFlowReplacements(cloneContext);
-        return SemaClone::cloneAst(sema, nodeRef, noControlFlowReplacements);
+        const auto noReplacements = cloneContextWithoutReplacements(cloneContext);
+        return SemaClone::cloneAst(sema, nodeRef, noReplacements);
     }
 
-    AstNodeRef cloneControlFlowReplacement(Sema& sema, const AstNode& node, const CloneContext& cloneContext)
+    AstNodeRef cloneNodeReplacement(Sema& sema, const AstNode& node, const CloneContext& cloneContext)
     {
-        AstNodeRef replacementRef = AstNodeRef::invalid();
-        switch (node.id())
-        {
-            case AstNodeId::BreakStmt:
-                replacementRef = cloneContextAsInline(cloneContext).replaceBreakRef;
-                break;
-            case AstNodeId::ContinueStmt:
-                replacementRef = cloneContextAsInline(cloneContext).replaceContinueRef;
-                break;
-            default:
-                return AstNodeRef::invalid();
-        }
+        const auto* replacement = findReplacement(cloneContext, node.id());
+        if (!replacement)
+            return AstNodeRef::invalid();
 
-        return cloneNodeRefWithoutControlFlowReplacements(sema, replacementRef, cloneContext);
+        return cloneNodeRefWithoutReplacements(sema, replacement->replacementRef, cloneContext);
     }
 
     void copyCallableClonePayload(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
@@ -138,6 +140,15 @@ namespace
         return sema.ast().pushSpan(cloned.span());
     }
 
+    SpanRef cloneSpanWithoutReplacements(Sema& sema, SpanRef spanRef, const CloneContext& cloneContext)
+    {
+        if (spanRef.isInvalid())
+            return SpanRef::invalid();
+
+        const auto noReplacements = cloneContextWithoutReplacements(cloneContext);
+        return cloneSpan(sema, spanRef, noReplacements);
+    }
+
     AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const CloneContext& cloneContext)
     {
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
@@ -161,7 +172,7 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
 {
     SWC_ASSERT(nodeRef.isValid());
     AstNode&   node      = sema.node(nodeRef);
-    AstNodeRef clonedRef = cloneControlFlowReplacement(sema, node, cloneContext);
+    AstNodeRef clonedRef = cloneNodeReplacement(sema, node, cloneContext);
     if (clonedRef.isValid())
         return clonedRef;
 
@@ -427,7 +438,7 @@ AstNodeRef AstCompilerCodeBlock::semaClone(Sema& sema, const CloneContext& clone
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerCodeBlock>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstCompilerCodeBlock>();
-    cloned.nodeBodyRef      = cloneNodeRefWithoutControlFlowReplacements(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    cloned.nodeBodyRef      = cloneNodeRefWithoutReplacements(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
     cloned.payloadTypeRef   = payloadTypeRef;
     return newRef;
 }
@@ -459,11 +470,11 @@ AstNodeRef AstCompilerMacro::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstCompilerInject::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef       = cloneNodeCopy<AstNodeId::CompilerInject>(sema, *this);
-    auto&            cloned       = sema.node(newRef).cast<AstCompilerInject>();
-    cloned.nodeExprRef            = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    cloned.nodeReplaceBreakRef    = cloneNodeRefWithoutControlFlowReplacements(sema, nodeReplaceBreakRef, cloneContextAsInline(cloneContext));
-    cloned.nodeReplaceContinueRef = cloneNodeRefWithoutControlFlowReplacements(sema, nodeReplaceContinueRef, cloneContextAsInline(cloneContext));
+    const AstNodeRef newRef          = cloneNodeCopy<AstNodeId::CompilerInject>(sema, *this);
+    auto&            cloned          = sema.node(newRef).cast<AstCompilerInject>();
+    cloned.nodeExprRef               = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    cloned.spanReplaceInstructionRef = spanReplaceInstructionRef;
+    cloned.spanReplaceNodeRef        = cloneSpanWithoutReplacements(sema, spanReplaceNodeRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
@@ -785,17 +796,17 @@ AstNodeRef AstMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneC
 AstNodeRef AstQuotedExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::QuotedExpr>(tokRef());
-    newPtr->nodeExprRef   = cloneNodeRefWithoutControlFlowReplacements(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeSuffixRef = cloneNodeRefWithoutControlFlowReplacements(sema, nodeSuffixRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeExprRef   = cloneNodeRefWithoutReplacements(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeSuffixRef = cloneNodeRefWithoutReplacements(sema, nodeSuffixRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
 AstNodeRef AstQuotedListExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::QuotedListExpr>(tokRef());
-    const auto noControlFlowReplacements = cloneContextWithoutControlFlowReplacements(cloneContext);
-    newPtr->nodeExprRef                  = SemaClone::cloneAst(sema, nodeExprRef, noControlFlowReplacements);
-    newPtr->spanChildrenRef              = cloneSpan(sema, spanChildrenRef, noControlFlowReplacements);
+    const auto noReplacements = cloneContextWithoutReplacements(cloneContext);
+    newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, noReplacements);
+    newPtr->spanChildrenRef   = cloneSpan(sema, spanChildrenRef, noReplacements);
     return newRef;
 }
 
@@ -873,7 +884,7 @@ AstNodeRef AstCompilerRunExpr::semaClone(Sema& sema, const CloneContext& cloneCo
 AstNodeRef AstCompilerCodeExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]  = sema.ast().makeNode<AstNodeId::CompilerCodeExpr>(tokRef());
-    newPtr->nodeExprRef    = cloneNodeRefWithoutControlFlowReplacements(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeExprRef    = cloneNodeRefWithoutReplacements(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     newPtr->payloadTypeRef = payloadTypeRef;
     return newRef;
 }

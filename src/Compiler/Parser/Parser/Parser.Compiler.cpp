@@ -3,6 +3,20 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool hasInjectReplacement(const SourceView& srcView, const std::span<const TokenRef>& replacementInstructionRefs, TokenId tokenId)
+    {
+        for (const TokenRef instructionRef : replacementInstructionRefs)
+        {
+            if (srcView.token(instructionRef).id == tokenId)
+                return true;
+        }
+
+        return false;
+    }
+}
+
 AstNodeRef Parser::parseCompilerExpression()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerExpression>(ref());
@@ -430,16 +444,19 @@ AstNodeRef Parser::parseCompilerInject()
     const TokenRef openRef  = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    nodePtr->nodeExprRef = parseExpression();
-    nodePtr->nodeReplaceBreakRef.setInvalid();
-    nodePtr->nodeReplaceContinueRef.setInvalid();
+    nodePtr->nodeExprRef                = parseExpression();
+    nodePtr->spanReplaceInstructionRef  = SpanRef::invalid();
+    nodePtr->spanReplaceNodeRef         = SpanRef::invalid();
+    SmallVector<TokenRef>   replacementInstructionRefs;
+    SmallVector<AstNodeRef> replacementNodeRefs;
 
     while (consumeIf(TokenId::SymComma).isValid())
     {
-        // Replacement for 'break'
-        if (consumeIf(TokenId::KwdBreak).isValid())
+        if (isAny(TokenId::KwdBreak, TokenId::KwdContinue))
         {
-            if (nodePtr->nodeReplaceBreakRef.isValid())
+            const TokenId  replacementId  = id();
+            const TokenRef instructionRef = consume();
+            if (hasInjectReplacement(ast_->srcView(), replacementInstructionRefs.span(), replacementId))
             {
                 raiseError(DiagnosticId::parser_err_inject_instruction_done, ref());
                 skipTo({TokenId::SymRightParen, TokenId::SymLeftParen});
@@ -447,22 +464,8 @@ AstNodeRef Parser::parseCompilerInject()
             }
 
             expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->nodeReplaceBreakRef = parseEmbeddedStmt();
-            continue;
-        }
-
-        // Replacement for 'continue'
-        if (consumeIf(TokenId::KwdContinue).isValid())
-        {
-            if (nodePtr->nodeReplaceContinueRef.isValid())
-            {
-                raiseError(DiagnosticId::parser_err_inject_instruction_done, ref());
-                skipTo({TokenId::SymRightParen, TokenId::SymLeftParen});
-                continue;
-            }
-
-            expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->nodeReplaceContinueRef = parseEmbeddedStmt();
+            replacementInstructionRefs.push_back(instructionRef);
+            replacementNodeRefs.push_back(parseEmbeddedStmt());
             continue;
         }
 
@@ -472,6 +475,11 @@ AstNodeRef Parser::parseCompilerInject()
     }
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    if (!replacementInstructionRefs.empty())
+    {
+        nodePtr->spanReplaceInstructionRef = ast_->pushSpan(replacementInstructionRefs.span());
+        nodePtr->spanReplaceNodeRef        = ast_->pushSpan(replacementNodeRefs.span());
+    }
 
     return nodeRef;
 }

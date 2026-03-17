@@ -1567,13 +1567,18 @@ struct AstCompilerMacro : AstNodeT<AstNodeId::CompilerMacro>
 struct AstCompilerInject : AstNodeT<AstNodeId::CompilerInject>
 {
     AstNodeRef nodeExprRef;
-    AstNodeRef nodeReplaceBreakRef;
-    AstNodeRef nodeReplaceContinueRef;
+    SpanRef    spanReplaceInstructionRef;
+    SpanRef    spanReplaceNodeRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeReplaceBreakRef, nodeReplaceContinueRef}); }
     static Result semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef);
     Result        semaPostNode(Sema& sema) const;
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstNode::collectChildren(out, {nodeExprRef});
+        AstNode::collectChildren(out, ast, spanReplaceNodeRef);
+    }
 };
 
 // -----------------------------------------------------------------------------

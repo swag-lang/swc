@@ -14,18 +14,21 @@ namespace SemaClone
         TypeRef       typeRef = TypeRef::invalid();
     };
 
+    struct NodeReplacement
+    {
+        AstNodeId  nodeId         = AstNodeId::Invalid;
+        AstNodeRef replacementRef = AstNodeRef::invalid();
+    };
+
     struct CloneContext final : swc::CloneContext
     {
-        std::span<const ParamBinding> bindings;
-        AstNodeRef                    replaceBreakRef    = AstNodeRef::invalid();
-        AstNodeRef                    replaceContinueRef = AstNodeRef::invalid();
+        std::span<const ParamBinding>    bindings;
+        std::span<const NodeReplacement> replacements;
 
-        explicit CloneContext(std::span<const ParamBinding> inBindings,
-                              AstNodeRef                    inReplaceBreakRef    = AstNodeRef::invalid(),
-                              AstNodeRef                    inReplaceContinueRef = AstNodeRef::invalid()) :
+        explicit CloneContext(std::span<const ParamBinding>    inBindings,
+                              std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}) :
             bindings(inBindings),
-            replaceBreakRef(inReplaceBreakRef),
-            replaceContinueRef(inReplaceContinueRef)
+            replacements(inReplacements)
         {
         }
     };

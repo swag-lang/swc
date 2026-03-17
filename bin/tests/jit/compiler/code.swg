@@ -166,6 +166,30 @@ func runContinueReplacementAsScopeBreak()->s32
     return count
 }
 
+func runCombinedReplacements()->s32
+{
+    var count: s32 = 0
+    #scope(Outer)
+    {
+        for 4
+        {
+            count += 1
+            #inject(#code {
+                if count == 1 do
+                    break
+
+                continue
+            }, continue = break to Outer, break = continue)
+
+            count = -10
+        }
+
+        count = -20
+    }
+
+    return count
+}
+
 const ImplicitExprOk = #run runImplicitExpr()
 const ExplicitStmtOk = #run runExplicitStmt()
 const NamedArgsOk    = #run runNamed()
@@ -175,6 +199,7 @@ const ForcedOk       = #run runForced()
 const BreakAsContinueOk      = #run runBreakReplacementAsContinue() == 4
 const BreakAsScopeBreakOk    = #run runBreakReplacementAsScopeBreak() == 1
 const ContinueAsScopeBreakOk = #run runContinueReplacementAsScopeBreak() == 1
+const CombinedReplacementsOk = #run runCombinedReplacements() == 2
 
 #assert(ImplicitExprOk)
 #assert(ExplicitStmtOk)
@@ -185,3 +210,4 @@ const ContinueAsScopeBreakOk = #run runContinueReplacementAsScopeBreak() == 1
 #assert(BreakAsContinueOk)
 #assert(BreakAsScopeBreakOk)
 #assert(ContinueAsScopeBreakOk)
+#assert(CombinedReplacementsOk)

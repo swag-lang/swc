@@ -372,7 +372,7 @@ struct AstCompilerCodeBlock : AstNodeT<AstNodeId::CompilerCodeBlock>
     TypeRef    payloadTypeRef = TypeRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -384,7 +384,7 @@ struct AstCompilerCodeExpr : AstNodeT<AstNodeId::CompilerCodeExpr>
     TypeRef    payloadTypeRef = TypeRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1563,10 +1563,10 @@ struct AstCompilerInject : AstNodeT<AstNodeId::CompilerInject>
     AstNodeRef nodeReplaceBreakRef;
     AstNodeRef nodeReplaceContinueRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeReplaceBreakRef, nodeReplaceContinueRef}); }
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result     semaPostNode(Sema& sema) const;
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeReplaceBreakRef, nodeReplaceContinueRef}); }
+    static Result semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef);
+    Result        semaPostNode(Sema& sema) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

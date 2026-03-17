@@ -175,7 +175,7 @@ namespace
     }
 }
 
-Result AstCompilerCodeBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstCompilerCodeBlock::semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const
 {
     SWC_UNUSED(sema);
     return childRef == nodeBodyRef ? Result::SkipChildren : Result::Continue;
@@ -183,14 +183,14 @@ Result AstCompilerCodeBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& chil
 
 Result AstCompilerCodeBlock::semaPostNode(Sema& sema) const
 {
-    const TypeRef payloadTypeRef = this->payloadTypeRef.isValid() ? this->payloadTypeRef : sema.typeMgr().typeVoid();
-    sema.setType(sema.curNodeRef(), makeCodeType(sema, payloadTypeRef));
+    const TypeRef payload = this->payloadTypeRef.isValid() ? payloadTypeRef : sema.typeMgr().typeVoid();
+    sema.setType(sema.curNodeRef(), makeCodeType(sema, payload));
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;
 }
 
-Result AstCompilerCodeExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstCompilerCodeExpr::semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const
 {
     SWC_UNUSED(sema);
     return childRef == nodeExprRef ? Result::SkipChildren : Result::Continue;
@@ -198,8 +198,8 @@ Result AstCompilerCodeExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
 Result AstCompilerCodeExpr::semaPostNode(Sema& sema) const
 {
-    const TypeRef payloadTypeRef = this->payloadTypeRef.isValid() ? this->payloadTypeRef : sema.typeMgr().typeAny();
-    sema.setType(sema.curNodeRef(), makeCodeType(sema, payloadTypeRef));
+    const TypeRef payload = this->payloadTypeRef.isValid() ? payloadTypeRef : sema.typeMgr().typeAny();
+    sema.setType(sema.curNodeRef(), makeCodeType(sema, payload));
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;
@@ -871,7 +871,7 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
     return Result::Continue;
 }
 
-Result AstCompilerInject::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstCompilerInject::semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef)
 {
     SWC_UNUSED(sema);
     SWC_UNUSED(childRef);

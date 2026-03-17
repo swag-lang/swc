@@ -103,19 +103,11 @@ MicroStorage::Iterator MicroPeepholePass::computeResumeIterator(const MicroStora
                                                                 const MicroStorage::Iterator& nextIt) const
 {
     SWC_ASSERT(storage_ != nullptr);
-    if (storage_->ptr(instRef) != nullptr)
-    {
-        auto currentIt = MicroStorage::Iterator{storage_, instRef};
-        ++currentIt;
-        return currentIt;
-    }
-
     if (hasPrev && storage_->ptr(prevIt.current) != nullptr)
-    {
-        auto resumeIt = prevIt;
-        ++resumeIt;
-        return resumeIt;
-    }
+        return prevIt;
+
+    if (storage_->ptr(instRef) != nullptr)
+        return MicroStorage::Iterator{storage_, instRef};
 
     if (nextIt != view.end() && storage_->ptr(nextIt.current) != nullptr)
         return nextIt;

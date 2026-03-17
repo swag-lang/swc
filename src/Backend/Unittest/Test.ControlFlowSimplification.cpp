@@ -106,6 +106,36 @@ SWC_TEST_BEGIN(MicroControlFlowSimplification_MergesJumpChain)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroControlFlowSimplification_RemovesMultipleBypassBlocksInOnePass)
+{
+    MicroBuilder        builder(ctx);
+    constexpr MicroReg  r8         = MicroReg::intReg(8);
+    constexpr MicroReg  r9         = MicroReg::intReg(9);
+    const MicroLabelRef firstLabel = builder.createLabel();
+    const MicroLabelRef doneLabel  = builder.createLabel();
+
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, firstLabel);
+    builder.emitLoadRegImm(r8, ApInt(1, 64), MicroOpBits::B64);
+    builder.placeLabel(firstLabel);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+    builder.emitLoadRegImm(r9, ApInt(2, 64), MicroOpBits::B64);
+    builder.placeLabel(doneLabel);
+    builder.emitRet();
+
+    SWC_RESULT(runControlFlowSimplificationPass(builder));
+
+    if (builder.instructions().count() != 1)
+        return Result::Error;
+
+    const MicroInstr* inst0 = instructionAt(builder, 0);
+    if (!inst0)
+        return Result::Error;
+
+    if (inst0->op != MicroInstrOpcode::Ret)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -187,6 +187,38 @@ SWC_TEST_BEGIN(Peephole_RemovesAdjacentPushPopSameRegister)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Peephole_RevisitsPreviousProducerAfterRewrite)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
+
+    builder.emitLoadAddressRegMem(r8, rsp, 32, MicroOpBits::B64);
+    builder.emitLoadRegReg(r9, r8, MicroOpBits::B64);
+    builder.emitLoadRegMem(r10, r9, 8, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPeepholePass(builder));
+
+    if (instructionCount(builder) != 2)
+        return Result::Error;
+    if (hasInstruction(builder, MicroInstrOpcode::LoadAddrRegMem))
+        return Result::Error;
+    if (hasInstruction(builder, MicroInstrOpcode::LoadRegReg))
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::LoadRegMem))
+        return Result::Error;
+    if (countStackAccess(builder, MicroInstrOpcode::LoadRegMem, rsp, 40) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Peephole_KeepsAdjacentPushPopStackPointer)
 {
     MicroBuilder builder(ctx);
@@ -315,12 +347,15 @@ SWC_TEST_BEGIN(Peephole_FoldsLoadOpStoreIntoMemImm)
     constexpr MicroReg rsp = MicroReg::intReg(4);
     constexpr MicroReg r8  = MicroReg::intReg(8);
     constexpr MicroReg r9  = MicroReg::intReg(9);
+    const MicroLabelRef doneLabel = builder.createLabel();
 
     builder.emitLoadRegMem(r8, rsp, 0x20, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(r8, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitLoadMemReg(rsp, 0x20, r8, MicroOpBits::B64);
     builder.emitLoadRegMem(r9, rsp, 0x20, MicroOpBits::B64);
     builder.emitCmpRegImm(r9, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+    builder.placeLabel(doneLabel);
     builder.emitRet();
 
     SWC_RESULT(runPeepholePass(builder));
@@ -341,14 +376,14 @@ SWC_TEST_BEGIN(Peephole_KeepsLoadOpStoreWhenResultRegIsUsed)
 
     constexpr MicroReg rsp = MicroReg::intReg(4);
     constexpr MicroReg r8  = MicroReg::intReg(8);
-    constexpr MicroReg r9  = MicroReg::intReg(9);
+    const MicroLabelRef doneLabel = builder.createLabel();
 
     builder.emitLoadRegMem(r8, rsp, 0x20, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(r8, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitLoadMemReg(rsp, 0x20, r8, MicroOpBits::B64);
     builder.emitCmpRegImm(r8, ApInt(0, 64), MicroOpBits::B64);
-    builder.emitLoadRegMem(r9, rsp, 0x20, MicroOpBits::B64);
-    builder.emitCmpRegImm(r9, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+    builder.placeLabel(doneLabel);
     builder.emitRet();
 
     SWC_RESULT(runPeepholePass(builder));
@@ -372,6 +407,8 @@ SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadOpStoreIntoMemImm)
     constexpr MicroReg r8  = MicroReg::intReg(8);
     constexpr MicroReg r9  = MicroReg::intReg(9);
     constexpr MicroReg r10 = MicroReg::intReg(10);
+    const MicroLabelRef continueLabel = builder.createLabel();
+    const MicroLabelRef doneLabel = builder.createLabel();
 
     builder.emitLoadRegMem(rcx, rsp, 0x40, MicroOpBits::B64);
     builder.emitLoadRegMem(r8, rsp, 0x48, MicroOpBits::B64);
@@ -381,8 +418,12 @@ SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadOpStoreIntoMemImm)
     builder.emitLoadMemReg(rsp, 0x48, r8, MicroOpBits::B64);
     builder.emitLoadRegMem(r9, rsp, 0x40, MicroOpBits::B64);
     builder.emitCmpRegImm(r9, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
+    builder.placeLabel(continueLabel);
     builder.emitLoadRegMem(r10, rsp, 0x48, MicroOpBits::B64);
     builder.emitCmpRegImm(r10, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+    builder.placeLabel(doneLabel);
     builder.emitRet();
 
     SWC_RESULT(runPeepholePass(builder));

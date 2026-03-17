@@ -118,7 +118,8 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
         if (inst.op != MicroInstrOpcode::Ret && !MicroInstrInfo::isUnconditionalJumpInstruction(inst, inst.ops(operands)))
             continue;
 
-        auto scanIt = it;
+        auto scanIt           = it;
+        bool removedDeadBlock = false;
         while (scanIt != endIt)
         {
             if (scanIt->op == MicroInstrOpcode::Label)
@@ -128,7 +129,21 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
             ++scanIt;
             storage.erase(deadRef);
             context.passChanged = true;
+            removedDeadBlock    = true;
         }
+
+        if (!removedDeadBlock)
+            continue;
+
+        if (inst.op == MicroInstrOpcode::JumpCond)
+        {
+            const MicroInstrOperand* jumpOps = inst.ops(operands);
+            SWC_ASSERT(jumpOps != nullptr);
+            if (isJumpToImmediateNextLabel(jumpOps, scanIt, endIt, operands))
+                storage.erase(instRef);
+        }
+
+        it = scanIt;
     }
 
     referencedLabels_.clear();

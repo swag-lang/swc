@@ -96,6 +96,7 @@ private:
     uint32_t instructionCount_ = 0;
     uint64_t spillFrameUsed_   = 0;
     bool     hasControlFlow_   = false;
+    bool     hasVirtualRegs_   = false;
 
     std::vector<std::vector<MicroReg>>                  liveOut_;
     std::vector<std::vector<MicroReg>>                  concreteLiveOut_;

@@ -55,21 +55,10 @@ bool MicroPeepholePass::isCopyDeadAfterInstruction(MicroStorage::Iterator scanIt
 
     for (; scanIt != endIt; ++scanIt)
     {
-        const MicroInstr&                    scanInst = *scanIt;
-        const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*operands_, context_->encoder);
-        SmallVector<MicroInstrRegOperandRef> refs;
-        scanInst.collectRegOperands(*operands_, refs, context_->encoder);
-
-        bool hasUse = false;
-        bool hasDef = false;
-        for (const MicroInstrRegOperandRef& ref : refs)
-        {
-            if (!ref.reg || *(ref.reg) != reg)
-                continue;
-
-            hasUse |= ref.use;
-            hasDef |= ref.def;
-        }
+        const MicroInstr&      scanInst = *scanIt;
+        const MicroInstrUseDef useDef   = scanInst.collectUseDef(*operands_, context_->encoder);
+        const bool             hasUse   = microRegSpanContains(useDef.uses, reg);
+        const bool             hasDef   = microRegSpanContains(useDef.defs, reg);
 
         if (hasUse)
             return false;
@@ -111,21 +100,10 @@ bool MicroPeepholePass::isTempDeadForAddressFold(MicroStorage::Iterator scanIt, 
 
     for (; scanIt != endIt; ++scanIt)
     {
-        const MicroInstr&                    scanInst = *scanIt;
-        const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*operands_, context_->encoder);
-        SmallVector<MicroInstrRegOperandRef> refs;
-        scanInst.collectRegOperands(*operands_, refs, context_->encoder);
-
-        bool hasUse = false;
-        bool hasDef = false;
-        for (const MicroInstrRegOperandRef& ref : refs)
-        {
-            if (!ref.reg || *(ref.reg) != reg)
-                continue;
-
-            hasUse |= ref.use;
-            hasDef |= ref.def;
-        }
+        const MicroInstr&      scanInst = *scanIt;
+        const MicroInstrUseDef useDef   = scanInst.collectUseDef(*operands_, context_->encoder);
+        const bool             hasUse   = microRegSpanContains(useDef.uses, reg);
+        const bool             hasDef   = microRegSpanContains(useDef.defs, reg);
 
         if (hasUse)
             return false;
@@ -161,18 +139,10 @@ bool MicroPeepholePass::isRegUnusedAfterInstruction(MicroStorage::Iterator scanI
     const CallConv& functionConv = CallConv::get(context_->callConvKind);
     for (; scanIt != endIt; ++scanIt)
     {
-        const MicroInstr&                    scanInst = *scanIt;
-        const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*operands_, context_->encoder);
-        SmallVector<MicroInstrRegOperandRef> refs;
-        scanInst.collectRegOperands(*operands_, refs, context_->encoder);
-
-        for (const MicroInstrRegOperandRef& ref : refs)
-        {
-            if (!ref.use || !ref.reg || *(ref.reg) != reg)
-                continue;
-
+        const MicroInstr&      scanInst = *scanIt;
+        const MicroInstrUseDef useDef   = scanInst.collectUseDef(*operands_, context_->encoder);
+        if (microRegSpanContains(useDef.uses, reg))
             return false;
-        }
 
         if (useDef.isCall)
         {

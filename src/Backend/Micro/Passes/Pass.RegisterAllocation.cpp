@@ -26,6 +26,7 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     instructionCount_ = instructions_->count();
     spillFrameUsed_   = 0;
     hasControlFlow_   = false;
+    hasVirtualRegs_   = false;
 
     const size_t reserveCount = static_cast<size_t>(instructionCount_) * 2ull + 8ull;
     vregsLiveAcrossCall_.reserve(reserveCount);
@@ -224,6 +225,7 @@ void MicroRegisterAllocationPass::prepareInstructionData()
         instructionUseDefs_[idx] = std::move(useDef);
     }
 
+    hasVirtualRegs_       = hasVirtual;
     context_->passChanged = hasVirtual;
 }
 
@@ -1184,6 +1186,7 @@ void MicroRegisterAllocationPass::clearState()
     instructionCount_ = 0;
     spillFrameUsed_   = 0;
     hasControlFlow_   = false;
+    hasVirtualRegs_   = false;
 
     liveOut_.clear();
     concreteLiveOut_.clear();
@@ -1226,6 +1229,9 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     initState(context);
 
     prepareInstructionData();
+    if (!hasVirtualRegs_)
+        return Result::Continue;
+
     analyzeLiveness();
     setupPools();
     rewriteInstructions();

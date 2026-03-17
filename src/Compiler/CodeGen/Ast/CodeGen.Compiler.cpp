@@ -16,6 +16,51 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct CompilerScopeCodeGenPayload
+    {
+        MicroLabelRef continueLabel = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
+    };
+
+    CompilerScopeCodeGenPayload* compilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        return codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(nodeRef);
+    }
+
+    CompilerScopeCodeGenPayload& setCompilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const CompilerScopeCodeGenPayload& payloadValue)
+    {
+        return codeGen.setNodePayload(nodeRef, payloadValue);
+    }
+
+    void eraseCompilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        CompilerScopeCodeGenPayload* payload = compilerScopeCodeGenPayload(codeGen, nodeRef);
+        if (payload)
+            *payload = {};
+    }
+
+    AstNodeRef findNamedCompilerScope(CodeGen& codeGen, std::string_view scopeName)
+    {
+        for (size_t parentIndex = 0;; ++parentIndex)
+        {
+            const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                return AstNodeRef::invalid();
+
+            const AstNode& parentNode = codeGen.ast().node(parentRef);
+            if (parentNode.isNot(AstNodeId::CompilerScope))
+                continue;
+
+            const auto& scopeNode = parentNode.cast<AstCompilerScope>();
+            if (scopeNode.tokNameRef.isInvalid())
+                continue;
+
+            const Token& scopeTok = codeGen.token({scopeNode.srcViewRef(), scopeNode.tokNameRef});
+            if (scopeTok.string(codeGen.ast().srcView()) == scopeName)
+                return parentRef;
+        }
+    }
+
     void buildCompilerFunctionStackLayout(CodeGen& codeGen)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
@@ -124,6 +169,74 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     const CodeGenNodePayload& nodePayload      = codeGen.setPayloadAddress(codeGen.curNodeRef());
     MicroBuilder&             builder          = codeGen.builder();
     builder.emitLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
+    return Result::Continue;
+}
+
+Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)
+{
+    MicroBuilder&                builder = codeGen.builder();
+    CompilerScopeCodeGenPayload  scopeState;
+    scopeState.continueLabel = builder.createLabel();
+    scopeState.doneLabel     = builder.createLabel();
+    setCompilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef(), scopeState);
+    return Result::Continue;
+}
+
+Result AstCompilerScope::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    const CompilerScopeCodeGenPayload* scopeState = compilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(scopeState != nullptr);
+
+    MicroBuilder& builder = codeGen.builder();
+    builder.placeLabel(scopeState->continueLabel);
+
+    CodeGenFrame frame = codeGen.frame();
+    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Scope);
+    frame.setCurrentLoopContinueLabel(scopeState->continueLabel);
+    frame.setCurrentLoopBreakLabel(scopeState->doneLabel);
+    codeGen.pushFrame(frame);
+    return Result::Continue;
+}
+
+Result AstCompilerScope::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    codeGen.popFrame();
+    return Result::Continue;
+}
+
+Result AstCompilerScope::codeGenPostNode(CodeGen& codeGen)
+{
+    const CompilerScopeCodeGenPayload* scopeState = compilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(scopeState != nullptr);
+
+    MicroBuilder& builder = codeGen.builder();
+    builder.placeLabel(scopeState->doneLabel);
+    eraseCompilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef());
+    return Result::Continue;
+}
+
+Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
+{
+    const auto&      node         = codeGen.curNode().cast<AstScopedBreakStmt>();
+    const Token&     tokScopeName = codeGen.token({node.srcViewRef(), node.tokNameRef});
+    const AstNodeRef scopeRef     = findNamedCompilerScope(codeGen, tokScopeName.string(codeGen.ast().srcView()));
+    SWC_ASSERT(scopeRef.isValid());
+    if (scopeRef.isInvalid())
+        return Result::Continue;
+
+    const CompilerScopeCodeGenPayload* scopeState = compilerScopeCodeGenPayload(codeGen, scopeRef);
+    SWC_ASSERT(scopeState != nullptr);
+    if (!scopeState)
+        return Result::Continue;
+
+    MicroBuilder& builder = codeGen.builder();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, scopeState->doneLabel);
     return Result::Continue;
 }
 

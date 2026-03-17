@@ -28,6 +28,28 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef findNamedCompilerScope(Sema& sema, std::string_view scopeName)
+    {
+        for (size_t parentIndex = 0;; ++parentIndex)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                return AstNodeRef::invalid();
+
+            const AstNode& parentNode = sema.ast().node(parentRef);
+            if (parentNode.isNot(AstNodeId::CompilerScope))
+                continue;
+
+            const auto& scopeNode = parentNode.cast<AstCompilerScope>();
+            if (scopeNode.tokNameRef.isInvalid())
+                continue;
+
+            const Token& scopeTok = sema.token({scopeNode.srcViewRef(), scopeNode.tokNameRef});
+            if (scopeTok.string(sema.ast().srcView()) == scopeName)
+                return parentRef;
+        }
+    }
+
     AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef);
 
     constexpr Runtime::TargetOs nativeTargetOs()
@@ -173,6 +195,31 @@ namespace
         outValue = Utf8{codeRange.srcView->codeView(codeRange.offset, codeRange.len)};
         return true;
     }
+}
+
+Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    SemaFrame frame = sema.frame();
+    frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Scope);
+    sema.pushFramePopOnPostChild(frame, childRef);
+    return Result::Continue;
+}
+
+Result AstScopedBreakStmt::semaPreNode(Sema& sema)
+{
+    const auto&     node         = sema.curNode().cast<AstScopedBreakStmt>();
+    const Token&    tokScopeName = sema.token({node.srcViewRef(), node.tokNameRef});
+    const AstNodeRef scopeRef    = findNamedCompilerScope(sema, tokScopeName.string(sema.ast().srcView()));
+    if (scopeRef.isValid())
+        return Result::Continue;
+
+    auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_scope_name, SourceCodeRef{node.srcViewRef(), node.tokNameRef});
+    diag.addArgument(Diagnostic::ARG_SYM, tokScopeName.string(sema.ast().srcView()));
+    diag.report(sema.ctx());
+    return Result::Error;
 }
 
 Result AstCompilerCodeBlock::semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const

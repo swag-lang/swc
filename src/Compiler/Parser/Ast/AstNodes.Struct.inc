@@ -123,8 +123,13 @@ struct AstCompilerScope : AstNamedNodeT<AstNodeId::CompilerScope>
 {
     AstNodeRef nodeBodyRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    static Result codeGenPreNode(CodeGen& codeGen);
+    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result        codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------
@@ -1259,6 +1264,8 @@ struct AstBreakStmt : AstNodeT<AstNodeId::BreakStmt>
 // -----------------------------------------------------------------------------
 struct AstScopedBreakStmt : AstNamedNodeT<AstNodeId::ScopedBreakStmt>
 {
+    static Result semaPreNode(Sema& sema);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------

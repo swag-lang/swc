@@ -411,16 +411,18 @@ Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    if (codeGen.frame().currentBreakableKind() != CodeGenFrame::BreakContextKind::Loop)
+    const CodeGenFrame::BreakContextKind breakKind = codeGen.frame().currentBreakableKind();
+    if (breakKind != CodeGenFrame::BreakContextKind::Loop &&
+        breakKind != CodeGenFrame::BreakContextKind::Scope)
         return Result::Continue;
 
-    const AstNodeRef loopRef = codeGen.frame().currentBreakContext().nodeRef;
-    if (loopRef.isValid())
+    const AstNodeRef breakRef = codeGen.frame().currentBreakContext().nodeRef;
+    if (breakKind == CodeGenFrame::BreakContextKind::Loop && breakRef.isValid())
     {
-        const AstNode& loopNode = codeGen.node(loopRef);
+        const AstNode& loopNode = codeGen.node(breakRef);
         if (loopNode.is(AstNodeId::ForStmt))
         {
-            ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, loopRef);
+            ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, breakRef);
             SWC_ASSERT(loopState != nullptr);
             loopState->hasContinueJump = true;
         }

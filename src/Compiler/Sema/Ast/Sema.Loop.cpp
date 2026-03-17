@@ -318,7 +318,8 @@ Result AstContinueStmt::semaPreNode(Sema& sema)
 {
     if (sema.frame().currentBreakableKind() == SemaFrame::BreakContextKind::None)
         return SemaError::raise(sema, DiagnosticId::sema_err_continue_outside_breakable, sema.curNodeRef());
-    if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::Loop)
+    if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::Loop &&
+        sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::Scope)
         return SemaError::raise(sema, DiagnosticId::sema_err_continue_not_in_loop, sema.curNodeRef());
     return Result::Continue;
 }

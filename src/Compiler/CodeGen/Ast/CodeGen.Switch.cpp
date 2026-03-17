@@ -499,7 +499,8 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
     if (breakCtx.kind == CodeGenFrame::BreakContextKind::None)
         return Result::Continue;
 
-    if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop)
+    if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop ||
+        breakCtx.kind == CodeGenFrame::BreakContextKind::Scope)
     {
         const MicroLabelRef breakLabel = codeGen.frame().currentLoopBreakLabel();
         if (breakLabel != MicroLabelRef::invalid())

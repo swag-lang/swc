@@ -90,6 +90,7 @@ public:
     enum class BreakContextKind : uint8_t
     {
         None,
+        Scope,
         Loop,
         Switch,
     };

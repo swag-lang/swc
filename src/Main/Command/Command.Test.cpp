@@ -93,16 +93,9 @@ namespace
         return Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore;
     }
 
-    bool finishAction(ScopedTimedAction& action, const uint64_t errorsBefore)
+    bool hasErrors(const uint64_t errorsBefore)
     {
-        if (hasNewErrors(errorsBefore))
-        {
-            action.fail();
-            return false;
-        }
-
-        action.success();
-        return true;
+        return hasNewErrors(errorsBefore);
     }
 
     bool shouldRunNativeTests(const CommandLine& cmdLine)
@@ -368,10 +361,10 @@ namespace
     {
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
-        ScopedTimedAction checkAction(ctx, "Check", formatCommandSourceRoots(ctx.cmdLine()));
+        TimedActionLog::printStep(ctx, "Sema", formatCommandSourceRoots(ctx.cmdLine()));
         const uint64_t    errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
         Command::sema(compiler);
-        if (!finishAction(checkAction, errorsBefore))
+        if (hasErrors(errorsBefore))
             return;
 
         finishTestCommand(compiler);

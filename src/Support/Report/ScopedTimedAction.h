@@ -43,7 +43,7 @@ namespace TimedActionLog
         return ACTION_CENTER_COLUMN - action.size();
     }
 
-    inline void printLine(const TaskContext& ctx, std::string_view action, std::string_view detail, const bool endLine)
+    inline void printAction(const TaskContext& ctx, std::string_view action, std::string_view detail = {})
     {
         if (ctx.cmdLine().silent)
             return;
@@ -79,60 +79,21 @@ namespace TimedActionLog
         }
 
         Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Reset));
-        if (endLine)
-            Logger::print(ctx, "\n");
+        Logger::print(ctx, "\n");
 
         std::cout << std::flush;
     }
 
-}
-
-class ScopedTimedAction
-{
-public:
-    explicit ScopedTimedAction(const TaskContext& ctx, std::string_view action, std::string_view detail = {}) :
-        ctx_(&ctx),
-        action_(action),
-        detail_(detail)
-    {
-        const Logger::ScopedLock loggerLock(ctx.global().logger());
-        TimedActionLog::printLine(ctx, action_, detail_, true);
-    }
-
-    void success()
-    {
-        if (!active_)
-            return;
-
-        active_ = false;
-    }
-
-    void fail()
-    {
-        if (!active_)
-            return;
-
-        active_ = false;
-    }
-
-    ~ScopedTimedAction()
-    {
-        fail();
-    }
-
-private:
-    const TaskContext* ctx_       = nullptr;
-    Utf8               action_;
-    Utf8               detail_;
-    bool               active_    = true;
-};
-
-namespace TimedActionLog
-{
     inline void printBuildConfiguration(const TaskContext& ctx)
     {
-        ScopedTimedAction buildCfgAction(ctx, "BuildCfg", formatBuildConfiguration(ctx));
-        buildCfgAction.success();
+        const Logger::ScopedLock loggerLock(ctx.global().logger());
+        printAction(ctx, "BuildCfg", formatBuildConfiguration(ctx));
+    }
+
+    inline void printStep(const TaskContext& ctx, std::string_view action, std::string_view detail = {})
+    {
+        const Logger::ScopedLock loggerLock(ctx.global().logger());
+        printAction(ctx, action, detail);
     }
 }
 

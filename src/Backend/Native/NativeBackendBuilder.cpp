@@ -67,13 +67,6 @@ namespace
         return key;
     }
 
-    Result checkActionResult(Result result, ScopedTimedAction& action)
-    {
-        if (result != Result::Continue)
-            action.fail();
-        return result;
-    }
-
     template<typename T>
     const SourceFile* sourceFileForSymbol(const NativeBackendBuilder& builder, const T& symbol)
     {
@@ -296,16 +289,15 @@ Result NativeBackendBuilder::run()
     const NativeArtifactBuilder artifactBuilder(*this);
     NativeArtifactPaths         paths;
     artifactBuilder.queryPaths(paths);
-    ScopedTimedAction buildAction(ctx_, "Build", paths.artifactPath.filename().string());
+    TimedActionLog::printStep(ctx_, "Build", paths.artifactPath.filename().string());
 
-    SWC_RESULT(checkActionResult(prepare(), buildAction));
-    SWC_RESULT(checkActionResult(artifactBuilder.build(), buildAction));
-    SWC_RESULT(checkActionResult(writeObjects(), buildAction));
+    SWC_RESULT(prepare());
+    SWC_RESULT(artifactBuilder.build());
+    SWC_RESULT(writeObjects());
 
     const auto linker = NativeLinker::create(*this);
     SWC_ASSERT(linker != nullptr);
-    SWC_RESULT(checkActionResult(linker->link(), buildAction));
-    buildAction.success();
+    SWC_RESULT(linker->link());
 
     if (runArtifact_ && compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
         SWC_RESULT(runGeneratedArtifact());
@@ -417,7 +409,7 @@ Result NativeBackendBuilder::writeObjects()
 
 Result NativeBackendBuilder::runGeneratedArtifact() const
 {
-    ScopedTimedAction runAction(ctx_, "Run", artifactPath.filename().string());
+    TimedActionLog::printStep(ctx_, "Run", artifactPath.filename().string());
 
     uint32_t       exitCode    = 0;
     const fs::path artifactDir = artifactPath.parent_path();
@@ -427,22 +419,17 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
         case Os::ProcessRunResult::Ok:
             break;
         case Os::ProcessRunResult::StartFailed:
-            runAction.fail();
             return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
         case Os::ProcessRunResult::WaitFailed:
-            runAction.fail();
             return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, Utf8(artifactPath));
         case Os::ProcessRunResult::ExitCodeFailed:
-            runAction.fail();
             return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)
     {
-        runAction.fail();
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, exitCode);
     }
-    runAction.success();
     return Result::Continue;
 }
 

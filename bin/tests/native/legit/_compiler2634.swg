@@ -1,7 +1,7 @@
-// 
+//
 
 #global fileprivate
-#global skip
+
 using Swag
 
 #[Compiler]

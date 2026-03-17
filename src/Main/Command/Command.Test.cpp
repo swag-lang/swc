@@ -15,6 +15,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    template<typename T>
+    struct SortEntry
+    {
+        T*   symbol = nullptr;
+        Utf8 key;
+    };
+
     fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
     {
         fs::path result;
@@ -190,7 +197,8 @@ namespace
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
 
-    Utf8 makeFunctionSortKey(const TaskContext& ctx, const SymbolFunction& symbol)
+    template<typename T>
+    Utf8 makeSymbolLocationSortKey(const TaskContext& ctx, const T& symbol)
     {
         Utf8 key;
         if (const SourceFile* file = ctx.compiler().srcView(symbol.srcViewRef()).file())
@@ -198,28 +206,43 @@ namespace
 
         key += "|";
         key += std::to_string(symbol.tokRef().get());
-        key += "|";
-        key += symbol.getFullScopedName(ctx);
-        key += "|";
-        key += symbol.computeName(ctx);
         return key;
+    }
+
+    Utf8 makeFunctionSortKey(const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        return makeSymbolLocationSortKey(ctx, symbol);
     }
 
     void sortAndUniqueFunctions(std::vector<SymbolFunction*>& values, const TaskContext& ctx)
     {
         std::erase(values, nullptr);
-        std::ranges::sort(values, [&](const SymbolFunction* lhs, const SymbolFunction* rhs) {
-            if (lhs == rhs)
-                return false;
+        if (values.size() < 2)
+            return;
 
-            const Utf8 lhsKey = makeFunctionSortKey(ctx, *lhs);
-            const Utf8 rhsKey = makeFunctionSortKey(ctx, *rhs);
-            if (lhsKey != rhsKey)
-                return lhsKey < rhsKey;
-            return lhs < rhs;
+        std::vector<SortEntry<SymbolFunction>> entries;
+        entries.reserve(values.size());
+        for (SymbolFunction* symbol : values)
+        {
+            SWC_ASSERT(symbol != nullptr);
+            entries.push_back({.symbol = symbol, .key = makeFunctionSortKey(ctx, *symbol)});
+        }
+
+        std::ranges::stable_sort(entries, [](const SortEntry<SymbolFunction>& lhs, const SortEntry<SymbolFunction>& rhs) {
+            return lhs.key < rhs.key;
         });
 
-        values.erase(std::ranges::unique(values).begin(), values.end());
+        values.clear();
+        values.reserve(entries.size());
+        SymbolFunction* previous = nullptr;
+        for (const auto& entry : entries)
+        {
+            if (entry.symbol == previous)
+                continue;
+
+            values.push_back(entry.symbol);
+            previous = entry.symbol;
+        }
     }
 
     struct DataSegmentSnapshot

@@ -16,22 +16,55 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    template<typename T>
+    struct SortEntry
+    {
+        T*   symbol = nullptr;
+        Utf8 key;
+    };
+
     template<typename T, typename MAKE_KEY>
     void sortAndUnique(std::vector<T*>& values, const MAKE_KEY& makeKey)
     {
         values.erase(std::remove(values.begin(), values.end(), nullptr), values.end());
-        std::ranges::sort(values, [&](const T* lhs, const T* rhs) {
-            if (lhs == rhs)
-                return false;
+        if (values.size() < 2)
+            return;
 
-            const Utf8 lhsKey = makeKey(*lhs);
-            const Utf8 rhsKey = makeKey(*rhs);
-            if (lhsKey != rhsKey)
-                return lhsKey < rhsKey;
-            return lhs < rhs;
+        std::vector<SortEntry<T>> entries;
+        entries.reserve(values.size());
+        for (T* symbol : values)
+        {
+            SWC_ASSERT(symbol != nullptr);
+            entries.push_back({.symbol = symbol, .key = makeKey(*symbol)});
+        }
+
+        std::ranges::stable_sort(entries, [](const SortEntry<T>& lhs, const SortEntry<T>& rhs) {
+            return lhs.key < rhs.key;
         });
 
-        values.erase(std::unique(values.begin(), values.end()), values.end());
+        values.clear();
+        values.reserve(entries.size());
+        T* previous = nullptr;
+        for (const auto& entry : entries)
+        {
+            if (entry.symbol == previous)
+                continue;
+
+            values.push_back(entry.symbol);
+            previous = entry.symbol;
+        }
+    }
+
+    template<typename T>
+    Utf8 makeSymbolLocationSortKey(const NativeBackendBuilder& builder, const T& symbol)
+    {
+        Utf8 key;
+        if (const SourceFile* file = builder.compiler().srcView(symbol.srcViewRef()).file())
+            key += Utf8(file->path());
+
+        key += "|";
+        key += std::to_string(symbol.tokRef().get());
+        return key;
     }
 
     bool isCompilerFunction(const SymbolFunction& symbol)
@@ -41,30 +74,12 @@ namespace
 
     Utf8 makeFunctionSortKey(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
     {
-        Utf8 key;
-        if (const SourceFile* file = builder.compiler().srcView(symbol.srcViewRef()).file())
-            key += Utf8(file->path());
-
-        key += "|";
-        key += std::to_string(symbol.tokRef().get());
-        key += "|";
-        key += symbol.getFullScopedName(builder.ctx());
-        key += "|";
-        key += symbol.computeName(builder.ctx());
-        return key;
+        return makeSymbolLocationSortKey(builder, symbol);
     }
 
     Utf8 makeVariableSortKey(const NativeBackendBuilder& builder, const SymbolVariable& symbol)
     {
-        Utf8 key;
-        if (const SourceFile* file = builder.compiler().srcView(symbol.srcViewRef()).file())
-            key += Utf8(file->path());
-
-        key += "|";
-        key += std::to_string(symbol.tokRef().get());
-        key += "|";
-        key += symbol.getFullScopedName(builder.ctx());
-        return key;
+        return makeSymbolLocationSortKey(builder, symbol);
     }
 
     template<typename T>

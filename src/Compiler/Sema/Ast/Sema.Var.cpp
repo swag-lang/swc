@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -500,34 +501,7 @@ namespace
                     continue;
 
                 const auto fieldBytes = ByteSpan{structBytes.data() + fieldOffset, fieldSize};
-                if (fieldType.isStruct())
-                {
-                    const ConstantValue fieldCst = ConstantValue::makeStructBorrowed(ctx, fieldTypeRef, fieldBytes);
-                    fieldCstRef                  = sema.cstMgr().addConstant(ctx, fieldCst);
-                }
-                else if (fieldType.isArray())
-                {
-                    const ConstantValue fieldCst = ConstantValue::makeArrayBorrowed(ctx, fieldTypeRef, fieldBytes);
-                    fieldCstRef                  = sema.cstMgr().addConstant(ctx, fieldCst);
-                }
-                else
-                {
-                    TypeRef valueTypeRef = fieldTypeRef;
-                    if (fieldType.isEnum())
-                        valueTypeRef = fieldType.payloadSymEnum().underlyingTypeRef();
-
-                    ConstantValue fieldCst = ConstantValue::make(ctx, fieldBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
-                    if (!fieldCst.isValid())
-                        continue;
-
-                    fieldCstRef = sema.cstMgr().addConstant(ctx, fieldCst);
-                    if (fieldType.isEnum())
-                    {
-                        fieldCst = ConstantValue::makeEnumValue(ctx, fieldCstRef, fieldTypeRef);
-                        fieldCst.setTypeRef(fieldTypeRef);
-                        fieldCstRef = sema.cstMgr().addConstant(ctx, fieldCst);
-                    }
-                }
+                fieldCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, fieldBytes);
             }
 
             if (fieldCstRef.isValid())

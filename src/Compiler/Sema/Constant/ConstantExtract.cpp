@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -113,39 +114,10 @@ namespace
 
     Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
-        TaskContext& ctx = sema.ctx();
-        if (typeField.isArray())
-        {
-            outCstRef = makeArrayConstantFromBytes(sema, fieldTypeRef, bytes);
-            if (outCstRef.isInvalid())
-                return failStructMemberType(sema, symVar, nodeMemberRef);
-            return Result::Continue;
-        }
-        if (typeField.isStruct())
-        {
-            outCstRef = makeStructConstantFromBytes(sema, fieldTypeRef, bytes);
-            if (outCstRef.isInvalid())
-                return failStructMemberType(sema, symVar, nodeMemberRef);
-            return Result::Continue;
-        }
-
-        TypeRef valueTypeRef = fieldTypeRef;
-        if (typeField.isEnum())
-            valueTypeRef = typeField.payloadSymEnum().underlyingTypeRef();
-
-        const ConstantValue cv = ConstantValue::make(ctx, bytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
-        if (!cv.isValid())
+        SWC_UNUSED(typeField);
+        outCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, bytes);
+        if (outCstRef.isInvalid())
             return failStructMemberType(sema, symVar, nodeMemberRef);
-
-        ConstantRef cstRef = sema.cstMgr().addConstant(ctx, cv);
-        if (typeField.isEnum())
-        {
-            ConstantValue enumCv = ConstantValue::makeEnumValue(ctx, cstRef, valueTypeRef);
-            enumCv.setTypeRef(fieldTypeRef);
-            cstRef = sema.cstMgr().addConstant(ctx, enumCv);
-        }
-
-        outCstRef = cstRef;
         return Result::Continue;
     }
 }

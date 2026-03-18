@@ -180,23 +180,6 @@ namespace
         return Result::Continue;
     }
 
-    bool isInsideInlineRoot(const Sema& sema, AstNodeRef inlineRootRef)
-    {
-        if (inlineRootRef.isInvalid())
-            return false;
-        if (sema.curNodeRef() == inlineRootRef)
-            return true;
-
-        for (size_t parentIndex = 0;; parentIndex++)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
-            if (parentRef.isInvalid())
-                return false;
-            if (parentRef == inlineRootRef)
-                return true;
-        }
-    }
-
     bool isCallResultIgnored(const Sema& sema)
     {
         const AstNode* parent = sema.visit().parentNode();
@@ -303,7 +286,7 @@ namespace
     {
         outTypeRef                             = TypeRef::invalid();
         const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        if (inlinePayload && isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
+        if (inlinePayload)
         {
             outTypeRef = inlinePayload->returnTypeRef;
             return Result::Continue;

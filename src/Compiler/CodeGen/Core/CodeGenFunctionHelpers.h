@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class CodeGen;
 class SymbolFunction;
 class SymbolVariable;
+class Sema;
 struct CodeGenNodePayload;
 
 namespace CodeGenFunctionHelpers
@@ -25,6 +26,7 @@ namespace CodeGenFunctionHelpers
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
+    bool                  needsPersistentCompilerRunReturn(Sema& sema, TypeRef typeRef);
     void                  emitPersistCompilerRunValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstStorageReg, MicroReg srcStorageReg, MicroReg localStackBaseReg, uint32_t localStackSize);
 }
 

@@ -258,6 +258,13 @@ namespace
     }
 }
 
+bool CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(Sema& sema, TypeRef typeRef)
+{
+    if (typeRef.isInvalid())
+        return false;
+    return needsPersistentCompilerRunScan(sema, typeRef);
+}
+
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg)
 {
     SWC_ASSERT(symVar.hasParameterIndex());

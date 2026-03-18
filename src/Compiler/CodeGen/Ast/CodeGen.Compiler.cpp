@@ -24,48 +24,10 @@ namespace
         return currentDeclRef.isValid() && currentDeclRef == activeDeclRef;
     }
 
-    bool needsPersistentCompilerRunReturn(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return false;
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (typeInfo.isAlias())
-        {
-            const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-            return unwrappedTypeRef.isValid() && needsPersistentCompilerRunReturn(codeGen, unwrappedTypeRef);
-        }
-
-        if (typeInfo.isEnum())
-        {
-            const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Enum);
-            return unwrappedTypeRef.isValid() && needsPersistentCompilerRunReturn(codeGen, unwrappedTypeRef);
-        }
-
-        if (typeInfo.isString() || typeInfo.isSlice())
-            return true;
-
-        if (typeInfo.isArray())
-            return needsPersistentCompilerRunReturn(codeGen, typeInfo.payloadArrayElemTypeRef());
-
-        if (typeInfo.isStruct())
-        {
-            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
-            {
-                if (field && needsPersistentCompilerRunReturn(codeGen, field->typeRef()))
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
     bool shouldPersistCompilerRunReturn(CodeGen& codeGen, TypeRef typeRef, const CodeGenNodePayload& payload)
     {
         SWC_UNUSED(payload);
-        if (!needsPersistentCompilerRunReturn(codeGen, typeRef))
-            return false;
-        return true;
+        return CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), typeRef);
     }
 
     struct CompilerScopeCodeGenPayload

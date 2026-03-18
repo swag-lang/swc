@@ -3,6 +3,6 @@
 #[Swag.ConstExpr]
 func N() => 10
 
-#assert(#typeof(N()) == s8)
+#assert(#typeof(N()) == #typeof(10))
 
 var arr: [N()] s32

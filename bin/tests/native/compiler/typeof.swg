@@ -3,9 +3,9 @@
 const TypedValue: s32 = 10
 
 #assert(#typeof(TypedValue) == s32)
-#assert(#typeof(10) == s8)
-#assert(#typeof(-10) == s8)
-#assert(#typeof(0xFF) == u8)
+#assert(#typeof(10) == s32)
+#assert(#typeof(-10) == s32)
+#assert(#typeof(0xFF) == u32)
 #assert(#typeof(0x1_0000) == u32)
 #assert(#typeof(1.0) == f32)
 #assert(#typeof(1.0'f64) == f64)
@@ -43,7 +43,7 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
     var local = 1 + 1'u16
     var ptr = cast(*u8) null
 
-    #assert(#typeof(local) == u16)
+    #assert(#typeof(local) == u32)
     #assert(#typeof(ptr) == *u8)
 
     @assert(local == 2'u16)

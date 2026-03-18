@@ -2,8 +2,8 @@
 //#global skip
 func N() => 10
 
-#assert(#typeof(N()) == s32)
-#assert(#typeof(#run N()) == s32)
+#assert(#typeof(N()) == #typeof(10))
+#assert(#typeof(#run N()) == #typeof(10))
 
 var arr: [#run N()] s32
 

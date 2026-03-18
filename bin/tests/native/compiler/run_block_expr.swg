@@ -165,6 +165,14 @@ func functionScopedShortCompilerOnlyRunCall()
     functionScopedCompilerOnlyRunCall()
     functionScopedShortCompilerOnlyRunCall()
 
+    let value = #run
+    {
+        var pair: AnyPair
+        pair.item = "abc"
+        pair.other = "def"
+        return pair
+    }
+
     let values = #run
     {
         var items: [2] any
@@ -173,6 +181,8 @@ func functionScopedShortCompilerOnlyRunCall()
         return items
     }
 
+    @assert(cast(string) value.item == "abc")
+    @assert(cast(string) value.other == "def")
     @assert(cast(string) values[0] == "first")
     @assert(cast(string) values[1] == "second")
 }

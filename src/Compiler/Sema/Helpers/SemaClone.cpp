@@ -154,6 +154,16 @@ namespace
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
         if (const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef))
         {
+            if (binding->cstRef.isValid())
+            {
+                auto [newRef, newNodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
+                newNodePtr->flags()       = node.flags();
+                if (binding->typeRef.isValid())
+                    sema.setType(newRef, binding->typeRef);
+                sema.setConstant(newRef, binding->cstRef);
+                return newRef;
+            }
+
             const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
             const AstNodeRef              clonedExprRef = SemaClone::cloneAst(sema, binding->exprRef, noBindings);
             if (!binding->typeRef.isValid())

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -87,8 +88,9 @@ namespace
         const ByteSpanRW       bytes = asByteSpan(buffer);
         ConstantLower::lowerAggregateArrayToBytes(*args.sema, bytes, *args.dstType, values);
 
-        const ConstantValue result = ConstantValue::makeArray(ctx, args.dstTypeRef, bytes);
-        return args.sema->cstMgr().addConstant(ctx, result);
+        const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
+        SWC_ASSERT(result.isValid());
+        return result;
     }
 
     Result castArrayToArray(const CastArrayArgs& args)
@@ -186,8 +188,8 @@ namespace
                 ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType);
             }
 
-            const ConstantValue result    = ConstantValue::makeArray(ctx, args.dstTypeRef, bytes);
-            args.castRequest->outConstRef = args.sema->cstMgr().addConstant(ctx, result);
+            args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
+            SWC_ASSERT(args.castRequest->outConstRef.isValid());
             return Result::Continue;
         }
 

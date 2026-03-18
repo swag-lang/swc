@@ -6,12 +6,14 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -151,20 +153,35 @@ namespace
         return result;
     }
 
-    ConstantValue makeJitCallResultConstant(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
+    ConstantRef makeJitCallResultConstantRef(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
     {
         const TypeInfo& exprType = sema.typeMgr().get(resultMeta.exprTypeRef);
         if (!resultMeta.normalizedRet.isIndirect && exprType.isString())
-            return makeRunExprPointerStringConstant(sema, storagePtr);
-        return makeRunExprConstant(sema, resultMeta.exprTypeRef, resultMeta.storageTypeRef, storagePtr);
+            return sema.cstMgr().addConstant(sema.ctx(), makeRunExprPointerStringConstant(sema, storagePtr));
+
+        const TypeRef     constantTypeRef = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
+        const TypeInfo&   constantType    = sema.typeMgr().get(constantTypeRef);
+        const uint64_t    resultSize      = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
+        const auto        resultBytes     = ByteSpan{storagePtr, static_cast<size_t>(resultSize)};
+        TypeRef           unwrappedTypeRef = constantType.unwrap(sema.ctx(), constantTypeRef, TypeExpandE::Alias);
+        if (unwrappedTypeRef.isInvalid())
+            unwrappedTypeRef = constantTypeRef;
+
+        if (resultSize && unwrappedTypeRef == sema.typeMgr().structSourceCodeLocation())
+        {
+            const ConstantRef cstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, constantTypeRef, resultBytes);
+            if (cstRef.isValid())
+                return cstRef;
+        }
+
+        return sema.cstMgr().addConstant(sema.ctx(), makeRunExprConstant(sema, resultMeta.exprTypeRef, resultMeta.storageTypeRef, storagePtr));
     }
 
     void applyPendingJitResult(Sema& sema, AstNodeRef nodeRef, const JITPendingNodeData& pendingEntry)
     {
-        const ConstantValue resultConstant = makeJitCallResultConstant(sema, pendingEntry.resultMeta, pendingEntry.payload->resultStorage.data());
         if (pendingEntry.setFoldedTypedConst)
             sema.setFoldedTypedConst(nodeRef);
-        sema.setConstant(nodeRef, sema.cstMgr().addConstant(sema.ctx(), resultConstant));
+        sema.setConstant(nodeRef, makeJitCallResultConstantRef(sema, pendingEntry.resultMeta, pendingEntry.payload->resultStorage.data()));
     }
 
     void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out)
@@ -367,7 +384,36 @@ namespace
         return true;
     }
 
-    bool buildConstCallArguments(Sema& sema, const SymbolFunction& calledFn, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
+    const SymbolFunction* currentLocationFunction(const Sema& sema)
+    {
+        const auto* inlinePayload = sema.frame().currentInlinePayload();
+        if (inlinePayload && inlinePayload->sourceFunction)
+            return inlinePayload->sourceFunction;
+
+        return sema.frame().currentFunction();
+    }
+
+    ConstantRef defaultArgumentConstantRef(Sema& sema, AstNodeRef callRef, const ResolvedCallArgument& resolvedArg)
+    {
+        switch (resolvedArg.defaultKind)
+        {
+            case CallArgumentDefaultKind::Constant:
+                return resolvedArg.defaultCstRef;
+
+            case CallArgumentDefaultKind::CallerLocation:
+            {
+                const SourceCodeRange codeRange = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+                return ConstantHelpers::makeSourceCodeLocation(sema, codeRange, currentLocationFunction(sema));
+            }
+
+            case CallArgumentDefaultKind::None:
+                break;
+        }
+
+        return ConstantRef::invalid();
+    }
+
+    bool buildConstCallArguments(Sema& sema, const SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
     {
         if (resolvedArgs.size() != calledFn.parameters().size())
             return false;
@@ -408,9 +454,9 @@ namespace
             }
             else
             {
-                if (!resolvedArg.defaultCstRef.isValid())
+                argCstRef = defaultArgumentConstantRef(sema, callRef, resolvedArg);
+                if (!argCstRef.isValid())
                     return false;
-                argCstRef = resolvedArg.defaultCstRef;
             }
 
             if (!argCstRef.isValid())
@@ -509,7 +555,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     ///////////////////////////////////////////
     // Build payload and arguments for call folding.
     const auto payload = std::make_shared<JITNodePayload>();
-    if (!buildConstCallArguments(sema, calledFn, resolvedArgs, payload->argStorage, payload->jitArgs))
+    if (!buildConstCallArguments(sema, calledFn, callRef, resolvedArgs, payload->argStorage, payload->jitArgs))
         return Result::Continue;
 
     const TypeRef           exprTypeRef = calledFn.returnTypeRef();

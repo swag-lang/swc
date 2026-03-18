@@ -38,12 +38,20 @@ enum class CallArgumentPassKind : uint8_t
     InterfaceObject = 1,
 };
 
+enum class CallArgumentDefaultKind : uint8_t
+{
+    None           = 0,
+    Constant       = 1,
+    CallerLocation = 2,
+};
+
 struct ResolvedCallArgument
 {
-    AstNodeRef           argRef         = AstNodeRef::invalid();
-    CallArgumentPassKind passKind       = CallArgumentPassKind::Direct;
-    ConstantRef          typeInfoCstRef = ConstantRef::invalid();
-    ConstantRef          defaultCstRef  = ConstantRef::invalid();
+    AstNodeRef               argRef         = AstNodeRef::invalid();
+    CallArgumentPassKind     passKind       = CallArgumentPassKind::Direct;
+    CallArgumentDefaultKind  defaultKind    = CallArgumentDefaultKind::None;
+    ConstantRef              typeInfoCstRef = ConstantRef::invalid();
+    ConstantRef              defaultCstRef  = ConstantRef::invalid();
 };
 
 class NodePayload

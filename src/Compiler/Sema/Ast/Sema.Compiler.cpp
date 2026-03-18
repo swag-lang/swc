@@ -28,6 +28,36 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const SymbolFunction* currentLocationFunction(const Sema& sema)
+    {
+        const auto* inlinePayload = sema.frame().currentInlinePayload();
+        if (inlinePayload && inlinePayload->sourceFunction)
+            return inlinePayload->sourceFunction;
+
+        return sema.frame().currentFunction();
+    }
+
+    bool isDirectFunctionParameterDefault(const Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+        if (sema.frame().currentFunction() == nullptr)
+            return false;
+
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (parentRef.isInvalid())
+            return false;
+
+        const AstNode& parentNode = sema.node(parentRef);
+        if (const auto* singleVar = parentNode.safeCast<AstSingleVarDecl>())
+            return singleVar->hasFlag(AstVarDeclFlagsE::Parameter) && singleVar->nodeInitRef == nodeRef;
+
+        if (const auto* multiVar = parentNode.safeCast<AstMultiVarDecl>())
+            return multiVar->hasFlag(AstVarDeclFlagsE::Parameter) && multiVar->nodeInitRef == nodeRef;
+
+        return false;
+    }
+
     AstNodeRef findNamedCompilerScope(Sema& sema, std::string_view scopeName)
     {
         for (size_t parentIndex = 0;; ++parentIndex)
@@ -521,11 +551,20 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             sema.setIsValue(*this);
             break;
         case TokenId::CompilerCallerLocation:
+        {
+            TypeRef typeRef = TypeRef::invalid();
+            SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
+            if (!isDirectFunctionParameterDefault(sema, sema.curNodeRef()))
+                return SemaError::raise(sema, DiagnosticId::sema_err_caller_location_default_only, codeRef());
+            sema.setType(sema.curNodeRef(), typeRef);
+            sema.setIsValue(*this);
+            break;
+        }
         case TokenId::CompilerCurLocation:
         {
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
-            sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, *this));
+            sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, *this, currentLocationFunction(sema)));
             break;
         }
 
@@ -854,7 +893,7 @@ namespace
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_location, childRef);
 
         const SourceCodeRange codeRange = view.sym()->codeRange(sema.ctx());
-        sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, codeRange));
+        sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, codeRange, view.sym()->safeCast<SymbolFunction>()));
         return Result::Continue;
     }
 

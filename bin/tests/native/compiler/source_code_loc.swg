@@ -29,3 +29,19 @@ const B = #curlocation
     #assert(L.lineStart > B.lineStart)
     @assert(L.fileName == A.fileName)
 }
+
+func nativeCaptureLoc(loc = #callerlocation)->Swag.SourceCodeLocation => loc
+
+func nativeCallerLoc()->Swag.SourceCodeLocation
+{
+    return nativeCaptureLoc()
+}
+
+#test
+{
+    let loc = nativeCallerLoc()
+    @assert(loc.fileName != null)
+    @assert(loc.funcName != null)
+    @assert(loc.lineStart == 37)
+    @assert(loc.colStart == 12)
+}

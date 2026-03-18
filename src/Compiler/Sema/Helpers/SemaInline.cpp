@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -12,6 +13,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isBindingAssigned(const SemaClone::ParamBinding& binding)
+    {
+        return binding.exprRef.isValid() || binding.cstRef.isValid();
+    }
+
     struct InlineVariadicBinding
     {
         const SymbolVariable*   param           = nullptr;
@@ -32,6 +38,28 @@ namespace
             return multiVar->nodeInitRef;
 
         return AstNodeRef::invalid();
+    }
+
+    bool isDirectCallerLocationDefault(const Sema& sema, const SymbolVariable& param)
+    {
+        const AstNodeRef initRef = defaultArgumentExprRef(param);
+        if (initRef.isInvalid())
+            return false;
+
+        const AstNode& initNode = sema.node(initRef);
+        if (initNode.isNot(AstNodeId::CompilerLiteral))
+            return false;
+
+        return sema.token(initNode.codeRef()).id == TokenId::CompilerCallerLocation;
+    }
+
+    const SymbolFunction* currentLocationFunction(const Sema& sema)
+    {
+        const auto* inlinePayload = sema.frame().currentInlinePayload();
+        if (inlinePayload && inlinePayload->sourceFunction)
+            return inlinePayload->sourceFunction;
+
+        return sema.frame().currentFunction();
     }
 
     AstNodeRef wrapCodeArgument(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
@@ -359,7 +387,7 @@ namespace
         return Result::Continue;
     }
 
-    bool mapArguments(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings, InlineVariadicBinding& outVariadic)
+    bool mapArguments(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings, InlineVariadicBinding& outVariadic)
     {
         outVariadic = {};
 
@@ -377,7 +405,7 @@ namespace
             outVariadic.untypedVariadic = lastParamType.isVariadic();
         }
 
-        std::vector bound(numFixed, AstNodeRef::invalid());
+        std::vector<SemaClone::ParamBinding> bound(numFixed);
         size_t      nextParam = 0;
 
         if (ufcsArg.isValid())
@@ -385,7 +413,8 @@ namespace
             const AstNodeRef ufcsRef = bindingArgumentRef(sema, *params[0], ufcsArg);
             if (numFixed > 0)
             {
-                bound[0]  = ufcsRef;
+                bound[0].idRef   = params[0]->idRef();
+                bound[0].exprRef = ufcsRef;
                 nextParam = 1;
             }
             else if (hasAnyVariadic)
@@ -429,10 +458,11 @@ namespace
 
             if (paramIndex >= numFixed)
                 return false;
-            if (bound[paramIndex].isValid())
+            if (isBindingAssigned(bound[paramIndex]))
                 return false;
 
-            bound[paramIndex] = argValueRef;
+            bound[paramIndex].idRef   = params[paramIndex]->idRef();
+            bound[paramIndex].exprRef = argValueRef;
         }
 
         for (const auto argRef : args)
@@ -441,13 +471,15 @@ namespace
             if (isNamedArgument(argNode))
                 continue;
 
-            while (nextParam < numFixed && bound[nextParam].isValid())
+            while (nextParam < numFixed && isBindingAssigned(bound[nextParam]))
                 nextParam++;
 
             const AstNodeRef argValueRef = nextParam < numFixed ? bindingArgumentRef(sema, *params[nextParam], argRef) : sema.viewZero(argRef).nodeRef();
             if (nextParam < numFixed)
             {
-                bound[nextParam++] = argValueRef;
+                bound[nextParam].idRef   = params[nextParam]->idRef();
+                bound[nextParam].exprRef = argValueRef;
+                nextParam++;
                 continue;
             }
 
@@ -466,21 +498,31 @@ namespace
 
         for (size_t i = 0; i < numFixed; i++)
         {
-            if (!bound[i].isValid())
+            if (!isBindingAssigned(bound[i]))
             {
                 const SymbolVariable* param = params[i];
                 SWC_ASSERT(param != nullptr);
                 if (!param->hasExtraFlag(SymbolVariableFlagsE::Initialized))
                     return false;
 
-                const AstNodeRef defaultRef = bindingArgumentRef(sema, *param, defaultArgumentExprRef(*param));
-                if (defaultRef.isInvalid())
-                    return false;
-                bound[i] = defaultRef;
+                bound[i].idRef = param->idRef();
+                if (isDirectCallerLocationDefault(sema, *param))
+                {
+                    const SourceCodeRange codeRange = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+                    bound[i].typeRef                = param->typeRef();
+                    bound[i].cstRef                 = ConstantHelpers::makeSourceCodeLocation(sema, codeRange, currentLocationFunction(sema));
+                }
+                else
+                {
+                    const AstNodeRef defaultRef = bindingArgumentRef(sema, *param, defaultArgumentExprRef(*param));
+                    if (defaultRef.isInvalid())
+                        return false;
+                    bound[i].exprRef = defaultRef;
+                }
             }
 
-            if (params[i]->idRef().isValid())
-                outBindings.push_back({params[i]->idRef(), bound[i], TypeRef::invalid()});
+            if (bound[i].idRef.isValid())
+                outBindings.push_back(bound[i]);
         }
 
         return true;
@@ -522,7 +564,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     SmallVector<SemaClone::ParamBinding> bindings;
     InlineVariadicBinding                variadicBinding;
-    if (!mapArguments(sema, fn, args, ufcsArg, bindings, variadicBinding))
+    if (!mapArguments(sema, callRef, fn, args, ufcsArg, bindings, variadicBinding))
         return Result::Continue;
 
     AstNodeRef variadicExprRef     = AstNodeRef::invalid();

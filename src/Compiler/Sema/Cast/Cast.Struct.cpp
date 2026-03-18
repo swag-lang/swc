@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -276,8 +277,8 @@ namespace
             ConstantLower::lowerToBytes(*args.sema, ByteSpanRW{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
         }
 
-        const auto result             = ConstantValue::makeStruct(args.sema->ctx(), args.dstTypeRef, bytes);
-        args.castRequest->outConstRef = args.sema->cstMgr().addConstant(args.sema->ctx(), result);
+        args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
+        SWC_ASSERT(args.castRequest->outConstRef.isValid());
         return Result::Continue;
     }
 

@@ -12,6 +12,7 @@ namespace SemaClone
         IdentifierRef idRef;
         AstNodeRef    exprRef;
         TypeRef       typeRef = TypeRef::invalid();
+        ConstantRef   cstRef  = ConstantRef::invalid();
     };
 
     struct NodeReplacement

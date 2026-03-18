@@ -5,8 +5,8 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -22,6 +22,33 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    AstNodeRef unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid())
+        {
+            const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+            if (resolvedRef.isValid() && resolvedRef != nodeRef)
+            {
+                nodeRef = resolvedRef;
+                continue;
+            }
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::ParenExpr))
+            {
+                nodeRef = node.cast<AstParenExpr>().nodeExprRef;
+                continue;
+            }
+
+            break;
+        }
+
+        return nodeRef;
+    }
+}
 
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
@@ -910,16 +937,17 @@ namespace
 
         AstNodeRef ufcsArg = AstNodeRef::invalid();
         SWC_ASSERT(nodeCallee.node() != nullptr);
-        if (nodeCallee.node()->is(AstNodeId::MemberAccessExpr))
+        const AstNodeRef resolvedCalleeRef = unwrapCallCalleeRef(sema, node.nodeExprRef);
+        if (resolvedCalleeRef.isValid() && sema.node(resolvedCalleeRef).is(AstNodeId::MemberAccessExpr))
         {
-            const auto&        memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
+            const auto&        memberAccess = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();
             const SemaNodeView nodeLeftView = sema.viewZero(memberAccess.nodeLeftRef);
             if (sema.isValue(nodeLeftView.nodeRef()))
                 ufcsArg = nodeLeftView.nodeRef();
         }
 
-        AstNodeRef trailingBlockSiblingRef = AstNodeRef::invalid();
-        const AstNodeRef trailingBlockArgRef = resolveTrailingCodeBlockArgument(sema, nodeCallee, symbols, args.span(), ufcsArg, trailingBlockSiblingRef);
+        AstNodeRef       trailingBlockSiblingRef = AstNodeRef::invalid();
+        const AstNodeRef trailingBlockArgRef     = resolveTrailingCodeBlockArgument(sema, nodeCallee, symbols, args.span(), ufcsArg, trailingBlockSiblingRef);
         if (trailingBlockArgRef.isValid())
             args.push_back(trailingBlockArgRef);
 

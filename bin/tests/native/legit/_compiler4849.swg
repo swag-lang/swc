@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 const MyString: string = #run
 {
     var str: [3] u8

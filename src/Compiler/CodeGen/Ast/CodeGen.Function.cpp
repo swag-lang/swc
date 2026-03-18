@@ -68,6 +68,50 @@ namespace
         return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
     }
 
+    bool needsPersistentCompilerRunReturn(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isAlias())
+        {
+            const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+            return unwrappedTypeRef.isValid() && needsPersistentCompilerRunReturn(codeGen, unwrappedTypeRef);
+        }
+
+        if (typeInfo.isEnum())
+        {
+            const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Enum);
+            return unwrappedTypeRef.isValid() && needsPersistentCompilerRunReturn(codeGen, unwrappedTypeRef);
+        }
+
+        if (typeInfo.isString() || typeInfo.isSlice())
+            return true;
+
+        if (typeInfo.isArray())
+            return needsPersistentCompilerRunReturn(codeGen, typeInfo.payloadArrayElemTypeRef());
+
+        if (typeInfo.isStruct())
+        {
+            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+            {
+                if (field && needsPersistentCompilerRunReturn(codeGen, field->typeRef()))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool shouldPersistCompilerRunReturn(CodeGen& codeGen, TypeRef typeRef, const CodeGenNodePayload& payload)
+    {
+        SWC_UNUSED(payload);
+        if (!needsPersistentCompilerRunReturn(codeGen, typeRef))
+            return false;
+        return true;
+    }
+
     SymbolFunction& functionExprSymbol(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (Symbol* sym = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym())
@@ -637,21 +681,10 @@ namespace
             if (normalizedRet.isIndirect)
             {
                 SWC_ASSERT(normalizedRet.indirectSize != 0);
-                if (exprPayload.isAddress())
-                {
-                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
-                }
+                if (normalizedRet.isIndirect && shouldPersistCompilerRunReturn(codeGen, returnTypeRef, exprPayload))
+                    CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
                 else
-                {
-                    const uint32_t spillSize = normalizedRet.indirectSize;
-                    auto*          spillData = codeGen.compiler().allocateArray<std::byte>(spillSize);
-                    std::memset(spillData, 0, spillSize);
-
-                    const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
-                    builder.emitLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);
-                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
-                }
+                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
             }
             else
             {

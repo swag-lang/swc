@@ -4,6 +4,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -21,6 +22,50 @@ namespace
         const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
         const AstNodeRef activeDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
         return currentDeclRef.isValid() && currentDeclRef == activeDeclRef;
+    }
+
+    bool needsPersistentCompilerRunReturn(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isAlias())
+        {
+            const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+            return unwrappedTypeRef.isValid() && needsPersistentCompilerRunReturn(codeGen, unwrappedTypeRef);
+        }
+
+        if (typeInfo.isEnum())
+        {
+            const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Enum);
+            return unwrappedTypeRef.isValid() && needsPersistentCompilerRunReturn(codeGen, unwrappedTypeRef);
+        }
+
+        if (typeInfo.isString() || typeInfo.isSlice())
+            return true;
+
+        if (typeInfo.isArray())
+            return needsPersistentCompilerRunReturn(codeGen, typeInfo.payloadArrayElemTypeRef());
+
+        if (typeInfo.isStruct())
+        {
+            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+            {
+                if (field && needsPersistentCompilerRunReturn(codeGen, field->typeRef()))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool shouldPersistCompilerRunReturn(CodeGen& codeGen, TypeRef typeRef, const CodeGenNodePayload& payload)
+    {
+        SWC_UNUSED(payload);
+        if (!needsPersistentCompilerRunReturn(codeGen, typeRef))
+            return false;
+        return true;
     }
 
     struct CompilerScopeCodeGenPayload
@@ -322,30 +367,15 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const CodeGenNodePayload& runExprPayload   = codeGen.payload(codeGen.curNodeRef());
     const MicroReg            outputStorageReg = runExprPayload.reg;
     const AstNode&            exprNode         = codeGen.node(nodeExprRef);
-
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
 
     if (normalizedRet.isIndirect)
     {
         SWC_ASSERT(normalizedRet.indirectSize != 0);
-        if (exprPayload.isAddress())
-        {
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
-        }
+        if (shouldPersistCompilerRunReturn(codeGen, exprView.typeRef(), exprPayload))
+            CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, exprView.typeRef(), outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
         else
-        {
-            const uint32_t spillSize = normalizedRet.indirectSize;
-            auto*          spillData = codeGen.compiler().allocateArray<std::byte>(spillSize);
-            std::memset(spillData, 0, spillSize);
-
-            // Indirect ABI returns still need an address source, so spill direct register results to
-            // temporary storage before copying them to the caller buffer.
-            const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
-
-            builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
-            builder.emitLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
-        }
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
     }
     else
     {

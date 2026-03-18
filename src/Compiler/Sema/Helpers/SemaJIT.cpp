@@ -108,20 +108,6 @@ namespace
         return result;
     }
 
-    ConstantValue makeRunExprPointerStringConstant(Sema& sema, const std::byte* storagePtr)
-    {
-        const TaskContext& ctx           = sema.ctx();
-        const uint64_t     strPtrAddress = *reinterpret_cast<const uint64_t*>(storagePtr);
-        if (!strPtrAddress)
-            return ConstantValue::makeString(ctx, std::string_view{});
-
-        const auto* str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
-        if (!str->ptr || !str->length)
-            return ConstantValue::makeString(ctx, std::string_view{});
-
-        return ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
-    }
-
     ConstantValue makeRunExprConstant(Sema& sema, TypeRef exprTypeRef, TypeRef storageTypeRef, const std::byte* storagePtr)
     {
         TaskContext&    ctx         = sema.ctx();
@@ -154,21 +140,20 @@ namespace
         return result;
     }
 
+    bool shouldMaterializePersistentRunExpr(TypeRef storageTypeRef, Sema& sema)
+    {
+        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+        return storageType.isString() || storageType.isSlice() || storageType.isAny() || storageType.isInterface() || storageType.isStruct() || storageType.isArray();
+    }
+
     ConstantRef makeJitCallResultConstantRef(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
     {
         const TypeInfo& exprType = sema.typeMgr().get(resultMeta.exprTypeRef);
-        if (!resultMeta.normalizedRet.isIndirect && exprType.isString())
-            return sema.cstMgr().addConstant(sema.ctx(), makeRunExprPointerStringConstant(sema, storagePtr));
-
         const TypeRef   constantTypeRef  = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
-        const TypeInfo& constantType     = sema.typeMgr().get(constantTypeRef);
         const uint64_t  resultSize       = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
         const auto      resultBytes      = ByteSpan{storagePtr, static_cast<size_t>(resultSize)};
-        TypeRef         unwrappedTypeRef = constantType.unwrap(sema.ctx(), constantTypeRef, TypeExpandE::Alias);
-        if (unwrappedTypeRef.isInvalid())
-            unwrappedTypeRef = constantTypeRef;
 
-        if (resultSize && unwrappedTypeRef == sema.typeMgr().structSourceCodeLocation())
+        if (resultSize && shouldMaterializePersistentRunExpr(resultMeta.storageTypeRef, sema))
         {
             const ConstantRef cstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, constantTypeRef, resultBytes);
             if (cstRef.isValid())

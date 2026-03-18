@@ -19,6 +19,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid())
+        {
+            const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+            if (resolvedRef.isValid() && resolvedRef != nodeRef)
+            {
+                nodeRef = resolvedRef;
+                continue;
+            }
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::ParenExpr))
+            {
+                nodeRef = node.cast<AstParenExpr>().nodeExprRef;
+                continue;
+            }
+
+            break;
+        }
+
+        return nodeRef;
+    }
+
     const SymbolFunction* currentLocationFunction(const Sema& sema)
     {
         const auto* inlinePayload = sema.frame().currentInlinePayload();
@@ -1146,9 +1170,15 @@ namespace
     {
         if (!nodeCallee.node())
             return AstNodeRef::invalid();
-        if (!nodeCallee.node()->is(AstNodeId::MemberAccessExpr))
+
+        const AstNodeRef resolvedCalleeRef = unwrapCallCalleeRef(sema, nodeCallee.nodeRef());
+        if (resolvedCalleeRef.isInvalid())
             return AstNodeRef::invalid();
-        const auto& memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
+
+        const AstNode& resolvedCalleeNode = sema.node(resolvedCalleeRef);
+        if (!resolvedCalleeNode.is(AstNodeId::MemberAccessExpr))
+            return AstNodeRef::invalid();
+        const auto& memberAccess = resolvedCalleeNode.cast<AstMemberAccessExpr>();
 
         const SemaNodeView receiverView = sema.viewNodeTypeSymbol(memberAccess.nodeLeftRef);
         if (receiverView.sym() && receiverView.sym()->isImpl())

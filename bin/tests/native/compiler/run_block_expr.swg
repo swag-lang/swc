@@ -19,6 +19,72 @@ const DeducePowerOfTwo = #run
     return [1, 2, 3, 4]
 }
 
+const PersistentText: string = #run
+{
+    var data: [3] u8
+    data[0] = 'a'
+    data[1] = 'b'
+    data[2] = data[1] + 1
+    return cast(string) data
+}
+
+const PersistentBytes: const [..] u8 = #run
+{
+    var data: [4] u8
+    data[0] = 1
+    data[1] = 2
+    data[2] = 3
+    data[3] = 4
+    return cast(const [..] u8) data
+}
+
+struct TextHolder
+{
+    text: string
+}
+
+struct BytesHolder
+{
+    bytes: const [..] u8
+}
+
+const PersistentTextHolder: TextHolder = #run
+{
+    var data: [3] u8
+    data[0] = 'a'
+    data[1] = 'b'
+    data[2] = data[1] + 1
+
+    var holder: TextHolder
+    holder.text = cast(string) data
+    return holder
+}
+
+const PersistentStringArray: [1] string = #run
+{
+    var data: [3] u8
+    data[0] = 'a'
+    data[1] = 'b'
+    data[2] = data[1] + 1
+
+    var values: [1] string
+    values[0] = cast(string) data
+    return values
+}
+
+const PersistentBytesHolder: BytesHolder = #run
+{
+    var data: [4] u8
+    data[0] = 1
+    data[1] = 2
+    data[2] = 3
+    data[3] = 4
+
+    var holder: BytesHolder
+    holder.bytes = cast(const [..] u8) data
+    return holder
+}
+
 #[Swag.Compiler]
 func assertCompilerOnlyRunCall(value: string)
 {
@@ -57,6 +123,15 @@ func functionScopedShortCompilerOnlyRunCall()
 #assert(#typeof(DeducePowerOfTwo) == [4] s32)
 #assert(DeducePowerOfTwo[0] == 1)
 #assert(DeducePowerOfTwo[3] == 4)
+#assert(PersistentText == "abc")
+#assert(PersistentTextHolder.text == "abc")
+#assert(PersistentStringArray[0] == "abc")
+#assert(@countof(PersistentBytes) == 4)
+#assert(PersistentBytes[0] == 1)
+#assert(PersistentBytes[3] == 4)
+#assert(@countof(PersistentBytesHolder.bytes) == 4)
+#assert(PersistentBytesHolder.bytes[0] == 1)
+#assert(PersistentBytesHolder.bytes[3] == 4)
 
 #test
 {

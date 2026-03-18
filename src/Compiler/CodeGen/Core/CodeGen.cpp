@@ -279,6 +279,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     if (!nodePayload)
     {
         nodePayload = compiler().allocate<CodeGenNodePayload>();
+        nodePayload->runtimeStorageSym = nullptr;
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 

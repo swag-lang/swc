@@ -15,6 +15,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    ConstantValue makeMaterializedConstantValue(Sema& sema, TypeRef typeRef, ByteSpan storedBytes)
+    {
+        TaskContext&    ctx            = sema.ctx();
+        const TypeInfo& originalType   = ctx.typeMgr().get(typeRef);
+        TypeRef         storageTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (storageTypeRef.isInvalid())
+            storageTypeRef = typeRef;
+
+        const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
+        ConstantValue   result;
+
+        if (storageType.isStruct() || storageType.isAny() || storageType.isInterface())
+            result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
+        else if (storageType.isArray())
+            result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
+        else
+            result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+
+        if (!result.isValid())
+            return result;
+
+        if (originalType.isEnum())
+        {
+            const ConstantRef storageRef = sema.cstMgr().addConstant(ctx, result);
+            return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);
+        }
+
+        result.setTypeRef(typeRef);
+        return result;
+    }
+
     bool mergeRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, uint32_t candidateShardIndex)
     {
         if (!hasRequiredShard)
@@ -164,11 +195,12 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     if (ConstantLower::materializeStaticPayload(offset, sema, segment, typeRef, payload) != Result::Continue)
         return ConstantRef::invalid();
 
-    const ByteSpan storedBytes{segment.ptr<std::byte>(offset), sizeOf};
-    if (typeInfo.isArray())
-        return sema.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, typeRef, storedBytes));
+    const ByteSpan      storedBytes{segment.ptr<std::byte>(offset), sizeOf};
+    const ConstantValue result = makeMaterializedConstantValue(sema, typeRef, storedBytes);
+    if (!result.isValid())
+        return ConstantRef::invalid();
 
-    return sema.cstMgr().addConstant(ctx, ConstantValue::makeStructBorrowed(ctx, typeRef, storedBytes));
+    return sema.cstMgr().addConstant(ctx, result);
 }
 
 ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCodeRange& codeRange, const SymbolFunction* function)

@@ -19,12 +19,32 @@ const DeducePowerOfTwo = #run
     return [1, 2, 3, 4]
 }
 
+#[Swag.Compiler]
+func assertCompilerOnlyRunCall(value: string)
+{
+    @assert(value == "inside compiler-only run call")
+}
+
 func functionScopedRunBlock()
 {
     #run
     {
         #assert(#curlocation.funcName == "functionScopedRunBlock")
     }
+}
+
+func functionScopedCompilerOnlyRunCall()
+{
+    #run
+    {
+        let value = "inside compiler-only run call"
+        assertCompilerOnlyRunCall(value)
+    }
+}
+
+func functionScopedShortCompilerOnlyRunCall()
+{
+    #run assertCompilerOnlyRunCall("inside compiler-only run call")
 }
 
 #assert(#typeof(ScalarValue) == s32)
@@ -41,4 +61,6 @@ func functionScopedRunBlock()
 #test
 {
     functionScopedRunBlock()
+    functionScopedCompilerOnlyRunCall()
+    functionScopedShortCompilerOnlyRunCall()
 }

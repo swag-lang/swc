@@ -16,6 +16,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isActiveCompilerRunRoot(CodeGen& codeGen)
+    {
+        const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+        const AstNodeRef activeDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        return currentDeclRef.isValid() && currentDeclRef == activeDeclRef;
+    }
+
     struct CompilerScopeCodeGenPayload
     {
         MicroLabelRef continueLabel = MicroLabelRef::invalid();
@@ -137,6 +144,9 @@ namespace
 
 Result AstCompilerFunc::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
+    if (!isActiveCompilerRunRoot(codeGen))
+        return Result::SkipChildren;
+
     if (childRef != nodeBodyRef)
         return Result::SkipChildren;
 
@@ -148,6 +158,9 @@ Result AstCompilerFunc::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen)
 {
+    if (!isActiveCompilerRunRoot(codeGen))
+        return Result::Continue;
+
     const CallConvKind callConvKind = codeGen.function().callConvKind();
     MicroBuilder&      builder      = codeGen.builder();
     emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
@@ -157,6 +170,9 @@ Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen)
 
 Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
+    if (!isActiveCompilerRunRoot(codeGen))
+        return Result::SkipChildren;
+
     if (childRef != nodeBodyRef)
         return Result::SkipChildren;
 
@@ -176,6 +192,9 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
 
 Result AstCompilerRunBlock::codeGenPostNode(CodeGen& codeGen)
 {
+    if (!isActiveCompilerRunRoot(codeGen))
+        return Result::Continue;
+
     const CallConvKind callConvKind = codeGen.function().callConvKind();
     MicroBuilder&      builder      = codeGen.builder();
     emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
@@ -187,6 +206,8 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 {
     if (codeGen.curViewConstant().hasConstant())
         return Result::Continue;
+    if (!isActiveCompilerRunRoot(codeGen))
+        return Result::SkipChildren;
 
     const CallConvKind callConvKind = codeGen.function().callConvKind();
     const CallConv&    callConv     = CallConv::get(callConvKind);
@@ -286,6 +307,9 @@ Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    if (!isActiveCompilerRunRoot(codeGen))
+        return Result::Continue;
+
     const CallConvKind callConvKind = codeGen.function().callConvKind();
     const CallConv&    callConv     = CallConv::get(callConvKind);
     MicroBuilder&      builder      = codeGen.builder();

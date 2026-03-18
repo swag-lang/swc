@@ -88,6 +88,40 @@ namespace
         return builder.compiler().srcView(symbol.srcViewRef()).file();
     }
 
+    bool isNativeArtifactCompilerFunction(const TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::CompilerFuncTest:
+            case TokenId::CompilerFuncInit:
+            case TokenId::CompilerFuncDrop:
+            case TokenId::CompilerFuncMain:
+            case TokenId::CompilerFuncPreMain:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    bool isRuntimeArtifactFunction(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    {
+        if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+            return false;
+
+        const AstNode* const decl = symbol.decl();
+        if (!decl)
+            return true;
+
+        if (decl->id() == AstNodeId::CompilerRunBlock || decl->id() == AstNodeId::CompilerRunExpr)
+            return false;
+        if (decl->id() != AstNodeId::CompilerFunc)
+            return true;
+
+        const TokenId tokenId = builder.compiler().srcView(symbol.srcViewRef()).token(symbol.tokRef()).id;
+        return isNativeArtifactCompilerFunction(tokenId);
+    }
+
     bool shouldPrepareFile(const SourceFile* file)
     {
         if (!file)
@@ -100,6 +134,12 @@ namespace
     bool shouldPrepareSymbol(const NativeBackendBuilder& builder, const T& symbol)
     {
         return shouldPrepareFile(sourceFileForSymbol(builder, symbol));
+    }
+
+    template<>
+    bool shouldPrepareSymbol<SymbolFunction>(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    {
+        return shouldPrepareFile(sourceFileForSymbol(builder, symbol)) && isRuntimeArtifactFunction(builder, symbol);
     }
 
     template<typename T>

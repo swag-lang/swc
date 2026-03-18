@@ -181,10 +181,15 @@ AstNodeRef Parser::parseCompilerFunc()
 {
     const TokenId what = id();
 
-    if (nextIs(TokenId::SymLeftCurly))
+    if (what == TokenId::CompilerRun || nextIs(TokenId::SymLeftCurly))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>(consume());
-        nodePtr->nodeBodyRef    = parseFunctionBody();
+        if (nextIs(TokenId::SymLeftCurly))
+            nodePtr->nodeBodyRef = parseFunctionBody();
+        else if (what == TokenId::CompilerAst)
+            nodePtr->nodeBodyRef = parseExpression();
+        else
+            nodePtr->nodeBodyRef = parseEmbeddedStmt();
         return nodeRef;
     }
 

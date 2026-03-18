@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -241,6 +242,21 @@ namespace
     {
         if (exprRef.isInvalid() || !ioTypeRef.isValid())
             return Result::Continue;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(ioTypeRef);
+        if ((typeInfo.isIntUnsized() || typeInfo.isFloatUnsized()) && sema.viewConstant(exprRef).hasConstant())
+        {
+            const ConstantRef exprCstRef = sema.viewConstant(exprRef).cstRef();
+            SWC_ASSERT(exprCstRef.isValid());
+
+            ConstantRef concretizedCstRef = ConstantRef::invalid();
+            SWC_RESULT(Cast::concretizeConstant(sema, concretizedCstRef, exprRef, exprCstRef, TypeInfo::Sign::Unknown, true));
+            if (concretizedCstRef.isValid())
+            {
+                sema.setConstant(exprRef, concretizedCstRef);
+                ioTypeRef = sema.cstMgr().get(concretizedCstRef).typeRef();
+            }
+        }
 
         const TypeRef concreteArrayTypeRef = deduceHomogeneousAggregateArrayType(sema, ioTypeRef);
         if (!concreteArrayTypeRef.isValid())
@@ -663,7 +679,11 @@ namespace
         if (!sym.returnTypeRef().isValid())
         {
             if (node.nodeBodyRef.isValid())
-                sym.setReturnTypeRef(sema.viewType(node.nodeBodyRef).typeRef());
+            {
+                TypeRef returnTypeRef = sema.viewType(node.nodeBodyRef).typeRef();
+                SWC_RESULT(concretizeImplicitReturnTypeIfNeeded(sema, node.nodeBodyRef, returnTypeRef));
+                sym.setReturnTypeRef(returnTypeRef);
+            }
             else
                 sym.setReturnTypeRef(sema.typeMgr().typeVoid());
         }
@@ -1037,7 +1057,9 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         }
         else if (childRef == nodeBodyRef)
         {
-            sym.setReturnTypeRef(sema.viewType(nodeBodyRef).typeRef());
+            TypeRef returnTypeRef = sema.viewType(nodeBodyRef).typeRef();
+            SWC_RESULT(concretizeImplicitReturnTypeIfNeeded(sema, nodeBodyRef, returnTypeRef));
+            sym.setReturnTypeRef(returnTypeRef);
             setIsTyped = true;
         }
     }

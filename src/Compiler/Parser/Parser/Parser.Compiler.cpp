@@ -444,9 +444,9 @@ AstNodeRef Parser::parseCompilerInject()
     const TokenRef openRef  = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    nodePtr->nodeExprRef                = parseExpression();
-    nodePtr->spanReplaceInstructionRef  = SpanRef::invalid();
-    nodePtr->spanReplaceNodeRef         = SpanRef::invalid();
+    nodePtr->nodeExprRef               = parseExpression();
+    nodePtr->spanReplaceInstructionRef = SpanRef::invalid();
+    nodePtr->spanReplaceNodeRef        = SpanRef::invalid();
     SmallVector<TokenRef>   replacementInstructionRefs;
     SmallVector<AstNodeRef> replacementNodeRefs;
 

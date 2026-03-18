@@ -159,11 +159,11 @@ namespace
         if (!resultMeta.normalizedRet.isIndirect && exprType.isString())
             return sema.cstMgr().addConstant(sema.ctx(), makeRunExprPointerStringConstant(sema, storagePtr));
 
-        const TypeRef     constantTypeRef = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
-        const TypeInfo&   constantType    = sema.typeMgr().get(constantTypeRef);
-        const uint64_t    resultSize      = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
-        const auto        resultBytes     = ByteSpan{storagePtr, static_cast<size_t>(resultSize)};
-        TypeRef           unwrappedTypeRef = constantType.unwrap(sema.ctx(), constantTypeRef, TypeExpandE::Alias);
+        const TypeRef   constantTypeRef  = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
+        const TypeInfo& constantType     = sema.typeMgr().get(constantTypeRef);
+        const uint64_t  resultSize       = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
+        const auto      resultBytes      = ByteSpan{storagePtr, static_cast<size_t>(resultSize)};
+        TypeRef         unwrappedTypeRef = constantType.unwrap(sema.ctx(), constantTypeRef, TypeExpandE::Alias);
         if (unwrappedTypeRef.isInvalid())
             unwrappedTypeRef = constantTypeRef;
 

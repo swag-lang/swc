@@ -174,8 +174,8 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 
 Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)
 {
-    MicroBuilder&                builder = codeGen.builder();
-    CompilerScopeCodeGenPayload  scopeState;
+    MicroBuilder&               builder = codeGen.builder();
+    CompilerScopeCodeGenPayload scopeState;
     scopeState.continueLabel = builder.createLabel();
     scopeState.doneLabel     = builder.createLabel();
     setCompilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef(), scopeState);

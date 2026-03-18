@@ -182,7 +182,7 @@ ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCode
 
     const std::string_view shardKey   = !fileName.empty() ? fileName.view() : funcName.view();
     const uint32_t         shardIndex = std::hash<std::string_view>{}(shardKey) & (ConstantManager::SHARD_COUNT - 1);
-    DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);
+    DataSegment&           segment    = sema.cstMgr().shardDataSegment(shardIndex);
 
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::SourceCodeLocation), alignof(Runtime::SourceCodeLocation), true);
     auto* const rtLoc            = reinterpret_cast<Runtime::SourceCodeLocation*>(storage);

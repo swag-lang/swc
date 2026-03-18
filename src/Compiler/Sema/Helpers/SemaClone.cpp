@@ -813,7 +813,7 @@ AstNodeRef AstQuotedExpr::semaClone(Sema& sema, const CloneContext& cloneContext
 
 AstNodeRef AstQuotedListExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::QuotedListExpr>(tokRef());
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::QuotedListExpr>(tokRef());
     const auto noReplacements = cloneContextWithoutReplacements(cloneContext);
     newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, noReplacements);
     newPtr->spanChildrenRef   = cloneSpan(sema, spanChildrenRef, noReplacements);

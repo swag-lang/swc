@@ -458,7 +458,7 @@ namespace
             const SymbolVariable* param = params[argIndex];
             SWC_ASSERT(param != nullptr);
             SWC_ASSERT(argIndex < params.size());
-            normalizedTypeRef = param->typeRef();
+            normalizedTypeRef               = param->typeRef();
             const ConstantRef defaultCstRef = defaultArgumentConstantRef(codeGen, callRef, arg);
             SWC_ASSERT(defaultCstRef.isValid());
             SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, defaultCstRef));

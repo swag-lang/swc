@@ -225,15 +225,14 @@ namespace
 
         for (uint32_t i = 0; i < replacementInstructionRefs.size(); i++)
         {
-            const TokenId  replacementId = sema.srcView(node.srcViewRef()).token(replacementInstructionRefs[i]).id;
+            const TokenId   replacementId = sema.srcView(node.srcViewRef()).token(replacementInstructionRefs[i]).id;
             const AstNodeId nodeId        = injectReplacementNodeId(replacementId);
             SWC_ASSERT(nodeId != AstNodeId::Invalid);
             appendInjectReplacement(outReplacements, nodeId, replacementNodeRefs[i]);
         }
     }
 
-    Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef,
-                                    std::span<const SemaClone::NodeReplacement> replacements = std::span<const SemaClone::NodeReplacement>{})
+    Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef, std::span<const SemaClone::NodeReplacement> replacements = std::span<const SemaClone::NodeReplacement>{})
     {
         SWC_RESULT(validateInjectArgument(sema, exprRef));
 
@@ -279,9 +278,9 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstScopedBreakStmt::semaPreNode(Sema& sema)
 {
-    const auto&     node         = sema.curNode().cast<AstScopedBreakStmt>();
-    const Token&    tokScopeName = sema.token({node.srcViewRef(), node.tokNameRef});
-    const AstNodeRef scopeRef    = findNamedCompilerScope(sema, tokScopeName.string(sema.ast().srcView()));
+    const auto&      node         = sema.curNode().cast<AstScopedBreakStmt>();
+    const Token&     tokScopeName = sema.token({node.srcViewRef(), node.tokNameRef});
+    const AstNodeRef scopeRef     = findNamedCompilerScope(sema, tokScopeName.string(sema.ast().srcView()));
     if (scopeRef.isValid())
         return Result::Continue;
 

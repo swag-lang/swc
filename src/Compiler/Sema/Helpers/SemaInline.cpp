@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
-#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
@@ -406,7 +406,7 @@ namespace
         }
 
         std::vector<SemaClone::ParamBinding> bound(numFixed);
-        size_t      nextParam = 0;
+        size_t                               nextParam = 0;
 
         if (ufcsArg.isValid())
         {
@@ -415,7 +415,7 @@ namespace
             {
                 bound[0].idRef   = params[0]->idRef();
                 bound[0].exprRef = ufcsRef;
-                nextParam = 1;
+                nextParam        = 1;
             }
             else if (hasAnyVariadic)
             {

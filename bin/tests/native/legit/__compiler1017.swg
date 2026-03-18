@@ -1,5 +1,6 @@
-#global fileprivate
+﻿#global fileprivate
 #global skip
+
 using Swag
 
 func toto1(s = #callerfunction)
@@ -23,3 +24,4 @@ func toto()
 {
     toto()
 }
+

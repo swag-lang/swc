@@ -637,9 +637,10 @@ namespace
 
         if (finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isCodeBlock())
         {
-            const bool allowedCodeParam = isParameter &&
-                                          sema.frame().currentFunction() &&
-                                          sema.frame().currentFunction()->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+            const auto* currentFn = sema.frame().currentFunction();
+            const bool allowedCodeParam = isParameter && currentFn &&
+                                         (currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+                                          currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));
             if (!allowedCodeParam)
             {
                 const SourceCodeRef errorRef = context.nodeTypeRef.isValid() ? sema.node(context.nodeTypeRef).codeRef() : sema.node(context.nodeInitRef).codeRef();

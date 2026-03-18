@@ -360,7 +360,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#line", State.Compiler)
         .mapWords.add("#curlocation", State.Compiler)
         .mapWords.add("#callerlocation", State.Compiler)
-        .mapWords.add("#callerfunction", State.Compiler)
         .mapWords.add("#swcversion", State.Compiler)
         .mapWords.add("#swcrevision", State.Compiler)
         .mapWords.add("#swcbuildnum", State.Compiler)

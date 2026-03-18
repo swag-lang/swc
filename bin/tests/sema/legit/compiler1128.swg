@@ -1,8 +1,8 @@
 #global fileprivate
 #global skip
-func titi(line: string = #callerfunction)
+func titi(loc = #callerlocation)
 {
-    @assert(line == "__compiler1128.tata")
+    @assert(loc.funcName == "__compiler1128.tata")
 }
 
 func tata()

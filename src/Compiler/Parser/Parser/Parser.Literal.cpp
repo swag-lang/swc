@@ -70,7 +70,6 @@ AstNodeRef Parser::parseLiteral()
         case TokenId::CompilerSwcRevision:
         case TokenId::CompilerSwcBuildNum:
         case TokenId::CompilerBuildCfg:
-        case TokenId::CompilerCallerFunction:
         case TokenId::CompilerCallerLocation:
         case TokenId::CompilerOs:
         case TokenId::CompilerArch:

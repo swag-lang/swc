@@ -176,7 +176,6 @@ User-defined identifiers cannot start with '#', ensuring there are no naming con
 #me
 #curlocation
 #callerlocation
-#callerfunction
 #swagversion
 #swagrevision
 #swagbuildnum

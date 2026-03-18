@@ -3,9 +3,9 @@
 
 using Swag
 
-func toto1(s = #callerfunction)
+func toto1(loc = #callerlocation)
 {
-    @assert(s == "__compiler1017.toto")
+    @assert(loc.funcName == "__compiler1017.toto")
 }
 
 func toto()

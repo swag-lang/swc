@@ -546,10 +546,6 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             break;
         }
 
-        case TokenId::CompilerCallerFunction:
-            sema.setType(sema.curNodeRef(), sema.typeMgr().typeString());
-            sema.setIsValue(*this);
-            break;
         case TokenId::CompilerCallerLocation:
         {
             TypeRef typeRef = TypeRef::invalid();

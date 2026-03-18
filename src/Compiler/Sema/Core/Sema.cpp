@@ -178,6 +178,47 @@ void Sema::popFrame()
     frames_.pop_back();
 }
 
+void Sema::markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef)
+{
+    SWC_UNUSED(parentRef);
+    if (!childRef.isValid())
+        return;
+    if (node(childRef).is(AstNodeId::EmbeddedBlock))
+        node(childRef).cast<AstEmbeddedBlock>().addFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+}
+
+bool Sema::isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const
+{
+    SWC_UNUSED(parentRef);
+    if (childRef.isInvalid() || node(childRef).isNot(AstNodeId::EmbeddedBlock))
+        return false;
+    return node(childRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+}
+
+bool Sema::isLValueStored(AstNodeRef ref) const
+{
+    if (ref.isInvalid())
+        return false;
+    const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
+    return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::LValue)) != 0;
+}
+
+bool Sema::isValueStored(AstNodeRef ref) const
+{
+    if (ref.isInvalid())
+        return false;
+    const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
+    return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::Value)) != 0;
+}
+
+bool Sema::isFoldedTypedConstStored(AstNodeRef ref) const
+{
+    if (ref.isInvalid())
+        return false;
+    const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
+    return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::FoldedTypedConst)) != 0;
+}
+
 void Sema::pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef)
 {
     pushFrame(frame);

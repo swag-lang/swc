@@ -145,31 +145,12 @@ public:
 
     void setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
     void appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
-    void markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef)
-    {
-        SWC_UNUSED(parentRef);
-        if (!childRef.isValid())
-            return;
-        if (node(childRef).is(AstNodeId::EmbeddedBlock))
-            node(childRef).cast<AstEmbeddedBlock>().addFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
-    }
-    bool isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const
-    {
-        SWC_UNUSED(parentRef);
-        if (childRef.isInvalid() || node(childRef).isNot(AstNodeId::EmbeddedBlock))
-            return false;
-        return node(childRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
-    }
+    void markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef);
+    bool isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const;
 
     bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
     bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }
-    bool isLValueStored(AstNodeRef ref) const
-    {
-        if (ref.isInvalid())
-            return false;
-        const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
-        return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::LValue)) != 0;
-    }
+    bool isLValueStored(AstNodeRef ref) const;
     void setIsLValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::LValue); }
     void setIsLValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
     void unsetIsLValue(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::LValue); }
@@ -177,25 +158,13 @@ public:
 
     bool isValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::Value); }
     bool isValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::Value); }
-    bool isValueStored(AstNodeRef ref) const
-    {
-        if (ref.isInvalid())
-            return false;
-        const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
-        return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::Value)) != 0;
-    }
+    bool isValueStored(AstNodeRef ref) const;
     void setIsValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::Value); }
     void setIsValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
 
     bool isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
     bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
-    bool isFoldedTypedConstStored(AstNodeRef ref) const
-    {
-        if (ref.isInvalid())
-            return false;
-        const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
-        return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::FoldedTypedConst)) != 0;
-    }
+    bool isFoldedTypedConstStored(AstNodeRef ref) const;
     void setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
     void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
 

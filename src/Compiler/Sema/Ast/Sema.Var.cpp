@@ -192,7 +192,6 @@ namespace
 
     Result completeVar(Sema& sema, const std::span<Symbol*>& symbols, TypeRef typeRef)
     {
-        TaskContext& ctx = sema.ctx();
         for (Symbol* s : symbols)
         {
             auto& symVar = s->cast<SymbolVariable>();
@@ -202,9 +201,7 @@ namespace
             if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
             {
                 if (SemaHelpers::isCurrentFunction(sema))
-                {
                     SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
-                }
                 else
                     SWC_RESULT(allocateGlobalStorage(sema, symVar));
             }

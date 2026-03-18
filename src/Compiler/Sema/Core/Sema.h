@@ -126,13 +126,13 @@ public:
     }
 
     bool hasSemaPayload(AstNodeRef n) const { return nodePayloadContext().hasSemaPayload(n); }
+    void clearSemaPayload(AstNodeRef n) { nodePayloadContext().clearSemaPayload(n); }
+
     template<typename T>
     void setSemaPayload(AstNodeRef n, T* payload)
     {
         nodePayloadContext().setSemaPayload(n, payload);
     }
-
-    void clearSemaPayload(AstNodeRef n) { nodePayloadContext().clearSemaPayload(n); }
 
     template<typename T>
     T* semaPayload(AstNodeRef n) const

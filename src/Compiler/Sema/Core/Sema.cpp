@@ -474,6 +474,8 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
     if (curScope_->isTopLevel() && (ast().hasFlag(AstFlagsE::GlobalSkip) || !frame().globalCompilerIfEnabled()))
         return Result::SkipChildren;
+    if (isImplicitCodeBlockArg(curNodeRef(), childRef))
+        return Result::SkipChildren;
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     SWC_RESULT(info.semaPreNodeChild(*this, node, childRef));

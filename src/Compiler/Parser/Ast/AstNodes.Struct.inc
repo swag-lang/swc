@@ -30,7 +30,13 @@ struct AstTopLevelBlock : AstCompoundT<AstNodeId::TopLevelBlock>
 };
 
 // -----------------------------------------------------------------------------
-struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock>
+enum class AstEmbeddedBlockFlagsE : AstNode::ParserFlags
+{
+    Zero                = 0,
+    ImplicitCodeBlockArg = 1 << 0,
+};
+
+struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock, AstEmbeddedBlockFlagsE>
 {
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPreNode(Sema& sema);

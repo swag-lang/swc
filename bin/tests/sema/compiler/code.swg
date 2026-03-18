@@ -24,6 +24,15 @@ func remapLoopFlow(stmt: #code void)
     #inject(stmt, continue = break to Outer, break = continue)
 }
 
+#[Swag.Macro]
+func runWhen(cond: #code bool, stmt: #code void)
+{
+    if #inject(cond)
+    {
+        #inject(stmt)
+    }
+}
+
 #test
 {
     var count = 0
@@ -51,6 +60,22 @@ func remapLoopFlow(stmt: #code void)
             })
         }
 
+        count = -10
+    }
+
+    @assert(count == 1)
+}
+
+#test
+{
+    var count = 0
+    runWhen(true)
+    {
+        count += 1
+    }
+
+    runWhen(false)
+    {
         count = -10
     }
 

@@ -469,6 +469,8 @@ Result CodeGen::postNode(AstNode& node)
 
 Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
+    if (sema().isImplicitCodeBlockArg(curNodeRef(), childRef))
+        return Result::SkipChildren;
     if (childRef.isValid())
         builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());

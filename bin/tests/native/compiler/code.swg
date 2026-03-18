@@ -146,6 +146,25 @@ func remapLoopFlow(stmt: #code void)
 
 #test
 {
+    StmtEvalCount = 0
+    let execute = true
+    runWhen(execute)
+    {
+        bumpStmt()
+    }
+
+    @assert(StmtEvalCount == 1)
+
+    runWhen(false)
+    {
+        bumpStmt()
+    }
+
+    @assert(StmtEvalCount == 1)
+}
+
+#test
+{
     var count = 0
     for 4
     {

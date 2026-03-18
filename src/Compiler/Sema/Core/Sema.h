@@ -145,6 +145,21 @@ public:
 
     void setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
     void appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
+    void markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef)
+    {
+        SWC_UNUSED(parentRef);
+        if (!childRef.isValid())
+            return;
+        if (node(childRef).is(AstNodeId::EmbeddedBlock))
+            node(childRef).cast<AstEmbeddedBlock>().addFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+    }
+    bool isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const
+    {
+        SWC_UNUSED(parentRef);
+        if (childRef.isInvalid() || node(childRef).isNot(AstNodeId::EmbeddedBlock))
+            return false;
+        return node(childRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+    }
 
     bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
     bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }

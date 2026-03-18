@@ -211,6 +211,7 @@ AstNodeRef AstEmbeddedBlock::semaClone(Sema& sema, const CloneContext& cloneCont
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::EmbeddedBlock>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstEmbeddedBlock>();
+    cloned.flags().remove(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
     cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
     return newRef;
 }

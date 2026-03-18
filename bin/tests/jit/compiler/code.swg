@@ -45,6 +45,16 @@ func runStmt(stmt: #code void)
 }
 
 #[Swag.Macro]
+func runWhen(cond: #code bool, stmt: #code void)
+{
+    @assert(#stringof(#typeof(cond)) == "#code bool")
+    if #inject(cond)
+    {
+        #inject(stmt)
+    }
+}
+
+#[Swag.Macro]
 func checkNamed(lhs: s32, rhs: #code s32)
 {
     @assert(lhs == 10)
@@ -91,6 +101,26 @@ func runExplicitStmt()->bool
 {
     StmtEvalCount = 0
     runStmt(#code { bumpStmt() })
+    return StmtEvalCount == 1
+}
+
+func runTrailingStmt()->bool
+{
+    StmtEvalCount = 0
+    let execute = true
+    runWhen(execute)
+    {
+        bumpStmt()
+    }
+
+    if StmtEvalCount != 1 do
+        return false
+
+    runWhen(false)
+    {
+        bumpStmt()
+    }
+
     return StmtEvalCount == 1
 }
 
@@ -192,6 +222,7 @@ func runCombinedReplacements()->s32
 
 const ImplicitExprOk = #run runImplicitExpr()
 const ExplicitStmtOk = #run runExplicitStmt()
+const TrailingStmtOk = #run runTrailingStmt()
 const NamedArgsOk    = #run runNamed()
 const DefaultArgOk   = #run runDefault()
 const ForwardedOk    = #run runForwarded()
@@ -203,6 +234,7 @@ const CombinedReplacementsOk = #run runCombinedReplacements() == 2
 
 #assert(ImplicitExprOk)
 #assert(ExplicitStmtOk)
+#assert(TrailingStmtOk)
 #assert(NamedArgsOk)
 #assert(DefaultArgOk)
 #assert(ForwardedOk)

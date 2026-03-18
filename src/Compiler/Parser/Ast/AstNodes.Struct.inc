@@ -1034,6 +1034,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
     Result semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema) const;
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

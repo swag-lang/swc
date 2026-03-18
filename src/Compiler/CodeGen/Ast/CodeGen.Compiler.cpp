@@ -200,6 +200,22 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     return Result::Continue;
 }
 
+Result AstCompilerIf::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeConditionRef)
+        return Result::Continue;
+
+    const SemaNodeView condView = codeGen.viewConstant(nodeConditionRef);
+    SWC_ASSERT(condView.cst());
+
+    if (childRef == nodeIfBlockRef && !condView.cst()->getBool())
+        return Result::SkipChildren;
+    if (childRef == nodeElseBlockRef && condView.cst()->getBool())
+        return Result::SkipChildren;
+
+    return Result::Continue;
+}
+
 Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)
 {
     MicroBuilder&               builder = codeGen.builder();

@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Helpers.h"
@@ -391,10 +392,10 @@ namespace
         {
             const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
             if (inlineCtx.payload && inlineCtx.payload->sourceFunction)
-                return inlineCtx.payload->sourceFunction;
+                return SemaRuntime::transparentLocationFunction(inlineCtx.payload->sourceFunction);
         }
 
-        return &codeGen.function();
+        return SemaRuntime::transparentLocationFunction(&codeGen.function());
     }
 
     ConstantRef defaultArgumentConstantRef(CodeGen& codeGen, AstNodeRef callRef, const ResolvedCallArgument& arg)

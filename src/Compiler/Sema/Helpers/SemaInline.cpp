@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -57,9 +58,9 @@ namespace
     {
         const auto* inlinePayload = sema.frame().currentInlinePayload();
         if (inlinePayload && inlinePayload->sourceFunction)
-            return inlinePayload->sourceFunction;
+            return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
 
-        return sema.frame().currentFunction();
+        return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
     }
 
     AstNodeRef wrapCodeArgument(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)

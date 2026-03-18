@@ -23,9 +23,9 @@ namespace
     {
         const auto* inlinePayload = sema.frame().currentInlinePayload();
         if (inlinePayload && inlinePayload->sourceFunction)
-            return inlinePayload->sourceFunction;
+            return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
 
-        return sema.frame().currentFunction();
+        return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
     }
 
     AstNodeRef defaultArgumentExprRef(const SymbolVariable& param)

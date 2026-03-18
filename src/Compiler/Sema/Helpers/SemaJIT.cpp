@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -388,9 +389,9 @@ namespace
     {
         const auto* inlinePayload = sema.frame().currentInlinePayload();
         if (inlinePayload && inlinePayload->sourceFunction)
-            return inlinePayload->sourceFunction;
+            return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
 
-        return sema.frame().currentFunction();
+        return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
     }
 
     ConstantRef defaultArgumentConstantRef(Sema& sema, AstNodeRef callRef, const ResolvedCallArgument& resolvedArg)

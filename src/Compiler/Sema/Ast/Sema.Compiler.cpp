@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -32,9 +33,9 @@ namespace
     {
         const auto* inlinePayload = sema.frame().currentInlinePayload();
         if (inlinePayload && inlinePayload->sourceFunction)
-            return inlinePayload->sourceFunction;
+            return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
 
-        return sema.frame().currentFunction();
+        return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
     }
 
     bool isDirectFunctionParameterDefault(const Sema& sema, AstNodeRef nodeRef)
@@ -1086,11 +1087,21 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
+    if (sema.enteringState())
+    {
+        const AstNodeRef curNodeRef = sema.curNodeRef();
+        if (!sema.viewSymbol(curNodeRef).hasSymbol())
+            sema.curNode().cast<AstCompilerFunc>().semaPreDecl(sema);
+
+        auto& declaredSym = sema.viewSymbol(curNodeRef).sym()->cast<SymbolFunction>();
+        declaredSym.registerAttributes(sema);
+        declaredSym.setDeclared(sema.ctx());
+    }
+
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isIgnored())
         return Result::SkipChildren;
 
-    sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
 
     auto frame                = sema.frame();

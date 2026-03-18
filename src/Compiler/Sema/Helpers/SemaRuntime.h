@@ -24,6 +24,25 @@ namespace SemaRuntime
         }
     }
 
+    inline const SymbolFunction* transparentLocationFunction(const SymbolFunction* function)
+    {
+        while (function)
+        {
+            const AstNode* const decl = function->decl();
+            if (!decl || decl->id() != AstNodeId::CompilerFunc)
+                return function;
+
+            const SymbolMap* const ownerMap = function->ownerSymMap();
+            const auto* const      ownerFn  = ownerMap ? ownerMap->safeCast<SymbolFunction>() : nullptr;
+            if (!ownerFn)
+                return function;
+
+            function = ownerFn;
+        }
+
+        return nullptr;
+    }
+
     inline bool isCompilerOnlyFunction(const Sema& sema, const SymbolFunction& symbol)
     {
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))

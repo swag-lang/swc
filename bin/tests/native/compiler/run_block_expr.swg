@@ -48,6 +48,12 @@ struct BytesHolder
     bytes: const [..] u8
 }
 
+struct AnyPair
+{
+    item: any
+    other: any
+}
+
 const PersistentTextHolder: TextHolder = #run
 {
     var data: [3] u8
@@ -70,6 +76,14 @@ const PersistentStringArray: [1] string = #run
     var values: [1] string
     values[0] = cast(string) data
     return values
+}
+
+const PersistentAnyPair: AnyPair = #run
+{
+    var pair: AnyPair
+    pair.item = "abc"
+    pair.other = "def"
+    return pair
 }
 
 const PersistentBytesHolder: BytesHolder = #run
@@ -126,6 +140,8 @@ func functionScopedShortCompilerOnlyRunCall()
 #assert(PersistentText == "abc")
 #assert(PersistentTextHolder.text == "abc")
 #assert(PersistentStringArray[0] == "abc")
+#assert(cast(string) PersistentAnyPair.item == "abc")
+#assert(cast(string) PersistentAnyPair.other == "def")
 #assert(@countof(PersistentBytes) == 4)
 #assert(PersistentBytes[0] == 1)
 #assert(PersistentBytes[3] == 4)
@@ -138,4 +154,15 @@ func functionScopedShortCompilerOnlyRunCall()
     functionScopedRunBlock()
     functionScopedCompilerOnlyRunCall()
     functionScopedShortCompilerOnlyRunCall()
+
+    let values = #run
+    {
+        var items: [2] any
+        items[0] = "first"
+        items[1] = "second"
+        return items
+    }
+
+    @assert(cast(string) values[0] == "first")
+    @assert(cast(string) values[1] == "second")
 }

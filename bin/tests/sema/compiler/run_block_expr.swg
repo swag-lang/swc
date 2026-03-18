@@ -19,6 +19,20 @@ const DeducePowerOfTwo = #run
     return [1, 2, 3, 4]
 }
 
+struct AnyPair
+{
+    item: any
+    other: any
+}
+
+const PersistentAnyPair: AnyPair = #run
+{
+    var pair: AnyPair
+    pair.item = "abc"
+    pair.other = "def"
+    return pair
+}
+
 #assert(#typeof(ScalarValue) == s32)
 #assert(ScalarValue == 42)
 #assert(#typeof(PowerOfTwo) == [4] s32)
@@ -29,3 +43,5 @@ const DeducePowerOfTwo = #run
 #assert(#typeof(DeducePowerOfTwo) == [4] s32)
 #assert(DeducePowerOfTwo[0] == 1)
 #assert(DeducePowerOfTwo[3] == 4)
+#assert(cast(string) PersistentAnyPair.item == "abc")
+#assert(cast(string) PersistentAnyPair.other == "def")

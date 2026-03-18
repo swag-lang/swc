@@ -1,5 +1,5 @@
-#global fileprivate
-#global skip
+﻿#global fileprivate
+
 //#[Swag.ConstExpr]
 //#[Swag.PrintBc]
 func fibonacci(num: s32)->s32
@@ -16,3 +16,4 @@ var fibonacciOfAge: s32 = #run fibonacci(16)
 {
     @assert(fibonacciOfAge == 987)
 }
+

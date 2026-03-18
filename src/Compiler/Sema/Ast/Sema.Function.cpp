@@ -180,7 +180,43 @@ namespace
         return Result::Continue;
     }
 
-    bool isInsideInlineRoot(const Sema& sema, AstNodeRef inlineRootRef);
+    bool isInsideInlineRoot(const Sema& sema, AstNodeRef inlineRootRef)
+    {
+        if (inlineRootRef.isInvalid())
+            return false;
+        if (sema.curNodeRef() == inlineRootRef)
+            return true;
+
+        for (size_t parentIndex = 0;; parentIndex++)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                return false;
+            if (parentRef == inlineRootRef)
+                return true;
+        }
+    }
+
+    bool isCallResultIgnored(const Sema& sema)
+    {
+        const AstNode* parent = sema.visit().parentNode();
+        if (!parent)
+            return false;
+
+        if (parent->is(AstNodeId::DiscardExpr))
+            return false;
+
+        switch (parent->id())
+        {
+            case AstNodeId::EmbeddedBlock:
+            case AstNodeId::FunctionBody:
+            case AstNodeId::SwitchCaseBody:
+            case AstNodeId::TopLevelBlock:
+                return true;
+            default:
+                return false;
+        }
+    }
 
     TypeRef deduceHomogeneousAggregateArrayType(Sema& sema, TypeRef typeRef)
     {
@@ -265,7 +301,7 @@ namespace
 
     Result resolveReturnTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
     {
-        outTypeRef = TypeRef::invalid();
+        outTypeRef                             = TypeRef::invalid();
         const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
         if (inlinePayload && isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
         {
@@ -515,44 +551,6 @@ namespace
         sema.setIsValue(sema.curNodeRef());
         sema.unsetIsLValue(sema.curNodeRef());
         return Result::Continue;
-    }
-
-    bool isInsideInlineRoot(const Sema& sema, AstNodeRef inlineRootRef)
-    {
-        if (inlineRootRef.isInvalid())
-            return false;
-        if (sema.curNodeRef() == inlineRootRef)
-            return true;
-
-        for (size_t parentIndex = 0;; parentIndex++)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
-            if (parentRef.isInvalid())
-                return false;
-            if (parentRef == inlineRootRef)
-                return true;
-        }
-    }
-
-    bool isCallResultIgnored(const Sema& sema)
-    {
-        const AstNode* parent = sema.visit().parentNode();
-        if (!parent)
-            return false;
-
-        if (parent->is(AstNodeId::DiscardExpr))
-            return false;
-
-        switch (parent->id())
-        {
-            case AstNodeId::EmbeddedBlock:
-            case AstNodeId::FunctionBody:
-            case AstNodeId::SwitchCaseBody:
-            case AstNodeId::TopLevelBlock:
-                return true;
-            default:
-                return false;
-        }
     }
 
     void addMeParameter(Sema& sema, SymbolFunction& sym)

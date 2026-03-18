@@ -345,11 +345,6 @@ namespace
         return &typeInfo.payloadSymFunction();
     }
 
-    bool isNamedArgument(const AstNode& node)
-    {
-        return node.is(AstNodeId::NamedArgument);
-    }
-
     bool isVoidCodeBlockParameter(Sema& sema, const SymbolVariable& param)
     {
         const TypeInfo& paramType = param.type(sema.ctx());
@@ -369,7 +364,7 @@ namespace
         for (const AstNodeRef argRef : args)
         {
             const AstNode& argNode = sema.node(argRef);
-            if (!isNamedArgument(argNode))
+            if (!argNode.is(AstNodeId::NamedArgument))
                 continue;
 
             const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
@@ -387,7 +382,7 @@ namespace
         for (const AstNodeRef argRef : args)
         {
             const AstNode& argNode = sema.node(argRef);
-            if (isNamedArgument(argNode))
+            if (argNode.is(AstNodeId::NamedArgument))
                 continue;
 
             while (nextParam < params.size() && assigned[nextParam])

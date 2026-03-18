@@ -160,11 +160,6 @@ namespace
         return outConstant.isValid();
     }
 
-    bool isNamedArgument(const AstNode& node)
-    {
-        return node.is(AstNodeId::NamedArgument);
-    }
-
     bool resolveFunctionDeclInCurrentAst(const Sema& sema, const SymbolFunction& fn, const AstFunctionDecl*& outDecl)
     {
         outDecl = nullptr;
@@ -430,7 +425,7 @@ namespace
         for (const auto argRef : args)
         {
             const AstNode& argNode = sema.node(argRef);
-            if (!isNamedArgument(argNode))
+            if (!argNode.is(AstNodeId::NamedArgument))
                 continue;
 
             const auto&         namedArg = argNode.cast<AstNamedArgument>();
@@ -468,7 +463,7 @@ namespace
         for (const auto argRef : args)
         {
             const AstNode& argNode = sema.node(argRef);
-            if (isNamedArgument(argNode))
+            if (argNode.is(AstNodeId::NamedArgument))
                 continue;
 
             while (nextParam < numFixed && isBindingAssigned(bound[nextParam]))

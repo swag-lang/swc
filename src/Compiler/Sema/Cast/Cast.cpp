@@ -5,6 +5,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -32,12 +33,7 @@ namespace
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
 
-        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            currentFunc->addLocalVariable(sema.ctx(), &symVar);
-        }
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
 
         symVar.setTyped(sema.ctx());
         symVar.setSemaCompleted(sema.ctx());
@@ -103,7 +99,7 @@ namespace
 
     Result attachCastRuntimeStorageIfNeededImpl(Sema& sema, AstNodeRef castNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
     {
-        if (sema.frame().currentFunction() == nullptr)
+        if (SemaHelpers::isGlobalScope(sema))
             return Result::Continue;
 
         const TypeRef storageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);

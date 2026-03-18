@@ -148,7 +148,7 @@ namespace SemaRuntime
         if (hasCompilerEvalAstContext(sema))
             return false;
 
-        const SymbolFunction* const currentFunction = sema.frame().currentFunction();
+        const auto* const currentFunction = SemaHelpers::currentFunction(sema);
         return currentFunction != nullptr && isRuntimeArtifactFunction(sema, *currentFunction);
     }
 

@@ -246,12 +246,7 @@ namespace
         symVar->setTyped(ctx);
         symVar->setSemaCompleted(ctx);
 
-        if (SymbolFunction* const currentFn = sema.frame().currentFunction())
-        {
-            const TypeInfo& resultType = sema.typeMgr().get(typeRef);
-            SWC_ASSERT(resultType.isCompleted(ctx));
-            currentFn->addLocalVariable(ctx, symVar);
-        }
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, *symVar, typeRef));
 
         outResultVar = symVar;
         return Result::Continue;
@@ -262,7 +257,7 @@ namespace
         if (returnTypeRef.isInvalid() || returnTypeRef == sema.typeMgr().typeVoid())
             return Result::Continue;
 
-        if (!sema.frame().currentFunction())
+        if (!SemaHelpers::isCurrentFunction(sema))
             return Result::Continue;
 
         const TypeInfo& resultType = sema.typeMgr().get(returnTypeRef);

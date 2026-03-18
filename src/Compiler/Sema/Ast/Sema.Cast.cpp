@@ -60,12 +60,7 @@ namespace
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
 
-        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            currentFunc->addLocalVariable(sema.ctx(), &symVar);
-        }
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
 
         symVar.setTyped(sema.ctx());
         symVar.setSemaCompleted(sema.ctx());
@@ -209,7 +204,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView dstTypeView = sema.curViewType();
     SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, nodeExprView.nodeRef(), srcTypeView.typeRef(), dstTypeView.typeRef()));
     const TypeRef runtimeStorageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeView, dstTypeView);
-    if (runtimeStorageTypeRef.isValid() && sema.frame().currentFunction() != nullptr)
+    if (runtimeStorageTypeRef.isValid() && SemaHelpers::isCurrentFunction(sema))
     {
         auto& storageSym = getOrCreateCastRuntimeStorageSymbol(sema, *this);
         if (!storageSym.isDeclared())

@@ -140,12 +140,6 @@ namespace
         return result;
     }
 
-    bool shouldMaterializePersistentRunExpr(TypeRef storageTypeRef, Sema& sema)
-    {
-        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-        return storageType.isString() || storageType.isSlice() || storageType.isAny() || storageType.isInterface() || storageType.isStruct() || storageType.isArray();
-    }
-
     ConstantRef makeJitCallResultConstantRef(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
     {
         const TypeInfo& exprType        = sema.typeMgr().get(resultMeta.exprTypeRef);
@@ -153,7 +147,7 @@ namespace
         const uint64_t  resultSize      = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
         const auto      resultBytes     = ByteSpan{storagePtr, static_cast<size_t>(resultSize)};
 
-        if (resultSize && shouldMaterializePersistentRunExpr(resultMeta.storageTypeRef, sema))
+        if (resultSize && SemaHelpers::needsPersistentCompilerRunReturn(sema, resultMeta.storageTypeRef))
         {
             const ConstantRef cstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, constantTypeRef, resultBytes);
             if (cstRef.isValid())
@@ -524,7 +518,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (hasPendingJitNode(sema, callRef))
         return Result::Pause;
 
-    const SymbolFunction* currentFn = sema.frame().currentFunction();
+    const SymbolFunction* currentFn = SemaHelpers::currentFunction(sema);
     if (currentFn == &calledFn)
         return Result::Continue;
     SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));

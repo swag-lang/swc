@@ -201,16 +201,12 @@ namespace
 
             if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
             {
-                if (SymbolFunction* currentFunc = sema.frame().currentFunction())
+                if (SemaHelpers::isCurrentFunction(sema))
                 {
-                    const TypeInfo* symType = symVar.typeRef().isValid() ? &ctx.typeMgr().get(symVar.typeRef()) : nullptr;
-                    SWC_RESULT(sema.waitSemaCompleted(symType, sema.curNodeRef()));
-                    currentFunc->addLocalVariable(ctx, &symVar);
+                    SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
                 }
                 else
-                {
                     SWC_RESULT(allocateGlobalStorage(sema, symVar));
-                }
             }
 
             symVar.setTyped(sema.ctx());
@@ -637,7 +633,7 @@ namespace
 
         if (finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isCodeBlock())
         {
-            const auto* currentFn        = sema.frame().currentFunction();
+            const auto* currentFn        = SemaHelpers::currentFunction(sema);
             const bool  allowedCodeParam = isParameter && currentFn &&
                                           (currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
                                            currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));

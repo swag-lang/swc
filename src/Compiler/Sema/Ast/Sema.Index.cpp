@@ -96,7 +96,7 @@ namespace
 
     Result completeSliceRuntimeStorage(Sema& sema, TypeRef storageTypeRef)
     {
-        if (storageTypeRef.isInvalid() || sema.frame().currentFunction() == nullptr)
+        if (storageTypeRef.isInvalid() || SemaHelpers::isGlobalScope(sema))
             return Result::Continue;
 
         auto& storageSym = registerUniqueIndexRuntimeStorageSymbol(sema, sema.node(sema.curNodeRef()));
@@ -189,12 +189,7 @@ namespace
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
 
-        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            currentFunc->addLocalVariable(sema.ctx(), &symVar);
-        }
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
 
         symVar.setTyped(sema.ctx());
         symVar.setSemaCompleted(sema.ctx());
@@ -318,7 +313,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
 
     const TypeRef runtimeStorageTypeRef = indexRuntimeStorageTypeRef(sema, nodeExprView, nodeExprRef);
-    if (runtimeStorageTypeRef.isValid() && sema.frame().currentFunction() != nullptr)
+    if (runtimeStorageTypeRef.isValid() && SemaHelpers::isCurrentFunction(sema))
     {
         auto& storageSym = registerUniqueIndexRuntimeStorageSymbol(sema, *this);
         storageSym.registerAttributes(sema);

@@ -43,7 +43,7 @@ const SymbolFunction* SemaHelpers::currentLocationFunction(const Sema& sema)
     if (inlinePayload && inlinePayload->sourceFunction)
         return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
 
-    return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
+    return SemaRuntime::transparentLocationFunction(currentFunction(sema));
 }
 
 AstNodeRef SemaHelpers::defaultArgumentExprRef(const SymbolVariable& param)

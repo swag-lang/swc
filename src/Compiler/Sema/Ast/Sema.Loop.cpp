@@ -28,12 +28,7 @@ namespace
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
 
-        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            currentFunc->addLocalVariable(sema.ctx(), &symVar);
-        }
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
 
         symVar.setTyped(sema.ctx());
         symVar.setSemaCompleted(sema.ctx());
@@ -150,12 +145,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
                 symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
                 symVar.setTypeRef(i == 0 ? valueTypeRef : indexTypeRef);
-                if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-                {
-                    const TypeInfo& symType = sema.typeMgr().get(symVar.typeRef());
-                    SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-                    currentFunc->addLocalVariable(sema.ctx(), &symVar);
-                }
+                SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
                 symVar.setTyped(sema.ctx());
                 symVar.setSemaCompleted(sema.ctx());
                 symbols.push_back(&symVar);

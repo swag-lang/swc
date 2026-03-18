@@ -76,8 +76,7 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
         sym->setDeclared(ctx);
         sema.setSymbol(sema.curNodeRef(), sym);
 
-        if (SymbolFunction* currentFn = sema.frame().currentFunction())
-            currentFn->addCallDependency(sym);
+        SemaHelpers::addCurrentFunctionCallDependency(sema, sym);
     }
 
     auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
@@ -312,7 +311,7 @@ namespace
             return Result::Continue;
         }
 
-        SymbolFunction* sym = sema.frame().currentFunction();
+        auto* sym = SemaHelpers::currentFunction(sema);
         SWC_ASSERT(sym);
         if (!sym)
             return Result::Error;
@@ -748,7 +747,7 @@ namespace
 
     Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
-        if (SemaHelpers::buildCfgBackendKind(sema) != Runtime::BuildCfgBackendKind::None)
+        if (SemaHelpers::isNativeBuild(sema))
         {
             SymbolFunction* tlsAllocFn  = nullptr;
             SymbolFunction* tlsGetPtrFn = nullptr;
@@ -757,11 +756,8 @@ namespace
             SWC_ASSERT(tlsAllocFn != nullptr);
             SWC_ASSERT(tlsGetPtrFn != nullptr);
 
-            if (SymbolFunction* currentFn = sema.frame().currentFunction())
-            {
-                currentFn->addCallDependency(tlsAllocFn);
-                currentFn->addCallDependency(tlsGetPtrFn);
-            }
+            SemaHelpers::addCurrentFunctionCallDependency(sema, tlsAllocFn);
+            SemaHelpers::addCurrentFunctionCallDependency(sema, tlsGetPtrFn);
 
             return Result::Continue;
         }
@@ -770,8 +766,7 @@ namespace
         SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue, tlsGetValueFn, node.codeRef()));
         SWC_ASSERT(tlsGetValueFn != nullptr);
 
-        if (SymbolFunction* currentFn = sema.frame().currentFunction())
-            currentFn->addCallDependency(tlsGetValueFn);
+        SemaHelpers::addCurrentFunctionCallDependency(sema, tlsGetValueFn);
 
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
@@ -790,8 +785,7 @@ namespace
         SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::RaiseException, raiseExceptionFn, node.codeRef()));
         SWC_ASSERT(raiseExceptionFn != nullptr);
 
-        if (SymbolFunction* currentFn = sema.frame().currentFunction())
-            currentFn->addCallDependency(raiseExceptionFn);
+        SemaHelpers::addCurrentFunctionCallDependency(sema, raiseExceptionFn);
 
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
@@ -806,7 +800,7 @@ namespace
 
     TypeRef callExprRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
     {
-        if (sema.frame().currentFunction() == nullptr)
+        if (SemaHelpers::isGlobalScope(sema))
             return TypeRef::invalid();
 
         const TypeRef returnTypeRef = calledFn.returnTypeRef();
@@ -834,12 +828,7 @@ namespace
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
 
-        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            currentFunc->addLocalVariable(sema.ctx(), &symVar);
-        }
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
 
         symVar.setTyped(sema.ctx());
         symVar.setSemaCompleted(sema.ctx());
@@ -937,22 +926,18 @@ namespace
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
 
-        auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
-        if (SymbolFunction* currentFn = sema.frame().currentFunction())
-        {
-            const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
-            const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-            if (currentFn->decl() &&
-                calledFn.decl() &&
-                calledFn.declNodeRef().isValid() &&
-                !calledFn.isForeign() &&
-                !calledFn.isEmpty() &&
-                !isMixinCall &&
-                !isMacroCall)
-            {
-                currentFn->addCallDependency(&calledFn);
-            }
-        }
+        auto&      calledFn    = nodeSymView.sym()->cast<SymbolFunction>();
+        const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+        const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+        if (auto* currentFn = SemaHelpers::currentFunction(sema); currentFn &&
+                                                                  currentFn->decl() &&
+                                                                  calledFn.decl() &&
+                                                                  calledFn.declNodeRef().isValid() &&
+                                                                  !calledFn.isForeign() &&
+                                                                  !calledFn.isEmpty() &&
+                                                                  !isMixinCall &&
+                                                                  !isMacroCall)
+            currentFn->addCallDependency(&calledFn);
 
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
         if (!returnType.isVoid() &&

@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -29,8 +30,7 @@ namespace
         SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::StringCmp, stringCmpFn, sema.node(sema.curNodeRef()).codeRef()));
         SWC_ASSERT(stringCmpFn != nullptr);
 
-        if (SymbolFunction* currentFn = sema.frame().currentFunction())
-            currentFn->addCallDependency(stringCmpFn);
+        SemaHelpers::addCurrentFunctionCallDependency(sema, stringCmpFn);
         return Result::Continue;
     }
 }

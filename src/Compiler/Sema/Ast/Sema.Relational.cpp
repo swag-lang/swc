@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Report/Diagnostic.h"
@@ -93,8 +94,7 @@ namespace
         SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::StringCmp, stringCmpFn, node.codeRef()));
         SWC_ASSERT(stringCmpFn != nullptr);
 
-        if (SymbolFunction* currentFn = sema.frame().currentFunction())
-            currentFn->addCallDependency(stringCmpFn);
+        SemaHelpers::addCurrentFunctionCallDependency(sema, stringCmpFn);
 
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)

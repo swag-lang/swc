@@ -19,12 +19,7 @@ namespace
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
 
-        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            currentFunc->addLocalVariable(sema.ctx(), &symVar);
-        }
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
 
         symVar.setTyped(sema.ctx());
         symVar.setSemaCompleted(sema.ctx());
@@ -59,7 +54,7 @@ namespace
             return Result::Continue;
         if (!literalView.type()->isAggregateStruct() && !literalView.type()->isAggregateArray())
             return Result::Continue;
-        if (sema.frame().currentFunction() == nullptr)
+        if (SemaHelpers::isGlobalScope(sema))
             return Result::Continue;
 
         auto& storageSym = registerUniqueLiteralRuntimeStorageSymbol(sema, node);

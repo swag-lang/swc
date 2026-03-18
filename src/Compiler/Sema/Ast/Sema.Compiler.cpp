@@ -33,7 +33,7 @@ namespace
     {
         if (nodeRef.isInvalid())
             return false;
-        if (sema.frame().currentFunction() == nullptr)
+        if (SemaHelpers::isGlobalScope(sema))
             return false;
 
         const AstNodeRef parentRef = sema.visit().parentNodeRef();
@@ -1165,8 +1165,7 @@ namespace
 
         SemaFrame frame = sema.frame();
         auto&     symFn = sema.viewSymbol(nodeRef).sym()->cast<SymbolFunction>();
-        if (SymbolFunction* currentFn = sema.frame().currentFunction())
-            currentFn->addCallDependency(&symFn);
+        SemaHelpers::addCurrentFunctionCallDependency(sema, &symFn);
 
         frame.currentAttributes() = symFn.attributes();
         frame.setCurrentFunction(&symFn);
@@ -1183,7 +1182,7 @@ Result AstCompilerRunBlock::semaPreNode(Sema& sema)
 
 Result AstCompilerRunBlock::semaPostNode(Sema& sema)
 {
-    SymbolFunction* runExprSymFn = sema.frame().currentFunction();
+    auto* runExprSymFn = SemaHelpers::currentFunction(sema);
     SWC_ASSERT(runExprSymFn != nullptr);
 
     const TypeRef returnTypeRef = runExprSymFn->returnTypeRef();

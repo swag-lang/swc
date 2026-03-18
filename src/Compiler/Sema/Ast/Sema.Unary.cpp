@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
@@ -239,8 +240,7 @@ namespace
         if (view.sym() && view.sym()->isFunction())
         {
             auto& symFunc = view.sym()->cast<SymbolFunction>();
-            if (SymbolFunction* currentFn = sema.frame().currentFunction())
-                currentFn->addCallDependency(&symFunc);
+            SemaHelpers::addCurrentFunctionCallDependency(sema, &symFunc);
 
             sema.setType(sema.curNodeRef(), view.typeRef());
             return Result::Continue;

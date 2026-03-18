@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
@@ -134,8 +135,8 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
     auto diag = report(sema, DiagnosticId::sema_err_runtime_uses_compiler_only_symbol, atNodeRef);
     setReportArguments(sema, diag, &symbol);
 
-    if (const SymbolFunction* currentFunction = sema.frame().currentFunction())
-        diag.addArgument(Diagnostic::ARG_WHAT, currentFunction->getFullScopedName(sema.ctx()));
+    if (const SymbolFunction* currentFn = SemaHelpers::currentFunction(sema))
+        diag.addArgument(Diagnostic::ARG_WHAT, currentFn->getFullScopedName(sema.ctx()));
 
     diag.addNote(DiagnosticId::sema_note_compiler_only_symbol);
     diag.last().addSpan(symbol.codeRange(sema.ctx()));

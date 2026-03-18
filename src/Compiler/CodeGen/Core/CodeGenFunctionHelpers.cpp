@@ -7,6 +7,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
@@ -14,42 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool needsPersistentCompilerRunScan(Sema& sema, TypeRef typeRef)
-    {
-        SWC_ASSERT(typeRef.isValid());
-
-        const TaskContext& ctx      = sema.ctx();
-        const TypeInfo&    typeInfo = sema.typeMgr().get(typeRef);
-        if (typeInfo.isAlias())
-        {
-            const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            return rawTypeRef.isValid() && needsPersistentCompilerRunScan(sema, rawTypeRef);
-        }
-
-        if (typeInfo.isEnum())
-        {
-            const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Enum);
-            return rawTypeRef.isValid() && needsPersistentCompilerRunScan(sema, rawTypeRef);
-        }
-
-        if (typeInfo.isString() || typeInfo.isSlice())
-            return true;
-
-        if (typeInfo.isArray())
-            return needsPersistentCompilerRunScan(sema, typeInfo.payloadArrayElemTypeRef());
-
-        if (typeInfo.isStruct())
-        {
-            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
-            {
-                if (field && needsPersistentCompilerRunScan(sema, field->typeRef()))
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
     bool stackContainsRange(const std::byte* localStackBase, uint64_t localStackSize, const void* ptr, uint64_t size)
     {
         if (!localStackBase || !localStackSize || !ptr || !size)
@@ -124,7 +89,7 @@ namespace
             const TypeRef     elementTypeRef = typeInfo.payloadTypeRef();
             const TypeInfo&   elementType    = sema.typeMgr().get(elementTypeRef);
             const uint64_t    elementSize    = elementType.sizeOf(ctx);
-            const bool        scanElements   = needsPersistentCompilerRunScan(sema, elementTypeRef);
+            const bool        scanElements   = SemaHelpers::needsPersistentCompilerRunReturn(sema, elementTypeRef);
             if (!srcSlice->ptr || !srcSlice->count || !elementSize)
                 return Result::Continue;
 
@@ -163,7 +128,7 @@ namespace
         if (typeInfo.isArray())
         {
             const TypeRef elementTypeRef = typeInfo.payloadArrayElemTypeRef();
-            if (!needsPersistentCompilerRunScan(sema, elementTypeRef))
+            if (!SemaHelpers::needsPersistentCompilerRunReturn(sema, elementTypeRef))
                 return Result::Continue;
 
             const TypeInfo& elementType = sema.typeMgr().get(elementTypeRef);
@@ -195,7 +160,7 @@ namespace
         {
             for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
             {
-                if (!field || !needsPersistentCompilerRunScan(sema, field->typeRef()))
+                if (!field || !SemaHelpers::needsPersistentCompilerRunReturn(sema, field->typeRef()))
                     continue;
 
                 const TypeRef   fieldTypeRef = field->typeRef();
@@ -258,11 +223,9 @@ namespace
     }
 }
 
-bool CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(Sema& sema, TypeRef typeRef)
+bool CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef)
 {
-    if (typeRef.isInvalid())
-        return false;
-    return needsPersistentCompilerRunScan(sema, typeRef);
+    return SemaHelpers::needsPersistentCompilerRunReturn(sema, typeRef);
 }
 
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg)

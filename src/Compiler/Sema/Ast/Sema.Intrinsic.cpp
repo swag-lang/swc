@@ -68,12 +68,7 @@ namespace
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
 
-        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            currentFunc->addLocalVariable(sema.ctx(), &symVar);
-        }
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
 
         symVar.setTyped(sema.ctx());
         symVar.setSemaCompleted(sema.ctx());
@@ -182,7 +177,7 @@ namespace
         sema.setType(sema.curNodeRef(), typeRef);
         sema.setIsValue(node);
 
-        if (sema.frame().currentFunction() != nullptr)
+        if (SemaHelpers::isCurrentFunction(sema))
         {
             auto& storageSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, node, "intrinsic_runtime_storage");
             storageSym.registerAttributes(sema);
@@ -233,7 +228,7 @@ namespace
         sema.setType(sema.curNodeRef(), typeRef);
         sema.setIsValue(node);
 
-        if (sema.frame().currentFunction() != nullptr)
+        if (SemaHelpers::isCurrentFunction(sema))
         {
             auto& storageSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, node, "intrinsic_runtime_storage");
             storageSym.registerAttributes(sema);

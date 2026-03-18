@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 #test
 {
     const N           = 4

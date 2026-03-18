@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 //#[Swag.ConstExpr]
 struct A { x: s32 }
 func toto()->A { return A{1}; }

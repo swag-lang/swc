@@ -85,14 +85,15 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
         }
 
-        MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
-        const AttributeList&     attributes      = symbolFunc.attributes();
-        Runtime::BuildCfgBackend backendBuildCfg = compiler().buildCfg().backend;
+        MicroBuilderFlags        builderFlags     = MicroBuilderFlagsE::Zero;
+        const AttributeList&     attributes       = symbolFunc.attributes();
+        const Runtime::BuildCfg& compilerBuildCfg = buildCfg();
+        Runtime::BuildCfgBackend backendBuildCfg  = compilerBuildCfg.backend;
         if (attributes.backendOptimize.has_value())
             backendBuildCfg.optimize = attributes.backendOptimize.value();
 
         builder_->setBackendBuildCfg(backendBuildCfg);
-        if (compiler().buildCfg().backend.debugInfo)
+        if (compilerBuildCfg.backend.debugInfo)
             builderFlags.add(MicroBuilderFlagsE::DebugInfo);
         builder_->setFlags(builderFlags);
         builder_->setCurrentDebugSourceCodeRef(SourceCodeRef::invalid());
@@ -153,6 +154,11 @@ CompilerInstance& CodeGen::compiler()
 const CompilerInstance& CodeGen::compiler() const
 {
     return sema().compiler();
+}
+
+const Runtime::BuildCfg& CodeGen::buildCfg() const
+{
+    return compiler().buildCfg();
 }
 
 ConstantManager& CodeGen::cstMgr()
@@ -278,7 +284,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     CodeGenNodePayload* nodePayload = safePayload(nodeRef);
     if (!nodePayload)
     {
-        nodePayload = compiler().allocate<CodeGenNodePayload>();
+        nodePayload                    = compiler().allocate<CodeGenNodePayload>();
         nodePayload->runtimeStorageSym = nullptr;
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }

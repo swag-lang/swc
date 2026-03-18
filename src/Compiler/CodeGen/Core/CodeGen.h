@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -158,22 +159,26 @@ public:
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
-    Sema&                    sema() { return *(sema_); }
-    const Sema&              sema() const { return *(sema_); }
-    TaskContext&             ctx();
-    const TaskContext&       ctx() const;
-    CompilerInstance&        compiler();
-    const CompilerInstance&  compiler() const;
-    ConstantManager&         cstMgr();
-    const ConstantManager&   cstMgr() const;
-    TypeManager&             typeMgr();
-    const TypeManager&       typeMgr() const;
-    TypeGen&                 typeGen();
-    const TypeGen&           typeGen() const;
-    IdentifierManager&       idMgr();
-    const IdentifierManager& idMgr() const;
-    MicroBuilder&            builder() { return *(builder_); }
-    const MicroBuilder&      builder() const { return *(builder_); }
+    Sema&                           sema() { return *(sema_); }
+    const Sema&                     sema() const { return *(sema_); }
+    TaskContext&                    ctx();
+    const TaskContext&              ctx() const;
+    CompilerInstance&               compiler();
+    const CompilerInstance&         compiler() const;
+    const Runtime::BuildCfg&        buildCfg() const;
+    const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
+    Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
+    bool                            isDebugInfoEnabled() const { return buildCfgBackend().debugInfo; }
+    ConstantManager&                cstMgr();
+    const ConstantManager&          cstMgr() const;
+    TypeManager&                    typeMgr();
+    const TypeManager&              typeMgr() const;
+    TypeGen&                        typeGen();
+    const TypeGen&                  typeGen() const;
+    IdentifierManager&              idMgr();
+    const IdentifierManager&        idMgr() const;
+    MicroBuilder&                   builder() { return *(builder_); }
+    const MicroBuilder&             builder() const { return *(builder_); }
 
     Ast&                          ast();
     const Ast&                    ast() const;

@@ -46,7 +46,7 @@ namespace
 
     bool shouldSpillParametersForDebugInfo(const CodeGen& codeGen)
     {
-        return codeGen.compiler().buildCfg().backend.debugInfo;
+        return codeGen.isDebugInfoEnabled();
     }
 
     uint32_t checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo)

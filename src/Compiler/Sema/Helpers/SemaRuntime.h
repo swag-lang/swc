@@ -1,6 +1,7 @@
 #pragma once
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
@@ -140,9 +141,9 @@ namespace SemaRuntime
 
     inline bool isRuntimeArtifactContext(const Sema& sema)
     {
-        if (sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr))
+        if (SemaHelpers::isRunExprContext(sema))
             return false;
-        if (sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr))
+        if (SemaHelpers::isConstExprRequired(sema))
             return false;
         if (hasCompilerEvalAstContext(sema))
             return false;

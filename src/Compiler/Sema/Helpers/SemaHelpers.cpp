@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -33,6 +35,43 @@ AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
     }
 
     return nodeRef;
+}
+
+const SymbolFunction* SemaHelpers::currentLocationFunction(const Sema& sema)
+{
+    const auto* inlinePayload = sema.frame().currentInlinePayload();
+    if (inlinePayload && inlinePayload->sourceFunction)
+        return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
+
+    return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
+}
+
+AstNodeRef SemaHelpers::defaultArgumentExprRef(const SymbolVariable& param)
+{
+    const AstNode* declNode = param.decl();
+    if (!declNode)
+        return AstNodeRef::invalid();
+
+    if (const auto* singleVar = declNode->safeCast<AstSingleVarDecl>())
+        return singleVar->nodeInitRef;
+
+    if (const auto* multiVar = declNode->safeCast<AstMultiVarDecl>())
+        return multiVar->nodeInitRef;
+
+    return AstNodeRef::invalid();
+}
+
+bool SemaHelpers::isDirectCallerLocationDefault(const Sema& sema, const SymbolVariable& param)
+{
+    const AstNodeRef initRef = defaultArgumentExprRef(param);
+    if (initRef.isInvalid())
+        return false;
+
+    const AstNode& initNode = sema.node(initRef);
+    if (initNode.isNot(AstNodeId::CompilerLiteral))
+        return false;
+
+    return sema.token(initNode.codeRef()).id == TokenId::CompilerCallerLocation;
 }
 
 void SemaHelpers::pushConstExprRequirement(Sema& sema, AstNodeRef childRef)

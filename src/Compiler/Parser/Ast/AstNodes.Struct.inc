@@ -32,7 +32,7 @@ struct AstTopLevelBlock : AstCompoundT<AstNodeId::TopLevelBlock>
 // -----------------------------------------------------------------------------
 enum class AstEmbeddedBlockFlagsE : AstNode::ParserFlags
 {
-    Zero                = 0,
+    Zero                 = 0,
     ImplicitCodeBlockArg = 1 << 0,
 };
 

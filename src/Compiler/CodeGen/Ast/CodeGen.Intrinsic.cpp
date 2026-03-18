@@ -1282,7 +1282,7 @@ namespace
 
     Result codeGenGetContext(CodeGen& codeGen)
     {
-        if (codeGen.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::None)
+        if (codeGen.buildCfgBackendKind() != Runtime::BuildCfgBackendKind::None)
             return codeGenGetContextNative(codeGen);
 
         const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());

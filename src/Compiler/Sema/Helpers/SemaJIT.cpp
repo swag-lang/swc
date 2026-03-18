@@ -13,8 +13,8 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
-#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -148,10 +148,10 @@ namespace
 
     ConstantRef makeJitCallResultConstantRef(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
     {
-        const TypeInfo& exprType = sema.typeMgr().get(resultMeta.exprTypeRef);
-        const TypeRef   constantTypeRef  = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
-        const uint64_t  resultSize       = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
-        const auto      resultBytes      = ByteSpan{storagePtr, static_cast<size_t>(resultSize)};
+        const TypeInfo& exprType        = sema.typeMgr().get(resultMeta.exprTypeRef);
+        const TypeRef   constantTypeRef = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
+        const uint64_t  resultSize      = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
+        const auto      resultBytes     = ByteSpan{storagePtr, static_cast<size_t>(resultSize)};
 
         if (resultSize && shouldMaterializePersistentRunExpr(resultMeta.storageTypeRef, sema))
         {
@@ -370,15 +370,6 @@ namespace
         return true;
     }
 
-    const SymbolFunction* currentLocationFunction(const Sema& sema)
-    {
-        const auto* inlinePayload = sema.frame().currentInlinePayload();
-        if (inlinePayload && inlinePayload->sourceFunction)
-            return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
-
-        return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
-    }
-
     ConstantRef defaultArgumentConstantRef(Sema& sema, AstNodeRef callRef, const ResolvedCallArgument& resolvedArg)
     {
         switch (resolvedArg.defaultKind)
@@ -389,7 +380,7 @@ namespace
             case CallArgumentDefaultKind::CallerLocation:
             {
                 const SourceCodeRange codeRange = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
-                return ConstantHelpers::makeSourceCodeLocation(sema, codeRange, currentLocationFunction(sema));
+                return ConstantHelpers::makeSourceCodeLocation(sema, codeRange, SemaHelpers::currentLocationFunction(sema));
             }
 
             case CallArgumentDefaultKind::None:
@@ -522,10 +513,10 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     // Eligibility and prerequisites.
     if (!supportsConstCallJit(sema, calledFn))
         return Result::Continue;
-    if (sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr))
+    if (SemaHelpers::isRunExprContext(sema))
         return Result::Continue;
-    if (!sema.compiler().buildCfg().backend.optimize &&
-        !sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr))
+    if (!SemaHelpers::isOptimizeEnabled(sema) &&
+        !SemaHelpers::isConstExprRequired(sema))
         return Result::Continue;
     if (sema.viewConstant(callRef).hasConstant())
         return Result::Continue;

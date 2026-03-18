@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Runtime.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -10,15 +11,39 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaHelpers
 {
+    inline const Runtime::BuildCfg& buildCfg(const Sema& sema)
+    {
+        return sema.compiler().buildCfg();
+    }
+
+    inline const Runtime::BuildCfgBackend& buildCfgBackend(const Sema& sema)
+    {
+        return buildCfg(sema).backend;
+    }
+
+    inline Runtime::BuildCfgBackendKind buildCfgBackendKind(const Sema& sema)
+    {
+        return buildCfg(sema).backendKind;
+    }
+
     inline bool isOptimizeEnabled(const Sema& sema)
     {
-        return sema.compiler().buildCfg().backend.optimize;
+        return buildCfgBackend(sema).optimize;
     }
 
     inline bool isConstExprRequired(const Sema& sema)
     {
         return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
     }
+
+    inline bool isRunExprContext(const Sema& sema)
+    {
+        return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr);
+    }
+
+    const SymbolFunction* currentLocationFunction(const Sema& sema);
+    AstNodeRef            defaultArgumentExprRef(const SymbolVariable& param);
+    bool                  isDirectCallerLocationDefault(const Sema& sema, const SymbolVariable& param);
 
     AstNodeRef         unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef);
     void               pushConstExprRequirement(Sema& sema, AstNodeRef childRef);

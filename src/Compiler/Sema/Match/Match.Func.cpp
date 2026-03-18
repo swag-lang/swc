@@ -7,9 +7,8 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Helpers/SemaInline.h"
-#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -20,43 +19,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const SymbolFunction* currentLocationFunction(const Sema& sema)
-    {
-        const auto* inlinePayload = sema.frame().currentInlinePayload();
-        if (inlinePayload && inlinePayload->sourceFunction)
-            return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
-
-        return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
-    }
-
-    AstNodeRef defaultArgumentExprRef(const SymbolVariable& param)
-    {
-        const AstNode* declNode = param.decl();
-        if (!declNode)
-            return AstNodeRef::invalid();
-
-        if (const auto* singleVar = declNode->safeCast<AstSingleVarDecl>())
-            return singleVar->nodeInitRef;
-
-        if (const auto* multiVar = declNode->safeCast<AstMultiVarDecl>())
-            return multiVar->nodeInitRef;
-
-        return AstNodeRef::invalid();
-    }
-
-    bool isDirectCallerLocationDefault(const Sema& sema, const SymbolVariable& param)
-    {
-        const AstNodeRef initRef = defaultArgumentExprRef(param);
-        if (initRef.isInvalid())
-            return false;
-
-        const AstNode& initNode = sema.node(initRef);
-        if (initNode.isNot(AstNodeId::CompilerLiteral))
-            return false;
-
-        return sema.token(initNode.codeRef()).id == TokenId::CompilerCallerLocation;
-    }
-
     SymbolFunction* callableTypeFunction(TaskContext& ctx, TypeRef typeRef)
     {
         while (typeRef.isValid())
@@ -1254,10 +1216,10 @@ namespace
                             resolvedArg.defaultKind   = CallArgumentDefaultKind::Constant;
                             resolvedArg.defaultCstRef = param->defaultValueRef();
                         }
-                        else if (isDirectCallerLocationDefault(sema, *param))
+                        else if (SemaHelpers::isDirectCallerLocationDefault(sema, *param))
                         {
                             resolvedArg.defaultKind   = CallArgumentDefaultKind::Constant;
-                            resolvedArg.defaultCstRef = ConstantHelpers::makeSourceCodeLocation(sema, sema.node(sema.curNodeRef()), currentLocationFunction(sema));
+                            resolvedArg.defaultCstRef = ConstantHelpers::makeSourceCodeLocation(sema, sema.node(sema.curNodeRef()), SemaHelpers::currentLocationFunction(sema));
                         }
                     }
                 }

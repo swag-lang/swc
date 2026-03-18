@@ -748,7 +748,7 @@ namespace
 
     Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
-        if (sema.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::None)
+        if (SemaHelpers::buildCfgBackendKind(sema) != Runtime::BuildCfgBackendKind::None)
         {
             SymbolFunction* tlsAllocFn  = nullptr;
             SymbolFunction* tlsGetPtrFn = nullptr;

@@ -29,15 +29,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const SymbolFunction* currentLocationFunction(const Sema& sema)
-    {
-        const auto* inlinePayload = sema.frame().currentInlinePayload();
-        if (inlinePayload && inlinePayload->sourceFunction)
-            return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
-
-        return SemaRuntime::transparentLocationFunction(sema.frame().currentFunction());
-    }
-
     bool isDirectFunctionParameterDefault(const Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -560,7 +551,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
-            sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, *this, currentLocationFunction(sema)));
+            sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, *this, SemaHelpers::currentLocationFunction(sema)));
             break;
         }
 

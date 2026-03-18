@@ -317,13 +317,13 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView exprView     = codeGen.viewType(nodeExprRef);
     SWC_ASSERT(exprView.type());
 
-    const CodeGenNodePayload& exprPayload      = codeGen.payload(nodeExprRef);
-    const MicroReg            payloadReg       = exprPayload.reg;
-    const bool                payloadLValue    = exprPayload.isAddress();
-    const CodeGenNodePayload& runExprPayload   = codeGen.payload(codeGen.curNodeRef());
-    const MicroReg            outputStorageReg = runExprPayload.reg;
-    const AstNode&            exprNode         = codeGen.node(nodeExprRef);
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
+    const CodeGenNodePayload&              exprPayload      = codeGen.payload(nodeExprRef);
+    const MicroReg                         payloadReg       = exprPayload.reg;
+    const bool                             payloadLValue    = exprPayload.isAddress();
+    const CodeGenNodePayload&              runExprPayload   = codeGen.payload(codeGen.curNodeRef());
+    const MicroReg                         outputStorageReg = runExprPayload.reg;
+    const AstNode&                         exprNode         = codeGen.node(nodeExprRef);
+    const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
 
     if (normalizedRet.isIndirect)
     {

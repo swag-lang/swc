@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 //#global testerror "Err0023"
 struct RGB { a, b, c: s32 }
 

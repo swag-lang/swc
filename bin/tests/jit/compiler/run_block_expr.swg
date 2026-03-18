@@ -33,6 +33,14 @@ const PersistentAnyPair: AnyPair = #run
     return pair
 }
 
+const PersistentAnyArray: [2] any = #run
+{
+    var values: [2] any
+    values[0] = "first"
+    values[1] = "second"
+    return values
+}
+
 #assert(#typeof(ScalarValue) == s32)
 #assert(ScalarValue == 42)
 #assert(#typeof(PowerOfTwo) == [4] s32)
@@ -45,6 +53,8 @@ const PersistentAnyPair: AnyPair = #run
 #assert(DeducePowerOfTwo[3] == 4)
 #assert(cast(string) PersistentAnyPair.item == "abc")
 #assert(cast(string) PersistentAnyPair.other == "def")
+#assert(cast(string) PersistentAnyArray[0] == "first")
+#assert(cast(string) PersistentAnyArray[1] == "second")
 
 #test
 {

@@ -86,6 +86,14 @@ const PersistentAnyPair: AnyPair = #run
     return pair
 }
 
+const PersistentAnyArray: [2] any = #run
+{
+    var values: [2] any
+    values[0] = "first"
+    values[1] = "second"
+    return values
+}
+
 const PersistentBytesHolder: BytesHolder = #run
 {
     var data: [4] u8
@@ -142,6 +150,8 @@ func functionScopedShortCompilerOnlyRunCall()
 #assert(PersistentStringArray[0] == "abc")
 #assert(cast(string) PersistentAnyPair.item == "abc")
 #assert(cast(string) PersistentAnyPair.other == "def")
+#assert(cast(string) PersistentAnyArray[0] == "first")
+#assert(cast(string) PersistentAnyArray[1] == "second")
 #assert(@countof(PersistentBytes) == 4)
 #assert(PersistentBytes[0] == 1)
 #assert(PersistentBytes[3] == 4)

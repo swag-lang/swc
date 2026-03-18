@@ -21,28 +21,6 @@ namespace
         return Result::Error;
     }
 
-    ConstantRef makeStructConstantFromBytes(Sema& sema, TypeRef structTypeRef, ByteSpan bytes)
-    {
-        TaskContext&    ctx        = sema.ctx();
-        const TypeInfo& structType = sema.typeMgr().get(structTypeRef);
-        SWC_ASSERT(structType.isStruct());
-        SWC_ASSERT(structType.sizeOf(ctx) <= bytes.size());
-
-        const ConstantValue cv = ConstantValue::makeStructBorrowed(ctx, structTypeRef, bytes);
-        return sema.cstMgr().addConstant(ctx, cv);
-    }
-
-    ConstantRef makeArrayConstantFromBytes(Sema& sema, TypeRef arrayTypeRef, ByteSpan bytes)
-    {
-        TaskContext&    ctx       = sema.ctx();
-        const TypeInfo& arrayType = sema.typeMgr().get(arrayTypeRef);
-        SWC_ASSERT(arrayType.isArray());
-        SWC_ASSERT(arrayType.sizeOf(ctx) <= bytes.size());
-
-        const ConstantValue cv = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, bytes);
-        return sema.cstMgr().addConstant(ctx, cv);
-    }
-
     Result getStructBytesFromConstant(Sema& sema, ByteSpan& bytes, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         if (cst.isStruct())
@@ -182,36 +160,8 @@ namespace
         if (std::cmp_greater_equal(constIndex, count))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
 
-        const auto  elemBytes  = ByteSpan{bytes.data() + (constIndex * elemSize), elemSize};
-        ConstantRef elemCstRef = ConstantRef::invalid();
-
-        if (elemType.isArray())
-        {
-            elemCstRef = makeArrayConstantFromBytes(sema, elemTypeRef, elemBytes);
-        }
-        else if (elemType.isStruct())
-        {
-            elemCstRef = makeStructConstantFromBytes(sema, elemTypeRef, elemBytes);
-        }
-        else
-        {
-            TypeRef valueTypeRef = elemTypeRef;
-            if (elemType.isEnum())
-                valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
-
-            const ConstantValue cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
-            if (!cv.isValid())
-                return Result::Continue;
-
-            elemCstRef = sema.cstMgr().addConstant(ctx, cv);
-
-            if (elemType.isEnum())
-            {
-                ConstantValue enumCv = ConstantValue::makeEnumValue(ctx, elemCstRef, elemTypeRef);
-                enumCv.setTypeRef(elemTypeRef);
-                elemCstRef = sema.cstMgr().addConstant(ctx, enumCv);
-            }
-        }
+        const auto        elemBytes  = ByteSpan{bytes.data() + (constIndex * elemSize), elemSize};
+        const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
 
         if (elemCstRef.isInvalid())
             return Result::Continue;

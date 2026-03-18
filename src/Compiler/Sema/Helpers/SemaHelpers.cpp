@@ -11,33 +11,124 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym)
+AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
 {
-    SWC_ASSERT(symbolMap != nullptr);
-    SWC_ASSERT(sym != nullptr);
-
-    if (sym->isVariable())
+    while (nodeRef.isValid())
     {
-        auto& symVar = sym->cast<SymbolVariable>();
-        if (symbolMap->isStruct())
-            symbolMap->cast<SymbolStruct>().addField(&symVar);
-
-        if (sema.curScope().isParameters())
+        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        if (resolvedRef.isValid() && resolvedRef != nodeRef)
         {
-            symVar.addExtraFlag(SymbolVariableFlagsE::Parameter);
-            if (symbolMap->isFunction())
-                symbolMap->cast<SymbolFunction>().addParameter(&symVar);
+            nodeRef = resolvedRef;
+            continue;
         }
+
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::ParenExpr))
+        {
+            nodeRef = node.cast<AstParenExpr>().nodeExprRef;
+            continue;
+        }
+
+        break;
     }
 
-    if (sym->isFunction())
+    return nodeRef;
+}
+
+void SemaHelpers::pushConstExprRequirement(Sema& sema, AstNodeRef childRef)
+{
+    SWC_ASSERT(childRef.isValid());
+    auto frame = sema.frame();
+    frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
+    sema.pushFramePopOnPostChild(frame, childRef);
+}
+
+IdentifierRef SemaHelpers::getUniqueIdentifier(Sema& sema, const std::string_view& name)
+{
+    const uint32_t id = sema.compiler().atomicId().fetch_add(1);
+    return sema.idMgr().addIdentifierOwned(std::format("{}_{}", name, id));
+}
+
+uint32_t SemaHelpers::uniqSlotIndex(const TokenId tokenId)
+{
+    SWC_ASSERT(Token::isCompilerUniq(tokenId));
+    return static_cast<uint32_t>(tokenId) - static_cast<uint32_t>(TokenId::CompilerUniq0);
+}
+
+AstNodeRef SemaHelpers::uniqSyntaxScopeNodeRef(Sema& sema)
+{
+    if (sema.curNode().is(AstNodeId::FunctionBody) || sema.curNode().is(AstNodeId::EmbeddedBlock))
+        return sema.curNodeRef();
+
+    for (size_t parentIndex = 0;; parentIndex++)
     {
-        auto& symFunc = sym->cast<SymbolFunction>();
-        if (symbolMap->isInterface())
-            symbolMap->cast<SymbolInterface>().addFunction(&symFunc);
-        if (symbolMap->isImpl())
-            symbolMap->cast<SymbolImpl>().addFunction(sema.ctx(), &symFunc);
+        const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
+        if (parentRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNodeId parentId = sema.node(parentRef).id();
+        if (parentId == AstNodeId::FunctionBody || parentId == AstNodeId::EmbeddedBlock)
+            return parentRef;
     }
+}
+
+SemaInlinePayload* SemaHelpers::mixinInlinePayloadForUniq(Sema& sema)
+{
+    auto* inlinePayload = const_cast<SemaInlinePayload*>(sema.frame().currentInlinePayload());
+    if (!inlinePayload || !inlinePayload->sourceFunction)
+        return nullptr;
+    if (!inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        return nullptr;
+    if (uniqSyntaxScopeNodeRef(sema) != inlinePayload->inlineRootRef)
+        return nullptr;
+    return inlinePayload;
+}
+
+IdentifierRef SemaHelpers::ensureCurrentScopeUniqIdentifier(Sema& sema, const TokenId tokenId)
+{
+    SWC_ASSERT(Token::isCompilerUniq(tokenId));
+    const uint32_t slot = uniqSlotIndex(tokenId);
+    if (auto* inlinePayload = mixinInlinePayloadForUniq(sema))
+    {
+        const IdentifierRef done = inlinePayload->uniqIdentifiers[slot];
+        if (done.isValid())
+            return done;
+
+        const IdentifierRef idRef            = getUniqueIdentifier(sema, std::format("__uniq{}", slot));
+        inlinePayload->uniqIdentifiers[slot] = idRef;
+        return idRef;
+    }
+
+    auto&               scope = sema.curScope();
+    const IdentifierRef done  = scope.uniqIdentifier(slot);
+    if (done.isValid())
+        return done;
+
+    const IdentifierRef idRef = getUniqueIdentifier(sema, std::format("__uniq{}", slot));
+    scope.setUniqIdentifier(slot, idRef);
+    return idRef;
+}
+
+IdentifierRef SemaHelpers::resolveUniqIdentifier(Sema& sema, const TokenId tokenId)
+{
+    SWC_ASSERT(Token::isCompilerUniq(tokenId));
+
+    const uint32_t slot = uniqSlotIndex(tokenId);
+    for (const SemaScope* scope = &sema.curScope(); scope; scope = scope->parent())
+    {
+        const IdentifierRef idRef = scope->uniqIdentifier(slot);
+        if (idRef.isValid())
+            return idRef;
+    }
+
+    if (const auto* inlinePayload = mixinInlinePayloadForUniq(sema))
+    {
+        const IdentifierRef idRef = inlinePayload->uniqIdentifiers[slot];
+        if (idRef.isValid())
+            return idRef;
+    }
+
+    return ensureCurrentScopeUniqIdentifier(sema, tokenId);
 }
 
 Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView)
@@ -286,6 +377,35 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
 
     sema.setIsValue(sema.curNodeRef());
     return Result::Continue;
+}
+
+void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym)
+{
+    SWC_ASSERT(symbolMap != nullptr);
+    SWC_ASSERT(sym != nullptr);
+
+    if (sym->isVariable())
+    {
+        auto& symVar = sym->cast<SymbolVariable>();
+        if (symbolMap->isStruct())
+            symbolMap->cast<SymbolStruct>().addField(&symVar);
+
+        if (sema.curScope().isParameters())
+        {
+            symVar.addExtraFlag(SymbolVariableFlagsE::Parameter);
+            if (symbolMap->isFunction())
+                symbolMap->cast<SymbolFunction>().addParameter(&symVar);
+        }
+    }
+
+    if (sym->isFunction())
+    {
+        auto& symFunc = sym->cast<SymbolFunction>();
+        if (symbolMap->isInterface())
+            symbolMap->cast<SymbolInterface>().addFunction(&symFunc);
+        if (symbolMap->isImpl())
+            symbolMap->cast<SymbolImpl>().addFunction(sema.ctx(), &symFunc);
+    }
 }
 
 SWC_END_NAMESPACE();

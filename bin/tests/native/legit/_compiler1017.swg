@@ -1,11 +1,11 @@
 ﻿#global fileprivate
-#global skip
+//#global skip
 
 using Swag
 
 func toto1(loc = #callerlocation)
 {
-    @assert(loc.funcName == "__compiler1017.toto")
+    @assert(loc.funcName == "toto")
 }
 
 func toto()

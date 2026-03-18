@@ -25,29 +25,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    AstNodeRef unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
-    {
-        while (nodeRef.isValid())
-        {
-            const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
-            if (resolvedRef.isValid() && resolvedRef != nodeRef)
-            {
-                nodeRef = resolvedRef;
-                continue;
-            }
-
-            const AstNode& node = sema.node(nodeRef);
-            if (node.is(AstNodeId::ParenExpr))
-            {
-                nodeRef = node.cast<AstParenExpr>().nodeExprRef;
-                continue;
-            }
-
-            break;
-        }
-
-        return nodeRef;
-    }
 }
 
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
@@ -937,7 +914,7 @@ namespace
 
         AstNodeRef ufcsArg = AstNodeRef::invalid();
         SWC_ASSERT(nodeCallee.node() != nullptr);
-        const AstNodeRef resolvedCalleeRef = unwrapCallCalleeRef(sema, node.nodeExprRef);
+        const AstNodeRef resolvedCalleeRef = SemaHelpers::unwrapCallCalleeRef(sema, node.nodeExprRef);
         if (resolvedCalleeRef.isValid() && sema.node(resolvedCalleeRef).is(AstNodeId::MemberAccessExpr))
         {
             const auto&        memberAccess = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();

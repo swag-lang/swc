@@ -68,12 +68,6 @@ namespace
         return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
     }
 
-    bool shouldPersistCompilerRunReturn(CodeGen& codeGen, TypeRef typeRef, const CodeGenNodePayload& payload)
-    {
-        SWC_UNUSED(payload);
-        return CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), typeRef);
-    }
-
     SymbolFunction& functionExprSymbol(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (Symbol* sym = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym())
@@ -643,7 +637,7 @@ namespace
             if (normalizedRet.isIndirect)
             {
                 SWC_ASSERT(normalizedRet.indirectSize != 0);
-                if (normalizedRet.isIndirect && shouldPersistCompilerRunReturn(codeGen, returnTypeRef, exprPayload))
+                if (normalizedRet.isIndirect && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef))
                     CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
                 else
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);

@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -19,30 +20,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    AstNodeRef unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
-    {
-        while (nodeRef.isValid())
-        {
-            const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
-            if (resolvedRef.isValid() && resolvedRef != nodeRef)
-            {
-                nodeRef = resolvedRef;
-                continue;
-            }
-
-            const AstNode& node = sema.node(nodeRef);
-            if (node.is(AstNodeId::ParenExpr))
-            {
-                nodeRef = node.cast<AstParenExpr>().nodeExprRef;
-                continue;
-            }
-
-            break;
-        }
-
-        return nodeRef;
-    }
-
     const SymbolFunction* currentLocationFunction(const Sema& sema)
     {
         const auto* inlinePayload = sema.frame().currentInlinePayload();
@@ -1171,7 +1148,7 @@ namespace
         if (!nodeCallee.node())
             return AstNodeRef::invalid();
 
-        const AstNodeRef resolvedCalleeRef = unwrapCallCalleeRef(sema, nodeCallee.nodeRef());
+        const AstNodeRef resolvedCalleeRef = SemaHelpers::unwrapCallCalleeRef(sema, nodeCallee.nodeRef());
         if (resolvedCalleeRef.isInvalid())
             return AstNodeRef::invalid();
 

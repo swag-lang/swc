@@ -24,12 +24,6 @@ namespace
         return currentDeclRef.isValid() && currentDeclRef == activeDeclRef;
     }
 
-    bool shouldPersistCompilerRunReturn(CodeGen& codeGen, TypeRef typeRef, const CodeGenNodePayload& payload)
-    {
-        SWC_UNUSED(payload);
-        return CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), typeRef);
-    }
-
     struct CompilerScopeCodeGenPayload
     {
         MicroLabelRef continueLabel = MicroLabelRef::invalid();
@@ -334,7 +328,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     if (normalizedRet.isIndirect)
     {
         SWC_ASSERT(normalizedRet.indirectSize != 0);
-        if (shouldPersistCompilerRunReturn(codeGen, exprView.typeRef(), exprPayload))
+        if (CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), exprView.typeRef()))
             CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, exprView.typeRef(), outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
         else
             CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);

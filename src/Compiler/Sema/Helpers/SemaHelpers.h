@@ -20,6 +20,30 @@ namespace SemaHelpers
         return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
     }
 
+    inline AstNodeRef unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid())
+        {
+            const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+            if (resolvedRef.isValid() && resolvedRef != nodeRef)
+            {
+                nodeRef = resolvedRef;
+                continue;
+            }
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::ParenExpr))
+            {
+                nodeRef = node.cast<AstParenExpr>().nodeExprRef;
+                continue;
+            }
+
+            break;
+        }
+
+        return nodeRef;
+    }
+
     inline void pushConstExprRequirement(Sema& sema, AstNodeRef childRef)
     {
         SWC_ASSERT(childRef.isValid());

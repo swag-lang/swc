@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 #[Swag.Compiler]
 func mySillyFunction()->string
 {

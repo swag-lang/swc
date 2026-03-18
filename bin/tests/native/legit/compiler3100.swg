@@ -1,5 +1,6 @@
 #global fileprivate
 #global skip
+
 //#global testerror
 
 func msg() => "msg"
@@ -8,6 +9,5 @@ func msg() => "msg"
 {
     var x = 1
     #if false do
-        #error(#run msg()
-)
+        #error(#run msg())
 }

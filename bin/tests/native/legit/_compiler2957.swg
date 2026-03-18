@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+
 #[Swag.ConstExpr]
 struct V { x, y, z: f32 = 666 }
 

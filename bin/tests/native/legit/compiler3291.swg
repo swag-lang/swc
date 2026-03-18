@@ -1,6 +1,6 @@
 #global fileprivate
 #global skip
-#global skip
+
 struct X
 {
     x: s32 = 1

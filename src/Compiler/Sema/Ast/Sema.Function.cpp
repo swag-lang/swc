@@ -147,6 +147,172 @@ namespace
         return nullptr;
     }
 
+    Result findCompatibleReturnBindingType(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
+    {
+        outTypeRef = TypeRef::invalid();
+        if (exprRef.isInvalid())
+            return Result::Continue;
+
+        const SemaNodeView exprView = sema.viewNodeTypeConstant(exprRef);
+        const auto         frames   = sema.frames();
+        for (size_t frameIndex = frames.size(); frameIndex > 0; --frameIndex)
+        {
+            const std::span<const TypeRef> bindingTypes = frames[frameIndex - 1].bindingTypes();
+            for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
+            {
+                const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
+                if (!bindingTypeRef.isValid())
+                    continue;
+
+                CastRequest castRequest(CastKind::Implicit);
+                castRequest.errorNodeRef = exprRef;
+                const Result castResult  = Cast::castAllowed(sema, castRequest, exprView.typeRef(), bindingTypeRef);
+                if (castResult == Result::Pause)
+                    return Result::Pause;
+                if (castResult != Result::Continue)
+                    continue;
+
+                outTypeRef = bindingTypeRef;
+                return Result::Continue;
+            }
+        }
+
+        return Result::Continue;
+    }
+
+    bool isInsideInlineRoot(const Sema& sema, AstNodeRef inlineRootRef);
+
+    TypeRef deduceHomogeneousAggregateArrayType(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isArray())
+            return typeRef;
+        if (!type.isAggregateArray())
+            return TypeRef::invalid();
+
+        const auto& elemTypes = type.payloadAggregate().types;
+        if (elemTypes.empty())
+            return TypeRef::invalid();
+
+        TypeRef concreteElemTypeRef = TypeRef::invalid();
+        for (TypeRef elemTypeRef : elemTypes)
+        {
+            const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
+            if (elemType.isAggregateArray())
+                elemTypeRef = deduceHomogeneousAggregateArrayType(sema, elemTypeRef);
+
+            if (!elemTypeRef.isValid())
+                return TypeRef::invalid();
+
+            if (!concreteElemTypeRef.isValid())
+                concreteElemTypeRef = elemTypeRef;
+            else if (concreteElemTypeRef != elemTypeRef)
+                return TypeRef::invalid();
+        }
+
+        SmallVector4<uint64_t> dims;
+        dims.push_back(elemTypes.size());
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), concreteElemTypeRef));
+    }
+
+    Result concretizeImplicitReturnTypeIfNeeded(Sema& sema, AstNodeRef exprRef, TypeRef& ioTypeRef)
+    {
+        if (exprRef.isInvalid() || !ioTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeRef concreteArrayTypeRef = deduceHomogeneousAggregateArrayType(sema, ioTypeRef);
+        if (!concreteArrayTypeRef.isValid())
+            return Result::Continue;
+
+        SemaNodeView castView = sema.viewNodeTypeConstant(exprRef);
+        SWC_RESULT(Cast::cast(sema, castView, concreteArrayTypeRef, CastKind::Implicit));
+        ioTypeRef = concreteArrayTypeRef;
+        return Result::Continue;
+    }
+
+    Result inferCompilerRunBlockReturnType(Sema& sema, SymbolFunction& sym, AstNodeRef exprRef, TypeRef& outTypeRef)
+    {
+        outTypeRef = TypeRef::invalid();
+        if (exprRef.isInvalid())
+        {
+            outTypeRef = sema.typeMgr().typeVoid();
+            sym.setReturnTypeRef(outTypeRef);
+            return Result::Continue;
+        }
+
+        SWC_RESULT(findCompatibleReturnBindingType(sema, exprRef, outTypeRef));
+        if (!outTypeRef.isValid())
+        {
+            const SemaNodeView exprView = sema.viewNodeTypeConstant(exprRef);
+            if (exprView.cstRef().isValid())
+            {
+                ConstantRef newCstRef = ConstantRef::invalid();
+                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, exprRef, exprView.cstRef(), TypeInfo::Sign::Unknown, true));
+                if (newCstRef.isValid() && newCstRef != exprView.cstRef())
+                    sema.setConstant(exprRef, newCstRef);
+            }
+
+            outTypeRef = sema.viewNodeTypeConstant(exprRef).typeRef();
+            SWC_RESULT(concretizeImplicitReturnTypeIfNeeded(sema, exprRef, outTypeRef));
+        }
+
+        sym.setReturnTypeRef(outTypeRef);
+        return Result::Continue;
+    }
+
+    Result resolveReturnTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
+    {
+        outTypeRef = TypeRef::invalid();
+        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        if (inlinePayload && isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
+        {
+            outTypeRef = inlinePayload->returnTypeRef;
+            return Result::Continue;
+        }
+
+        SymbolFunction* sym = sema.frame().currentFunction();
+        SWC_ASSERT(sym);
+        if (!sym)
+            return Result::Error;
+
+        outTypeRef = sym->returnTypeRef();
+        if (!outTypeRef.isValid() && sym->decl() && sym->decl()->is(AstNodeId::CompilerRunBlock))
+            return inferCompilerRunBlockReturnType(sema, *sym, exprRef, outTypeRef);
+
+        return Result::Continue;
+    }
+
+    Result validateReturnStatementValue(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef)
+    {
+        SWC_ASSERT(returnTypeRef.isValid());
+        if (!returnTypeRef.isValid())
+            return Result::Error;
+
+        const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
+        if (exprRef.isValid())
+        {
+            if (returnType.isVoid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, exprRef);
+
+            SemaNodeView view = sema.viewNodeTypeConstant(exprRef);
+            SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
+            return Result::Continue;
+        }
+
+        if (!returnType.isVoid())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_missing_value, returnRef);
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+
     SymbolFunction* callableTypeFunction(Sema& sema, TypeRef typeRef)
     {
         typeRef = unwrapLambdaBindingType(sema.ctx(), typeRef);
@@ -866,77 +1032,9 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 
 Result AstReturnStmt::semaPostNode(Sema& sema) const
 {
-    TypeRef                  returnTypeRef = TypeRef::invalid();
-    const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-    if (inlinePayload && isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
-    {
-        returnTypeRef = inlinePayload->returnTypeRef;
-    }
-    else
-    {
-        SymbolFunction* sym = sema.frame().currentFunction();
-        SWC_ASSERT(sym);
-        returnTypeRef = sym->returnTypeRef();
-        if (!returnTypeRef.isValid() && sym->decl() && sym->decl()->is(AstNodeId::CompilerRunBlock))
-        {
-            if (nodeExprRef.isValid())
-            {
-                const SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
-                const auto         frames   = sema.frames();
-                for (size_t frameIndex = frames.size(); frameIndex > 0 && !returnTypeRef.isValid(); --frameIndex)
-                {
-                    const std::span<const TypeRef> bindingTypes = frames[frameIndex - 1].bindingTypes();
-                    for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
-                    {
-                        const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
-                        if (!bindingTypeRef.isValid())
-                            continue;
-
-                        CastRequest castRequest(CastKind::Implicit);
-                        castRequest.errorNodeRef = nodeExprRef;
-                        const Result castResult  = Cast::castAllowed(sema, castRequest, exprView.typeRef(), bindingTypeRef);
-                        if (castResult == Result::Pause)
-                            return Result::Pause;
-                        if (castResult != Result::Continue)
-                            continue;
-
-                        returnTypeRef = bindingTypeRef;
-                        break;
-                    }
-                }
-
-                if (!returnTypeRef.isValid())
-                    returnTypeRef = exprView.typeRef();
-            }
-            else
-                returnTypeRef = sema.typeMgr().typeVoid();
-
-            sym->setReturnTypeRef(returnTypeRef);
-        }
-    }
-
-    SWC_ASSERT(returnTypeRef.isValid());
-    if (!returnTypeRef.isValid())
-        return Result::Error;
-
-    const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
-    if (nodeExprRef.isValid())
-    {
-        if (returnType.isVoid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, nodeExprRef);
-
-        SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
-    }
-    else if (!returnType.isVoid())
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_missing_value, sema.curNodeRef());
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    return Result::Continue;
+    TypeRef returnTypeRef = TypeRef::invalid();
+    SWC_RESULT(resolveReturnTypeRef(sema, nodeExprRef, returnTypeRef));
+    return validateReturnStatementValue(sema, sema.curNodeRef(), nodeExprRef, returnTypeRef);
 }
 
 Result AstDiscardExpr::semaPostNode(Sema& sema)

@@ -1093,7 +1093,7 @@ namespace
         if (argView.cst())
         {
             ConstantRef newCstRef = ConstantRef::invalid();
-            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, argView.nodeRef(), argView.cstRef(), TypeInfo::Sign::Unknown, true));
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, argView.nodeRef(), argView.cstRef(), TypeInfo::Sign::Unknown));
             sema.setConstant(argView.nodeRef(), newCstRef);
             argView = SemaNodeView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }

@@ -5,7 +5,8 @@ func N() => 10
 #assert(#typeof(N()) == #typeof(10))
 #assert(#typeof(#run N()) == #typeof(10))
 
-var arr: [#run N()] s32
+const ArrCount = cast(s32) #run N()
+var arr: [ArrCount] s32
 
 #test
 {

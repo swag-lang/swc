@@ -466,14 +466,14 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
     return Result::Continue;
 }
 
-Result Cast::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign, bool force32BitInts)
+Result Cast::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)
 {
-    if (!concretizeConstant(sema, result, cstRef, hintSign, force32BitInts))
+    if (!concretizeConstant(sema, result, cstRef, hintSign))
         return SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, sema.cstMgr().get(cstRef));
     return Result::Continue;
 }
 
-bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign, bool force32BitInts)
+bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign)
 {
     TaskContext&         ctx     = sema.ctx();
     const ConstantValue& srcCst  = sema.cstMgr().get(cstRef);
@@ -491,8 +491,7 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         ApsInt value = srcCst.getIntLike();
         value.setSigned(sign == TypeInfo::Sign::Signed);
         bool           overflow = false;
-        const uint32_t minBits  = force32BitInts ? std::max(value.minBits(), 32u) : value.minBits();
-        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(minBits, overflow);
+        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
         if (overflow)
             return false;
 
@@ -531,7 +530,7 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         for (const ConstantRef valueRef : values)
         {
             ConstantRef concretizedValueRef = ConstantRef::invalid();
-            if (!concretizeConstant(sema, concretizedValueRef, valueRef, hintSign, force32BitInts))
+            if (!concretizeConstant(sema, concretizedValueRef, valueRef, hintSign))
                 return false;
 
             concretizedValues.push_back(concretizedValueRef);

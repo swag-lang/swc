@@ -250,7 +250,7 @@ namespace
             SWC_ASSERT(exprCstRef.isValid());
 
             ConstantRef concretizedCstRef = ConstantRef::invalid();
-            SWC_RESULT(Cast::concretizeConstant(sema, concretizedCstRef, exprRef, exprCstRef, TypeInfo::Sign::Unknown, true));
+            SWC_RESULT(Cast::concretizeConstant(sema, concretizedCstRef, exprRef, exprCstRef, TypeInfo::Sign::Unknown));
             if (concretizedCstRef.isValid())
             {
                 sema.setConstant(exprRef, concretizedCstRef);
@@ -285,7 +285,7 @@ namespace
             if (exprView.cstRef().isValid())
             {
                 ConstantRef newCstRef = ConstantRef::invalid();
-                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, exprRef, exprView.cstRef(), TypeInfo::Sign::Unknown, true));
+                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, exprRef, exprView.cstRef(), TypeInfo::Sign::Unknown));
                 if (newCstRef.isValid() && newCstRef != exprView.cstRef())
                     sema.setConstant(exprRef, newCstRef);
             }

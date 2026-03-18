@@ -1139,36 +1139,64 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
     return SemaJIT::runStatement(sema, sym, sema.curNodeRef());
 }
 
+namespace
+{
+    Result setupCompilerRunFunction(Sema& sema, TypeRef returnTypeRef)
+    {
+        const AstNodeRef nodeRef = sema.curNodeRef();
+        if (!sema.viewSymbol(nodeRef).hasSymbol())
+        {
+            TaskContext&        ctx   = sema.ctx();
+            const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
+            const AstNode&      node  = sema.node(nodeRef);
+
+            auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
+            symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
+            symFn->setDeclNodeRef(nodeRef);
+            symFn->setReturnTypeRef(returnTypeRef);
+            symFn->setAttributes(sema.frame().currentAttributes());
+            symFn->setDeclared(ctx);
+            symFn->setTyped(ctx);
+            symFn->setSemaCompleted(ctx);
+            sema.setSymbol(nodeRef, symFn);
+        }
+
+        SemaFrame frame = sema.frame();
+        auto&     symFn = sema.viewSymbol(nodeRef).sym()->cast<SymbolFunction>();
+        if (SymbolFunction* currentFn = sema.frame().currentFunction())
+            currentFn->addCallDependency(&symFn);
+
+        frame.currentAttributes() = symFn.attributes();
+        frame.setCurrentFunction(&symFn);
+        frame.addContextFlag(SemaFrameContextFlagsE::RunExpr);
+        sema.pushFramePopOnPostNode(frame);
+        return Result::Continue;
+    }
+}
+
+Result AstCompilerRunBlock::semaPreNode(Sema& sema)
+{
+    return setupCompilerRunFunction(sema, TypeRef::invalid());
+}
+
+Result AstCompilerRunBlock::semaPostNode(Sema& sema)
+{
+    SymbolFunction* runExprSymFn = sema.frame().currentFunction();
+    SWC_ASSERT(runExprSymFn != nullptr);
+
+    const TypeRef returnTypeRef = runExprSymFn->returnTypeRef();
+    if (!returnTypeRef.isValid() || sema.typeMgr().get(returnTypeRef).isVoid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_run_expr_void, sema.curNodeRef());
+
+    sema.setType(sema.curNodeRef(), returnTypeRef);
+    sema.setIsValue(sema.curNodeRef());
+    sema.unsetIsLValue(sema.curNodeRef());
+    return SemaJIT::runExpr(sema, *runExprSymFn, sema.curNodeRef());
+}
+
 Result AstCompilerRunExpr::semaPreNode(Sema& sema)
 {
-    const AstNodeRef nodeRef = sema.curNodeRef();
-    if (!sema.viewSymbol(nodeRef).hasSymbol())
-    {
-        TaskContext&        ctx   = sema.ctx();
-        const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
-        const AstNode&      node  = sema.node(nodeRef);
-
-        auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
-        symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
-        symFn->setDeclNodeRef(nodeRef);
-        symFn->setReturnTypeRef(sema.typeMgr().typeVoid());
-        symFn->setAttributes(sema.frame().currentAttributes());
-        symFn->setDeclared(ctx);
-        symFn->setTyped(ctx);
-        symFn->setSemaCompleted(ctx);
-        sema.setSymbol(nodeRef, symFn);
-    }
-
-    SemaFrame frame = sema.frame();
-    auto&     symFn = sema.viewSymbol(nodeRef).sym()->cast<SymbolFunction>();
-    if (SymbolFunction* currentFn = sema.frame().currentFunction())
-        currentFn->addCallDependency(&symFn);
-
-    frame.currentAttributes() = symFn.attributes();
-    frame.setCurrentFunction(&symFn);
-    frame.addContextFlag(SemaFrameContextFlagsE::RunExpr);
-    sema.pushFramePopOnPostNode(frame);
-    return Result::Continue;
+    return setupCompilerRunFunction(sema, sema.typeMgr().typeVoid());
 }
 
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const

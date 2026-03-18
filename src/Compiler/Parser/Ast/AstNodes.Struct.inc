@@ -129,7 +129,7 @@ struct AstCompilerScope : AstNamedNodeT<AstNodeId::CompilerScope>
     static Result codeGenPreNode(CodeGen& codeGen);
     Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result        codeGenPostNode(CodeGen& codeGen);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------
@@ -353,8 +353,12 @@ struct AstCompilerRunBlock : AstNodeT<AstNodeId::CompilerRunBlock>
 {
     AstNodeRef nodeBodyRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
+    static Result semaPreNode(Sema& sema);
+    static Result semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

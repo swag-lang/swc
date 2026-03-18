@@ -33,7 +33,7 @@ namespace SemaRuntime
         if (!decl)
             return false;
 
-        if (decl->id() == AstNodeId::CompilerRunExpr)
+        if (decl->id() == AstNodeId::CompilerRunBlock || decl->id() == AstNodeId::CompilerRunExpr)
             return true;
         if (decl->id() != AstNodeId::CompilerFunc)
             return false;
@@ -65,7 +65,7 @@ namespace SemaRuntime
         if (!decl)
             return true;
 
-        if (decl->id() == AstNodeId::CompilerRunExpr)
+        if (decl->id() == AstNodeId::CompilerRunBlock || decl->id() == AstNodeId::CompilerRunExpr)
             return false;
         if (decl->id() != AstNodeId::CompilerFunc)
             return true;

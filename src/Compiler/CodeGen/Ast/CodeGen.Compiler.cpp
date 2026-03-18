@@ -155,6 +155,34 @@ Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen)
     return Result::Continue;
 }
 
+Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::SkipChildren;
+
+    const CallConvKind callConvKind = codeGen.function().callConvKind();
+    const CallConv&    callConv     = CallConv::get(callConvKind);
+    SWC_ASSERT(!callConv.intArgRegs.empty());
+
+    MicroBuilder&  builder          = codeGen.builder();
+    const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
+    codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
+
+    buildCompilerFunctionStackLayout(codeGen);
+    emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+    return Result::Continue;
+}
+
+Result AstCompilerRunBlock::codeGenPostNode(CodeGen& codeGen)
+{
+    const CallConvKind callConvKind = codeGen.function().callConvKind();
+    MicroBuilder&      builder      = codeGen.builder();
+    emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+    builder.emitRet();
+    return Result::Continue;
+}
+
 Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 {
     if (codeGen.curViewConstant().hasConstant())

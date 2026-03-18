@@ -874,12 +874,51 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
     }
     else
     {
-        const SymbolFunction* sym = sema.frame().currentFunction();
+        SymbolFunction* sym = sema.frame().currentFunction();
         SWC_ASSERT(sym);
         returnTypeRef = sym->returnTypeRef();
+        if (!returnTypeRef.isValid() && sym->decl() && sym->decl()->is(AstNodeId::CompilerRunBlock))
+        {
+            if (nodeExprRef.isValid())
+            {
+                const SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
+                const auto         frames   = sema.frames();
+                for (size_t frameIndex = frames.size(); frameIndex > 0 && !returnTypeRef.isValid(); --frameIndex)
+                {
+                    const std::span<const TypeRef> bindingTypes = frames[frameIndex - 1].bindingTypes();
+                    for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
+                    {
+                        const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
+                        if (!bindingTypeRef.isValid())
+                            continue;
+
+                        CastRequest castRequest(CastKind::Implicit);
+                        castRequest.errorNodeRef = nodeExprRef;
+                        const Result castResult  = Cast::castAllowed(sema, castRequest, exprView.typeRef(), bindingTypeRef);
+                        if (castResult == Result::Pause)
+                            return Result::Pause;
+                        if (castResult != Result::Continue)
+                            continue;
+
+                        returnTypeRef = bindingTypeRef;
+                        break;
+                    }
+                }
+
+                if (!returnTypeRef.isValid())
+                    returnTypeRef = exprView.typeRef();
+            }
+            else
+                returnTypeRef = sema.typeMgr().typeVoid();
+
+            sym->setReturnTypeRef(returnTypeRef);
+        }
     }
 
     SWC_ASSERT(returnTypeRef.isValid());
+    if (!returnTypeRef.isValid())
+        return Result::Error;
+
     const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
     if (nodeExprRef.isValid())
     {

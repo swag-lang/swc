@@ -596,6 +596,86 @@ namespace
         return Result::Continue;
     }
 
+    void emitCompilerRunBlockStackEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
+    {
+        if (!codeGen.hasLocalStackFrame())
+            return;
+
+        const CallConv& callConv = CallConv::get(callConvKind);
+        MicroBuilder&   builder  = codeGen.builder();
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
+    }
+
+    bool canUseCompilerRunBlockDirectCallWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
+    {
+        if (normalizedRet.isVoid || normalizedRet.isIndirect)
+            return false;
+        if (exprNode.isNot(AstNodeId::CallExpr))
+            return false;
+        return payload.isValue();
+    }
+
+    Result emitCompilerRunBlockReturn(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        const SymbolFunction&                  symbolFunc       = codeGen.function();
+        const CallConvKind                     callConvKind     = symbolFunc.callConvKind();
+        const CallConv&                        callConv         = CallConv::get(callConvKind);
+        const TypeRef                          returnTypeRef    = symbolFunc.returnTypeRef();
+        const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const MicroReg                         outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
+        MicroBuilder&                          builder          = codeGen.builder();
+
+        SWC_ASSERT(outputStorageReg.isValid());
+
+        if (exprRef.isValid() && !normalizedRet.isVoid)
+        {
+            const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
+            const MicroReg            payloadReg    = exprPayload.reg;
+            const bool                payloadLValue = exprPayload.isAddress();
+            const AstNode&            exprNode      = codeGen.node(exprRef);
+
+            if (normalizedRet.isIndirect)
+            {
+                SWC_ASSERT(normalizedRet.indirectSize != 0);
+                if (exprPayload.isAddress())
+                {
+                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
+                }
+                else
+                {
+                    const uint32_t spillSize = normalizedRet.indirectSize;
+                    auto*          spillData = codeGen.compiler().allocateArray<std::byte>(spillSize);
+                    std::memset(spillData, 0, spillSize);
+
+                    const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
+                    builder.emitLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);
+                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
+                }
+            }
+            else
+            {
+                if (canUseCompilerRunBlockDirectCallWriteBack(exprNode, exprPayload, normalizedRet))
+                    ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
+                else
+                    ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+            }
+        }
+
+        {
+            const ScopedDebugNoStep noStep(builder, true);
+            emitCompilerRunBlockStackEpilogue(codeGen, callConvKind);
+            builder.emitRet();
+        }
+        return Result::Continue;
+    }
+
+    bool isCompilerRunBlockFunction(CodeGen& codeGen)
+    {
+        const AstNodeRef declRef = codeGen.function().declNodeRef();
+        return declRef.isValid() && codeGen.node(declRef).is(AstNodeId::CompilerRunBlock);
+    }
+
     bool isActiveFunctionRoot(CodeGen& codeGen, AstNodeRef declRef)
     {
         const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
@@ -711,6 +791,9 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
         SWC_ASSERT(inlineCtx.payload != nullptr);
         return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef);
     }
+
+    if (isCompilerRunBlockFunction(codeGen))
+        return emitCompilerRunBlockReturn(codeGen, nodeExprRef);
 
     return emitFunctionReturn(codeGen, codeGen.function(), nodeExprRef);
 }

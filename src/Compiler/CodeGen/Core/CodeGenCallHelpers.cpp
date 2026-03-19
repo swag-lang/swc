@@ -164,9 +164,45 @@ namespace
                 return true;
 
             case ConstantKind::Null:
+            {
+                if (targetTypeRef.isValid())
+                {
+                    const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
+                    const uint64_t  rawSize    = targetType.sizeOf(codeGen.ctx());
+                    if (rawSize > sizeof(uint64_t))
+                    {
+                        SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
+
+                        SmallVector<std::byte> rawBytes;
+                        rawBytes.resize(rawSize);
+                        std::memset(rawBytes.data(), 0, rawBytes.size());
+                        ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, cstRef, targetTypeRef);
+
+                        ConstantRef typedNullCstRef = ConstantRef::invalid();
+                        if (targetType.isStruct() || targetType.isArray() || targetType.isAny() || targetType.isInterface())
+                        {
+                            typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+                        }
+                        else
+                        {
+                            const ConstantValue typedNullCst = ConstantValue::make(codeGen.ctx(), rawBytes.data(), targetTypeRef);
+                            if (typedNullCst.kind() == ConstantKind::Invalid)
+                                return false;
+
+                            typedNullCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), typedNullCst);
+                        }
+
+                        if (typedNullCstRef.isInvalid())
+                            return false;
+
+                        return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, typedNullCstRef);
+                    }
+                }
+
                 builder.emitLoadRegImm(outPayload.reg, ApInt(0, 64), MicroOpBits::B64);
                 outPayload.setIsValue();
                 return true;
+            }
 
             case ConstantKind::EnumValue:
                 return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, cst.getEnumValue());

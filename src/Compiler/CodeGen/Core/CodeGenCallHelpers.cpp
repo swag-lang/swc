@@ -25,39 +25,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool tryDirectReturnCallStorage(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg)
-    {
-        outStorageReg = MicroReg::invalid();
-        if (!codeGen.currentFunctionIndirectReturnReg().isValid())
-            return false;
-
-        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
-        if (!resolvedNodeRef.isValid())
-            return false;
-
-        for (size_t parentIndex = 0;; ++parentIndex)
-        {
-            const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
-            if (!parentRef.isValid())
-                return false;
-
-            const AstNode& parent = codeGen.node(parentRef);
-            if (parent.is(AstNodeId::CastExpr) || parent.is(AstNodeId::AutoCastExpr) || parent.is(AstNodeId::ParenExpr))
-                continue;
-
-            if (parent.isNot(AstNodeId::ReturnStmt))
-                return false;
-
-            const auto&      returnNode        = parent.cast<AstReturnStmt>();
-            const AstNodeRef resolvedReturnRef = codeGen.viewZero(returnNode.nodeExprRef).nodeRef();
-            if (resolvedReturnRef != resolvedNodeRef)
-                return false;
-
-            outStorageReg = codeGen.currentFunctionIndirectReturnReg();
-            return true;
-        }
-    }
-
     void emitPointerConstant(CodeGen& codeGen, MicroReg reg, uint64_t value, ConstantRef cstRef)
     {
         if (!value)
@@ -72,18 +39,6 @@ namespace
             codeGen.builder().emitLoadRegPtrReloc(reg, value, cstRef);
         else
             codeGen.builder().emitLoadRegPtrImm(reg, value);
-    }
-
-    bool shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, const ABITypeNormalize::NormalizedType& normalizedType)
-    {
-        if (normalizedType.isIndirect)
-            return false;
-        if (normalizedType.isFloat)
-            return false;
-        if (normalizedType.numBits != 64)
-            return false;
-
-        return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
     }
 
     ABICall::PreparedArgKind abiPreparedArgKind(CallArgumentPassKind passKind)
@@ -413,7 +368,7 @@ namespace
 
         const TypeInfo&                        normalizedType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
         const ABITypeNormalize::NormalizedType normalizedArg  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-        SWC_ASSERT(!shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg));
+        SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect, normalizedArg.isFloat, normalizedArg.numBits));
         const bool passAddressRef  = normalizedType.isReference();
         outPreparedArg.isFloat     = normalizedArg.isFloat;
         outPreparedArg.numBits     = normalizedArg.numBits;
@@ -916,7 +871,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
             hiddenRetStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
 
         if (!hiddenRetStorageReg.isValid())
-            tryDirectReturnCallStorage(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg);
+            CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg);
     }
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.

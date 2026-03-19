@@ -479,47 +479,13 @@ namespace
         return payload.reg;
     }
 
-    CodeGenNodePayload resolveClosureCapturePayload(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
-            return *symbolPayload;
-
-        SWC_ASSERT(codeGen.currentFunctionClosureContextReg().isValid());
-
-        CodeGenNodePayload capturePayload;
-        capturePayload.typeRef = symVar.typeRef();
-        capturePayload.setIsAddress();
-
-        const MicroReg captureReg = codeGen.offsetAddressReg(codeGen.currentFunctionClosureContextReg(), symVar.closureCaptureOffset());
-        if (symVar.closureCaptureByRef())
-        {
-            capturePayload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegMem(capturePayload.reg, captureReg, 0, MicroOpBits::B64);
-        }
-        else
-        {
-            capturePayload.reg = captureReg;
-        }
-
-        codeGen.setVariablePayload(symVar, capturePayload);
-        return capturePayload;
-    }
-
     CodeGenNodePayload resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         if (symVar.isClosureCapture())
-            return resolveClosureCapturePayload(codeGen, symVar);
+            return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
 
         if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
-        {
-            CodeGenNodePayload symbolPayload;
-            symbolPayload.typeRef = symVar.typeRef();
-            symbolPayload.setIsAddress();
-            symbolPayload.reg = codeGen.currentFunctionIndirectReturnReg();
-            SWC_ASSERT(symbolPayload.reg.isValid());
-            codeGen.setVariablePayload(symVar, symbolPayload);
-            return symbolPayload;
-        }
+            return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {

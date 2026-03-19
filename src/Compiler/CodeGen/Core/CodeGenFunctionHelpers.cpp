@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -241,8 +242,50 @@ bool CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(CodeGen& codeGen,
 
 bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
 {
-    return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) &&
-           functionUsesIndirectReturnStorage(codeGen, codeGen.function());
+    return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) && functionUsesIndirectReturnStorage(codeGen, codeGen.function());
+}
+
+CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(CodeGen& codeGen, const SymbolVariable& symVar)
+{
+    if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+        return *symbolPayload;
+
+    SWC_ASSERT(usesCallerReturnStorage(codeGen, symVar));
+
+    CodeGenNodePayload symbolPayload;
+    symbolPayload.typeRef = symVar.typeRef();
+    symbolPayload.setIsAddress();
+    symbolPayload.reg = codeGen.currentFunctionIndirectReturnReg();
+    SWC_ASSERT(symbolPayload.reg.isValid());
+    codeGen.setVariablePayload(symVar, symbolPayload);
+    return symbolPayload;
+}
+
+CodeGenNodePayload CodeGenFunctionHelpers::resolveClosureCapturePayload(CodeGen& codeGen, const SymbolVariable& symVar)
+{
+    if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+        return *symbolPayload;
+
+    SWC_ASSERT(symVar.isClosureCapture());
+    SWC_ASSERT(codeGen.currentFunctionClosureContextReg().isValid());
+
+    CodeGenNodePayload capturePayload;
+    capturePayload.typeRef = symVar.typeRef();
+    capturePayload.setIsAddress();
+
+    const MicroReg captureReg = codeGen.offsetAddressReg(codeGen.currentFunctionClosureContextReg(), symVar.closureCaptureOffset());
+    if (symVar.closureCaptureByRef())
+    {
+        capturePayload.reg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(capturePayload.reg, captureReg, 0, MicroOpBits::B64);
+    }
+    else
+    {
+        capturePayload.reg = captureReg;
+    }
+
+    codeGen.setVariablePayload(symVar, capturePayload);
+    return capturePayload;
 }
 
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg, bool hasClosureContextArg)
@@ -316,6 +359,58 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
 {
     const FunctionParameterInfo paramInfo = functionParameterInfo(codeGen, symbolFunc, symVar);
     return materializeFunctionParameter(codeGen, symbolFunc, symVar, paramInfo);
+}
+
+uint32_t CodeGenFunctionHelpers::checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo)
+{
+    const uint64_t rawSize = typeInfo.sizeOf(codeGen.ctx());
+    SWC_ASSERT(rawSize > 0 && rawSize <= std::numeric_limits<uint32_t>::max());
+    return static_cast<uint32_t>(rawSize);
+}
+
+bool CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, bool isIndirect, bool isFloat, uint8_t numBits)
+{
+    if (isIndirect)
+        return false;
+    if (isFloat)
+        return false;
+    if (numBits != 64)
+        return false;
+
+    return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
+}
+
+bool CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg)
+{
+    outStorageReg = MicroReg::invalid();
+    if (!codeGen.currentFunctionIndirectReturnReg().isValid())
+        return false;
+
+    const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+    if (!resolvedNodeRef.isValid())
+        return false;
+
+    for (size_t parentIndex = 0;; ++parentIndex)
+    {
+        const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
+        if (!parentRef.isValid())
+            return false;
+
+        const AstNode& parent = codeGen.node(parentRef);
+        if (parent.is(AstNodeId::CastExpr) || parent.is(AstNodeId::AutoCastExpr) || parent.is(AstNodeId::ParenExpr))
+            continue;
+
+        if (parent.isNot(AstNodeId::ReturnStmt))
+            return false;
+
+        const auto&      returnNode        = parent.cast<AstReturnStmt>();
+        const AstNodeRef resolvedReturnRef = codeGen.viewZero(returnNode.nodeExprRef).nodeRef();
+        if (resolvedReturnRef != resolvedNodeRef)
+            return false;
+
+        outStorageReg = codeGen.currentFunctionIndirectReturnReg();
+        return true;
+    }
 }
 
 void CodeGenFunctionHelpers::emitPersistCompilerRunValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstStorageReg, MicroReg srcStorageReg, MicroReg localStackBaseReg, uint32_t localStackSize)

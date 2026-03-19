@@ -867,6 +867,18 @@ namespace
         if (storageTypeRef.isInvalid())
             return Result::Continue;
 
+        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+        {
+            if (!payload)
+            {
+                payload = sema.compiler().allocate<CodeGenNodePayload>();
+                sema.setCodeGenPayload(sema.curNodeRef(), payload);
+            }
+
+            payload->runtimeStorageSym = boundStorage;
+            return Result::Continue;
+        }
+
         auto& storageSym = registerUniqueCallExprRuntimeStorageSymbol(sema, node);
         storageSym.registerAttributes(sema);
         storageSym.setDeclared(sema.ctx());

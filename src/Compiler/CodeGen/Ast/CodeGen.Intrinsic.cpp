@@ -26,6 +26,21 @@ namespace
     constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_ASSERT = 3;
     ConstantRef        makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef);
 
+    bool usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return false;
+
+        const SymbolFunction& symbolFunc    = codeGen.function();
+        const TypeRef         returnTypeRef = symbolFunc.returnTypeRef();
+        if (!returnTypeRef.isValid())
+            return false;
+
+        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        return normalizedRet.isIndirect;
+    }
+
     CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
     {
         const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
@@ -481,6 +496,17 @@ namespace
 
     CodeGenNodePayload resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
+        if (usesCallerReturnStorage(codeGen, symVar))
+        {
+            CodeGenNodePayload symbolPayload;
+            symbolPayload.typeRef = symVar.typeRef();
+            symbolPayload.setIsAddress();
+            symbolPayload.reg = codeGen.currentFunctionIndirectReturnReg();
+            SWC_ASSERT(symbolPayload.reg.isValid());
+            codeGen.setVariablePayload(symVar, symbolPayload);
+            return symbolPayload;
+        }
+
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
@@ -523,7 +549,8 @@ namespace
         if (storedView.sym() && storedView.sym()->isVariable())
         {
             const auto& symVar = storedView.sym()->cast<SymbolVariable>();
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+            if (usesCallerReturnStorage(codeGen, symVar) ||
+                symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
                 symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
                 symVar.hasGlobalStorage() ||
                 CodeGen::variablePayload(symVar) ||

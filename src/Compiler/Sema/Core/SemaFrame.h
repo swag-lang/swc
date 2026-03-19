@@ -79,6 +79,13 @@ public:
     void                setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
     AstNodeRef          currentSwitchCase() const { return currentSwitchCase_; }
     void                setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+    AstNodeRef          currentRuntimeStorageNodeRef() const { return runtimeStorageNodeRef_; }
+    SymbolVariable*     currentRuntimeStorageSym() const { return runtimeStorageSym_; }
+    void                setCurrentRuntimeStorage(AstNodeRef nodeRef, SymbolVariable* sym)
+    {
+        runtimeStorageNodeRef_ = nodeRef;
+        runtimeStorageSym_     = sym;
+    }
 
     std::span<const TypeRef>         bindingTypes() const { return bindingTypes_.span(); }
     void                             pushBindingType(TypeRef type);
@@ -104,6 +111,8 @@ private:
     BreakContext                  breakable_;
     AstNodeRef                    currentSwitch_     = AstNodeRef::invalid();
     AstNodeRef                    currentSwitchCase_ = AstNodeRef::invalid();
+    AstNodeRef                    runtimeStorageNodeRef_ = AstNodeRef::invalid();
+    SymbolVariable*               runtimeStorageSym_     = nullptr;
     SmallVector2<TypeRef>         bindingTypes_;
     SmallVector2<SymbolVariable*> bindingVars_;
 };

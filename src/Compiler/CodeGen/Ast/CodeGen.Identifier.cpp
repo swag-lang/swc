@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
@@ -8,6 +10,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
@@ -15,6 +18,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return false;
+
+        const SymbolFunction& symbolFunc    = codeGen.function();
+        const TypeRef         returnTypeRef = symbolFunc.returnTypeRef();
+        if (!returnTypeRef.isValid())
+            return false;
+
+        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        return normalizedRet.isIndirect;
+    }
+
     MicroOpBits identifierPayloadCopyBits(CodeGen& codeGen, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -26,6 +44,17 @@ namespace
 
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
+        if (usesCallerReturnStorage(codeGen, symVar))
+        {
+            CodeGenNodePayload symbolPayload;
+            symbolPayload.typeRef = symVar.typeRef();
+            symbolPayload.setIsAddress();
+            symbolPayload.reg = codeGen.currentFunctionIndirectReturnReg();
+            SWC_ASSERT(symbolPayload.reg.isValid());
+            codeGen.setVariablePayload(symVar, symbolPayload);
+            return symbolPayload;
+        }
+
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
@@ -114,6 +143,62 @@ namespace
         const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         if (symVar.hasGlobalStorage())
             return;
+
+        if (usesCallerReturnStorage(codeGen, symVar))
+        {
+            const uint32_t localSize = static_cast<uint32_t>(codeGen.typeMgr().get(symVar.typeRef()).sizeOf(codeGen.ctx()));
+            SWC_ASSERT(localSize > 0);
+
+            CodeGenNodePayload symbolPayload;
+            symbolPayload.typeRef = symVar.typeRef();
+            symbolPayload.setIsAddress();
+            symbolPayload.reg = codeGen.currentFunctionIndirectReturnReg();
+            SWC_ASSERT(symbolPayload.reg.isValid());
+            codeGen.setVariablePayload(symVar, symbolPayload);
+
+            if (skipInit)
+                return;
+
+            const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
+            const auto*      initNodePayload = resolvedInitRef.isValid() ? codeGen.sema().codeGenPayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
+            if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar)
+                return;
+
+            if (initRef.isValid())
+            {
+                const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
+                if (initPayload.isAddress())
+                {
+                    CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
+                }
+                else
+                {
+                    if (localSize > 8)
+                    {
+                        CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
+                        return;
+                    }
+
+                    auto copyBits = MicroOpBits::Zero;
+                    if (localSize == 1)
+                        copyBits = MicroOpBits::B8;
+                    else if (localSize == 2)
+                        copyBits = MicroOpBits::B16;
+                    else if (localSize == 4)
+                        copyBits = MicroOpBits::B32;
+                    else
+                        copyBits = MicroOpBits::B64;
+                    builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload.reg, copyBits);
+                }
+            }
+            else
+            {
+                if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
+                    CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
+            }
+
+            return;
+        }
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid())
         {

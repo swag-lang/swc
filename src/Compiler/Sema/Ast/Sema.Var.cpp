@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -89,6 +91,31 @@ namespace
         diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
         diag.report(sema.ctx());
         return Result::Error;
+    }
+
+    bool isRetValTypeNode(const Sema& sema, AstNodeRef nodeTypeRef)
+    {
+        return nodeTypeRef.isValid() && sema.node(nodeTypeRef).is(AstNodeId::RetValType);
+    }
+
+    bool currentFunctionUsesIndirectReturnStorage(Sema& sema)
+    {
+        const SymbolFunction* const currentFn = SemaHelpers::currentFunction(sema);
+        if (!currentFn || !currentFn->returnTypeRef().isValid())
+            return false;
+
+        const CallConv&                        callConv      = CallConv::get(currentFn->callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, currentFn->returnTypeRef(), ABITypeNormalize::Usage::Return);
+        return normalizedRet.isIndirect;
+    }
+
+    void markRetValVariables(std::span<Symbol*> symbols)
+    {
+        for (Symbol* s : symbols)
+        {
+            if (auto* const symVar = getVariableSymbol(s))
+                symVar->addExtraFlag(SymbolVariableFlagsE::RetVal);
+        }
     }
 
     Result allocateGlobalStorage(Sema& sema, SymbolVariable& symVar)
@@ -739,12 +766,21 @@ Result AstSingleVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeTypeRef && nodeInitRef.isValid())
+    if (childRef == nodeTypeRef)
     {
-        const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
-        SemaFrame          frame        = sema.frame();
-        frame.pushBindingType(nodeTypeView.typeRef());
-        sema.pushFramePopOnPostChild(frame, nodeInitRef);
+        const bool isRetVal = isRetValTypeNode(sema, nodeTypeRef);
+        if (isRetVal)
+            sema.curViewSymbol().sym()->cast<SymbolVariable>().addExtraFlag(SymbolVariableFlagsE::RetVal);
+
+        if (nodeInitRef.isValid())
+        {
+            const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
+            SemaFrame          frame        = sema.frame();
+            frame.pushBindingType(nodeTypeView.typeRef());
+            if (isRetVal && currentFunctionUsesIndirectReturnStorage(sema))
+                frame.setCurrentRuntimeStorage(nodeInitRef, &sema.curViewSymbol().sym()->cast<SymbolVariable>());
+            sema.pushFramePopOnPostChild(frame, nodeInitRef);
+        }
     }
 
     return Result::Continue;
@@ -821,12 +857,18 @@ Result AstMultiVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeTypeRef && nodeInitRef.isValid())
+    if (childRef == nodeTypeRef)
     {
-        const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
-        SemaFrame          frame        = sema.frame();
-        frame.pushBindingType(nodeTypeView.typeRef());
-        sema.pushFramePopOnPostChild(frame, nodeInitRef);
+        if (isRetValTypeNode(sema, nodeTypeRef))
+            markRetValVariables(sema.curViewSymbolList().symList());
+
+        if (nodeInitRef.isValid())
+        {
+            const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
+            SemaFrame          frame        = sema.frame();
+            frame.pushBindingType(nodeTypeView.typeRef());
+            sema.pushFramePopOnPostChild(frame, nodeInitRef);
+        }
     }
 
     return Result::Continue;

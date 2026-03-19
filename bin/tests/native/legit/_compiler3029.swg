@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip
+//#global skip
 func toto(x, y: s32)->{ x: s32, y: s32 }
 {
     var result: retval

@@ -143,6 +143,19 @@ namespace
         if (SemaHelpers::isGlobalScope(sema))
             return Result::Continue;
 
+        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+        {
+            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+            if (!payload)
+            {
+                payload = sema.compiler().allocate<CodeGenNodePayload>();
+                sema.setCodeGenPayload(sema.curNodeRef(), payload);
+            }
+
+            payload->runtimeStorageSym = boundStorage;
+            return Result::Continue;
+        }
+
         auto& storageSym = registerUniqueLiteralRuntimeStorageSymbol(sema, node);
         storageSym.registerAttributes(sema);
         storageSym.setDeclared(sema.ctx());

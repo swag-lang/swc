@@ -34,6 +34,12 @@ namespace
         if (payload.runtimeStorageSym != nullptr)
             return *payload.runtimeStorageSym;
 
+        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+        {
+            payload.runtimeStorageSym = boundStorage;
+            return *boundStorage;
+        }
+
         TaskContext&        ctx         = sema.ctx();
         const Utf8          privateName = "__cast_runtime_storage";
         const IdentifierRef idRef       = sema.idMgr().addIdentifierOwned(std::format("{}_{}", privateName, sema.compiler().atomicId().fetch_add(1)));
@@ -207,6 +213,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     if (runtimeStorageTypeRef.isValid() && SemaHelpers::isCurrentFunction(sema))
     {
         auto& storageSym = getOrCreateCastRuntimeStorageSymbol(sema, *this);
+        if (&storageSym == SemaHelpers::currentRuntimeStorage(sema))
+            return Result::Continue;
         if (!storageSym.isDeclared())
         {
             storageSym.registerAttributes(sema);

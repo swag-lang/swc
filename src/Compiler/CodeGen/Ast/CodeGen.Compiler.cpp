@@ -17,6 +17,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return false;
+
+        const SymbolFunction& symbolFunc    = codeGen.function();
+        const TypeRef         returnTypeRef = symbolFunc.returnTypeRef();
+        if (!returnTypeRef.isValid())
+            return false;
+
+        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        return normalizedRet.isIndirect;
+    }
+
     bool isActiveCompilerRunRoot(CodeGen& codeGen)
     {
         const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
@@ -84,6 +99,12 @@ namespace
             SWC_ASSERT(symVar != nullptr);
             const TypeRef typeRef = symVar->typeRef();
             SWC_ASSERT(typeRef.isValid());
+
+            if (usesCallerReturnStorage(codeGen, *symVar))
+            {
+                symVar->setCodeGenLocalSize(0);
+                continue;
+            }
 
             const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
             const auto      size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));

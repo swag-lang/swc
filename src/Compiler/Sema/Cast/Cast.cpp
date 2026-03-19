@@ -109,11 +109,18 @@ namespace
         auto& payload = ensureCodeGenNodePayload(sema, castNodeRef);
         if (payload.runtimeStorageSym == nullptr)
         {
-            auto& storageSym          = registerUniqueCastRuntimeStorageSymbol(sema, sema.node(castNodeRef));
-            payload.runtimeStorageSym = &storageSym;
+            if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+                payload.runtimeStorageSym = boundStorage;
+            else
+            {
+                auto& storageSym          = registerUniqueCastRuntimeStorageSymbol(sema, sema.node(castNodeRef));
+                payload.runtimeStorageSym = &storageSym;
+            }
         }
 
         auto& storageSym = *payload.runtimeStorageSym;
+        if (&storageSym == SemaHelpers::currentRuntimeStorage(sema))
+            return Result::Continue;
         if (!storageSym.isDeclared())
         {
             storageSym.registerAttributes(sema);

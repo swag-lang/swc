@@ -53,6 +53,21 @@ namespace SemaHelpers
         return !isCurrentFunction(sema);
     }
 
+    inline SymbolVariable* currentRuntimeStorage(Sema& sema)
+    {
+        SymbolVariable* const sym     = sema.frame().currentRuntimeStorageSym();
+        const AstNodeRef      nodeRef = sema.frame().currentRuntimeStorageNodeRef();
+        if (!sym || !nodeRef.isValid())
+            return nullptr;
+
+        const AstNodeRef resolvedTargetRef  = sema.viewZero(nodeRef).nodeRef();
+        const AstNodeRef resolvedCurrentRef = sema.viewZero(sema.curNodeRef()).nodeRef();
+        if (resolvedTargetRef != resolvedCurrentRef)
+            return nullptr;
+
+        return sym;
+    }
+
     inline void addCurrentFunctionCallDependency(const Sema& sema, SymbolFunction* calleeSym)
     {
         if (SymbolFunction* currentFn = currentFunction(sema); currentFn && calleeSym)

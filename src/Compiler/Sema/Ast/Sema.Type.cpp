@@ -108,6 +108,20 @@ Result AstCodeType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstRetValType::semaPostNode(Sema& sema) const
+{
+    SymbolFunction* const currentFn = SemaHelpers::currentFunction(sema);
+    if (!currentFn)
+        return SemaError::raise(sema, DiagnosticId::sema_err_retval_outside_function, sema.curNodeRef());
+
+    const TypeRef returnTypeRef = currentFn->returnTypeRef();
+    if (!returnTypeRef.isValid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_retval_unknown_return_type, sema.curNodeRef());
+
+    sema.setType(sema.curNodeRef(), returnTypeRef);
+    return Result::Continue;
+}
+
 Result AstValuePointerType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);

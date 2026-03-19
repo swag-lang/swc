@@ -119,6 +119,8 @@ SWC_DIAG_DEF(sema_err_index_negative, Error, "index is negative (got '{value}')"
 SWC_DIAG_DEF(sema_err_index_out_of_range, Error, "index '{value}' is out of range; size is '{count}'")
 SWC_DIAG_DEF(sema_err_range_invalid_bounds, Error, "range lower bound '{left}' is not less than upper bound '{right}'")
 SWC_DIAG_DEF(sema_err_method_outside_impl, Error, "method is declared outside an implementation block")
+SWC_DIAG_DEF(sema_err_retval_outside_function, Error, "'retval' can only be used inside a function")
+SWC_DIAG_DEF(sema_err_retval_unknown_return_type, Error, "'retval' cannot be used before the function return type is known")
 SWC_DIAG_DEF(sema_err_tok_outside_impl, Error, "'{tok}' is used outside an implementation block")
 SWC_DIAG_DEF(sema_err_spec_op_outside_impl, Error, "special function '{tok}' must be declared in an implementation block for a struct")
 SWC_DIAG_DEF(sema_err_spec_op_in_impl_for, Error, "special function '{tok}' cannot be declared in an interface implementation block")

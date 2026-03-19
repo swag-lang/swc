@@ -997,6 +997,7 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType, AstFunctionFlagsE>
 // -----------------------------------------------------------------------------
 struct AstRetValType : AstNodeT<AstNodeId::RetValType>
 {
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

@@ -285,12 +285,6 @@ namespace
 
         if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, *node, nodeLeftView))
         {
-            auto& storageSym = registerUniqueMemberRuntimeStorageSymbol(sema, *node);
-            storageSym.registerAttributes(sema);
-            storageSym.setDeclared(sema.ctx());
-            SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(completeMemberRuntimeStorageSymbol(sema, storageSym, memberRuntimeStorageTypeRef(sema)));
-
             auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
             if (!payload)
             {
@@ -298,7 +292,19 @@ namespace
                 sema.setCodeGenPayload(sema.curNodeRef(), payload);
             }
 
-            payload->runtimeStorageSym = &storageSym;
+            if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+            {
+                payload->runtimeStorageSym = boundStorage;
+            }
+            else
+            {
+                auto& storageSym = registerUniqueMemberRuntimeStorageSymbol(sema, *node);
+                storageSym.registerAttributes(sema);
+                storageSym.setDeclared(sema.ctx());
+                SWC_RESULT(Match::ghosting(sema, storageSym));
+                SWC_RESULT(completeMemberRuntimeStorageSymbol(sema, storageSym, memberRuntimeStorageTypeRef(sema)));
+                payload->runtimeStorageSym = &storageSym;
+            }
         }
 
         return Result::SkipChildren;

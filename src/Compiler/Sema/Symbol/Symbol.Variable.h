@@ -14,6 +14,7 @@ enum class SymbolVariableFlagsE : uint8_t
     Parameter         = 1 << 3,
     CodeGenLocalStack = 1 << 4,
     FunctionLocal     = 1 << 5,
+    RetVal            = 1 << 6,
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 

@@ -56,6 +56,21 @@ namespace
         return static_cast<uint32_t>(rawSize);
     }
 
+    bool usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return false;
+
+        const SymbolFunction& symbolFunc    = codeGen.function();
+        const TypeRef         returnTypeRef = symbolFunc.returnTypeRef();
+        if (!returnTypeRef.isValid())
+            return false;
+
+        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        return normalizedRet.isIndirect;
+    }
+
     bool shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, const ABITypeNormalize::NormalizedType& normalizedType)
     {
         if (normalizedType.isIndirect)
@@ -286,6 +301,12 @@ namespace
             SWC_ASSERT(symVar != nullptr);
             const TypeRef typeRef = symVar->typeRef();
             SWC_ASSERT(typeRef.isValid());
+
+            if (usesCallerReturnStorage(codeGen, *symVar))
+            {
+                symVar->setCodeGenLocalSize(0);
+                continue;
+            }
 
             const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
             const auto      size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
@@ -563,7 +584,8 @@ namespace
             SWC_ASSERT(outputStorageReg.isValid());
             if (exprPayload.isAddress())
             {
-                CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+                if (exprPayload.reg != outputStorageReg)
+                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
             }
             else
             {

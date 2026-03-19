@@ -87,19 +87,31 @@ namespace
 
             if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
             {
+                symVar->setOffset(0);
                 symVar->setCodeGenLocalSize(0);
                 continue;
             }
 
             const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
             const auto      size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
+            uint32_t        alignment = typeInfo.alignOf(codeGen.ctx());
+            if (!alignment)
+                alignment = 1;
             if (!size)
+            {
+                symVar->setOffset(0);
+                symVar->setCodeGenLocalSize(0);
                 continue;
+            }
 
-            const uint32_t symOffset = symVar->offset();
+            // Compiler-run functions share the same runtime payload locals as normal codegen, so rebuild
+            // offsets from the final lowered sizes here as well.
+            frameSize = Math::alignUpU64(frameSize, alignment);
+            SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+            symVar->setOffset(static_cast<uint32_t>(frameSize));
             symVar->setCodeGenLocalSize(size);
             symVar->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
-            frameSize = std::max<uint64_t>(frameSize, symOffset + size);
+            frameSize += size;
         }
 
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;

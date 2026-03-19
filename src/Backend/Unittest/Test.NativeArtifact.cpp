@@ -245,6 +245,31 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
+{
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_allows_interior_constant_addresses", "dll");
+
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+
+    constexpr auto referencedMarker = "__native_rdata_interior_constant_marker__";
+
+    DataSegment&     segment                 = fixture.compiler->cstMgr().shardDataSegment(0);
+    Runtime::String* referencedRuntimeString = nullptr;
+    const ConstantRef referencedStringRef    = addStringConstant(*fixture.compilerCtx, *fixture.compiler, segment, referencedMarker, referencedRuntimeString);
+
+    const auto* interiorAddress = reinterpret_cast<const std::byte*>(referencedRuntimeString) + offsetof(Runtime::String, length);
+    MachineCode  code           = makeConstantAddressCode(referencedStringRef, interiorAddress);
+    addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, code, "rdata_interior_constant");
+
+    SWC_RESULT(fixture.artifactBuilder->build());
+
+    if (!containsBytes(fixture.nativeBuilder->mergedRData.bytes, referencedMarker))
+        return Result::Error;
+    if (fixture.nativeBuilder->mergedRData.relocations.size() != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_LinkerOutputFilterSuppressesDllImportLibraryLine)
 {
     if (NativeLinkerCoff::shouldForwardLinkerOutputLine("   Creating library foo.lib and object foo.exp", true))

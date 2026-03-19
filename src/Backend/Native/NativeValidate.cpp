@@ -168,25 +168,44 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (baseOffset == INVALID_REF)
         return false;
 
+    const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+
     if (constant.kind() == ConstantKind::Struct)
     {
         const ByteSpan payload = constant.getStruct();
-        if (relocation.targetAddress != reinterpret_cast<uint64_t>(payload.data()))
+        uint32_t       payloadShardIndex = 0;
+        const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
+        if (payloadOffset == INVALID_REF || payloadShardIndex != shardIndex)
             return false;
-        return validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payload);
+
+        DataSegmentAllocation allocation;
+        if (!segment.findAllocation(allocation, baseOffset))
+            return false;
+        if (allocation.offset != payloadOffset || allocation.size < payload.size())
+            return false;
+
+        return validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
     }
 
     if (constant.kind() == ConstantKind::Array)
     {
         const ByteSpan payload = constant.getArray();
-        if (relocation.targetAddress != reinterpret_cast<uint64_t>(payload.data()))
+        uint32_t       payloadShardIndex = 0;
+        const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
+        if (payloadOffset == INVALID_REF || payloadShardIndex != shardIndex)
             return false;
-        return validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payload);
+
+        DataSegmentAllocation allocation;
+        if (!segment.findAllocation(allocation, baseOffset))
+            return false;
+        if (allocation.offset != payloadOffset || allocation.size < payload.size())
+            return false;
+
+        return validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
     }
     if (constant.typeRef().isInvalid())
         return false;
 
-    const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
     const uint64_t     sizeOf  = builder_.ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_.ctx());
     if (!sizeOf || baseOffset + sizeOf > segment.extentSize())
         return false;

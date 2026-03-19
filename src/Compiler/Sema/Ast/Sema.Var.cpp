@@ -32,6 +32,12 @@ namespace
         return owner->isModule() || owner->isNamespace();
     }
 
+    bool needsStandaloneVariableStorage(const SymbolVariable& symVar)
+    {
+        const SymbolMap* const owner = symVar.ownerSymMap();
+        return !owner || !owner->isStruct();
+    }
+
     bool isAllZeroBytes(ByteSpan bytes)
     {
         for (const std::byte value : bytes)
@@ -213,10 +219,13 @@ namespace
             if (symVar.typeRef().isInvalid())
                 symVar.setTypeRef(typeRef);
 
-            if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && needsStandaloneVariableStorage(symVar))
             {
                 if (SemaHelpers::isCurrentFunction(sema))
+                {
+                    // Local type fields are part of the type layout and must not be rewritten as stack locals.
                     SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
+                }
                 else
                     SWC_RESULT(allocateGlobalStorage(sema, symVar));
             }

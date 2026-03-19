@@ -749,12 +749,34 @@ namespace
         return Result::Continue;
     }
 
-    Result completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    SymbolFunction* resolveEnclosingFunctionForClosureRuntimeStorage(Sema& sema)
+    {
+        for (size_t parentIndex = 0;; ++parentIndex)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                break;
+
+            if (Symbol* const symbol = sema.viewSymbol(parentRef).sym(); symbol && symbol->isFunction())
+                return &symbol->cast<SymbolFunction>();
+        }
+
+        return nullptr;
+    }
+
+    Result completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef, SymbolFunction* ownerFunction)
     {
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
 
-        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
+        if (!ownerFunction)
+            ownerFunction = SemaHelpers::currentFunction(sema);
+        if (ownerFunction && typeRef.isValid())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            ownerFunction->addLocalVariable(sema.ctx(), &symVar);
+        }
 
         symVar.setTyped(sema.ctx());
         symVar.setSemaCompleted(sema.ctx());
@@ -781,7 +803,7 @@ namespace
         return *(symVariable);
     }
 
-    Result attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, const Utf8& privateName)
+    Result attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, const Utf8& privateName, SymbolFunction* ownerFunction = nullptr)
     {
         const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (payload && payload->runtimeStorageSym != nullptr)
@@ -799,7 +821,7 @@ namespace
         storageSym.registerAttributes(sema);
         storageSym.setDeclared(sema.ctx());
         SWC_RESULT(Match::ghosting(sema, storageSym));
-        SWC_RESULT(completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+        SWC_RESULT(completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef, ownerFunction));
 
         ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
         return Result::Continue;
@@ -812,7 +834,8 @@ namespace
         if (!sym.typeRef().isValid())
             return Result::Continue;
 
-        return attachRuntimeStorageIfNeeded(sema, node, sym.typeRef(), Utf8("__closure_runtime_storage"));
+        SymbolFunction* const ownerFunction = resolveEnclosingFunctionForClosureRuntimeStorage(sema);
+        return attachRuntimeStorageIfNeeded(sema, node, sym.typeRef(), Utf8("__closure_runtime_storage"), ownerFunction);
     }
 
     Result buildClosureCaptureSymbols(Sema& sema, const AstClosureExpr& node, SymbolFunction& sym)

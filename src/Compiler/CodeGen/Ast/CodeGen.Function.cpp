@@ -271,19 +271,31 @@ namespace
 
             if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
             {
+                symVar->setOffset(0);
                 symVar->setCodeGenLocalSize(0);
                 continue;
             }
 
-            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-            const auto      size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
+            const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
+            const auto      size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
+            uint32_t        alignment = typeInfo.alignOf(codeGen.ctx());
+            if (!alignment)
+                alignment = 1;
             if (!size)
+            {
+                symVar->setOffset(0);
+                symVar->setCodeGenLocalSize(0);
                 continue;
+            }
 
-            const uint32_t symOffset = symVar->offset();
+            // Recompute local offsets from the finalized runtime sizes. Sema-time offsets can become stale
+            // when expression-backed locals (notably closures) expand to larger runtime payloads later on.
+            frameSize = Math::alignUpU64(frameSize, alignment);
+            SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+            symVar->setOffset(static_cast<uint32_t>(frameSize));
             symVar->setCodeGenLocalSize(size);
             symVar->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
-            frameSize = std::max<uint64_t>(frameSize, symOffset + size);
+            frameSize += size;
         }
 
         for (SymbolVariable* symVar : params)
@@ -524,7 +536,7 @@ namespace
             }
 
             // Keep the allocator away from source argument registers that still need to be read for the
-            // remaining parameters, otherwise an early materialization can clobber a later one.
+            // remaining parameters, otherwise early materialization can clobber a later one.
             builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs);
             CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
             symbolPayload.setValueOrAddress(paramInfo.isIndirect);
@@ -560,14 +572,14 @@ namespace
             const auto& params = codeGen.function().parameters();
             if (symVar.parameterIndex() < params.size())
             {
-                SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
+                const SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
                 if (canonicalParam && canonicalParam != &symVar)
                     return resolveClosureCaptureSourcePayload(codeGen, *canonicalParam);
             }
         }
         else if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && symVar.idRef().isValid())
         {
-            for (SymbolVariable* param : codeGen.function().parameters())
+            for (const SymbolVariable* param : codeGen.function().parameters())
             {
                 if (!param || param == &symVar)
                     continue;
@@ -643,7 +655,7 @@ namespace
 
     void emitClosureCaptureStore(CodeGen& codeGen, const SymbolVariable& captureVar, MicroReg closureValueReg)
     {
-        SymbolVariable* const sourceVar = captureVar.closureCapturedSource();
+        const SymbolVariable* const sourceVar = captureVar.closureCapturedSource();
         SWC_ASSERT(sourceVar != nullptr);
         const CodeGenNodePayload sourcePayload = resolveClosureCaptureSourcePayload(codeGen, *sourceVar);
 
@@ -671,8 +683,8 @@ namespace
 
     Result emitClosureExprValue(CodeGen& codeGen, AstNodeRef nodeRef, SymbolFunction& symFunc, TypeRef typeRef)
     {
-        AstNodeRef storageNodeRef = nodeRef;
-        auto*      payload        = codeGen.sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+        AstNodeRef  storageNodeRef = nodeRef;
+        const auto* payload        = codeGen.sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
         if ((!payload || payload->runtimeStorageSym == nullptr) && storageNodeRef != codeGen.curNodeRef())
         {
             storageNodeRef = codeGen.curNodeRef();
@@ -717,7 +729,7 @@ namespace
 
         MicroBuilder&                       builder = codeGen.builder();
         const std::vector<SymbolVariable*>& params  = symbolFunc.parameters();
-        for (SymbolVariable* symVar : params)
+        for (const SymbolVariable* symVar : params)
         {
             SWC_ASSERT(symVar != nullptr);
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))

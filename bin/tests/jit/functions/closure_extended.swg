@@ -199,6 +199,19 @@ func makeParamArrayClosure(values: [3] s32)->func||()->s32
 
 #test
 {
+    let offset = 3
+    let cb = func|offset|(value: s32)->s32 { return value + offset }
+    @assert(cb(7) == 10)
+}
+
+#test
+{
+    let factor = 3
+    @assert((func|factor|(value: s32)->s32 { return value * factor })(7) == 21)
+}
+
+#test
+{
     let globalReader: func||()->s32 = func()->s32 { return GlobalSeed + GlobalBonus }
     @assert(globalReader() == 42)
 

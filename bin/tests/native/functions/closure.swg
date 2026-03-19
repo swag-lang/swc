@@ -112,3 +112,12 @@ func makeNested(base: s32)->func||()->s32
     @assert(nested() == 13)
     @assert(nested() == 19)
 }
+
+#test
+{
+    func toto(x: s32)->s32 { return 42 + x }
+
+    var fb: func||(s32)->s32
+    fb = &toto
+    @assert(fb(5) == 47)
+}

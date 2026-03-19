@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -12,6 +14,119 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
+
+SymbolVariable* SemaHelpers::currentRuntimeStorage(Sema& sema)
+{
+    SymbolVariable* const sym     = sema.frame().currentRuntimeStorageSym();
+    const AstNodeRef      nodeRef = sema.frame().currentRuntimeStorageNodeRef();
+    if (!sym || !nodeRef.isValid())
+        return nullptr;
+
+    const AstNodeRef resolvedTargetRef  = sema.viewZero(nodeRef).nodeRef();
+    const AstNodeRef resolvedCurrentRef = sema.viewZero(sema.curNodeRef()).nodeRef();
+    if (resolvedTargetRef != resolvedCurrentRef)
+        return nullptr;
+
+    return sym;
+}
+
+void SemaHelpers::addCurrentFunctionCallDependency(const Sema& sema, SymbolFunction* calleeSym)
+{
+    if (SymbolFunction* currentFn = currentFunction(sema); currentFn && calleeSym)
+        currentFn->addCallDependency(calleeSym);
+}
+
+Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+{
+    if (!isCurrentFunction(sema) || !typeRef.isValid())
+        return Result::Continue;
+
+    const TypeInfo& symType = sema.typeMgr().get(typeRef);
+    SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+    currentFunction(sema)->addLocalVariable(sema.ctx(), &symVar);
+    return Result::Continue;
+}
+
+Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar)
+{
+    return addCurrentFunctionLocalVariable(sema, symVar, symVar.typeRef());
+}
+
+bool SemaHelpers::isConstExprRequired(const Sema& sema)
+{
+    return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
+}
+
+bool SemaHelpers::isRunExprContext(const Sema& sema)
+{
+    return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr);
+}
+
+bool SemaHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef)
+{
+    if (!typeRef.isValid())
+        return false;
+
+    const auto needsPersistent = [&](auto&& self, TypeRef rawTypeRef) -> bool {
+        if (!rawTypeRef.isValid())
+            return false;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(rawTypeRef);
+        if (typeInfo.isAlias())
+        {
+            return self(self, typeInfo.unwrap(sema.ctx(), rawTypeRef, TypeExpandE::Alias));
+        }
+
+        if (typeInfo.isEnum())
+        {
+            return self(self, typeInfo.unwrap(sema.ctx(), rawTypeRef, TypeExpandE::Enum));
+        }
+
+        if (typeInfo.isString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface() || typeInfo.isCString())
+            return true;
+
+        if (typeInfo.isArray())
+        {
+            return self(self, typeInfo.payloadArrayElemTypeRef());
+        }
+
+        if (typeInfo.isStruct())
+        {
+            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+            {
+                if (field && self(self, field->typeRef()))
+                    return true;
+            }
+        }
+
+        return false;
+    };
+
+    return needsPersistent(needsPersistent, typeRef);
+}
+
+bool SemaHelpers::functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function)
+{
+    const TypeRef returnTypeRef = function.returnTypeRef();
+    if (!returnTypeRef.isValid())
+        return false;
+
+    const CallConv&                        callConv      = CallConv::get(function.callConvKind());
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+    return normalizedRet.isIndirect;
+}
+
+bool SemaHelpers::currentFunctionUsesIndirectReturnStorage(Sema& sema)
+{
+    const SymbolFunction* currentFn = currentFunction(sema);
+    return currentFn && functionUsesIndirectReturnStorage(sema.ctx(), *currentFn);
+}
+
+bool SemaHelpers::usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar)
+{
+    return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) &&
+           functionUsesIndirectReturnStorage(ctx, function);
+}
 
 AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
 {

@@ -21,6 +21,8 @@ namespace CodeGenFunctionHelpers
         bool        isRegisterArg = false;
     };
 
+    bool                  functionUsesIndirectReturnStorage(CodeGen& codeGen, const SymbolFunction& symbolFunc);
+    bool                  usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);

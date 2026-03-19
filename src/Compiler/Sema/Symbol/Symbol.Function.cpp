@@ -1,8 +1,7 @@
 ﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Backend/ABI/ABITypeNormalize.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -24,18 +23,6 @@ namespace
         Visiting,
         Done,
     };
-
-    bool usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar)
-    {
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
-            return false;
-        if (!function.returnTypeRef().isValid())
-            return false;
-
-        const CallConv&                        callConv      = CallConv::get(function.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, function.returnTypeRef(), ABITypeNormalize::Usage::Return);
-        return normalizedRet.isIndirect;
-    }
 
     struct DepStackEntry
     {
@@ -289,7 +276,7 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
         const TypeRef typeRef = local->typeRef();
         if (!isLocalLayoutReady(ctx, typeRef))
             return;
-        if (usesCallerReturnStorage(ctx, *this, *local))
+        if (SemaHelpers::usesCallerReturnStorage(ctx, *this, *local))
         {
             local->setOffset(0);
             numComputedLocals_++;

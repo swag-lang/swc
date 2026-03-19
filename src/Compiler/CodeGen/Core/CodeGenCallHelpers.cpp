@@ -7,6 +7,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -24,21 +25,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
-            return false;
-
-        const SymbolFunction& symbolFunc    = codeGen.function();
-        const TypeRef         returnTypeRef = symbolFunc.returnTypeRef();
-        if (!returnTypeRef.isValid())
-            return false;
-
-        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        return normalizedRet.isIndirect;
-    }
-
     void emitPointerConstant(CodeGen& codeGen, MicroReg reg, uint64_t value, ConstantRef cstRef)
     {
         if (!value)
@@ -881,7 +867,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         if (nodePayload &&
             nodePayload->runtimeStorageSym != nullptr &&
             ((nodePayload->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid()) ||
-             usesCallerReturnStorage(codeGen, *nodePayload->runtimeStorageSym)))
+             CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *nodePayload->runtimeStorageSym)))
             hiddenRetStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
     }
 

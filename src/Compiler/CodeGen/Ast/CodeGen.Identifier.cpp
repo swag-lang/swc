@@ -1,6 +1,4 @@
 #include "pch.h"
-#include "Backend/ABI/ABITypeNormalize.h"
-#include "Backend/ABI/CallConv.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
@@ -18,21 +16,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
-            return false;
-
-        const SymbolFunction& symbolFunc    = codeGen.function();
-        const TypeRef         returnTypeRef = symbolFunc.returnTypeRef();
-        if (!returnTypeRef.isValid())
-            return false;
-
-        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        return normalizedRet.isIndirect;
-    }
-
     MicroOpBits identifierPayloadCopyBits(CodeGen& codeGen, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -44,7 +27,7 @@ namespace
 
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
-        if (usesCallerReturnStorage(codeGen, symVar))
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
         {
             CodeGenNodePayload symbolPayload;
             symbolPayload.typeRef = symVar.typeRef();
@@ -144,7 +127,7 @@ namespace
         if (symVar.hasGlobalStorage())
             return;
 
-        if (usesCallerReturnStorage(codeGen, symVar))
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
         {
             const uint32_t localSize = static_cast<uint32_t>(codeGen.typeMgr().get(symVar.typeRef()).sizeOf(codeGen.ctx()));
             SWC_ASSERT(localSize > 0);

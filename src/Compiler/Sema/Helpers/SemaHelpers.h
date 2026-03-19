@@ -53,101 +53,21 @@ namespace SemaHelpers
         return !isCurrentFunction(sema);
     }
 
-    inline SymbolVariable* currentRuntimeStorage(Sema& sema)
-    {
-        SymbolVariable* const sym     = sema.frame().currentRuntimeStorageSym();
-        const AstNodeRef      nodeRef = sema.frame().currentRuntimeStorageNodeRef();
-        if (!sym || !nodeRef.isValid())
-            return nullptr;
-
-        const AstNodeRef resolvedTargetRef  = sema.viewZero(nodeRef).nodeRef();
-        const AstNodeRef resolvedCurrentRef = sema.viewZero(sema.curNodeRef()).nodeRef();
-        if (resolvedTargetRef != resolvedCurrentRef)
-            return nullptr;
-
-        return sym;
-    }
-
-    inline void addCurrentFunctionCallDependency(const Sema& sema, SymbolFunction* calleeSym)
-    {
-        if (SymbolFunction* currentFn = currentFunction(sema); currentFn && calleeSym)
-            currentFn->addCallDependency(calleeSym);
-    }
-
-    inline Result addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        if (!isCurrentFunction(sema) || !typeRef.isValid())
-            return Result::Continue;
-
-        const TypeInfo& symType = sema.typeMgr().get(typeRef);
-        SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-        currentFunction(sema)->addLocalVariable(sema.ctx(), &symVar);
-        return Result::Continue;
-    }
-
-    inline Result addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar)
-    {
-        return addCurrentFunctionLocalVariable(sema, symVar, symVar.typeRef());
-    }
-
     inline bool isOptimizeEnabled(const Sema& sema)
     {
         return buildCfgBackend(sema).optimize;
     }
 
-    inline bool needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        const auto needsPersistent = [&](auto&& self, TypeRef rawTypeRef) -> bool {
-            if (!rawTypeRef.isValid())
-                return false;
-
-            const TypeInfo& typeInfo = sema.typeMgr().get(rawTypeRef);
-            if (typeInfo.isAlias())
-            {
-                return self(self, typeInfo.unwrap(sema.ctx(), rawTypeRef, TypeExpandE::Alias));
-            }
-
-            if (typeInfo.isEnum())
-            {
-                return self(self, typeInfo.unwrap(sema.ctx(), rawTypeRef, TypeExpandE::Enum));
-            }
-
-            if (typeInfo.isString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface() || typeInfo.isCString())
-                return true;
-
-            if (typeInfo.isArray())
-            {
-                return self(self, typeInfo.payloadArrayElemTypeRef());
-            }
-
-            if (typeInfo.isStruct())
-            {
-                for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
-                {
-                    if (field && self(self, field->typeRef()))
-                        return true;
-                }
-            }
-
-            return false;
-        };
-
-        return needsPersistent(needsPersistent, typeRef);
-    }
-
-    inline bool isConstExprRequired(const Sema& sema)
-    {
-        return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
-    }
-
-    inline bool isRunExprContext(const Sema& sema)
-    {
-        return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr);
-    }
-
+    SymbolVariable*       currentRuntimeStorage(Sema& sema);
+    void                  addCurrentFunctionCallDependency(const Sema& sema, SymbolFunction* calleeSym);
+    Result                addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
+    Result                addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar);
+    bool                  isConstExprRequired(const Sema& sema);
+    bool                  isRunExprContext(const Sema& sema);
+    bool                  needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef);
+    bool                  functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function);
+    bool                  currentFunctionUsesIndirectReturnStorage(Sema& sema);
+    bool                  usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar);
     const SymbolFunction* currentLocationFunction(const Sema& sema);
     AstNodeRef            defaultArgumentExprRef(const SymbolVariable& param);
     bool                  isDirectCallerLocationDefault(const Sema& sema, const SymbolVariable& param);

@@ -228,6 +228,23 @@ bool CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(const Sema& sema, 
     return SemaHelpers::needsPersistentCompilerRunReturn(sema, typeRef);
 }
 
+bool CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+{
+    const TypeRef returnTypeRef = symbolFunc.returnTypeRef();
+    if (!returnTypeRef.isValid())
+        return false;
+
+    const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+    return normalizedRet.isIndirect;
+}
+
+bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
+{
+    return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) &&
+           functionUsesIndirectReturnStorage(codeGen, codeGen.function());
+}
+
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg)
 {
     SWC_ASSERT(symVar.hasParameterIndex());
@@ -247,9 +264,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
 
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
 {
-    const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-    return functionParameterInfo(codeGen, symbolFunc, symVar, normalizedRet.isIndirect);
+    return functionParameterInfo(codeGen, symbolFunc, symVar, functionUsesIndirectReturnStorage(codeGen, symbolFunc));
 }
 
 void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg)

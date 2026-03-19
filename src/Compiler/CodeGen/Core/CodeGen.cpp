@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Backend/ABI/ABITypeNormalize.h"
-#include "Backend/ABI/CallConv.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -40,20 +39,6 @@ namespace
         return *(payload);
     }
 
-    bool usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
-            return false;
-
-        const SymbolFunction& symbolFunc    = codeGen.function();
-        const TypeRef         returnTypeRef = symbolFunc.returnTypeRef();
-        if (!returnTypeRef.isValid())
-            return false;
-
-        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        return normalizedRet.isIndirect;
-    }
 }
 
 CodeGen::CodeGen(Sema& sema) :
@@ -372,7 +357,7 @@ MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
         nodePayload = safePayload(nodeRef);
     SWC_ASSERT(nodePayload != nullptr);
     SWC_ASSERT(nodePayload->runtimeStorageSym != nullptr);
-    if (usesCallerReturnStorage(*this, *nodePayload->runtimeStorageSym))
+    if (CodeGenFunctionHelpers::usesCallerReturnStorage(*this, *nodePayload->runtimeStorageSym))
     {
         SWC_ASSERT(currentFunctionIndirectReturnReg().isValid());
         return currentFunctionIndirectReturnReg();

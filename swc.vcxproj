@@ -338,7 +338,7 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
-        <ClCompile Include="src\Support\Os\OsWin32.cpp"/>
+        <ClCompile Include="src\Support\Os\Os.Windows.cpp" />
         <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp"/>

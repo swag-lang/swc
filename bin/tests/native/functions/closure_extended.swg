@@ -6,6 +6,16 @@ struct Pair
     step: s32
 }
 
+struct UnaryClosureHolder
+{
+    cb: func||(s32)->s32
+}
+
+struct NullaryClosureHolder
+{
+    cb: func||()->s32
+}
+
 const GlobalBonus = 2
 var GlobalSeed = 40
 
@@ -76,6 +86,32 @@ func makeParamArrayClosure(values: [3] s32)->func||()->s32
     @assert(second() == 15)
     @assert(second() == 25)
     @assert(seed == 100)
+}
+
+#test
+{
+    var offset = 5
+    var holder: UnaryClosureHolder
+    holder.cb = func|offset|(value: s32)->s32 { return value + offset }
+
+    offset = 100
+    @assert(holder.cb(4) == 9)
+    @assert(invokeUnary(holder.cb, 7) == 12)
+}
+
+#test
+{
+    var total = 10
+    var holder: NullaryClosureHolder
+    holder.cb = func|&total|()->s32
+    {
+        total += 2
+        return total
+    }
+
+    @assert(holder.cb() == 12)
+    @assert(holder.cb() == 14)
+    @assert(total == 14)
 }
 
 #test

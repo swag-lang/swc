@@ -16,7 +16,7 @@ public:
     virtual Result link() = 0;
 
 protected:
-    Result runToolAndValidateArtifacts(const fs::path& exePath, const std::vector<Utf8>& args) const;
+    Result runToolAndValidateArtifacts(const fs::path& exePath, const std::vector<Utf8>& args, const Os::ProcessRunOptions* options = nullptr) const;
 
     NativeBackendBuilder& builder_;
 };

@@ -122,6 +122,64 @@ namespace
         out.push_back(L'"');
     }
 
+    bool shouldForwardProcessOutputLine(const Os::ProcessRunOptions* options, std::string_view line)
+    {
+        if (!options || !options->outputLineFilter)
+            return true;
+        return options->outputLineFilter(line);
+    }
+
+    void forwardProcessOutputLine(const Os::ProcessRunOptions* options, std::string_view lineWithEnding)
+    {
+        std::string_view line = lineWithEnding;
+        if (!line.empty() && line.back() == '\n')
+            line.remove_suffix(1);
+        if (!line.empty() && line.back() == '\r')
+            line.remove_suffix(1);
+
+        if (!shouldForwardProcessOutputLine(options, line))
+            return;
+
+        (void) std::fwrite(lineWithEnding.data(), sizeof(char), lineWithEnding.size(), stdout);
+        (void) std::fflush(stdout);
+    }
+
+    void forwardProcessOutputChunk(const Os::ProcessRunOptions* options, std::string& pendingLine, std::string_view chunk)
+    {
+        if (options && options->capturedOutput)
+            options->capturedOutput->append(chunk);
+
+        if (options && !options->forwardOutput)
+            return;
+
+        pendingLine.append(chunk);
+
+        size_t lineStart = 0;
+        while (lineStart < pendingLine.size())
+        {
+            const size_t lineEnd = pendingLine.find('\n', lineStart);
+            if (lineEnd == std::string::npos)
+                break;
+
+            forwardProcessOutputLine(options, std::string_view(pendingLine).substr(lineStart, lineEnd - lineStart + 1));
+            lineStart = lineEnd + 1;
+        }
+
+        pendingLine.erase(0, lineStart);
+    }
+
+    void flushPendingProcessOutput(const Os::ProcessRunOptions* options, std::string& pendingLine)
+    {
+        if (options && !options->forwardOutput)
+            return;
+
+        if (pendingLine.empty())
+            return;
+
+        forwardProcessOutputLine(options, pendingLine);
+        pendingLine.clear();
+    }
+
     std::optional<Utf8> readEnvUtf8(const char* name)
     {
         char*  value  = nullptr;
@@ -580,7 +638,11 @@ namespace Os
         return az;
     }
 
-    ProcessRunResult runProcess(uint32_t& outExitCode, const fs::path& exePath, const std::span<const Utf8> args, const fs::path& workingDirectory)
+    ProcessRunResult runProcess(uint32_t&                   outExitCode,
+                                const fs::path&             exePath,
+                                const std::span<const Utf8> args,
+                                const fs::path&             workingDirectory,
+                                const ProcessRunOptions*    options)
     {
         outExitCode = 0;
 
@@ -596,20 +658,76 @@ namespace Os
         PROCESS_INFORMATION processInfo{};
         startupInfo.cb = sizeof(startupInfo);
 
+        HANDLE childOutputRead  = nullptr;
+        HANDLE childOutputWrite = nullptr;
+        const bool redirectOutput = options && (options->capturedOutput || !options->forwardOutput || options->outputLineFilter);
+        if (redirectOutput)
+        {
+            SECURITY_ATTRIBUTES securityAttributes{};
+            securityAttributes.nLength              = sizeof(securityAttributes);
+            securityAttributes.bInheritHandle       = TRUE;
+            securityAttributes.lpSecurityDescriptor = nullptr;
+
+            if (!CreatePipe(&childOutputRead, &childOutputWrite, &securityAttributes, 0))
+                return ProcessRunResult::StartFailed;
+            if (!SetHandleInformation(childOutputRead, HANDLE_FLAG_INHERIT, 0))
+            {
+                CloseHandle(childOutputRead);
+                CloseHandle(childOutputWrite);
+                return ProcessRunResult::StartFailed;
+            }
+
+            startupInfo.dwFlags |= STARTF_USESTDHANDLES;
+            startupInfo.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+            startupInfo.hStdOutput = childOutputWrite;
+            startupInfo.hStdError  = childOutputWrite;
+        }
+
         std::wstring       mutableCommandLine = commandLine;
         const std::wstring workingDirW        = workingDirectory.empty() ? std::wstring() : workingDirectory.wstring();
         if (!CreateProcessW(exePath.wstring().c_str(),
                             mutableCommandLine.data(),
                             nullptr,
                             nullptr,
-                            FALSE,
+                            childOutputWrite != nullptr,
                             0,
                             nullptr,
                             workingDirW.empty() ? nullptr : workingDirW.c_str(),
                             &startupInfo,
                             &processInfo))
         {
+            if (childOutputRead)
+                CloseHandle(childOutputRead);
+            if (childOutputWrite)
+                CloseHandle(childOutputWrite);
             return ProcessRunResult::StartFailed;
+        }
+
+        if (childOutputWrite)
+            CloseHandle(childOutputWrite);
+
+        if (childOutputRead)
+        {
+            std::string pendingLine;
+            char        buffer[4096];
+            for (;;)
+            {
+                DWORD bytesRead = 0;
+                if (!ReadFile(childOutputRead, buffer, sizeof(buffer), &bytesRead, nullptr))
+                {
+                    if (GetLastError() == ERROR_BROKEN_PIPE)
+                        break;
+                    break;
+                }
+
+                if (!bytesRead)
+                    break;
+
+                forwardProcessOutputChunk(options, pendingLine, std::string_view(buffer, bytesRead));
+            }
+
+            flushPendingProcessOutput(options, pendingLine);
+            CloseHandle(childOutputRead);
         }
 
         const DWORD waitResult = WaitForSingleObject(processInfo.hProcess, INFINITE);

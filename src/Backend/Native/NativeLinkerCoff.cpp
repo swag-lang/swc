@@ -46,8 +46,10 @@ Result NativeLinkerCoff::link()
 {
     SWC_RESULT(discoverToolchain());
 
-    std::vector<Utf8> args;
-    const fs::path*   exePath = nullptr;
+    std::vector<Utf8>            args;
+    const fs::path*              exePath = nullptr;
+    Os::ProcessRunOptions        options;
+    const Os::ProcessRunOptions* runOptions = nullptr;
 
     switch (builder_.compiler().buildCfg().backendKind)
     {
@@ -56,8 +58,12 @@ Result NativeLinkerCoff::link()
             exePath = &toolchain_.linkExe;
             break;
         case Runtime::BuildCfgBackendKind::Library:
-            args    = buildLinkArguments(true);
-            exePath = &toolchain_.linkExe;
+            args                     = buildLinkArguments(true);
+            exePath                  = &toolchain_.linkExe;
+            options.outputLineFilter = [](const std::string_view line) {
+                return shouldForwardLinkerOutputLine(line, true);
+            };
+            runOptions = &options;
             break;
         case Runtime::BuildCfgBackendKind::Export:
             args    = buildLibArguments();
@@ -67,7 +73,22 @@ Result NativeLinkerCoff::link()
             SWC_UNREACHABLE();
     }
 
-    return runToolAndValidateArtifacts(*exePath, args);
+    return runToolAndValidateArtifacts(*exePath, args, runOptions);
+}
+
+bool NativeLinkerCoff::shouldForwardLinkerOutputLine(const std::string_view line, const bool dll)
+{
+    if (!dll)
+        return true;
+
+    size_t index = 0;
+    while (index < line.size() && std::isspace(static_cast<unsigned char>(line[index])))
+        ++index;
+
+    const std::string_view trimmed = line.substr(index);
+    if (!trimmed.starts_with("Creating library "))
+        return true;
+    return trimmed.find(" and object ") == std::string_view::npos;
 }
 
 std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const

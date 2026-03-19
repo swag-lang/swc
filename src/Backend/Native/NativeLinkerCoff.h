@@ -10,6 +10,7 @@ public:
     explicit NativeLinkerCoff(NativeBackendBuilder& builder);
 
     static Os::WindowsToolchainDiscoveryResult queryToolchainPaths(Os::WindowsToolchainPaths& outToolchain);
+    static bool                                shouldForwardLinkerOutputLine(std::string_view line, bool dll);
 
     Result link() override;
 

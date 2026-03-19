@@ -37,6 +37,13 @@ namespace Os
         fs::path sdkUcrtLibPath;
     };
 
+    struct ProcessRunOptions
+    {
+        std::string*                          capturedOutput = nullptr;
+        bool                                  forwardOutput  = true;
+        std::function<bool(std::string_view)> outputLineFilter;
+    };
+
     void initialize();
 
     void panicBox(std::string_view expr);
@@ -49,7 +56,7 @@ namespace Os
 
     fs::path                        getTemporaryPath();
     fs::path                        getExeFullName();
-    ProcessRunResult                runProcess(uint32_t& outExitCode, const fs::path& exePath, std::span<const Utf8> args, const fs::path& workingDirectory);
+    ProcessRunResult                runProcess(uint32_t& outExitCode, const fs::path& exePath, std::span<const Utf8> args, const fs::path& workingDirectory, const ProcessRunOptions* options = nullptr);
     WindowsToolchainDiscoveryResult discoverWindowsToolchainPaths(WindowsToolchainPaths& outToolchain);
 
     bool isDebuggerAttached();

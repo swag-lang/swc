@@ -7,3 +7,4 @@ SWC_DIAG_DEF(cmd_note_relocation_foreign_function_missing, Note, "target functio
 SWC_DIAG_DEF(cmd_note_relocation_foreign_module_name, Note, "requested foreign module: '{value}'")
 SWC_DIAG_DEF(cmd_note_relocation_foreign_function_name, Note, "requested foreign function: '{target}'")
 SWC_DIAG_DEF(cmd_note_relocation_foreign_lookup_failed, Note, "the host runtime could not resolve that foreign function")
+SWC_DIAG_DEF(cmd_note_native_tool_output, Note, "tool output:\n{because}")

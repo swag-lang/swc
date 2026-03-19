@@ -179,7 +179,7 @@ namespace
                         ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, cstRef, targetTypeRef);
 
                         ConstantRef typedNullCstRef = ConstantRef::invalid();
-                        if (targetType.isStruct() || targetType.isArray() || targetType.isAny() || targetType.isInterface())
+                        if (targetType.isStruct() || targetType.isArray() || targetType.isAny() || targetType.isInterface() || targetType.isString() || targetType.isSlice())
                         {
                             typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
                         }
@@ -270,7 +270,7 @@ namespace
         ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef);
 
         ConstantRef materializedCstRef = ConstantRef::invalid();
-        if (storageType.isStruct() || storageType.isArray() || storageType.isAny() || storageType.isInterface())
+        if (storageType.isStruct() || storageType.isArray() || storageType.isAny() || storageType.isInterface() || storageType.isString() || storageType.isSlice())
         {
             materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
         }
@@ -450,31 +450,32 @@ namespace
         const AstNodeRef   argRef            = arg.argRef;
         if (argRef.isValid())
         {
-            const SemaNodeView argView = codeGen.viewType(argRef);
-            normalizedTypeRef          = resolveNormalizedArgTypeRef(codeGen, params, argIndex, argView);
+            const SemaNodeView argView           = codeGen.viewType(argRef);
+            normalizedTypeRef                    = resolveNormalizedArgTypeRef(codeGen, params, argIndex, argView);
+            const SemaNodeView argConstView      = codeGen.viewTypeConstant(argRef);
+            const bool         isNullConstantArg = argConstView.cst() && argConstView.cst()->isNull();
+
             if (const CodeGenNodePayload* payload = codeGen.safePayload(argRef))
             {
                 argPayload = *payload;
 
-                bool requiresTypedConstMaterialization = false;
-                if (normalizedTypeRef.isValid() && argPayload.typeRef.isValid())
+                bool requiresTypedConstMaterialization = normalizedTypeRef.isValid() && isNullConstantArg;
+                if (!requiresTypedConstMaterialization && normalizedTypeRef.isValid())
                 {
                     const TaskContext& ctx             = codeGen.ctx();
                     const TypeRef      expectedTypeRef = ctx.typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
-                    const TypeRef      payloadTypeRef  = ctx.typeMgr().get(argPayload.typeRef).unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
-                    requiresTypedConstMaterialization  = expectedTypeRef.isValid() && payloadTypeRef.isValid() && expectedTypeRef != payloadTypeRef;
+                    const TypeRef      payloadTypeRef  = argPayload.typeRef.isValid() ? ctx.typeMgr().get(argPayload.typeRef).unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias) : TypeRef::invalid();
+                    requiresTypedConstMaterialization  = expectedTypeRef.isValid() && (payloadTypeRef.isInvalid() || expectedTypeRef != payloadTypeRef);
                 }
 
                 if (requiresTypedConstMaterialization)
                 {
-                    const SemaNodeView argConstView = codeGen.viewTypeConstant(argRef);
                     if (argConstView.cstRef().isValid())
                         SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()));
                 }
             }
             else
             {
-                const SemaNodeView argConstView = codeGen.viewTypeConstant(argRef);
                 SWC_ASSERT(argConstView.cstRef().isValid());
                 SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()));
             }

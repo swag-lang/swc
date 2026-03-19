@@ -89,3 +89,50 @@
     const V = #run ifDeclWhereFalseUsesElse()
     @assert(V == 2)
 }
+
+#test
+{
+    func ifDeclNullablePointer()->s32
+    {
+        var base = 42
+        if var x: #null *s32 = &base where x != null
+        {
+            return 1
+        }
+
+        return -1
+    }
+
+    const V = #run ifDeclNullablePointer()
+    @assert(V == 1)
+}
+
+#test
+{
+    func ifDeclNullableStringNull()->s32
+    {
+        if var x: #null string = null where x == null
+        {
+            return 1
+        }
+        return -1
+    }
+
+    const V = #run ifDeclNullableStringNull()
+    @assert(V == 1)
+}
+
+#test
+{
+    func ifDeclNullableSliceNull()->s32
+    {
+        if var x: #null [..] s32 = null where x == null
+        {
+            return 1
+        }
+        return -1
+    }
+
+    const V = #run ifDeclNullableSliceNull()
+    @assert(V == 1)
+}

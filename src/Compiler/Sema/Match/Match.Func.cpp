@@ -19,6 +19,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)
+    {
+        if (rawArgRef.isInvalid() || valueNodeRef.isInvalid())
+            return;
+        if (!sema.node(rawArgRef).is(AstNodeId::NamedArgument))
+            return;
+
+        sema.inheritPayload(sema.node(rawArgRef), valueNodeRef);
+    }
+
     SymbolFunction* callableTypeFunction(TaskContext& ctx, TypeRef typeRef)
     {
         while (typeRef.isValid())
@@ -1003,11 +1013,13 @@ namespace
             if (params[i]->type(sema.ctx()).isCodeBlock())
                 continue;
 
-            SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
+            SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             CastFlags    flags = CastFlagsE::Zero;
             if (appliedUfcsArg.isValid() && i == 0)
                 flags.add(CastFlagsE::UfcsArgument);
             SWC_RESULT(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));
+            refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
         }
 
         return Result::Continue;
@@ -1227,10 +1239,7 @@ namespace
                 continue;
             }
 
-            AstNodeRef     finalArgRef  = entry.argRef;
-            const AstNode& finalArgNode = sema.node(finalArgRef);
-            if (finalArgNode.is(AstNodeId::NamedArgument))
-                finalArgRef = finalArgNode.cast<AstNamedArgument>().nodeArgRef;
+            const AstNodeRef finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
 
             auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
@@ -1255,10 +1264,7 @@ namespace
         {
             if (entry.argRef.isInvalid())
                 continue;
-            AstNodeRef     finalArgRef  = entry.argRef;
-            const AstNode& finalArgNode = sema.node(finalArgRef);
-            if (finalArgNode.is(AstNodeId::NamedArgument))
-                finalArgRef = finalArgNode.cast<AstNamedArgument>().nodeArgRef;
+            const AstNodeRef finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
             ResolvedCallArgument resolvedArg{
                 .argRef   = finalArgRef,
                 .passKind = CallArgumentPassKind::Direct,

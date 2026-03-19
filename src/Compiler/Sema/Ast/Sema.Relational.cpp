@@ -110,6 +110,15 @@ namespace
         return leftType.isString() && rightType.isString();
     }
 
+    bool hasNullComparableOperandConstant(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        if (nodeLeftView.cst() && isNullComparableConstant(sema, *nodeLeftView.cst()))
+            return true;
+        if (nodeRightView.cst() && isNullComparableConstant(sema, *nodeRightView.cst()))
+            return true;
+        return false;
+    }
+
     Result setupStringCompareRuntimeCall(Sema& sema, const AstRelationalExpr& node)
     {
         SymbolFunction* stringCmpFn = nullptr;
@@ -466,7 +475,10 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
         sema.setConstant(sema.curNodeRef(), result);
     }
 
-    if (!canConstantFold && (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual) && isStringCompareOperands(sema, nodeLeftView, nodeRightView))
+    if (!canConstantFold &&
+        (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual) &&
+        isStringCompareOperands(sema, nodeLeftView, nodeRightView) &&
+        !hasNullComparableOperandConstant(sema, nodeLeftView, nodeRightView))
         SWC_RESULT(setupStringCompareRuntimeCall(sema, *this));
 
     return Result::Continue;

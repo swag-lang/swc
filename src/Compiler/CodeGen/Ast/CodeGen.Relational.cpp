@@ -21,6 +21,12 @@ namespace
 {
     void materializeCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef compareTypeRef);
 
+    bool hasPreparedRuntimeStringCompare(CodeGen& codeGen)
+    {
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        return payload && payload->runtimeFunctionSymbol != nullptr;
+    }
+
     bool isStringCompareType(CodeGen& codeGen, TypeRef typeRef)
     {
         const TypeRef   unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
@@ -318,7 +324,9 @@ namespace
         const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
         const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
-        if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && isStringCompareType(codeGen, compareTypeRef))
+        if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
+            isStringCompareType(codeGen, compareTypeRef) &&
+            hasPreparedRuntimeStringCompare(codeGen))
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
 
         const TypeInfo& compareType = codeGen.typeMgr().get(compareTypeRef);

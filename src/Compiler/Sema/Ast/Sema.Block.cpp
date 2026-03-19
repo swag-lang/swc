@@ -135,7 +135,7 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 
 Result AstNamedArgument::semaPostNode(Sema& sema)
 {
-    sema.inheritPayload(*this, nodeArgRef);
+    sema.inheritPayload(*this, sema.viewZero(nodeArgRef).nodeRef());
     return Result::Continue;
 }
 

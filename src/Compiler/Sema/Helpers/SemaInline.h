@@ -25,10 +25,10 @@ struct SemaInlinePayload
     SymbolVariable*                                  resultVar      = nullptr;
     SmallVector<SemaInline::ArgMapping, 6>           argMappings;
     std::array<IdentifierRef, 10>                    aliasIdentifiers = {};
-    std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers = {};
-    AstNodeRef                                       callRef         = AstNodeRef::invalid();
-    AstNodeRef                                       inlineRootRef   = AstNodeRef::invalid();
-    TypeRef                                          returnTypeRef   = TypeRef::invalid();
+    std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers  = {};
+    AstNodeRef                                       callRef          = AstNodeRef::invalid();
+    AstNodeRef                                       inlineRootRef    = AstNodeRef::invalid();
+    TypeRef                                          returnTypeRef    = TypeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

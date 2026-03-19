@@ -205,7 +205,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (view.cstRef().isValid())
         return Result::Continue;
 
-    const Token& tok = sema.token(codeRef());
+    const Token&  tok   = sema.token(codeRef());
     IdentifierRef idRef = IdentifierRef::invalid();
     if (Token::isCompilerUniq(tok.id))
     {

@@ -698,12 +698,12 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT(createInlineResultVariable(sema, callRef, returnTypeRef, resultVar));
 
     // Create payload
-    auto* inlinePayload           = sema.compiler().allocate<SemaInlinePayload>();
-    inlinePayload->callRef        = callRef;
-    inlinePayload->inlineRootRef  = inlineRootRef;
-    inlinePayload->sourceFunction = &fn;
-    inlinePayload->resultVar      = resultVar;
-    inlinePayload->returnTypeRef  = returnTypeRef;
+    auto* inlinePayload             = sema.compiler().allocate<SemaInlinePayload>();
+    inlinePayload->callRef          = callRef;
+    inlinePayload->inlineRootRef    = inlineRootRef;
+    inlinePayload->sourceFunction   = &fn;
+    inlinePayload->resultVar        = resultVar;
+    inlinePayload->returnTypeRef    = returnTypeRef;
     inlinePayload->aliasIdentifiers = aliasIdentifiers;
     for (const SemaClone::ParamBinding& binding : bindings)
         inlinePayload->argMappings.push_back({binding.idRef, binding.exprRef});

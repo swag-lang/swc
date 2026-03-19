@@ -172,7 +172,7 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
     if (constant.kind() == ConstantKind::Struct)
     {
-        const ByteSpan payload = constant.getStruct();
+        const ByteSpan payload           = constant.getStruct();
         uint32_t       payloadShardIndex = 0;
         const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
         if (payloadOffset == INVALID_REF || payloadShardIndex != shardIndex)
@@ -189,7 +189,7 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
     if (constant.kind() == ConstantKind::Array)
     {
-        const ByteSpan payload = constant.getArray();
+        const ByteSpan payload           = constant.getArray();
         uint32_t       payloadShardIndex = 0;
         const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
         if (payloadOffset == INVALID_REF || payloadShardIndex != shardIndex)
@@ -206,7 +206,7 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (constant.typeRef().isInvalid())
         return false;
 
-    const uint64_t     sizeOf  = builder_.ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_.ctx());
+    const uint64_t sizeOf = builder_.ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_.ctx());
     if (!sizeOf || baseOffset + sizeOf > segment.extentSize())
         return false;
 

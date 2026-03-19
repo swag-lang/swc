@@ -253,12 +253,12 @@ SWC_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 
     constexpr auto referencedMarker = "__native_rdata_interior_constant_marker__";
 
-    DataSegment&     segment                 = fixture.compiler->cstMgr().shardDataSegment(0);
-    Runtime::String* referencedRuntimeString = nullptr;
-    const ConstantRef referencedStringRef    = addStringConstant(*fixture.compilerCtx, *fixture.compiler, segment, referencedMarker, referencedRuntimeString);
+    DataSegment&      segment                 = fixture.compiler->cstMgr().shardDataSegment(0);
+    Runtime::String*  referencedRuntimeString = nullptr;
+    const ConstantRef referencedStringRef     = addStringConstant(*fixture.compilerCtx, *fixture.compiler, segment, referencedMarker, referencedRuntimeString);
 
     const auto* interiorAddress = reinterpret_cast<const std::byte*>(referencedRuntimeString) + offsetof(Runtime::String, length);
-    MachineCode  code           = makeConstantAddressCode(referencedStringRef, interiorAddress);
+    MachineCode code            = makeConstantAddressCode(referencedStringRef, interiorAddress);
     addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, code, "rdata_interior_constant");
 
     SWC_RESULT(fixture.artifactBuilder->build());

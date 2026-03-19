@@ -92,8 +92,8 @@ namespace
                 continue;
             }
 
-            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-            const auto      size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
+            const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
+            const auto      size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
             uint32_t        alignment = typeInfo.alignOf(codeGen.ctx());
             if (!alignment)
                 alignment = 1;

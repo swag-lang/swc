@@ -57,7 +57,7 @@ namespace SemaHelpers
     {
         TaskContext& ctx = sema.ctx();
 
-        const Token& tok = sema.srcView(node.srcViewRef()).token(tokNameRef);
+        const Token&  tok   = sema.srcView(node.srcViewRef()).token(tokNameRef);
         IdentifierRef idRef = IdentifierRef::invalid();
         if (Token::isCompilerUniq(tok.id))
             idRef = ensureCurrentScopeUniqIdentifier(sema, tok.id);
@@ -70,7 +70,7 @@ namespace SemaHelpers
         else
             idRef = sema.idMgr().addIdentifier(ctx, {node.srcViewRef(), tokNameRef});
 
-        const SymbolFlags   flags = sema.frame().flagsForCurrentAccess();
+        const SymbolFlags flags = sema.frame().flagsForCurrentAccess();
 
         T*         sym       = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
         SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);

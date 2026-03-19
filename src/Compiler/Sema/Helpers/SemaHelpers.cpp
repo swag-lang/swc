@@ -52,16 +52,6 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
     return addCurrentFunctionLocalVariable(sema, symVar, symVar.typeRef());
 }
 
-bool SemaHelpers::isConstExprRequired(const Sema& sema)
-{
-    return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
-}
-
-bool SemaHelpers::isRunExprContext(const Sema& sema)
-{
-    return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr);
-}
-
 bool SemaHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef)
 {
     if (!typeRef.isValid())

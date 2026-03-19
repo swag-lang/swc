@@ -13,57 +13,22 @@ class SymbolFunction;
 
 namespace SemaHelpers
 {
-    inline const Runtime::BuildCfg& buildCfg(const Sema& sema)
-    {
-        return sema.compiler().buildCfg();
-    }
-
-    inline const Runtime::BuildCfgBackend& buildCfgBackend(const Sema& sema)
-    {
-        return buildCfg(sema).backend;
-    }
-
-    inline Runtime::BuildCfgBackendKind buildCfgBackendKind(const Sema& sema)
-    {
-        return buildCfg(sema).backendKind;
-    }
-
-    inline bool isNativeBuild(const Sema& sema)
-    {
-        return buildCfgBackendKind(sema) != Runtime::BuildCfgBackendKind::None;
-    }
-
-    inline bool isNativeExecutableBuild(const Sema& sema)
-    {
-        return buildCfgBackendKind(sema) == Runtime::BuildCfgBackendKind::Executable;
-    }
-
-    inline SymbolFunction* currentFunction(const Sema& sema)
-    {
-        return sema.frame().currentFunction();
-    }
-
-    inline bool isCurrentFunction(const Sema& sema)
-    {
-        return currentFunction(sema) != nullptr;
-    }
-
-    inline bool isGlobalScope(const Sema& sema)
-    {
-        return !isCurrentFunction(sema);
-    }
-
-    inline bool isOptimizeEnabled(const Sema& sema)
-    {
-        return buildCfgBackend(sema).optimize;
-    }
+    inline const Runtime::BuildCfg&        buildCfg(const Sema& sema) { return sema.compiler().buildCfg(); }
+    inline const Runtime::BuildCfgBackend& buildCfgBackend(const Sema& sema) { return buildCfg(sema).backend; }
+    inline Runtime::BuildCfgBackendKind    buildCfgBackendKind(const Sema& sema) { return buildCfg(sema).backendKind; }
+    inline bool                            isNativeBuild(const Sema& sema) { return buildCfgBackendKind(sema) != Runtime::BuildCfgBackendKind::None; }
+    inline bool                            isNativeExecutableBuild(const Sema& sema) { return buildCfgBackendKind(sema) == Runtime::BuildCfgBackendKind::Executable; }
+    inline SymbolFunction*                 currentFunction(const Sema& sema) { return sema.frame().currentFunction(); }
+    inline bool                            isCurrentFunction(const Sema& sema) { return currentFunction(sema) != nullptr; }
+    inline bool                            isGlobalScope(const Sema& sema) { return !isCurrentFunction(sema); }
+    inline bool                            isOptimizeEnabled(const Sema& sema) { return buildCfgBackend(sema).optimize; }
+    inline bool                            isConstExprRequired(const Sema& sema) { return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr); }
+    inline bool                            isRunExprContext(const Sema& sema) { return sema.frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr); }
 
     SymbolVariable*       currentRuntimeStorage(Sema& sema);
     void                  addCurrentFunctionCallDependency(const Sema& sema, SymbolFunction* calleeSym);
     Result                addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     Result                addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar);
-    bool                  isConstExprRequired(const Sema& sema);
-    bool                  isRunExprContext(const Sema& sema);
     bool                  needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef);
     bool                  functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function);
     bool                  currentFunctionUsesIndirectReturnStorage(Sema& sema);

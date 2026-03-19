@@ -1054,4 +1054,9 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, nodeExprRef);
 }
 
+Result AstAliasCallExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, nodeExprRef);
+}
+
 SWC_END_NAMESPACE();

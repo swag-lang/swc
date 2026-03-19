@@ -24,6 +24,7 @@ struct SemaInlinePayload
     const SymbolFunction*                            sourceFunction = nullptr;
     SymbolVariable*                                  resultVar      = nullptr;
     SmallVector<SemaInline::ArgMapping, 6>           argMappings;
+    std::array<IdentifierRef, 10>                    aliasIdentifiers = {};
     std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers = {};
     AstNodeRef                                       callRef         = AstNodeRef::invalid();
     AstNodeRef                                       inlineRootRef   = AstNodeRef::invalid();

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
@@ -8,6 +7,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -36,6 +36,21 @@ namespace
         payload = sema.compiler().allocate<CodeGenNodePayload>();
         sema.setCodeGenPayload(nodeRef, payload);
         return *payload;
+    }
+
+    bool isAttributeContextCall(const AstCallExpr& node)
+    {
+        return node.hasFlag(AstCallExprFlagsE::AttributeContext);
+    }
+
+    bool isAttributeContextCall(const AstIntrinsicCallExpr& node)
+    {
+        return node.hasFlag(AstCallExprFlagsE::AttributeContext);
+    }
+
+    bool isAttributeContextCall(const AstAliasCallExpr&)
+    {
+        return false;
     }
 }
 
@@ -585,7 +600,8 @@ namespace
         return fn;
     }
 
-    const SymbolVariable* mappedCodeParameter(Sema& sema, const AstCallExpr& call, const SymbolFunction& fn, AstNodeRef childRef)
+    template<typename T>
+    const SymbolVariable* mappedCodeParameter(Sema& sema, const T& call, const SymbolFunction& fn, AstNodeRef childRef)
     {
         SmallVector<AstNodeRef> args;
         call.collectArguments(args, sema.ast());
@@ -642,8 +658,8 @@ namespace
         return bodyRef.isValid() && sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock);
     }
 
-    template<typename TNode>
-    Result buildFunctionExprParameters(Sema& sema, const TNode& node, SymbolFunction& sym)
+    template<typename T>
+    Result buildFunctionExprParameters(Sema& sema, const T& node, SymbolFunction& sym)
     {
         if (!sym.parameters().empty())
             return Result::Continue;
@@ -689,8 +705,8 @@ namespace
         return Result::Continue;
     }
 
-    template<typename TNode>
-    Result prepareFunctionExprSignature(Sema& sema, const TNode& node, SymbolFunction& sym)
+    template<typename T>
+    Result prepareFunctionExprSignature(Sema& sema, const T& node, SymbolFunction& sym)
     {
         SWC_RESULT(buildFunctionExprParameters(sema, node, sym));
 
@@ -1063,7 +1079,7 @@ namespace
             args.push_back(trailingBlockArgRef);
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        const auto                        resolveMode = node.hasFlag(AstCallExprFlagsE::AttributeContext) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
+        const auto                        resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
         SWC_RESULT(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         if (trailingBlockSiblingRef.isValid())
@@ -1341,6 +1357,30 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     return semaCallExprCommon(sema, *this, false);
 }
 
+Result AstAliasCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    SmallVector<AstNodeRef> aliases;
+    collectAliases(aliases, sema.ast());
+    if (std::ranges::find(aliases, childRef) != aliases.end())
+        return Result::SkipChildren;
+
+    if (childRef != nodeExprRef)
+    {
+        if (const SymbolFunction* fn = uniqueInlineFunctionForCodeArgs(sema, nodeExprRef))
+        {
+            if (mappedCodeParameter(sema, *this, *fn, childRef))
+                return Result::SkipChildren;
+        }
+    }
+
+    return Result::Continue;
+}
+
+Result AstAliasCallExpr::semaPostNode(Sema& sema) const
+{
+    return semaCallExprCommon(sema, *this, false);
+}
+
 Result AstIntrinsicCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef != nodeExprRef && hasFlag(AstCallExprFlagsE::AttributeContext))
@@ -1354,13 +1394,9 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::IntrinsicGetContext)
-    {
         SWC_RESULT(setupIntrinsicGetContextRuntimeCall(sema, *this));
-    }
     else if (tok.id == TokenId::IntrinsicAssert)
-    {
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
-    }
 
     return Result::Continue;
 }

@@ -205,8 +205,22 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (view.cstRef().isValid())
         return Result::Continue;
 
-    const Token&        tok   = sema.token(codeRef());
-    const IdentifierRef idRef = Token::isCompilerUniq(tok.id) ? SemaHelpers::resolveUniqIdentifier(sema, tok.id) : sema.idMgr().addIdentifier(sema.ctx(), codeRef());
+    const Token& tok = sema.token(codeRef());
+    IdentifierRef idRef = IdentifierRef::invalid();
+    if (Token::isCompilerUniq(tok.id))
+    {
+        idRef = SemaHelpers::resolveUniqIdentifier(sema, tok.id);
+    }
+    else if (Token::isCompilerAlias(tok.id))
+    {
+        idRef = SemaHelpers::resolveAliasIdentifier(sema, tok.id);
+        if (!idRef.isValid())
+            idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef());
+    }
+    else
+    {
+        idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef());
+    }
 
     // Parser tags the callee expression when building a call: `foo()`.
     const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee);

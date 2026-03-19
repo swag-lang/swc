@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -137,6 +138,151 @@ namespace
 
         outDecl = &declNode->cast<AstFunctionDecl>();
         return true;
+    }
+
+    constexpr std::array<std::string_view, 10> INTERNAL_ALIAS_NAMES = {
+        "#alias0",
+        "#alias1",
+        "#alias2",
+        "#alias3",
+        "#alias4",
+        "#alias5",
+        "#alias6",
+        "#alias7",
+        "#alias8",
+        "#alias9",
+    };
+
+    struct AliasUsageInfo
+    {
+        uint32_t      aliasCount  = 0;
+        SourceCodeRef invalidRef  = SourceCodeRef::invalid();
+        uint32_t      missingSlot = 0;
+        uint32_t      usedSlot    = 0;
+    };
+
+    void collectAliasUsage(Sema& sema, AstNodeRef nodeRef, std::array<SourceCodeRef, INTERNAL_ALIAS_NAMES.size()>& outAliasRefs)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        const AstNode& node = sema.node(nodeRef);
+        if (node.tokRef().isInvalid())
+            return;
+
+        const SourceView& sourceView = sema.srcView(node.srcViewRef());
+        const TokenRef    endTokRef  = node.tokRefEnd(sema.ast());
+        if (endTokRef.isInvalid())
+            return;
+
+        for (uint32_t tokIndex = node.tokRef().get(); tokIndex <= endTokRef.get() && tokIndex < sourceView.tokens().size(); ++tokIndex)
+        {
+            const TokenRef         tokRef{tokIndex};
+            const std::string_view tokenText = sourceView.token(tokRef).string(sourceView);
+            for (size_t slot = 0; slot < INTERNAL_ALIAS_NAMES.size(); ++slot)
+            {
+                if (tokenText != INTERNAL_ALIAS_NAMES[slot])
+                    continue;
+                if (!outAliasRefs[slot].isValid())
+                    outAliasRefs[slot] = SourceCodeRef{node.srcViewRef(), tokRef};
+                break;
+            }
+        }
+    }
+
+    Result collectAliasUsageInfo(Sema& sema, const AstFunctionDecl& decl, AliasUsageInfo& outInfo)
+    {
+        outInfo = {};
+        if (decl.nodeBodyRef.isInvalid())
+            return Result::Continue;
+
+        std::array<SourceCodeRef, INTERNAL_ALIAS_NAMES.size()> aliasRefs = {};
+        collectAliasUsage(sema, decl.nodeBodyRef, aliasRefs);
+
+        int32_t highestSlot = -1;
+        for (int32_t slot = static_cast<int32_t>(aliasRefs.size()) - 1; slot >= 0; --slot)
+        {
+            if (aliasRefs[slot].isValid())
+            {
+                highestSlot = slot;
+                break;
+            }
+        }
+
+        if (highestSlot < 0)
+            return Result::Continue;
+
+        outInfo.aliasCount = static_cast<uint32_t>(highestSlot + 1);
+        for (int32_t slot = 0; slot <= highestSlot; ++slot)
+        {
+            if (aliasRefs[slot].isValid())
+                continue;
+
+            for (int32_t usedSlot = slot + 1; usedSlot <= highestSlot; ++usedSlot)
+            {
+                if (!aliasRefs[usedSlot].isValid())
+                    continue;
+
+                outInfo.invalidRef  = aliasRefs[usedSlot];
+                outInfo.missingSlot = static_cast<uint32_t>(slot);
+                outInfo.usedSlot    = static_cast<uint32_t>(usedSlot);
+                return Result::Error;
+            }
+        }
+
+        return Result::Continue;
+    }
+
+    void collectCallAliases(Sema& sema, AstNodeRef callRef, SmallVector<AstNodeRef>& outAliases)
+    {
+        outAliases.clear();
+        if (callRef.isInvalid())
+            return;
+
+        const AstNode& callNode = sema.node(callRef);
+        if (callNode.is(AstNodeId::AliasCallExpr))
+            callNode.cast<AstAliasCallExpr>().collectAliases(outAliases, sema.ast());
+    }
+
+    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, const AstFunctionDecl& decl, std::array<IdentifierRef, INTERNAL_ALIAS_NAMES.size()>& outAliasIdentifiers)
+    {
+        outAliasIdentifiers.fill(IdentifierRef::invalid());
+
+        SmallVector<AstNodeRef> aliases;
+        collectCallAliases(sema, callRef, aliases);
+
+        AliasUsageInfo aliasUsage;
+        const Result   usageResult = collectAliasUsageInfo(sema, decl, aliasUsage);
+        if (usageResult != Result::Continue)
+        {
+            if (aliasUsage.invalidRef.isValid())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_alias_hole, aliasUsage.invalidRef);
+                diag.addArgument(Diagnostic::ARG_COUNT, aliasUsage.missingSlot);
+                diag.addArgument(Diagnostic::ARG_VALUE, aliasUsage.usedSlot);
+                diag.report(sema.ctx());
+            }
+
+            return usageResult;
+        }
+
+        if (aliases.size() > aliasUsage.aliasCount)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, aliases[aliasUsage.aliasCount]);
+            diag.addArgument(Diagnostic::ARG_COUNT, aliasUsage.aliasCount);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(aliases.size()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        for (size_t slot = 0; slot < aliases.size(); ++slot)
+        {
+            const AstNode& aliasNode = sema.node(aliases[slot]);
+            if (aliasNode.is(AstNodeId::Identifier))
+                outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), aliasNode.codeRef());
+        }
+
+        return Result::Continue;
     }
 
     AstNodeRef makeInlineBodyFromShort(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
@@ -520,6 +666,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!mapArguments(sema, callRef, fn, args, ufcsArg, bindings, variadicBinding))
         return Result::Continue;
 
+    std::array<IdentifierRef, INTERNAL_ALIAS_NAMES.size()> aliasIdentifiers = {};
+    SWC_RESULT(collectAliasIdentifiers(sema, callRef, *decl, aliasIdentifiers));
+
     AstNodeRef variadicExprRef     = AstNodeRef::invalid();
     TypeRef    variadicExprTypeRef = TypeRef::invalid();
     SWC_RESULT(createVariadicInlineExpression(sema, callRef, variadicBinding, variadicExprRef, variadicExprTypeRef));
@@ -555,6 +704,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->sourceFunction = &fn;
     inlinePayload->resultVar      = resultVar;
     inlinePayload->returnTypeRef  = returnTypeRef;
+    inlinePayload->aliasIdentifiers = aliasIdentifiers;
     for (const SemaClone::ParamBinding& binding : bindings)
         inlinePayload->argMappings.push_back({binding.idRef, binding.exprRef});
 

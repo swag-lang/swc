@@ -691,7 +691,7 @@ namespace
             payload        = codeGen.sema().codeGenPayload<CodeGenNodePayload>(storageNodeRef);
         }
 
-        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload);
         SWC_ASSERT(payload->runtimeStorageSym != nullptr);
 
         MicroBuilder& builder = codeGen.builder();

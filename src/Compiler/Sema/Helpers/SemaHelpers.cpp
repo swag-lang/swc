@@ -193,7 +193,7 @@ IdentifierRef SemaHelpers::getUniqueIdentifier(Sema& sema, const std::string_vie
     return sema.idMgr().addIdentifierOwned(std::format("{}_{}", name, id));
 }
 
-IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef codeRef)
+IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef& codeRef)
 {
     const Token& tok = sema.srcView(codeRef.srcViewRef).token(codeRef.tokRef);
     if (Token::isCompilerUniq(tok.id))

@@ -39,7 +39,7 @@ namespace SemaHelpers
     AstNodeRef            unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef);
     void                  pushConstExprRequirement(Sema& sema, AstNodeRef childRef);
     IdentifierRef         getUniqueIdentifier(Sema& sema, const std::string_view& name);
-    IdentifierRef         resolveIdentifier(Sema& sema, SourceCodeRef codeRef);
+    IdentifierRef         resolveIdentifier(Sema& sema, const SourceCodeRef& codeRef);
     uint32_t              aliasSlotIndex(TokenId tokenId);
     IdentifierRef         resolveAliasIdentifier(Sema& sema, TokenId tokenId);
     uint32_t              uniqSlotIndex(TokenId tokenId);

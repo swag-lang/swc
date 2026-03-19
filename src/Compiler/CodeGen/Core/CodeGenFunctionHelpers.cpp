@@ -245,7 +245,7 @@ bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const Sym
            functionUsesIndirectReturnStorage(codeGen, codeGen.function());
 }
 
-CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg)
+CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg, bool hasClosureContextArg)
 {
     SWC_ASSERT(symVar.hasParameterIndex());
 
@@ -254,7 +254,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     const uint32_t                         parameterIndex  = symVar.parameterIndex();
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
 
-    result.slotIndex     = hasIndirectReturnArg ? parameterIndex + 1 : parameterIndex;
+    result.slotIndex     = parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
     result.isFloat       = normalizedParam.isFloat;
     result.isIndirect    = normalizedParam.isIndirect;
     result.opBits        = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
@@ -264,7 +264,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
 
 CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
 {
-    return functionParameterInfo(codeGen, symbolFunc, symVar, functionUsesIndirectReturnStorage(codeGen, symbolFunc));
+    return functionParameterInfo(codeGen, symbolFunc, symVar, functionUsesIndirectReturnStorage(codeGen, symbolFunc), symbolFunc.isClosure());
 }
 
 void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg)

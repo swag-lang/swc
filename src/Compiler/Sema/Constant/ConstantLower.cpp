@@ -207,6 +207,35 @@ namespace
         return Result::Continue;
     }
 
+    Result materializeStaticClosure(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    {
+        if (srcBytes.size() != sizeof(Runtime::ClosureValue))
+            return Result::Error;
+
+        auto* const       dstClosure = reinterpret_cast<Runtime::ClosureValue*>(dstBytes.data());
+        const auto* const srcClosure = reinterpret_cast<const Runtime::ClosureValue*>(srcBytes.data());
+
+        uint32_t invokeOffset = INVALID_REF;
+        SWC_RESULT(resolveSegmentOffset(invokeOffset, sema, segment, srcClosure->invoke));
+        dstClosure->invoke = invokeOffset == INVALID_REF ? nullptr : segment.ptr<std::byte>(invokeOffset);
+        if (invokeOffset != INVALID_REF)
+            segment.addRelocation(baseOffset + offsetof(Runtime::ClosureValue, invoke), invokeOffset);
+
+        std::memcpy(dstClosure->capture, srcClosure->capture, sizeof(dstClosure->capture));
+
+        const auto capturedTarget = *reinterpret_cast<const uint64_t*>(srcClosure->capture);
+        if (capturedTarget)
+        {
+            uint32_t targetOffset = INVALID_REF;
+            SWC_RESULT(resolveSegmentOffset(targetOffset, sema, segment, reinterpret_cast<const void*>(capturedTarget)));
+            *reinterpret_cast<uint64_t*>(dstClosure->capture) = targetOffset == INVALID_REF ? 0 : reinterpret_cast<uint64_t>(segment.ptr<std::byte>(targetOffset));
+            if (targetOffset != INVALID_REF)
+                segment.addRelocation(baseOffset + offsetof(Runtime::ClosureValue, capture), targetOffset);
+        }
+
+        return Result::Continue;
+    }
+
     Result materializeStaticPointer(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (srcBytes.size() != sizeof(uint64_t))
@@ -482,6 +511,29 @@ namespace
             return;
         }
 
+        if (dstType.isFunction() && dstType.isLambdaClosure())
+        {
+            SWC_ASSERT(dstBytes.size() == sizeof(Runtime::ClosureValue));
+            if (cst.isNull())
+            {
+                if (!dstBytes.empty())
+                    std::memset(dstBytes.data(), 0, dstBytes.size());
+                return;
+            }
+
+            if (cst.isStruct())
+            {
+                const auto bytes = cst.getStruct();
+                SWC_ASSERT(bytes.size() == dstBytes.size());
+                if (!dstBytes.empty())
+                    std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+                return;
+            }
+
+            SWC_ASSERT(cst.isNull() || cst.isStruct());
+            return;
+        }
+
         if (dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction())
         {
             SWC_ASSERT(dstBytes.size() == sizeof(uint64_t));
@@ -555,6 +607,10 @@ namespace
             case TypeInfoKind::MoveReference:
             case TypeInfoKind::CString:
             case TypeInfoKind::Function:
+                if (typeInfo.isLambdaClosure())
+                    return materializeStaticClosure(sema, segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticPointer(sema, segment, baseOffset, dstBytes, srcBytes);
+
             case TypeInfoKind::TypeInfo:
                 return materializeStaticPointer(sema, segment, baseOffset, dstBytes, srcBytes);
 

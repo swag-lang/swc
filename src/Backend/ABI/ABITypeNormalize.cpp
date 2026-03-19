@@ -47,7 +47,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     if (ty.isFloat() && (ty.payloadFloatBits() == 32 || ty.payloadFloatBits() == 64))
         return makeNormalizedType(false, true, static_cast<uint8_t>(ty.payloadFloatBits()));
 
-    if (ty.isAnyPointer() || ty.isReference() || ty.isMoveReference() || ty.isNull() || ty.isCString() || ty.isFunction() || ty.isTypeInfo())
+    if (ty.isAnyPointer() || ty.isReference() || ty.isMoveReference() || ty.isNull() || ty.isCString() || (ty.isFunction() && !ty.isLambdaClosure()) || ty.isTypeInfo())
         return makeNormalizedType(false, false, 64);
 
     if (ty.isVariadic())
@@ -55,6 +55,17 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
 
     if (ty.isTypedVariadic())
         return makeNormalizedType(false, false, 64);
+
+    if (ty.isFunction() && ty.isLambdaClosure())
+    {
+        const uint64_t rawSize = ty.sizeOf(ctx);
+        SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
+        const auto size = static_cast<uint32_t>(rawSize);
+
+        const uint32_t align     = std::max(ty.alignOf(ctx), uint32_t{1});
+        const bool     needsCopy = usage == Usage::Argument && conv.structArgPassing.passByReferenceNeedsCopy;
+        return makeIndirectStructType(size, align, needsCopy);
+    }
 
     if (ty.isString() || ty.isSlice() || ty.isInterface() || ty.isAny())
     {

@@ -71,6 +71,19 @@ namespace
         return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, shardIndex);
     }
 
+    bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, ByteSpan payload)
+    {
+        if (payload.size() != sizeof(Runtime::ClosureValue))
+            return false;
+
+        const auto* runtimeClosure = reinterpret_cast<const Runtime::ClosureValue*>(payload.data());
+        if (!requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, runtimeClosure->invoke))
+            return false;
+
+        const auto capturedTarget = reinterpret_cast<const void*>(*reinterpret_cast<const uint64_t*>(runtimeClosure->capture));
+        return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, capturedTarget);
+    }
+
     bool resolveStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, TypeRef typeRef, ByteSpan payload)
     {
         if (typeRef.isInvalid())
@@ -90,6 +103,9 @@ namespace
 
         if (typeInfo.isEnum())
             return resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, typeInfo.payloadSymEnum().underlyingTypeRef(), payload);
+
+        if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
+            return resolveClosureStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, payload);
 
         if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString() || typeInfo.isSlice())
             return true;

@@ -39,6 +39,14 @@ namespace Runtime
         const TypeInfo* type;
     };
 
+    inline constexpr uint32_t ClosureCaptureBufferSize = 64;
+
+    struct ClosureValue
+    {
+        void*   invoke;
+        uint8_t capture[ClosureCaptureBufferSize];
+    };
+
     enum class TypeInfoKind : uint8_t
     {
         Invalid,

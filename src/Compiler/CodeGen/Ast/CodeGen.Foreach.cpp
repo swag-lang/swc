@@ -54,6 +54,32 @@ namespace
 
     CodeGenNodePayload resolveForeachVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
 
+    CodeGenNodePayload resolveClosureCapturePayload(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+            return *symbolPayload;
+
+        SWC_ASSERT(codeGen.currentFunctionClosureContextReg().isValid());
+
+        CodeGenNodePayload capturePayload;
+        capturePayload.typeRef = symVar.typeRef();
+        capturePayload.setIsAddress();
+
+        const MicroReg captureReg = codeGen.offsetAddressReg(codeGen.currentFunctionClosureContextReg(), symVar.closureCaptureOffset());
+        if (symVar.closureCaptureByRef())
+        {
+            capturePayload.reg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(capturePayload.reg, captureReg, 0, MicroOpBits::B64);
+        }
+        else
+        {
+            capturePayload.reg = captureReg;
+        }
+
+        codeGen.setVariablePayload(symVar, capturePayload);
+        return capturePayload;
+    }
+
     MicroReg materializeForeachInternalStackAddress(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         SWC_ASSERT(symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
@@ -82,6 +108,9 @@ namespace
 
     CodeGenNodePayload resolveForeachVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
+        if (symVar.isClosureCapture())
+            return resolveClosureCapturePayload(codeGen, symVar);
+
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
@@ -123,6 +152,9 @@ namespace
 
     CodeGenNodePayload resolveForeachStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
+        if (symVar.isClosureCapture())
+            return resolveClosureCapturePayload(codeGen, symVar);
+
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
@@ -163,7 +195,8 @@ namespace
         if (storedView.sym() && storedView.sym()->isVariable())
         {
             const auto& symVar = storedView.sym()->cast<SymbolVariable>();
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+            if (symVar.isClosureCapture() ||
+                symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
                 symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
                 symVar.hasGlobalStorage() ||
                 CodeGen::variablePayload(symVar) ||

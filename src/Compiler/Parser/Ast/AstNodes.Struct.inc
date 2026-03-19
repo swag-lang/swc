@@ -226,6 +226,12 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE
         AstLambdaExprT::collectChildren(out, ast);
     }
 
+    Result     semaPreNode(Sema& sema) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

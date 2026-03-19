@@ -1,5 +1,8 @@
 ﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
@@ -116,6 +119,116 @@ namespace
         return true;
     }
 
+    MicroOpBits adapterArgBits(const ABITypeNormalize::NormalizedType& normalizedType)
+    {
+        if (normalizedType.isFloat)
+        {
+            const MicroOpBits bits = microOpBitsFromBitWidth(normalizedType.numBits);
+            SWC_ASSERT(bits != MicroOpBits::Zero);
+            return bits;
+        }
+
+        if (normalizedType.numBits == 8 || normalizedType.numBits == 16 || normalizedType.numBits == 32 || normalizedType.numBits == 64)
+            return microOpBitsFromBitWidth(normalizedType.numBits);
+        return MicroOpBits::B64;
+    }
+
+    void emitLoadIncomingArg(MicroBuilder& builder, const CallConv& callConv, uint32_t slotIndex, MicroReg dstReg, const ABITypeNormalize::NormalizedType& normalizedType)
+    {
+        const MicroOpBits argBits = adapterArgBits(normalizedType);
+        if (slotIndex < callConv.numArgRegisterSlots())
+        {
+            if (normalizedType.isFloat)
+            {
+                SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
+                builder.emitLoadRegReg(dstReg, callConv.floatArgRegs[slotIndex], argBits);
+            }
+            else
+            {
+                SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
+                builder.emitLoadRegReg(dstReg, callConv.intArgRegs[slotIndex], argBits);
+            }
+
+            return;
+        }
+
+        builder.emitLoadRegMem(dstReg, callConv.framePointer, ABICall::incomingArgFrameOffset(callConv, slotIndex), argBits);
+    }
+
+    void addAdapterParameter(TaskContext& ctx, SymbolFunction& adapter, const SymbolVariable& sourceParam)
+    {
+        auto* param = Symbol::make<SymbolVariable>(ctx, sourceParam.decl(), sourceParam.tokRef(), sourceParam.idRef(), SymbolFlagsE::Zero);
+        param->setTypeRef(sourceParam.typeRef());
+        param->addExtraFlag(SymbolVariableFlagsE::Parameter);
+        param->setDeclared(ctx);
+        param->setTyped(ctx);
+        param->setSemaCompleted(ctx);
+        adapter.addParameter(param);
+    }
+
+    Result buildClosureAdapterMicroCode(TaskContext& ctx, SymbolFunction& adapter)
+    {
+        SWC_ASSERT(adapter.isClosure());
+
+        uint32_t   regIndex          = 1;
+        const auto nextVirtualIntReg = [&regIndex]() {
+            return MicroReg::virtualIntReg(regIndex++);
+        };
+        const auto nextVirtualFloatReg = [&regIndex]() {
+            return MicroReg::virtualFloatReg(regIndex++);
+        };
+
+        const CallConv&                        callConv      = CallConv::get(adapter.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, adapter.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const bool                             hasHiddenRet  = normalizedRet.isIndirect;
+
+        MicroBuilder& builder = adapter.microInstrBuilder(ctx);
+        builder.setContext(ctx);
+
+        constexpr ABITypeNormalize::NormalizedType pointerArg         = {.isVoid = false, .isFloat = false, .numBits = 64};
+        const uint32_t                             closureContextSlot = hasHiddenRet ? 1 : 0;
+        const MicroReg                             closureContextReg  = nextVirtualIntReg();
+        emitLoadIncomingArg(builder, callConv, closureContextSlot, closureContextReg, pointerArg);
+
+        const MicroReg targetReg = nextVirtualIntReg();
+        builder.emitLoadRegMem(targetReg, closureContextReg, 0, MicroOpBits::B64);
+
+        MicroReg hiddenRetStorageReg = MicroReg::invalid();
+        if (hasHiddenRet)
+        {
+            hiddenRetStorageReg = nextVirtualIntReg();
+            emitLoadIncomingArg(builder, callConv, 0, hiddenRetStorageReg, pointerArg);
+        }
+
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(adapter.parameters().size());
+        for (const SymbolVariable* param : adapter.parameters())
+        {
+            SWC_ASSERT(param != nullptr);
+            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+            const uint32_t                         incomingSlot    = param->parameterIndex() + (hasHiddenRet ? 1u : 0u) + 1u;
+
+            ABICall::PreparedArg preparedArg;
+            preparedArg.kind        = ABICall::PreparedArgKind::Direct;
+            preparedArg.isFloat     = normalizedParam.isFloat;
+            preparedArg.numBits     = normalizedParam.numBits;
+            preparedArg.isAddressed = false;
+            preparedArg.srcReg      = normalizedParam.isFloat ? nextVirtualFloatReg() : nextVirtualIntReg();
+            emitLoadIncomingArg(builder, callConv, incomingSlot, preparedArg.srcReg, normalizedParam);
+            preparedArgs.push_back(preparedArg);
+        }
+
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, adapter.callConvKind(), preparedArgs, normalizedRet, hiddenRetStorageReg);
+        ABICall::callReg(builder, adapter.callConvKind(), targetReg, preparedCall);
+        builder.emitRet();
+
+        adapter.setCodeGenPreSolved(ctx);
+        SWC_RESULT(adapter.emit(ctx));
+        adapter.setCodeGenCompleted(ctx);
+        adapter.tryMarkCodeGenJobScheduled();
+        return Result::Continue;
+    }
+
 }
 
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
@@ -180,6 +293,40 @@ bool SymbolFunction::sameTypeSignature(const SymbolFunction& otherFunc) const no
     if (callConvKind() != otherFunc.callConvKind())
         return false;
     if (isClosure() != otherFunc.isClosure())
+        return false;
+    if (isMethod() != otherFunc.isMethod())
+        return false;
+    if (isThrowable() != otherFunc.isThrowable())
+        return false;
+    if (isConst() != otherFunc.isConst())
+        return false;
+    if (hasVariadicParam() != otherFunc.hasVariadicParam())
+        return false;
+
+    const auto& params1 = parameters();
+    const auto& params2 = otherFunc.parameters();
+    if (params1.size() != params2.size())
+        return false;
+
+    for (uint32_t i = 0; i < params1.size(); ++i)
+    {
+        SWC_ASSERT(params1[i] != nullptr);
+        SWC_ASSERT(params2[i] != nullptr);
+        if (params1[i]->typeRef() != params2[i]->typeRef())
+            return false;
+    }
+
+    return true;
+}
+
+bool SymbolFunction::sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept
+{
+    if (this == &otherFunc)
+        return true;
+
+    if (returnTypeRef() != otherFunc.returnTypeRef())
+        return false;
+    if (callConvKind() != otherFunc.callConvKind())
         return false;
     if (isMethod() != otherFunc.isMethod())
         return false;
@@ -369,6 +516,55 @@ void SymbolFunction::resetJitState() noexcept
     jitExecMemory_.reset();
     jitPreparedAddress_.store(nullptr, std::memory_order_release);
     jitEntryAddress_.store(nullptr, std::memory_order_release);
+}
+
+Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter)
+{
+    outAdapter = nullptr;
+    if (!isClosure())
+        return Result::Error;
+
+    const std::scoped_lock lock(closureAdapterMutex_);
+    if (closureAdapter_ != nullptr)
+    {
+        outAdapter = closureAdapter_;
+        return Result::Continue;
+    }
+
+    const IdentifierRef adapterId = ctx.idMgr().addIdentifierOwned(std::format("__closure_adapter_{}", ctx.compiler().atomicId().fetch_add(1)));
+    auto* const         adapter   = make<SymbolFunction>(ctx, decl(), tokRef(), adapterId, SymbolFlagsE::Zero);
+    adapter->setOwnerSymMap(ownerSymMap());
+    adapter->setReturnTypeRef(returnTypeRef());
+    adapter->setCallConvKind(callConvKind());
+    if (isClosure())
+        adapter->addExtraFlag(SymbolFunctionFlagsE::Closure);
+    if (isMethod())
+        adapter->addExtraFlag(SymbolFunctionFlagsE::Method);
+    if (isThrowable())
+        adapter->addExtraFlag(SymbolFunctionFlagsE::Throwable);
+    if (isConst())
+        adapter->addExtraFlag(SymbolFunctionFlagsE::Const);
+    if (hasVariadicParam())
+        adapter->addExtraFlag(SymbolFunctionFlagsE::Variadic);
+    adapter->setAttributes(attributes());
+    adapter->setRtAttributeFlags(rtAttributeFlags());
+
+    for (const SymbolVariable* param : parameters_)
+    {
+        SWC_ASSERT(param != nullptr);
+        addAdapterParameter(ctx, *adapter, *param);
+    }
+
+    adapter->setTypeRef(ctx.typeMgr().addType(TypeInfo::makeFunction(adapter, TypeInfoFlagsE::Zero)));
+    adapter->setDeclared(ctx);
+    adapter->setTyped(ctx);
+    adapter->setSemaCompleted(ctx);
+
+    SWC_RESULT(buildClosureAdapterMicroCode(ctx, *adapter));
+
+    closureAdapter_ = adapter;
+    outAdapter      = adapter;
+    return Result::Continue;
 }
 
 void SymbolFunction::jit(TaskContext& ctx)

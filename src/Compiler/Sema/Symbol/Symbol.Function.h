@@ -49,6 +49,7 @@ public:
     Utf8                                computeName(const TaskContext& ctx) const;
     uint32_t                            typeSignatureHash() const noexcept;
     bool                                sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
+    bool                                sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
@@ -93,6 +94,7 @@ public:
     void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     void                resetJitState() noexcept;
     Result              emit(TaskContext& ctx);
+    Result              ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
     static bool         jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
     void                jit(TaskContext& ctx);
     const MachineCode&  loweredCode() const noexcept { return loweredMicroCode_; }
@@ -124,6 +126,8 @@ private:
     MachineCode                  loweredMicroCode_;
     mutable std::mutex           callDepsMutex_;
     std::vector<SymbolFunction*> callDependencies_;
+    mutable std::mutex           closureAdapterMutex_;
+    SymbolFunction*              closureAdapter_ = nullptr;
     std::mutex                   emitMutex_;
     JITMemory                    jitExecMemory_;
     std::atomic<void*>           jitPreparedAddress_  = nullptr;

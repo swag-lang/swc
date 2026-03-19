@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -63,6 +63,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         localStackFrameSize_              = 0;
         localStackBaseReg_                = MicroReg::invalid();
         currentFunctionIndirectReturnReg_ = MicroReg::invalid();
+        currentFunctionClosureContextReg_ = MicroReg::invalid();
         clearGvtdScratchLayout();
         frames_.clear();
         frames_.emplace_back();
@@ -74,6 +75,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             SWC_ASSERT(symVar != nullptr);
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
                 payload->hasPayload = false;
+            symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
             symVar->setCodeGenLocalSize(0);
             symVar->setDebugStackSlotOffset(0);
             symVar->setDebugStackSlotSize(0);

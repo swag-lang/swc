@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -20,6 +21,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -66,6 +68,32 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
     {
         TaskContext& ctx = sema.ctx();
         auto*        sym = Symbol::make<SymbolFunction>(ctx, this, tokRef(), SemaHelpers::getUniqueIdentifier(sema, "__lambda"), sema.frame().flagsForCurrentAccess());
+        SymbolMap*   map = SemaFrame::currentSymMap(sema);
+        SWC_ASSERT(map != nullptr);
+        map->addSymbol(ctx, sym, true);
+
+        sym->setExtraFlags(flags());
+        sym->setDeclNodeRef(sema.curNodeRef());
+        sym->setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, *sym));
+        sym->setDeclared(ctx);
+        sema.setSymbol(sema.curNodeRef(), sym);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, sym);
+    }
+
+    auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    SemaFrame frame = sema.frame();
+    frame.setCurrentFunction(&sym);
+    sema.pushFramePopOnPostNode(frame);
+    return Result::Continue;
+}
+
+Result AstClosureExpr::semaPreNode(Sema& sema) const
+{
+    if (sema.enteringState())
+    {
+        TaskContext& ctx = sema.ctx();
+        auto*        sym = Symbol::make<SymbolFunction>(ctx, this, tokRef(), SemaHelpers::getUniqueIdentifier(sema, "__closure"), sema.frame().flagsForCurrentAccess());
         SymbolMap*   map = SemaFrame::currentSymMap(sema);
         SWC_ASSERT(map != nullptr);
         map->addSymbol(ctx, sym, true);
@@ -604,7 +632,8 @@ namespace
         return bodyRef.isValid() && sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock);
     }
 
-    Result buildFunctionExprParameters(Sema& sema, const AstFunctionExpr& node, SymbolFunction& sym)
+    template<typename TNode>
+    Result buildFunctionExprParameters(Sema& sema, const TNode& node, SymbolFunction& sym)
     {
         if (!sym.parameters().empty())
             return Result::Continue;
@@ -650,7 +679,8 @@ namespace
         return Result::Continue;
     }
 
-    Result prepareFunctionExprSignature(Sema& sema, const AstFunctionExpr& node, SymbolFunction& sym)
+    template<typename TNode>
+    Result prepareFunctionExprSignature(Sema& sema, const TNode& node, SymbolFunction& sym)
     {
         SWC_RESULT(buildFunctionExprParameters(sema, node, sym));
 
@@ -675,7 +705,8 @@ namespace
         return Result::Continue;
     }
 
-    Result finalizeFunctionExprSignature(Sema& sema, const AstFunctionExpr& node, SymbolFunction& sym)
+    template<typename TNode>
+    Result finalizeFunctionExprSignature(Sema& sema, const TNode& node, SymbolFunction& sym)
     {
         SWC_RESULT(prepareFunctionExprSignature(sema, node, sym));
 
@@ -705,6 +736,144 @@ namespace
 
         sema.setIsValue(sema.curNodeRef());
         sema.unsetIsLValue(sema.curNodeRef());
+        return Result::Continue;
+    }
+
+    Result completeClosureExprRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    SymbolVariable& registerUniqueClosureExprRuntimeStorageSymbol(Sema& sema, const AstNode& node)
+    {
+        TaskContext&        ctx         = sema.ctx();
+        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, "__closure_runtime_storage");
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(symVariable);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(symMap != nullptr);
+            symMap->addSymbol(ctx, symVariable, true);
+        }
+
+        return *(symVariable);
+    }
+
+    Result attachClosureExprRuntimeStorageIfNeeded(Sema& sema, const AstClosureExpr& node, const SymbolFunction& sym)
+    {
+        if (SemaHelpers::isGlobalScope(sema))
+            return Result::Continue;
+        if (!sym.typeRef().isValid())
+            return Result::Continue;
+
+        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+        {
+            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+            if (!payload)
+            {
+                payload = sema.compiler().allocate<CodeGenNodePayload>();
+                sema.setCodeGenPayload(sema.curNodeRef(), payload);
+            }
+
+            payload->runtimeStorageSym = boundStorage;
+            return Result::Continue;
+        }
+
+        auto& storageSym = registerUniqueClosureExprRuntimeStorageSymbol(sema, node);
+        storageSym.registerAttributes(sema);
+        storageSym.setDeclared(sema.ctx());
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeClosureExprRuntimeStorageSymbol(sema, storageSym, sym.typeRef()));
+
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
+            sema.setCodeGenPayload(sema.curNodeRef(), payload);
+        }
+
+        payload->runtimeStorageSym = &storageSym;
+        return Result::Continue;
+    }
+
+    Result buildClosureCaptureSymbols(Sema& sema, const AstClosureExpr& node, SymbolFunction& sym)
+    {
+        TaskContext&            ctx = sema.ctx();
+        SmallVector<AstNodeRef> captures;
+        sema.ast().appendNodes(captures, node.nodeCaptureArgsRef);
+
+        uint64_t captureOffset = 0;
+        for (const AstNodeRef captureRef : captures)
+        {
+            const AstClosureArgument& captureArg = sema.node(captureRef).cast<AstClosureArgument>();
+            const SemaNodeView        sourceView = sema.viewSymbol(captureArg.nodeIdentifierRef);
+            Symbol* const             sourceSym  = sourceView.sym();
+            if (!sourceSym || !sourceSym->isVariable())
+                return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+
+            auto&           sourceVar = sourceSym->cast<SymbolVariable>();
+            const TypeRef   typeRef   = sourceVar.typeRef();
+            const TypeInfo& typeInfo  = sema.typeMgr().get(typeRef);
+            SWC_RESULT(sema.waitSemaCompleted(&typeInfo, captureArg.nodeIdentifierRef));
+
+            const bool captureByRef = captureArg.hasFlag(AstClosureArgumentFlagsE::Address);
+            if (captureByRef && sourceVar.hasExtraFlag(SymbolVariableFlagsE::Let))
+                return SemaError::raise(sema, DiagnosticId::sema_err_take_address_constant, captureArg.nodeIdentifierRef);
+
+            uint32_t storageSize  = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
+            uint32_t storageAlign = typeInfo.alignOf(ctx);
+            if (captureByRef)
+            {
+                storageSize  = sizeof(void*);
+                storageAlign = alignof(void*);
+            }
+
+            if (!storageAlign)
+                storageAlign = 1;
+
+            captureOffset = Math::alignUpU64(captureOffset, storageAlign);
+            if (captureOffset + storageSize > Runtime::ClosureCaptureBufferSize)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_too_large, captureArg.nodeIdentifierRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, Runtime::ClosureCaptureBufferSize);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            auto* captureSym = Symbol::make<SymbolVariable>(ctx, &captureArg, captureArg.tokRef(), sourceVar.idRef(), SymbolFlagsE::Zero);
+            captureSym->setTypeRef(typeRef);
+            captureSym->setClosureCapturedSource(&sourceVar);
+            captureSym->setClosureCaptureOffset(static_cast<uint32_t>(captureOffset));
+            captureSym->setClosureCaptureByRef(captureByRef);
+
+            if (captureByRef && sourceVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                sourceVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+
+            if (sourceVar.idRef().isValid())
+            {
+                if (sym.addSingleSymbol(ctx, captureSym) != captureSym)
+                    return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+            }
+
+            captureSym->setDeclared(ctx);
+            captureSym->setTyped(ctx);
+            captureSym->setSemaCompleted(ctx);
+            captureOffset += storageSize;
+        }
+
         return Result::Continue;
     }
 
@@ -1042,6 +1211,25 @@ Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     return Result::Continue;
 }
 
+Result AstClosureExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    SWC_RESULT(prepareFunctionExprSignature(sema, *this, sym));
+    SWC_RESULT(buildClosureCaptureSymbols(sema, *this, sym));
+
+    auto frame = sema.frame();
+    if (sym.returnTypeRef().isValid())
+        frame.pushBindingType(sym.returnTypeRef());
+    sema.pushFramePopOnPostNode(frame);
+
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+    sema.curScope().setSymMap(&sym);
+    return Result::Continue;
+}
+
 Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
@@ -1107,6 +1295,16 @@ Result AstFunctionExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     return finalizeFunctionExprSignature(sema, *this, sym);
 }
 
+Result AstClosureExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
+    return attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym);
+}
+
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
@@ -1124,6 +1322,18 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
     if (!sym.isTyped())
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
+    sym.setSemaCompleted(sema.ctx());
+    sema.compiler().registerNativeCodeFunction(&sym);
+    return Result::Continue;
+}
+
+Result AstClosureExpr::semaPostNode(Sema& sema) const
+{
+    auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    if (!sym.isTyped())
+        SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
+
+    SWC_RESULT(attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym));
     sym.setSemaCompleted(sema.ctx());
     sema.compiler().registerNativeCodeFunction(&sym);
     return Result::Continue;

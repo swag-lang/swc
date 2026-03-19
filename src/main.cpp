@@ -33,8 +33,11 @@ int main(int argc, char* argv[])
     swc::CompilerInstance compiler(global, cmdLine);
 
     const auto result = static_cast<int>(compiler.run());
+    std::cout.flush();
+    std::cerr.flush();
+    (void) std::fflush(stdout);
+    (void) std::fflush(stderr);
     if (result == 0)
         swc::Os::terminate();
-
     return result;
 }

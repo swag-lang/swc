@@ -553,6 +553,14 @@ namespace Swag
         itable:     const [*] [*] void     // Pointer to the virtual table
     }
 
+    const ClosureCaptureBufferSize = 64
+
+    struct ClosureValue
+    {
+        invoke:     *void
+        capture:    [ClosureCaptureBufferSize] u8
+    }
+
     struct AttributeParam
     {
         name:      string     // Name of the attribute parameter

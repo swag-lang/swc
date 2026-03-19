@@ -278,6 +278,8 @@ public:
     MicroReg                         localStackBaseReg() const { return localStackBaseReg_; }
     void                             setCurrentFunctionIndirectReturnReg(MicroReg reg) { currentFunctionIndirectReturnReg_ = reg; }
     MicroReg                         currentFunctionIndirectReturnReg() const { return currentFunctionIndirectReturnReg_; }
+    void                             setCurrentFunctionClosureContextReg(MicroReg reg) { currentFunctionClosureContextReg_ = reg; }
+    MicroReg                         currentFunctionClosureContextReg() const { return currentFunctionClosureContextReg_; }
     CodeGenNodePayload&              inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&              setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&              setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
@@ -318,6 +320,7 @@ private:
     uint32_t                      localStackFrameSize_ = 0;
     MicroReg                      localStackBaseReg_;
     MicroReg                      currentFunctionIndirectReturnReg_;
+    MicroReg                      currentFunctionClosureContextReg_;
     uint32_t                      gvtdScratchOffset_ = 0;
     uint32_t                      gvtdScratchSize_   = 0;
     SmallVector<CodeGenGvtdEntry> gvtdScratchEntries_;

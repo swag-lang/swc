@@ -109,8 +109,8 @@ private:
     SemaFrameContextFlags         contextFlags_  = SemaFrameContextFlagsE::Zero;
     const SemaInlinePayload*      inlinePayload_ = nullptr;
     BreakContext                  breakable_;
-    AstNodeRef                    currentSwitch_     = AstNodeRef::invalid();
-    AstNodeRef                    currentSwitchCase_ = AstNodeRef::invalid();
+    AstNodeRef                    currentSwitch_         = AstNodeRef::invalid();
+    AstNodeRef                    currentSwitchCase_     = AstNodeRef::invalid();
     AstNodeRef                    runtimeStorageNodeRef_ = AstNodeRef::invalid();
     SymbolVariable*               runtimeStorageSym_     = nullptr;
     SmallVector2<TypeRef>         bindingTypes_;

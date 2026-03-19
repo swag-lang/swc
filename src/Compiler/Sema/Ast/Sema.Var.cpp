@@ -764,7 +764,8 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
             const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
             SemaFrame          frame        = sema.frame();
             frame.pushBindingType(nodeTypeView.typeRef());
-            if (isRetVal && SemaHelpers::currentFunctionUsesIndirectReturnStorage(sema))
+            const bool bindClosureRuntimeStorage = nodeTypeView.typeRef().isValid() && sema.typeMgr().get(nodeTypeView.typeRef()).isLambdaClosure();
+            if ((isRetVal && SemaHelpers::currentFunctionUsesIndirectReturnStorage(sema)) || bindClosureRuntimeStorage)
                 frame.setCurrentRuntimeStorage(nodeInitRef, &sema.curViewSymbol().sym()->cast<SymbolVariable>());
             sema.pushFramePopOnPostChild(frame, nodeInitRef);
         }

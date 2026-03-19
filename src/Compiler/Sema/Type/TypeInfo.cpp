@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/Utf8Helper.h"
@@ -818,7 +819,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
             return 8;
 
         case TypeInfoKind::Function:
-            return 8;
+            return isLambdaClosure() ? sizeof(Runtime::ClosureValue) : 8;
 
         case TypeInfoKind::Slice:
         case TypeInfoKind::String:
@@ -892,7 +893,6 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Reference:
         case TypeInfoKind::MoveReference:
-        case TypeInfoKind::Function:
         case TypeInfoKind::Slice:
         case TypeInfoKind::String:
         case TypeInfoKind::Interface:
@@ -904,6 +904,9 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::TypeInfo:
         case TypeInfoKind::CodeBlock:
             return 8;
+
+        case TypeInfoKind::Function:
+            return isLambdaClosure() ? alignof(Runtime::ClosureValue) : 8;
 
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:

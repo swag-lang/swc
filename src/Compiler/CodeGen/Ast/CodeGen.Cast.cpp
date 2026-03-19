@@ -225,6 +225,48 @@ namespace
         return Result::Continue;
     }
 
+    Result emitFunctionToClosureCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& srcType = codeGen.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        if (srcType.isLambdaClosure())
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+            return Result::Continue;
+        }
+
+        const auto* castPayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(castPayload != nullptr);
+        SWC_ASSERT(castPayload->runtimeStorageSym != nullptr);
+
+        auto&           dstFunc = dstType.payloadSymFunction();
+        SymbolFunction* adapter = nullptr;
+        SWC_RESULT(dstFunc.ensureClosureAdapter(codeGen.ctx(), adapter));
+        SWC_ASSERT(adapter != nullptr);
+        codeGen.function().addCallDependency(adapter);
+
+        MicroBuilder&             builder         = codeGen.builder();
+        const CodeGenNodePayload& srcPayload      = codeGen.payload(srcNodeRef);
+        const MicroReg            runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeValueReg, sizeof(Runtime::ClosureValue));
+
+        const MicroReg invokeReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrReloc(invokeReg, 0, ConstantRef::invalid(), adapter);
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::ClosureValue, invoke), invokeReg, MicroOpBits::B64);
+
+        MicroReg targetReg = srcPayload.reg;
+        if (srcPayload.isAddress())
+        {
+            targetReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(targetReg, srcPayload.reg, 0, MicroOpBits::B64);
+        }
+
+        const MicroReg captureDstReg = codeGen.offsetAddressReg(runtimeValueReg, offsetof(Runtime::ClosureValue, capture));
+        builder.emitLoadMemReg(captureDstReg, 0, targetReg, MicroOpBits::B64);
+        codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeValueReg, dstTypeRef);
+        return Result::Continue;
+    }
+
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         MicroBuilder&             builder             = codeGen.builder();
@@ -265,6 +307,9 @@ namespace
 
         const TypeInfo& srcType = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
+            return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
+
         if (srcType.isNull() && dstType.isPointerLike())
         {
             const uint64_t dstSize = dstType.sizeOf(codeGen.ctx());

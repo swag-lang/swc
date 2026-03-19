@@ -25,6 +25,39 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool tryDirectReturnCallStorage(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg)
+    {
+        outStorageReg = MicroReg::invalid();
+        if (!codeGen.currentFunctionIndirectReturnReg().isValid())
+            return false;
+
+        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        if (!resolvedNodeRef.isValid())
+            return false;
+
+        for (size_t parentIndex = 0;; ++parentIndex)
+        {
+            const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
+            if (!parentRef.isValid())
+                return false;
+
+            const AstNode& parent = codeGen.node(parentRef);
+            if (parent.is(AstNodeId::CastExpr) || parent.is(AstNodeId::AutoCastExpr) || parent.is(AstNodeId::ParenExpr))
+                continue;
+
+            if (parent.isNot(AstNodeId::ReturnStmt))
+                return false;
+
+            const auto&      returnNode        = parent.cast<AstReturnStmt>();
+            const AstNodeRef resolvedReturnRef = codeGen.viewZero(returnNode.nodeExprRef).nodeRef();
+            if (resolvedReturnRef != resolvedNodeRef)
+                return false;
+
+            outStorageReg = codeGen.currentFunctionIndirectReturnReg();
+            return true;
+        }
+    }
+
     void emitPointerConstant(CodeGen& codeGen, MicroReg reg, uint64_t value, ConstantRef cstRef)
     {
         if (!value)
@@ -492,11 +525,19 @@ namespace
         return nullptr;
     }
 
-    MicroReg materializeCallTargetReg(CodeGen& codeGen, const CodeGenNodePayload& calleePayload, const CallConv& callConv)
+    MicroReg materializeCallTargetReg(CodeGen& codeGen, const CodeGenNodePayload& calleePayload, const SymbolFunction& calledFunction, const CallConv& callConv, MicroReg& outClosureContextReg)
     {
+        outClosureContextReg = MicroReg::invalid();
+
         MicroBuilder&  builder   = codeGen.builder();
         const MicroReg targetReg = codeGen.nextVirtualIntRegister();
-        if (calleePayload.isAddress())
+        if (calledFunction.isClosure())
+        {
+            SWC_ASSERT(calleePayload.isAddress());
+            builder.emitLoadRegMem(targetReg, calleePayload.reg, offsetof(Runtime::ClosureValue, invoke), MicroOpBits::B64);
+            outClosureContextReg = codeGen.offsetAddressReg(calleePayload.reg, offsetof(Runtime::ClosureValue, capture));
+        }
+        else if (calleePayload.isAddress())
             builder.emitLoadRegMem(targetReg, calleePayload.reg, 0, MicroOpBits::B64);
         else
             builder.emitLoadRegReg(targetReg, calleePayload.reg, MicroOpBits::B64);
@@ -781,16 +822,19 @@ namespace
         outPreparedArg.isAddressed = false;
     }
 
-    void buildPreparedABIArguments(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize)
+    void buildPreparedABIArguments(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, MicroReg closureContextReg, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
         outArgs.clear();
-        outArgs.reserve(args.size());
+        outArgs.reserve(args.size() + (closureContextReg.isValid() ? 1u : 0u));
         outTransientStackSize                            = 0;
         const CallConvKind                  callConvKind = calledFunction.callConvKind();
         const CallConv&                     callConv     = CallConv::get(callConvKind);
         const std::vector<SymbolVariable*>& params       = calledFunction.parameters();
         const size_t                        numParams    = params.size();
+
+        if (closureContextReg.isValid())
+            outArgs.push_back({.srcReg = closureContextReg, .numBits = 64});
 
         bool    hasVariadic           = false;
         bool    hasTypedVariadic      = false;
@@ -843,23 +887,24 @@ namespace
 
 Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef)
 {
-    MicroBuilder&                          builder        = codeGen.builder();
-    const SemaNodeView                     currentView    = codeGen.curViewTypeSymbol();
-    auto&                                  calledFunction = currentView.sym()->cast<SymbolFunction>();
-    const CallConvKind                     callConvKind   = calledFunction.callConvKind();
-    const CallConv&                        callConv       = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, currentView.typeRef(), ABITypeNormalize::Usage::Return);
-    const CodeGenNodePayload*              calleePayload  = resolveCallPayload(codeGen, calleeRef);
-    MicroReg                               callTargetReg  = MicroReg::invalid();
+    MicroBuilder&                          builder           = codeGen.builder();
+    const SemaNodeView                     currentView       = codeGen.curViewTypeSymbol();
+    auto&                                  calledFunction    = currentView.sym()->cast<SymbolFunction>();
+    const CallConvKind                     callConvKind      = calledFunction.callConvKind();
+    const CallConv&                        callConv          = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, currentView.typeRef(), ABITypeNormalize::Usage::Return);
+    const CodeGenNodePayload*              calleePayload     = resolveCallPayload(codeGen, calleeRef);
+    MicroReg                               callTargetReg     = MicroReg::invalid();
+    MicroReg                               closureContextReg = MicroReg::invalid();
 
     if (calleePayload)
-        callTargetReg = materializeCallTargetReg(codeGen, *calleePayload, callConv);
+        callTargetReg = materializeCallTargetReg(codeGen, *calleePayload, calledFunction, callConv, closureContextReg);
 
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     uint32_t transientStackSize = 0;
-    buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), calledFunction, args, preparedArgs, transientStackSize);
+    buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), calledFunction, closureContextReg, args, preparedArgs, transientStackSize);
     MicroReg hiddenRetStorageReg = MicroReg::invalid();
     if (normalizedRet.isIndirect)
     {
@@ -869,6 +914,9 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
             ((nodePayload->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid()) ||
              CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *nodePayload->runtimeStorageSym)))
             hiddenRetStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+
+        if (!hiddenRetStorageReg.isValid())
+            tryDirectReturnCallStorage(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg);
     }
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.

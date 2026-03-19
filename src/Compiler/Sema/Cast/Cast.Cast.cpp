@@ -60,6 +60,59 @@ namespace
         payload->runtimeStorageSym->setTypeRef(dstTypeRef);
         return Result::Continue;
     }
+
+    bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
+
+    bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, const bool ignoreTopLevelClosure)
+    {
+        if (&leftFunc == &rightFunc)
+            return true;
+
+        if (!sameFunctionTypeRecursive(sema, leftFunc.returnTypeRef(), rightFunc.returnTypeRef()))
+            return false;
+        if (leftFunc.callConvKind() != rightFunc.callConvKind())
+            return false;
+        if (!ignoreTopLevelClosure && leftFunc.isClosure() != rightFunc.isClosure())
+            return false;
+        if (leftFunc.isMethod() != rightFunc.isMethod())
+            return false;
+        if (leftFunc.isThrowable() != rightFunc.isThrowable())
+            return false;
+        if (leftFunc.isConst() != rightFunc.isConst())
+            return false;
+        if (leftFunc.hasVariadicParam() != rightFunc.hasVariadicParam())
+            return false;
+
+        const auto& leftParams  = leftFunc.parameters();
+        const auto& rightParams = rightFunc.parameters();
+        if (leftParams.size() != rightParams.size())
+            return false;
+
+        for (uint32_t i = 0; i < leftParams.size(); ++i)
+        {
+            SWC_ASSERT(leftParams[i] != nullptr);
+            SWC_ASSERT(rightParams[i] != nullptr);
+            if (!sameFunctionTypeRecursive(sema, leftParams[i]->typeRef(), rightParams[i]->typeRef()))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef)
+    {
+        if (leftTypeRef == rightTypeRef)
+            return true;
+        if (!leftTypeRef.isValid() || !rightTypeRef.isValid())
+            return false;
+
+        const TypeInfo& leftType  = sema.typeMgr().get(leftTypeRef);
+        const TypeInfo& rightType = sema.typeMgr().get(rightTypeRef);
+        if (!leftType.isFunction() || !rightType.isFunction())
+            return false;
+
+        return sameFunctionSignatureRecursive(sema, leftType.payloadSymFunction(), rightType.payloadSymFunction(), false);
+    }
 }
 
 Result Cast::castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -809,8 +862,15 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-    if (srcType.isFunction() && srcType.payloadSymFunction().sameTypeSignature(dstType.payloadSymFunction()))
-        return Result::Continue;
+    if (srcType.isFunction())
+    {
+        const SymbolFunction& srcFunc = srcType.payloadSymFunction();
+        const SymbolFunction& dstFunc = dstType.payloadSymFunction();
+        if (sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, false))
+            return Result::Continue;
+        if (!srcFunc.isClosure() && dstFunc.isClosure() && sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, true))
+            return Result::Continue;
+    }
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }

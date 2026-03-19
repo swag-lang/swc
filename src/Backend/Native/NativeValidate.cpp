@@ -102,6 +102,9 @@ bool NativeValidate::isNativeStaticType(const TypeRef typeRef) const
         return true;
     }
 
+    if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
+        return true;
+
     if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isVariadic() || typeInfo.isTypedVariadic())
         return false;
 
@@ -356,6 +359,30 @@ bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         }
 
         return true;
+    }
+
+    if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
+    {
+        if (bytes.size() != sizeof(Runtime::ClosureValue))
+            return false;
+
+        const auto* value = reinterpret_cast<const Runtime::ClosureValue*>(bytes.data());
+        if (!value->invoke)
+            return isZeroFilled(bytes);
+
+        uint32_t invokeOffset = 0;
+        if (!findDataSegmentRelocation(invokeOffset, shardIndex, baseOffset + offsetof(Runtime::ClosureValue, invoke)))
+            return false;
+        if (invokeOffset >= segment.extentSize())
+            return false;
+
+        const auto capturedPtr = *reinterpret_cast<const uint64_t*>(value->capture);
+        if (!capturedPtr)
+            return true;
+
+        uint32_t captureOffset = 0;
+        return findDataSegmentRelocation(captureOffset, shardIndex, baseOffset + offsetof(Runtime::ClosureValue, capture)) &&
+               captureOffset < segment.extentSize();
     }
 
     if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isTypeInfo() || typeInfo.isCString() || typeInfo.isFunction())

@@ -72,6 +72,9 @@ namespace
             return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         }
 
+        if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
+            return dstTypeRef;
+
         return TypeRef::invalid();
     }
 

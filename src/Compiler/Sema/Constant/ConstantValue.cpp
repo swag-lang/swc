@@ -586,6 +586,14 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
         return makeArray(ctx, typeRef, bytes);
     }
 
+    if (ty.isFunction() && ty.isLambdaClosure())
+    {
+        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        if (ownership == PayloadOwnership::Borrowed)
+            return makeStructBorrowed(ctx, typeRef, bytes);
+        return makeStruct(ctx, typeRef, bytes);
+    }
+
     if (ty.isBool())
     {
         return makeBool(ctx, *static_cast<const bool*>(valuePtr));

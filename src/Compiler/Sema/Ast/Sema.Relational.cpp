@@ -17,7 +17,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isNullComparableConstant(const ConstantValue& cst) noexcept
+    bool isNullComparableConstant(Sema& sema, const ConstantValue& cst) noexcept
     {
         if (cst.isNull())
             return true;
@@ -25,6 +25,28 @@ namespace
             return cst.getValuePointer() == 0;
         if (cst.isBlockPointer())
             return cst.getBlockPointer() == 0;
+        if (cst.isStruct() && cst.typeRef().isValid())
+        {
+            const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
+            if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
+            {
+                const ByteSpan bytes = cst.getStruct();
+                if (bytes.size() != sizeof(Runtime::ClosureValue))
+                    return false;
+
+                const auto* closureValue = reinterpret_cast<const Runtime::ClosureValue*>(bytes.data());
+                if (closureValue->invoke)
+                    return false;
+
+                for (const uint8_t byte : closureValue->capture)
+                {
+                    if (byte != 0)
+                        return false;
+                }
+
+                return true;
+            }
+        }
         return false;
     }
 
@@ -123,9 +145,10 @@ namespace
             return Result::Continue;
         }
 
-        if (isNullComparableConstant(*nodeLeftView.cst()) || isNullComparableConstant(*nodeRightView.cst()))
+        if (isNullComparableConstant(sema, *nodeLeftView.cst()) || isNullComparableConstant(sema, *nodeRightView.cst()))
         {
-            result = sema.cstMgr().cstBool(isNullComparableConstant(*nodeLeftView.cst()) && isNullComparableConstant(*nodeRightView.cst()));
+            result = sema.cstMgr().cstBool(isNullComparableConstant(sema, *nodeLeftView.cst()) &&
+                                           isNullComparableConstant(sema, *nodeRightView.cst()));
             return Result::Continue;
         }
 

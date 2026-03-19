@@ -170,13 +170,7 @@ namespace
     {
         SWC_ASSERT(adapter.isClosure());
 
-        uint32_t   regIndex          = 1;
-        const auto nextVirtualIntReg = [&regIndex]() {
-            return MicroReg::virtualIntReg(regIndex++);
-        };
-        const auto nextVirtualFloatReg = [&regIndex]() {
-            return MicroReg::virtualFloatReg(regIndex++);
-        };
+        uint32_t regIndex = 1;
 
         const CallConv&                        callConv      = CallConv::get(adapter.callConvKind());
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, adapter.returnTypeRef(), ABITypeNormalize::Usage::Return);
@@ -185,35 +179,49 @@ namespace
         MicroBuilder& builder = adapter.microInstrBuilder(ctx);
         builder.setContext(ctx);
 
-        constexpr ABITypeNormalize::NormalizedType pointerArg         = {.isVoid = false, .isFloat = false, .numBits = 64};
-        const uint32_t                             closureContextSlot = hasHiddenRet ? 1 : 0;
-        const MicroReg                             closureContextReg  = nextVirtualIntReg();
+        constexpr ABITypeNormalize::NormalizedType pointerArg = {
+            .isVoid  = false,
+            .isFloat = false,
+            .numBits = 64};
+
+        const uint32_t closureContextSlot = hasHiddenRet ? 1 : 0;
+
+        const MicroReg closureContextReg = MicroReg::virtualIntReg(regIndex++);
         emitLoadIncomingArg(builder, callConv, closureContextSlot, closureContextReg, pointerArg);
 
-        const MicroReg targetReg = nextVirtualIntReg();
+        const MicroReg targetReg = MicroReg::virtualIntReg(regIndex++);
         builder.emitLoadRegMem(targetReg, closureContextReg, 0, MicroOpBits::B64);
 
         MicroReg hiddenRetStorageReg = MicroReg::invalid();
         if (hasHiddenRet)
         {
-            hiddenRetStorageReg = nextVirtualIntReg();
+            hiddenRetStorageReg = MicroReg::virtualIntReg(regIndex++);
             emitLoadIncomingArg(builder, callConv, 0, hiddenRetStorageReg, pointerArg);
         }
 
         SmallVector<ABICall::PreparedArg> preparedArgs;
         preparedArgs.reserve(adapter.parameters().size());
+
         for (const SymbolVariable* param : adapter.parameters())
         {
             SWC_ASSERT(param != nullptr);
-            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
-            const uint32_t                         incomingSlot    = param->parameterIndex() + (hasHiddenRet ? 1u : 0u) + 1u;
+
+            const ABITypeNormalize::NormalizedType normalizedParam =
+                ABITypeNormalize::normalize(ctx, callConv, param->typeRef(), ABITypeNormalize::Usage::Argument);
+
+            const uint32_t incomingSlot = param->parameterIndex() + (hasHiddenRet ? 1u : 0u) + 1u;
 
             ABICall::PreparedArg preparedArg;
             preparedArg.kind        = ABICall::PreparedArgKind::Direct;
             preparedArg.isFloat     = normalizedParam.isFloat;
             preparedArg.numBits     = normalizedParam.numBits;
             preparedArg.isAddressed = false;
-            preparedArg.srcReg      = normalizedParam.isFloat ? nextVirtualFloatReg() : nextVirtualIntReg();
+
+            if (normalizedParam.isFloat)
+                preparedArg.srcReg = MicroReg::virtualFloatReg(regIndex++);
+            else
+                preparedArg.srcReg = MicroReg::virtualIntReg(regIndex++);
+
             emitLoadIncomingArg(builder, callConv, incomingSlot, preparedArg.srcReg, normalizedParam);
             preparedArgs.push_back(preparedArg);
         }
@@ -228,7 +236,6 @@ namespace
         adapter.tryMarkCodeGenJobScheduled();
         return Result::Continue;
     }
-
 }
 
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const

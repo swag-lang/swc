@@ -108,9 +108,9 @@ Result AstCodeType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstRetValType::semaPostNode(Sema& sema) const
+Result AstRetValType::semaPostNode(Sema& sema)
 {
-    SymbolFunction* const currentFn = SemaHelpers::currentFunction(sema);
+    const SymbolFunction* currentFn = SemaHelpers::currentFunction(sema);
     if (!currentFn)
         return SemaError::raise(sema, DiagnosticId::sema_err_retval_outside_function, sema.curNodeRef());
 

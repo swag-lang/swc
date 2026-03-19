@@ -768,8 +768,8 @@ namespace
         return Result::Continue;
     }
 
-    template<typename TNode>
-    Result finalizeFunctionExprSignature(Sema& sema, const TNode& node, SymbolFunction& sym)
+    template<typename T>
+    Result finalizeFunctionExprSignature(Sema& sema, const T& node, SymbolFunction& sym)
     {
         SWC_RESULT(prepareFunctionExprSignature(sema, node, sym));
 
@@ -927,11 +927,11 @@ namespace
                 storageAlign = 1;
 
             captureOffset = Math::alignUpU64(captureOffset, storageAlign);
-            if (captureOffset + storageSize > Runtime::ClosureCaptureBufferSize)
+            if (captureOffset + storageSize > Runtime::CLOSURE_CAPTURE_BUFFER_SIZE)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_too_large, captureArg.nodeIdentifierRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-                diag.addArgument(Diagnostic::ARG_VALUE, Runtime::ClosureCaptureBufferSize);
+                diag.addArgument(Diagnostic::ARG_VALUE, Runtime::CLOSURE_CAPTURE_BUFFER_SIZE);
                 diag.report(sema.ctx());
                 return Result::Error;
             }

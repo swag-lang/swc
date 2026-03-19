@@ -7,7 +7,6 @@
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
-#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -205,22 +204,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (view.cstRef().isValid())
         return Result::Continue;
 
-    const Token&  tok   = sema.token(codeRef());
-    IdentifierRef idRef = IdentifierRef::invalid();
-    if (Token::isCompilerUniq(tok.id))
-    {
-        idRef = SemaHelpers::resolveUniqIdentifier(sema, tok.id);
-    }
-    else if (Token::isCompilerAlias(tok.id))
-    {
-        idRef = SemaHelpers::resolveAliasIdentifier(sema, tok.id);
-        if (!idRef.isValid())
-            idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef());
-    }
-    else
-    {
-        idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef());
-    }
+    const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());
 
     // Parser tags the callee expression when building a call: `foo()`.
     const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee);

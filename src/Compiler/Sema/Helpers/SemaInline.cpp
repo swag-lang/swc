@@ -140,18 +140,8 @@ namespace
         return true;
     }
 
-    constexpr std::array<std::string_view, 10> INTERNAL_ALIAS_NAMES = {
-        "#alias0",
-        "#alias1",
-        "#alias2",
-        "#alias3",
-        "#alias4",
-        "#alias5",
-        "#alias6",
-        "#alias7",
-        "#alias8",
-        "#alias9",
-    };
+    using AliasIdentifierArray = std::array<IdentifierRef, 10>;
+    using AliasRefArray        = std::array<SourceCodeRef, 10>;
 
     struct AliasUsageInfo
     {
@@ -161,7 +151,7 @@ namespace
         uint32_t      usedSlot    = 0;
     };
 
-    void collectAliasUsage(Sema& sema, AstNodeRef nodeRef, std::array<SourceCodeRef, INTERNAL_ALIAS_NAMES.size()>& outAliasRefs)
+    void collectAliasUsage(Sema& sema, AstNodeRef nodeRef, AliasRefArray& outAliasRefs)
     {
         if (nodeRef.isInvalid())
             return;
@@ -177,16 +167,14 @@ namespace
 
         for (uint32_t tokIndex = node.tokRef().get(); tokIndex <= endTokRef.get() && tokIndex < sourceView.tokens().size(); ++tokIndex)
         {
-            const TokenRef         tokRef{tokIndex};
-            const std::string_view tokenText = sourceView.token(tokRef).string(sourceView);
-            for (size_t slot = 0; slot < INTERNAL_ALIAS_NAMES.size(); ++slot)
-            {
-                if (tokenText != INTERNAL_ALIAS_NAMES[slot])
-                    continue;
-                if (!outAliasRefs[slot].isValid())
-                    outAliasRefs[slot] = SourceCodeRef{node.srcViewRef(), tokRef};
-                break;
-            }
+            const TokenRef tokRef{tokIndex};
+            const Token&   tok = sourceView.token(tokRef);
+            if (!Token::isCompilerAlias(tok.id))
+                continue;
+
+            const uint32_t slot = SemaHelpers::aliasSlotIndex(tok.id);
+            if (slot < outAliasRefs.size() && !outAliasRefs[slot].isValid())
+                outAliasRefs[slot] = SourceCodeRef{node.srcViewRef(), tokRef};
         }
     }
 
@@ -196,7 +184,7 @@ namespace
         if (decl.nodeBodyRef.isInvalid())
             return Result::Continue;
 
-        std::array<SourceCodeRef, INTERNAL_ALIAS_NAMES.size()> aliasRefs = {};
+        AliasRefArray aliasRefs = {};
         collectAliasUsage(sema, decl.nodeBodyRef, aliasRefs);
 
         int32_t highestSlot = -1;
@@ -233,23 +221,17 @@ namespace
         return Result::Continue;
     }
 
-    void collectCallAliases(Sema& sema, AstNodeRef callRef, SmallVector<AstNodeRef>& outAliases)
-    {
-        outAliases.clear();
-        if (callRef.isInvalid())
-            return;
-
-        const AstNode& callNode = sema.node(callRef);
-        if (callNode.is(AstNodeId::AliasCallExpr))
-            callNode.cast<AstAliasCallExpr>().collectAliases(outAliases, sema.ast());
-    }
-
-    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, const AstFunctionDecl& decl, std::array<IdentifierRef, INTERNAL_ALIAS_NAMES.size()>& outAliasIdentifiers)
+    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, const AstFunctionDecl& decl, AliasIdentifierArray& outAliasIdentifiers)
     {
         outAliasIdentifiers.fill(IdentifierRef::invalid());
 
         SmallVector<AstNodeRef> aliases;
-        collectCallAliases(sema, callRef, aliases);
+        if (callRef.isValid())
+        {
+            const auto* aliasCall = sema.node(callRef).safeCast<AstAliasCallExpr>();
+            if (aliasCall)
+                aliasCall->collectAliases(aliases, sema.ast());
+        }
 
         AliasUsageInfo aliasUsage;
         const Result   usageResult = collectAliasUsageInfo(sema, decl, aliasUsage);
@@ -666,7 +648,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!mapArguments(sema, callRef, fn, args, ufcsArg, bindings, variadicBinding))
         return Result::Continue;
 
-    std::array<IdentifierRef, INTERNAL_ALIAS_NAMES.size()> aliasIdentifiers = {};
+    AliasIdentifierArray aliasIdentifiers = {};
     SWC_RESULT(collectAliasIdentifiers(sema, callRef, *decl, aliasIdentifiers));
 
     AstNodeRef variadicExprRef     = AstNodeRef::invalid();

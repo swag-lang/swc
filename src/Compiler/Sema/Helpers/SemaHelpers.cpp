@@ -193,6 +193,22 @@ IdentifierRef SemaHelpers::getUniqueIdentifier(Sema& sema, const std::string_vie
     return sema.idMgr().addIdentifierOwned(std::format("{}_{}", name, id));
 }
 
+IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef codeRef)
+{
+    const Token& tok = sema.srcView(codeRef.srcViewRef).token(codeRef.tokRef);
+    if (Token::isCompilerUniq(tok.id))
+        return resolveUniqIdentifier(sema, tok.id);
+
+    if (Token::isCompilerAlias(tok.id))
+    {
+        const IdentifierRef idRef = resolveAliasIdentifier(sema, tok.id);
+        if (idRef.isValid())
+            return idRef;
+    }
+
+    return sema.idMgr().addIdentifier(sema.ctx(), codeRef);
+}
+
 uint32_t SemaHelpers::aliasSlotIndex(const TokenId tokenId)
 {
     SWC_ASSERT(Token::isCompilerAlias(tokenId));

@@ -653,6 +653,43 @@ namespace
         return nullptr;
     }
 
+    bool isCallAliasChild(const AstCallExpr&, const Ast&, AstNodeRef)
+    {
+        return false;
+    }
+
+    bool isCallAliasChild(const AstAliasCallExpr& call, const Ast& ast, AstNodeRef childRef)
+    {
+        for (size_t i = 0; i < ast.spanSize(call.spanAliasesRef); ++i)
+        {
+            if (ast.nthNode(call.spanAliasesRef, i) == childRef)
+                return true;
+        }
+
+        return false;
+    }
+
+    template<typename T>
+    Result semaCallExprPreNodeChildCommon(Sema& sema, const T& node, AstNodeRef childRef)
+    {
+        if (childRef == node.nodeExprRef)
+            return Result::Continue;
+
+        if (isCallAliasChild(node, sema.ast(), childRef))
+            return Result::SkipChildren;
+
+        if (const SymbolFunction* fn = uniqueInlineFunctionForCodeArgs(sema, node.nodeExprRef))
+        {
+            if (mappedCodeParameter(sema, node, *fn, childRef))
+                return Result::SkipChildren;
+        }
+
+        if (isAttributeContextCall(node))
+            SemaHelpers::pushConstExprRequirement(sema, childRef);
+
+        return Result::Continue;
+    }
+
     bool lambdaHasExpressionBody(Sema& sema, AstNodeRef bodyRef)
     {
         return bodyRef.isValid() && sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock);
@@ -1338,18 +1375,7 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 
 Result AstCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeExprRef)
-    {
-        if (const SymbolFunction* fn = uniqueInlineFunctionForCodeArgs(sema, nodeExprRef))
-        {
-            if (mappedCodeParameter(sema, *this, *fn, childRef))
-                return Result::SkipChildren;
-        }
-    }
-
-    if (childRef != nodeExprRef && hasFlag(AstCallExprFlagsE::AttributeContext))
-        SemaHelpers::pushConstExprRequirement(sema, childRef);
-    return Result::Continue;
+    return semaCallExprPreNodeChildCommon(sema, *this, childRef);
 }
 
 Result AstCallExpr::semaPostNode(Sema& sema) const
@@ -1359,21 +1385,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 
 Result AstAliasCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    SmallVector<AstNodeRef> aliases;
-    collectAliases(aliases, sema.ast());
-    if (std::ranges::find(aliases, childRef) != aliases.end())
-        return Result::SkipChildren;
-
-    if (childRef != nodeExprRef)
-    {
-        if (const SymbolFunction* fn = uniqueInlineFunctionForCodeArgs(sema, nodeExprRef))
-        {
-            if (mappedCodeParameter(sema, *this, *fn, childRef))
-                return Result::SkipChildren;
-        }
-    }
-
-    return Result::Continue;
+    return semaCallExprPreNodeChildCommon(sema, *this, childRef);
 }
 
 Result AstAliasCallExpr::semaPostNode(Sema& sema) const

@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -33,11 +34,62 @@ namespace
             *payload = {};
     }
 
+    void emitIfStmtCondition(CodeGen& codeGen, AstNodeRef ifRef, const CodeGenNodePayload& conditionPayload, TypeRef conditionTypeRef, bool hasElseBlock)
+    {
+        MicroBuilder&         builder = codeGen.builder();
+        IfStmtCodeGenPayload state;
+        state.falseLabel   = builder.createLabel();
+        state.doneLabel    = builder.createLabel();
+        state.hasElseBlock = hasElseBlock;
+        CodeGenCompareHelpers::emitConditionFalseJump(codeGen, conditionPayload, conditionTypeRef, state.falseLabel);
+
+        // The branch bodies are emitted in later child callbacks, so keep their labels attached to the
+        // `if` node until those callbacks run.
+        setIfStmtCodeGenPayload(codeGen, ifRef, state);
+    }
+
+    const SymbolVariable& ifVarDeclConditionSymbol(CodeGen& codeGen, AstNodeRef varDeclRef)
+    {
+        SmallVector<Symbol*> symbols;
+        codeGen.viewSymbol(varDeclRef).getSymbols(symbols);
+        SWC_ASSERT(symbols.size() == 1);
+        SWC_ASSERT(symbols.front()->isVariable());
+        return symbols.front()->cast<SymbolVariable>();
+    }
+
+    Result codeGenIfStmtPostBlockChild(CodeGen& codeGen, AstNodeRef ifRef, AstNodeRef ifBlockRef, AstNodeRef elseBlockRef, AstNodeRef childRef)
+    {
+        const bool isIfBlockChild   = ifBlockRef.isValid() && childRef == ifBlockRef;
+        const bool isElseBlockChild = elseBlockRef.isValid() && childRef == elseBlockRef;
+        if (!isIfBlockChild && !isElseBlockChild)
+            return Result::Continue;
+
+        const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
+        SWC_ASSERT(state != nullptr);
+
+        MicroBuilder& builder = codeGen.builder();
+        if (isIfBlockChild)
+        {
+            if (state->hasElseBlock)
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state->doneLabel);
+
+            // Falling out of the `if` body either starts the `else` body or lands directly after the statement.
+            builder.placeLabel(state->falseLabel);
+
+            if (!state->hasElseBlock)
+                eraseIfStmtCodeGenPayload(codeGen, ifRef);
+
+            return Result::Continue;
+        }
+
+        builder.placeLabel(state->doneLabel);
+        eraseIfStmtCodeGenPayload(codeGen, ifRef);
+        return Result::Continue;
+    }
 }
 
 Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    MicroBuilder&    builder              = codeGen.builder();
     const AstNodeRef ifRef                = codeGen.curNodeRef();
     const AstNodeRef resolvedConditionRef = codeGen.resolvedNodeRef(nodeConditionRef);
     const AstNodeRef resolvedIfBlockRef   = codeGen.resolvedNodeRef(nodeIfBlockRef);
@@ -46,60 +98,44 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
 
     if (resolvedConditionRef.isValid() && resolvedChildRef == resolvedConditionRef)
     {
-        const CodeGenNodePayload& conditionPayload = codeGen.payload(nodeConditionRef);
-        const SemaNodeView        conditionView    = codeGen.viewType(nodeConditionRef);
+        const CodeGenNodePayload& conditionPayload = codeGen.payload(resolvedConditionRef);
+        const SemaNodeView        conditionView    = codeGen.viewType(resolvedConditionRef);
         SWC_ASSERT(conditionView.type() != nullptr);
-        const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(*conditionView.type(), codeGen.ctx());
-        const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
-
-        if (conditionPayload.isAddress())
-            builder.emitLoadRegMem(condReg, conditionPayload.reg, 0, condBits);
-        else
-            builder.emitLoadRegReg(condReg, conditionPayload.reg, condBits);
-
-        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
-
-        IfStmtCodeGenPayload state;
-        state.falseLabel   = builder.createLabel();
-        state.doneLabel    = builder.createLabel();
-        state.hasElseBlock = resolvedElseBlockRef.isValid();
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.falseLabel);
-        // The branch bodies are emitted in later child callbacks, so keep their labels attached to the
-        // `if` node until those callbacks run.
-        setIfStmtCodeGenPayload(codeGen, ifRef, state);
-
+        emitIfStmtCondition(codeGen, ifRef, conditionPayload, conditionView.typeRef(), resolvedElseBlockRef.isValid());
         return Result::Continue;
     }
 
-    const bool isIfBlockChild   = resolvedIfBlockRef.isValid() && resolvedChildRef == resolvedIfBlockRef;
-    const bool isElseBlockChild = resolvedElseBlockRef.isValid() && resolvedChildRef == resolvedElseBlockRef;
-    if (!isIfBlockChild && !isElseBlockChild)
-        return Result::Continue;
+    return codeGenIfStmtPostBlockChild(codeGen, ifRef, resolvedIfBlockRef, resolvedElseBlockRef, resolvedChildRef);
+}
 
-    const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
-    SWC_ASSERT(state != nullptr);
+Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const AstNodeRef ifRef                = codeGen.curNodeRef();
+    const AstNodeRef resolvedVarRef       = codeGen.resolvedNodeRef(nodeVarRef);
+    const AstNodeRef resolvedWhereRef     = codeGen.resolvedNodeRef(nodeWhereRef);
+    const AstNodeRef resolvedIfBlockRef   = codeGen.resolvedNodeRef(nodeIfBlockRef);
+    const AstNodeRef resolvedElseBlockRef = codeGen.resolvedNodeRef(nodeElseBlockRef);
+    const AstNodeRef resolvedChildRef     = codeGen.resolvedNodeRef(childRef);
 
-    if (isIfBlockChild)
+    if (resolvedWhereRef.isInvalid() && resolvedVarRef.isValid() && resolvedChildRef == resolvedVarRef)
     {
-        if (state->hasElseBlock)
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state->doneLabel);
-
-        // Falling out of the `if` body either starts the `else` body or lands directly after the statement.
-        builder.placeLabel(state->falseLabel);
-
-        if (!state->hasElseBlock)
-            eraseIfStmtCodeGenPayload(codeGen, ifRef);
-
+        const SymbolVariable& symVar            = ifVarDeclConditionSymbol(codeGen, resolvedVarRef);
+        const auto*           conditionPayload = CodeGen::variablePayload(symVar);
+        SWC_ASSERT(conditionPayload != nullptr);
+        emitIfStmtCondition(codeGen, ifRef, *conditionPayload, symVar.typeRef(), resolvedElseBlockRef.isValid());
         return Result::Continue;
     }
 
-    if (isElseBlockChild)
+    if (resolvedWhereRef.isValid() && resolvedChildRef == resolvedWhereRef)
     {
-        builder.placeLabel(state->doneLabel);
-        eraseIfStmtCodeGenPayload(codeGen, ifRef);
+        const CodeGenNodePayload& wherePayload = codeGen.payload(resolvedWhereRef);
+        const SemaNodeView        whereView    = codeGen.viewType(resolvedWhereRef);
+        SWC_ASSERT(whereView.type() != nullptr);
+        emitIfStmtCondition(codeGen, ifRef, wherePayload, whereView.typeRef(), resolvedElseBlockRef.isValid());
+        return Result::Continue;
     }
 
-    return Result::Continue;
+    return codeGenIfStmtPostBlockChild(codeGen, ifRef, resolvedIfBlockRef, resolvedElseBlockRef, resolvedChildRef);
 }
 
 SWC_END_NAMESPACE();

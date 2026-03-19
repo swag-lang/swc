@@ -501,7 +501,7 @@ namespace
                     continue;
 
                 const auto fieldBytes = ByteSpan{structBytes.data() + fieldOffset, fieldSize};
-                fieldCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, fieldBytes);
+                fieldCstRef           = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, fieldBytes);
             }
 
             if (fieldCstRef.isValid())

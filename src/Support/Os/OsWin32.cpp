@@ -658,9 +658,9 @@ namespace Os
         PROCESS_INFORMATION processInfo{};
         startupInfo.cb = sizeof(startupInfo);
 
-        HANDLE childOutputRead  = nullptr;
-        HANDLE childOutputWrite = nullptr;
-        const bool redirectOutput = options && (options->capturedOutput || !options->forwardOutput || options->outputLineFilter);
+        HANDLE     childOutputRead  = nullptr;
+        HANDLE     childOutputWrite = nullptr;
+        const bool redirectOutput   = options && (options->capturedOutput || !options->forwardOutput || options->outputLineFilter);
         if (redirectOutput)
         {
             SECURITY_ATTRIBUTES securityAttributes{};

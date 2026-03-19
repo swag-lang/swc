@@ -107,7 +107,7 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
             diag.addNote(DiagnosticId::cmd_note_native_tool_output);
         }
 
-        diag.report(const_cast<TaskContext&>(builder_.ctx()));
+        diag.report(builder_.ctx());
         return Result::Error;
     }
 

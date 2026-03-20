@@ -1319,6 +1319,9 @@
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaSymbolLookup.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>

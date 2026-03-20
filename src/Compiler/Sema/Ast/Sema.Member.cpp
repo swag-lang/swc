@@ -8,7 +8,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Helpers/SemaRuntime.h"
+#include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -38,141 +38,6 @@ namespace
 
         outIndex = value;
         return true;
-    }
-
-    bool lookupStructPositionalAlias(Sema& sema, const SymbolStruct& symStruct, IdentifierRef idRef, SmallVector<const Symbol*>& outSymbols)
-    {
-        size_t positionalIndex = 0;
-        if (!parsePositionalMemberIndex(sema.idMgr().get(idRef).name, positionalIndex))
-            return false;
-
-        const auto& fields = symStruct.fields();
-        if (positionalIndex >= fields.size() || !fields[positionalIndex])
-            return false;
-
-        outSymbols.clear();
-        outSymbols.push_back(fields[positionalIndex]);
-        return true;
-    }
-
-    bool hasConcreteFunctionCandidate(std::span<const Symbol*> symbols)
-    {
-        for (const Symbol* sym : symbols)
-        {
-            if (!sym || !sym->isFunction())
-                continue;
-            const auto& fn = sym->cast<SymbolFunction>();
-            if (!fn.isEmpty())
-                return true;
-        }
-
-        return false;
-    }
-
-    void removeEmptyFunctionDeclarations(std::span<const Symbol*> inSymbols, SmallVector<const Symbol*>& outSymbols)
-    {
-        outSymbols.clear();
-        outSymbols.reserve(inSymbols.size());
-
-        if (!hasConcreteFunctionCandidate(inSymbols))
-        {
-            for (const Symbol* sym : inSymbols)
-            {
-                if (sym)
-                    outSymbols.push_back(sym);
-            }
-            return;
-        }
-
-        for (const Symbol* sym : inSymbols)
-        {
-            if (!sym)
-                continue;
-            if (sym->isFunction())
-            {
-                const auto& fn = sym->cast<SymbolFunction>();
-                if (!fn.isForeign() && fn.isEmpty())
-                    continue;
-            }
-
-            outSymbols.push_back(sym);
-        }
-    }
-
-    // A call callee may legitimately bind to an overload set, but only for callable candidates.
-    // If at least one callable candidate exists, keep ONLY those callables (ignore non-callables for a call).
-    // If no callable candidates exist:
-    //   - if there are multiple candidates, it's ambiguous in value space (report here)
-    //   - if there is exactly one, bind it and let the call expression report "not callable".
-    bool filterCallCalleeCandidates(std::span<const Symbol*> inSymbols, SmallVector<const Symbol*>& outSymbols)
-    {
-        outSymbols.clear();
-        SmallVector<const Symbol*> filteredSymbols;
-        removeEmptyFunctionDeclarations(inSymbols, filteredSymbols);
-
-        // Currently, "callable" means "function symbol".
-        // Extend here later for function pointers/delegates/call-operator types if needed.
-        for (const Symbol* s : filteredSymbols)
-        {
-            if (s && s->isFunction())
-                outSymbols.push_back(s);
-        }
-
-        return !outSymbols.empty();
-    }
-
-    Result checkAmbiguityAndBindSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<const Symbol*> foundSymbols)
-    {
-        SmallVector<const Symbol*> filteredSymbols;
-        removeEmptyFunctionDeclarations(foundSymbols, filteredSymbols);
-        SmallVector<const Symbol*> runtimeSymbols;
-        SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, filteredSymbols.span(), runtimeSymbols));
-
-        const size_t n = runtimeSymbols.size();
-
-        if (n <= 1)
-        {
-            sema.setSymbolList(nodeRef, runtimeSymbols);
-            return Result::Continue;
-        }
-
-        // Multiple candidates.
-        if (!allowOverloadSetForCallCallee)
-            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, runtimeSymbols);
-
-        // Call-callee context: keep only callables if any exist.
-        SmallVector<const Symbol*> callables;
-        if (filterCallCalleeCandidates(runtimeSymbols, callables))
-        {
-            sema.setSymbolList(nodeRef, callables);
-            return Result::Continue;
-        }
-
-        // No callable candidates and multiple results => true ambiguity (e.g. multiple vars/namespaces/etc.).
-        return SemaError::raiseAmbiguousSymbol(sema, nodeRef, runtimeSymbols);
-    }
-
-    Result bindMemberSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSet, std::span<const Symbol*> symbols)
-    {
-        SmallVector<const Symbol*> filteredSymbols;
-        removeEmptyFunctionDeclarations(symbols, filteredSymbols);
-        SmallVector<const Symbol*> runtimeSymbols;
-        SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, filteredSymbols.span(), runtimeSymbols));
-
-        if (runtimeSymbols.size() <= 1 || !allowOverloadSet)
-        {
-            sema.setSymbolList(nodeRef, runtimeSymbols);
-        }
-        else
-        {
-            SmallVector<const Symbol*> callables;
-            if (filterCallCalleeCandidates(runtimeSymbols, callables))
-                sema.setSymbolList(nodeRef, callables);
-            else
-                sema.setSymbolList(nodeRef, runtimeSymbols);
-        }
-
-        return Result::Continue;
     }
 
     TypeRef memberRuntimeStorageTypeRef(Sema& sema)
@@ -235,94 +100,125 @@ namespace
     }
 }
 
+const Symbol* SemaMemberAccess::lookupStructPositionalAlias(Sema& sema, const SymbolStruct& symStruct, IdentifierRef idRef)
+{
+    size_t positionalIndex = 0;
+    if (!parsePositionalMemberIndex(sema.idMgr().get(idRef).name, positionalIndex))
+        return nullptr;
+
+    const auto& fields = symStruct.fields();
+    if (positionalIndex >= fields.size() || !fields[positionalIndex])
+        return nullptr;
+
+    return fields[positionalIndex];
+}
+
+bool SemaMemberAccess::resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggregateType, IdentifierRef idRef, size_t& outIndex)
+{
+    if (!aggregateType.isAggregateStruct())
+        return false;
+
+    const auto&            names  = aggregateType.payloadAggregate().names;
+    const std::string_view idName = sema.idMgr().get(idRef).name;
+    for (size_t i = 0; i < names.size(); ++i)
+    {
+        if (names[i].isValid() && names[i] == idRef)
+        {
+            outIndex = i;
+            return true;
+        }
+
+        if (idName == ("item" + std::to_string(i)))
+        {
+            outIndex = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 namespace
 {
-    Result memberNamespace(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    Result bindMatchedMemberSymbols(Sema& sema, AstNodeRef targetNodeRef, AstNodeRef rightNodeRef, bool allowOverloadSet, std::span<const Symbol*> matchedSymbols)
+    {
+        SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, targetNodeRef, allowOverloadSet, matchedSymbols));
+        SWC_RESULT(SemaSymbolLookup::bindSymbolList(sema, rightNodeRef, allowOverloadSet, matchedSymbols));
+        return Result::Continue;
+    }
+
+    Result lookupScopedMember(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SymbolMap& symMap, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    {
+        MatchContext lookUpCxt;
+        lookUpCxt.codeRef    = SourceCodeRef{node.srcViewRef(), tokNameRef};
+        lookUpCxt.symMapHint = &symMap;
+
+        SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
+        return Result::SkipChildren;
+    }
+
+    Result memberNamespace(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolNamespace& namespaceSym = nodeLeftView.sym()->cast<SymbolNamespace>();
-
-        MatchContext lookUpCxt;
-        lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
-        lookUpCxt.symMapHint = &namespaceSym;
-
-        SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
-
-        SWC_RESULT(checkAmbiguityAndBindSymbols(sema, targetNodeRef, allowOverloadSet, lookUpCxt.symbols()));
-        SWC_RESULT(bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols()));
-
-        return Result::SkipChildren;
+        return lookupScopedMember(sema, targetNodeRef, node, namespaceSym, idRef, tokNameRef, allowOverloadSet);
     }
 
-    Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolEnum& enumSym = nodeLeftView.type()->payloadSymEnum();
-        SWC_RESULT(sema.waitSemaCompleted(&enumSym, {node->srcViewRef(), tokNameRef}));
-
-        MatchContext lookUpCxt;
-        lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
-        lookUpCxt.symMapHint = &enumSym;
-
-        SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
-        SWC_RESULT(checkAmbiguityAndBindSymbols(sema, targetNodeRef, allowOverloadSet, lookUpCxt.symbols()));
-        SWC_RESULT(bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols()));
-
-        return Result::SkipChildren;
+        SWC_RESULT(sema.waitSemaCompleted(&enumSym, {node.srcViewRef(), tokNameRef}));
+        return lookupScopedMember(sema, targetNodeRef, node, enumSym, idRef, tokNameRef, allowOverloadSet);
     }
 
-    Result memberInterface(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    Result memberInterface(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolInterface& symInterface = nodeLeftView.type()->payloadSymInterface();
-        SWC_RESULT(sema.waitSemaCompleted(&symInterface, {node->srcViewRef(), tokNameRef}));
+        SWC_RESULT(sema.waitSemaCompleted(&symInterface, {node.srcViewRef(), tokNameRef}));
 
-        MatchContext lookUpCxt;
-        lookUpCxt.codeRef = SourceCodeRef{node->srcViewRef(), tokNameRef};
-
-        if (nodeLeftView.sym() && nodeLeftView.sym()->isImpl())
-            lookUpCxt.symMapHint = nodeLeftView.sym()->asSymMap();
-        else
-            lookUpCxt.symMapHint = &symInterface;
-
-        SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
-        SWC_RESULT(checkAmbiguityAndBindSymbols(sema, targetNodeRef, allowOverloadSet, lookUpCxt.symbols()));
-        SWC_RESULT(bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols()));
-
-        return Result::SkipChildren;
+        const SymbolMap& lookupMap = nodeLeftView.sym() && nodeLeftView.sym()->isImpl() ? *nodeLeftView.sym()->asSymMap() : static_cast<const SymbolMap&>(symInterface);
+        return lookupScopedMember(sema, targetNodeRef, node, lookupMap, idRef, tokNameRef, allowOverloadSet);
     }
 
-    Result memberStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo* typeInfo)
+    Result memberStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo& typeInfo)
     {
-        const SymbolStruct& symStruct = typeInfo->payloadSymStruct();
-        SWC_RESULT(sema.waitSemaCompleted(&symStruct, {node->srcViewRef(), tokNameRef}));
+        const SymbolStruct& symStruct = typeInfo.payloadSymStruct();
+        SWC_RESULT(sema.waitSemaCompleted(&symStruct, {node.srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
-        lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
+        lookUpCxt.codeRef    = SourceCodeRef{node.srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint = &symStruct;
 
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
         SmallVector<const Symbol*> aliasSymbols;
-        std::span<const Symbol*>   matchedSymbols = lookUpCxt.symbols();
-        if (matchedSymbols.empty() && lookupStructPositionalAlias(sema, symStruct, idRef, aliasSymbols))
-            matchedSymbols = aliasSymbols;
+        std::span<const Symbol*>   matchedSymbols = lookUpCxt.symbols().span();
+        if (matchedSymbols.empty())
+        {
+            if (const Symbol* aliasSymbol = SemaMemberAccess::lookupStructPositionalAlias(sema, symStruct, idRef))
+            {
+                aliasSymbols.push_back(aliasSymbol);
+                matchedSymbols = aliasSymbols.span();
+            }
+        }
 
         // Bind member-access node (curNodeRef) and RHS identifier.
-        SWC_RESULT(checkAmbiguityAndBindSymbols(sema, targetNodeRef, allowOverloadSet, matchedSymbols));
-        SWC_RESULT(bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, matchedSymbols));
+        SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, matchedSymbols));
 
         // Constant struct member access
-        const SemaNodeView       nodeRightView = sema.viewSymbolList(node->nodeRightRef);
+        const SemaNodeView       nodeRightView = sema.viewSymbolList(node.nodeRightRef);
         const std::span<Symbol*> symbols       = nodeRightView.symList();
         const size_t             finalSymCount = symbols.size();
         if (nodeLeftView.cst() && finalSymCount == 1 && symbols[0]->isVariable())
         {
             const SymbolVariable& symVar = symbols[0]->cast<SymbolVariable>();
-            SWC_RESULT(ConstantExtract::structMember(sema, *nodeLeftView.cst(), symVar, targetNodeRef, node->nodeRightRef));
+            SWC_RESULT(ConstantExtract::structMember(sema, *nodeLeftView.cst(), symVar, targetNodeRef, node.nodeRightRef));
             return Result::SkipChildren;
         }
 
-        if (nodeLeftView.type()->isAnyPointer() || nodeLeftView.type()->isReference() || sema.isLValue(node->nodeLeftRef))
-            sema.setIsLValue(*node);
+        if (nodeLeftView.type()->isAnyPointer() || nodeLeftView.type()->isReference() || sema.isLValue(node.nodeLeftRef))
+            sema.setIsLValue(node);
 
-        if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, *node, nodeLeftView))
+        if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, node, nodeLeftView))
         {
             auto* payload = sema.codeGenPayload<CodeGenNodePayload>(targetNodeRef);
             if (!payload)
@@ -337,7 +233,7 @@ namespace
             }
             else
             {
-                auto& storageSym = registerUniqueMemberRuntimeStorageSymbol(sema, *node);
+                auto& storageSym = registerUniqueMemberRuntimeStorageSymbol(sema, node);
                 storageSym.registerAttributes(sema);
                 storageSym.setDeclared(sema.ctx());
                 SWC_RESULT(Match::ghosting(sema, storageSym));
@@ -349,37 +245,16 @@ namespace
         return Result::SkipChildren;
     }
 
-    Result memberAggregateStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, IdentifierRef idRef, TokenRef tokNameRef, const TypeInfo* typeInfo)
+    Result memberAggregateStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, IdentifierRef idRef, TokenRef tokNameRef, const TypeInfo& typeInfo)
     {
-        const auto& aggregate = typeInfo->payloadAggregate();
-        const auto& names     = aggregate.names;
+        const auto& aggregate = typeInfo.payloadAggregate();
         const auto& types     = aggregate.types;
-        SWC_ASSERT(names.size() == types.size());
+        SWC_ASSERT(aggregate.names.size() == types.size());
 
         size_t memberIndex = 0;
-        bool   found       = false;
-
-        const std::string_view idName = sema.idMgr().get(idRef).name;
-        for (size_t i = 0; i < names.size(); ++i)
+        if (!SemaMemberAccess::resolveAggregateMemberIndex(sema, typeInfo, idRef, memberIndex))
         {
-            if (names[i].isValid() && names[i] == idRef)
-            {
-                memberIndex = i;
-                found       = true;
-                break;
-            }
-
-            if (idName == ("item" + std::to_string(i)))
-            {
-                memberIndex = i;
-                found       = true;
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{node->srcViewRef(), tokNameRef});
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{node.srcViewRef(), tokNameRef});
             diag.addArgument(Diagnostic::ARG_SYM, idRef);
             diag.report(sema.ctx());
             return Result::SkipChildren;
@@ -387,11 +262,11 @@ namespace
 
         const TypeRef memberTypeRef = types[memberIndex];
         sema.setType(targetNodeRef, memberTypeRef);
-        sema.setType(node->nodeRightRef, memberTypeRef);
-        sema.setIsValue(*node);
-        sema.setIsValue(node->nodeRightRef);
-        if (sema.isLValue(node->nodeLeftRef))
-            sema.setIsLValue(*node);
+        sema.setType(node.nodeRightRef, memberTypeRef);
+        sema.setIsValue(node);
+        sema.setIsValue(node.nodeRightRef);
+        if (sema.isLValue(node.nodeLeftRef))
+            sema.setIsLValue(node);
 
         if (nodeLeftView.cst() && nodeLeftView.cst()->isAggregateStruct())
         {
@@ -413,21 +288,21 @@ Result SemaMemberAccess::resolve(Sema& sema, AstNodeRef memberRef, AstMemberAcce
 
     // Namespace
     if (nodeLeftView.sym() && nodeLeftView.sym()->isNamespace())
-        return memberNamespace(sema, memberRef, &node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
+        return memberNamespace(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
     SWC_ASSERT(nodeLeftView.type());
 
     // Enum
     if (nodeLeftView.type()->isEnum())
-        return memberEnum(sema, memberRef, &node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
+        return memberEnum(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
     // Interface
     if (nodeLeftView.type()->isInterface())
-        return memberInterface(sema, memberRef, &node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
+        return memberInterface(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
     // Aggregate struct
     if (nodeLeftView.type()->isAggregateStruct())
-        return memberAggregateStruct(sema, memberRef, &node, nodeLeftView, idRef, tokNameRef, nodeLeftView.type());
+        return memberAggregateStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, *nodeLeftView.type());
 
     // Dereference pointer
     const TypeInfo* typeInfo = nodeLeftView.type();
@@ -450,7 +325,7 @@ Result SemaMemberAccess::resolve(Sema& sema, AstNodeRef memberRef, AstMemberAcce
 
     // Struct
     if (typeInfo->isStruct())
-        return memberStruct(sema, memberRef, &node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, typeInfo);
+        return memberStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, *typeInfo);
 
     // Pointer/Reference
     if (nodeLeftView.type()->isAnyPointer() || nodeLeftView.type()->isReference())

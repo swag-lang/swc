@@ -36,6 +36,17 @@ func if_control_flow_ok()
         y = 2
     }
 
+    if let a = 1
+    {
+    }
+
+    if let b = 1 where b == 1
+    {
+    }
+
+    if let c = 4 where c > 2 do
+        return
+
     return
 }
 
@@ -63,4 +74,12 @@ func if_control_flow_ok()
     {
         var m = n
     }
+
+    if let p = 2
+    {
+        var q = p
+    }
+
+    if let r = 4 where r > 2 do
+        var s = r
 }

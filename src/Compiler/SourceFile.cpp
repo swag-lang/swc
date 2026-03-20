@@ -22,16 +22,6 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
 
 SourceFile::~SourceFile() = default;
 
-Ast& SourceFile::ast()
-{
-    return nodePayloadContext_->ast();
-}
-
-const Ast& SourceFile::ast() const
-{
-    return nodePayloadContext_->ast();
-}
-
 void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
 {
     nodePayloadContext_->setModuleNamespace(ns);
@@ -40,6 +30,16 @@ void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
 const SymbolNamespace* SourceFile::fileNamespace() const
 {
     return nodePayloadContext_->fileNamespace_;
+}
+
+Ast& SourceFile::ast()
+{
+    return nodePayloadContext_->ast();
+}
+
+const Ast& SourceFile::ast() const
+{
+    return nodePayloadContext_->ast();
 }
 
 Result SourceFile::loadContent(TaskContext& ctx)

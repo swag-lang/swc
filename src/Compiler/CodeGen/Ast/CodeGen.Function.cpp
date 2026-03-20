@@ -681,19 +681,27 @@ namespace
         codeGen.builder().emitLoadMemReg(captureDstReg, 0, sourcePayload.reg, storeBits);
     }
 
+    bool hasRuntimeStoragePayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+        return payload && payload->runtimeStorageSym != nullptr;
+    }
+
+    AstNodeRef resolveClosureExprStorageNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (hasRuntimeStoragePayload(codeGen, nodeRef))
+            return nodeRef;
+
+        const AstNodeRef currentNodeRef = codeGen.curNodeRef();
+        SWC_ASSERT(currentNodeRef.isValid());
+        SWC_ASSERT(currentNodeRef != nodeRef);
+        SWC_ASSERT(hasRuntimeStoragePayload(codeGen, currentNodeRef));
+        return currentNodeRef;
+    }
+
     Result emitClosureExprValue(CodeGen& codeGen, AstNodeRef nodeRef, SymbolFunction& symFunc, TypeRef typeRef)
     {
-        AstNodeRef  storageNodeRef = nodeRef;
-        const auto* payload        = codeGen.sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if ((!payload || payload->runtimeStorageSym == nullptr) && storageNodeRef != codeGen.curNodeRef())
-        {
-            storageNodeRef = codeGen.curNodeRef();
-            payload        = codeGen.sema().codeGenPayload<CodeGenNodePayload>(storageNodeRef);
-        }
-
-        SWC_ASSERT(payload);
-        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
-
+        const AstNodeRef storageNodeRef = resolveClosureExprStorageNodeRef(codeGen, nodeRef);
         MicroBuilder& builder = codeGen.builder();
         MicroReg      dstReg  = MicroReg::invalid();
         if (!CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, storageNodeRef, dstReg))

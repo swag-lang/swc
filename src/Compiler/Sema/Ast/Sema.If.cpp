@@ -38,16 +38,22 @@ namespace
 
     AstNodeRef withBindingExprRef(Sema& sema, AstNodeRef exprRef)
     {
-        const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
-        const AstNodeRef baseRef     = resolvedRef.isValid() ? resolvedRef : exprRef;
-        if (baseRef.isInvalid())
+        if (exprRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNode& node = sema.node(baseRef);
+        const AstNode& node = sema.node(exprRef);
         if (node.is(AstNodeId::AssignStmt))
             return node.cast<AstAssignStmt>().nodeLeftRef;
 
-        return baseRef;
+        const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+        if (!resolvedRef.isValid())
+            return exprRef;
+
+        const AstNode& resolvedNode = sema.node(resolvedRef);
+        if (resolvedNode.is(AstNodeId::AssignStmt))
+            return resolvedNode.cast<AstAssignStmt>().nodeLeftRef;
+
+        return resolvedRef;
     }
 
     bool singleVariableSymbol(Sema& sema, AstNodeRef nodeRef, SymbolVariable*& outSym)

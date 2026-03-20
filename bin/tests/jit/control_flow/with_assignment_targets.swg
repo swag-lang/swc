@@ -30,6 +30,16 @@ struct JitWithAssignWrapper
     holder: JitWithAssignHolder
 }
 
+struct JitWithAssignShadow
+{
+    value: s32
+}
+
+struct JitWithAssignOwner
+{
+    value: s32
+}
+
 func jitWithAssignMakePoint(x, y: s32)->JitWithAssignPoint
 {
     var result: JitWithAssignPoint
@@ -43,6 +53,52 @@ func jitWithAssignColorScore(c: JitWithAssignColor)->s32
     if c == .Red do
         return 3
     return 7
+}
+
+impl JitWithAssignOwner
+{
+    mtd applyShadow()->s32
+    {
+        var shadow: JitWithAssignShadow
+        with shadow
+        {
+            me.value = 4
+            .value = 9
+        }
+
+        return me.value * 100 + shadow.value
+    }
+}
+
+func jitWithValueAndPointer()->s32
+{
+    var point = jitWithAssignMakePoint(1, 2)
+    with point
+    {
+        .x += 3
+        .y += 6
+    }
+
+    var ptr = &point
+    with ptr
+    {
+        .x += 5
+        .y += 7
+    }
+
+    return point.x * 100 + point.y
+}
+
+func jitWithAssignedValueTarget()->s32
+{
+    var point: JitWithAssignPoint
+    with point = jitWithAssignMakePoint(10, 20)
+    {
+        .x += 1
+        .y += 2
+    }
+
+    return point.x * 100 + point.y
 }
 
 func jitWithAssignmentsAndScopes()->s32
@@ -109,6 +165,24 @@ func jitWithNestedMemberTarget()->s32
     return total * 100 + point.x + point.y
 }
 
+func jitWithMeDisambiguation()->s32
+{
+    var owner: JitWithAssignOwner
+    return owner.applyShadow()
+}
+
+#test
+{
+    const value = #run jitWithValueAndPointer()
+    @assert(value == 915)
+}
+
+#test
+{
+    const value = #run jitWithAssignedValueTarget()
+    @assert(value == 1122)
+}
+
 #test
 {
     const value = #run jitWithAssignmentsAndScopes()
@@ -119,4 +193,10 @@ func jitWithNestedMemberTarget()->s32
 {
     const value = #run jitWithNestedMemberTarget()
     @assert(value == 2215)
+}
+
+#test
+{
+    const value = #run jitWithMeDisambiguation()
+    @assert(value == 409)
 }

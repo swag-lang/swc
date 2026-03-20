@@ -371,8 +371,21 @@ namespace
         SWC_ASSERT(encodeCtx.target.payload.isAddress());
         SWC_ASSERT(encodeCtx.copySize > 0);
 
-        const MicroReg srcAddressReg = encodeCtx.rightPayload->reg;
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, encodeCtx.target.payload.reg, srcAddressReg, encodeCtx.copySize);
+        if (encodeCtx.rightPayload->isAddress())
+        {
+            const MicroReg srcAddressReg = encodeCtx.rightPayload->reg;
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, encodeCtx.target.payload.reg, srcAddressReg, encodeCtx.copySize);
+            return Result::Continue;
+        }
+
+        if (encodeCtx.copySize == 1 || encodeCtx.copySize == 2 || encodeCtx.copySize == 4 || encodeCtx.copySize == 8)
+        {
+            const MicroOpBits storeBits = microOpBitsFromChunkSize(encodeCtx.copySize);
+            codeGen.builder().emitLoadMemReg(encodeCtx.target.payload.reg, 0, encodeCtx.rightPayload->reg, storeBits);
+            return Result::Continue;
+        }
+
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, encodeCtx.target.payload.reg, encodeCtx.rightPayload->reg, encodeCtx.copySize);
         return Result::Continue;
     }
 

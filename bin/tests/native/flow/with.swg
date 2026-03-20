@@ -30,6 +30,16 @@ struct NativeWithWrapper
     holder: NativeWithHolder
 }
 
+struct NativeWithShadow
+{
+    value: s32
+}
+
+struct NativeWithOwner
+{
+    value: s32
+}
+
 impl NativeWithPoint
 {
     mtd add(v: s32)
@@ -41,6 +51,21 @@ impl NativeWithPoint
     mtd sum()->s32
     {
         return me.x + me.y
+    }
+}
+
+impl NativeWithOwner
+{
+    mtd applyShadow()->s32
+    {
+        var shadow: NativeWithShadow
+        with shadow
+        {
+            me.value = 4
+            .value = 9
+        }
+
+        return me.value * 100 + shadow.value
     }
 }
 
@@ -115,6 +140,18 @@ func nativeWithAssignmentsAndScopes()->s32
     return point.x + point.y + total
 }
 
+func nativeWithAssignedValueTarget()->s32
+{
+    var point: NativeWithPoint
+    with point = nativeWithMakePoint(10, 20)
+    {
+        .x += 1
+        .y += 2
+    }
+
+    return point.x * 100 + point.y
+}
+
 func nativeWithAnonymous()->s32
 {
     with var pair: { a, b: s32 }
@@ -135,6 +172,17 @@ func nativeWithRetval()->{ a, b: s32 }
     }
 
     return result
+}
+
+func nativeWithLocalInit()->s32
+{
+    with var pair = nativeWithRetval()
+    {
+        .a += 1
+        .b += 2
+    }
+
+    return pair.a * 100 + pair.b
 }
 
 func nativeWithNestedMemberTarget()->s32
@@ -163,6 +211,12 @@ func nativeWithNestedMemberTarget()->s32
     return total * 100 + point.x + point.y
 }
 
+func nativeWithMeDisambiguation()->s32
+{
+    var owner: NativeWithOwner
+    return owner.applyShadow()
+}
+
 #test
 {
     @assert(nativeWithValueAndPointer() == 24)
@@ -175,7 +229,27 @@ func nativeWithNestedMemberTarget()->s32
 
 #test
 {
+    @assert(nativeWithAssignedValueTarget() == 1122)
+}
+
+#test
+{
     @assert(nativeWithAnonymous() == 813)
+}
+
+#test
+{
+    @assert(nativeWithLocalInit() == 2236)
+}
+
+#test
+{
+    @assert(nativeWithNestedMemberTarget() == 2215)
+}
+
+#test
+{
+    @assert(nativeWithMeDisambiguation() == 409)
 }
 
 #test
@@ -183,9 +257,4 @@ func nativeWithNestedMemberTarget()->s32
     let pair = nativeWithRetval()
     @assert(pair.a == 21)
     @assert(pair.b == 34)
-}
-
-#test
-{
-    @assert(nativeWithNestedMemberTarget() == 2215)
 }

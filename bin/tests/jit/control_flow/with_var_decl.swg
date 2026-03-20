@@ -22,6 +22,17 @@ func jitWithRetval()->{ a, b: s32 }
     return result
 }
 
+func jitWithLocalInit()->s32
+{
+    with var pair = jitWithRetval()
+    {
+        .a += 1
+        .b += 2
+    }
+
+    return pair.a * 100 + pair.b
+}
+
 #test
 {
     const value = #run jitWithAnonymous()
@@ -33,4 +44,10 @@ func jitWithRetval()->{ a, b: s32 }
     const pair = #run jitWithRetval()
     @assert(pair.a == 21)
     @assert(pair.b == 34)
+}
+
+#test
+{
+    const value = #run jitWithLocalInit()
+    @assert(value == 2236)
 }

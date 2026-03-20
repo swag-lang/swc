@@ -54,6 +54,7 @@ namespace
         TypeRef               typeRef     = TypeRef::invalid();
         const SymbolVariable* symVar      = nullptr;
         AstNodeRef            baseExprRef = AstNodeRef::invalid();
+        uint32_t              precedence  = UINT32_MAX;
     };
 
     struct AutoMemberMatch
@@ -190,7 +191,7 @@ namespace
         return SemaMemberAccess::resolveAggregateMemberIndex(sema, typeInfo, idRef, memberIndex);
     }
 
-    Result addCandidateFromType(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, TypeRef typeRef, const SymbolVariable* symVar, AstNodeRef baseExprRef)
+    Result addCandidateFromType(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, TypeRef typeRef, const SymbolVariable* symVar, AstNodeRef baseExprRef, uint32_t precedence)
     {
         const TypeRef normalizedTypeRef = normalizeAutoMemberBindingType(sema.ctx(), typeRef);
         if (!normalizedTypeRef.isValid())
@@ -200,16 +201,16 @@ namespace
         if (typeInfo.isStruct())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-            outCandidates.push_back({.symMap = &typeInfo.payloadSymStruct(), .typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef});
+            outCandidates.push_back({.symMap = &typeInfo.payloadSymStruct(), .typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
         }
         else if (typeInfo.isEnum())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-            outCandidates.push_back({.symMap = &typeInfo.payloadSymEnum(), .typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef});
+            outCandidates.push_back({.symMap = &typeInfo.payloadSymEnum(), .typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
         }
         else if (typeInfo.isAggregateStruct())
         {
-            outCandidates.push_back({.typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef});
+            outCandidates.push_back({.typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
         }
 
         return Result::Continue;
@@ -236,25 +237,28 @@ namespace
                 autoMemberBindings.push_back(binding);
         }
 
-        for (const SymbolVariable* symVar : bindingVars)
+        uint32_t precedence = 0;
+
+        for (auto it = bindingVars.rbegin(); it != bindingVars.rend(); ++it)
         {
-            SWC_RESULT(addCandidateFromType(sema, outCandidates, symVar->typeRef(), symVar, AstNodeRef::invalid()));
+            SWC_RESULT(addCandidateFromType(sema, outCandidates, (*it)->typeRef(), *it, AstNodeRef::invalid(), precedence++));
         }
 
-        for (const TypeRef hintType : bindingTypes)
+        for (auto it = bindingTypes.rbegin(); it != bindingTypes.rend(); ++it)
         {
-            SWC_RESULT(addCandidateFromType(sema, outCandidates, hintType, nullptr, AstNodeRef::invalid()));
+            SWC_RESULT(addCandidateFromType(sema, outCandidates, *it, nullptr, AstNodeRef::invalid(), precedence++));
         }
 
-        for (const auto& binding : autoMemberBindings)
+        for (auto it = autoMemberBindings.rbegin(); it != autoMemberBindings.rend(); ++it)
         {
+            const auto& binding = *it;
             if (binding.typeRef.isValid())
             {
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, binding.typeRef, binding.symVar, binding.baseExprRef));
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, binding.typeRef, binding.symVar, binding.baseExprRef, precedence++));
             }
             else if (binding.symMap)
             {
-                outCandidates.push_back({.symMap = binding.symMap, .symVar = binding.symVar, .baseExprRef = binding.baseExprRef});
+                outCandidates.push_back({.symMap = binding.symMap, .symVar = binding.symVar, .baseExprRef = binding.baseExprRef, .precedence = precedence++});
             }
         }
 
@@ -269,7 +273,9 @@ namespace
                 }
                 else if (canCollapseEquivalentCandidates(outCandidates[i], outCandidates[j]))
                 {
-                    if (candidateSpecificity(outCandidates[j]) > candidateSpecificity(outCandidates[i]))
+                    if (outCandidates[j].precedence < outCandidates[i].precedence ||
+                        (outCandidates[j].precedence == outCandidates[i].precedence &&
+                         candidateSpecificity(outCandidates[j]) > candidateSpecificity(outCandidates[i])))
                         outCandidates[i] = outCandidates[j];
                     outCandidates.erase(outCandidates.begin() + j);
                 }
@@ -401,6 +407,26 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         }
         diag.report(sema.ctx());
         return Result::Error;
+    }
+
+    if (matches.size() > 1)
+    {
+        uint32_t bestPrecedence = UINT32_MAX;
+        for (const auto& match : matches)
+            bestPrecedence = std::min(bestPrecedence, match.candidate.precedence);
+
+        SmallVector2<AutoMemberMatch> bestMatches;
+        for (const auto& match : matches)
+        {
+            if (match.candidate.precedence == bestPrecedence)
+                bestMatches.push_back(match);
+        }
+
+        if (bestMatches.size() == 1)
+        {
+            matches.clear();
+            matches.push_back(bestMatches.front());
+        }
     }
 
     if (matches.size() > 1)

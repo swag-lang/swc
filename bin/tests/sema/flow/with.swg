@@ -25,6 +25,21 @@ struct SemaWithHolder
     ptr: *SemaWithPoint
 }
 
+struct SemaWithWrapper
+{
+    holder: SemaWithHolder
+}
+
+struct SemaWithShadow
+{
+    value: s32
+}
+
+struct SemaWithOwner
+{
+    value: s32
+}
+
 impl SemaWithPoint
 {
     mtd add(v: s32)
@@ -36,6 +51,21 @@ impl SemaWithPoint
     mtd sum()->s32
     {
         return me.x + me.y
+    }
+}
+
+impl SemaWithOwner
+{
+    mtd applyShadow()->s32
+    {
+        var shadow: SemaWithShadow
+        with shadow
+        {
+            me.value = 10
+            .value = 20
+        }
+
+        return me.value * 100 + shadow.value
     }
 }
 
@@ -82,6 +112,18 @@ func semaWithRetval()->{ a, b: s32 }
 
 #test
 {
+    with var point = semaWithMakePoint()
+    {
+        .x += 5
+        .y += 7
+    }
+
+    @assert(point.x == 15)
+    @assert(point.y == 27)
+}
+
+#test
+{
     var point: SemaWithPoint
     var holder: SemaWithHolder
 
@@ -93,6 +135,21 @@ func semaWithRetval()->{ a, b: s32 }
 
     @assert(point.x == 10)
     @assert(point.y == 3)
+}
+
+#test
+{
+    var point = semaWithMakePoint()
+    var ptr = &point
+
+    with ptr
+    {
+        .x += 4
+        .y += 5
+    }
+
+    @assert(point.x == 14)
+    @assert(point.y == 25)
 }
 
 #test
@@ -128,6 +185,35 @@ func semaWithRetval()->{ a, b: s32 }
 
     @assert(pair.a == 8)
     @assert(pair.b == 13)
+}
+
+#test
+{
+    var point = semaWithMakePoint()
+    var wrapper: SemaWithWrapper
+    wrapper.holder.ptr = &point
+
+    with wrapper.holder
+    {
+        with .ptr
+        {
+            .x += 1
+        }
+
+        with .ptr
+        {
+            .y += 2
+        }
+    }
+
+    @assert(point.x == 11)
+    @assert(point.y == 22)
+}
+
+#test
+{
+    var owner: SemaWithOwner
+    @assert(owner.applyShadow() == 1020)
 }
 
 #test

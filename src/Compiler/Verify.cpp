@@ -14,22 +14,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isDigit(char c) noexcept
-    {
-        return c >= '0' && c <= '9';
-    }
-
     uint32_t clampLine(int32_t v) noexcept
     {
         return (v > 0) ? static_cast<uint32_t>(v) : 1u;
     }
 
     // Parses an unsigned integer at p. Returns true if at least one digit was consumed.
-    bool parseUInt(std::string_view s, size_t& p, int& out) noexcept
+    bool parseUInt(const LangSpec& langSpec, std::string_view s, size_t& p, int& out) noexcept
     {
         int  v   = 0;
         bool any = false;
-        while (p < s.size() && isDigit(s[p]))
+        while (p < s.size() && langSpec.isDigit(static_cast<char8_t>(s[p])))
         {
             any = true;
             v   = v * 10 + (s[p] - '0');
@@ -46,7 +41,7 @@ namespace
     //  - if sign is present but digits are missing -> implicit 1
     //  - if no sign and no digits -> fail
     // Sets hasSign accordingly.
-    bool parseSignedOrAbs(std::string_view s, size_t& p, int& value, bool& hasSign) noexcept
+    bool parseSignedOrAbs(const LangSpec& langSpec, std::string_view s, size_t& p, int& value, bool& hasSign) noexcept
     {
         hasSign  = false;
         int sign = +1;
@@ -58,7 +53,7 @@ namespace
             ++p;
 
             int mag = 0;
-            if (!parseUInt(s, p, mag))
+            if (!parseUInt(langSpec, s, p, mag))
             {
                 value = sign * 1; // implicit +/-1
                 return true;
@@ -70,7 +65,7 @@ namespace
 
         // No sign -> must be digits (absolute line)
         int absV = 0;
-        if (!parseUInt(s, p, absV))
+        if (!parseUInt(langSpec, s, p, absV))
             return false;
 
         value = absV;
@@ -140,7 +135,7 @@ namespace
                 int          v       = 0;
                 bool         hasSign = false;
 
-                if (!parseSignedOrAbs(comment, i, v, hasSign))
+                if (!parseSignedOrAbs(langSpec, comment, i, v, hasSign))
                 {
                     i = save;
                     break;
@@ -181,7 +176,7 @@ namespace
             int          offA    = 0;
             bool         hasSign = false;
 
-            if (!parseSignedOrAbs(comment, i, offA, hasSign) || !hasSign)
+            if (!parseSignedOrAbs(langSpec, comment, i, offA, hasSign) || !hasSign)
             {
                 // For this form we require a sign; otherwise treat as malformed and keep default exact(baseLine).
                 i = save;
@@ -197,7 +192,7 @@ namespace
 
                 int  offB     = 0;
                 bool hasSignB = false;
-                if (!parseSignedOrAbs(comment, i, offB, hasSignB) || !hasSignB)
+                if (!parseSignedOrAbs(langSpec, comment, i, offB, hasSignB) || !hasSignB)
                 {
                     // malformed range end -> just treat as exact lineA
                     setExact(directive, lineA);

@@ -2,10 +2,12 @@
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Logger.h"
@@ -289,7 +291,7 @@ namespace
         return std::format("reg#{}", reg.packed);
     }
 
-    bool hasVirtualRegisterToken(std::string_view value)
+    bool hasVirtualRegisterToken(const LangSpec& langSpec, std::string_view value)
     {
         for (size_t i = 0; i < value.size(); ++i)
         {
@@ -300,10 +302,10 @@ namespace
             if (j < value.size() && value[j] == 'f')
                 ++j;
 
-            if (j >= value.size() || !std::isdigit(static_cast<unsigned char>(value[j])))
+            if (j >= value.size() || !langSpec.isDigit(static_cast<char8_t>(value[j])))
                 continue;
 
-            while (j < value.size() && std::isdigit(static_cast<unsigned char>(value[j])))
+            while (j < value.size() && langSpec.isDigit(static_cast<char8_t>(value[j])))
                 ++j;
 
             if (j == value.size())
@@ -313,7 +315,7 @@ namespace
         return false;
     }
 
-    bool isJumpLabelToken(std::string_view token)
+    bool isJumpLabelToken(const LangSpec& langSpec, std::string_view token)
     {
         if (token.size() < 2 || token[0] != 'L')
             return false;
@@ -328,7 +330,7 @@ namespace
 
         for (size_t i = 1; i < end; ++i)
         {
-            if (!std::isdigit(static_cast<unsigned char>(token[i])))
+            if (!langSpec.isDigit(static_cast<char8_t>(token[i])))
                 return false;
         }
 
@@ -385,14 +387,14 @@ namespace
                token == ">>";
     }
 
-    bool isNaturalTypeBitsToken(std::string_view token)
+    bool isNaturalTypeBitsToken(const LangSpec& langSpec, std::string_view token)
     {
         if (token.size() < 2 || token[0] != 'b')
             return false;
 
         for (size_t i = 1; i < token.size(); ++i)
         {
-            if (!std::isdigit(static_cast<unsigned char>(token[i])))
+            if (!langSpec.isDigit(static_cast<char8_t>(token[i])))
                 return false;
         }
 
@@ -404,7 +406,7 @@ namespace
         return token == "<-";
     }
 
-    bool isRelocationImmediateToken(std::string_view token)
+    bool isRelocationImmediateToken(const LangSpec& langSpec, std::string_view token)
     {
         if (token.size() < 3 || token.front() != '<' || token.back() != '>')
             return false;
@@ -418,7 +420,7 @@ namespace
 
         for (const auto c : inner)
         {
-            if (!std::isdigit(static_cast<unsigned char>(c)))
+            if (!langSpec.isDigit(static_cast<char8_t>(c)))
                 return false;
         }
 
@@ -712,8 +714,9 @@ namespace
 
     void appendColored(Utf8& out, const TaskContext& ctx, SyntaxColor color, std::string_view value)
     {
+        const auto& langSpec = ctx.global().langSpec();
         SyntaxColor effectiveColor = color;
-        if (color == SyntaxColor::Register && hasVirtualRegisterToken(value))
+        if (color == SyntaxColor::Register && hasVirtualRegisterToken(langSpec, value))
             effectiveColor = SyntaxColor::RegisterVirtual;
 
         out += SyntaxColorHelper::toAnsi(ctx, effectiveColor);
@@ -723,6 +726,7 @@ namespace
 
     void appendNaturalColumn(Utf8& out, const TaskContext& ctx, Utf8 value, const std::unordered_set<Utf8>& concreteRegs, const std::unordered_set<Utf8>& virtualRegs, const std::optional<Utf8>& jumpTargetInstIndex)
     {
+        const auto& langSpec      = ctx.global().langSpec();
         size_t jumpTargetIndexStart = std::string_view::npos;
         bool   expectCallTarget     = false;
         if (jumpTargetInstIndex)
@@ -740,7 +744,7 @@ namespace
             }
 
             const Utf8 tokenStr(token);
-            if (isRelocationImmediateToken(token))
+            if (isRelocationImmediateToken(langSpec, token))
             {
                 appendColored(out, ctx, SyntaxColor::Compiler, token);
             }
@@ -766,11 +770,11 @@ namespace
             {
                 appendColored(out, ctx, SyntaxColor::Number, token);
             }
-            else if (isJumpLabelToken(token))
+            else if (isJumpLabelToken(langSpec, token))
             {
                 appendColored(out, ctx, SyntaxColor::Function, token);
             }
-            else if (isNaturalTypeBitsToken(token))
+            else if (isNaturalTypeBitsToken(langSpec, token))
             {
                 appendColored(out, ctx, SyntaxColor::Type, token);
             }

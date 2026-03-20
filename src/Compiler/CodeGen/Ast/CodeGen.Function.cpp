@@ -220,6 +220,32 @@ namespace
         codeGen.setGvtdScratchLayout(static_cast<uint32_t>(scratchBase), static_cast<uint32_t>(scratchSize), entries.span());
     }
 
+    bool tryGetSizedTypeLayout(uint32_t& outSize, uint32_t& outAlignment, CodeGen& codeGen, const TypeInfo& typeInfo)
+    {
+        const uint64_t rawSize = typeInfo.sizeOf(codeGen.ctx());
+        if (!rawSize)
+            return false;
+
+        SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
+        outSize      = static_cast<uint32_t>(rawSize);
+        outAlignment = typeInfo.alignOf(codeGen.ctx());
+        if (!outAlignment)
+            outAlignment = 1;
+        return true;
+    }
+
+    void assignLocalStackSlot(SymbolVariable& symVar, uint64_t& frameSize, uint32_t size, uint32_t alignment)
+    {
+        SWC_ASSERT(size != 0);
+        SWC_ASSERT(alignment != 0);
+        frameSize = Math::alignUpU64(frameSize, alignment);
+        SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+        symVar.setOffset(static_cast<uint32_t>(frameSize));
+        symVar.setCodeGenLocalSize(size);
+        symVar.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+        frameSize += size;
+    }
+
     void appendDebugParameterSlots(CodeGen& codeGen, uint64_t& frameSize)
     {
         if (!shouldSpillParametersForDebugInfo(codeGen))
@@ -235,16 +261,13 @@ namespace
             SWC_ASSERT(typeRef.isValid());
 
             const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-            const uint64_t  rawSize  = typeInfo.sizeOf(codeGen.ctx());
-            if (!rawSize)
+            uint32_t        slotSize      = 0;
+            uint32_t        slotAlignment = 0;
+            if (!tryGetSizedTypeLayout(slotSize, slotAlignment, codeGen, typeInfo))
                 continue;
 
             const CallConv&                        callConv        = CallConv::get(codeGen.function().callConvKind());
             const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, typeRef, ABITypeNormalize::Usage::Argument);
-            uint32_t                               slotSize        = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
-            uint32_t                               slotAlignment   = typeInfo.alignOf(codeGen.ctx());
-            if (!slotAlignment)
-                slotAlignment = 1;
 
             if (!normalizedParam.isIndirect && normalizedParam.numBits)
                 slotSize = std::max<uint32_t>(slotSize, normalizedParam.numBits / 8);
@@ -277,11 +300,9 @@ namespace
             }
 
             const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
-            const auto      size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
-            uint32_t        alignment = typeInfo.alignOf(codeGen.ctx());
-            if (!alignment)
-                alignment = 1;
-            if (!size)
+            uint32_t        size      = 0;
+            uint32_t        alignment = 0;
+            if (!tryGetSizedTypeLayout(size, alignment, codeGen, typeInfo))
             {
                 symVar->setOffset(0);
                 symVar->setCodeGenLocalSize(0);
@@ -290,12 +311,7 @@ namespace
 
             // Recompute local offsets from the finalized runtime sizes. Sema-time offsets can become stale
             // when expression-backed locals (notably closures) expand to larger runtime payloads later on.
-            frameSize = Math::alignUpU64(frameSize, alignment);
-            SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
-            symVar->setOffset(static_cast<uint32_t>(frameSize));
-            symVar->setCodeGenLocalSize(size);
-            symVar->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
-            frameSize += size;
+            assignLocalStackSlot(*symVar, frameSize, size, alignment);
         }
 
         for (SymbolVariable* symVar : params)
@@ -308,19 +324,12 @@ namespace
             SWC_ASSERT(typeRef.isValid());
 
             const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
-            const auto      size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
-            uint32_t        alignment = typeInfo.alignOf(codeGen.ctx());
-            if (!alignment)
-                alignment = 1;
-            if (!size)
+            uint32_t        size      = 0;
+            uint32_t        alignment = 0;
+            if (!tryGetSizedTypeLayout(size, alignment, codeGen, typeInfo))
                 continue;
 
-            frameSize = Math::alignUpU64(frameSize, alignment);
-            SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
-            symVar->setOffset(static_cast<uint32_t>(frameSize));
-            symVar->setCodeGenLocalSize(size);
-            symVar->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
-            frameSize += size;
+            assignLocalStackSlot(*symVar, frameSize, size, alignment);
         }
 
         appendDebugParameterSlots(codeGen, frameSize);
@@ -383,11 +392,11 @@ namespace
                 continue;
 
             const TypeInfo& typeInfo = codeGen.typeMgr().get(symVar->typeRef());
-            const uint64_t  rawSize  = typeInfo.sizeOf(codeGen.ctx());
-            if (!rawSize)
+            uint32_t        copySize         = 0;
+            uint32_t        unusedAlignment  = 0;
+            if (!tryGetSizedTypeLayout(copySize, unusedAlignment, codeGen, typeInfo))
                 continue;
 
-            const uint32_t copySize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
             if (symbolPayload->isAddress())
             {
                 MicroReg slotAddrReg = baseReg;
@@ -495,6 +504,19 @@ namespace
         }
     }
 
+    void collectRegisterParameterIndices(SmallVector<uint32_t>& outIndices, const std::vector<SymbolVariable*>& params, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
+    {
+        SWC_ASSERT(paramInfos.size() == params.size());
+        outIndices.clear();
+        outIndices.reserve(params.size());
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            SWC_ASSERT(params[i] != nullptr);
+            if (paramInfos[i].isRegisterArg)
+                outIndices.push_back(static_cast<uint32_t>(i));
+        }
+    }
+
     void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         const CallConv&                     callConv = CallConv::get(symbolFunc.callConvKind());
@@ -503,24 +525,14 @@ namespace
         SWC_ASSERT(paramInfos.size() == params.size());
 
         SmallVector<uint32_t> registerParamIndices;
-        registerParamIndices.reserve(params.size());
-        for (size_t i = 0; i < params.size(); ++i)
-        {
-            const SymbolVariable* symVar = params[i];
-            SWC_ASSERT(symVar != nullptr);
-            const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
-            if (!paramInfo.isRegisterArg)
-                continue;
-
-            registerParamIndices.push_back(static_cast<uint32_t>(i));
-        }
+        collectRegisterParameterIndices(registerParamIndices, params, paramInfos);
 
         for (size_t i = 0; i < registerParamIndices.size(); ++i)
         {
-            const uint32_t        paramIndex = registerParamIndices[i];
-            const SymbolVariable* symVar     = params[paramIndex];
+            const uint32_t paramIndex = registerParamIndices[i];
+            const auto*    symVar     = params[paramIndex];
             SWC_ASSERT(symVar != nullptr);
-            const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[paramIndex];
+            const auto paramInfo = paramInfos[paramIndex];
 
             CodeGenNodePayload symbolPayload;
             symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
@@ -562,32 +574,40 @@ namespace
         }
     }
 
+    const SymbolVariable* resolveCanonicalParameter(const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            return nullptr;
+
+        const auto& params = symbolFunc.parameters();
+        if (symVar.hasParameterIndex() && symVar.parameterIndex() < params.size())
+        {
+            const SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
+            if (canonicalParam && canonicalParam != &symVar)
+                return canonicalParam;
+        }
+
+        if (!symVar.idRef().isValid())
+            return nullptr;
+
+        for (const SymbolVariable* param : params)
+        {
+            if (!param || param == &symVar)
+                continue;
+            if (param->idRef() == symVar.idRef())
+                return param;
+        }
+
+        return nullptr;
+    }
+
     CodeGenNodePayload resolveClosureCaptureSourcePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         if (symVar.isClosureCapture())
             return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
 
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && symVar.hasParameterIndex())
-        {
-            const auto& params = codeGen.function().parameters();
-            if (symVar.parameterIndex() < params.size())
-            {
-                const SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
-                if (canonicalParam && canonicalParam != &symVar)
-                    return resolveClosureCaptureSourcePayload(codeGen, *canonicalParam);
-            }
-        }
-        else if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && symVar.idRef().isValid())
-        {
-            for (const SymbolVariable* param : codeGen.function().parameters())
-            {
-                if (!param || param == &symVar)
-                    continue;
-                if (param->idRef() != symVar.idRef())
-                    continue;
-                return resolveClosureCaptureSourcePayload(codeGen, *param);
-            }
-        }
+        if (const SymbolVariable* canonicalParam = resolveCanonicalParameter(codeGen.function(), symVar))
+            return resolveClosureCaptureSourcePayload(codeGen, *canonicalParam);
 
         if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
             return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);

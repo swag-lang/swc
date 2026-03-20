@@ -80,6 +80,78 @@ namespace
         return resolveUsingMemberPathRec(codeGen, baseTypeInfo->payloadSymStruct(), *ownerStruct, outSteps, visited);
     }
 
+    struct AggregateMemberInfo
+    {
+        uint32_t offset        = 0;
+        TypeRef  memberTypeRef = TypeRef::invalid();
+    };
+
+    bool resolveAggregateMemberInfo(CodeGen& codeGen, const TypeInfo& aggregateType, AstNodeRef memberRef, AggregateMemberInfo& outInfo)
+    {
+        if (!aggregateType.isAggregateStruct())
+            return false;
+
+        const auto& names = aggregateType.payloadAggregate().names;
+        const auto& types = aggregateType.payloadAggregate().types;
+        SWC_ASSERT(names.size() == types.size());
+
+        const IdentifierRef    idRef   = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), codeGen.node(memberRef).codeRef());
+        const std::string_view idName  = codeGen.sema().idMgr().get(idRef).name;
+        uint64_t               offset  = 0;
+
+        for (size_t i = 0; i < types.size(); ++i)
+        {
+            const TypeInfo& memberType  = codeGen.typeMgr().get(types[i]);
+            const uint32_t  memberAlign = std::max<uint32_t>(memberType.alignOf(codeGen.ctx()), 1);
+            const uint64_t  memberSize  = memberType.sizeOf(codeGen.ctx());
+            if (memberSize)
+                offset = ((offset + static_cast<uint64_t>(memberAlign) - 1) / static_cast<uint64_t>(memberAlign)) * static_cast<uint64_t>(memberAlign);
+
+            bool found = false;
+            if (names[i].isValid() && names[i] == idRef)
+                found = true;
+            else if (idName == ("item" + std::to_string(i)))
+                found = idName == ("item" + std::to_string(i));
+
+            if (found)
+            {
+                outInfo.offset        = static_cast<uint32_t>(offset);
+                outInfo.memberTypeRef = types[i];
+                return true;
+            }
+
+            offset += memberSize;
+        }
+
+        return false;
+    }
+
+    MicroReg resolveAggregateMemberBaseAddress(CodeGen& codeGen, const SemaNodeView& leftTypeView, const CodeGenNodePayload& leftPayload)
+    {
+        MicroBuilder& builder = codeGen.builder();
+
+        if (leftTypeView.type() && leftTypeView.type()->isReference() && leftPayload.isAddress())
+        {
+            const MicroReg baseAddressReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(baseAddressReg, leftPayload.reg, 0, MicroOpBits::B64);
+            return baseAddressReg;
+        }
+
+        if (leftPayload.isAddress())
+            return leftPayload.reg;
+
+        const uint64_t leftSize = leftTypeView.type()->sizeOf(codeGen.ctx());
+        SWC_ASSERT(leftSize > 0);
+        if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)
+        {
+            const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, CodeGenTypeHelpers::bitsFromStorageSize(leftSize));
+            return spillAddrReg;
+        }
+
+        return leftPayload.reg;
+    }
+
     bool shouldTreatStructMemberLeftAsValue(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& leftPayload)
     {
         const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
@@ -172,6 +244,23 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenAggregateStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
+    {
+        const CodeGenNodePayload& leftPayload  = codeGen.payload(node.nodeLeftRef);
+        const SemaNodeView        leftTypeView = codeGen.viewType(node.nodeLeftRef);
+        SWC_ASSERT(leftTypeView.type() != nullptr);
+
+        AggregateMemberInfo memberInfo;
+        if (!resolveAggregateMemberInfo(codeGen, *leftTypeView.type(), node.nodeRightRef, memberInfo))
+            SWC_UNREACHABLE();
+
+        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberInfo.memberTypeRef);
+        MicroBuilder&             builder = codeGen.builder();
+        const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftTypeView, leftPayload);
+        builder.emitLoadAddressRegMem(payload.reg, baseReg, memberInfo.offset, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     Result codeGenInterfaceMethodMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
         MicroBuilder&             builder     = codeGen.builder();
@@ -205,6 +294,8 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 
     if (leftView.type() && leftView.type()->isInterface() && (!leftView.sym() || !leftView.sym()->isImpl()))
         return codeGenInterfaceMethodMemberAccess(codeGen, *this);
+    if (leftView.type() && leftView.type()->isAggregateStruct())
+        return codeGenAggregateStructMemberAccess(codeGen, *this);
 
     const SemaNodeView rightView = codeGen.viewSymbol(nodeRightRef);
     if (rightView.sym())

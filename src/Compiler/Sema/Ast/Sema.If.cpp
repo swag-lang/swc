@@ -4,12 +4,130 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef normalizeWithBindingType(TaskContext& ctx, TypeRef typeRef)
+    {
+        while (typeRef.isValid())
+        {
+            const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+            if (typeInfo.isAlias())
+            {
+                typeRef = typeInfo.payloadSymAlias().underlyingTypeRef();
+                continue;
+            }
+
+            if (typeInfo.isReference() || typeInfo.isAnyPointer())
+            {
+                typeRef = typeInfo.payloadTypeRef();
+                continue;
+            }
+
+            break;
+        }
+
+        return typeRef;
+    }
+
+    AstNodeRef withBindingExprRef(Sema& sema, AstNodeRef exprRef)
+    {
+        const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+        const AstNodeRef baseRef     = resolvedRef.isValid() ? resolvedRef : exprRef;
+        if (baseRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNode& node = sema.node(baseRef);
+        if (node.is(AstNodeId::AssignStmt))
+            return node.cast<AstAssignStmt>().nodeLeftRef;
+
+        return baseRef;
+    }
+
+    bool singleVariableSymbol(Sema& sema, AstNodeRef nodeRef, SymbolVariable*& outSym)
+    {
+        outSym = nullptr;
+
+        SmallVector<Symbol*> symbols;
+        const SemaNodeView   view = sema.view(nodeRef, SemaNodeViewPartE::Symbol);
+        if (view.hasSymbolList())
+        {
+            const std::span<Symbol*> symList = view.symList();
+            symbols.reserve(symList.size());
+            for (Symbol* sym : symList)
+                symbols.push_back(sym);
+        }
+        else if (view.hasSymbol())
+        {
+            symbols.push_back(view.sym());
+        }
+
+        if (symbols.size() != 1 || !symbols.front()->isVariable())
+            return false;
+
+        outSym = &symbols.front()->cast<SymbolVariable>();
+        return true;
+    }
+
+    Result configureWithBindings(Sema& sema, AstNodeRef errorRef, Symbol* symbol, TypeRef rawTypeRef, AstNodeRef baseExprRef, SemaFrame& ioFrame, SemaScope& bodyScope)
+    {
+        if (symbol && symbol->isNamespace())
+        {
+            bodyScope.addUsingSymMap(symbol->asSymMap());
+            bodyScope.addAutoMemberBinding({.symMap = symbol->asSymMap()});
+            return Result::Continue;
+        }
+
+        if (symbol && symbol->isEnum())
+        {
+            bodyScope.addUsingSymMap(symbol->asSymMap());
+            bodyScope.addAutoMemberBinding({.symMap = symbol->asSymMap()});
+            return Result::Continue;
+        }
+
+        const TypeRef normalizedTypeRef = normalizeWithBindingType(sema.ctx(), rawTypeRef);
+        if (!normalizedTypeRef.isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, errorRef);
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(normalizedTypeRef);
+        if (typeInfo.isStruct() || typeInfo.isAggregateStruct() || typeInfo.isEnum())
+        {
+            if (typeInfo.isEnum())
+                bodyScope.addUsingSymMap(const_cast<SymbolMap*>(typeInfo.payloadSymEnum().asSymMap()));
+
+            if (SymbolVariable* symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+                symVar &&
+                (symVar->hasGlobalStorage() ||
+                 symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+                 symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
+                 symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
+                 symVar->isClosureCapture()))
+            {
+                ioFrame.pushBindingVar(symVar);
+            }
+            else
+            {
+                const SymbolMap* symMap = nullptr;
+                if (typeInfo.isStruct())
+                    symMap = &typeInfo.payloadSymStruct();
+                else if (typeInfo.isEnum())
+                    symMap = &typeInfo.payloadSymEnum();
+
+                bodyScope.addAutoMemberBinding({.symMap = symMap, .typeRef = normalizedTypeRef, .baseExprRef = baseExprRef});
+            }
+
+            return Result::Continue;
+        }
+
+        return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, errorRef);
+    }
+
     Result checkIfVarDeclCondition(Sema& sema, AstNodeRef varDeclRef)
     {
         AstNodeRef     declRef = varDeclRef;
@@ -114,6 +232,37 @@ Result AstElseStmt::semaPreNode(Sema& sema)
 Result AstElseIfStmt::semaPreNode(Sema& sema)
 {
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+    return Result::Continue;
+}
+
+Result AstWithStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    const AstNodeRef baseExprRef = withBindingExprRef(sema, nodeExprRef);
+    const SemaNodeView exprView  = sema.viewNodeTypeSymbol(baseExprRef);
+
+    auto       scopedFrame = sema.frame();
+    SemaScope* bodyScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+    SWC_RESULT(configureWithBindings(sema, nodeExprRef, exprView.sym(), exprView.typeRef(), baseExprRef, scopedFrame, *bodyScope));
+    sema.pushFramePopOnPostChild(scopedFrame, childRef);
+    return Result::Continue;
+}
+
+Result AstWithVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    SymbolVariable* symVar = nullptr;
+    if (!singleVariableSymbol(sema, nodeVarRef, symVar))
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeVarRef);
+
+    auto       scopedFrame = sema.frame();
+    SemaScope* bodyScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+    SWC_RESULT(configureWithBindings(sema, nodeVarRef, symVar, symVar->typeRef(), AstNodeRef::invalid(), scopedFrame, *bodyScope));
+    sema.pushFramePopOnPostChild(scopedFrame, childRef);
     return Result::Continue;
 }
 

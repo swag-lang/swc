@@ -1,8 +1,10 @@
 #pragma once
+#include "Compiler/Parser/Ast/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();
 class SymbolMap;
 class Symbol;
+class SymbolVariable;
 
 enum class SemaScopeFlagsE
 {
@@ -19,6 +21,14 @@ using SemaScopeFlags = EnumFlags<SemaScopeFlagsE>;
 class SemaScope
 {
 public:
+    struct AutoMemberBinding
+    {
+        const SymbolMap* symMap      = nullptr;
+        TypeRef          typeRef     = TypeRef::invalid();
+        SymbolVariable*  symVar      = nullptr;
+        AstNodeRef       baseExprRef = AstNodeRef::invalid();
+    };
+
     static constexpr uint32_t UNIQ_COUNT = 10;
 
     SemaScope() = default;
@@ -51,6 +61,14 @@ public:
     void                        addSymbol(Symbol* symbol) { symbols_.push_back(symbol); }
     const SmallVector<Symbol*>& symbols() const { return symbols_; }
 
+    void addAutoMemberBinding(const AutoMemberBinding& binding)
+    {
+        if (!binding.symMap && !binding.typeRef.isValid() && !binding.symVar && binding.baseExprRef.isInvalid())
+            return;
+        autoMemberBindings_.push_back(binding);
+    }
+    const std::vector<AutoMemberBinding>& autoMemberBindings() const { return autoMemberBindings_; }
+
     IdentifierRef uniqIdentifier(const uint32_t index) const
     {
         SWC_ASSERT(index < UNIQ_COUNT);
@@ -69,6 +87,7 @@ private:
     SymbolMap*                            symMap_ = nullptr;
     SmallVector<SymbolMap*>               usingSymMaps_;
     SmallVector<Symbol*>                  symbols_;
+    std::vector<AutoMemberBinding>        autoMemberBindings_;
     std::array<IdentifierRef, UNIQ_COUNT> uniqIdentifiers_ = {};
 };
 

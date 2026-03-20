@@ -1366,6 +1366,7 @@ struct AstWithStmt : AstNodeT<AstNodeId::WithStmt>
     AstNodeRef nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeBodyRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1376,6 +1377,7 @@ struct AstWithVarDecl : AstNodeT<AstNodeId::WithVarDecl>
     AstNodeRef nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeVarRef, nodeBodyRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

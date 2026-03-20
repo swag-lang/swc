@@ -1204,6 +1204,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 {
     CastKind  effectiveKind  = castKind;
     CastFlags effectiveFlags = castFlags;
+    const TypeRef srcTypeRef = view.typeRef();
 
     // `cast()` is an explicit user request to allow explicit casts later when the destination type becomes known.
     // Therefore, when we are about to apply a contextual cast on an `AutoCastExpr`, force the cast to be explicit
@@ -1222,7 +1223,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (view.cstRef().isValid() && sema.isFoldedTypedConst(view.nodeRef()))
         effectiveFlags.add(CastFlagsE::FoldedTypedConst);
 
-    if (view.typeRef() == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
+    if (srcTypeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
         return Result::Continue;
 
     CastRequest castRequest(effectiveKind);
@@ -1239,11 +1240,18 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     {
         if (castRequest.constantFoldingResult().isInvalid())
         {
-            if (castFlags.has(CastFlagsE::FromExplicitNode))
+            // A contextual cast can carry flags like `UfcsArgument` even when the
+            // source is already of the requested type. Re-wrapping the same node
+            // in that case causes reentrant cast growth on revisits.
+            if (srcTypeRef == dstTypeRef)
+            {
+                if (castFlags.has(CastFlagsE::FromExplicitNode))
+                    sema.setType(view.nodeRef(), dstTypeRef);
+            }
+            else if (castFlags.has(CastFlagsE::FromExplicitNode))
                 sema.setType(view.nodeRef(), dstTypeRef);
             else
             {
-                const TypeRef     srcTypeRef = view.typeRef();
                 const ConstantRef srcCstRef  = view.cstRef();
                 const AstNodeRef  srcNodeRef = view.nodeRef();
                 SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, srcNodeRef, srcTypeRef, dstTypeRef));

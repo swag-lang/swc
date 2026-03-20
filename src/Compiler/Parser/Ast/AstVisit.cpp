@@ -192,12 +192,12 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
 
         Frame childFrame;
         resetFrame(childFrame, childRef);
-        stack_.push_back(childFrame);
-
         frame.nextChildIx++;
         frame.pendingPostChild = true;
         frame.postChildState   = Frame::CallState::NotCalled;
         frame.preChildState    = Frame::CallState::NotCalled;
+        stack_.push_back(childFrame);
+        SWC_ASSERT(stack_.size() < 10000); // TEMP: fail
 
         return AstVisitResult::Continue;
     }

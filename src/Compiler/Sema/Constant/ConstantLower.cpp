@@ -100,14 +100,16 @@ namespace
         const TypeRef     elementTypeRef = typeInfo.payloadTypeRef();
         const TypeInfo&   elementType    = sema.typeMgr().get(elementTypeRef);
         const uint64_t    elementSize    = elementType.sizeOf(ctx);
-        if (!srcSlice->ptr)
+        if (srcSlice->count == 0)
         {
-            if (srcSlice->count != 0)
-                return Result::Error;
-
             dstSlice->ptr   = nullptr;
             dstSlice->count = 0;
             return Result::Continue;
+        }
+
+        if (!srcSlice->ptr)
+        {
+            return Result::Error;
         }
 
         if (!elementSize)
@@ -448,8 +450,8 @@ namespace
                 const ByteSpan  bytes       = cst.getSlice();
                 const TypeInfo& elementType = sema.typeMgr().get(dstType.payloadTypeRef());
                 const uint64_t  elementSize = elementType.sizeOf(sema.ctx());
-                rt.ptr                      = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(bytes.data()));
                 rt.count                    = elementSize ? bytes.size() / elementSize : 0;
+                rt.ptr                      = rt.count ? const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(bytes.data())) : nullptr;
             }
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
             return;

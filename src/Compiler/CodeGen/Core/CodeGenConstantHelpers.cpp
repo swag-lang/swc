@@ -231,7 +231,8 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (ConstantLower::materializeStaticPayload(offset, codeGen.sema(), segment, typeRef, payload) != Result::Continue)
         return ConstantRef::invalid();
 
-    const ByteSpan storedBytes{segment.ptr<std::byte>(offset), sizeOf};
+    SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
+    const ByteSpan storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
     if (typeInfo.isArray())
         return codeGen.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, typeRef, storedBytes));
 

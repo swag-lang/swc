@@ -62,6 +62,11 @@ namespace
     }
 }
 
+ByteSpan ConstantValue::normalizePayloadBytes(ByteSpan bytes) noexcept
+{
+    return bytes.empty() ? ByteSpan{} : bytes;
+}
+
 // ReSharper disable once CppPossiblyUninitializedMember
 ConstantValue::ConstantValue()
 {
@@ -436,7 +441,7 @@ ConstantValue ConstantValue::makeStruct(const TaskContext& ctx, TypeRef typeRef,
     ConstantValue cv;
     cv.typeRef_           = typeRef;
     cv.kind_              = ConstantKind::Struct;
-    cv.payloadStruct_.val = bytes;
+    cv.payloadStruct_.val = normalizePayloadBytes(bytes);
     cv.payloadBorrowed_   = false;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -448,7 +453,7 @@ ConstantValue ConstantValue::makeStructBorrowed(const TaskContext& ctx, TypeRef 
     ConstantValue cv;
     cv.typeRef_           = typeRef;
     cv.kind_              = ConstantKind::Struct;
-    cv.payloadStruct_.val = bytes;
+    cv.payloadStruct_.val = normalizePayloadBytes(bytes);
     cv.payloadBorrowed_   = true;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -460,7 +465,7 @@ ConstantValue ConstantValue::makeArray(const TaskContext& ctx, TypeRef typeRef, 
     ConstantValue cv;
     cv.typeRef_          = typeRef;
     cv.kind_             = ConstantKind::Array;
-    cv.payloadArray_.val = bytes;
+    cv.payloadArray_.val = normalizePayloadBytes(bytes);
     cv.payloadBorrowed_  = false;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -472,7 +477,7 @@ ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext& ctx, TypeRef t
     ConstantValue cv;
     cv.typeRef_          = typeRef;
     cv.kind_             = ConstantKind::Array;
-    cv.payloadArray_.val = bytes;
+    cv.payloadArray_.val = normalizePayloadBytes(bytes);
     cv.payloadBorrowed_  = true;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -541,7 +546,7 @@ ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSp
     const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
     cv.typeRef_          = ctx.typeMgr().addType(ty);
     cv.kind_             = ConstantKind::Slice;
-    cv.payloadSlice_.val = bytes;
+    cv.payloadSlice_.val = normalizePayloadBytes(bytes);
     cv.payloadBorrowed_  = false;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -553,7 +558,7 @@ ConstantValue ConstantValue::makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef
     const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
     cv.typeRef_          = ctx.typeMgr().addType(ty);
     cv.kind_             = ConstantKind::Slice;
-    cv.payloadSlice_.val = bytes;
+    cv.payloadSlice_.val = normalizePayloadBytes(bytes);
     cv.payloadBorrowed_  = true;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;

@@ -5,6 +5,14 @@ func pick(values: const [..] s32, idx: s32)->s32
     return values[idx]
 }
 
+func byteChecksum(values: const [..] u8)->u32
+{
+    var result: u32
+    foreach value in values do
+        result += cast(u32) value
+    return result
+}
+
 struct ProductLine
 {
     sku: string
@@ -60,6 +68,15 @@ func totalQty(lines: const [..] ProductLine)->s32
     @assert(@countof(tail) == 3)
     @assert(tail[0] == 'n''u8)
     @assert(tail[2] == 't''u8)
+}
+
+#test
+{
+    const emptyText = ""
+    const emptyBytes = cast(const [..] u8) emptyText
+
+    @assert(@countof(emptyBytes) == 0)
+    @assert(byteChecksum(emptyBytes) == 0'u32)
 }
 
 #test

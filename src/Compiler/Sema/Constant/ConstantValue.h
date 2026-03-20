@@ -231,11 +231,13 @@ public:
     bool     ge(const ConstantValue& rhs) const noexcept;
     Utf8     toString(const TaskContext& ctx) const;
 
-    void setPayloadSlice(ByteSpan bytes) { payloadSlice_.val = bytes; }
-    void setPayloadStruct(ByteSpan bytes) { payloadStruct_.val = bytes; }
-    void setPayloadArray(ByteSpan bytes) { payloadArray_.val = bytes; }
+    void setPayloadSlice(ByteSpan bytes) { payloadSlice_.val = normalizePayloadBytes(bytes); }
+    void setPayloadStruct(ByteSpan bytes) { payloadStruct_.val = normalizePayloadBytes(bytes); }
+    void setPayloadArray(ByteSpan bytes) { payloadArray_.val = normalizePayloadBytes(bytes); }
 
 private:
+    static ByteSpan normalizePayloadBytes(ByteSpan bytes) noexcept;
+
     ConstantKind kind_    = ConstantKind::Invalid;
     TypeRef      typeRef_ = TypeRef::invalid();
 

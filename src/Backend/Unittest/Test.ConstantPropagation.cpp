@@ -266,6 +266,31 @@ SWC_TEST_BEGIN(PagedStore_CopyToPreserveOffsetsKeepsSparseLayout)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PagedStore_EmptyCopySpanDoesNotAllocateStorage)
+{
+    PagedStore store(32);
+
+    const auto [emptySpan, emptyRef] = store.pushCopySpan(ByteSpan{});
+    if (emptyRef != INVALID_REF)
+        return Result::Error;
+    if (emptySpan.data() != nullptr || !emptySpan.empty())
+        return Result::Error;
+    if (store.size() != 0 || store.extentSize() != 0)
+        return Result::Error;
+
+    std::array<std::byte, 8> payload;
+    payload.fill(std::byte{0x5A});
+
+    const auto [storedSpan, storedRef] = store.pushCopySpan(ByteSpan{payload.data(), payload.size()});
+    if (storedRef != 0)
+        return Result::Error;
+    if (store.findRef(storedSpan.data() + storedSpan.size()) != INVALID_REF)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroConstantPropagation_DoesNotFoldUnsortedRelocationBackedStackCopy)
 {
     MicroBuilder       builder(ctx);

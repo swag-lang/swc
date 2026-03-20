@@ -96,6 +96,9 @@ void DataSegment::copyToPreserveOffsets(ByteSpanRW dst) const
 
 std::pair<uint32_t, std::byte*> DataSegment::reserveBytes(uint32_t size, uint32_t align, bool zeroInit)
 {
+    if (!size)
+        return {INVALID_REF, nullptr};
+
     const std::unique_lock         lock(mutex_);
     const std::pair<ByteSpan, Ref> res = store_.pushCopySpan(ByteSpan{static_cast<const std::byte*>(nullptr), size}, align);
     std::byte* const               ptr = store_.ptr<std::byte>(res.second);

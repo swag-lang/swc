@@ -58,7 +58,7 @@ public:
     std::pair<uint32_t, T*> reserveSpan(uint32_t count)
     {
         if (!count)
-            return {0, nullptr};
+            return {INVALID_REF, nullptr};
         std::unique_lock               lock(mutex_);
         const uint32_t                 bytes = static_cast<uint32_t>(sizeof(T)) * count;
         const std::pair<ByteSpan, Ref> res   = store_.pushCopySpan(ByteSpan{static_cast<const std::byte*>(nullptr), bytes}, static_cast<uint32_t>(alignof(T)));

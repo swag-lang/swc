@@ -184,6 +184,9 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
 
 std::pair<ByteSpan, Ref> PagedStore::pushCopySpan(ByteSpan payload, uint32_t align)
 {
+    if (payload.empty())
+        return {ByteSpan{}, INVALID_REF};
+
     auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), align);
     if (payload.data()) // TODO: define expectations for nullptr + nonzero size
         std::memcpy(dst, payload.data(), payload.size());
@@ -397,7 +400,8 @@ Ref PagedStore::findRef(const void* ptr) const noexcept
     for (uint32_t j = 0; j < pages->size(); j++)
     {
         const Page* page = (*pages)[j];
-        if (bPtr >= page->bytes() && bPtr < page->bytes() + pageSizeValue_)
+        const auto  pageUsed = page->used.load(std::memory_order_relaxed);
+        if (bPtr >= page->bytes() && bPtr < page->bytes() + pageUsed)
         {
             const auto offset = static_cast<uint32_t>(bPtr - page->bytes());
             return makeRef(pageSizeValue_, j, offset);

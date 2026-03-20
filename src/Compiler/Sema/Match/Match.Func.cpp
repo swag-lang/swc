@@ -1015,7 +1015,7 @@ namespace
 
             const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            CastFlags    flags = CastFlagsE::Zero;
+            CastFlags        flags = CastFlagsE::Zero;
             if (appliedUfcsArg.isValid() && i == 0)
                 flags.add(CastFlagsE::UfcsArgument);
             SWC_RESULT(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));
@@ -1264,7 +1264,7 @@ namespace
         {
             if (entry.argRef.isInvalid())
                 continue;
-            const AstNodeRef finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+            const AstNodeRef     finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
             ResolvedCallArgument resolvedArg{
                 .argRef   = finalArgRef,
                 .passKind = CallArgumentPassKind::Direct,

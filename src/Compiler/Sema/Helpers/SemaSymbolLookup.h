@@ -9,7 +9,7 @@ namespace SemaSymbolLookup
     template<typename T>
     bool hasConcreteFunctionCandidate(std::span<T> symbols)
     {
-        for (T const sym : symbols)
+        for (const T sym : symbols)
         {
             if (!sym || !sym->isFunction())
                 continue;
@@ -30,7 +30,7 @@ namespace SemaSymbolLookup
 
         if (!hasConcreteFunctionCandidate(inSymbols))
         {
-            for (T const sym : inSymbols)
+            for (const T sym : inSymbols)
             {
                 if (sym)
                     outSymbols.push_back(sym);
@@ -39,7 +39,7 @@ namespace SemaSymbolLookup
             return;
         }
 
-        for (T const sym : inSymbols)
+        for (const T sym : inSymbols)
         {
             if (!sym)
                 continue;
@@ -62,7 +62,7 @@ namespace SemaSymbolLookup
 
         // Currently, "callable" means "function symbol".
         // Extend here later for function pointers/delegates/call-operator types if needed.
-        for (T const sym : inSymbols)
+        for (const T sym : inSymbols)
         {
             if (sym && sym->isFunction())
                 outSymbols.push_back(sym);

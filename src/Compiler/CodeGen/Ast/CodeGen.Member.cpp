@@ -95,9 +95,9 @@ namespace
         const auto& types = aggregateType.payloadAggregate().types;
         SWC_ASSERT(names.size() == types.size());
 
-        const IdentifierRef    idRef   = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), codeGen.node(memberRef).codeRef());
-        const std::string_view idName  = codeGen.sema().idMgr().get(idRef).name;
-        uint64_t               offset  = 0;
+        const IdentifierRef    idRef  = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), codeGen.node(memberRef).codeRef());
+        const std::string_view idName = codeGen.sema().idMgr().get(idRef).name;
+        uint64_t               offset = 0;
 
         for (size_t i = 0; i < types.size(); ++i)
         {

@@ -1202,9 +1202,9 @@ TypeRef Cast::castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTyp
 
 Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
 {
-    CastKind  effectiveKind  = castKind;
-    CastFlags effectiveFlags = castFlags;
-    const TypeRef srcTypeRef = view.typeRef();
+    CastKind      effectiveKind  = castKind;
+    CastFlags     effectiveFlags = castFlags;
+    const TypeRef srcTypeRef     = view.typeRef();
 
     // `cast()` is an explicit user request to allow explicit casts later when the destination type becomes known.
     // Therefore, when we are about to apply a contextual cast on an `AutoCastExpr`, force the cast to be explicit

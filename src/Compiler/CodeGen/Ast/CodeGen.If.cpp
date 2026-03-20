@@ -36,7 +36,7 @@ namespace
 
     void emitIfStmtCondition(CodeGen& codeGen, AstNodeRef ifRef, const CodeGenNodePayload& conditionPayload, TypeRef conditionTypeRef, bool hasElseBlock)
     {
-        MicroBuilder&         builder = codeGen.builder();
+        MicroBuilder&        builder = codeGen.builder();
         IfStmtCodeGenPayload state;
         state.falseLabel   = builder.createLabel();
         state.doneLabel    = builder.createLabel();
@@ -119,7 +119,7 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
     if (resolvedWhereRef.isInvalid() && resolvedVarRef.isValid() && resolvedChildRef == resolvedVarRef)
     {
-        const SymbolVariable& symVar            = ifVarDeclConditionSymbol(codeGen, resolvedVarRef);
+        const SymbolVariable& symVar           = ifVarDeclConditionSymbol(codeGen, resolvedVarRef);
         const auto*           conditionPayload = CodeGen::variablePayload(symVar);
         SWC_ASSERT(conditionPayload != nullptr);
         emitIfStmtCondition(codeGen, ifRef, *conditionPayload, symVar.typeRef(), resolvedElseBlockRef.isValid());

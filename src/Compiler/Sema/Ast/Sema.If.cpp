@@ -240,8 +240,8 @@ Result AstWithStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    const AstNodeRef baseExprRef = withBindingExprRef(sema, nodeExprRef);
-    const SemaNodeView exprView  = sema.viewNodeTypeSymbol(baseExprRef);
+    const AstNodeRef   baseExprRef = withBindingExprRef(sema, nodeExprRef);
+    const SemaNodeView exprView    = sema.viewNodeTypeSymbol(baseExprRef);
 
     auto       scopedFrame = sema.frame();
     SemaScope* bodyScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);

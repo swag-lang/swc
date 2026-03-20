@@ -56,7 +56,7 @@ namespace SemaHelpers
     template<typename T>
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
     {
-        TaskContext& ctx = sema.ctx();
+        TaskContext&        ctx   = sema.ctx();
         const IdentifierRef idRef = resolveIdentifier(sema, {node.srcViewRef(), tokNameRef});
 
         const SymbolFlags flags = sema.frame().flagsForCurrentAccess();

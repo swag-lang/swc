@@ -714,7 +714,7 @@ namespace
 
     void appendColored(Utf8& out, const TaskContext& ctx, SyntaxColor color, std::string_view value)
     {
-        const auto& langSpec = ctx.global().langSpec();
+        const auto& langSpec       = ctx.global().langSpec();
         SyntaxColor effectiveColor = color;
         if (color == SyntaxColor::Register && hasVirtualRegisterToken(langSpec, value))
             effectiveColor = SyntaxColor::RegisterVirtual;
@@ -726,9 +726,9 @@ namespace
 
     void appendNaturalColumn(Utf8& out, const TaskContext& ctx, Utf8 value, const std::unordered_set<Utf8>& concreteRegs, const std::unordered_set<Utf8>& virtualRegs, const std::optional<Utf8>& jumpTargetInstIndex)
     {
-        const auto& langSpec      = ctx.global().langSpec();
-        size_t jumpTargetIndexStart = std::string_view::npos;
-        bool   expectCallTarget     = false;
+        const auto& langSpec             = ctx.global().langSpec();
+        size_t      jumpTargetIndexStart = std::string_view::npos;
+        bool        expectCallTarget     = false;
         if (jumpTargetInstIndex)
         {
             value += " ";

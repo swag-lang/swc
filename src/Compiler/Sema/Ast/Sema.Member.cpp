@@ -21,25 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool parsePositionalMemberIndex(std::string_view name, size_t& outIndex)
-    {
-        if (!name.starts_with("item"))
-            return false;
-        if (name.size() <= 4)
-            return false;
-
-        size_t value = 0;
-        for (const char c : name.substr(4))
-        {
-            if (c < '0' || c > '9')
-                return false;
-            value = value * 10 + static_cast<size_t>(c - '0');
-        }
-
-        outIndex = value;
-        return true;
-    }
-
     TypeRef memberRuntimeStorageTypeRef(Sema& sema)
     {
         SmallVector<uint64_t> dims;
@@ -100,19 +81,6 @@ namespace
     }
 }
 
-const Symbol* SemaMemberAccess::lookupStructPositionalAlias(Sema& sema, const SymbolStruct& symStruct, IdentifierRef idRef)
-{
-    size_t positionalIndex = 0;
-    if (!parsePositionalMemberIndex(sema.idMgr().get(idRef).name, positionalIndex))
-        return nullptr;
-
-    const auto& fields = symStruct.fields();
-    if (positionalIndex >= fields.size() || !fields[positionalIndex])
-        return nullptr;
-
-    return fields[positionalIndex];
-}
-
 bool SemaMemberAccess::resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggregateType, IdentifierRef idRef, size_t& outIndex)
 {
     if (!aggregateType.isAggregateStruct())
@@ -128,7 +96,7 @@ bool SemaMemberAccess::resolveAggregateMemberIndex(Sema& sema, const TypeInfo& a
             return true;
         }
 
-        if (idName == ("item" + std::to_string(i)))
+        if (!names[i].isValid() && idName == ("item" + std::to_string(i)))
         {
             outIndex = i;
             return true;
@@ -190,19 +158,9 @@ namespace
         lookUpCxt.symMapHint = &symStruct;
 
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
-        SmallVector<const Symbol*> aliasSymbols;
-        std::span<const Symbol*>   matchedSymbols = lookUpCxt.symbols().span();
-        if (matchedSymbols.empty())
-        {
-            if (const Symbol* aliasSymbol = SemaMemberAccess::lookupStructPositionalAlias(sema, symStruct, idRef))
-            {
-                aliasSymbols.push_back(aliasSymbol);
-                matchedSymbols = aliasSymbols.span();
-            }
-        }
 
         // Bind member-access node (curNodeRef) and RHS identifier.
-        SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, matchedSymbols));
+        SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
 
         // Constant struct member access
         const SemaNodeView       nodeRightView = sema.viewSymbolList(node.nodeRightRef);

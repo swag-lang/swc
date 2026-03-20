@@ -42,7 +42,7 @@ namespace
     {
         while (!output.empty() && (output.back() == '\n' || output.back() == '\r'))
             output.remove_suffix(1);
-        return Utf8(output);
+        return {output};
     }
 }
 

@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Compiler/Sema/Ast/Sema.MemberAccess.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.MemberAccess.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -219,10 +219,10 @@ namespace
     {
         outCandidates.clear();
 
-        SmallVector<const SymbolVariable*>     bindingVars;
-        SmallVector<TypeRef>                   bindingTypes;
+        SmallVector<const SymbolVariable*>        bindingVars;
+        SmallVector<TypeRef>                      bindingTypes;
         SmallVector<SemaScope::AutoMemberBinding> autoMemberBindings;
-        const SemaFrame&                       frame = sema.frame();
+        const SemaFrame&                          frame = sema.frame();
 
         // Frame state is inherited when pushing nested semantic frames, so the
         // current frame already contains the active auto-scope context.
@@ -312,18 +312,6 @@ namespace
                 m.candidate = candidate;
                 m.symbols   = lookUpCxt.symbols();
                 outMatches.push_back(std::move(m));
-            }
-            else if (candidate.symMap->isStruct())
-            {
-                SmallVector<const Symbol*> aliasSymbols;
-                if (const Symbol* aliasSymbol = SemaMemberAccess::lookupStructPositionalAlias(sema, candidate.symMap->cast<SymbolStruct>(), idRef))
-                {
-                    AutoMemberMatch m;
-                    m.candidate = candidate;
-                    aliasSymbols.push_back(aliasSymbol);
-                    m.symbols = std::move(aliasSymbols);
-                    outMatches.push_back(std::move(m));
-                }
             }
         }
 
@@ -435,9 +423,9 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
         SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));
 
-        AstMemberAccessExpr* substituteNode = nullptr;
-        const AstNodeRef     nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), selected, nodeIdentRef, substituteNode);
-        const std::span<Symbol*> symbols = sema.curViewSymbolList().symList();
+        AstMemberAccessExpr*     substituteNode = nullptr;
+        const AstNodeRef         nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), selected, nodeIdentRef, substituteNode);
+        const std::span<Symbol*> symbols        = sema.curViewSymbolList().symList();
         sema.setSymbolList(nodeRef, symbols);
         sema.setSymbolList(nodeIdentRef, symbols);
 

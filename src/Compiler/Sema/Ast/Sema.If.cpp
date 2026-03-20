@@ -99,7 +99,7 @@ namespace
         if (typeInfo.isStruct() || typeInfo.isAggregateStruct() || typeInfo.isEnum())
         {
             if (typeInfo.isEnum())
-                bodyScope.addUsingSymMap(const_cast<SymbolMap*>(typeInfo.payloadSymEnum().asSymMap()));
+                bodyScope.addUsingSymMap(typeInfo.payloadSymEnum().asSymMap());
 
             if (SymbolVariable* symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
                 symVar &&

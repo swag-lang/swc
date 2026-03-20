@@ -110,7 +110,7 @@ namespace
             bool found = false;
             if (names[i].isValid() && names[i] == idRef)
                 found = true;
-            else if (idName == ("item" + std::to_string(i)))
+            else if (!names[i].isValid() && idName == ("item" + std::to_string(i)))
                 found = idName == ("item" + std::to_string(i));
 
             if (found)

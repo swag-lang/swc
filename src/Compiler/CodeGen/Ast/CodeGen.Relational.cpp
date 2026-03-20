@@ -19,8 +19,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void materializeCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef compareTypeRef);
-
     bool hasPreparedRuntimeStringCompare(CodeGen& codeGen)
     {
         const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
@@ -46,84 +44,6 @@ namespace
         preparedArg.isAddressed = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
         preparedArg.numBits     = normalizedArg.numBits;
         outArgs.push_back(preparedArg);
-    }
-
-    Result emitStringCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
-    {
-        SymbolFunction* stringCmpSymbol = nullptr;
-        if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef()); payload && payload->runtimeFunctionSymbol != nullptr)
-        {
-            stringCmpSymbol = payload->runtimeFunctionSymbol;
-        }
-        else
-        {
-            const IdentifierRef idRef = codeGen.idMgr().predefined(IdentifierManager::PredefinedName::RuntimeStringCmp);
-            if (idRef.isValid())
-                stringCmpSymbol = codeGen.compiler().runtimeFunctionSymbol(idRef);
-        }
-
-        SWC_ASSERT(stringCmpSymbol != nullptr);
-        if (!stringCmpSymbol)
-            return Result::Error;
-
-        auto&                             stringCmpFunction = *stringCmpSymbol;
-        const CallConvKind                callConvKind      = stringCmpFunction.callConvKind();
-        const CallConv&                   callConv          = CallConv::get(callConvKind);
-        const auto&                       params            = stringCmpFunction.parameters();
-        SmallVector<ABICall::PreparedArg> preparedArgs;
-        preparedArgs.reserve(2);
-
-        SWC_ASSERT(params.size() >= 2);
-        SWC_ASSERT(params[0] != nullptr);
-        SWC_ASSERT(params[1] != nullptr);
-        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, leftPayload, params[0]->typeRef());
-        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, rightPayload, params[1]->typeRef());
-
-        MicroBuilder&               builder      = codeGen.builder();
-        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
-        if (stringCmpFunction.isForeign())
-            ABICall::callExtern(builder, callConvKind, &stringCmpFunction, preparedCall);
-        else
-            ABICall::callLocal(builder, callConvKind, &stringCmpFunction, preparedCall);
-
-        const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
-        SWC_ASSERT(!normalizedRet.isVoid);
-        SWC_ASSERT(!normalizedRet.isIndirect);
-        SWC_ASSERT(normalizedRet.numBits == 8);
-        ABICall::materializeReturnToReg(builder, resultPayload.reg, callConvKind, normalizedRet);
-
-        const MicroCond cond = tokId == TokenId::SymEqualEqual ? MicroCond::NotEqual : MicroCond::Equal;
-        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
-        builder.emitSetCondReg(resultPayload.reg, cond);
-        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
-        return Result::Continue;
-    }
-
-    Result emitTypeInfoCompareBool(CodeGen&                  codeGen,
-                                   TokenId                   tokId,
-                                   const CodeGenNodePayload& leftPayload,
-                                   TypeRef                   leftOperandTypeRef,
-                                   const CodeGenNodePayload& rightPayload,
-                                   TypeRef                   rightOperandTypeRef,
-                                   TypeRef                   compareTypeRef)
-    {
-        MicroReg leftPtrReg, rightPtrReg;
-        materializeCompareOperand(leftPtrReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
-        materializeCompareOperand(rightPtrReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
-
-        MicroBuilder&  builder     = codeGen.builder();
-        const MicroReg leftCrcReg  = codeGen.nextVirtualIntRegister();
-        const MicroReg rightCrcReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(leftCrcReg, leftPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
-        builder.emitLoadRegMem(rightCrcReg, rightPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
-
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        resultPayload.reg                 = codeGen.nextVirtualIntRegister();
-        builder.emitCmpRegReg(leftCrcReg, rightCrcReg, MicroOpBits::B32);
-        builder.emitSetCondReg(resultPayload.reg, tokId == TokenId::SymEqualEqual ? MicroCond::Equal : MicroCond::NotEqual);
-        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
-        return Result::Continue;
     }
 
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, const SemaNodeView& leftView, const SemaNodeView& rightView)
@@ -239,6 +159,84 @@ namespace
     {
         loadCompareOperand(outReg, codeGen, operandPayload, operandTypeRef);
         convertCompareOperand(outReg, codeGen, operandTypeRef, compareTypeRef);
+    }
+
+    Result emitStringCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
+    {
+        SymbolFunction* stringCmpSymbol = nullptr;
+        if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef()); payload && payload->runtimeFunctionSymbol != nullptr)
+        {
+            stringCmpSymbol = payload->runtimeFunctionSymbol;
+        }
+        else
+        {
+            const IdentifierRef idRef = codeGen.idMgr().predefined(IdentifierManager::PredefinedName::RuntimeStringCmp);
+            if (idRef.isValid())
+                stringCmpSymbol = codeGen.compiler().runtimeFunctionSymbol(idRef);
+        }
+
+        SWC_ASSERT(stringCmpSymbol != nullptr);
+        if (!stringCmpSymbol)
+            return Result::Error;
+
+        auto&                             stringCmpFunction = *stringCmpSymbol;
+        const CallConvKind                callConvKind      = stringCmpFunction.callConvKind();
+        const CallConv&                   callConv          = CallConv::get(callConvKind);
+        const auto&                       params            = stringCmpFunction.parameters();
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(2);
+
+        SWC_ASSERT(params.size() >= 2);
+        SWC_ASSERT(params[0] != nullptr);
+        SWC_ASSERT(params[1] != nullptr);
+        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, leftPayload, params[0]->typeRef());
+        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, rightPayload, params[1]->typeRef());
+
+        MicroBuilder&               builder      = codeGen.builder();
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        if (stringCmpFunction.isForeign())
+            ABICall::callExtern(builder, callConvKind, &stringCmpFunction, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &stringCmpFunction, preparedCall);
+
+        const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, stringCmpFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!normalizedRet.isVoid);
+        SWC_ASSERT(!normalizedRet.isIndirect);
+        SWC_ASSERT(normalizedRet.numBits == 8);
+        ABICall::materializeReturnToReg(builder, resultPayload.reg, callConvKind, normalizedRet);
+
+        const MicroCond cond = tokId == TokenId::SymEqualEqual ? MicroCond::NotEqual : MicroCond::Equal;
+        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitSetCondReg(resultPayload.reg, cond);
+        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        return Result::Continue;
+    }
+
+    Result emitTypeInfoCompareBool(CodeGen&                  codeGen,
+                                   TokenId                   tokId,
+                                   const CodeGenNodePayload& leftPayload,
+                                   TypeRef                   leftOperandTypeRef,
+                                   const CodeGenNodePayload& rightPayload,
+                                   TypeRef                   rightOperandTypeRef,
+                                   TypeRef                   compareTypeRef)
+    {
+        MicroReg leftPtrReg, rightPtrReg;
+        materializeCompareOperand(leftPtrReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
+        materializeCompareOperand(rightPtrReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
+
+        MicroBuilder&  builder     = codeGen.builder();
+        const MicroReg leftCrcReg  = codeGen.nextVirtualIntRegister();
+        const MicroReg rightCrcReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(leftCrcReg, leftPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
+        builder.emitLoadRegMem(rightCrcReg, rightPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        resultPayload.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitCmpRegReg(leftCrcReg, rightCrcReg, MicroOpBits::B32);
+        builder.emitSetCondReg(resultPayload.reg, tokId == TokenId::SymEqualEqual ? MicroCond::Equal : MicroCond::NotEqual);
+        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        return Result::Continue;
     }
 
     void widenCompareRegsIfNeeded(MicroReg& leftReg, MicroReg& rightReg, CodeGen& codeGen, const TypeInfo& compareType, MicroOpBits& ioOpBits)

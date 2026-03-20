@@ -161,7 +161,21 @@ namespace
         return typeInfo.payloadSymFunction();
     }
 
-    void registerRuntimeFunctionSymbol(Sema& sema, SymbolFunction& sym);
+    void registerRuntimeFunctionSymbol(Sema& sema, SymbolFunction& sym)
+    {
+        const SourceFile* file = sema.file();
+        if (!file || !file->isRuntime())
+            return;
+
+        if (sym.isForeign() || sym.isEmpty())
+            return;
+
+        const auto kind = sema.idMgr().runtimeFunctionKind(sym.idRef());
+        if (kind == IdentifierManager::RuntimeFunctionKind::Count)
+            return;
+
+        sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
+    }
 
     TypeRef unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
     {
@@ -979,22 +993,6 @@ namespace
             symMe->setDeclared(ctx);
             symMe->setTyped(ctx);
         }
-    }
-
-    void registerRuntimeFunctionSymbol(Sema& sema, SymbolFunction& sym)
-    {
-        const SourceFile* file = sema.file();
-        if (!file || !file->isRuntime())
-            return;
-
-        if (sym.isForeign() || sym.isEmpty())
-            return;
-
-        const auto kind = sema.idMgr().runtimeFunctionKind(sym.idRef());
-        if (kind == IdentifierManager::RuntimeFunctionKind::Count)
-            return;
-
-        sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
     }
 
     Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)

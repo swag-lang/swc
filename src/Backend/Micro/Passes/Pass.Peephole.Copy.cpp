@@ -9,8 +9,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool classifyRegUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg reg, bool& outUse, bool& outDef);
-    void classifyCopyRegsUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg copyDstReg, MicroReg copySrcReg, bool& outHasUse, bool& outHasDef, bool& outSrcDef);
+    bool classifyRegUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg reg, bool& outUse, bool& outDef)
+    {
+        outUse = false;
+        outDef = false;
+
+        if (!reg.isValid() || reg.isNoBase())
+            return false;
+
+        const MicroInstrUseDef useDef = inst.collectUseDef(*context.operands, context.encoder);
+        outUse                        = microRegSpanContains(useDef.uses, reg);
+        outDef                        = microRegSpanContains(useDef.defs, reg);
+
+        return outUse || outDef;
+    }
+
+    void classifyCopyRegsUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg copyDstReg, MicroReg copySrcReg, bool& outHasUse, bool& outHasDef, bool& outSrcDef)
+    {
+        outHasUse = false;
+        outHasDef = false;
+        outSrcDef = false;
+
+        classifyRegUseDef(context, inst, copyDstReg, outHasUse, outHasDef);
+
+        bool srcUse = false;
+        classifyRegUseDef(context, inst, copySrcReg, srcUse, outSrcDef);
+        SWC_UNUSED(srcUse);
+    }
 
     bool forwardCopyIntoNextBinarySource(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
@@ -384,34 +409,6 @@ namespace
         }
 
         return false;
-    }
-
-    bool classifyRegUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg reg, bool& outUse, bool& outDef)
-    {
-        outUse = false;
-        outDef = false;
-
-        if (!reg.isValid() || reg.isNoBase())
-            return false;
-
-        const MicroInstrUseDef useDef = inst.collectUseDef(*context.operands, context.encoder);
-        outUse                        = microRegSpanContains(useDef.uses, reg);
-        outDef                        = microRegSpanContains(useDef.defs, reg);
-
-        return outUse || outDef;
-    }
-
-    void classifyCopyRegsUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg copyDstReg, MicroReg copySrcReg, bool& outHasUse, bool& outHasDef, bool& outSrcDef)
-    {
-        outHasUse = false;
-        outHasDef = false;
-        outSrcDef = false;
-
-        classifyRegUseDef(context, inst, copyDstReg, outHasUse, outHasDef);
-
-        bool srcUse = false;
-        classifyRegUseDef(context, inst, copySrcReg, srcUse, outSrcDef);
-        SWC_UNUSED(srcUse);
     }
 
     bool rewriteAccumulatorInstruction(const MicroInstr& inst, MicroInstrOperand* instOps, MicroReg fromReg, MicroReg toReg)

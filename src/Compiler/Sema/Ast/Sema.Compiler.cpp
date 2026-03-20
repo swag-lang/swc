@@ -72,8 +72,6 @@ namespace
         }
     }
 
-    AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef);
-
     constexpr Runtime::TargetOs nativeTargetOs()
     {
 #ifdef _WIN32
@@ -154,22 +152,6 @@ namespace
         return sema.typeMgr().addType(TypeInfo::makeCodeBlock(payloadTypeRef));
     }
 
-    Result validateInjectArgument(Sema& sema, AstNodeRef nodeRef)
-    {
-        const AstNodeRef rawRef = rawInjectedNodeRef(sema, nodeRef);
-        if (rawRef != nodeRef)
-            return Result::Continue;
-
-        const TypeRef typeRef = sema.viewType(nodeRef).typeRef();
-        if (typeRef.isValid() && sema.typeMgr().get(typeRef).isCodeBlock())
-            return Result::Continue;
-
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_inject_requires_code, nodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, typeRef.isValid() ? sema.typeMgr().get(typeRef).toName(sema.ctx()) : Utf8{"<unknown>"});
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
     AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef)
     {
         AstNodeRef       resultRef   = nodeRef;
@@ -184,6 +166,22 @@ namespace
             return resultNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
 
         return resultRef;
+    }
+
+    Result validateInjectArgument(Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNodeRef rawRef = rawInjectedNodeRef(sema, nodeRef);
+        if (rawRef != nodeRef)
+            return Result::Continue;
+
+        const TypeRef typeRef = sema.viewType(nodeRef).typeRef();
+        if (typeRef.isValid() && sema.typeMgr().get(typeRef).isCodeBlock())
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_inject_requires_code, nodeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef.isValid() ? sema.typeMgr().get(typeRef).toName(sema.ctx()) : Utf8{"<unknown>"});
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     AstNodeId injectReplacementNodeId(TokenId tokenId)

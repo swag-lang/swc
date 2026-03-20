@@ -12,6 +12,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    MicroReg copyAddressBaseReg(CodeGen& codeGen, const MicroReg baseReg)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        const auto    copyReg = codeGen.nextVirtualIntRegister();
+        if (baseReg.isInt())
+            builder.addVirtualRegForbiddenPhysReg(copyReg, baseReg);
+        builder.emitLoadRegReg(copyReg, baseReg, MicroOpBits::B64);
+        return copyReg;
+    }
+
     MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits)
     {
         const CodeGenNodePayload& indexPayload = codeGen.payload(indexRef);
@@ -154,7 +164,14 @@ namespace
     {
         auto           indexBits = MicroOpBits::B64;
         const MicroReg indexReg  = materializeIndexReg(codeGen, indexRef, indexBits);
-        const MicroReg baseReg   = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
+        MicroReg       baseReg   = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
+
+        if (indexedType.isArray() && indexedPayload.isAddress())
+        {
+            const CodeGenNodePayload& indexPayload = codeGen.payload(indexRef);
+            if (indexPayload.isAddress())
+                baseReg = copyAddressBaseReg(codeGen, baseReg);
+        }
 
         // Multidimensional indexing is just repeated address computation with the stride of the current
         // element type.

@@ -7,14 +7,14 @@ SWC_BEGIN_NAMESPACE();
 namespace SemaSymbolLookup
 {
     template<typename T>
-    inline bool hasConcreteFunctionCandidate(std::span<T> symbols)
+    bool hasConcreteFunctionCandidate(std::span<T> symbols)
     {
         for (T const sym : symbols)
         {
             if (!sym || !sym->isFunction())
                 continue;
 
-            const auto& fn = sym->cast<SymbolFunction>();
+            const auto& fn = sym->template cast<SymbolFunction>();
             if (!fn.isEmpty())
                 return true;
         }
@@ -23,7 +23,7 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
-    inline void removeEmptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
+    void removeEmptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
     {
         outSymbols.clear();
         outSymbols.reserve(inSymbols.size());
@@ -46,7 +46,7 @@ namespace SemaSymbolLookup
 
             if (sym->isFunction())
             {
-                const auto& fn = sym->cast<SymbolFunction>();
+                const auto& fn = sym->template cast<SymbolFunction>();
                 if (!fn.isForeign() && fn.isEmpty())
                     continue;
             }
@@ -56,7 +56,7 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
-    inline bool filterCallCalleeCandidates(std::span<T> inSymbols, SmallVector<T>& outSymbols)
+    bool filterCallCalleeCandidates(std::span<T> inSymbols, SmallVector<T>& outSymbols)
     {
         outSymbols.clear();
 
@@ -72,7 +72,7 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
-    inline Result bindResolvedSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<T> foundSymbols)
+    Result bindResolvedSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<T> foundSymbols)
     {
         SmallVector<T> filteredSymbols;
         removeEmptyFunctionDeclarations(foundSymbols, filteredSymbols);
@@ -100,7 +100,7 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
-    inline Result bindSymbolList(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<T> symbols)
+    Result bindSymbolList(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<T> symbols)
     {
         SmallVector<T> filteredSymbols;
         removeEmptyFunctionDeclarations(symbols, filteredSymbols);

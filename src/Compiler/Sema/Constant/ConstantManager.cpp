@@ -40,6 +40,26 @@ std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_
 
 namespace
 {
+    uint32_t resolveBorrowedPayloadShardIndex(const ConstantManager& manager, const ConstantValue& value)
+    {
+        const void* payloadPtr = nullptr;
+        if (value.isStruct())
+            payloadPtr = value.getStruct().data();
+        else if (value.isArray())
+            payloadPtr = value.getArray().data();
+        else if (value.isSlice())
+            payloadPtr = value.getSlice().data();
+
+        if (!payloadPtr)
+            return ConstantManager::SHARD_COUNT;
+
+        uint32_t shardIndex = 0;
+        if (manager.findDataSegmentRef(shardIndex, payloadPtr) == INVALID_REF)
+            return ConstantManager::SHARD_COUNT;
+
+        return shardIndex;
+    }
+
     ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
     {
 #if SWC_HAS_STATS
@@ -143,7 +163,14 @@ namespace
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
-    const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
+    uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
+    if ((value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed())
+    {
+        const uint32_t payloadShardIndex = resolveBorrowedPayloadShardIndex(*this, value);
+        if (payloadShardIndex < SHARD_COUNT)
+            shardIndex = payloadShardIndex;
+    }
+
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
 

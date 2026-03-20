@@ -591,6 +591,9 @@ namespace
         const MicroReg    tmpReg       = ops[0].reg;
         const MicroReg    baseReg      = ops[1].reg;
         const uint64_t    offset       = nextOps[3].valueU64;
+        if (tmpReg == baseReg)
+            return false;
+
         const MicroReg    originalDst  = nextOps[0].reg;
         const MicroOpBits originalBits = nextOps[1].opBits;
         const MicroOp     originalOp   = nextOps[2].microOp;
@@ -1004,6 +1007,8 @@ namespace
             return false;
         if (nextOps[1].reg != tmpReg)
             return false;
+        if (nextOps[0].reg == ops[1].reg)
+            return false;
         if (ops[2].opBits != nextOps[2].opBits)
             return false;
         if (ops[2].opBits != MicroOpBits::B64)
@@ -1376,6 +1381,8 @@ namespace
             if (hasTmpUse)
             {
                 if (baseWasRedefined)
+                    return false;
+                if (hasBaseDef)
                     return false;
 
                 uint8_t baseIndex   = 0;

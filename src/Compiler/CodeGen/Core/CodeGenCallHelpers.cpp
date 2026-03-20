@@ -208,14 +208,26 @@ namespace
                 return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, cst.getEnumValue());
 
             case ConstantKind::Struct:
-                builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(cst.getStruct().data()), cstRef);
+            {
+                const ConstantRef safeCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, targetTypeRef.isValid() ? targetTypeRef : cst.typeRef());
+                if (safeCstRef.isInvalid())
+                    return false;
+                const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);
+                builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(safeCst.getStruct().data()), safeCstRef);
                 outPayload.setIsAddress();
                 return true;
+            }
 
             case ConstantKind::Array:
-                builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(cst.getArray().data()), cstRef);
+            {
+                const ConstantRef safeCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, targetTypeRef.isValid() ? targetTypeRef : cst.typeRef());
+                if (safeCstRef.isInvalid())
+                    return false;
+                const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);
+                builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(safeCst.getArray().data()), safeCstRef);
                 outPayload.setIsAddress();
                 return true;
+            }
 
             case ConstantKind::Slice:
             {
@@ -225,7 +237,11 @@ namespace
                 const TypeInfo&   elementType     = codeGen.typeMgr().get(sliceType.payloadTypeRef());
                 const uint64_t    elementSize     = elementType.sizeOf(codeGen.ctx());
                 const uint64_t    elementCount    = elementSize ? sliceBytes.size() / elementSize : 0;
-                const ConstantRef runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, sliceBytes.data(), elementCount);
+                const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
+                if (safeArrayCstRef.isInvalid())
+                    return false;
+                const ConstantValue& safeArrayCst = codeGen.cstMgr().get(safeArrayCstRef);
+                const ConstantRef runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, safeArrayCst.getArray().data(), elementCount);
                 if (runtimeSliceRef.isInvalid())
                     return false;
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);

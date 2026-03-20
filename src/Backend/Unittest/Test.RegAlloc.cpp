@@ -44,6 +44,8 @@ namespace
 
                 if (reg.isInt())
                 {
+                    if (reg == conv.stackPointer || reg == conv.framePointer)
+                        continue;
                     if (std::ranges::find(conv.intRegs, reg) == conv.intRegs.end())
                         return Result::Error;
                 }

@@ -5,6 +5,20 @@ func pick(values: const [..] s32, idx: s32)->s32
     return values[idx]
 }
 
+struct ProductLine
+{
+    sku: string
+    qty: s32
+}
+
+func totalQty(lines: const [..] ProductLine)->s32
+{
+    var result: s32
+    foreach line in lines do
+        result += line.qty
+    return result
+}
+
 #test
 {
     const s: const [..] s32 = [1, 2, 3]
@@ -46,4 +60,20 @@ func pick(values: const [..] s32, idx: s32)->s32
     @assert(@countof(tail) == 3)
     @assert(tail[0] == 'n''u8)
     @assert(tail[2] == 't''u8)
+}
+
+#test
+{
+    const lines: [2] ProductLine =
+    [
+        {sku: "keyboard", qty: 1},
+        {sku: "cable", qty: 3},
+    ]
+
+    const view: const [..] ProductLine = lines
+    @assert(@countof(view) == 2)
+    @assert(view[0].sku == "keyboard")
+    @assert(view[1].sku == "cable")
+    @assert(view[1].qty == 3)
+    @assert(totalQty(lines) == 4)
 }

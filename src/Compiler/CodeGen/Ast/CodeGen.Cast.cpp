@@ -132,8 +132,10 @@ namespace
             const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
             if (srcConst.isArray())
             {
-                const ByteSpan    arrayBytes      = srcConst.getArray();
-                const ConstantRef runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), elementCount);
+                const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, srcConstView.cstRef(), srcConst.typeRef());
+                SWC_ASSERT(safeArrayCstRef.isValid());
+                const ConstantValue& safeArrayCst = codeGen.cstMgr().get(safeArrayCstRef);
+                const ConstantRef runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, safeArrayCst.getArray().data(), elementCount);
                 SWC_ASSERT(runtimeSliceRef.isValid());
                 const ConstantValue&      runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
                 const CodeGenNodePayload& dstPayload      = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -77,9 +78,21 @@ namespace
             return false;
 
         SWC_ASSERT(payloadBytes.size() == localSize);
+        const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, symVar.typeRef());
+        if (safeDefaultValueRef.isInvalid())
+            return false;
+
+        const ConstantValue& safeDefaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
+        if (safeDefaultValue.isStruct())
+            payloadBytes = safeDefaultValue.getStruct();
+        else if (safeDefaultValue.isArray())
+            payloadBytes = safeDefaultValue.getArray();
+        else
+            return false;
+
         MicroBuilder&  builder    = codeGen.builder();
         const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), defaultValueRef);
+        builder.emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
         CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, payloadReg, localSize);
         return true;
     }

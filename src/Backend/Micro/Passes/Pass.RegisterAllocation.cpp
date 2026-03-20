@@ -111,6 +111,23 @@ bool MicroRegisterAllocationPass::isLiveInAt(MicroReg key, uint32_t instructionI
     return DenseBits::contains(liveInRow, denseIndex);
 }
 
+bool MicroRegisterAllocationPass::isConcreteLiveInAt(MicroReg key, uint32_t instructionIndex) const
+{
+    if (instructionIndex >= instructionCount_)
+        return false;
+
+    const uint32_t denseIndex = denseConcreteRegs_.find(key);
+    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
+        return false;
+
+    const uint32_t wordCount = denseConcreteRegs_.wordCount();
+    if (!wordCount)
+        return false;
+
+    const std::span<const uint64_t> liveInRow = DenseBits::row(liveInConcreteBits_, instructionIndex, wordCount);
+    return DenseBits::contains(liveInRow, denseIndex);
+}
+
 bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const
 {
     if (!physReg.isInt() && !physReg.isFloat())
@@ -130,6 +147,7 @@ bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKe
 bool MicroRegisterAllocationPass::tryTakeAllowedPhysical(SmallVector<MicroReg>& pool,
                                                          MicroReg               virtKey,
                                                          uint32_t               instructionIndex,
+                                                         MicroRegSpan           forbiddenPhysRegs,
                                                          bool                   allowConcreteLive,
                                                          MicroReg&              outPhys) const
 {
@@ -137,6 +155,8 @@ bool MicroRegisterAllocationPass::tryTakeAllowedPhysical(SmallVector<MicroReg>& 
     {
         const size_t candidateIndex = index - 1;
         const auto   candidateReg   = pool[candidateIndex];
+        if (containsKey(forbiddenPhysRegs, candidateReg))
+            continue;
         if (isPhysRegForbiddenForVirtual(virtKey, candidateReg))
             continue;
         if (!allowConcreteLive && hasFutureConcreteTouchConflict(virtKey, candidateReg, instructionIndex))
@@ -654,6 +674,7 @@ bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg     requestVi
                                                           bool         isFloatReg,
                                                           bool         fromPersistentPool,
                                                           MicroRegSpan protectedKeys,
+                                                          MicroRegSpan forbiddenPhysRegs,
                                                           uint32_t     stamp,
                                                           bool         allowConcreteLive,
                                                           MicroReg&    outVirtKey,
@@ -667,7 +688,8 @@ bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg     requestVi
     {
         if (containsKey(protectedKeys, virtKey))
             continue;
-
+        if (containsKey(forbiddenPhysRegs, physReg))
+            continue;
         if (isFloatReg)
         {
             if (!physReg.isFloat())
@@ -716,17 +738,18 @@ MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePool
 }
 
 bool MicroRegisterAllocationPass::tryTakeFreePhysical(const AllocRequest& request,
+                                                      MicroRegSpan        forbiddenPhysRegs,
                                                       bool                allowConcreteLive,
                                                       MicroReg&           outPhys)
 {
     const FreePools pools = pickFreePools(request);
     SWC_ASSERT(pools.primary != nullptr);
 
-    if (tryTakeAllowedPhysical(*pools.primary, request.virtKey, request.instructionIndex, allowConcreteLive, outPhys))
+    if (tryTakeAllowedPhysical(*pools.primary, request.virtKey, request.instructionIndex, forbiddenPhysRegs, allowConcreteLive, outPhys))
         return true;
 
     if (pools.secondary)
-        return tryTakeAllowedPhysical(*pools.secondary, request.virtKey, request.instructionIndex, allowConcreteLive, outPhys);
+        return tryTakeAllowedPhysical(*pools.secondary, request.virtKey, request.instructionIndex, forbiddenPhysRegs, allowConcreteLive, outPhys);
 
     return false;
 }
@@ -758,28 +781,30 @@ bool MicroRegisterAllocationPass::selectEvictionCandidateWithFallback(MicroReg  
                                                                       bool         isFloatReg,
                                                                       bool         preferPersistentPool,
                                                                       MicroRegSpan protectedKeys,
+                                                                      MicroRegSpan forbiddenPhysRegs,
                                                                       uint32_t     stamp,
                                                                       bool         allowConcreteLive,
                                                                       MicroReg&    outVirtKey,
                                                                       MicroReg&    outPhys) const
 {
-    if (selectEvictionCandidate(requestVirtKey, instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, stamp, allowConcreteLive, outVirtKey, outPhys))
+    if (selectEvictionCandidate(requestVirtKey, instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, allowConcreteLive, outVirtKey, outPhys))
         return true;
 
-    return selectEvictionCandidate(requestVirtKey, instructionIndex, isFloatReg, !preferPersistentPool, protectedKeys, stamp, allowConcreteLive, outVirtKey, outPhys);
+    return selectEvictionCandidate(requestVirtKey, instructionIndex, isFloatReg, !preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, allowConcreteLive, outVirtKey, outPhys);
 }
 
 MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&         request,
                                                        MicroRegSpan                protectedKeys,
+                                                       MicroRegSpan                forbiddenPhysRegs,
                                                        uint32_t                    stamp,
                                                        int64_t                     stackDepth,
                                                        std::vector<PendingInsert>& pending)
 {
     // Prefer free registers; otherwise evict one candidate and spill if needed.
     MicroReg physReg;
-    if (tryTakeFreePhysical(request, false, physReg))
+    if (tryTakeFreePhysical(request, forbiddenPhysRegs, false, physReg))
         return physReg;
-    if (tryTakeFreePhysical(request, true, physReg))
+    if (tryTakeFreePhysical(request, forbiddenPhysRegs, true, physReg))
         return physReg;
 
     MicroReg victimKey = MicroReg::invalid();
@@ -787,9 +812,39 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&      
 
     const bool isFloatReg           = request.virtReg.isVirtualFloat();
     const bool preferPersistentPool = request.needsPersistent;
-    if (!selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, stamp, false, victimKey, victimReg))
+    if (!selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, false, victimKey, victimReg))
     {
-        SWC_INTERNAL_CHECK(selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, stamp, true, victimKey, victimReg));
+        if (!selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, true, victimKey, victimReg))
+        {
+            const auto instructionRefs = context_->builder->controlFlowGraph().instructionRefs();
+            const auto instRef         = instructionRefs[request.instructionIndex];
+            const auto inst            = instructions_->ptr(instRef);
+            std::fprintf(stderr,
+                         "regalloc failure idx=%u op=%u virt=%u use=%u def=%u persistent=%u float=%u\n",
+                         request.instructionIndex,
+                         inst ? static_cast<uint32_t>(inst->op) : std::numeric_limits<uint32_t>::max(),
+                         request.virtKey.hash(),
+                         request.isUse ? 1u : 0u,
+                         request.isDef ? 1u : 0u,
+                         request.needsPersistent ? 1u : 0u,
+                         isFloatReg ? 1u : 0u);
+            std::fprintf(stderr, "  protected=");
+            for (const MicroReg reg : protectedKeys)
+                std::fprintf(stderr, "%u,", reg.hash());
+            std::fprintf(stderr, "\n  forbidden=");
+            for (const MicroReg reg : forbiddenPhysRegs)
+                std::fprintf(stderr, "%u,", reg.hash());
+            std::fprintf(stderr, "\n  mapping=");
+            for (const auto& [virt, phys] : mapping_)
+                std::fprintf(stderr, "(%u->%u),", virt.hash(), phys.hash());
+            std::fprintf(stderr,
+                         "\n  free int transient=%zu persistent=%zu float transient=%zu persistent=%zu\n",
+                         freeIntTransient_.size(),
+                         freeIntPersistent_.size(),
+                         freeFloatTransient_.size(),
+                         freeFloatPersistent_.size());
+            SWC_INTERNAL_CHECK(false);
+        }
     }
 
     auto&      victimState   = states_[victimKey];
@@ -813,16 +868,37 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&      
 
 MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest&         request,
                                                     MicroRegSpan                protectedKeys,
+                                                    MicroRegSpan                forbiddenPhysRegs,
                                                     uint32_t                    stamp,
                                                     int64_t                     stackDepth,
                                                     std::vector<PendingInsert>& pending)
 {
     // Reuse existing mapping when possible, otherwise allocate and load from spill on use.
-    const auto& regState = states_[request.virtKey];
+    auto& regState = states_[request.virtKey];
+    if (regState.mapped && request.isDef && containsKey(forbiddenPhysRegs, regState.phys))
+    {
+        const MicroReg conflictedPhys = regState.phys;
+        if (request.isUse)
+        {
+            const bool hadSpillSlot = regState.hasSpill;
+            ensureSpillSlot(regState, conflictedPhys.isFloat());
+            if (regState.dirty || !hadSpillSlot)
+            {
+                PendingInsert spillPending;
+                queueSpillStore(spillPending, conflictedPhys, regState, stackDepth);
+                pending.push_back(spillPending);
+                regState.dirty = false;
+            }
+        }
+
+        unmapVirtReg(request.virtKey);
+        returnToFreePool(conflictedPhys);
+    }
+
     if (regState.mapped)
         return regState.phys;
 
-    const auto physReg = allocatePhysical(request, protectedKeys, stamp, stackDepth, pending);
+    const auto physReg = allocatePhysical(request, protectedKeys, forbiddenPhysRegs, stamp, stackDepth, pending);
     mapVirtReg(request.virtKey, physReg);
 
     auto& mappedState = states_[request.virtKey];
@@ -1068,6 +1144,45 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 protectedKeys.push_back(reg);
         }
 
+        const MicroInstrOperand* instOps = it->ops(*operands_);
+        SmallVector<MicroReg>    mentionedConcreteRegs;
+        mentionedConcreteRegs.reserve(instructionUseDefs_[idx].uses.size() + instructionUseDefs_[idx].defs.size());
+        for (const MicroReg reg : instructionUseDefs_[idx].uses)
+        {
+            if ((!reg.isInt() && !reg.isFloat()) || containsKey(mentionedConcreteRegs, reg))
+                continue;
+            mentionedConcreteRegs.push_back(reg);
+        }
+
+        for (const MicroReg reg : instructionUseDefs_[idx].defs)
+        {
+            if ((!reg.isInt() && !reg.isFloat()) || containsKey(mentionedConcreteRegs, reg))
+                continue;
+            mentionedConcreteRegs.push_back(reg);
+        }
+
+        SmallVector<MicroReg> addressSourceRegs;
+        addressSourceRegs.reserve(2);
+        if (instOps)
+        {
+            if (it->op == MicroInstrOpcode::LoadAddrRegMem)
+            {
+                const MicroReg baseReg = instOps[1].reg;
+                if ((baseReg.isInt() || baseReg.isFloat()) && containsKey(concreteLiveOut_[idx], baseReg))
+                    addressSourceRegs.push_back(baseReg);
+            }
+            else if (it->op == MicroInstrOpcode::LoadAddrAmcRegMem)
+            {
+                const MicroReg baseReg = instOps[1].reg;
+                if ((baseReg.isInt() || baseReg.isFloat()) && containsKey(concreteLiveOut_[idx], baseReg))
+                    addressSourceRegs.push_back(baseReg);
+
+                const MicroReg mulReg = instOps[2].reg;
+                if ((mulReg.isInt() || mulReg.isFloat()) && !containsKey(addressSourceRegs, mulReg) && containsKey(concreteLiveOut_[idx], mulReg))
+                    addressSourceRegs.push_back(mulReg);
+            }
+        }
+
         std::vector<PendingInsert> pending;
         pending.reserve(4);
 
@@ -1089,6 +1204,29 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             request.isDef            = regRef.def;
             request.instructionIndex = idx;
 
+            SmallVector<MicroReg> forbiddenPhysRegs;
+            forbiddenPhysRegs.reserve((request.isUse ? concreteLiveOut_[idx].size() : 0) + addressSourceRegs.size());
+            if (request.isUse)
+            {
+                for (const MicroReg key : concreteLiveOut_[idx])
+                {
+                    if (!key.isInt())
+                        continue;
+                    if (!isConcreteLiveInAt(key, idx))
+                        continue;
+                    if (containsKey(mentionedConcreteRegs, key))
+                        continue;
+                    forbiddenPhysRegs.push_back(key);
+                }
+            }
+
+            for (const MicroReg key : addressSourceRegs)
+            {
+                if (containsKey(forbiddenPhysRegs, key))
+                    continue;
+                forbiddenPhysRegs.push_back(key);
+            }
+
             const bool liveAcrossCall = vregsLiveAcrossCall_.contains(request.virtKey);
             if (reg.isVirtualInt())
                 request.needsPersistent = liveAcrossCall && !conv_->intPersistentRegs.empty();
@@ -1099,7 +1237,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (liveAcrossCall && !request.needsPersistent)
                 callSpillVregs_.insert(request.virtKey);
 
-            const auto physReg = assignVirtReg(request, protectedKeys, stamp, stackDepth, pending);
+            const auto physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, stamp, stackDepth, pending);
             *(regRef.reg)      = physReg;
 
             if (liveAcrossCall && !isPersistentPhysReg(physReg))

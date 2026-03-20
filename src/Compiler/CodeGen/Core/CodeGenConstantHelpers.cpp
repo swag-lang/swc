@@ -157,6 +157,59 @@ namespace
     }
 }
 
+ConstantRef CodeGenConstantHelpers::ensureStaticPayloadConstant(CodeGen& codeGen, const ConstantRef cstRef, TypeRef typeRef)
+{
+    if (!cstRef.isValid())
+        return ConstantRef::invalid();
+
+    const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
+    if (typeRef.isInvalid())
+        typeRef = cst.typeRef();
+
+    ByteSpan payload;
+    if (cst.isStruct())
+        payload = cst.getStruct();
+    else if (cst.isArray())
+        payload = cst.getArray();
+    else
+        return cstRef;
+
+    if (cst.isPayloadBorrowed())
+    {
+        uint32_t  shardIndex = 0;
+        const Ref payloadRef = codeGen.cstMgr().findDataSegmentRef(shardIndex, payload.data());
+        if (payloadRef != INVALID_REF)
+            return cstRef;
+    }
+
+    if (typeRef.isInvalid())
+        return ConstantRef::invalid();
+
+    TaskContext&    ctx      = codeGen.ctx();
+    const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+    const uint64_t  sizeOf   = typeInfo.sizeOf(ctx);
+    if (sizeOf != payload.size())
+        return ConstantRef::invalid();
+
+    SmallVector<std::byte> storageBytes;
+    storageBytes.resize(sizeOf);
+    if (sizeOf)
+        ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{storageBytes.data(), storageBytes.size()}, cstRef, typeRef);
+
+    return materializeStaticPayloadConstant(codeGen, typeRef, ByteSpan{storageBytes.data(), storageBytes.size()});
+}
+
+ConstantRef CodeGenConstantHelpers::materializeStaticArrayBufferConstant(CodeGen& codeGen, const TypeRef elementTypeRef, const ByteSpan payload, const uint64_t count)
+{
+    if (elementTypeRef.isInvalid())
+        return ConstantRef::invalid();
+
+    SmallVector<uint64_t> dims;
+    dims.push_back(count);
+    const TypeRef arrayTypeRef = codeGen.typeMgr().addType(TypeInfo::makeArray(dims.span(), elementTypeRef));
+    return materializeStaticPayloadConstant(codeGen, arrayTypeRef, payload);
+}
+
 ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& codeGen, TypeRef typeRef, ByteSpan payload)
 {
     if (typeRef.isInvalid())

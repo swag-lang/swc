@@ -523,6 +523,8 @@ void MicroRegisterAllocationPass::setupPools()
     {
         if (reg == conv_->framePointer)
             continue;
+        if (reg == conv_->preferredLocalStackBaseReg())
+            continue;
 
         if (intPersistentSet_.contains(reg))
             freeIntPersistent_.push_back(reg);

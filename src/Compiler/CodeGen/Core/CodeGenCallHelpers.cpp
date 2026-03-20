@@ -900,7 +900,9 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     auto&                                  calledFunction    = currentView.sym()->cast<SymbolFunction>();
     const CallConvKind                     callConvKind      = calledFunction.callConvKind();
     const CallConv&                        callConv          = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, currentView.typeRef(), ABITypeNormalize::Usage::Return);
+    // ABI return lowering must follow the callee signature. The expression type can be a
+    // transformed view of that result and is not a reliable source for hidden sret decisions.
+    const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
     const CodeGenNodePayload*              calleePayload     = resolveCallPayload(codeGen, calleeRef);
     MicroReg                               callTargetReg     = MicroReg::invalid();
     MicroReg                               closureContextReg = MicroReg::invalid();

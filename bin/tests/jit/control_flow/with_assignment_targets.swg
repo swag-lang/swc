@@ -40,6 +40,11 @@ struct JitWithAssignOwner
     value: s32
 }
 
+struct JitWithAssignMemberOwner
+{
+    point: JitWithAssignPoint
+}
+
 func jitWithAssignMakePoint(x, y: s32)->JitWithAssignPoint
 {
     var result: JitWithAssignPoint
@@ -67,6 +72,20 @@ impl JitWithAssignOwner
         }
 
         return me.value * 100 + shadow.value
+    }
+}
+
+impl JitWithAssignMemberOwner
+{
+    mtd applyMemberScope()->s32
+    {
+        with me.point
+        {
+            .x += 5
+            .y += 7
+        }
+
+        return me.point.x * 100 + me.point.y
     }
 }
 
@@ -199,4 +218,16 @@ func jitWithMeDisambiguation()->s32
 {
     const value = #run jitWithMeDisambiguation()
     @assert(value == 409)
+}
+
+#test
+{
+    const value = #run
+    {
+        var owner: JitWithAssignMemberOwner
+        owner.point = jitWithAssignMakePoint(10, 20)
+        return owner.applyMemberScope()
+    }
+
+    @assert(value == 1527)
 }

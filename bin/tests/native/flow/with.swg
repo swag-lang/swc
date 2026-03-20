@@ -40,6 +40,11 @@ struct NativeWithOwner
     value: s32
 }
 
+struct NativeWithMemberOwner
+{
+    point: NativeWithPoint
+}
+
 impl NativeWithPoint
 {
     mtd add(v: s32)
@@ -66,6 +71,20 @@ impl NativeWithOwner
         }
 
         return me.value * 100 + shadow.value
+    }
+}
+
+impl NativeWithMemberOwner
+{
+    mtd applyMemberScope()->s32
+    {
+        with me.point
+        {
+            .x += 5
+            .y += 7
+        }
+
+        return me.point.x * 100 + me.point.y
     }
 }
 
@@ -174,6 +193,17 @@ func nativeWithRetval()->{ a, b: s32 }
     return result
 }
 
+func nativeWithRetvalUndefined()->{ a, b: s32 }
+{
+    with var result: retval = undefined
+    {
+        .a = 55
+        .b = 89
+    }
+
+    return result
+}
+
 func nativeWithLocalInit()->s32
 {
     with var pair = nativeWithRetval()
@@ -183,6 +213,18 @@ func nativeWithLocalInit()->s32
     }
 
     return pair.a * 100 + pair.b
+}
+
+func nativeWithLetPointer()->s32
+{
+    var point = nativeWithMakePoint(10, 20)
+    with let ptr = &point
+    {
+        .x += 3
+        .y += 4
+    }
+
+    return ptr.x * 100 + ptr.y
 }
 
 func nativeWithNestedMemberTarget()->s32
@@ -244,6 +286,11 @@ func nativeWithMeDisambiguation()->s32
 
 #test
 {
+    @assert(nativeWithLetPointer() == 1324)
+}
+
+#test
+{
     @assert(nativeWithNestedMemberTarget() == 2215)
 }
 
@@ -257,4 +304,18 @@ func nativeWithMeDisambiguation()->s32
     let pair = nativeWithRetval()
     @assert(pair.a == 21)
     @assert(pair.b == 34)
+}
+
+#test
+{
+    let pair = nativeWithRetvalUndefined()
+    @assert(pair.a == 55)
+    @assert(pair.b == 89)
+}
+
+#test
+{
+    var owner: NativeWithMemberOwner
+    owner.point = nativeWithMakePoint(10, 20)
+    @assert(owner.applyMemberScope() == 1527)
 }

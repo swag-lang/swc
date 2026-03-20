@@ -40,6 +40,11 @@ struct SemaWithOwner
     value: s32
 }
 
+struct SemaWithMemberOwner
+{
+    point: SemaWithPoint
+}
+
 impl SemaWithPoint
 {
     mtd add(v: s32)
@@ -69,6 +74,20 @@ impl SemaWithOwner
     }
 }
 
+impl SemaWithMemberOwner
+{
+    mtd applyMemberScope()->s32
+    {
+        with me.point
+        {
+            .x += 5
+            .y += 7
+        }
+
+        return me.point.x * 100 + me.point.y
+    }
+}
+
 func semaWithMakePoint()->SemaWithPoint
 {
     var result: SemaWithPoint
@@ -90,6 +109,17 @@ func semaWithRetval()->{ a, b: s32 }
     {
         .a = 1
         .b = 2
+    }
+
+    return result
+}
+
+func semaWithRetvalUndefined()->{ a, b: s32 }
+{
+    with var result: retval = undefined
+    {
+        .a = 5
+        .b = 8
     }
 
     return result
@@ -118,6 +148,21 @@ func semaWithRetval()->{ a, b: s32 }
         .y += 7
     }
 
+    @assert(point.x == 15)
+    @assert(point.y == 27)
+}
+
+#test
+{
+    var point = semaWithMakePoint()
+
+    with let ptr = &point
+    {
+        .x += 5
+        .y += 7
+    }
+
+    @assert(ptr == &point)
     @assert(point.x == 15)
     @assert(point.y == 27)
 }
@@ -221,6 +266,20 @@ func semaWithRetval()->{ a, b: s32 }
     let pair = semaWithRetval()
     @assert(pair.a == 1)
     @assert(pair.b == 2)
+}
+
+#test
+{
+    let pair = semaWithRetvalUndefined()
+    @assert(pair.a == 5)
+    @assert(pair.b == 8)
+}
+
+#test
+{
+    var owner: SemaWithMemberOwner
+    owner.point = semaWithMakePoint()
+    @assert(owner.applyMemberScope() == 1527)
 }
 
 #test

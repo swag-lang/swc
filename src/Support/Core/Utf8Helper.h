@@ -2,6 +2,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class LangSpec;
+
 namespace Utf8Helper
 {
     Runtime::String                                runtimeStringFromUtf8(const Utf8& value);
@@ -15,6 +17,8 @@ namespace Utf8Helper
     Utf8 toNiceTime(double seconds);
     Utf8 toLowerSnake(std::string_view s);
     bool isHexToken(std::string_view token);
+    bool parseUInt(const LangSpec& langSpec, std::string_view s, size_t& p, int& out) noexcept;
+    bool parseSignedOrAbs(const LangSpec& langSpec, std::string_view s, size_t& p, int& value, bool& hasSign) noexcept;
 
     std::string_view trimLeft(std::string_view s);
     std::string_view trimRight(std::string_view s);

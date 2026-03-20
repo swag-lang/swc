@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Lexer/LangSpec.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -216,6 +217,55 @@ bool Utf8Helper::isHexToken(std::string_view token)
             return false;
     }
 
+    return true;
+}
+
+bool Utf8Helper::parseUInt(const LangSpec& langSpec, std::string_view s, size_t& p, int& out) noexcept
+{
+    int  v   = 0;
+    bool any = false;
+    while (p < s.size() && langSpec.isDigit(static_cast<char8_t>(s[p])))
+    {
+        any = true;
+        v   = v * 10 + (s[p] - '0');
+        ++p;
+    }
+
+    if (!any)
+        return false;
+
+    out = v;
+    return true;
+}
+
+bool Utf8Helper::parseSignedOrAbs(const LangSpec& langSpec, std::string_view s, size_t& p, int& value, bool& hasSign) noexcept
+{
+    hasSign  = false;
+    int sign = +1;
+
+    if (p < s.size() && (s[p] == '+' || s[p] == '-'))
+    {
+        hasSign = true;
+        sign    = (s[p] == '-') ? -1 : +1;
+        ++p;
+
+        int mag = 0;
+        if (!parseUInt(langSpec, s, p, mag))
+        {
+            value = sign * 1; // implicit +/-1
+            return true;
+        }
+
+        value = sign * mag;
+        return true;
+    }
+
+    // No sign -> must be digits (absolute line)
+    int absV = 0;
+    if (!parseUInt(langSpec, s, p, absV))
+        return false;
+
+    value = absV;
     return true;
 }
 

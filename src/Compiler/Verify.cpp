@@ -19,59 +19,6 @@ namespace
         return (v > 0) ? static_cast<uint32_t>(v) : 1u;
     }
 
-    // Parses an unsigned integer at p. Returns true if at least one digit was consumed.
-    bool parseUInt(const LangSpec& langSpec, std::string_view s, size_t& p, int& out) noexcept
-    {
-        int  v   = 0;
-        bool any = false;
-        while (p < s.size() && langSpec.isDigit(static_cast<char8_t>(s[p])))
-        {
-            any = true;
-            v   = v * 10 + (s[p] - '0');
-            ++p;
-        }
-        if (!any)
-            return false;
-        out = v;
-        return true;
-    }
-
-    // Parses: [+|-] [digits?]
-    // Rules:
-    //  - if sign is present but digits are missing -> implicit 1
-    //  - if no sign and no digits -> fail
-    // Sets hasSign accordingly.
-    bool parseSignedOrAbs(const LangSpec& langSpec, std::string_view s, size_t& p, int& value, bool& hasSign) noexcept
-    {
-        hasSign  = false;
-        int sign = +1;
-
-        if (p < s.size() && (s[p] == '+' || s[p] == '-'))
-        {
-            hasSign = true;
-            sign    = (s[p] == '-') ? -1 : +1;
-            ++p;
-
-            int mag = 0;
-            if (!parseUInt(langSpec, s, p, mag))
-            {
-                value = sign * 1; // implicit +/-1
-                return true;
-            }
-
-            value = sign * mag;
-            return true;
-        }
-
-        // No sign -> must be digits (absolute line)
-        int absV = 0;
-        if (!parseUInt(langSpec, s, p, absV))
-            return false;
-
-        value = absV;
-        return true;
-    }
-
     void setAnywhere(VerifyDirective& d)
     {
         d.allowedLines.clear();
@@ -135,7 +82,7 @@ namespace
                 int          v       = 0;
                 bool         hasSign = false;
 
-                if (!parseSignedOrAbs(langSpec, comment, i, v, hasSign))
+                if (!Utf8Helper::parseSignedOrAbs(langSpec, comment, i, v, hasSign))
                 {
                     i = save;
                     break;
@@ -176,7 +123,7 @@ namespace
             int          offA    = 0;
             bool         hasSign = false;
 
-            if (!parseSignedOrAbs(langSpec, comment, i, offA, hasSign) || !hasSign)
+            if (!Utf8Helper::parseSignedOrAbs(langSpec, comment, i, offA, hasSign) || !hasSign)
             {
                 // For this form we require a sign; otherwise treat as malformed and keep default exact(baseLine).
                 i = save;
@@ -192,7 +139,7 @@ namespace
 
                 int  offB     = 0;
                 bool hasSignB = false;
-                if (!parseSignedOrAbs(langSpec, comment, i, offB, hasSignB) || !hasSignB)
+                if (!Utf8Helper::parseSignedOrAbs(langSpec, comment, i, offB, hasSignB) || !hasSignB)
                 {
                     // malformed range end -> just treat as exact lineA
                     setExact(directive, lineA);

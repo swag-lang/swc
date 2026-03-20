@@ -675,30 +675,39 @@ namespace
 
     void emitClosureCaptureStore(CodeGen& codeGen, const SymbolVariable& captureVar, MicroReg closureValueReg)
     {
-        const SymbolVariable* const sourceVar = captureVar.closureCapturedSource();
-        SWC_ASSERT(sourceVar != nullptr);
-        const CodeGenNodePayload sourcePayload = resolveClosureCaptureSourcePayload(codeGen, *sourceVar);
+        const CodeGenNodePayload* sourcePayload = nullptr;
+        if (const auto* captureArg = captureVar.decl() ? captureVar.decl()->safeCast<AstClosureArgument>() : nullptr)
+            sourcePayload = codeGen.safePayload(captureArg->nodeIdentifierRef);
+
+        CodeGenNodePayload resolvedSourcePayload;
+        if (!sourcePayload)
+        {
+            const SymbolVariable* const sourceVar = captureVar.closureCapturedSource();
+            SWC_ASSERT(sourceVar != nullptr);
+            resolvedSourcePayload = resolveClosureCaptureSourcePayload(codeGen, *sourceVar);
+            sourcePayload         = &resolvedSourcePayload;
+        }
 
         const uint32_t captureOffset = offsetof(Runtime::ClosureValue, capture) + captureVar.closureCaptureOffset();
         const MicroReg captureDstReg = codeGen.offsetAddressReg(closureValueReg, captureOffset);
         if (captureVar.closureCaptureByRef())
         {
-            SWC_ASSERT(sourcePayload.isAddress());
-            codeGen.builder().emitLoadMemReg(captureDstReg, 0, sourcePayload.reg, MicroOpBits::B64);
+            SWC_ASSERT(sourcePayload->isAddress());
+            codeGen.builder().emitLoadMemReg(captureDstReg, 0, sourcePayload->reg, MicroOpBits::B64);
             return;
         }
 
         const TypeInfo& typeInfo = codeGen.typeMgr().get(captureVar.typeRef());
         const uint32_t  copySize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
-        if (sourcePayload.isAddress())
+        if (sourcePayload->isAddress())
         {
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, captureDstReg, sourcePayload.reg, copySize);
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, captureDstReg, sourcePayload->reg, copySize);
             return;
         }
 
         const MicroOpBits storeBits = microOpBitsFromChunkSize(copySize);
         SWC_ASSERT(storeBits != MicroOpBits::Zero);
-        codeGen.builder().emitLoadMemReg(captureDstReg, 0, sourcePayload.reg, storeBits);
+        codeGen.builder().emitLoadMemReg(captureDstReg, 0, sourcePayload->reg, storeBits);
     }
 
     bool hasRuntimeStoragePayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -1028,6 +1037,14 @@ Result AstFunctionExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstClosureExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
+    const AstNodeRef declRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+    if (!isActiveFunctionRoot(codeGen, declRef))
+    {
+        const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
+        if (resolvedChildRef.isValid() && codeGen.node(resolvedChildRef).is(AstNodeId::ClosureArgument))
+            return Result::Continue;
+    }
+
     return codeGenFunctionLikePreBody(codeGen, codeGen.curNodeRef(), childRef, nodeBodyRef);
 }
 

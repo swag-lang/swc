@@ -425,6 +425,7 @@ enum class AstIdentifierFlagsE : AstNode::ParserFlags
     Zero              = 0,
     InCompilerDefined = 1 << 0,
     CallCallee        = 1 << 1,
+    InClosureCapture  = 1 << 2,
 };
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>

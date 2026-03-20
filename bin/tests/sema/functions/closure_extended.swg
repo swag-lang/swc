@@ -16,6 +16,22 @@ struct Capture24
     a, b, c: u64
 }
 
+struct PathTarget
+{
+    value: s32
+}
+
+struct PathHolder
+{
+    target: *PathTarget
+}
+
+struct PathOwner
+{
+    target: *PathTarget
+    bias:   s32
+}
+
 alias ClosureUnary = func||(s32)->s32
 alias ClosureNullary = func||()->s32
 
@@ -24,6 +40,14 @@ var GlobalSeed = 41
 func addOne(value: s32)->s32 => value + 1
 func acceptUnary(cb: ClosureUnary)->ClosureUnary => cb
 func acceptNullary(cb: ClosureNullary = null)->ClosureNullary => cb
+
+impl PathOwner
+{
+    mtd makeCallback()->ClosureNullary
+    {
+        return func|me.target, me.bias|()->s32 { return target.value + bias }
+    }
+}
 
 #test
 {
@@ -57,6 +81,27 @@ func acceptNullary(cb: ClosureNullary = null)->ClosureNullary => cb
     #assert(#typeof(globalReader) == ClosureNullary)
     #assert(#typeof(fromLambda) == ClosureUnary)
     #assert(#typeof(fromNull) == ClosureNullary)
+}
+
+#test
+{
+    var target: PathTarget
+    var holder: PathHolder
+    holder.target = &target
+
+    let cb: ClosureNullary = func|holder.target|()->s32 { return target.value }
+    #assert(#typeof(cb) == ClosureNullary)
+}
+
+#test
+{
+    var target: PathTarget
+    var owner: PathOwner
+    owner.target = &target
+    owner.bias   = 3
+
+    let cb = owner.makeCallback()
+    #assert(#typeof(cb) == ClosureNullary)
 }
 
 #test

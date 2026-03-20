@@ -16,12 +16,40 @@ struct NullaryClosureHolder
     cb: func||()->s32
 }
 
+struct PathTarget
+{
+    value: s32
+}
+
+struct PathHolder
+{
+    target: *PathTarget
+}
+
+struct PathOwner
+{
+    target: *PathTarget
+    bias:   s32
+}
+
 const GlobalBonus = 2
 var GlobalSeed = 40
 
 func addOne(value: s32)->s32 => value + 1
 func invokeUnary(cb: func||(s32)->s32, value: s32)->s32 => cb(value)
 func relayUnary(cb: func||(s32)->s32)->func||(s32)->s32 => cb
+
+impl PathOwner
+{
+    mtd makeCallback()->func||()->s32
+    {
+        return func|me.target, me.bias|()->s32
+        {
+            target.value += bias
+            return target.value
+        }
+    }
+}
 
 func maybeInvoke(cb: func||()->s32 = null)->s32
 {
@@ -46,6 +74,44 @@ func makeParamArrayClosure(values: [3] s32)->func||()->s32
         values[1] += 1
         return values[0] + values[1] + values[2]
     }
+}
+
+func runDottedPathCapture()->s32
+{
+    var first:  PathTarget = {value: 10}
+    var second: PathTarget = {value: 50}
+    var holder: PathHolder
+    holder.target = &first
+
+    let cb: func||()->s32 = func|holder.target|()->s32
+    {
+        target.value += 3
+        return target.value
+    }
+
+    holder.target = &second
+    @assert(cb() == 13)
+    @assert(cb() == 16)
+    return first.value * 100 + second.value
+}
+
+func runMePathCapture()->s32
+{
+    var first:  PathTarget = {value: 5}
+    var second: PathTarget = {value: 90}
+    var owner:  PathOwner
+    owner.target = &first
+    owner.bias   = 4
+
+    let cb = owner.makeCallback()
+    owner.target = &second
+    owner.bias   = 100
+
+    let firstValue = cb()
+    let secondValue = cb()
+    @assert(first.value == 13)
+    @assert(second.value == 90)
+    return firstValue * 100 + secondValue
 }
 
 #test
@@ -244,6 +310,16 @@ func makeParamArrayClosure(values: [3] s32)->func||()->s32
 {
     let factor = 3
     @assert((func|factor|(value: s32)->s32 { return value * factor })(7) == 21)
+}
+
+#test
+{
+    @assert(runDottedPathCapture() == 1650)
+}
+
+#test
+{
+    @assert(runMePathCapture() == 913)
 }
 
 #test

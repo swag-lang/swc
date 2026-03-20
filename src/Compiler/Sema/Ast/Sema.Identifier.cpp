@@ -77,8 +77,8 @@ namespace
         if (!currentFn || !requiresExplicitCaptureList(sema, *currentFn))
             return false;
 
-        const AstNode* parent = sema.visit().parentNode();
-        if (parent && parent->is(AstNodeId::ClosureArgument))
+        const AstIdentifier& node = sema.curNode().cast<AstIdentifier>();
+        if (node.hasFlag(AstIdentifierFlagsE::InClosureCapture))
             return false;
 
         if (!symbol.isVariable())

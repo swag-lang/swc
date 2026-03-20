@@ -421,6 +421,8 @@ AstNodeRef Parser::parseIdentifier()
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>(consume());
             if (hasContextFlag(ParserContextFlagsE::InCompilerDefined))
                 nodePtr->addFlag(AstIdentifierFlagsE::InCompilerDefined);
+            if (hasContextFlag(ParserContextFlagsE::InClosureCapture))
+                nodePtr->addFlag(AstIdentifierFlagsE::InClosureCapture);
             return nodeRef;
         }
 
@@ -434,6 +436,8 @@ AstNodeRef Parser::parseIdentifier()
     auto [identRef, identPtr] = ast_->makeNode<AstNodeId::Identifier>(tokName);
     if (hasContextFlag(ParserContextFlagsE::InCompilerDefined))
         identPtr->addFlag(AstIdentifierFlagsE::InCompilerDefined);
+    if (hasContextFlag(ParserContextFlagsE::InClosureCapture))
+        identPtr->addFlag(AstIdentifierFlagsE::InClosureCapture);
     return identRef;
 }
 

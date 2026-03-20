@@ -28,6 +28,7 @@ enum class ParserContextFlagsE : uint32_t
     InCallArgument    = 1 << 3,
     InVarDeclType     = 1 << 4,
     InAttribute       = 1 << 5,
+    InClosureCapture  = 1 << 6,
 };
 using ParserContextFlags = EnumFlags<ParserContextFlagsE>;
 

@@ -13,6 +13,7 @@ AstNodeRef Parser::parseClosureArg()
 
     auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::ClosureArgument>(tokStart);
     nodePtr->flags()           = flags;
+    PushContextFlags           pushContext(this, ParserContextFlagsE::InClosureCapture);
     nodePtr->nodeIdentifierRef = parseQualifiedIdentifier();
 
     return nodeRef;

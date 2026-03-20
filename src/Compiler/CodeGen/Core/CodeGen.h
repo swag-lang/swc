@@ -109,38 +109,24 @@ public:
         MicroLabelRef            doneLabel   = MicroLabelRef::invalid();
     };
 
-    const BreakContext& currentBreakContext() const { return breakable_; }
-    void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
-    {
-        breakable_.nodeRef = nodeRef;
-        breakable_.kind    = kind;
-    }
-    BreakContextKind currentBreakableKind() const { return breakable_.kind; }
-
-    AstNodeRef    currentSwitch() const { return currentSwitch_; }
-    void          setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-    AstNodeRef    currentSwitchCase() const { return currentSwitchCase_; }
-    void          setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
-    MicroLabelRef currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
-    void          setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
-    MicroLabelRef currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
-    void          setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
-    MicroReg      currentLoopIndexReg() const { return currentLoopIndexReg_; }
-    void          setCurrentLoopIndex(MicroReg reg, TypeRef typeRef)
-    {
-        currentLoopIndexReg_     = reg;
-        currentLoopIndexTypeRef_ = typeRef;
-    }
+    const BreakContext&  currentBreakContext() const { return breakable_; }
+    void                 setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
+    BreakContextKind     currentBreakableKind() const { return breakable_.kind; }
+    AstNodeRef           currentSwitch() const { return currentSwitch_; }
+    void                 setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef           currentSwitchCase() const { return currentSwitchCase_; }
+    void                 setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+    MicroLabelRef        currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
+    void                 setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
+    MicroLabelRef        currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
+    void                 setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
+    MicroReg             currentLoopIndexReg() const { return currentLoopIndexReg_; }
+    void                 setCurrentLoopIndex(MicroReg reg, TypeRef typeRef);
     TypeRef              currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
     const InlineContext& currentInlineContext() const { return inlineContext_; }
-    void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel)
-    {
-        inlineContext_.rootNodeRef = rootNodeRef;
-        inlineContext_.payload     = payload;
-        inlineContext_.doneLabel   = doneLabel;
-    }
-    void setCurrentInlineDoneLabel(MicroLabelRef doneLabel) { inlineContext_.doneLabel = doneLabel; }
-    bool hasCurrentInlineContext() const { return inlineContext_.payload != nullptr && inlineContext_.rootNodeRef.isValid(); }
+    void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel);
+    void                 setCurrentInlineDoneLabel(MicroLabelRef doneLabel) { inlineContext_.doneLabel = doneLabel; }
+    bool                 hasCurrentInlineContext() const { return inlineContext_.payload != nullptr && inlineContext_.rootNodeRef.isValid(); }
 
 private:
     BreakContext  breakable_;

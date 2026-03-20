@@ -41,6 +41,25 @@ namespace
 
 }
 
+void CodeGenFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
+{
+    breakable_.nodeRef = nodeRef;
+    breakable_.kind    = kind;
+}
+
+void CodeGenFrame::setCurrentLoopIndex(MicroReg reg, TypeRef typeRef)
+{
+    currentLoopIndexReg_     = reg;
+    currentLoopIndexTypeRef_ = typeRef;
+}
+
+void CodeGenFrame::setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel)
+{
+    inlineContext_.rootNodeRef = rootNodeRef;
+    inlineContext_.payload     = payload;
+    inlineContext_.doneLabel   = doneLabel;
+}
+
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
 {

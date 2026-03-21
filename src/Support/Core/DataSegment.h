@@ -47,7 +47,7 @@ public:
     uint32_t                                  extentSize() const noexcept;
     void                                      copyTo(ByteSpanRW dst) const;
     void                                      copyToPreserveOffsets(ByteSpanRW dst) const;
-    void                                      restoreFromPreserveOffsets(ByteSpan src);
+    void                                      restoreFromPreserveOffsets(ByteSpan src) const;
     const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
 #if SWC_HAS_STATS
     size_t memStorageReserved() const;

@@ -15,9 +15,9 @@ namespace
     CommandLine makeStageLogCmdLine(const TaskContext& ctx, const bool ascii = false)
     {
         CommandLine cmdLine = ctx.cmdLine();
-        cmdLine.command      = CommandKind::Build;
-        cmdLine.logAscii     = ascii;
-        cmdLine.name         = "stage_log";
+        cmdLine.command     = CommandKind::Build;
+        cmdLine.logAscii    = ascii;
+        cmdLine.name        = "stage_log";
         CommandLineParser::refreshBuildCfg(cmdLine);
         return cmdLine;
     }
@@ -55,9 +55,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(StageLog_SummaryEndsWithBlankLine)
 {
-    CommandLine      cmdLine = makeStageLogCmdLine(ctx);
-    CompilerInstance compiler(ctx.global(), cmdLine);
-    TaskContext      logCtx(compiler);
+    const CommandLine cmdLine = makeStageLogCmdLine(ctx);
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    const TaskContext logCtx(compiler);
 
     TimedActionLog::StatsSnapshot snapshot;
     snapshot.timeTotal = 42000000ULL;

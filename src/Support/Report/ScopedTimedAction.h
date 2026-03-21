@@ -1,14 +1,6 @@
 #pragma once
 
-#include "Main/Command/CommandLine.h"
-#include "Main/Global.h"
-#include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Support/Core/Timer.h"
-#include "Support/Core/Utf8Helper.h"
-#include "Support/Report/LogColor.h"
-#include "Support/Report/LogSymbol.h"
-#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -62,13 +54,13 @@ namespace TimedActionLog
     };
 
     Utf8 formatStageStartLine(const TaskContext& ctx, const StageSpec& spec, size_t sequence);
-    Utf8 formatStageEndLine(const TaskContext& ctx,
-                            const StageSpec& spec,
-                            size_t sequence,
-                            StageOutcome outcome,
+    Utf8 formatStageEndLine(const TaskContext&   ctx,
+                            const StageSpec&     spec,
+                            size_t               sequence,
+                            StageOutcome         outcome,
                             const StatsSnapshot& before,
                             const StatsSnapshot& after,
-                            uint64_t durationNs);
+                            uint64_t             durationNs);
 
     void printBuildConfiguration(const TaskContext& ctx);
     void printSessionFlags(const TaskContext& ctx);

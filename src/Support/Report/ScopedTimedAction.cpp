@@ -1,5 +1,14 @@
 #include "pch.h"
 #include "Support/Report/ScopedTimedAction.h"
+#include "Backend/Runtime.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/Global.h"
+#include "Main/Stats.h"
+#include "Support/Core/Timer.h"
+#include "Support/Core/Utf8Helper.h"
+#include "Support/Report/LogColor.h"
+#include "Support/Report/LogSymbol.h"
+#include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -91,7 +100,7 @@ namespace
             "\xE2\x97\x92",
         };
 
-        return Utf8(frames[(sequence - 1) % std::size(frames)]);
+        return {frames[(sequence - 1) % std::size(frames)]};
     }
 
     Utf8 funOutcomeGlyph(const TaskContext& ctx, const TimedActionLog::StageOutcome outcome)
@@ -122,7 +131,7 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text);
+    Utf8 colorize(const TaskContext& ctx, LogColor color, std::string_view text);
 
     Utf8 joinHumanParts(const TaskContext& ctx, const std::vector<Utf8>& parts, const LogColor partColor)
     {
@@ -158,11 +167,11 @@ namespace
         const size_t deltaFunctions = deltaValue(after.numCodeGenFunctions, before.numCodeGenFunctions);
 
         if (deltaFiles)
-            parts.push_back(std::format("{} files", Utf8Helper::toNiceBigNumber(deltaFiles)));
+            parts.emplace_back(std::format("{} files", Utf8Helper::toNiceBigNumber(deltaFiles)));
         if (deltaTokens)
-            parts.push_back(std::format("{} tokens", Utf8Helper::toNiceBigNumber(deltaTokens)));
+            parts.emplace_back(std::format("{} tokens", Utf8Helper::toNiceBigNumber(deltaTokens)));
         if (deltaFunctions)
-            parts.push_back(std::format("{} funcs", Utf8Helper::toNiceBigNumber(deltaFunctions)));
+            parts.emplace_back(std::format("{} funcs", Utf8Helper::toNiceBigNumber(deltaFunctions)));
 #endif
 
         parts.push_back(Utf8Helper::toNiceTime(Timer::toSeconds(durationNs)));
@@ -170,9 +179,9 @@ namespace
         const size_t deltaWarnings = deltaValue(after.numWarnings, before.numWarnings);
         const size_t deltaErrors   = deltaValue(after.numErrors, before.numErrors);
         if (deltaWarnings)
-            parts.push_back(std::format("{} warnings", Utf8Helper::toNiceBigNumber(deltaWarnings)));
+            parts.emplace_back(std::format("{} warnings", Utf8Helper::toNiceBigNumber(deltaWarnings)));
         if (deltaErrors)
-            parts.push_back(std::format("{} errors", Utf8Helper::toNiceBigNumber(deltaErrors)));
+            parts.emplace_back(std::format("{} errors", Utf8Helper::toNiceBigNumber(deltaErrors)));
 
         return joinHumanParts(ctx, parts, LogColor::White);
     }
@@ -192,7 +201,7 @@ namespace
 
     Utf8 formatFunStageStartLine(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence)
     {
-        Utf8 line;
+        Utf8       line;
         const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
         line += "  ";
         line += colorize(ctx, stageColor(spec.key), funStartGlyph(ctx, sequence));
@@ -213,12 +222,12 @@ namespace
         return line;
     }
 
-    Utf8 formatFunStageEndLine(const TaskContext& ctx,
-                               const TimedActionLog::StageSpec& spec,
-                               const TimedActionLog::StageOutcome outcome,
+    Utf8 formatFunStageEndLine(const TaskContext&                   ctx,
+                               const TimedActionLog::StageSpec&     spec,
+                               const TimedActionLog::StageOutcome   outcome,
                                const TimedActionLog::StatsSnapshot& before,
                                const TimedActionLog::StatsSnapshot& after,
-                               const uint64_t durationNs)
+                               const uint64_t                       durationNs)
     {
         Utf8 line;
         line += "  ";
@@ -288,13 +297,13 @@ Utf8 TimedActionLog::formatStageStartLine(const TaskContext& ctx, const StageSpe
     return formatFunStageStartLine(ctx, spec, sequence);
 }
 
-Utf8 TimedActionLog::formatStageEndLine(const TaskContext& ctx,
-                                        const StageSpec& spec,
-                                        const size_t sequence,
-                                        const StageOutcome outcome,
+Utf8 TimedActionLog::formatStageEndLine(const TaskContext&   ctx,
+                                        const StageSpec&     spec,
+                                        const size_t         sequence,
+                                        const StageOutcome   outcome,
                                         const StatsSnapshot& before,
                                         const StatsSnapshot& after,
-                                        const uint64_t durationNs)
+                                        const uint64_t       durationNs)
 {
     SWC_UNUSED(sequence);
     return formatFunStageEndLine(ctx, spec, outcome, before, after, durationNs);
@@ -327,14 +336,14 @@ void TimedActionLog::printSessionFlags(const TaskContext& ctx)
 #if SWC_DEBUG
     flags.push_back("debug");
 #elif SWC_DEV_MODE
-    flags.push_back("devmode");
+    flags.emplace_back("devmode");
 #elif SWC_STATS
     flags.push_back("stats");
 #endif
 
 #if SWC_DEBUG || SWC_DEV_MODE
     if (ctx.cmdLine().randomize)
-        flags.push_back(std::format("randomize seed={}", ctx.global().jobMgr().randSeed()));
+        flags.emplace_back(std::format("randomize seed={}", ctx.global().jobMgr().randSeed()));
 #endif
 
     if (flags.empty())
@@ -412,17 +421,17 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     std::vector<Utf8> parts;
 #if SWC_HAS_STATS
     if (snapshot.numFiles)
-        parts.push_back(std::format("{} files", Utf8Helper::toNiceBigNumber(snapshot.numFiles)));
+        parts.emplace_back(std::format("{} files", Utf8Helper::toNiceBigNumber(snapshot.numFiles)));
     if (snapshot.numTokens)
-        parts.push_back(std::format("{} tokens", Utf8Helper::toNiceBigNumber(snapshot.numTokens)));
+        parts.emplace_back(std::format("{} tokens", Utf8Helper::toNiceBigNumber(snapshot.numTokens)));
 #endif
     parts.push_back(Utf8Helper::toNiceTime(Timer::toSeconds(snapshot.timeTotal)));
     if (snapshot.numWarnings)
-        parts.push_back(std::format("{} warnings", Utf8Helper::toNiceBigNumber(snapshot.numWarnings)));
+        parts.emplace_back(std::format("{} warnings", Utf8Helper::toNiceBigNumber(snapshot.numWarnings)));
     if (snapshot.numErrors)
-        parts.push_back(std::format("{} errors", Utf8Helper::toNiceBigNumber(snapshot.numErrors)));
+        parts.emplace_back(std::format("{} errors", Utf8Helper::toNiceBigNumber(snapshot.numErrors)));
     else if (!snapshot.numWarnings)
-        parts.push_back("clean");
+        parts.emplace_back("clean");
 
     const Utf8 summaryText = joinHumanParts(ctx, parts, LogColor::White);
 

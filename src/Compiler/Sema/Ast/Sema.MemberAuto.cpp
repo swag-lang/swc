@@ -239,19 +239,18 @@ namespace
 
         uint32_t precedence = 0;
 
-        for (auto it = bindingVars.rbegin(); it != bindingVars.rend(); ++it)
+        for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
-            SWC_RESULT(addCandidateFromType(sema, outCandidates, (*it)->typeRef(), *it, AstNodeRef::invalid(), precedence++));
+            SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
         }
 
-        for (auto it = bindingTypes.rbegin(); it != bindingTypes.rend(); ++it)
+        for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
         {
-            SWC_RESULT(addCandidateFromType(sema, outCandidates, *it, nullptr, AstNodeRef::invalid(), precedence++));
+            SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
         }
 
-        for (auto it = autoMemberBindings.rbegin(); it != autoMemberBindings.rend(); ++it)
+        for (auto& binding : std::ranges::reverse_view(autoMemberBindings))
         {
-            const auto& binding = *it;
             if (binding.typeRef.isValid())
             {
                 SWC_RESULT(addCandidateFromType(sema, outCandidates, binding.typeRef, binding.symVar, binding.baseExprRef, precedence++));

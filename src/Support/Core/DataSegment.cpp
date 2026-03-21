@@ -141,7 +141,7 @@ void DataSegment::copyToPreserveOffsets(ByteSpanRW dst) const
     }
 }
 
-void DataSegment::restoreFromPreserveOffsets(ByteSpan src)
+void DataSegment::restoreFromPreserveOffsets(ByteSpan src) const
 {
     const std::unique_lock lock(mutex_);
     const uint32_t         storeExtent = store_.extentSize();

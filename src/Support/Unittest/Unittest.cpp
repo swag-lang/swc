@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Support/Unittest/Unittest.h"
+#include "Main/Global.h"
+
 #if SWC_HAS_UNITTEST
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -57,12 +59,12 @@ namespace Unittest
         TaskContext      testCtx(compiler);
         compiler.setupSema(testCtx);
         TimedActionLog::ScopedStage stage(testCtx, {
-            .key    = "verify",
-            .label  = "Unittest",
-            .verb   = "running backend checks",
-            .detail = std::format("{} cases", testRegistry().size()),
-        });
-        Logger::ScopedStageMute muteNestedStages(testCtx.global().logger());
+                                                       .key    = "verify",
+                                                       .label  = "Unittest",
+                                                       .verb   = "running backend checks",
+                                                       .detail = std::format("{} cases", testRegistry().size()),
+                                                   });
+        Logger::ScopedStageMute     muteNestedStages(testCtx.global().logger());
 
         bool       hasFailure      = false;
         const bool verboseUnittest = ctx.cmdLine().verboseUnittest;

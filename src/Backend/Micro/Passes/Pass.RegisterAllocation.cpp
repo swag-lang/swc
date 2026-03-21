@@ -818,33 +818,6 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&      
     {
         if (!selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, true, victimKey, victimReg))
         {
-            const auto instructionRefs = context_->builder->controlFlowGraph().instructionRefs();
-            const auto instRef         = instructionRefs[request.instructionIndex];
-            const auto inst            = instructions_->ptr(instRef);
-            std::fprintf(stderr,
-                         "regalloc failure idx=%u op=%u virt=%u use=%u def=%u persistent=%u float=%u\n",
-                         request.instructionIndex,
-                         inst ? static_cast<uint32_t>(inst->op) : std::numeric_limits<uint32_t>::max(),
-                         request.virtKey.hash(),
-                         request.isUse ? 1u : 0u,
-                         request.isDef ? 1u : 0u,
-                         request.needsPersistent ? 1u : 0u,
-                         isFloatReg ? 1u : 0u);
-            std::fprintf(stderr, "  protected=");
-            for (const MicroReg reg : protectedKeys)
-                std::fprintf(stderr, "%u,", reg.hash());
-            std::fprintf(stderr, "\n  forbidden=");
-            for (const MicroReg reg : forbiddenPhysRegs)
-                std::fprintf(stderr, "%u,", reg.hash());
-            std::fprintf(stderr, "\n  mapping=");
-            for (const auto& [virt, phys] : mapping_)
-                std::fprintf(stderr, "(%u->%u),", virt.hash(), phys.hash());
-            std::fprintf(stderr,
-                         "\n  free int transient=%zu persistent=%zu float transient=%zu persistent=%zu\n",
-                         freeIntTransient_.size(),
-                         freeIntPersistent_.size(),
-                         freeFloatTransient_.size(),
-                         freeFloatPersistent_.size());
             SWC_INTERNAL_CHECK(false);
         }
     }

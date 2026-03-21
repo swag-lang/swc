@@ -10,8 +10,7 @@ namespace
 {
     void clearClonedNodePayload(AstNode& node)
     {
-        node.payloadBits() = 0;
-        node.setPayloadRef(0);
+        node.clearPayload();
     }
 
     const SemaClone::CloneContext& cloneContextAsInline(const CloneContext& cloneContext)

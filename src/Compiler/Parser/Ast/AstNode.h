@@ -41,6 +41,48 @@ struct AstNode
 {
     AstNode() = default;
 
+    AstNode(const AstNode& other) :
+        id_(other.id_),
+        parserFlags_(other.parserFlags_),
+        codeRef_(other.codeRef_)
+    {
+        payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+    }
+
+    AstNode& operator=(const AstNode& other)
+    {
+        if (this != &other)
+        {
+            payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+            id_          = other.id_;
+            parserFlags_ = other.parserFlags_;
+            codeRef_     = other.codeRef_;
+        }
+
+        return *this;
+    }
+
+    AstNode(AstNode&& other) noexcept :
+        id_(other.id_),
+        parserFlags_(other.parserFlags_),
+        codeRef_(other.codeRef_)
+    {
+        payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+    }
+
+    AstNode& operator=(AstNode&& other) noexcept
+    {
+        if (this != &other)
+        {
+            payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+            id_          = other.id_;
+            parserFlags_ = other.parserFlags_;
+            codeRef_     = other.codeRef_;
+        }
+
+        return *this;
+    }
+
     // ReSharper disable once CppPossiblyUninitializedMember
     explicit AstNode(AstNodeId nodeId, const SourceCodeRef& codeRef) :
         id_(nodeId),
@@ -53,7 +95,7 @@ struct AstNode
     void clearFlags()
     {
         parserFlags_ = 0;
-        payloadBits_ = 0;
+        clearPayload();
     }
 
     static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
@@ -157,10 +199,42 @@ struct AstNode
         return Result::Continue;
     }
 
-    uint16_t&       payloadBits() { return payloadBits_; }
-    const uint16_t& payloadBits() const { return payloadBits_; }
-    uint32_t        payloadRef() const { return payloadRef_; }
-    void            setPayloadRef(uint32_t val) { payloadRef_ = val; }
+    static constexpr uint64_t payloadBitsMask() { return 0xFFFFull; }
+    static constexpr uint32_t payloadRefShift() { return 16; }
+    static constexpr uint64_t payloadRefMask() { return 0xFFFFFFFFull << payloadRefShift(); }
+
+    static constexpr uint64_t makePayloadState(uint16_t bits, uint32_t ref)
+    {
+        return static_cast<uint64_t>(bits) | (static_cast<uint64_t>(ref) << payloadRefShift());
+    }
+
+    static constexpr uint16_t payloadBitsFromState(uint64_t state)
+    {
+        return static_cast<uint16_t>(state & payloadBitsMask());
+    }
+
+    static constexpr uint32_t payloadRefFromState(uint64_t state)
+    {
+        return static_cast<uint32_t>((state & payloadRefMask()) >> payloadRefShift());
+    }
+
+    uint64_t payloadState(std::memory_order mo = std::memory_order_acquire) const
+    {
+        return payloadStorage_.load(mo);
+    }
+
+    void storePayloadState(uint64_t state, std::memory_order mo = std::memory_order_release)
+    {
+        payloadStorage_.store(state, mo);
+    }
+
+    void clearPayload()
+    {
+        payloadStorage_.store(0, std::memory_order_release);
+    }
+
+    uint16_t payloadBits() const { return payloadBitsFromState(payloadState()); }
+    uint32_t payloadRef() const { return payloadRefFromState(payloadState()); }
 
     ParserFlags parserFlags() const { return parserFlags_; }
 
@@ -215,11 +289,10 @@ struct AstNode
 #endif
 
 protected:
-    uint16_t      payloadBits_ = 0;
-    AstNodeId     id_          = AstNodeId::Invalid;
-    ParserFlags   parserFlags_{};
-    SourceCodeRef codeRef_;
-    uint32_t      payloadRef_ = 0;
+    std::atomic<uint64_t> payloadStorage_{0};
+    AstNodeId             id_ = AstNodeId::Invalid;
+    ParserFlags           parserFlags_{};
+    SourceCodeRef         codeRef_;
 };
 
 template<AstNodeId I, typename E = void>

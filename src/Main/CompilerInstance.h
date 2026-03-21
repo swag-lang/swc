@@ -99,9 +99,9 @@ public:
     const std::vector<SymbolVariable*>& nativeGlobalVariables() const { return nativeGlobalVariables_; }
 
     void setupSema(TaskContext& ctx);
-    void notifyAlive() { changed_ = true; }
-    bool changed() const { return changed_; }
-    void clearChanged() { changed_ = false; }
+    void notifyAlive() { changed_.store(true, std::memory_order_release); }
+    bool changed() const { return changed_.load(std::memory_order_acquire); }
+    bool consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
 
     uint32_t pendingImplRegistrations() const;
     void     incPendingImplRegistrations();
@@ -186,7 +186,7 @@ private:
     std::unique_ptr<JITExecManager>          jitExecMgr_;
     void*                                    runtimeCompilerITable_[3]{};
     mutable std::shared_mutex                mutex_;
-    bool                                     changed_ = true;
+    std::atomic<bool>                        changed_{true};
 
     struct PerThreadData
     {

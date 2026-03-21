@@ -714,9 +714,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             continue;
         }
 
-        if (compiler.changed())
+        if (compiler.consumeChanged())
         {
-            compiler.clearChanged();
             jobMgr.wakeAll(clientId);
             continue;
         }

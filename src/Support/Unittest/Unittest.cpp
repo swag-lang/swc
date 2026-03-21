@@ -6,6 +6,7 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
+#include "Support/Report/ScopedTimedAction.h"
 #endif
 
 SWC_BEGIN_NAMESPACE();
@@ -38,14 +39,6 @@ namespace Unittest
                                    ok ? "ok" : "fail");
         }
 
-        void logUnittestSummary(const TaskContext& ctx, uint32_t total, uint32_t failures)
-        {
-            Logger::printHeaderDot(ctx,
-                                   LogColor::BrightCyan,
-                                   "Unittest",
-                                   failures ? LogColor::BrightRed : LogColor::BrightGreen,
-                                   std::format("{} passed / {} failed / {} total", total - failures, failures, total));
-        }
     }
 
     void registerTest(TestCase test)
@@ -63,10 +56,15 @@ namespace Unittest
         CompilerInstance compiler(ctx.global(), ctx.cmdLine());
         TaskContext      testCtx(compiler);
         compiler.setupSema(testCtx);
+        TimedActionLog::ScopedStage stage(testCtx, {
+            .key    = "verify",
+            .label  = "Unittest",
+            .verb   = "running backend checks",
+            .detail = std::format("{} cases", testRegistry().size()),
+        });
+        Logger::ScopedStageMute muteNestedStages(testCtx.global().logger());
 
         bool       hasFailure      = false;
-        uint32_t   totalTests      = 0;
-        uint32_t   numFailedTests  = 0;
         const bool verboseUnittest = ctx.cmdLine().verboseUnittest;
 
         for (const SetupFn setupFn : setupRegistry())
@@ -77,7 +75,6 @@ namespace Unittest
 
         for (const TestCase& test : testRegistry())
         {
-            totalTests++;
             const Result result = test.fn(testCtx);
             if (result == Result::Continue)
             {
@@ -90,12 +87,9 @@ namespace Unittest
                 if (CompilerInstance::dbgDevMode)
                     Os::panicBox("[DevMode] UNITTEST failed!");
                 hasFailure = true;
-                numFailedTests++;
+                stage.markFailure();
             }
         }
-
-        if (verboseUnittest)
-            logUnittestSummary(testCtx, totalTests, numFailedTests);
 
         return hasFailure ? Result::Error : Result::Continue;
     }

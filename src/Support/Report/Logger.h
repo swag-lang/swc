@@ -8,6 +8,28 @@ class TaskContext;
 class Logger
 {
 public:
+    class ScopedStageMute
+    {
+    public:
+        explicit ScopedStageMute(Logger& logger) :
+            logger_(&logger)
+        {
+            logger_->pushStageMute();
+        }
+
+        ~ScopedStageMute()
+        {
+            if (logger_)
+                logger_->popStageMute();
+        }
+
+        ScopedStageMute(const ScopedStageMute&)            = delete;
+        ScopedStageMute& operator=(const ScopedStageMute&) = delete;
+
+    private:
+        Logger* logger_ = nullptr;
+    };
+
     class ScopedLock
     {
     public:
@@ -36,6 +58,13 @@ public:
     void finishTransientLine() { transientLineActive_ = false; }
     void resetStageSequence() { stageSequence_ = 0; }
     size_t nextStageSequence() { return ++stageSequence_; }
+    void pushStageMute() { stageMuteDepth_++; }
+    void popStageMute()
+    {
+        SWC_ASSERT(stageMuteDepth_ != 0);
+        stageMuteDepth_--;
+    }
+    bool stageOutputMuted() const { return stageMuteDepth_ != 0; }
     void ensureTransientLineSeparated(const TaskContext& ctx);
 
     static void print(const TaskContext& ctx, std::string_view message);
@@ -50,6 +79,7 @@ private:
     std::mutex mutexAccess_;
     bool       transientLineActive_ = false;
     size_t     stageSequence_       = 0;
+    size_t     stageMuteDepth_      = 0;
 };
 
 SWC_END_NAMESPACE();

@@ -302,6 +302,9 @@ Utf8 TimedActionLog::formatStageEndLine(const TaskContext& ctx,
 
 void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)
 {
+    if (ctx.global().logger().stageOutputMuted())
+        return;
+
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
     const StageSpec spec{
@@ -316,6 +319,9 @@ void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)
 
 void TimedActionLog::printSessionFlags(const TaskContext& ctx)
 {
+    if (ctx.global().logger().stageOutputMuted())
+        return;
+
     std::vector<Utf8> flags;
 
 #if SWC_DEBUG
@@ -352,6 +358,12 @@ TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, StageSpec spec)
     before_(StatsSnapshot::capture()),
     startTick_(Clock::now())
 {
+    if (ctx_->global().logger().stageOutputMuted())
+    {
+        ctx_ = nullptr;
+        return;
+    }
+
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
     sequence_ = ctx_->global().logger().nextStageSequence();
     printLineLocked(*ctx_, formatStageStartLine(*ctx_, spec_, sequence_));
@@ -428,6 +440,9 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
 
 void TimedActionLog::printSummary(const TaskContext& ctx)
 {
+    if (ctx.global().logger().stageOutputMuted())
+        return;
+
     const StatsSnapshot      snapshot = StatsSnapshot::capture();
     const Logger::ScopedLock loggerLock(ctx.global().logger());
     printLineLocked(ctx, formatSummaryLine(ctx, snapshot));

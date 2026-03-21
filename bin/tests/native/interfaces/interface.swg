@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate //
 
 struct A {}
 
@@ -63,4 +63,3 @@ impl I1 for T
     i.toto()
     @assert(gInterfaceImplTotoCalls == 1)
 }
-

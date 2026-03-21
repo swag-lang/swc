@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate //
 
 interface I
 {
@@ -37,4 +37,3 @@ struct Bad
     var i1 = cast(I) w
     @assert(i1.foo() == 1)
 }
-

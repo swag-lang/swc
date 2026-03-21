@@ -33,7 +33,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
 
     std::vector<const MicroInstr*> instructionPtrs(instructionCount, nullptr);
 
-    std::vector<uint8_t> pureDefCandidateFlags(instructionCount, 0);
+    std::vector<uint8_t>  pureDefCandidateFlags(instructionCount, 0);
     std::vector<uint32_t> pureDefDenseDefIndex(instructionCount, K_INVALID_DENSE_INDEX);
 
     MicroDenseRegIndex denseRegIndex;

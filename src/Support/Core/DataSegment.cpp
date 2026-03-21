@@ -64,7 +64,7 @@ void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 Ref DataSegment::findRef(const void* ptr) const noexcept
 {
     const std::shared_lock lock(mutex_);
-    const Ref             ref = store_.findRef(ptr);
+    const Ref              ref = store_.findRef(ptr);
     if (ref != INVALID_REF)
         return ref;
     return findLargeBlockRefLocked(ptr);
@@ -130,7 +130,7 @@ void DataSegment::copyTo(ByteSpanRW dst) const
 void DataSegment::copyToPreserveOffsets(ByteSpanRW dst) const
 {
     const std::shared_lock lock(mutex_);
-    const uint32_t        storeExtent = store_.extentSize();
+    const uint32_t         storeExtent = store_.extentSize();
     std::memset(dst.data(), 0, dst.size_bytes());
     if (storeExtent)
         store_.copyToPreserveOffsets(ByteSpanRW{dst.data(), storeExtent});
@@ -144,7 +144,7 @@ void DataSegment::copyToPreserveOffsets(ByteSpanRW dst) const
 void DataSegment::restoreFromPreserveOffsets(ByteSpan src)
 {
     const std::unique_lock lock(mutex_);
-    const uint32_t        storeExtent = store_.extentSize();
+    const uint32_t         storeExtent = store_.extentSize();
     if (storeExtent)
         store_.restoreFromPreserveOffsets(ByteSpan{src.data(), storeExtent});
     for (const LargeBlock& block : largeBlocks_)
@@ -195,8 +195,8 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
         if (zeroInit)
             std::memset(block.storage.get(), 0, size);
 
-        const uint32_t offset = block.offset;
-        std::byte* const ptr  = block.storage.get();
+        const uint32_t   offset = block.offset;
+        std::byte* const ptr    = block.storage.get();
         largeBlocks_.push_back(std::move(block));
         recordAllocation(offset, size, align);
         return {offset, ptr};

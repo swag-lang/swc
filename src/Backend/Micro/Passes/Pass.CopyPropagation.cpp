@@ -61,7 +61,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
             continue;
         }
 
-        const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
+        const MicroInstrUseDef               useDef = inst.collectUseDef(operands, context.encoder);
         SmallVector<MicroInstrRegOperandRef> refs;
         inst.collectRegOperands(operands, refs, context.encoder);
         for (const MicroInstrRegOperandRef& ref : refs)

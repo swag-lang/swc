@@ -276,10 +276,10 @@ uint64_t MicroConstantPropagationPass::signExtendToBits(uint64_t value, MicroOpB
 
 namespace
 {
-    template <typename FloatT>
+    template<typename FloatT>
     bool foldFloatBinaryImpl(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
     {
-        using BitsT  = std::conditional_t<sizeof(FloatT) == 4, uint32_t, uint64_t>;
+        using BitsT    = std::conditional_t<sizeof(FloatT) == 4, uint32_t, uint64_t>;
         BitsT  lhsBits = static_cast<BitsT>(lhs);
         BitsT  rhsBits = static_cast<BitsT>(rhs);
         FloatT lhsVal  = 0;

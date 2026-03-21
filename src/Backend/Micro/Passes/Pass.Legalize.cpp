@@ -621,16 +621,16 @@ namespace
         const MicroReg    requiredReg    = issue.requiredReg;
         SWC_ASSERT(requiredReg.isValid());
 
-        const bool operandIsDst              = issue.operandIndex == 0;
-        const bool conflict                  = operandIsDst ? originalSrcReg == requiredReg : originalDstReg == requiredReg;
-        const bool mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
-        const MicroReg nonFixedOperandReg    = operandIsDst ? originalSrcReg : originalDstReg;
+        const bool     operandIsDst              = issue.operandIndex == 0;
+        const bool     conflict                  = operandIsDst ? originalSrcReg == requiredReg : originalDstReg == requiredReg;
+        const bool     mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
+        const bool     shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        const MicroReg nonFixedOperandReg        = operandIsDst ? originalSrcReg : originalDstReg;
 
         if (nonFixedOperandReg.isVirtual())
             addVirtualForbiddenReg(context, nonFixedOperandReg, requiredReg);
 
-        MicroReg   savedRequiredReg          = MicroReg::invalid();
+        MicroReg savedRequiredReg = MicroReg::invalid();
         if (shouldPreserveRequiredReg)
         {
             savedRequiredReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
@@ -655,8 +655,8 @@ namespace
         const MicroReg fixedOperandReg = operandIsDst ? originalDstReg : originalSrcReg;
         insertMoveRegReg(context, instRef, requiredReg, fixedOperandReg, MicroOpBits::B64);
 
-        MicroReg rewrittenDstReg = originalDstReg;
-        MicroReg rewrittenSrcReg = originalSrcReg;
+        MicroReg rewrittenDstReg                           = originalDstReg;
+        MicroReg rewrittenSrcReg                           = originalSrcReg;
         (operandIsDst ? rewrittenDstReg : rewrittenSrcReg) = requiredReg;
 
         if (conflict)
@@ -816,8 +816,8 @@ namespace
         const MicroReg movedReg = (issue.operandIndex == 0) ? originalDstReg : originalSrcReg;
         insertMoveRegReg(context, instRef, scratchReg, movedReg, MicroOpBits::B64);
 
-        MicroReg rewrittenDstReg = originalDstReg;
-        MicroReg rewrittenSrcReg = originalSrcReg;
+        MicroReg rewrittenDstReg                                      = originalDstReg;
+        MicroReg rewrittenSrcReg                                      = originalSrcReg;
         (issue.operandIndex == 0 ? rewrittenDstReg : rewrittenSrcReg) = scratchReg;
 
         SWC_ASSERT((issue.operandIndex == 0 ? rewrittenDstReg : rewrittenSrcReg) != forbiddenReg);

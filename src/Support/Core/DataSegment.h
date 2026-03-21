@@ -29,8 +29,8 @@ class DataSegment
 public:
     struct LargeBlock
     {
-        uint32_t                    offset = 0;
-        uint32_t                    size   = 0;
+        uint32_t                     offset = 0;
+        uint32_t                     size   = 0;
         std::unique_ptr<std::byte[]> storage;
     };
 
@@ -56,7 +56,7 @@ public:
     template<typename T>
     std::pair<uint32_t, T*> reserve()
     {
-        std::unique_lock           lock(mutex_);
+        std::unique_lock lock(mutex_);
         const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), true);
         return {offset, reinterpret_cast<T*>(ptr)};
     }
@@ -66,8 +66,8 @@ public:
     {
         if (!count)
             return {INVALID_REF, nullptr};
-        std::unique_lock           lock(mutex_);
-        const uint32_t             bytes = static_cast<uint32_t>(sizeof(T)) * count;
+        std::unique_lock lock(mutex_);
+        const uint32_t   bytes   = static_cast<uint32_t>(sizeof(T)) * count;
         const auto [offset, ptr] = allocateStorageLocked(bytes, static_cast<uint32_t>(alignof(T)), true);
         return {offset, reinterpret_cast<T*>(ptr)};
     }
@@ -75,7 +75,7 @@ public:
     template<typename T>
     uint32_t add(const T& value)
     {
-        std::unique_lock           lock(mutex_);
+        std::unique_lock lock(mutex_);
         const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), false);
         if constexpr (std::is_trivially_copyable_v<T>)
         {

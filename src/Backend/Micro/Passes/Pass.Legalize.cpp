@@ -113,84 +113,61 @@ namespace
     {
         SWC_ASSERT(virtualReg.isVirtual());
 
+        const auto checkAndForbid = [&](MicroReg reg) {
+            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
+                addVirtualForbiddenReg(context, virtualReg, reg);
+        };
+
         const CallConv& conv = CallConv::get(context.callConvKind);
         for (const MicroReg reg : conv.intRegs)
+            checkAndForbid(reg);
+        for (const MicroReg reg : conv.floatRegs)
+            checkAndForbid(reg);
+    }
+
+    uint32_t computeNextVirtualRegIndex(const MicroPassContext& context, bool isFloat, uint32_t nextIndex)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        for (const MicroInstr& inst : context.instructions->view())
         {
-            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
-                addVirtualForbiddenReg(context, virtualReg, reg);
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(*context.operands, refs, context.encoder);
+            for (const auto& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg reg = *ref.reg;
+                if (isFloat ? !reg.isVirtualFloat() : !reg.isVirtualInt())
+                    continue;
+
+                if (reg.index() < MicroReg::K_MAX_INDEX)
+                    nextIndex = std::max(nextIndex, reg.index() + 1);
+                else
+                    nextIndex = MicroReg::K_MAX_INDEX;
+            }
         }
 
-        for (const MicroReg reg : conv.floatRegs)
-        {
-            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
-                addVirtualForbiddenReg(context, virtualReg, reg);
-        }
+        return nextIndex;
     }
 
     uint32_t computeNextVirtualIntRegIndex(const MicroPassContext& context)
     {
-        SWC_ASSERT(context.instructions);
-        SWC_ASSERT(context.operands);
-
-        uint32_t nextIndex = 1;
+        uint32_t hint = 1;
         if (context.builder)
-            nextIndex = std::max(nextIndex, (context.builder)->nextVirtualIntRegIndexHint());
-
-        for (const MicroInstr& inst : context.instructions->view())
-        {
-            SmallVector<MicroInstrRegOperandRef> refs;
-            inst.collectRegOperands(*context.operands, refs, context.encoder);
-            for (const auto& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *ref.reg;
-                if (!reg.isVirtualInt())
-                    continue;
-
-                if (reg.index() < MicroReg::K_MAX_INDEX)
-                    nextIndex = std::max(nextIndex, reg.index() + 1);
-                else
-                    nextIndex = MicroReg::K_MAX_INDEX;
-            }
-        }
-
-        return nextIndex;
+            hint = std::max(hint, (context.builder)->nextVirtualIntRegIndexHint());
+        return computeNextVirtualRegIndex(context, false, hint);
     }
 
     uint32_t computeNextVirtualFloatRegIndex(const MicroPassContext& context)
     {
-        SWC_ASSERT(context.instructions);
-        SWC_ASSERT(context.operands);
-
-        uint32_t nextIndex = 1;
-        for (const MicroInstr& inst : context.instructions->view())
-        {
-            SmallVector<MicroInstrRegOperandRef> refs;
-            inst.collectRegOperands(*context.operands, refs, context.encoder);
-            for (const auto& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *ref.reg;
-                if (!reg.isVirtualFloat())
-                    continue;
-
-                if (reg.index() < MicroReg::K_MAX_INDEX)
-                    nextIndex = std::max(nextIndex, reg.index() + 1);
-                else
-                    nextIndex = MicroReg::K_MAX_INDEX;
-            }
-        }
-
-        return nextIndex;
+        return computeNextVirtualRegIndex(context, true, 1);
     }
 
     MicroReg allocateVirtualIntReg(const MicroPassContext& context, uint32_t& nextVirtualIntRegIndex)
     {
-        SWC_ASSERT(nextVirtualIntRegIndex <= MicroReg::K_MAX_INDEX);
         SWC_ASSERT(nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX);
         const MicroReg result = MicroReg::virtualIntReg(nextVirtualIntRegIndex);
         ++nextVirtualIntRegIndex;
@@ -200,7 +177,6 @@ namespace
 
     MicroReg allocateVirtualFloatReg(const MicroPassContext& context, uint32_t& nextVirtualFloatRegIndex)
     {
-        SWC_ASSERT(nextVirtualFloatRegIndex <= MicroReg::K_MAX_INDEX);
         SWC_ASSERT(nextVirtualFloatRegIndex < MicroReg::K_MAX_INDEX);
         const MicroReg result = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex);
         ++nextVirtualFloatRegIndex;
@@ -676,17 +652,12 @@ namespace
             insertMoveRegReg(context, instRef, helperReg, requiredReg, MicroOpBits::B64);
         }
 
-        if (operandIsDst)
-            insertMoveRegReg(context, instRef, requiredReg, originalDstReg, MicroOpBits::B64);
-        else
-            insertMoveRegReg(context, instRef, requiredReg, originalSrcReg, MicroOpBits::B64);
+        const MicroReg fixedOperandReg = operandIsDst ? originalDstReg : originalSrcReg;
+        insertMoveRegReg(context, instRef, requiredReg, fixedOperandReg, MicroOpBits::B64);
 
         MicroReg rewrittenDstReg = originalDstReg;
         MicroReg rewrittenSrcReg = originalSrcReg;
-        if (operandIsDst)
-            rewrittenDstReg = requiredReg;
-        else
-            rewrittenSrcReg = requiredReg;
+        (operandIsDst ? rewrittenDstReg : rewrittenSrcReg) = requiredReg;
 
         if (conflict)
         {
@@ -842,17 +813,12 @@ namespace
         addVirtualForbiddenReg(context, scratchReg, originalDstReg);
         addVirtualForbiddenReg(context, scratchReg, originalSrcReg);
 
-        if (issue.operandIndex == 0)
-            insertMoveRegReg(context, instRef, scratchReg, originalDstReg, MicroOpBits::B64);
-        else
-            insertMoveRegReg(context, instRef, scratchReg, originalSrcReg, MicroOpBits::B64);
+        const MicroReg movedReg = (issue.operandIndex == 0) ? originalDstReg : originalSrcReg;
+        insertMoveRegReg(context, instRef, scratchReg, movedReg, MicroOpBits::B64);
 
         MicroReg rewrittenDstReg = originalDstReg;
         MicroReg rewrittenSrcReg = originalSrcReg;
-        if (issue.operandIndex == 0)
-            rewrittenDstReg = scratchReg;
-        else
-            rewrittenSrcReg = scratchReg;
+        (issue.operandIndex == 0 ? rewrittenDstReg : rewrittenSrcReg) = scratchReg;
 
         SWC_ASSERT((issue.operandIndex == 0 ? rewrittenDstReg : rewrittenSrcReg) != forbiddenReg);
         insertBinaryRegReg(context, instRef, rewrittenDstReg, rewrittenSrcReg, op, opBits);
@@ -941,10 +907,10 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     }
 
     if (stackScratchFrameSize)
+    {
         stackScratchFrameSize = Math::alignUpU64(stackScratchFrameSize, LEGALIZE_STACK_ALIGN);
-
-    if (stackScratchFrameSize)
         insertScratchFrame(context, encoder, stackScratchFrameSize);
+    }
 
     // Iterate once over instructions, but keep fixing a given instruction
     // until the encoder reports it conformant.

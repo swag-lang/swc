@@ -895,15 +895,16 @@ namespace
 
         if (exprRef.isValid() && !normalizedRet.isVoid)
         {
-            const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
-            const MicroReg            payloadReg    = exprPayload.reg;
-            const bool                payloadLValue = exprPayload.isAddress();
-            const AstNode&            exprNode      = codeGen.node(exprRef);
+            const CodeGenNodePayload& exprPayload     = codeGen.payload(exprRef);
+            const MicroReg            payloadReg      = exprPayload.reg;
+            const bool                payloadLValue   = exprPayload.isAddress();
+            const AstNode&            exprNode        = codeGen.node(exprRef);
+            const bool                needsPersistent = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
 
             if (normalizedRet.isIndirect)
             {
                 SWC_ASSERT(normalizedRet.indirectSize != 0);
-                if (normalizedRet.isIndirect && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef))
+                if (needsPersistent)
                     CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
                 else
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
@@ -914,6 +915,17 @@ namespace
                     ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
                 else
                     ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+
+                if (needsPersistent)
+                {
+                    // Compiler-run blocks also need persistence for direct register returns like `string`.
+                    CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen,
+                                                                        returnTypeRef,
+                                                                        outputStorageReg,
+                                                                        outputStorageReg,
+                                                                        codeGen.localStackBaseReg(),
+                                                                        codeGen.localStackFrameSize());
+                }
             }
         }
 

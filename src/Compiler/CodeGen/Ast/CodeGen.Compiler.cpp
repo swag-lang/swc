@@ -342,11 +342,12 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg                         outputStorageReg = runExprPayload.reg;
     const AstNode&                         exprNode         = codeGen.node(nodeExprRef);
     const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
+    const bool                             needsPersistent  = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), exprView.typeRef());
 
     if (normalizedRet.isIndirect)
     {
         SWC_ASSERT(normalizedRet.indirectSize != 0);
-        if (CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), exprView.typeRef()))
+        if (needsPersistent)
             CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, exprView.typeRef(), outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
         else
             CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
@@ -359,6 +360,17 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
             ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
         else
             ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+
+        if (needsPersistent)
+        {
+            // Direct ABI returns can still carry stack-backed strings/slices inside the register payload.
+            CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen,
+                                                                exprView.typeRef(),
+                                                                outputStorageReg,
+                                                                outputStorageReg,
+                                                                codeGen.localStackBaseReg(),
+                                                                codeGen.localStackFrameSize());
+        }
     }
     builder.emitRet();
     return Result::Continue;

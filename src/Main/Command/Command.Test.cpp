@@ -196,7 +196,7 @@ namespace
         return result;
     }
 
-    void restoreDataSegment(DataSegment& segment, const std::vector<std::byte>& snapshot)
+    void restoreDataSegment(const DataSegment& segment, const std::vector<std::byte>& snapshot)
     {
         if (snapshot.empty())
             return;

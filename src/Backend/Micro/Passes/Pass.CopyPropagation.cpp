@@ -61,6 +61,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
             continue;
         }
 
+        const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
         SmallVector<MicroInstrRegOperandRef> refs;
         inst.collectRegOperands(operands, refs, context.encoder);
         for (const MicroInstrRegOperandRef& ref : refs)
@@ -72,12 +73,16 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
             const MicroReg resolvedReg = resolveAlias(aliases_, reg);
             if (resolvedReg != reg && reg.isSameClass(resolvedReg))
             {
+                // Do not rewrite a use to a register defined by the same instruction.
+                // Example: mov tmp, rcx; load rcx, [tmp + 8] must not become [rcx + 8].
+                if (microRegSpanContains(useDef.defs, resolvedReg))
+                    continue;
+
                 reg                 = resolvedReg;
                 context.passChanged = true;
             }
         }
 
-        const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
         for (const MicroReg reg : useDef.defs)
             killAliasForDefinition(aliases_, reg);
 

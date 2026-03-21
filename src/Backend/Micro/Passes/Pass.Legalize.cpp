@@ -57,6 +57,38 @@ namespace
         return false;
     }
 
+    bool isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        if (!reg.isValid())
+            return false;
+
+        const MicroStorage::View view = context.instructions->view();
+        auto                     it   = view.begin();
+        while (it != view.end() && it.current != instRef)
+            ++it;
+        if (it == view.end())
+            return false;
+
+        ++it;
+        for (; it != view.end(); ++it)
+        {
+            const MicroInstr&      scanInst = *it;
+            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
+            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                return false;
+
+            if (microRegSpanContains(useDef.uses, reg))
+                return true;
+            if (microRegSpanContains(useDef.defs, reg))
+                return false;
+        }
+
+        return false;
+    }
+
     uint64_t requiredScratchForIssue(const MicroConformanceIssue& issue)
     {
         return issue.kind == MicroConformanceIssueKind::RewriteLoadFloatRegImm ? FLOAT_STACK_SCRATCH : 0;
@@ -75,6 +107,24 @@ namespace
             return;
 
         (context.builder)->addVirtualRegForbiddenPhysReg(virtualReg, concreteReg);
+    }
+
+    void addLiveConcreteForbiddenRegsAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg virtualReg)
+    {
+        SWC_ASSERT(virtualReg.isVirtual());
+
+        const CallConv& conv = CallConv::get(context.callConvKind);
+        for (const MicroReg reg : conv.intRegs)
+        {
+            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
+                addVirtualForbiddenReg(context, virtualReg, reg);
+        }
+
+        for (const MicroReg reg : conv.floatRegs)
+        {
+            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
+                addVirtualForbiddenReg(context, virtualReg, reg);
+        }
     }
 
     uint32_t computeNextVirtualIntRegIndex(const MicroPassContext& context)
@@ -599,6 +649,11 @@ namespace
         const bool conflict                  = operandIsDst ? originalSrcReg == requiredReg : originalDstReg == requiredReg;
         const bool mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         const bool shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        const MicroReg nonFixedOperandReg    = operandIsDst ? originalSrcReg : originalDstReg;
+
+        if (nonFixedOperandReg.isVirtual())
+            addVirtualForbiddenReg(context, nonFixedOperandReg, requiredReg);
+
         MicroReg   savedRequiredReg          = MicroReg::invalid();
         if (shouldPreserveRequiredReg)
         {
@@ -606,6 +661,7 @@ namespace
             addVirtualForbiddenReg(context, savedRequiredReg, requiredReg);
             addVirtualForbiddenReg(context, savedRequiredReg, originalDstReg);
             addVirtualForbiddenReg(context, savedRequiredReg, originalSrcReg);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, savedRequiredReg);
             insertMoveRegReg(context, instRef, savedRequiredReg, requiredReg, MicroOpBits::B64);
         }
 
@@ -616,6 +672,7 @@ namespace
             addVirtualForbiddenReg(context, helperReg, requiredReg);
             addVirtualForbiddenReg(context, helperReg, originalDstReg);
             addVirtualForbiddenReg(context, helperReg, originalSrcReg);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, helperReg);
             insertMoveRegReg(context, instRef, helperReg, requiredReg, MicroOpBits::B64);
         }
 
@@ -670,6 +727,7 @@ namespace
             addVirtualForbiddenReg(context, savedRequiredReg, requiredReg);
             addVirtualForbiddenReg(context, savedRequiredReg, originalMemReg);
             addVirtualForbiddenReg(context, savedRequiredReg, originalSrcReg);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, savedRequiredReg);
             insertMoveRegReg(context, instRef, savedRequiredReg, requiredReg, MicroOpBits::B64);
         }
 
@@ -680,6 +738,7 @@ namespace
             addVirtualForbiddenReg(context, rewrittenMemReg, requiredReg);
             addVirtualForbiddenReg(context, rewrittenMemReg, originalMemReg);
             addVirtualForbiddenReg(context, rewrittenMemReg, originalSrcReg);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, rewrittenMemReg);
             insertMoveRegReg(context, instRef, rewrittenMemReg, requiredReg, MicroOpBits::B64);
         }
 
@@ -715,6 +774,7 @@ namespace
             addVirtualForbiddenReg(context, savedRequiredReg, originalReg0);
             addVirtualForbiddenReg(context, savedRequiredReg, originalReg1);
             addVirtualForbiddenReg(context, savedRequiredReg, originalReg2);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, savedRequiredReg);
             insertMoveRegReg(context, instRef, savedRequiredReg, requiredReg, MicroOpBits::B64);
         }
 
@@ -730,6 +790,7 @@ namespace
                 addVirtualForbiddenReg(context, rewrittenReg1, originalReg0);
                 addVirtualForbiddenReg(context, rewrittenReg1, originalReg1);
                 addVirtualForbiddenReg(context, rewrittenReg1, originalReg2);
+                addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, rewrittenReg1);
                 insertMoveRegReg(context, instRef, rewrittenReg1, requiredReg, MicroOpBits::B64);
             }
 
@@ -746,6 +807,7 @@ namespace
                     addVirtualForbiddenReg(context, rewrittenReg2, originalReg0);
                     addVirtualForbiddenReg(context, rewrittenReg2, originalReg1);
                     addVirtualForbiddenReg(context, rewrittenReg2, originalReg2);
+                    addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, rewrittenReg2);
                     insertMoveRegReg(context, instRef, rewrittenReg2, requiredReg, MicroOpBits::B64);
                 }
             }

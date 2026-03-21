@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 
 func pressCount(mask: u32)->u32
 {

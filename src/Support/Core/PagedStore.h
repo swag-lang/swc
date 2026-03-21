@@ -36,6 +36,7 @@ public:
     void     clear() noexcept;
     void     copyTo(ByteSpanRW dst) const;
     void     copyToPreserveOffsets(ByteSpanRW dst) const;
+    void     restoreFromPreserveOffsets(ByteSpan src) const;
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
     uint8_t* pushU16(uint16_t v) { return pushPod(v); }
@@ -47,6 +48,7 @@ public:
     uint8_t* pushS64(int64_t v) { return pushPod(v); }
 
     std::pair<ByteSpan, Ref> pushCopySpan(ByteSpan payload, uint32_t align = alignof(std::byte));
+    Ref                      reserveRange(uint32_t size, uint32_t align, bool zeroInit);
     SpanRef                  pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
     SpanView                 spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const;
     Ref                      findRef(const void* ptr) const noexcept;

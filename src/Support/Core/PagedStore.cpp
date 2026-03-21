@@ -142,6 +142,26 @@ void PagedStore::copyToPreserveOffsets(ByteSpanRW dst) const
     }
 }
 
+void PagedStore::restoreFromPreserveOffsets(ByteSpan src) const
+{
+    SWC_ASSERT(src.size() <= extentSize());
+
+    if (src.empty())
+        return;
+
+    const auto* pages = snapshotPages();
+    for (size_t i = 0; i < pages->size(); ++i)
+    {
+        const uint32_t used = (*pages)[i]->used.load(std::memory_order_relaxed);
+        if (!used)
+            continue;
+
+        const uint64_t srcOffset = i * pageSizeValue_;
+        SWC_ASSERT(srcOffset + used <= src.size_bytes());
+        std::memcpy((*pages)[i]->bytes(), src.data() + srcOffset, used);
+    }
+}
+
 std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
 {
     SWC_ASSERT(elemSize > 0);
@@ -191,6 +211,53 @@ std::pair<ByteSpan, Ref> PagedStore::pushCopySpan(ByteSpan payload, uint32_t ali
     if (payload.data()) // TODO: define expectations for nullptr + nonzero size
         std::memcpy(dst, payload.data(), payload.size());
     return {{static_cast<const std::byte*>(dst), payload.size()}, ref};
+}
+
+Ref PagedStore::reserveRange(uint32_t size, uint32_t align, bool zeroInit)
+{
+    if (!size)
+        return INVALID_REF;
+    if (!align)
+        align = 1;
+    SWC_ASSERT((align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
+
+    Page*    page     = curPage_ ? curPage_ : newPage();
+    uint32_t prevUsed = page->used.load(std::memory_order_relaxed);
+    uint32_t offset   = (prevUsed + (align - 1)) & ~(align - 1);
+    if (offset >= pageSizeValue_)
+    {
+        page     = newPage();
+        prevUsed = page->used.load(std::memory_order_relaxed);
+        offset   = 0;
+    }
+
+    if (zeroInit && offset > prevUsed)
+        std::memset(page->bytes() + prevUsed, 0, offset - prevUsed);
+
+    const Ref baseRef = makeRef(pageSizeValue_, curPageIndex_, offset);
+    lastPtr_          = nullptr;
+
+    uint32_t remaining   = size;
+    uint32_t localOffset = offset;
+    while (remaining)
+    {
+        const uint32_t usedBefore = page->used.load(std::memory_order_relaxed);
+        const uint32_t chunkSize  = std::min(pageSizeValue_ - localOffset, remaining);
+
+        if (zeroInit && chunkSize)
+            std::memset(page->bytes() + localOffset, 0, chunkSize);
+
+        page->used.store(localOffset + chunkSize, std::memory_order_relaxed);
+        totalBytes_ += localOffset + chunkSize - usedBefore;
+        remaining -= chunkSize;
+        if (!remaining)
+            break;
+
+        page        = newPage();
+        localOffset = 0;
+    }
+
+    return baseRef;
 }
 
 SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count)

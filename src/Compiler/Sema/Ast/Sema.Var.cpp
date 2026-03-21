@@ -189,9 +189,8 @@ namespace
         }
         else
         {
-            const bool                            zeroInit = !explicitUndefined;
-            const std::pair<uint32_t, std::byte*> res      = segment.reserveBytes(size, alignment, zeroInit);
-            offset                                         = res.first;
+            const bool zeroInit = !explicitUndefined;
+            offset              = segment.reserveBlock(size, alignment, zeroInit);
         }
 
         symVar.setGlobalStorage(storageKind, offset);

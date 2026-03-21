@@ -274,9 +274,7 @@ namespace
         if (snapshot.empty())
             return;
 
-        std::byte* const dst = segment.ptr<std::byte>(0);
-        SWC_ASSERT(dst != nullptr);
-        std::memcpy(dst, snapshot.data(), snapshot.size());
+        segment.restoreFromPreserveOffsets(ByteSpan{snapshot.data(), snapshot.size()});
     }
 
     struct DataSegmentRestoreGuard

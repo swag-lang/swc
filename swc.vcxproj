@@ -371,6 +371,7 @@
         <ClCompile Include="src\Support\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Support\Report\Logger.cpp"/>
         <ClCompile Include="src\Support\Report\LogSymbol.cpp"/>
+        <ClCompile Include="src\Support\Report\ScopedTimedAction.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Block.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Cast.cpp"/>

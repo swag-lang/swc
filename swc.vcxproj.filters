@@ -645,6 +645,9 @@
     <ClCompile Include="src\Support\Report\LogSymbol.cpp">
       <Filter>src\Support\Report</Filter>
     </ClCompile>
+    <ClCompile Include="src\Support\Report\ScopedTimedAction.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>

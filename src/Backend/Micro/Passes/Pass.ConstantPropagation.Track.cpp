@@ -14,6 +14,16 @@ namespace
     }
 }
 
+void MicroConstantPropagationPass::markStackWriteHandled(MicroReg baseReg, bool& handledMemoryWrite)
+{
+    handledMemoryWrite = true;
+    if (isIndirectTrackedStackWrite(*context_, baseReg))
+    {
+        knownStackSlots_.clear();
+        knownStackAddresses_.clear();
+    }
+}
+
 void MicroConstantPropagationPass::invalidateStateForDefinitions(const MicroInstrUseDef& useDef)
 {
     eraseKnownDefs(useDef.defs);
@@ -74,12 +84,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
             {
                 setKnownStackSlot(stackOffset, ops[1].opBits, ops[3].valueU64);
                 eraseOverlappingStackAddresses(stackOffset, ops[1].opBits);
-                handledMemoryWrite = true;
-                if (isIndirectTrackedStackWrite(*context_, ops[0].reg))
-                {
-                    knownStackSlots_.clear();
-                    knownStackAddresses_.clear();
-                }
+                markStackWriteHandled(ops[0].reg, handledMemoryWrite);
             }
             break;
         }
@@ -106,12 +111,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
                 else
                     eraseOverlappingStackAddresses(stackOffset, ops[2].opBits);
 
-                handledMemoryWrite = true;
-                if (isIndirectTrackedStackWrite(*context_, ops[0].reg))
-                {
-                    knownStackSlots_.clear();
-                    knownStackAddresses_.clear();
-                }
+                markStackWriteHandled(ops[0].reg, handledMemoryWrite);
             }
             break;
         }
@@ -123,12 +123,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
             {
                 setKnownStackSlot(stackOffset, ops[4].opBits, ops[7].valueU64);
                 eraseOverlappingStackAddresses(stackOffset, ops[4].opBits);
-                handledMemoryWrite = true;
-                if (isIndirectTrackedStackWrite(*context_, ops[0].reg))
-                {
-                    knownStackSlots_.clear();
-                    knownStackAddresses_.clear();
-                }
+                markStackWriteHandled(ops[0].reg, handledMemoryWrite);
             }
             break;
         }
@@ -155,12 +150,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
                 else
                     eraseOverlappingStackAddresses(stackOffset, ops[4].opBits);
 
-                handledMemoryWrite = true;
-                if (isIndirectTrackedStackWrite(*context_, ops[0].reg))
-                {
-                    knownStackSlots_.clear();
-                    knownStackAddresses_.clear();
-                }
+                markStackWriteHandled(ops[0].reg, handledMemoryWrite);
             }
             break;
         }
@@ -195,12 +185,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(MicroInstrRef
                     eraseOverlappingStackSlots(stackOffset, ops[1].opBits);
 
                 eraseOverlappingStackAddresses(stackOffset, ops[1].opBits);
-                handledMemoryWrite = true;
-                if (isIndirectTrackedStackWrite(*context_, ops[0].reg))
-                {
-                    knownStackSlots_.clear();
-                    knownStackAddresses_.clear();
-                }
+                markStackWriteHandled(ops[0].reg, handledMemoryWrite);
             }
             break;
         }
@@ -224,12 +209,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(MicroInstrRef
                     eraseOverlappingStackSlots(stackOffset, ops[2].opBits);
 
                 eraseOverlappingStackAddresses(stackOffset, ops[2].opBits);
-                handledMemoryWrite = true;
-                if (isIndirectTrackedStackWrite(*context_, ops[0].reg))
-                {
-                    knownStackSlots_.clear();
-                    knownStackAddresses_.clear();
-                }
+                markStackWriteHandled(ops[0].reg, handledMemoryWrite);
             }
             break;
         }
@@ -255,12 +235,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(MicroInstrRef
                     eraseOverlappingStackSlots(stackOffset, ops[1].opBits);
 
                 eraseOverlappingStackAddresses(stackOffset, ops[1].opBits);
-                handledMemoryWrite = true;
-                if (isIndirectTrackedStackWrite(*context_, ops[0].reg))
-                {
-                    knownStackSlots_.clear();
-                    knownStackAddresses_.clear();
-                }
+                markStackWriteHandled(ops[0].reg, handledMemoryWrite);
             }
             break;
         }

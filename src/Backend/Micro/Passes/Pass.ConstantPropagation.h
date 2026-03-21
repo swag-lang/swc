@@ -128,6 +128,8 @@ private:
     void                    updateCompareStateForInstruction(const MicroInstr& inst, MicroInstrOperand* ops, std::optional<std::pair<MicroReg, uint64_t>>& deferredKnownDef);
     void                    clearControlFlowBoundaryForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
     void                    clearForCallBoundary(CallConvKind callConvKind);
+    void                    setCompareState(uint64_t lhs, uint64_t rhs, MicroOpBits opBits);
+    void                    markStackWriteHandled(MicroReg baseReg, bool& handledMemoryWrite);
 
     KnownRegMap                                               known_;
     KnownStackSlotMap                                         knownStackSlots_;

@@ -274,18 +274,20 @@ uint64_t MicroConstantPropagationPass::signExtendToBits(uint64_t value, MicroOpB
     }
 }
 
-bool MicroConstantPropagationPass::foldFloatBinaryToBits(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
+namespace
 {
-    if (opBits == MicroOpBits::B32)
+    template <typename FloatT>
+    bool foldFloatBinaryImpl(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
     {
-        const uint32_t lhsBits = static_cast<uint32_t>(lhs);
-        const uint32_t rhsBits = static_cast<uint32_t>(rhs);
-        float          lhsVal  = 0;
-        float          rhsVal  = 0;
+        using BitsT  = std::conditional_t<sizeof(FloatT) == 4, uint32_t, uint64_t>;
+        BitsT  lhsBits = static_cast<BitsT>(lhs);
+        BitsT  rhsBits = static_cast<BitsT>(rhs);
+        FloatT lhsVal  = 0;
+        FloatT rhsVal  = 0;
         std::memcpy(&lhsVal, &lhsBits, sizeof(lhsVal));
         std::memcpy(&rhsVal, &rhsBits, sizeof(rhsVal));
 
-        float result = 0;
+        FloatT result = 0;
         switch (op)
         {
             case MicroOp::FloatAdd:
@@ -304,42 +306,19 @@ bool MicroConstantPropagationPass::foldFloatBinaryToBits(uint64_t& outValue, uin
                 return false;
         }
 
-        uint32_t resultBits = 0;
+        BitsT resultBits = 0;
         std::memcpy(&resultBits, &result, sizeof(resultBits));
-        outValue = MicroPassHelpers::normalizeToOpBits(resultBits, MicroOpBits::B32);
+        outValue = MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(resultBits), opBits);
         return true;
     }
+}
 
+bool MicroConstantPropagationPass::foldFloatBinaryToBits(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
+{
+    if (opBits == MicroOpBits::B32)
+        return foldFloatBinaryImpl<float>(outValue, lhs, rhs, op, opBits);
     if (opBits == MicroOpBits::B64)
-    {
-        double lhsVal = 0;
-        double rhsVal = 0;
-        std::memcpy(&lhsVal, &lhs, sizeof(lhsVal));
-        std::memcpy(&rhsVal, &rhs, sizeof(rhsVal));
-
-        double result = 0;
-        switch (op)
-        {
-            case MicroOp::FloatAdd:
-                result = lhsVal + rhsVal;
-                break;
-            case MicroOp::FloatSubtract:
-                result = lhsVal - rhsVal;
-                break;
-            case MicroOp::FloatMultiply:
-                result = lhsVal * rhsVal;
-                break;
-            case MicroOp::FloatDivide:
-                result = lhsVal / rhsVal;
-                break;
-            default:
-                return false;
-        }
-
-        std::memcpy(&outValue, &result, sizeof(outValue));
-        return true;
-    }
-
+        return foldFloatBinaryImpl<double>(outValue, lhs, rhs, op, opBits);
     return false;
 }
 

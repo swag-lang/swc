@@ -67,6 +67,14 @@ void MicroConstantPropagationPass::collectReferencedLabels()
     MicroPassHelpers::collectReferencedLabels(*storage_, *operands_, referencedLabels_, true);
 }
 
+void MicroConstantPropagationPass::setCompareState(uint64_t lhs, uint64_t rhs, MicroOpBits opBits)
+{
+    compareState_.valid  = true;
+    compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(lhs, opBits);
+    compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(rhs, opBits);
+    compareState_.opBits = opBits;
+}
+
 void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroInstr& inst, MicroInstrOperand* ops, std::optional<std::pair<MicroReg, uint64_t>>& deferredKnownDef)
 {
     switch (inst.op)
@@ -78,16 +86,9 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
 
             const auto itKnown = known_.find(ops[0].reg);
             if (itKnown != known_.end())
-            {
-                compareState_.valid  = true;
-                compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[1].opBits);
-                compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
-                compareState_.opBits = ops[1].opBits;
-            }
+                setCompareState(itKnown->second.value, ops[2].valueU64, ops[1].opBits);
             else
-            {
                 compareState_.valid = false;
-            }
             break;
         }
         case MicroInstrOpcode::CmpRegReg:
@@ -98,16 +99,9 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
             const auto itKnownLhs = known_.find(ops[0].reg);
             const auto itKnownRhs = known_.find(ops[1].reg);
             if (itKnownLhs != known_.end() && itKnownRhs != known_.end())
-            {
-                compareState_.valid  = true;
-                compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(itKnownLhs->second.value, ops[2].opBits);
-                compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(itKnownRhs->second.value, ops[2].opBits);
-                compareState_.opBits = ops[2].opBits;
-            }
+                setCompareState(itKnownLhs->second.value, itKnownRhs->second.value, ops[2].opBits);
             else
-            {
                 compareState_.valid = false;
-            }
             break;
         }
         case MicroInstrOpcode::CmpMemImm:
@@ -120,16 +114,9 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
             {
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, stackOffset, ops[1].opBits))
-                {
-                    compareState_.valid  = true;
-                    compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(knownValue, ops[1].opBits);
-                    compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(ops[3].valueU64, ops[1].opBits);
-                    compareState_.opBits = ops[1].opBits;
-                }
+                    setCompareState(knownValue, ops[3].valueU64, ops[1].opBits);
                 else
-                {
                     compareState_.valid = false;
-                }
             }
             else
             {
@@ -148,16 +135,9 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 uint64_t   knownValue = 0;
                 const auto itKnownRhs = known_.find(ops[1].reg);
                 if (tryGetKnownStackSlotValue(knownValue, stackOffset, ops[2].opBits) && itKnownRhs != known_.end())
-                {
-                    compareState_.valid  = true;
-                    compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
-                    compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(itKnownRhs->second.value, ops[2].opBits);
-                    compareState_.opBits = ops[2].opBits;
-                }
+                    setCompareState(knownValue, itKnownRhs->second.value, ops[2].opBits);
                 else
-                {
                     compareState_.valid = false;
-                }
             }
             else
             {

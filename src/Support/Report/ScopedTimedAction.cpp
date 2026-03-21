@@ -7,7 +7,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr size_t ACTION_LABEL_WIDTH = 8;
-    constexpr size_t ACTION_VERB_WIDTH  = 25;
 
     template<typename T>
     T deltaValue(const T after, const T before)
@@ -71,6 +70,8 @@ namespace
             return LogColor::BrightBlue;
         if (key == "jit")
             return LogColor::BrightMagenta;
+        if (key == "micro")
+            return LogColor::BrightMagenta;
         if (key == "verify")
             return LogColor::BrightCyan;
         if (key == "run")
@@ -121,7 +122,9 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Utf8 joinHumanParts(const TaskContext& ctx, const std::vector<Utf8>& parts)
+    Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text);
+
+    Utf8 joinHumanParts(const TaskContext& ctx, const std::vector<Utf8>& parts, const LogColor partColor)
     {
         Utf8       result;
         const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
@@ -132,7 +135,12 @@ namespace
                 continue;
 
             if (!first)
-                result += std::format(" {} ", bullet);
+            {
+                result += " ";
+                result += colorize(ctx, LogColor::Gray, bullet);
+                result += LogColorHelper::toAnsi(ctx, partColor);
+                result += " ";
+            }
             result += part;
             first = false;
         }
@@ -166,7 +174,7 @@ namespace
         if (deltaErrors)
             parts.push_back(std::format("{} errors", Utf8Helper::toNiceBigNumber(deltaErrors)));
 
-        return joinHumanParts(ctx, parts);
+        return joinHumanParts(ctx, parts, LogColor::White);
     }
 
     Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text)
@@ -185,14 +193,20 @@ namespace
     Utf8 formatFunStageStartLine(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence)
     {
         Utf8 line;
+        const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
         line += "  ";
         line += colorize(ctx, stageColor(spec.key), funStartGlyph(ctx, sequence));
         line += "  ";
         line += colorize(ctx, stageColor(spec.key), std::format("{:<{}}", spec.label, ACTION_LABEL_WIDTH));
         line += " ";
-        line += colorize(ctx, LogColor::White, std::format("{:<{}}", spec.verb, ACTION_VERB_WIDTH));
+        line += colorize(ctx, LogColor::White, spec.verb);
         if (!spec.detail.empty())
+        {
+            line += " ";
+            line += colorize(ctx, LogColor::Gray, bullet);
+            line += " ";
             line += colorize(ctx, LogColor::Gray, spec.detail);
+        }
 
         line += resetColor(ctx);
         line += "\n";
@@ -232,7 +246,7 @@ namespace
     {
         const CommandLine&       cmdLine  = ctx.cmdLine();
         const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
-        return joinHumanParts(ctx, {cmdLine.buildCfg, buildCfgBackendKindName(buildCfg.backendKind), cmdLine.targetArchName});
+        return joinHumanParts(ctx, {cmdLine.buildCfg, buildCfgBackendKindName(buildCfg.backendKind), cmdLine.targetArchName}, LogColor::Gray);
     }
 }
 
@@ -326,7 +340,7 @@ void TimedActionLog::printSessionFlags(const TaskContext& ctx)
         .key    = "config",
         .label  = "Modes",
         .verb   = "settling runtime",
-        .detail = joinHumanParts(ctx, flags),
+        .detail = joinHumanParts(ctx, flags, LogColor::Gray),
     };
 
     printLineLocked(ctx, formatFunStageStartLine(ctx, spec, ctx.global().logger().nextStageSequence()));
@@ -398,7 +412,7 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     else if (!snapshot.numWarnings)
         parts.push_back("clean");
 
-    const Utf8 summaryText = joinHumanParts(ctx, parts);
+    const Utf8 summaryText = joinHumanParts(ctx, parts, LogColor::White);
 
     Utf8 line;
     line += "  ";

@@ -8,6 +8,7 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/ScopedTimedAction.h"
@@ -251,6 +252,13 @@ namespace
 
         if (!firstFile)
             return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
+
+        TimedActionLog::ScopedStage stage(builder.ctx(), {
+            .key    = "micro",
+            .label  = "Micro",
+            .verb   = "optimizing instruction flow",
+            .detail = std::format("{} funcs", Utf8Helper::toNiceBigNumber(builder.functionInfos.size())),
+        });
 
         Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);
         JobManager& jobMgr = builder.ctx().global().jobMgr();

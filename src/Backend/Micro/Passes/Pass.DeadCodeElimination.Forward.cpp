@@ -18,7 +18,7 @@ bool MicroDeadCodeEliminationPass::runForwardPureDefElimination()
         const auto*         ops        = inst.ops(*operands_);
 
         const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, encoder_);
-        if (isControlFlowBarrier(inst, useDef))
+        if (isControlFlowBarrier(inst))
         {
             lastPureDefByReg_.clear();
             continue;

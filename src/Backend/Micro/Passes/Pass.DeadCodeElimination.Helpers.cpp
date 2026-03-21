@@ -130,9 +130,8 @@ bool MicroDeadCodeEliminationPass::canCurrentDefKillPreviousPureDef(const MicroI
     }
 }
 
-bool MicroDeadCodeEliminationPass::isControlFlowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef)
+bool MicroDeadCodeEliminationPass::isControlFlowBarrier(const MicroInstr& inst)
 {
-    SWC_UNUSED(useDef);
     switch (inst.op)
     {
         case MicroInstrOpcode::Label:

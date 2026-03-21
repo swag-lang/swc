@@ -28,7 +28,7 @@ private:
     static void addCallArgumentRegs(std::unordered_set<MicroReg>& liveRegs, const CallConv& conv);
     static void killCallClobberedRegs(std::unordered_set<MicroReg>& liveRegs, const CallConv& conv);
     static bool canCurrentDefKillPreviousPureDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg defReg);
-    static bool isControlFlowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef);
+    static bool isControlFlowBarrier(const MicroInstr& inst);
     static bool isPureDefCandidate(const MicroInstr& inst, const MicroInstrUseDef& useDef, const Encoder* encoder, CallConvKind callConvKind);
     static bool isBackwardDeadDefRemovableInstruction(const MicroInstr& inst);
     bool        areCpuFlagsDeadAfterInstruction(MicroInstrRef instructionRef) const;

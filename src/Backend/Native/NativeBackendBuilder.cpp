@@ -340,15 +340,22 @@ Result NativeBackendBuilder::run()
     const NativeArtifactBuilder artifactBuilder(*this);
     NativeArtifactPaths         paths;
     artifactBuilder.queryPaths(paths);
-    TimedActionLog::printStep(ctx_, "Build", paths.artifactPath.filename().string());
+    {
+        TimedActionLog::ScopedStage stage(ctx_, {
+            .key    = "build",
+            .label  = "Build",
+            .verb   = "forging native artifact",
+            .detail = paths.artifactPath.filename().string(),
+        });
 
-    SWC_RESULT(prepare());
-    SWC_RESULT(artifactBuilder.build());
-    SWC_RESULT(writeObjects());
+        SWC_RESULT(prepare());
+        SWC_RESULT(artifactBuilder.build());
+        SWC_RESULT(writeObjects());
 
-    const auto linker = NativeLinker::create(*this);
-    SWC_ASSERT(linker != nullptr);
-    SWC_RESULT(linker->link());
+        const auto linker = NativeLinker::create(*this);
+        SWC_ASSERT(linker != nullptr);
+        SWC_RESULT(linker->link());
+    }
 
     if (runArtifact_ && compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
         SWC_RESULT(runGeneratedArtifact());
@@ -460,7 +467,12 @@ Result NativeBackendBuilder::writeObjects()
 
 Result NativeBackendBuilder::runGeneratedArtifact() const
 {
-    TimedActionLog::printStep(ctx_, "Run", artifactPath.filename().string());
+    TimedActionLog::ScopedStage stage(ctx_, {
+        .key    = "run",
+        .label  = "Run",
+        .verb   = "handing off",
+        .detail = artifactPath.filename().string(),
+    });
 
     uint32_t       exitCode    = 0;
     const fs::path artifactDir = artifactPath.parent_path();

@@ -201,6 +201,7 @@
         <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.StageLog.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp"/>
         <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
@@ -314,7 +315,7 @@
         <ClCompile Include="src\Main\Command\Command.Sema.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Syntax.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Test.cpp"/>
-        <ClCompile Include="src\Main\Command\Command.Build.cpp" />
+        <ClCompile Include="src\Main\Command\Command.Build.cpp"/>
         <ClCompile Include="src\Main\Command\CommandLineParser.cpp"/>
         <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
@@ -338,7 +339,7 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
-        <ClCompile Include="src\Support\Os\Os.Windows.cpp" />
+        <ClCompile Include="src\Support\Os\Os.Windows.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp"/>
@@ -446,7 +447,8 @@
         <ClInclude Include="src\Backend\Micro\MicroDenseRegIndex.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>
+        <ClInclude Include="src\Support\Report\ScopedTimedAction.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>

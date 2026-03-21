@@ -8,7 +8,6 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -22,87 +21,9 @@ namespace
         Utf8 key;
     };
 
-    fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
-    {
-        fs::path result;
-        auto     itLhs = lhs.begin();
-        auto     itRhs = rhs.begin();
-        while (itLhs != lhs.end() && itRhs != rhs.end() && *itLhs == *itRhs)
-        {
-            result /= *itLhs;
-            ++itLhs;
-            ++itRhs;
-        }
-
-        return result;
-    }
-
-    Utf8 displayPath(const fs::path& path)
-    {
-        std::error_code ec;
-        const fs::path  currentPath = fs::current_path(ec);
-        if (!ec)
-        {
-            std::error_code relEc;
-            const fs::path  relative = fs::relative(path, currentPath, relEc);
-            if (!relEc && !relative.empty())
-                return Utf8{relative.generic_string()};
-        }
-
-        return Utf8{path.generic_string()};
-    }
-
-    Utf8 formatSourceLocation(const std::vector<fs::path>& roots)
-    {
-        if (roots.empty())
-            return "sources";
-
-        fs::path          commonRoot;
-        std::vector<Utf8> labels;
-        for (const fs::path& root : roots)
-        {
-            const fs::path normalized = root.lexically_normal();
-            if (commonRoot.empty())
-                commonRoot = normalized;
-            else
-                commonRoot = commonPathPrefix(commonRoot, normalized);
-
-            labels.push_back(displayPath(normalized));
-        }
-
-        std::ranges::sort(labels);
-        labels.erase(std::ranges::unique(labels).begin(), labels.end());
-
-        if (labels.size() == 1)
-            return labels.front();
-
-        if (!commonRoot.empty() && commonRoot != "." && commonRoot != commonRoot.root_path())
-            return displayPath(commonRoot);
-
-        return std::format("{} locations", Utf8Helper::toNiceBigNumber(labels.size()));
-    }
-
-    Utf8 formatCommandSourceRoots(const CommandLine& cmdLine)
-    {
-        std::vector<fs::path> roots;
-        if (!cmdLine.modulePath.empty())
-            roots.push_back(cmdLine.modulePath);
-        for (const fs::path& folder : cmdLine.directories)
-            roots.push_back(folder);
-        for (const fs::path& file : cmdLine.files)
-            roots.push_back(file.parent_path().empty() ? file : file.parent_path());
-
-        return formatSourceLocation(roots);
-    }
-
-    bool hasNewErrors(const uint64_t errorsBefore)
-    {
-        return Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore;
-    }
-
     bool hasErrors(const uint64_t errorsBefore)
     {
-        return hasNewErrors(errorsBefore);
+        return Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore;
     }
 
     bool shouldRunNativeTests(const CommandLine& cmdLine)
@@ -190,6 +111,12 @@ namespace
             return false;
 
         TaskContext ctx(compiler);
+        TimedActionLog::ScopedStage stage(ctx, {
+            .key    = "verify",
+            .label  = "Verify",
+            .verb   = "checking expectations",
+            .detail = "source-driven expectations",
+        });
         verifyExpectedMarkers(ctx);
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
@@ -311,11 +238,17 @@ namespace
         if (!hasJitEligibleInputs(compiler))
             return true;
 
+        TaskContext ctx(compiler);
+        TimedActionLog::ScopedStage stage(ctx, {
+            .key    = "jit",
+            .label  = "JIT",
+            .verb   = "sparking test code",
+            .detail = "compiler test entry points",
+        });
+
         NativeBackendBuilder nativeBuilder(compiler, false);
         if (nativeBuilder.prepare() != Result::Continue)
             return false;
-
-        TaskContext ctx(compiler);
 
         auto allFunctions = compiler.nativeCodeSegment();
         std::erase_if(allFunctions, [&](const SymbolFunction* function) {
@@ -371,6 +304,12 @@ namespace
             return runNativeBackends(compiler);
 
         TaskContext ctx(compiler);
+        TimedActionLog::ScopedStage stage(ctx, {
+            .key    = "verify",
+            .label  = "Verify",
+            .verb   = "checking expectations",
+            .detail = "source-driven expectations",
+        });
         verifyExpectedMarkers(ctx);
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
@@ -379,7 +318,6 @@ namespace
     {
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
-        TimedActionLog::printStep(ctx, "Sema", formatCommandSourceRoots(ctx.cmdLine()));
         const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
         Command::sema(compiler);
         if (hasErrors(errorsBefore))

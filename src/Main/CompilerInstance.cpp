@@ -23,6 +23,7 @@
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
+#include "Support/Report/ScopedTimedAction.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -240,39 +241,18 @@ void CompilerInstance::decPendingImplRegistrations()
 void CompilerInstance::logBefore()
 {
     const TaskContext ctx(*this);
+    {
+        const Logger::ScopedLock loggerLock(ctx.global().logger());
+        ctx.global().logger().resetStageSequence();
+    }
 
-    const Logger::ScopedLock loggerLock(ctx.global().logger());
-
-#if SWC_DEBUG
-    Logger::printHeaderCentered(ctx, LogColor::Magenta, "[Debug]", LogColor::Magenta, "ON");
-#elif SWC_DEV_MODE
-    Logger::printHeaderCentered(ctx, LogColor::Blue, "[DevMode]", LogColor::Blue, "ON");
-#elif SWC_STATS
-    Logger::printHeaderCentered(ctx, LogColor::Yellow, "[Stats]", LogColor::Yellow, "ON");
-#endif
-
-#if SWC_DEBUG || SWC_DEV_MODE
-    if (ctx.cmdLine().randomize)
-        Logger::printHeaderCentered(ctx, LogColor::Blue, "[Randomize]", LogColor::Blue, std::format("seed is {}", ctx.global().jobMgr().randSeed()));
-#endif
+    TimedActionLog::printSessionFlags(ctx);
 }
 
 void CompilerInstance::logAfter()
 {
     const TaskContext ctx(*this);
-
-    const Utf8               timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
-    const Logger::ScopedLock loggerLock(ctx.global().logger());
-    if (Stats::get().numErrors.load() == 1)
-        Logger::printAction(ctx, "Done", "1 error");
-    else if (Stats::get().numErrors.load() > 1)
-        Logger::printAction(ctx, "Done", std::format("{} errors", Stats::get().numErrors.load()));
-    else if (Stats::get().numWarnings.load() == 1)
-        Logger::printAction(ctx, "Done", std::format("{} (1 warning)", timeSrc));
-    else if (Stats::get().numWarnings.load() > 1)
-        Logger::printAction(ctx, "Done", std::format("{} ({} warnings)", timeSrc, Stats::get().numWarnings.load()));
-    else
-        Logger::printAction(ctx, "Done", timeSrc);
+    TimedActionLog::printSummary(ctx);
 }
 
 void CompilerInstance::logStats()

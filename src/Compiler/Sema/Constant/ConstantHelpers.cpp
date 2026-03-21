@@ -213,7 +213,7 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const ByteSpan      storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
-    const ConstantValue result = makeMaterializedConstantValue(sema, typeRef, storedBytes);
+    const ConstantValue result      = makeMaterializedConstantValue(sema, typeRef, storedBytes);
     if (!result.isValid())
         return ConstantRef::invalid();
 

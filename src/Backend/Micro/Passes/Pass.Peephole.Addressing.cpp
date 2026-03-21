@@ -588,9 +588,9 @@ namespace
         if (!pass.areFlagsDeadAfterInstruction(nextIt, endIt))
             return false;
 
-        const MicroReg    tmpReg       = ops[0].reg;
-        const MicroReg    baseReg      = ops[1].reg;
-        const uint64_t    offset       = nextOps[3].valueU64;
+        const MicroReg tmpReg  = ops[0].reg;
+        const MicroReg baseReg = ops[1].reg;
+        const uint64_t offset  = nextOps[3].valueU64;
         if (tmpReg == baseReg)
             return false;
 

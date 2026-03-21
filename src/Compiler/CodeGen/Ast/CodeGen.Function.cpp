@@ -260,7 +260,7 @@ namespace
             const TypeRef typeRef = symVar->typeRef();
             SWC_ASSERT(typeRef.isValid());
 
-            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+            const TypeInfo& typeInfo      = codeGen.typeMgr().get(typeRef);
             uint32_t        slotSize      = 0;
             uint32_t        slotAlignment = 0;
             if (!tryGetSizedTypeLayout(slotSize, slotAlignment, codeGen, typeInfo))
@@ -391,9 +391,9 @@ namespace
             if (!symbolPayload)
                 continue;
 
-            const TypeInfo& typeInfo = codeGen.typeMgr().get(symVar->typeRef());
-            uint32_t        copySize         = 0;
-            uint32_t        unusedAlignment  = 0;
+            const TypeInfo& typeInfo        = codeGen.typeMgr().get(symVar->typeRef());
+            uint32_t        copySize        = 0;
+            uint32_t        unusedAlignment = 0;
             if (!tryGetSizedTypeLayout(copySize, unusedAlignment, codeGen, typeInfo))
                 continue;
 
@@ -731,8 +731,8 @@ namespace
     Result emitClosureExprValue(CodeGen& codeGen, AstNodeRef nodeRef, SymbolFunction& symFunc, TypeRef typeRef)
     {
         const AstNodeRef storageNodeRef = resolveClosureExprStorageNodeRef(codeGen, nodeRef);
-        MicroBuilder& builder = codeGen.builder();
-        MicroReg      dstReg  = MicroReg::invalid();
+        MicroBuilder&    builder        = codeGen.builder();
+        MicroReg         dstReg         = MicroReg::invalid();
         if (!CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, storageNodeRef, dstReg))
             dstReg = codeGen.runtimeStorageAddressReg(storageNodeRef);
         constexpr auto dstSize = static_cast<uint32_t>(sizeof(Runtime::ClosureValue));

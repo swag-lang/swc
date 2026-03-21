@@ -240,8 +240,8 @@ namespace
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
                 if (safeArrayCstRef.isInvalid())
                     return false;
-                const ConstantValue& safeArrayCst = codeGen.cstMgr().get(safeArrayCstRef);
-                const ConstantRef runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, safeArrayCst.getArray().data(), elementCount);
+                const ConstantValue& safeArrayCst    = codeGen.cstMgr().get(safeArrayCstRef);
+                const ConstantRef    runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, safeArrayCst.getArray().data(), elementCount);
                 if (runtimeSliceRef.isInvalid())
                     return false;
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
@@ -895,11 +895,11 @@ namespace
 
 Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef)
 {
-    MicroBuilder&                          builder           = codeGen.builder();
-    const SemaNodeView                     currentView       = codeGen.curViewTypeSymbol();
-    auto&                                  calledFunction    = currentView.sym()->cast<SymbolFunction>();
-    const CallConvKind                     callConvKind      = calledFunction.callConvKind();
-    const CallConv&                        callConv          = CallConv::get(callConvKind);
+    MicroBuilder&      builder        = codeGen.builder();
+    const SemaNodeView currentView    = codeGen.curViewTypeSymbol();
+    auto&              calledFunction = currentView.sym()->cast<SymbolFunction>();
+    const CallConvKind callConvKind   = calledFunction.callConvKind();
+    const CallConv&    callConv       = CallConv::get(callConvKind);
     // ABI return lowering must follow the callee signature. The expression type can be a
     // transformed view of that result and is not a reliable source for hidden sret decisions.
     const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);

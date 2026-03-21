@@ -399,7 +399,7 @@ Ref PagedStore::findRef(const void* ptr) const noexcept
     const auto  pages = snapshotPages();
     for (uint32_t j = 0; j < pages->size(); j++)
     {
-        const Page* page = (*pages)[j];
+        const Page* page     = (*pages)[j];
         const auto  pageUsed = page->used.load(std::memory_order_relaxed);
         if (bPtr >= page->bytes() && bPtr < page->bytes() + pageUsed)
         {

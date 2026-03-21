@@ -11,9 +11,9 @@ AstNodeRef Parser::parseClosureArg()
     if (consumeIf(TokenId::SymAmpersand).isValid())
         flags.add(AstClosureArgumentFlagsE::Address);
 
-    auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::ClosureArgument>(tokStart);
-    nodePtr->flags()           = flags;
-    PushContextFlags           pushContext(this, ParserContextFlagsE::InClosureCapture);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureArgument>(tokStart);
+    nodePtr->flags()        = flags;
+    PushContextFlags pushContext(this, ParserContextFlagsE::InClosureCapture);
     nodePtr->nodeIdentifierRef = parseQualifiedIdentifier();
 
     return nodeRef;

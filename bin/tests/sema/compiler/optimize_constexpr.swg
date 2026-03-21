@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 
 const Cfg = #run dref @compiler.getBuildCfg()
 

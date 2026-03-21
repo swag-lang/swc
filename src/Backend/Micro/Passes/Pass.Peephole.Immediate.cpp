@@ -8,6 +8,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void collectRefUseDef(const SmallVector<MicroInstrRegOperandRef>& refs, MicroReg reg, bool& outHasUse, bool& outHasDef)
+    {
+        outHasUse = false;
+        outHasDef = false;
+        for (const MicroInstrRegOperandRef& ref : refs)
+        {
+            if (!ref.reg || *(ref.reg) != reg)
+                continue;
+            outHasUse |= ref.use;
+            outHasDef |= ref.def;
+        }
+    }
+
     bool foldLoadImmIntoNextMemStore(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&      context = pass.context();
@@ -34,14 +47,7 @@ namespace
 
             bool hasUse = false;
             bool hasDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg || *(ref.reg) != tmpReg)
-                    continue;
-
-                hasUse |= ref.use;
-                hasDef |= ref.def;
-            }
+            collectRefUseDef(refs, tmpReg, hasUse, hasDef);
 
             if (hasDef)
                 return false;
@@ -108,14 +114,7 @@ namespace
 
             bool hasUse = false;
             bool hasDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg || *(ref.reg) != tmpReg)
-                    continue;
-
-                hasUse |= ref.use;
-                hasDef |= ref.def;
-            }
+            collectRefUseDef(refs, tmpReg, hasUse, hasDef);
 
             if (hasDef)
                 return false;

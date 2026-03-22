@@ -25,8 +25,8 @@ impl IAction for RedoAction
 #test
 {
     var actions: [2] IAction
-    actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)
-    actions[1] = @mkinterface(null, #typeof(RedoAction{}), IAction)
+    actions[0] = @mkinterface(null, UndoAction, IAction)
+    actions[1] = @mkinterface(null, RedoAction, IAction)
 
     @assert(actions[0].accept(1))
     @assert(actions[1].execute(3) == 83)

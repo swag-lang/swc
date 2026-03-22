@@ -1,4 +1,3 @@
-// Regression test for @mkinterface code generation with a null object and a valid itable.
 #global fileprivate
 
 interface IAction

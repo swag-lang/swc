@@ -9,6 +9,7 @@ interface IAction
 
 struct UndoAction {}
 struct RedoAction {}
+struct MissingAction {}
 
 impl IAction for UndoAction
 {
@@ -21,6 +22,8 @@ impl IAction for RedoAction
     mtd impl accept(id: s32)->bool => id == 2
     mtd impl execute(id: s32)->s32 => id + 80
 }
+
+var missing = @mkinterface(null, MissingAction, IAction) // swc-expected-error {{sema_err_cannot_cast_to_interface}}
 
 #test
 {

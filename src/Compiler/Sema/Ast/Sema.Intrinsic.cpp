@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -303,6 +304,21 @@ namespace
         return sema.cstMgr().makeTypeValue(sema, view.cstRef()).isValid();
     }
 
+    TypeRef makeInterfaceTypeValueRef(Sema& sema, const SemaNodeView& view)
+    {
+        if (view.type() && view.type()->isTypeValue())
+            return sema.typeMgr().get(view.type()->payloadTypeRef()).unwrapAliasEnum(sema.ctx(), view.type()->payloadTypeRef());
+
+        if (!view.cstRef().isValid())
+            return TypeRef::invalid();
+
+        const TypeRef typeRef = sema.cstMgr().makeTypeValue(sema, view.cstRef());
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        return sema.typeMgr().get(typeRef).unwrapAliasEnum(sema.ctx(), typeRef);
+    }
+
     Result semaIntrinsicMakeInterface(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         const SemaNodeView objectView = sema.viewType(children[0]);
@@ -318,13 +334,29 @@ namespace
         if (!isMakeInterfaceTypeInfoOperand(sema, itfView))
             return SemaError::raiseRequestedTypeFam(sema, itfView.nodeRef(), itfView.typeRef(), sema.typeMgr().typeTypeInfo());
 
-        TypeRef interfaceTypeRef = TypeRef::invalid();
-        if (itfView.type() && itfView.type()->isTypeValue())
-            interfaceTypeRef = itfView.type()->payloadTypeRef();
-        else
-            interfaceTypeRef = sema.cstMgr().makeTypeValue(sema, itfView.cstRef());
+        const TypeRef interfaceTypeRef = makeInterfaceTypeValueRef(sema, itfView);
         if (!interfaceTypeRef.isValid() || !sema.typeMgr().get(interfaceTypeRef).isInterface())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, itfView.nodeRef());
+
+        const TypeRef objectTypeRef = makeInterfaceTypeValueRef(sema, typeView);
+        if (objectTypeRef.isValid())
+        {
+            const TypeInfo& objectType = sema.typeMgr().get(objectTypeRef);
+            if (objectType.isStruct())
+            {
+                const TypeInfo& interfaceType = sema.typeMgr().get(interfaceTypeRef);
+                SWC_RESULT(sema.waitSemaCompleted(&objectType, typeView.nodeRef()));
+                SWC_RESULT(sema.waitSemaCompleted(&interfaceType, itfView.nodeRef()));
+                if (!objectType.payloadSymStruct().implementsInterfaceOrUsingFields(sema, interfaceType.payloadSymInterface()))
+                {
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast_to_interface, typeView.nodeRef());
+                    diag.addArgument(Diagnostic::ARG_TYPE, objectTypeRef);
+                    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, interfaceTypeRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
+            }
+        }
 
         sema.setType(sema.curNodeRef(), interfaceTypeRef);
         sema.setIsValue(node);

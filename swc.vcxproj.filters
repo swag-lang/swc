@@ -534,6 +534,9 @@
     <ClCompile Include="src\Main\TakeContext.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main\TaskState.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
     <ClCompile Include="src\Support\Math\ApFloat.cpp">
       <Filter>src\Support\Math</Filter>
     </ClCompile>
@@ -1101,6 +1104,9 @@
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\TaskContext.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\TaskState.h">
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\FileSystem.h">

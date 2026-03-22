@@ -334,6 +334,12 @@ namespace
         return Result::Continue;
     }
 
+    Result waitPendingJitNode(Sema& sema, const SymbolFunction& function, AstNodeRef nodeRef)
+    {
+        sema.ctx().state().setSemaWaitMainThreadRunJit(&function, nodeRef, sema.node(nodeRef).codeRef());
+        return Result::Pause;
+    }
+
     bool hasAnyVariadicParameter(Sema& sema, const SymbolFunction& calledFn)
     {
         for (const SymbolVariable* param : calledFn.parameters())
@@ -470,7 +476,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
         return Result::Continue;
 
     if (hasPendingJitNode(sema, nodeExprRef))
-        return Result::Pause;
+        return waitPendingJitNode(sema, symFn, nodeExprRef);
 
     const SemaNodeView initialView = sema.viewType(nodeExprRef);
     SWC_RESULT(sema.waitSemaCompleted(initialView.type(), nodeExprRef));
@@ -515,7 +521,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         return Result::Continue;
 
     if (hasPendingJitNode(sema, callRef))
-        return Result::Pause;
+        return waitPendingJitNode(sema, calledFn, callRef);
 
     const SymbolFunction* currentFn = SemaHelpers::currentFunction(sema);
     if (currentFn == &calledFn)

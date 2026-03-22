@@ -226,11 +226,25 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
             case TaskStateKind::SemaWaitTypeCompleted:
             {
-                SWC_ASSERT(state.symbol);
-                if (!reportedSymbols.insert(state.symbol).second)
-                    break;
                 auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_type_completed, state.codeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                if (state.symbol)
+                {
+                    if (!reportedSymbols.insert(state.symbol).second)
+                        break;
+                    diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                }
+                else
+                {
+                    Utf8 typeName = "<type>";
+                    if (state.nodeRef.isValid())
+                    {
+                        const SemaNodeView typeView = sema->viewType(state.nodeRef);
+                        if (typeView.typeRef().isValid())
+                            typeName = sema->typeMgr().get(typeView.typeRef()).toName(ctx);
+                    }
+
+                    diag.addArgument(Diagnostic::ARG_SYM, typeName);
+                }
                 diag.report(ctx);
                 break;
             }

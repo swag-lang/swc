@@ -204,6 +204,7 @@
         <ClCompile Include="src\Backend\Unittest\Test.StageLog.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp"/>
+        <ClCompile Include="src\Support\Thread\Job.cpp"/>
         <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITExecManager.cpp"/>
@@ -324,6 +325,7 @@
         <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
         <ClCompile Include="src\Main\TakeContext.cpp"/>
+        <ClCompile Include="src\Main\TaskState.cpp"/>
         <ClCompile Include="src\Support\Math\ApFloat.cpp"/>
         <ClCompile Include="src\Support\Math\ApInt.cpp"/>
         <ClCompile Include="src\Support\Math\ApsInt.cpp"/>
@@ -526,6 +528,7 @@
         <ClInclude Include="src\Main\Command\Command.h"/>
         <ClInclude Include="src\Main\Stats.h"/>
         <ClInclude Include="src\Main\TaskContext.h"/>
+        <ClInclude Include="src\Main\TaskState.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>
         <ClInclude Include="src\Main\Global.h"/>
         <ClInclude Include="src\Main\CompilerInstance.h"/>

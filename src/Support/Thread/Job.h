@@ -31,14 +31,6 @@ enum class JobResult : std::uint8_t
     Sleep
 };
 
-inline JobResult toJobResult(Result result)
-{
-    if (result == Result::Pause)
-        return JobResult::Sleep;
-
-    return JobResult::Done;
-}
-
 struct JobRecord
 {
     Job*        job      = nullptr;
@@ -75,6 +67,7 @@ public:
     void               setRec(JobRecord* rec) { rec_ = rec; }
     JobPriority        priority() const { return rec_ ? rec_->priority : JobPriority::Normal; }
     JobClientId        clientId() const { return rec_ ? rec_->clientId : 0; }
+    static JobResult   toJobResult(const TaskContext& ctx, Result result, const char* source = nullptr);
 
     std::function<JobResult()> func;
 

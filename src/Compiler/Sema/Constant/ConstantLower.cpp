@@ -491,7 +491,7 @@ namespace
             SWC_ASSERT(valueTypeRef != dstTypeRef);
 
             ConstantRef  typeInfoCstRef = ConstantRef::invalid();
-            const Result typeInfoRes    = sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, AstNodeRef::invalid());
+            const Result typeInfoRes    = sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, sema.ctx().state().nodeRef);
             SWC_ASSERT(typeInfoRes == Result::Continue);
             SWC_ASSERT(typeInfoCstRef.isValid());
             const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);

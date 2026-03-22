@@ -89,7 +89,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     return Result::Pause;
 }
 
-JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef codeRef)
+JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
 {
     const ItemKey          key = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
     const std::scoped_lock lock(mutex_);

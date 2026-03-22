@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-JobResult Job::toJobResult(const TaskContext& ctx, Result result, const char* source)
+JobResult Job::toJobResult(const TaskContext& ctx, Result result)
 {
     if (result == Result::Pause)
     {

@@ -8,7 +8,6 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Support/Report/Diagnostic.h"

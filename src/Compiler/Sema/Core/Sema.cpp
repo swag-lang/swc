@@ -704,7 +704,7 @@ Result Sema::execResult()
 
 JobResult Sema::exec()
 {
-    return Job::toJobResult(ctx(), execResult(), "Sema::exec");
+    return Job::toJobResult(ctx(), execResult());
 }
 
 namespace

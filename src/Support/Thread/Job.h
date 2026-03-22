@@ -67,7 +67,7 @@ public:
     void               setRec(JobRecord* rec) { rec_ = rec; }
     JobPriority        priority() const { return rec_ ? rec_->priority : JobPriority::Normal; }
     JobClientId        clientId() const { return rec_ ? rec_->clientId : 0; }
-    static JobResult   toJobResult(const TaskContext& ctx, Result result, const char* source = nullptr);
+    static JobResult   toJobResult(const TaskContext& ctx, Result result);
 
     std::function<JobResult()> func;
 

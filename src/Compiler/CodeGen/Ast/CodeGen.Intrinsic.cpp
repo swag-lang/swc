@@ -695,7 +695,7 @@ namespace
         const TypeRef             objectValueTypeRef = intrinsicOperandTypeRef(codeGen, objectRef, objectPayload);
         const TypeRef             objectTypeRef      = intrinsicMakeInterfaceObjectTypeRef(codeGen, typeRefNode);
         constexpr uint64_t        interfaceSize      = sizeof(Runtime::Interface);
-        const uint64_t            objectSpillOff     = interfaceSize;
+        constexpr uint64_t        objectSpillOff     = interfaceSize;
         const MicroReg            runtimeStorageReg  = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         MicroBuilder&             builder            = codeGen.builder();
 

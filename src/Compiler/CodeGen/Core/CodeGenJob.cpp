@@ -71,12 +71,12 @@ JobResult CodeGenJob::exec()
     ///////////////////////////////////////////
     const Result selfWaitResult = sema().waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
     if (selfWaitResult != Result::Continue)
-        return toJobResult(ctx(), selfWaitResult, "CodeGenJob::selfWait");
+        return toJobResult(ctx(), selfWaitResult);
     for (const SymbolFunction* dep : deps)
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)
-            return toJobResult(ctx(), depWaitResult, "CodeGenJob::depWait");
+            return toJobResult(ctx(), depWaitResult);
     }
 
     // Schedule codegen jobs for dependencies that are not scheduled yet.
@@ -101,7 +101,7 @@ JobResult CodeGenJob::exec()
 #endif
         const Result codeGenResult = codeGen_->exec(*symbolFunc_, root_);
         if (codeGenResult != Result::Continue)
-            return toJobResult(ctx(), codeGenResult, "CodeGenJob::codeGenExec");
+            return toJobResult(ctx(), codeGenResult);
 
         symbolFunc_->setCodeGenPreSolved(ctx());
 
@@ -109,7 +109,7 @@ JobResult CodeGenJob::exec()
         ///////////////////////////////////////////
         const Result emitResult = symbolFunc_->emit(ctx());
         if (emitResult != Result::Continue)
-            return toJobResult(ctx(), emitResult, "CodeGenJob::emit");
+            return toJobResult(ctx(), emitResult);
     }
 
     // Finalize only when dependency codegen is already pre-solved or completed.

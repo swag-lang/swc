@@ -62,6 +62,7 @@ private:
         Array,
         Slice,
         Pointer,
+        Interface,
         Struct,
         Alias,
         Variadic,

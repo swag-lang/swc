@@ -25,6 +25,8 @@ TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
         return LayoutKind::CodeBlock;
     if (type.isFunction())
         return LayoutKind::Func;
+    if (type.isInterface())
+        return LayoutKind::Interface;
     if (type.isPointerLike())
         return LayoutKind::Pointer;
     if (type.isStruct())
@@ -48,6 +50,7 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
         case LayoutKind::Array: predefinedName = Pn::TypeInfoArray; break;
         case LayoutKind::Slice: predefinedName = Pn::TypeInfoSlice; break;
         case LayoutKind::Pointer: predefinedName = Pn::TypeInfoPointer; break;
+        case LayoutKind::Interface: predefinedName = Pn::TypeInfo; break;
         case LayoutKind::Struct: predefinedName = Pn::TypeInfoStruct; break;
         case LayoutKind::Alias: predefinedName = Pn::TypeInfoAlias; break;
         case LayoutKind::Variadic: predefinedName = Pn::TypeInfoVariadic; break;

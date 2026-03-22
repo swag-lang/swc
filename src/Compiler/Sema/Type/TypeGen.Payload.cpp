@@ -405,6 +405,13 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
         case LayoutKind::Pointer:
             return reservePayload<Runtime::TypeInfoPointer>(storage, Runtime::TypeInfoKind::Pointer);
 
+        case LayoutKind::Interface:
+        {
+            const auto res = storage.reserve<Runtime::TypeInfo>();
+            res.second->kind = Runtime::TypeInfoKind::Interface;
+            return res;
+        }
+
         case LayoutKind::Struct:
             return reservePayload<Runtime::TypeInfoStruct>(storage, Runtime::TypeInfoKind::Struct);
 

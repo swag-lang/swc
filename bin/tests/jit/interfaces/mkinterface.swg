@@ -1,5 +1,4 @@
-// @BUG sema-only analysis still hits an internal error on @mkinterface, even though std registration paths depend on it.
-#global skip
+// Regression test for @mkinterface code generation with a null object and a valid itable.
 #global fileprivate
 
 interface IAction
@@ -23,12 +22,17 @@ impl IAction for RedoAction
     mtd impl execute(id: s32)->s32 => id + 80
 }
 
-#test
+func runActionRegistry()->bool
 {
     var actions: [2] IAction
-    actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)
-    actions[1] = @mkinterface(null, #typeof(RedoAction{}), IAction)
+    actions[0] = @mkinterface(null, #typeof(UndoAction), IAction)
+    actions[1] = @mkinterface(null, #typeof(RedoAction), IAction)
 
-    discard actions[0].accept(1)
-    discard actions[1].execute(3)
+    return actions[0].accept(1) and actions[1].execute(3) == 83
+}
+
+#test
+{
+    const ok = #run runActionRegistry()
+    #assert(ok)
 }

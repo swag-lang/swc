@@ -3,8 +3,8 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/SourceFile.h"
-#include "Main/Command/CommandLine.h"
 #include "Compiler/Verify.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -96,16 +96,16 @@ namespace Command
 {
     void syntax(CompilerInstance& compiler)
     {
-        TaskContext       ctx(compiler);
+        TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, {
-            .key    = "syntax",
-            .label  = "Syntax",
-            .verb   = "shaping syntax",
-            .detail = formatCommandSourceRoots(ctx.cmdLine()),
-        });
-        const Global&     global   = ctx.global();
-        JobManager&       jobMgr   = global.jobMgr();
-        const JobClientId clientId = compiler.jobClientId();
+                                                   .key    = "syntax",
+                                                   .label  = "Syntax",
+                                                   .verb   = "shaping syntax",
+                                                   .detail = formatCommandSourceRoots(ctx.cmdLine()),
+                                               });
+        const Global&               global   = ctx.global();
+        JobManager&                 jobMgr   = global.jobMgr();
+        const JobClientId           clientId = compiler.jobClientId();
 
         if (compiler.collectFiles(ctx) == Result::Error)
             return;

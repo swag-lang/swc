@@ -348,9 +348,9 @@ SWC_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
         .debugName   = "rdata_target",
     });
 
-    DataSegment& segment                    = fixture.compiler->cstMgr().shardDataSegment(0);
-    const auto [tableOffset, tableStorage]  = segment.reserve<uint64_t>();
-    *tableStorage                           = 0;
+    DataSegment& segment                   = fixture.compiler->cstMgr().shardDataSegment(0);
+    const auto [tableOffset, tableStorage] = segment.reserve<uint64_t>();
+    *tableStorage                          = 0;
     segment.addFunctionRelocation(tableOffset, targetFunction);
 
     ConstantValue     value   = ConstantValue::makeValuePointer(*fixture.compilerCtx,

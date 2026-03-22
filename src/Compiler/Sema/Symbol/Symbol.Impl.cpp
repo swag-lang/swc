@@ -1,9 +1,9 @@
 #include "pch.h"
 
-#include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Symbol.Function.h"
 #include "Symbol.Interface.h"
 #include "Symbol.Struct.h"
@@ -90,9 +90,9 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         }
     }
 
-    TaskContext&          ctx          = sema.ctx();
-    const SymbolStruct*   objectStruct = symStruct();
-    const SymbolInterface* itfSym      = symInterface();
+    TaskContext&           ctx          = sema.ctx();
+    const SymbolStruct*    objectStruct = symStruct();
+    const SymbolInterface* itfSym       = symInterface();
     SWC_ASSERT(objectStruct != nullptr);
     SWC_ASSERT(itfSym != nullptr);
     SWC_ASSERT(objectStruct->typeRef().isValid());
@@ -111,9 +111,9 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     if (typeInfoOffset == INVALID_REF)
         return Result::Error;
 
-    const auto&  methods      = itfSym->functions();
-    const uint32_t slotCount  = static_cast<uint32_t>(methods.size()) + 1;
-    const TypeRef tableTypeRef = interfaceMethodTableTypeRef(ctx, slotCount);
+    const auto&    methods      = itfSym->functions();
+    const uint32_t slotCount    = static_cast<uint32_t>(methods.size()) + 1;
+    const TypeRef  tableTypeRef = interfaceMethodTableTypeRef(ctx, slotCount);
 
     SmallVector<SymbolFunction*> implMethods;
     implMethods.reserve(methods.size());
@@ -135,7 +135,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         return Result::Continue;
     }
 
-    DataSegment& segment = sema.cstMgr().shardDataSegment(shardIndex);
+    DataSegment& segment                   = sema.cstMgr().shardDataSegment(shardIndex);
     const auto [tableOffset, tableStorage] = segment.reserveSpan<void*>(slotCount);
     SWC_ASSERT(tableStorage != nullptr);
     tableStorage[0] = const_cast<void*>(reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
@@ -149,7 +149,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
 
     const ByteSpan      tableBytes{reinterpret_cast<const std::byte*>(tableStorage), static_cast<size_t>(slotCount) * sizeof(void*)};
     const ConstantValue tableCst = ConstantValue::makeArrayBorrowed(ctx, tableTypeRef, tableBytes);
-    interfaceMethodTableRef_ = sema.cstMgr().addConstant(ctx, tableCst);
+    interfaceMethodTableRef_     = sema.cstMgr().addConstant(ctx, tableCst);
     SWC_ASSERT(interfaceMethodTableRef_.isValid());
     outRef = interfaceMethodTableRef_;
     return Result::Continue;

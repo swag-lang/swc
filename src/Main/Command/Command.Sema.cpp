@@ -97,13 +97,13 @@ namespace Command
 {
     void sema(CompilerInstance& compiler)
     {
-        TaskContext ctx(compiler);
+        TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, {
-            .key    = "sema",
-            .label  = "Sema",
-            .verb   = "checking meaning",
-            .detail = formatCommandSourceRoots(ctx.cmdLine()),
-        });
+                                                   .key    = "sema",
+                                                   .label  = "Sema",
+                                                   .verb   = "checking meaning",
+                                                   .detail = formatCommandSourceRoots(ctx.cmdLine()),
+                                               });
 
         const Global&     global   = ctx.global();
         JobManager&       jobMgr   = global.jobMgr();

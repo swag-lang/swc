@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -292,7 +292,7 @@ namespace
                 objectStorageSize = objectType.sizeOf(sema.ctx());
         }
 
-        constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
+        constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
         SmallVector4<uint64_t> dims;
         dims.push_back(interfaceStorageSize + objectStorageSize);
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));

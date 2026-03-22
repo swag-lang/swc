@@ -458,8 +458,8 @@ bool NativeValidate::findDataSegmentRelocation(uint32_t& outTargetOffset, const 
 
 bool NativeValidate::findFunctionSymbolRelocation(const SymbolFunction*& outTargetSymbol, const uint32_t shardIndex, const uint32_t offset) const
 {
-    outTargetSymbol          = nullptr;
-    const auto& relocations  = builder_.compiler().cstMgr().shardDataSegment(shardIndex).relocations();
+    outTargetSymbol         = nullptr;
+    const auto& relocations = builder_.compiler().cstMgr().shardDataSegment(shardIndex).relocations();
     for (const auto& relocation : relocations)
     {
         if (relocation.offset != offset)

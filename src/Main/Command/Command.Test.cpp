@@ -110,13 +110,13 @@ namespace
         if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
             return false;
 
-        TaskContext ctx(compiler);
+        TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, {
-            .key    = "verify",
-            .label  = "Verify",
-            .verb   = "checking expectations",
-            .detail = "source-driven expectations",
-        });
+                                                   .key    = "verify",
+                                                   .label  = "Verify",
+                                                   .verb   = "checking expectations",
+                                                   .detail = "source-driven expectations",
+                                               });
         verifyExpectedMarkers(ctx);
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }
@@ -238,13 +238,13 @@ namespace
         if (!hasJitEligibleInputs(compiler))
             return true;
 
-        TaskContext ctx(compiler);
+        TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, {
-            .key    = "jit",
-            .label  = "JIT",
-            .verb   = "sparking test code",
-            .detail = "compiler test entry points",
-        });
+                                                   .key    = "jit",
+                                                   .label  = "JIT",
+                                                   .verb   = "sparking test code",
+                                                   .detail = "compiler test entry points",
+                                               });
 
         NativeBackendBuilder nativeBuilder(compiler, false);
         if (nativeBuilder.prepare() != Result::Continue)
@@ -303,13 +303,13 @@ namespace
         if (shouldRunNativeTests(compiler.cmdLine()) && hasArtifactEntryPoints(compiler))
             return runNativeBackends(compiler);
 
-        TaskContext ctx(compiler);
+        TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, {
-            .key    = "verify",
-            .label  = "Verify",
-            .verb   = "checking expectations",
-            .detail = "source-driven expectations",
-        });
+                                                   .key    = "verify",
+                                                   .label  = "Verify",
+                                                   .verb   = "checking expectations",
+                                                   .detail = "source-driven expectations",
+                                               });
         verifyExpectedMarkers(ctx);
         return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
     }

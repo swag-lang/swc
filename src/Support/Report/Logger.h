@@ -52,14 +52,14 @@ public:
         Logger* logger_ = nullptr;
     };
 
-    void lock() { mutexAccess_.lock(); }
-    void unlock() { mutexAccess_.unlock(); }
-    void startTransientLine() { transientLineActive_ = true; }
-    void finishTransientLine() { transientLineActive_ = false; }
-    void resetStageSequence() { stageSequence_ = 0; }
+    void   lock() { mutexAccess_.lock(); }
+    void   unlock() { mutexAccess_.unlock(); }
+    void   startTransientLine() { transientLineActive_ = true; }
+    void   finishTransientLine() { transientLineActive_ = false; }
+    void   resetStageSequence() { stageSequence_ = 0; }
     size_t nextStageSequence() { return ++stageSequence_; }
-    void pushStageMute() { stageMuteDepth_++; }
-    void popStageMute()
+    void   pushStageMute() { stageMuteDepth_++; }
+    void   popStageMute()
     {
         SWC_ASSERT(stageMuteDepth_ != 0);
         stageMuteDepth_--;

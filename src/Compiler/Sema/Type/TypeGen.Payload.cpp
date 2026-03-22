@@ -407,7 +407,7 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
 
         case LayoutKind::Interface:
         {
-            const auto res = storage.reserve<Runtime::TypeInfo>();
+            const auto res   = storage.reserve<Runtime::TypeInfo>();
             res.second->kind = Runtime::TypeInfoKind::Interface;
             return res;
         }

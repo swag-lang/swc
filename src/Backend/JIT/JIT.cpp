@@ -8,8 +8,8 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -373,13 +373,13 @@ namespace
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
-    Result patchConstantFunctionRelocationsRec(TaskContext& ctx,
-                                               uint32_t shardIndex,
-                                               uint32_t sourceOffset,
+    Result patchConstantFunctionRelocationsRec(TaskContext&                  ctx,
+                                               uint32_t                      shardIndex,
+                                               uint32_t                      sourceOffset,
                                                std::unordered_set<uint64_t>& visited)
     {
-        DataSegment&           segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
-        DataSegmentAllocation  allocation;
+        DataSegment&          segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
+        DataSegmentAllocation allocation;
         if (!segment.findAllocation(allocation, sourceOffset))
             return Result::Continue;
 

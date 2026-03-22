@@ -374,8 +374,8 @@ namespace
                                   const MicroReg            runtimeStorageReg,
                                   const uint64_t            objectSpillOffset)
     {
-        MicroBuilder&      builder         = codeGen.builder();
-        const TypeInfo&    objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
+        MicroBuilder&   builder         = codeGen.builder();
+        const TypeInfo& objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
         SWC_UNUSED(interfaceSym);
 
         MicroReg objectReg = materializeInterfaceObjectPointer(codeGen, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOffset);
@@ -933,7 +933,7 @@ namespace
         const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         CodeGenNodePayload&       result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder     = codeGen.builder();
-        result.reg = codeGen.nextVirtualIntRegister();
+        result.reg                            = codeGen.nextVirtualIntRegister();
 
         if (exprView.type() && exprView.type()->isInterface())
         {

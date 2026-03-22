@@ -292,7 +292,7 @@ void NodePayload::setConstant(AstNodeRef nodeRef, ConstantRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
-    AstNode& node = ast().node(nodeRef);
+    AstNode& node    = ast().node(nodeRef);
     uint16_t newBits = static_cast<uint16_t>((node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK) | static_cast<uint16_t>(NodePayloadKind::ConstantRef));
     newBits          = static_cast<uint16_t>(newBits | static_cast<uint16_t>(NodePayloadFlags::Value));
     storePayload(node, newBits, ref.get());
@@ -340,11 +340,11 @@ AstNodeRef NodePayload::getSubstituteRef(AstNodeRef nodeRef) const
 
     while (true)
     {
-        const AstNode& node  = ast().node(nodeRef);
-        const uint64_t state = node.payloadState();
-        const PayloadInfo info = {.kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
-                                  .ref      = AstNode::payloadRefFromState(state),
-                                  .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT)};
+        const AstNode&    node  = ast().node(nodeRef);
+        const uint64_t    state = node.payloadState();
+        const PayloadInfo info  = {.kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
+                                   .ref      = AstNode::payloadRefFromState(state),
+                                   .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT)};
         if (info.kind != NodePayloadKind::Substitute)
             break;
 
@@ -412,7 +412,7 @@ void NodePayload::setType(AstNodeRef nodeRef, TypeRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
-    AstNode& node = ast().node(nodeRef);
+    AstNode&       node    = ast().node(nodeRef);
     const uint16_t newBits = static_cast<uint16_t>((node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK) | static_cast<uint16_t>(NodePayloadKind::TypeRef));
     storePayload(node, newBits, ref.get());
 }
@@ -460,8 +460,8 @@ void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->mutex);
 
-    AstNode&  node  = ast().node(nodeRef);
-    const Ref value = shard->store.pushBack(symbol);
+    AstNode&  node    = ast().node(nodeRef);
+    const Ref value   = shard->store.pushBack(symbol);
     uint16_t  newBits = static_cast<uint16_t>((node.payloadBits() & ~(NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK)) |
                                               static_cast<uint16_t>(NodePayloadKind::SymbolRef) |
                                               static_cast<uint16_t>(shardIdx << NODE_PAYLOAD_SHARD_SHIFT));
@@ -514,8 +514,8 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*>
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->mutex);
 
-    AstNode&  node  = ast().node(nodeRef);
-    const Ref value = shard->store.pushSpan(symbols).get();
+    AstNode&  node    = ast().node(nodeRef);
+    const Ref value   = shard->store.pushSpan(symbols).get();
     uint16_t  newBits = static_cast<uint16_t>((node.payloadBits() & ~(NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK)) |
                                               static_cast<uint16_t>(NodePayloadKind::SymbolList) |
                                               static_cast<uint16_t>(shardIdx << NODE_PAYLOAD_SHARD_SHIFT));
@@ -529,8 +529,8 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbo
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->mutex);
 
-    AstNode&  node  = ast().node(nodeRef);
-    const Ref value = shard->store.pushSpan(symbols).get();
+    AstNode&                   node  = ast().node(nodeRef);
+    const Ref                  value = shard->store.pushSpan(symbols).get();
     SmallVector<const Symbol*> tmp;
     tmp.reserve(symbols.size());
     for (const Symbol* s : symbols)
@@ -706,12 +706,12 @@ void NodePayload::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc
 
 void NodePayload::inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
 {
-    constexpr uint16_t mask = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK;
-    const uint64_t dst      = nodeDst.payloadState();
-    const uint16_t dstBits  = AstNode::payloadBitsFromState(dst);
-    const uint64_t src      = nodeSrc.payloadState();
-    const uint16_t srcBits  = AstNode::payloadBitsFromState(src);
-    const uint16_t newBits  = static_cast<uint16_t>((dstBits & ~mask) | (srcBits & mask));
+    constexpr uint16_t mask    = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK;
+    const uint64_t     dst     = nodeDst.payloadState();
+    const uint16_t     dstBits = AstNode::payloadBitsFromState(dst);
+    const uint64_t     src     = nodeSrc.payloadState();
+    const uint16_t     srcBits = AstNode::payloadBitsFromState(src);
+    const uint16_t     newBits = static_cast<uint16_t>((dstBits & ~mask) | (srcBits & mask));
     storePayload(nodeDst, newBits, AstNode::payloadRefFromState(src));
 }
 
@@ -722,7 +722,7 @@ void NodePayload::inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc)
     const uint64_t src     = nodeSrc.payloadState();
     const uint16_t srcBits = AstNode::payloadBitsFromState(src);
 
-    constexpr uint16_t mask = NODE_PAYLOAD_FLAGS_MASK | NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK;
+    constexpr uint16_t mask    = NODE_PAYLOAD_FLAGS_MASK | NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK;
     const uint16_t     newBits = static_cast<uint16_t>((dstBits & ~mask) | (srcBits & mask));
     storePayload(nodeDst, newBits, AstNode::payloadRefFromState(src));
 }
@@ -730,10 +730,10 @@ void NodePayload::inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc)
 NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 {
     const uint64_t state = node.payloadState();
-    PayloadInfo info = {
-        .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
-        .ref      = AstNode::payloadRefFromState(state),
-        .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
+    PayloadInfo    info  = {
+            .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
+            .ref      = AstNode::payloadRefFromState(state),
+            .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
     };
 
     while (true)
@@ -759,10 +759,10 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
 {
     const uint64_t state = node.payloadState();
-    PayloadInfo info = {
-        .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
-        .ref      = AstNode::payloadRefFromState(state),
-        .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
+    PayloadInfo    info  = {
+            .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
+            .ref      = AstNode::payloadRefFromState(state),
+            .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
     };
 
     NodePayloadFlags flags = static_cast<NodePayloadFlags>(AstNode::payloadBitsFromState(state) & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK);

@@ -254,11 +254,11 @@ namespace
             return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
 
         TimedActionLog::ScopedStage stage(builder.ctx(), {
-            .key    = "micro",
-            .label  = "Micro",
-            .verb   = "optimizing instruction flow",
-            .detail = std::format("{} funcs", Utf8Helper::toNiceBigNumber(builder.functionInfos.size())),
-        });
+                                                             .key    = "micro",
+                                                             .label  = "Micro",
+                                                             .verb   = "optimizing instruction flow",
+                                                             .detail = std::format("{} funcs", Utf8Helper::toNiceBigNumber(builder.functionInfos.size())),
+                                                         });
 
         Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);
         JobManager& jobMgr = builder.ctx().global().jobMgr();
@@ -350,11 +350,11 @@ Result NativeBackendBuilder::run()
     artifactBuilder.queryPaths(paths);
     {
         TimedActionLog::ScopedStage stage(ctx_, {
-            .key    = "build",
-            .label  = "Build",
-            .verb   = "forging native artifact",
-            .detail = paths.artifactPath.filename().string(),
-        });
+                                                    .key    = "build",
+                                                    .label  = "Build",
+                                                    .verb   = "forging native artifact",
+                                                    .detail = paths.artifactPath.filename().string(),
+                                                });
 
         SWC_RESULT(prepare());
         SWC_RESULT(artifactBuilder.build());
@@ -476,11 +476,11 @@ Result NativeBackendBuilder::writeObjects()
 Result NativeBackendBuilder::runGeneratedArtifact() const
 {
     TimedActionLog::ScopedStage stage(ctx_, {
-        .key    = "run",
-        .label  = "Run",
-        .verb   = "handing off",
-        .detail = artifactPath.filename().string(),
-    });
+                                                .key    = "run",
+                                                .label  = "Run",
+                                                .verb   = "handing off",
+                                                .detail = artifactPath.filename().string(),
+                                            });
 
     uint32_t       exitCode    = 0;
     const fs::path artifactDir = artifactPath.parent_path();

@@ -35,10 +35,10 @@ public:
     bool isPendingRegistrationResolved() const noexcept { return hasExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
     void setPendingRegistrationResolved() noexcept { addExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
 
-    SymbolStruct* symStruct() const;
-    void          setSymStruct(SymbolStruct* sym);
-    SymbolEnum*   symEnum() const;
-    void          setSymEnum(SymbolEnum* sym);
+    SymbolStruct*    symStruct() const;
+    void             setSymStruct(SymbolStruct* sym);
+    SymbolEnum*      symEnum() const;
+    void             setSymEnum(SymbolEnum* sym);
     SymbolInterface* symInterface() const noexcept { return interfaceSym_; }
     void             setSymInterface(SymbolInterface* sym) noexcept { interfaceSym_ = sym; }
 

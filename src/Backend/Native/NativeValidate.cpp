@@ -172,38 +172,36 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
     if (constant.kind() == ConstantKind::Struct)
     {
-        if (constant.typeRef().isInvalid())
+        const ByteSpan payload           = constant.getStruct();
+        uint32_t       payloadShardIndex = 0;
+        const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
+        if (payloadOffset == INVALID_REF || payloadShardIndex != shardIndex)
             return false;
 
         DataSegmentAllocation allocation;
         if (!segment.findAllocation(allocation, baseOffset))
             return false;
-        const uint64_t sizeOf = builder_.ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_.ctx());
-        if (!sizeOf || allocation.size < sizeOf)
-            return false;
-        const auto* payloadBytes = segment.ptr<std::byte>(allocation.offset);
-        if (!payloadBytes)
+        if (allocation.offset != payloadOffset || allocation.size < payload.size())
             return false;
 
-        return validateNativeStaticPayload(constant.typeRef(), shardIndex, allocation.offset, ByteSpan{payloadBytes, static_cast<size_t>(sizeOf)});
+        return validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
     }
 
     if (constant.kind() == ConstantKind::Array)
     {
-        if (constant.typeRef().isInvalid())
+        const ByteSpan payload           = constant.getArray();
+        uint32_t       payloadShardIndex = 0;
+        const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
+        if (payloadOffset == INVALID_REF || payloadShardIndex != shardIndex)
             return false;
 
         DataSegmentAllocation allocation;
         if (!segment.findAllocation(allocation, baseOffset))
             return false;
-        const uint64_t sizeOf = builder_.ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_.ctx());
-        if (!sizeOf || allocation.size < sizeOf)
-            return false;
-        const auto* payloadBytes = segment.ptr<std::byte>(allocation.offset);
-        if (!payloadBytes)
+        if (allocation.offset != payloadOffset || allocation.size < payload.size())
             return false;
 
-        return validateNativeStaticPayload(constant.typeRef(), shardIndex, allocation.offset, ByteSpan{payloadBytes, static_cast<size_t>(sizeOf)});
+        return validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
     }
     if (constant.typeRef().isInvalid())
         return false;

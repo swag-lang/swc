@@ -349,8 +349,10 @@ namespace
                                 const MicroReg            runtimeStorageReg,
                                 const uint64_t            objectSpillOffset)
     {
-        MicroBuilder&   builder         = codeGen.builder();
-        const TypeInfo& objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
+        MicroBuilder&      builder         = codeGen.builder();
+        const TypeInfo&    objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
+        constexpr uint64_t interfaceSize   = sizeof(Runtime::Interface);
+        const uint64_t     itableSize      = interfaceSym.functions().size() * sizeof(void*);
 
         MicroReg objectReg = materializeInterfaceObjectPointer(codeGen, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOffset);
         if (castInfo.usingField)
@@ -379,18 +381,13 @@ namespace
 
         builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, obj), objectReg, MicroOpBits::B64);
 
-        const auto&  interfaceMethods = interfaceSym.functions();
-        const void*  tablePtr         = nullptr;
-        ConstantRef  tableCstRef      = ConstantRef::invalid();
-        const Result tableRes         = codeGen.compiler().getOrCreateInterfaceTable(codeGen.sema(), *castInfo.objectStruct, interfaceSym, *castInfo.implSym, codeGen.curNodeRef(), tablePtr, tableCstRef);
-        SWC_INTERNAL_CHECK(tableRes == Result::Continue);
-        SWC_ASSERT(tablePtr != nullptr);
-        SWC_ASSERT(tableCstRef.isValid());
+        if (!itableSize)
+            return;
 
-        const MicroReg itableReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegPtrReloc(itableReg, reinterpret_cast<uint64_t>(tablePtr), tableCstRef);
+        const MicroReg itableReg = codeGen.offsetAddressReg(runtimeStorageReg, interfaceSize);
         builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, itable), itableReg, MicroOpBits::B64);
 
+        const auto& interfaceMethods = interfaceSym.functions();
         for (size_t i = 0; i < interfaceMethods.size(); ++i)
         {
             const SymbolFunction* interfaceMethod = interfaceMethods[i];
@@ -398,6 +395,10 @@ namespace
             const SymbolFunction* implMethod = castInfo.implSym->findFunction(interfaceMethod->idRef());
             SWC_ASSERT(implMethod != nullptr);
             codeGen.function().addCallDependency(const_cast<SymbolFunction*>(implMethod));
+
+            const MicroReg methodReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegPtrReloc(methodReg, 0, ConstantRef::invalid(), const_cast<SymbolFunction*>(implMethod));
+            builder.emitLoadMemReg(itableReg, i * sizeof(void*), methodReg, MicroOpBits::B64);
         }
     }
 
@@ -686,7 +687,8 @@ namespace
         const TypeRef             objectValueTypeRef = intrinsicOperandTypeRef(codeGen, objectRef, objectPayload);
         const TypeRef             objectTypeRef      = intrinsicMakeInterfaceObjectTypeRef(codeGen, typeRefNode);
         constexpr uint64_t        interfaceSize      = sizeof(Runtime::Interface);
-        constexpr uint64_t        objectSpillOff     = interfaceSize;
+        const uint64_t            itableSize         = resultType.payloadSymInterface().functions().size() * sizeof(void*);
+        const uint64_t            objectSpillOff     = interfaceSize + itableSize;
         const MicroReg            runtimeStorageReg  = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         MicroBuilder&             builder            = codeGen.builder();
 
@@ -902,8 +904,6 @@ namespace
 
         if (exprView.type() && (exprView.type()->isString() || exprView.type()->isSlice() || exprView.type()->isAny()))
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, 0, MicroOpBits::B64);
-        else if (exprView.type() && exprView.type()->isInterface())
-            builder.emitLoadRegMem(payload.reg, exprPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
         else if (exprView.type() && exprView.type()->isArray())
             builder.emitLoadRegReg(payload.reg, exprPayload.reg, MicroOpBits::B64);
         else if (exprPayload.isAddress())
@@ -921,38 +921,11 @@ namespace
 
         const AstNodeRef          exprRef     = children[0];
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
-        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         CodeGenNodePayload&       result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder     = codeGen.builder();
+        const MicroReg            anyBaseReg  = exprPayload.reg;
         result.reg                            = codeGen.nextVirtualIntRegister();
-        if (exprView.type() && exprView.type()->isInterface())
-        {
-            const MicroReg tableReg    = codeGen.nextVirtualIntRegister();
-            const MicroReg typeSlotReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegMem(tableReg, exprPayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
-            builder.emitLoadRegReg(typeSlotReg, tableReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(typeSlotReg, ApInt(sizeof(void*), 64), MicroOp::Subtract, MicroOpBits::B64);
-            builder.emitLoadRegMem(result.reg, typeSlotReg, 0, MicroOpBits::B64);
-        }
-        else
-        {
-            builder.emitLoadRegMem(result.reg, exprPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
-        }
-        return Result::Continue;
-    }
-
-    Result codeGenTableOf(CodeGen& codeGen, const AstIntrinsicCall& node)
-    {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(!children.empty());
-
-        const AstNodeRef          exprRef     = children[0];
-        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
-        CodeGenNodePayload&       result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        MicroBuilder&             builder     = codeGen.builder();
-        result.reg                            = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(result.reg, exprPayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+        builder.emitLoadRegMem(result.reg, anyBaseReg, offsetof(Runtime::Any, type), MicroOpBits::B64);
         return Result::Continue;
     }
 
@@ -1676,8 +1649,6 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
             return codeGenDataOf(codeGen, *this);
         case TokenId::IntrinsicKindOf:
             return codeGenKindOf(codeGen, *this);
-        case TokenId::IntrinsicTableOf:
-            return codeGenTableOf(codeGen, *this);
         case TokenId::IntrinsicMakeAny:
             return codeGenMakeAny(codeGen, *this);
         case TokenId::IntrinsicMakeSlice:

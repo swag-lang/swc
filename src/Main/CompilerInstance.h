@@ -16,13 +16,9 @@ class TaskContext;
 class TypeManager;
 class TypeGen;
 class ConstantManager;
-class Sema;
 class IdentifierManager;
 class SymbolModule;
 class SymbolFunction;
-class SymbolImpl;
-class SymbolInterface;
-class SymbolStruct;
 class SymbolVariable;
 class JITMemoryManager;
 class ExternalModuleManager;
@@ -30,13 +26,6 @@ class Global;
 class SourceFile;
 class JITExecManager;
 struct CommandLine;
-
-struct ConstantSegmentFunctionPatch
-{
-    uint32_t        shardIndex     = 0;
-    uint32_t        offset         = INVALID_REF;
-    SymbolFunction* targetFunction = nullptr;
-};
 
 class CompilerInstance
 {
@@ -99,10 +88,8 @@ public:
     void                                registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol);
     void                                registerPreparedJitFunction(SymbolFunction* symbol);
     void                                resetPreparedJitFunctions();
-    Result                              getOrCreateInterfaceTable(Sema& sema, const SymbolStruct& objectStruct, const SymbolInterface& interfaceSym, const SymbolImpl& implSym, AstNodeRef ownerNodeRef, const void*& outTablePtr, ConstantRef& outTableCstRef);
     std::vector<SymbolFunction*>        nativeGlobalFunctionInitTargetsSnapshot() const;
     std::vector<SymbolVariable*>        nativeGlobalVariablesSnapshot() const;
-    std::vector<ConstantSegmentFunctionPatch> constantSegmentFunctionPatchesSnapshot() const;
     const std::vector<SymbolFunction*>& nativeCodeSegment() const { return nativeCodeSegment_; }
     const std::vector<SymbolFunction*>& nativeTestFunctions() const { return nativeTestFunctions_; }
     const std::vector<SymbolFunction*>& nativeInitFunctions() const { return nativeInitFunctions_; }
@@ -197,7 +184,7 @@ private:
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};
     std::unique_ptr<JITExecManager>          jitExecMgr_;
-    void*                                    runtimeCompilerITable_[4]{};
+    void*                                    runtimeCompilerITable_[3]{};
     mutable std::shared_mutex                mutex_;
     std::atomic<bool>                        changed_{true};
 
@@ -224,35 +211,7 @@ private:
     std::vector<SymbolFunction*>                       nativeMainFunctions_;
     std::vector<SymbolFunction*>                       nativeGlobalFunctionInitTargets_;
     std::vector<SymbolVariable*>                       nativeGlobalVariables_;
-    std::vector<ConstantSegmentFunctionPatch>          constantSegmentFunctionPatches_;
     std::vector<SymbolFunction*>                       jitPreparedFunctions_;
-
-    struct InterfaceTableKey
-    {
-        TypeRef objectTypeRef    = TypeRef::invalid();
-        TypeRef interfaceTypeRef = TypeRef::invalid();
-
-        bool operator==(const InterfaceTableKey& rhs) const noexcept
-        {
-            return objectTypeRef == rhs.objectTypeRef && interfaceTypeRef == rhs.interfaceTypeRef;
-        }
-    };
-
-    struct InterfaceTableKeyHash
-    {
-        size_t operator()(const InterfaceTableKey& key) const noexcept
-        {
-            return static_cast<size_t>(key.objectTypeRef.get()) * 1315423911u ^ static_cast<size_t>(key.interfaceTypeRef.get());
-        }
-    };
-
-    struct InterfaceTableValue
-    {
-        const void* tablePtr    = nullptr;
-        ConstantRef constantRef = ConstantRef::invalid();
-    };
-
-    std::unordered_map<InterfaceTableKey, InterfaceTableValue, InterfaceTableKeyHash> interfaceTables_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

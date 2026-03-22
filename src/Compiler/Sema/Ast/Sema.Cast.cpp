@@ -96,8 +96,9 @@ namespace
         {
             constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
             const uint64_t         valueStorage         = srcView.type()->sizeOf(sema.ctx());
+            const uint64_t         itableStorage        = dstView.type()->payloadSymInterface().functions().size() * sizeof(void*);
             SmallVector4<uint64_t> dims;
-            dims.push_back(interfaceStorageSize + valueStorage);
+            dims.push_back(interfaceStorageSize + valueStorage + itableStorage);
             return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         }
 

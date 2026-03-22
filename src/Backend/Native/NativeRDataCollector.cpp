@@ -103,7 +103,6 @@ Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const ui
 Result NativeRDataCollector::emitReachableAllocations()
 {
     std::array<std::vector<DataSegmentAllocation>, ConstantManager::SHARD_COUNT> emittedAllocations;
-    const auto constantFunctionPatches = builder_->compiler().constantSegmentFunctionPatchesSnapshot();
 
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
@@ -178,36 +177,6 @@ Result NativeRDataCollector::emitReachableAllocations()
                 record.offset     = mapping.emittedOffset + (relocation.offset - allocation.offset);
                 record.symbolName = K_R_DATA_BASE_SYMBOL;
                 record.addend     = targetOffset;
-                builder_->mergedRData.relocations.push_back(record);
-            }
-
-            for (const ConstantSegmentFunctionPatch& patch : constantFunctionPatches)
-            {
-                if (patch.shardIndex != shardIndex)
-                    continue;
-                if (patch.offset < allocation.offset)
-                    continue;
-                if (patch.offset - allocation.offset >= allocation.size)
-                    continue;
-                if (!patch.targetFunction)
-                    continue;
-
-                NativeSectionRelocation record;
-                record.offset = mapping.emittedOffset + (patch.offset - allocation.offset);
-                if (patch.targetFunction->isForeign())
-                {
-                    record.symbolName = patch.targetFunction->resolveForeignFunctionName(builder_->ctx());
-                }
-                else if (const auto it = builder_->functionBySymbol.find(patch.targetFunction); it != builder_->functionBySymbol.end())
-                {
-                    record.symbolName = it->second->symbolName;
-                }
-                else
-                {
-                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
-                }
-
-                record.addend = 0;
                 builder_->mergedRData.relocations.push_back(record);
             }
         }

@@ -126,7 +126,7 @@ namespace
             const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadArrayElemTypeRef(), type->flags());
             resultTypeRef     = sema.typeMgr().addType(ty);
         }
-        else if (type->isAny() || type->isInterface())
+        else if (type->isAny())
         {
             resultTypeRef = sema.typeMgr().typeBlockPtrVoid();
         }
@@ -150,24 +150,10 @@ namespace
 
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
 
-        if (!view.type() || (!view.type()->isAny() && !view.type()->isInterface()))
+        if (!view.type() || !view.type()->isAny())
             return SemaError::raiseRequestedTypeFam(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeAny());
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());
-        sema.setIsValue(node);
-        return Result::Continue;
-    }
-
-    Result semaIntrinsicTableOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
-    {
-        const SemaNodeView view = sema.viewType(children[0]);
-
-        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-
-        if (!view.type() || !view.type()->isInterface())
-            return SemaError::raiseRequestedTypeFam(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeBlockPtrVoid());
-
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeConstBlockPtrVoid());
         sema.setIsValue(node);
         return Result::Continue;
     }
@@ -303,8 +289,9 @@ namespace
         }
 
         constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
+        const uint64_t     itableStorageSize    = interfaceType.payloadSymInterface().functions().size() * sizeof(void*);
         SmallVector4<uint64_t> dims;
-        dims.push_back(interfaceStorageSize + objectStorageSize);
+        dims.push_back(interfaceStorageSize + itableStorageSize + objectStorageSize);
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
     }
 
@@ -339,8 +326,8 @@ namespace
         SemaNodeView       itfView    = sema.viewTypeConstant(children[2]);
 
         SWC_RESULT(SemaCheck::isValue(sema, objectView.nodeRef()));
-        SWC_RESULT(SemaCheck::isValueOrType(sema, typeView));
-        SWC_RESULT(SemaCheck::isValueOrType(sema, itfView));
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, typeView));
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, itfView));
 
         if (!isMakeInterfaceTypeInfoOperand(sema, typeView))
             return SemaError::raiseRequestedTypeFam(sema, typeView.nodeRef(), typeView.typeRef(), sema.typeMgr().typeTypeInfo());
@@ -409,8 +396,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicDataOf(sema, *this, children);
         case TokenId::IntrinsicKindOf:
             return semaIntrinsicKindOf(sema, *this, children);
-        case TokenId::IntrinsicTableOf:
-            return semaIntrinsicTableOf(sema, *this, children);
         case TokenId::IntrinsicCountOf:
             return semaIntrinsicCountOf(sema, *this, children);
         case TokenId::IntrinsicMakeAny:
@@ -427,6 +412,7 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicIs:
         case TokenId::IntrinsicAs:
+        case TokenId::IntrinsicTableOf:
             // TODO
             SWC_INTERNAL_ERROR();
 

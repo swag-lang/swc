@@ -709,8 +709,10 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicMakeString:
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicIs:
-        case TokenId::IntrinsicTableOf:
             return parseIntrinsicCall(2);
+
+        case TokenId::IntrinsicTableOf:
+            return parseIntrinsicCall(1);
 
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:

@@ -185,14 +185,12 @@ namespace
 
     bool appendGlobalFunctionInitDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
     {
+        SWC_UNUSED(globals);
         bool               changed = false;
         std::unordered_set seenFunctions(functions.begin(), functions.end());
-        for (const SymbolVariable* global : globals)
+        const auto         targets = builder.compiler().nativeGlobalFunctionInitTargetsSnapshot();
+        for (const SymbolFunction* target : targets)
         {
-            if (!global)
-                continue;
-
-            SymbolFunction* const target = global->globalFunctionInit();
             if (!target)
                 continue;
             if (target->isForeign() || target->isEmpty() || target->isAttribute())
@@ -201,10 +199,29 @@ namespace
                 continue;
             if (!shouldPrepareSymbol(builder, *target))
                 continue;
-            if (!seenFunctions.insert(target).second)
+            if (!seenFunctions.insert(const_cast<SymbolFunction*>(target)).second)
                 continue;
 
-            functions.push_back(target);
+            functions.push_back(const_cast<SymbolFunction*>(target));
+            changed = true;
+        }
+
+        const auto patches = builder.compiler().constantSegmentFunctionPatchesSnapshot();
+        for (const ConstantSegmentFunctionPatch& patch : patches)
+        {
+            const SymbolFunction* target = patch.targetFunction;
+            if (!target)
+                continue;
+            if (target->isForeign() || target->isEmpty() || target->isAttribute())
+                continue;
+            if (!target->isSemaCompleted())
+                continue;
+            if (!shouldPrepareSymbol(builder, *target))
+                continue;
+            if (!seenFunctions.insert(const_cast<SymbolFunction*>(target)).second)
+                continue;
+
+            functions.push_back(const_cast<SymbolFunction*>(target));
             changed = true;
         }
 
@@ -405,7 +422,8 @@ Result NativeBackendBuilder::prepare()
         rebuildFunctionInfos(*this, functions);
         SWC_RESULT(scheduleCodeGen(*this));
 
-        if (!appendCodeGenDependencies(*this, functions))
+        const bool hasNewGlobalTargets = appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
+        if (!hasNewGlobalTargets && !appendCodeGenDependencies(*this, functions))
             return Result::Continue;
     }
 }

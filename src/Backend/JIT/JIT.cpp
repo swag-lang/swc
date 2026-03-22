@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -480,6 +481,35 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
         }
 
         auto* storage = reinterpret_cast<uint64_t*>(ctx.compiler().dataSegmentAddress(DataSegmentKind::GlobalInit, symVar->offset()));
+        SWC_ASSERT(storage != nullptr);
+        *storage = targetAddress;
+    }
+
+    const auto constantFunctionPatches = ctx.compiler().constantSegmentFunctionPatchesSnapshot();
+    for (const ConstantSegmentFunctionPatch& patch : constantFunctionPatches)
+    {
+        if (!patch.targetFunction)
+            continue;
+        if (!patch.targetFunction->isSemaCompleted())
+            continue;
+
+        MicroRelocation reloc;
+        reloc.kind         = patch.targetFunction->isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
+        reloc.targetSymbol = patch.targetFunction;
+
+        uint64_t                 targetAddress = 0;
+        RelocationResolveFailure failure;
+        const bool               hasTargetAddress = patch.targetFunction->isForeign() ? resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure);
+        if (!hasTargetAddress)
+        {
+            const DiagnosticId diagId = patch.targetFunction->isForeign() ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
+            Diagnostic         diag   = Diagnostic::get(diagId);
+            addRelocationFailureNotes(diag, ctx, failure);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        auto* storage = ctx.compiler().cstMgr().shardDataSegment(patch.shardIndex).ptr<uint64_t>(patch.offset);
         SWC_ASSERT(storage != nullptr);
         *storage = targetAddress;
     }

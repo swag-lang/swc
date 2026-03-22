@@ -23,9 +23,33 @@ impl IAction for RedoAction
 
 func runActionRegistry()->bool
 {
+    let nullUndo = @mkinterface(null, #typeof(UndoAction), IAction)
+    if @kindof(nullUndo) != UndoAction do
+        return false
+    if @dataof(nullUndo) != null do
+        return false
+
     var actions: [2] IAction
     actions[0] = @mkinterface(null, #typeof(UndoAction), IAction)
     actions[1] = @mkinterface(null, #typeof(RedoAction), IAction)
+
+    if @kindof(actions[0]) != UndoAction or @kindof(actions[1]) != RedoAction do
+        return false
+    if @dataof(actions[0]) != null or @dataof(actions[1]) != null do
+        return false
+    if @tableof(actions[0]) == null or @tableof(actions[1]) == null do
+        return false
+    if @tableof(actions[0]) != @tableof(nullUndo) do
+        return false
+
+    var undo: UndoAction
+    let castUndo: IAction = undo
+    if @kindof(castUndo) != UndoAction do
+        return false
+    if @dataof(castUndo) == null do
+        return false
+    if @tableof(castUndo) != @tableof(actions[0]) do
+        return false
 
     return actions[0].accept(1) and actions[1].execute(3) == 83
 }

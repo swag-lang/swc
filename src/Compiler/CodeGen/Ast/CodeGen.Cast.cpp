@@ -17,6 +17,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -401,7 +402,6 @@ namespace
 
             constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
             const uint64_t     objectStorageSize    = srcType.sizeOf(codeGen.ctx());
-            const uint64_t     itableOffset         = interfaceStorageSize + objectStorageSize;
 
             const MicroReg runtimeItfReg    = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
             MicroReg       objectStorageReg = codeGen.nextVirtualIntRegister();
@@ -445,10 +445,14 @@ namespace
 
             builder.emitLoadMemReg(runtimeItfReg, offsetof(Runtime::Interface, obj), objectReg, MicroOpBits::B64);
 
+            const void* tablePtr    = nullptr;
+            ConstantRef tableCstRef = ConstantRef::invalid();
+            SWC_RESULT(codeGen.compiler().getOrCreateInterfaceTable(codeGen.sema(), *castInfo.objectStruct, dstItf, *castInfo.implSym, codeGen.curNodeRef(), tablePtr, tableCstRef));
+            SWC_ASSERT(tablePtr != nullptr);
+            SWC_ASSERT(tableCstRef.isValid());
+
             MicroReg itableReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(itableReg, runtimeItfReg, MicroOpBits::B64);
-            if (itableOffset)
-                builder.emitOpBinaryRegImm(itableReg, ApInt(itableOffset, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadRegPtrReloc(itableReg, reinterpret_cast<uint64_t>(tablePtr), tableCstRef);
             builder.emitLoadMemReg(runtimeItfReg, offsetof(Runtime::Interface, itable), itableReg, MicroOpBits::B64);
 
             const auto& interfaceMethods = dstItf.functions();
@@ -459,10 +463,6 @@ namespace
                 const SymbolFunction* implMethod = castInfo.implSym->findFunction(interfaceMethod->idRef());
                 SWC_ASSERT(implMethod != nullptr);
                 codeGen.function().addCallDependency(const_cast<SymbolFunction*>(implMethod));
-
-                const MicroReg methodReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegPtrReloc(methodReg, 0, ConstantRef::invalid(), const_cast<SymbolFunction*>(implMethod));
-                builder.emitLoadMemReg(runtimeItfReg, itableOffset + i * sizeof(void*), methodReg, MicroOpBits::B64);
             }
 
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeItfReg, dstTypeRef);

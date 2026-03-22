@@ -1,5 +1,12 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -357,10 +364,11 @@ void CompilerInstance::processCommand()
 void CompilerInstance::setupRuntimeCompiler()
 {
     runtimeCompiler_.obj      = this;
-    runtimeCompiler_.itable   = runtimeCompilerITable_;
-    runtimeCompilerITable_[0] = reinterpret_cast<void*>(&runtimeCompilerGetMessage);
-    runtimeCompilerITable_[1] = reinterpret_cast<void*>(&runtimeCompilerGetBuildCfg);
-    runtimeCompilerITable_[2] = reinterpret_cast<void*>(&runtimeCompilerCompileString);
+    runtimeCompiler_.itable   = runtimeCompilerITable_ + 1;
+    runtimeCompilerITable_[0] = nullptr;
+    runtimeCompilerITable_[1] = reinterpret_cast<void*>(&runtimeCompilerGetMessage);
+    runtimeCompilerITable_[2] = reinterpret_cast<void*>(&runtimeCompilerGetBuildCfg);
+    runtimeCompilerITable_[3] = reinterpret_cast<void*>(&runtimeCompilerCompileString);
 }
 
 uint64_t* CompilerInstance::runtimeContextTlsIdStorage()
@@ -570,6 +578,107 @@ void CompilerInstance::resetPreparedJitFunctions()
     }
 }
 
+Result CompilerInstance::getOrCreateInterfaceTable(Sema& sema,
+                                                   const SymbolStruct& objectStruct,
+                                                   const SymbolInterface& interfaceSym,
+                                                   const SymbolImpl& implSym,
+                                                   const AstNodeRef ownerNodeRef,
+                                                   const void*& outTablePtr,
+                                                   ConstantRef& outTableCstRef)
+{
+    outTablePtr    = nullptr;
+    outTableCstRef = ConstantRef::invalid();
+
+    const InterfaceTableKey key{
+        .objectTypeRef    = objectStruct.typeRef(),
+        .interfaceTypeRef = interfaceSym.typeRef(),
+    };
+
+    {
+        const std::shared_lock lock(mutex_);
+        const auto             it = interfaceTables_.find(key);
+        if (it != interfaceTables_.end())
+        {
+            outTablePtr    = it->second.tablePtr;
+            outTableCstRef = it->second.constantRef;
+            return Result::Continue;
+        }
+    }
+
+    ConstantRef typeInfoCstRef = ConstantRef::invalid();
+    SWC_RESULT(cstMgr().makeTypeInfo(sema, typeInfoCstRef, objectStruct.typeRef(), ownerNodeRef));
+    const ConstantValue& typeInfoCst = cstMgr().get(typeInfoCstRef);
+    SWC_ASSERT(typeInfoCst.isValuePointer());
+
+    uint32_t  shardIndex     = 0;
+    const Ref typeInfoOffset = cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
+    SWC_ASSERT(typeInfoOffset != INVALID_REF);
+    if (typeInfoOffset == INVALID_REF)
+        return Result::Error;
+
+    DataSegment& segment         = cstMgr().shardDataSegment(shardIndex);
+    const auto&  interfaceMethods = interfaceSym.functions();
+    const uint32_t slotCount = static_cast<uint32_t>(interfaceMethods.size()) + 1 + (interfaceMethods.empty() ? 1u : 0u);
+    const uint32_t tableSize = slotCount * sizeof(void*);
+    const auto [baseOffset, storage] = segment.reserveBytes(tableSize, alignof(void*), true);
+    SWC_ASSERT(baseOffset != INVALID_REF);
+    SWC_ASSERT(storage != nullptr);
+
+    auto* const tableStorage = reinterpret_cast<void**>(storage);
+    tableStorage[0]          = reinterpret_cast<void*>(segment.ptr<std::byte>(typeInfoOffset));
+    segment.addRelocation(baseOffset, typeInfoOffset);
+
+    std::vector<ConstantSegmentFunctionPatch> functionPatches;
+    functionPatches.reserve(interfaceMethods.size());
+    for (size_t i = 0; i < interfaceMethods.size(); ++i)
+    {
+        const SymbolFunction* interfaceMethod = interfaceMethods[i];
+        SWC_ASSERT(interfaceMethod != nullptr);
+
+        SymbolFunction* const implMethod = const_cast<SymbolFunction*>(implSym.findFunction(interfaceMethod->idRef()));
+        SWC_ASSERT(implMethod != nullptr);
+        functionPatches.push_back({
+            .shardIndex     = shardIndex,
+            .offset         = baseOffset + static_cast<uint32_t>((i + 1) * sizeof(void*)),
+            .targetFunction = implMethod,
+        });
+    }
+
+    SmallVector4<uint64_t> dims;
+    dims.push_back(slotCount);
+    const TypeRef     tableTypeRef = typeMgr().addType(TypeInfo::makeArray(dims, typeMgr().typeU64()));
+    std::vector bytes(tableSize, std::byte{0});
+    std::memcpy(bytes.data(), storage, tableSize);
+    const ConstantValue tableConstant = ConstantValue::makeArray(sema.ctx(), tableTypeRef, ByteSpan{bytes.data(), bytes.size()});
+    const ConstantRef   tableCstRef   = cstMgr().addConstant(sema.ctx(), tableConstant);
+
+    InterfaceTableValue value;
+    value.tablePtr    = reinterpret_cast<void**>(storage) + 1;
+    value.constantRef = tableCstRef;
+
+    bool inserted = false;
+    {
+        const std::unique_lock lock(mutex_);
+        if (const auto it = interfaceTables_.find(key); it != interfaceTables_.end())
+        {
+            outTablePtr    = it->second.tablePtr;
+            outTableCstRef = it->second.constantRef;
+            return Result::Continue;
+        }
+
+        constantSegmentFunctionPatches_.insert(constantSegmentFunctionPatches_.end(), functionPatches.begin(), functionPatches.end());
+        interfaceTables_.emplace(key, value);
+        outTablePtr    = value.tablePtr;
+        outTableCstRef = value.constantRef;
+        inserted       = true;
+    }
+
+    if (inserted)
+        notifyAlive();
+
+    return Result::Continue;
+}
+
 std::vector<SymbolFunction*> CompilerInstance::nativeGlobalFunctionInitTargetsSnapshot() const
 {
     const std::shared_lock lock(mutex_);
@@ -580,6 +689,12 @@ std::vector<SymbolVariable*> CompilerInstance::nativeGlobalVariablesSnapshot() c
 {
     const std::shared_lock lock(mutex_);
     return nativeGlobalVariables_;
+}
+
+std::vector<ConstantSegmentFunctionPatch> CompilerInstance::constantSegmentFunctionPatchesSnapshot() const
+{
+    const std::shared_lock lock(mutex_);
+    return constantSegmentFunctionPatches_;
 }
 
 ExitCode CompilerInstance::run()

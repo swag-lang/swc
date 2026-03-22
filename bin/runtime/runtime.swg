@@ -123,7 +123,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
 
 ////////////////////////////////////////////////////////////
 
-func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
+func __tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
 {
     if !structType or !itfType do
         return null
@@ -194,9 +194,6 @@ func @args()->const [..] string
 
 var __sysAlloc: SystemAllocator
 
-// Make a build configuration copy
-const __buildCfg = #run dref @compiler.getBuildCfg()
-
 func @rtflags()  => @getcontext().runtimeFlags
 func @dbgalloc() => cast(*DebugAllocator) @getcontext().debugAllocator
 func @sysalloc() => &__sysAlloc
@@ -207,15 +204,15 @@ func __setupRuntime(flags: RuntimeFlags)
     let cxt = @getcontext()
     cxt.runtimeFlags = flags
 
-    cxt.tempAllocator.setCapacity(__buildCfg.tempAllocatorCapacity, cxt.allocator)
-    cxt.errorAllocator.setCapacity(__buildCfg.errorAllocatorCapacity, cxt.allocator)
+    cxt.tempAllocator.setCapacity(#run @compiler.getBuildCfg().tempAllocatorCapacity, cxt.allocator)
+    cxt.errorAllocator.setCapacity(#run @compiler.getBuildCfg().errorAllocatorCapacity, cxt.allocator)
 
-    if __buildCfg.debugAllocator
+    if #run @compiler.getBuildCfg().debugAllocator
     {
         let alloc: *DebugAllocator = @alloc(#sizeof(DebugAllocator))
         @init(alloc, 1)
-        alloc.captureAllocStack = __buildCfg.debugAllocatorCaptureStack
-        alloc.detectLeaks       = __buildCfg.debugAllocatorLeaks
+        alloc.captureAllocStack = #run @compiler.getBuildCfg().debugAllocatorCaptureStack
+        alloc.detectLeaks       = #run @compiler.getBuildCfg().debugAllocatorLeaks
         alloc.setup(cxt.allocator)
         cxt.allocator      = dref alloc
         cxt.debugAllocator = alloc
@@ -227,7 +224,7 @@ func __closeRuntime()
     @getcontext().tempAllocator.release()
     @getcontext().errorAllocator.release()
 
-    if !(@rtflags & .FromCompiler) and __buildCfg.debugAllocator do
+    if !(@rtflags & .FromCompiler) and #run @compiler.getBuildCfg().debugAllocator do
         @dbgalloc().printLeaks()
 
     __exit()

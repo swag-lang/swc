@@ -291,7 +291,7 @@ namespace
             codeGen.builder().emitLoadRegPtrImm(reg, value);
     }
 
-    void emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
+    Result emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
         MicroBuilder& builder = codeGen.builder();
 
@@ -301,21 +301,21 @@ namespace
             {
                 builder.emitLoadRegImm(payload.reg, ApInt(cst.getBool() ? 1 : 0, 64), MicroOpBits::B64);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::Char:
             {
                 builder.emitLoadRegImm(payload.reg, ApInt(cst.getChar(), 64), MicroOpBits::B64);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::Rune:
             {
                 builder.emitLoadRegImm(payload.reg, ApInt(cst.getRune(), 64), MicroOpBits::B64);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::Int:
@@ -324,7 +324,7 @@ namespace
                 SWC_ASSERT(val.fits64());
                 builder.emitLoadRegImm(payload.reg, ApInt(static_cast<uint64_t>(val.asI64()), 64), MicroOpBits::B64);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::Float:
@@ -340,7 +340,7 @@ namespace
                     builder.emitClearReg(payload.reg, MicroOpBits::B32);
                     builder.emitOpBinaryRegReg(payload.reg, widenedReg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
                     payload.setIsValue();
-                    return;
+                    return Result::Continue;
                 }
 
                 if (value.bitWidth() == 64)
@@ -348,7 +348,7 @@ namespace
                     const auto bits = std::bit_cast<uint64_t>(value.asDouble());
                     builder.emitLoadRegImm(payload.reg, ApInt(bits, 64), MicroOpBits::B64);
                     payload.setIsValue();
-                    return;
+                    return Result::Continue;
                 }
 
                 SWC_UNREACHABLE();
@@ -362,21 +362,21 @@ namespace
                 const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::ValuePointer:
             {
                 emitPointerConstant(codeGen, payload.reg, cst.getValuePointer(), cstRef);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::BlockPointer:
             {
                 emitPointerConstant(codeGen, payload.reg, cst.getBlockPointer(), cstRef);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::Null:
@@ -397,20 +397,19 @@ namespace
                         const ConstantValue& typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);
                         payload.setIsValue();
-                        return;
+                        return Result::Continue;
                     }
                 }
 
                 builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::TypeValue:
             {
-                ConstantRef  typeInfoCstRef = ConstantRef::invalid();
-                const Result typeInfoRes    = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, cst.getTypeValue(), codeGen.curNodeRef());
-                SWC_ASSERT(typeInfoRes == Result::Continue);
+                ConstantRef typeInfoCstRef = ConstantRef::invalid();
+                SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, cst.getTypeValue(), codeGen.curNodeRef()));
                 SWC_ASSERT(typeInfoCstRef.isValid());
 
                 const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
@@ -419,12 +418,11 @@ namespace
                 builder.emitLoadRegPtrReloc(payload.reg, typeInfoCst.getValuePointer(), typeInfoCstRef);
                 payload.typeRef = codeGen.typeMgr().typeTypeInfo();
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::EnumValue:
-                emitConstantToPayload(codeGen, payload, cst.getEnumValue(), codeGen.cstMgr().get(cst.getEnumValue()), targetTypeRef);
-                return;
+                return emitConstantToPayload(codeGen, payload, cst.getEnumValue(), codeGen.cstMgr().get(cst.getEnumValue()), targetTypeRef);
 
             case ConstantKind::Struct:
             {
@@ -439,7 +437,7 @@ namespace
                     {
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), safeCstRef);
                         payload.setIsValue();
-                        return;
+                        return Result::Continue;
                     }
                 }
 
@@ -447,7 +445,7 @@ namespace
                 SWC_ASSERT(structBytes.size() == storageSize);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), safeCstRef);
                 payload.setIsAddress();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::Array:
@@ -463,7 +461,7 @@ namespace
                         const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
                         payload.setIsValue();
-                        return;
+                        return Result::Continue;
                     }
 
                     if (targetType.isSlice())
@@ -481,7 +479,7 @@ namespace
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
                         payload.setIsValue();
-                        return;
+                        return Result::Continue;
                     }
                 }
 
@@ -493,7 +491,7 @@ namespace
                 SWC_ASSERT(safeCst.getArray().size() == storageSize);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(safeCst.getArray().data()), safeCstRef);
                 payload.setIsAddress();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::Slice:
@@ -515,7 +513,7 @@ namespace
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
                 payload.setIsValue();
-                return;
+                return Result::Continue;
             }
 
             case ConstantKind::AggregateStruct:
@@ -529,13 +527,13 @@ namespace
                 {
                     builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(storageCst.getArray().data()), storageCstRef);
                     payload.setIsAddress();
-                    return;
+                    return Result::Continue;
                 }
 
                 SWC_ASSERT(storageCst.isStruct());
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(storageCst.getStruct().data()), storageCstRef);
                 payload.setIsAddress();
-                return;
+                return Result::Continue;
             }
 
             default:
@@ -558,7 +556,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
         return Result::Continue;
 
     CodeGenNodePayload& payload = setPayload(nodeRef, view.typeRef());
-    emitConstantToPayload(*this, payload, view.cstRef(), cst, view.typeRef());
+    SWC_RESULT(emitConstantToPayload(*this, payload, view.cstRef(), cst, view.typeRef()));
     return Result::SkipChildren;
 }
 

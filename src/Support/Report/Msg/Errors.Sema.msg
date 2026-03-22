@@ -148,6 +148,7 @@ SWC_DIAG_DEF(sema_err_fallthrough_outside_switch_case, Error, "'fallthrough' is 
 SWC_DIAG_DEF(sema_err_fallthrough_not_last_stmt, Error, "'fallthrough' is not the last statement of a switch case")
 SWC_DIAG_DEF(sema_err_fallthrough_in_last_case, Error, "'fallthrough' is used in the last switch case")
 SWC_DIAG_DEF(sema_err_run_expr_void, Error, "a '#run' expression cannot have type 'void'")
+SWC_DIAG_DEF(sema_err_jit_emit_failed, Error, "cannot evaluate function '{sym}' at compile time")
 SWC_DIAG_DEF(sema_err_return_value_in_void, Error, "cannot return a value from a void function")
 SWC_DIAG_DEF(sema_err_return_missing_value, Error, "missing return value for a function that returns '{requested-type}'")
 SWC_DIAG_DEF(sema_err_return_value_must_be_used, Error, "return value must be used; use 'discard' before the call or mark the function with '#[Swag.Discardable]'")

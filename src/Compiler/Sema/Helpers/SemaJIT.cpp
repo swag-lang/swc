@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
@@ -206,10 +207,25 @@ namespace
         }
         SWC_RESULT(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
         if (ctx.state().jitEmissionError)
+        {
+            if (!ctx.hasError())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_jit_emit_failed, symFn.codeRef());
+                SemaError::setReportArguments(sema, diag, &symFn);
+                diag.report(ctx);
+            }
             return Result::Error;
+        }
 
+        // Dependency-closure loop: keep scheduling CodeGen for newly discovered
+        // dependencies until the set stabilises. We capture the last stable
+        // `expandedOrder` (snapshot 2) so we can reuse it directly below — this
+        // avoids a third `buildJitOrderWithNativeRoots` call after the loop that
+        // would race against concurrent jobs registering new native-global-function
+        // init targets between the stability check and the snapshot.
         std::unordered_set<SymbolFunction*> knownFunctions;
         size_t                              knownFunctionCount = 0;
+        SmallVector<SymbolFunction*>        stableJitOrder;
         while (true)
         {
             SmallVector<SymbolFunction*> jitOrder;
@@ -240,25 +256,40 @@ namespace
             }
 
             if (knownFunctions.size() == knownFunctionCount)
+            {
+                // Stable: save this snapshot as the definitive JIT order. All
+                // functions it contains have had waitCodeGenPreSolved called in
+                // a prior (or this) iteration, so it is safe to emit them next.
+                stableJitOrder = std::move(expandedOrder);
                 break;
+            }
 
             knownFunctionCount = knownFunctions.size();
         }
 
-        SmallVector<SymbolFunction*> jitOrder;
-        buildJitOrderWithNativeRoots(sema, symFn, jitOrder);
-        for (SymbolFunction* function : jitOrder)
+        const auto raiseJitEmitFailed = [&]() -> Result {
+            if (!ctx.hasError())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_jit_emit_failed, symFn.codeRef());
+                SemaError::setReportArguments(sema, diag, &symFn);
+                diag.report(ctx);
+            }
+            return Result::Error;
+        };
+
+        for (SymbolFunction* function : stableJitOrder)
         {
             SWC_RESULT(function->emit(ctx));
         }
 
         if (ctx.state().jitEmissionError)
-            return Result::Error;
+            return raiseJitEmitFailed();
 
-        if (!SymbolFunction::jitBatch(ctx, jitOrder))
-            return Result::Error;
+        if (!SymbolFunction::jitBatch(ctx, stableJitOrder))
+            return raiseJitEmitFailed();
+
         if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
-            return Result::Error;
+            return raiseJitEmitFailed();
 
         return Result::Continue;
     }

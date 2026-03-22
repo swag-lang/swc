@@ -5,6 +5,9 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolStruct;
 class SymbolEnum;
+class SymbolInterface;
+class Sema;
+class TaskContext;
 
 enum class SymbolImplFlagsE : uint8_t
 {
@@ -36,19 +39,26 @@ public:
     void          setSymStruct(SymbolStruct* sym);
     SymbolEnum*   symEnum() const;
     void          setSymEnum(SymbolEnum* sym);
+    SymbolInterface* symInterface() const noexcept { return interfaceSym_; }
+    void             setSymInterface(SymbolInterface* sym) noexcept { interfaceSym_ = sym; }
 
     void                         addFunction(const TaskContext& ctx, SymbolFunction* sym);
     const SymbolFunction*        findFunction(IdentifierRef functionIdRef) const;
     std::vector<SymbolFunction*> specOps() const;
+    Result                       ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
 
 private:
     std::vector<SymbolFunction*> specOps_;
+    mutable std::mutex           interfaceMethodTableMutex_;
+    mutable ConstantRef          interfaceMethodTableRef_ = ConstantRef::invalid();
 
     union
     {
         SymbolStruct* ownerStruct_ = nullptr;
         SymbolEnum*   ownerEnum_;
     };
+
+    SymbolInterface* interfaceSym_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

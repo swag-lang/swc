@@ -58,7 +58,23 @@ uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const
 void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 {
     const std::unique_lock lock(mutex_);
-    relocations_.push_back({.offset = offset, .targetOffset = targetOffset});
+    relocations_.push_back({
+        .offset       = offset,
+        .kind         = DataSegmentRelocationKind::DataSegmentOffset,
+        .targetOffset = targetOffset,
+        .targetSymbol = nullptr,
+    });
+}
+
+void DataSegment::addFunctionRelocation(uint32_t offset, SymbolFunction* targetSymbol)
+{
+    const std::unique_lock lock(mutex_);
+    relocations_.push_back({
+        .offset       = offset,
+        .kind         = DataSegmentRelocationKind::FunctionSymbol,
+        .targetOffset = INVALID_REF,
+        .targetSymbol = targetSymbol,
+    });
 }
 
 Ref DataSegment::findRef(const void* ptr) const noexcept

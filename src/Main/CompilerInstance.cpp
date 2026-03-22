@@ -358,9 +358,10 @@ void CompilerInstance::setupRuntimeCompiler()
 {
     runtimeCompiler_.obj      = this;
     runtimeCompiler_.itable   = runtimeCompilerITable_;
-    runtimeCompilerITable_[0] = reinterpret_cast<void*>(&runtimeCompilerGetMessage);
-    runtimeCompilerITable_[1] = reinterpret_cast<void*>(&runtimeCompilerGetBuildCfg);
-    runtimeCompilerITable_[2] = reinterpret_cast<void*>(&runtimeCompilerCompileString);
+    runtimeCompilerITable_[0] = nullptr;
+    runtimeCompilerITable_[1] = reinterpret_cast<void*>(&runtimeCompilerGetMessage);
+    runtimeCompilerITable_[2] = reinterpret_cast<void*>(&runtimeCompilerGetBuildCfg);
+    runtimeCompilerITable_[3] = reinterpret_cast<void*>(&runtimeCompilerCompileString);
 }
 
 uint64_t* CompilerInstance::runtimeContextTlsIdStorage()

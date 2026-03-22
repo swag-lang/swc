@@ -275,7 +275,7 @@ namespace
         const MicroReg            leftReg = leftPayload.reg;
         const MicroReg            dstReg  = payload.reg;
         builder.emitLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
-        builder.emitLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64);
+        builder.emitLoadRegMem(dstReg, dstReg, (methodFunc.interfaceMethodSlot() + 1) * sizeof(void*), MicroOpBits::B64);
         return Result::Continue;
     }
 }

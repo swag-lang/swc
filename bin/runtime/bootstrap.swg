@@ -550,7 +550,7 @@ namespace Swag
     struct Interface
     {
         obj:        *void                  // Pointer to the associated struct instance
-        itable:     const [*] [*] void     // Pointer to the virtual table
+        itable:     const [*] [*] void     // Pointer to the table: [0] type descriptor, then method pointers
     }
 
     const ClosureCaptureBufferSize = 64

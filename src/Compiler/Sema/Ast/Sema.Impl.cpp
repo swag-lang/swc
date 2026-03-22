@@ -55,6 +55,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         {
             if (!sym.isInterface())
                 return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_interface, nodeIdentRef);
+            symImpl.setSymInterface(&sym.cast<SymbolInterface>());
         }
 
         if (nodeForRef.isValid())

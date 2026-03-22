@@ -303,6 +303,31 @@ namespace
         return codeGen.typeMgr().get(resolvedTypeRef).unwrapAliasEnum(codeGen.ctx(), resolvedTypeRef);
     }
 
+    Result loadInterfaceMethodTableAddress(MicroReg& outReg, CodeGen& codeGen, const InterfaceCastInfo& castInfo)
+    {
+        SWC_ASSERT(castInfo.implSym != nullptr);
+        ConstantRef tableCstRef = ConstantRef::invalid();
+        SWC_RESULT(castInfo.implSym->ensureInterfaceMethodTable(codeGen.sema(), tableCstRef));
+        SWC_ASSERT(tableCstRef.isValid());
+
+        if (const SymbolInterface* interfaceSym = castInfo.implSym->symInterface())
+        {
+            for (const SymbolFunction* interfaceMethod : interfaceSym->functions())
+            {
+                SWC_ASSERT(interfaceMethod != nullptr);
+                const SymbolFunction* implMethod = castInfo.implSym->findFunction(interfaceMethod->idRef());
+                SWC_ASSERT(implMethod != nullptr);
+                codeGen.function().addCallDependency(const_cast<SymbolFunction*>(implMethod));
+            }
+        }
+
+        const ConstantValue& tableCst = codeGen.cstMgr().get(tableCstRef);
+        SWC_ASSERT(tableCst.isArray());
+        outReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(outReg, reinterpret_cast<uint64_t>(tableCst.getArray().data()), tableCstRef);
+        return Result::Continue;
+    }
+
     MicroReg materializeInterfaceObjectPointer(CodeGen&                  codeGen,
                                                const CodeGenNodePayload& objectPayload,
                                                TypeRef                   objectValueTypeRef,
@@ -341,18 +366,17 @@ namespace
         return spillReg;
     }
 
-    void emitMakeInterfaceValue(CodeGen&                  codeGen,
-                                const SymbolInterface&    interfaceSym,
-                                const InterfaceCastInfo&  castInfo,
-                                const CodeGenNodePayload& objectPayload,
-                                TypeRef                   objectValueTypeRef,
-                                const MicroReg            runtimeStorageReg,
-                                const uint64_t            objectSpillOffset)
+    Result emitMakeInterfaceValue(CodeGen&                  codeGen,
+                                  const SymbolInterface&    interfaceSym,
+                                  const InterfaceCastInfo&  castInfo,
+                                  const CodeGenNodePayload& objectPayload,
+                                  TypeRef                   objectValueTypeRef,
+                                  const MicroReg            runtimeStorageReg,
+                                  const uint64_t            objectSpillOffset)
     {
         MicroBuilder&      builder         = codeGen.builder();
         const TypeInfo&    objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
-        constexpr uint64_t interfaceSize   = sizeof(Runtime::Interface);
-        const uint64_t     itableSize      = interfaceSym.functions().size() * sizeof(void*);
+        SWC_UNUSED(interfaceSym);
 
         MicroReg objectReg = materializeInterfaceObjectPointer(codeGen, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOffset);
         if (castInfo.usingField)
@@ -380,26 +404,10 @@ namespace
         }
 
         builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, obj), objectReg, MicroOpBits::B64);
-
-        if (!itableSize)
-            return;
-
-        const MicroReg itableReg = codeGen.offsetAddressReg(runtimeStorageReg, interfaceSize);
+        MicroReg itableReg = MicroReg::invalid();
+        SWC_RESULT(loadInterfaceMethodTableAddress(itableReg, codeGen, castInfo));
         builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, itable), itableReg, MicroOpBits::B64);
-
-        const auto& interfaceMethods = interfaceSym.functions();
-        for (size_t i = 0; i < interfaceMethods.size(); ++i)
-        {
-            const SymbolFunction* interfaceMethod = interfaceMethods[i];
-            SWC_ASSERT(interfaceMethod != nullptr);
-            const SymbolFunction* implMethod = castInfo.implSym->findFunction(interfaceMethod->idRef());
-            SWC_ASSERT(implMethod != nullptr);
-            codeGen.function().addCallDependency(const_cast<SymbolFunction*>(implMethod));
-
-            const MicroReg methodReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegPtrReloc(methodReg, 0, ConstantRef::invalid(), const_cast<SymbolFunction*>(implMethod));
-            builder.emitLoadMemReg(itableReg, i * sizeof(void*), methodReg, MicroOpBits::B64);
-        }
+        return Result::Continue;
     }
 
     Result codeGenAtomicBinaryRmw(CodeGen& codeGen, const AstIntrinsicCallExpr& node, MicroOp op)
@@ -687,8 +695,7 @@ namespace
         const TypeRef             objectValueTypeRef = intrinsicOperandTypeRef(codeGen, objectRef, objectPayload);
         const TypeRef             objectTypeRef      = intrinsicMakeInterfaceObjectTypeRef(codeGen, typeRefNode);
         constexpr uint64_t        interfaceSize      = sizeof(Runtime::Interface);
-        const uint64_t            itableSize         = resultType.payloadSymInterface().functions().size() * sizeof(void*);
-        const uint64_t            objectSpillOff     = interfaceSize + itableSize;
+        const uint64_t            objectSpillOff     = interfaceSize;
         const MicroReg            runtimeStorageReg  = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         MicroBuilder&             builder            = codeGen.builder();
 
@@ -703,7 +710,7 @@ namespace
             {
                 InterfaceCastInfo castInfo;
                 if (resolveInterfaceCastInfo(codeGen, concreteObjectType.payloadSymStruct(), resultType.payloadSymInterface(), castInfo))
-                    emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), castInfo, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff);
+                    SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), castInfo, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
             }
 
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, resultTypeRef);
@@ -731,7 +738,7 @@ namespace
                 builder.emitLoadRegPtrReloc(candidateTypeReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
                 builder.emitCmpRegReg(typeInfoReg, candidateTypeReg, MicroOpBits::B64);
                 builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nextLabel);
-                emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), candidate.castInfo, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff);
+                SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), candidate.castInfo, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
                 builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
                 builder.placeLabel(nextLabel);
             }
@@ -902,7 +909,9 @@ namespace
         const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder     = codeGen.builder();
 
-        if (exprView.type() && (exprView.type()->isString() || exprView.type()->isSlice() || exprView.type()->isAny()))
+        if (exprView.type() && exprView.type()->isInterface())
+            builder.emitLoadRegReg(payload.reg, exprPayload.reg, MicroOpBits::B64);
+        else if (exprView.type() && (exprView.type()->isString() || exprView.type()->isSlice() || exprView.type()->isAny()))
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, 0, MicroOpBits::B64);
         else if (exprView.type() && exprView.type()->isArray())
             builder.emitLoadRegReg(payload.reg, exprPayload.reg, MicroOpBits::B64);
@@ -921,10 +930,26 @@ namespace
 
         const AstNodeRef          exprRef     = children[0];
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         CodeGenNodePayload&       result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder     = codeGen.builder();
-        const MicroReg            anyBaseReg  = exprPayload.reg;
-        result.reg                            = codeGen.nextVirtualIntRegister();
+        result.reg = codeGen.nextVirtualIntRegister();
+
+        if (exprView.type() && exprView.type()->isInterface())
+        {
+            const MicroReg itableReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(itableReg, exprPayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+
+            const MicroLabelRef doneLabel = builder.createLabel();
+            builder.emitLoadRegImm(result.reg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitCmpRegImm(itableReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+            builder.emitLoadRegMem(result.reg, itableReg, 0, MicroOpBits::B64);
+            builder.placeLabel(doneLabel);
+            return Result::Continue;
+        }
+
+        const MicroReg anyBaseReg = exprPayload.reg;
         builder.emitLoadRegMem(result.reg, anyBaseReg, offsetof(Runtime::Any, type), MicroOpBits::B64);
         return Result::Continue;
     }

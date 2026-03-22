@@ -8,6 +8,7 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -372,6 +373,79 @@ namespace
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
+    Result patchConstantFunctionRelocationsRec(TaskContext& ctx,
+                                               uint32_t shardIndex,
+                                               uint32_t sourceOffset,
+                                               std::unordered_set<uint64_t>& visited)
+    {
+        DataSegment&           segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
+        DataSegmentAllocation  allocation;
+        if (!segment.findAllocation(allocation, sourceOffset))
+            return Result::Continue;
+
+        const uint64_t visitKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
+        if (!visited.insert(visitKey).second)
+            return Result::Continue;
+
+        const auto& relocations = segment.relocations();
+        for (const DataSegmentRelocation& relocation : relocations)
+        {
+            if (relocation.offset < allocation.offset)
+                continue;
+            if (relocation.offset - allocation.offset >= allocation.size)
+                continue;
+
+            if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
+            {
+                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, shardIndex, relocation.targetOffset, visited));
+                continue;
+            }
+
+            SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
+            SymbolFunction* const targetFunction = relocation.targetSymbol;
+            SWC_ASSERT(targetFunction != nullptr);
+            if (!targetFunction)
+                return Result::Error;
+
+            MicroRelocation reloc;
+            reloc.kind         = targetFunction->isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
+            reloc.targetSymbol = targetFunction;
+
+            uint64_t                 targetAddress = 0;
+            RelocationResolveFailure failure;
+            const bool               hasTargetAddress = targetFunction->isForeign() ? resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure);
+            if (!hasTargetAddress)
+            {
+                const DiagnosticId diagId = targetFunction->isForeign() ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
+                Diagnostic         diag   = Diagnostic::get(diagId);
+                diag.addArgument(Diagnostic::ARG_SYM, Utf8("<jit-constant>"));
+                addRelocationFailureNotes(diag, ctx, failure);
+                diag.report(ctx);
+                return Result::Error;
+            }
+
+            auto** storage = segment.ptr<void*>(relocation.offset);
+            SWC_ASSERT(storage != nullptr);
+            *storage = reinterpret_cast<void*>(targetAddress);
+        }
+
+        return Result::Continue;
+    }
+
+    Result patchConstantFunctionRelocations(TaskContext& ctx, const void* ptr)
+    {
+        if (!ptr)
+            return Result::Continue;
+
+        uint32_t  shardIndex = 0;
+        const Ref sourceRef  = ctx.compiler().cstMgr().findDataSegmentRef(shardIndex, ptr);
+        if (sourceRef == INVALID_REF)
+            return Result::Continue;
+
+        std::unordered_set<uint64_t> visited;
+        return patchConstantFunctionRelocationsRec(ctx, shardIndex, sourceRef, visited);
+    }
+
     Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
     {
         SWC_ASSERT(!writableCode.empty());
@@ -401,6 +475,9 @@ namespace
                 diag.report(ctx);
                 return Result::Error;
             }
+
+            if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
+                SWC_RESULT(patchConstantFunctionRelocations(ctx, reinterpret_cast<const void*>(targetAddress)));
 
             patchAbsolute64(writableCode, reloc, targetAddress);
         }

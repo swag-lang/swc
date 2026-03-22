@@ -184,7 +184,7 @@ private:
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};
     std::unique_ptr<JITExecManager>          jitExecMgr_;
-    void*                                    runtimeCompilerITable_[3]{};
+    void*                                    runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                mutex_;
     std::atomic<bool>                        changed_{true};
 

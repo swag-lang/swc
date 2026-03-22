@@ -46,6 +46,8 @@ Result NativeRDataCollector::collectRoots()
                 continue;
             if (relocation.offset - allocation.offset >= allocation.size)
                 continue;
+            if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset)
+                continue;
 
             SWC_RESULT(enqueueSourceOffset(pending.ownerName, pending.shardIndex, relocation.targetOffset));
         }
@@ -165,18 +167,45 @@ Result NativeRDataCollector::emitReachableAllocations()
                 if (relocation.offset - allocation.offset >= allocation.size)
                     continue;
 
-                uint32_t targetOffset = 0;
-                if (!builder_->tryMapRDataSourceOffset(targetOffset, shardIndex, relocation.targetOffset))
+                NativeSectionRelocation record;
+                record.offset = mapping.emittedOffset + (relocation.offset - allocation.offset);
+
+                if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
                 {
-                    const auto ownerIt   = allocationOwners.find(allocation.offset);
-                    const Utf8 ownerName = ownerIt != allocationOwners.end() ? ownerIt->second : Utf8("<rdata>");
-                    return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
+                    uint32_t targetOffset = 0;
+                    if (!builder_->tryMapRDataSourceOffset(targetOffset, shardIndex, relocation.targetOffset))
+                    {
+                        const auto ownerIt   = allocationOwners.find(allocation.offset);
+                        const Utf8 ownerName = ownerIt != allocationOwners.end() ? ownerIt->second : Utf8("<rdata>");
+                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
+                    }
+
+                    record.symbolName = K_R_DATA_BASE_SYMBOL;
+                    record.addend     = targetOffset;
+                    builder_->mergedRData.relocations.push_back(record);
+                    continue;
                 }
 
-                NativeSectionRelocation record;
-                record.offset     = mapping.emittedOffset + (relocation.offset - allocation.offset);
-                record.symbolName = K_R_DATA_BASE_SYMBOL;
-                record.addend     = targetOffset;
+                SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
+                const SymbolFunction* targetFunction = relocation.targetSymbol;
+                SWC_ASSERT(targetFunction != nullptr);
+                if (!targetFunction)
+                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+
+                if (targetFunction->isForeign())
+                {
+                    record.symbolName = targetFunction->resolveForeignFunctionName(builder_->ctx());
+                    record.addend     = 0;
+                    builder_->mergedRData.relocations.push_back(record);
+                    continue;
+                }
+
+                const auto functionIt = builder_->functionBySymbol.find(relocation.targetSymbol);
+                if (functionIt == builder_->functionBySymbol.end())
+                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+
+                record.symbolName = functionIt->second->symbolName;
+                record.addend     = 0;
                 builder_->mergedRData.relocations.push_back(record);
             }
         }

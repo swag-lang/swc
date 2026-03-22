@@ -130,6 +130,10 @@ namespace
         {
             resultTypeRef = sema.typeMgr().typeBlockPtrVoid();
         }
+        else if (type->isInterface())
+        {
+            resultTypeRef = sema.typeMgr().typeBlockPtrVoid();
+        }
         else if (type->isAnyPointer())
         {
             resultTypeRef = view.typeRef();
@@ -150,7 +154,7 @@ namespace
 
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
 
-        if (!view.type() || !view.type()->isAny())
+        if (!view.type() || (!view.type()->isAny() && !view.type()->isInterface()))
             return SemaError::raiseRequestedTypeFam(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeAny());
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());
@@ -289,9 +293,8 @@ namespace
         }
 
         constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
-        const uint64_t     itableStorageSize    = interfaceType.payloadSymInterface().functions().size() * sizeof(void*);
         SmallVector4<uint64_t> dims;
-        dims.push_back(interfaceStorageSize + itableStorageSize + objectStorageSize);
+        dims.push_back(interfaceStorageSize + objectStorageSize);
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
     }
 

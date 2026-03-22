@@ -331,6 +331,54 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
+{
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_emits_function_relocations", "dll");
+
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+
+    MachineCode targetCode;
+    targetCode.bytes.push_back(std::byte{0xC3});
+
+    auto* targetFunction = makeTestFunction(*fixture.compilerCtx, "rdata_target");
+    fixture.nativeBuilder->functionInfos.push_back({
+        .symbol      = targetFunction,
+        .machineCode = &targetCode,
+        .symbolName  = "__test_rdata_target",
+        .debugName   = "rdata_target",
+    });
+
+    DataSegment& segment                    = fixture.compiler->cstMgr().shardDataSegment(0);
+    const auto [tableOffset, tableStorage]  = segment.reserve<uint64_t>();
+    *tableStorage                           = 0;
+    segment.addFunctionRelocation(tableOffset, targetFunction);
+
+    ConstantValue     value   = ConstantValue::makeValuePointer(*fixture.compilerCtx,
+                                                                fixture.compiler->typeMgr().typeVoid(),
+                                                                reinterpret_cast<uint64_t>(tableStorage),
+                                                                TypeInfoFlagsE::Const);
+    const ConstantRef rootRef = fixture.compiler->cstMgr().addConstant(*fixture.compilerCtx, value);
+
+    MachineCode ownerCode = makeConstantAddressCode(rootRef, tableStorage);
+    addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, ownerCode, "rdata_owner");
+
+    fixture.nativeBuilder->functionBySymbol.clear();
+    for (const auto& info : fixture.nativeBuilder->functionInfos)
+        fixture.nativeBuilder->functionBySymbol.emplace(info.symbol, &info);
+
+    SWC_RESULT(fixture.artifactBuilder->build());
+
+    if (fixture.nativeBuilder->mergedRData.relocations.size() != 1)
+        return Result::Error;
+
+    const NativeSectionRelocation& relocation = fixture.nativeBuilder->mergedRData.relocations.front();
+    if (relocation.symbolName != "__test_rdata_target")
+        return Result::Error;
+    if (relocation.addend != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "startup_calls_runtime_exit_wrapper", "exe");

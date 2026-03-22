@@ -217,6 +217,20 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     return validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, ByteSpan{payloadBytes, static_cast<size_t>(sizeOf)});
 }
 
+namespace
+{
+    bool validateFunctionSymbolRelocation(const NativeBackendBuilder& builder, const SymbolFunction* target)
+    {
+        if (!target)
+            return false;
+
+        if (target->isForeign())
+            return true;
+
+        return builder.functionBySymbol.contains(const_cast<SymbolFunction*>(target));
+    }
+}
+
 bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const uint32_t shardIndex, const Ref baseOffset, const ByteSpan bytes) const
 {
     if (typeRef.isInvalid())
@@ -414,7 +428,11 @@ bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
             return true;
 
         uint32_t targetOffset = 0;
-        return findDataSegmentRelocation(targetOffset, shardIndex, baseOffset) && targetOffset < segment.extentSize();
+        if (findDataSegmentRelocation(targetOffset, shardIndex, baseOffset))
+            return targetOffset < segment.extentSize();
+
+        const SymbolFunction* targetFunction = nullptr;
+        return findFunctionSymbolRelocation(targetFunction, shardIndex, baseOffset) && validateFunctionSymbolRelocation(builder_, targetFunction);
     }
 
     return false;
@@ -428,8 +446,28 @@ bool NativeValidate::findDataSegmentRelocation(uint32_t& outTargetOffset, const 
     {
         if (relocation.offset != offset)
             continue;
+        if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset)
+            continue;
 
         outTargetOffset = relocation.targetOffset;
+        return true;
+    }
+
+    return false;
+}
+
+bool NativeValidate::findFunctionSymbolRelocation(const SymbolFunction*& outTargetSymbol, const uint32_t shardIndex, const uint32_t offset) const
+{
+    outTargetSymbol          = nullptr;
+    const auto& relocations  = builder_.compiler().cstMgr().shardDataSegment(shardIndex).relocations();
+    for (const auto& relocation : relocations)
+    {
+        if (relocation.offset != offset)
+            continue;
+        if (relocation.kind != DataSegmentRelocationKind::FunctionSymbol)
+            continue;
+
+        outTargetSymbol = relocation.targetSymbol;
         return true;
     }
 

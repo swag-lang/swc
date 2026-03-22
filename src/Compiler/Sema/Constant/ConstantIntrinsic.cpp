@@ -213,6 +213,10 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
         else
             return;
     }
+    else if (type->isInterface())
+    {
+        ptrValue = materializeConstantAndGetAddress(sema, view);
+    }
     else
     {
         return;

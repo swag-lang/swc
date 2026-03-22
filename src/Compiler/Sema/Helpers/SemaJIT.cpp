@@ -298,7 +298,8 @@ namespace
 
     std::optional<Result> consumeJitExecCompletion(Sema& sema, AstNodeRef nodeRef)
     {
-        const JITExecManager::Completion completion = sema.compiler().jitExecMgr().consumeCompletion(sema.ctx(), nodeRef);
+        const SourceCodeRef              codeRef    = sema.node(nodeRef).codeRef();
+        const JITExecManager::Completion completion = sema.compiler().jitExecMgr().consumeCompletion(sema.ctx(), nodeRef, codeRef);
         if (!completion.hasValue)
             return std::nullopt;
         return completion.result;

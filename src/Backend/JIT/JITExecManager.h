@@ -38,7 +38,7 @@ public:
     void       setStrategy(Strategy strategy) noexcept { strategy_ = strategy; }
     Strategy   strategy() const noexcept { return strategy_; }
     Result     submit(TaskContext& ctx, const Request& request);
-    Completion consumeCompletion(const TaskContext& ctx, AstNodeRef nodeRef);
+    Completion consumeCompletion(const TaskContext& ctx, AstNodeRef nodeRef, SourceCodeRef codeRef);
     bool       executePendingMainThread();
 
 private:
@@ -53,10 +53,14 @@ private:
     {
         const TaskContext* ownerCtx = nullptr;
         AstNodeRef         nodeRef  = AstNodeRef::invalid();
+        SourceCodeRef      codeRef  = SourceCodeRef::invalid();
 
         bool operator==(const ItemKey& other) const noexcept
         {
-            return ownerCtx == other.ownerCtx && nodeRef == other.nodeRef;
+            return ownerCtx == other.ownerCtx &&
+                   nodeRef == other.nodeRef &&
+                   codeRef.srcViewRef == other.codeRef.srcViewRef &&
+                   codeRef.tokRef == other.codeRef.tokRef;
         }
     };
 
@@ -66,6 +70,8 @@ private:
         {
             size_t h = std::hash<const TaskContext*>{}(key.ownerCtx);
             h ^= std::hash<uint32_t>{}(key.nodeRef.get()) + 0x9e3779b9u + (h << 6) + (h >> 2);
+            h ^= std::hash<uint32_t>{}(key.codeRef.srcViewRef.get()) + 0x9e3779b9u + (h << 6) + (h >> 2);
+            h ^= std::hash<uint32_t>{}(key.codeRef.tokRef.get()) + 0x9e3779b9u + (h << 6) + (h >> 2);
             return h;
         }
     };

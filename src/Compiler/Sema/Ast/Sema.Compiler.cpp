@@ -1141,6 +1141,14 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
 
 namespace
 {
+    void finalizeCompilerRunFunction(TaskContext& ctx, SymbolFunction& symFn, TypeRef returnTypeRef)
+    {
+        SWC_ASSERT(returnTypeRef.isValid());
+        symFn.setReturnTypeRef(returnTypeRef);
+        symFn.setTyped(ctx);
+        symFn.setSemaCompleted(ctx);
+    }
+
     Result setupCompilerRunFunction(Sema& sema, TypeRef returnTypeRef)
     {
         const AstNodeRef nodeRef = sema.curNodeRef();
@@ -1156,8 +1164,6 @@ namespace
             symFn->setReturnTypeRef(returnTypeRef);
             symFn->setAttributes(sema.frame().currentAttributes());
             symFn->setDeclared(ctx);
-            symFn->setTyped(ctx);
-            symFn->setSemaCompleted(ctx);
             sema.setSymbol(nodeRef, symFn);
         }
 
@@ -1190,6 +1196,7 @@ Result AstCompilerRunBlock::semaPostNode(Sema& sema)
     sema.setType(sema.curNodeRef(), returnTypeRef);
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
+    finalizeCompilerRunFunction(sema.ctx(), *runExprSymFn, returnTypeRef);
     return SemaJIT::runExpr(sema, *runExprSymFn, sema.curNodeRef());
 }
 
@@ -1206,6 +1213,7 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_run_expr_void, nodeExprRef);
 
     auto& runExprSymFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    finalizeCompilerRunFunction(sema.ctx(), runExprSymFn, view.typeRef());
     SWC_RESULT(SemaJIT::runExpr(sema, runExprSymFn, nodeExprRef));
     sema.inheritPayload(sema.curNode(), nodeExprRef);
 

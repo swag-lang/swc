@@ -56,7 +56,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     const SymbolFunction* const function = request.function;
     const AstNodeRef            nodeRef  = request.nodeRef;
     const SourceCodeRef         codeRef  = request.codeRef;
-    const ItemKey               key      = {.ownerCtx = &ctx, .nodeRef = nodeRef};
+    const ItemKey               key      = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
 
     {
         const std::scoped_lock lock(mutex_);
@@ -89,9 +89,9 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     return Result::Pause;
 }
 
-JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef)
+JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef codeRef)
 {
-    const ItemKey          key = {.ownerCtx = &ctx, .nodeRef = nodeRef};
+    const ItemKey          key = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
     const std::scoped_lock lock(mutex_);
     const auto             it = items_.find(key);
     if (it == items_.end() || !it->second)

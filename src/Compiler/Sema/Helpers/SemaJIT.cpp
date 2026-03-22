@@ -386,6 +386,41 @@ namespace
 
     bool supportsConstCallJit(Sema& sema, const SymbolFunction& calledFn)
     {
+        const auto hasUnsupportedConstCallReturn = [&](auto&& self, TypeRef rawTypeRef) -> bool {
+            if (!rawTypeRef.isValid())
+                return false;
+
+            const TypeInfo& typeInfo = sema.typeMgr().get(rawTypeRef);
+            if (typeInfo.isAlias())
+            {
+                const TypeRef unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), rawTypeRef, TypeExpandE::Alias);
+                return unwrappedTypeRef.isValid() && self(self, unwrappedTypeRef);
+            }
+
+            if (typeInfo.isEnum())
+            {
+                const TypeRef unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), rawTypeRef, TypeExpandE::Enum);
+                return unwrappedTypeRef.isValid() && self(self, unwrappedTypeRef);
+            }
+
+            if (typeInfo.isAny() || typeInfo.isInterface())
+                return true;
+
+            if (typeInfo.isArray())
+                return self(self, typeInfo.payloadArrayElemTypeRef());
+
+            if (typeInfo.isStruct())
+            {
+                for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+                {
+                    if (field && self(self, field->typeRef()))
+                        return true;
+                }
+            }
+
+            return false;
+        };
+
         if (!calledFn.isPure() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
         if (calledFn.isForeign() || calledFn.isEmpty())
@@ -395,6 +430,8 @@ namespace
 
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
         if (returnType.isVoid())
+            return false;
+        if (hasUnsupportedConstCallReturn(hasUnsupportedConstCallReturn, calledFn.returnTypeRef()))
             return false;
 
         return true;

@@ -575,7 +575,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     const TypeInfo& ty = ctx.typeMgr().get(typeRef);
 
-    if (ty.isStruct())
+    if (ty.isStruct() || ty.isAny() || ty.isInterface())
     {
         const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)

@@ -458,7 +458,16 @@ namespace
 
         if (dstType.isInterface())
         {
-            SWC_ASSERT(cst.isNull() && dstBytes.size() == sizeof(Runtime::Interface));
+            SWC_ASSERT((cst.isNull() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::Interface));
+            if (cst.isStruct(dstTypeRef))
+            {
+                const auto bytes = cst.getStruct();
+                SWC_ASSERT(bytes.size() == dstBytes.size());
+                if (!dstBytes.empty())
+                    std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+                return Result::Continue;
+            }
+
             constexpr Runtime::Interface rt = {};
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
             return Result::Continue;

@@ -265,7 +265,7 @@ namespace
 
             if (symbol->isStruct())
             {
-                const auto& symStruct     = symbol->cast<SymbolStruct>();
+                const auto&   symStruct     = symbol->cast<SymbolStruct>();
                 const TypeRef objectTypeRef = symStruct.typeRef();
                 if (objectTypeRef.isValid())
                 {
@@ -303,13 +303,13 @@ namespace
         return codeGen.typeMgr().get(resolvedTypeRef).unwrapAliasEnum(codeGen.ctx(), resolvedTypeRef);
     }
 
-    MicroReg materializeInterfaceObjectPointer(CodeGen& codeGen,
+    MicroReg materializeInterfaceObjectPointer(CodeGen&                  codeGen,
                                                const CodeGenNodePayload& objectPayload,
                                                TypeRef                   objectValueTypeRef,
                                                const MicroReg            runtimeStorageReg,
                                                const uint64_t            objectSpillOffset)
     {
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&   builder         = codeGen.builder();
         const TypeInfo& objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
 
         if (objectValueType.isNull())
@@ -341,18 +341,18 @@ namespace
         return spillReg;
     }
 
-    void emitMakeInterfaceValue(CodeGen&                codeGen,
-                                const SymbolInterface&  interfaceSym,
-                                const InterfaceCastInfo& castInfo,
+    void emitMakeInterfaceValue(CodeGen&                  codeGen,
+                                const SymbolInterface&    interfaceSym,
+                                const InterfaceCastInfo&  castInfo,
                                 const CodeGenNodePayload& objectPayload,
                                 TypeRef                   objectValueTypeRef,
                                 const MicroReg            runtimeStorageReg,
                                 const uint64_t            objectSpillOffset)
     {
-        MicroBuilder&   builder         = codeGen.builder();
-        const TypeInfo& objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
-        constexpr uint64_t interfaceSize = sizeof(Runtime::Interface);
-        const uint64_t     itableSize    = interfaceSym.functions().size() * sizeof(void*);
+        MicroBuilder&      builder         = codeGen.builder();
+        const TypeInfo&    objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
+        constexpr uint64_t interfaceSize   = sizeof(Runtime::Interface);
+        const uint64_t     itableSize      = interfaceSym.functions().size() * sizeof(void*);
 
         MicroReg objectReg = materializeInterfaceObjectPointer(codeGen, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOffset);
         if (castInfo.usingField)
@@ -384,7 +384,7 @@ namespace
         if (!itableSize)
             return;
 
-        const MicroReg itableReg = codeGen.offsetAddressReg(runtimeStorageReg, static_cast<uint32_t>(interfaceSize));
+        const MicroReg itableReg = codeGen.offsetAddressReg(runtimeStorageReg, interfaceSize);
         builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, itable), itableReg, MicroOpBits::B64);
 
         const auto& interfaceMethods = interfaceSym.functions();
@@ -678,8 +678,8 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 3);
 
-        const AstNodeRef          objectRef        = children[0];
-        const AstNodeRef          typeRefNode      = children[1];
+        const AstNodeRef          objectRef          = children[0];
+        const AstNodeRef          typeRefNode        = children[1];
         const CodeGenNodePayload& objectPayload      = codeGen.payload(objectRef);
         const CodeGenNodePayload& typePayload        = codeGen.payload(typeRefNode);
         const TypeRef             resultTypeRef      = codeGen.curViewType().typeRef();
@@ -694,7 +694,7 @@ namespace
 
         SWC_ASSERT(resultType.isInterface());
         SWC_ASSERT(interfaceSize <= std::numeric_limits<uint32_t>::max());
-        CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeStorageReg, static_cast<uint32_t>(interfaceSize));
+        CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeStorageReg, interfaceSize);
 
         if (objectTypeRef.isValid())
         {
@@ -726,8 +726,8 @@ namespace
                 const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
                 SWC_ASSERT(typeInfoCst.isValuePointer());
 
-                const MicroLabelRef nextLabel         = builder.createLabel();
-                const MicroReg      candidateTypeReg  = codeGen.nextVirtualIntRegister();
+                const MicroLabelRef nextLabel        = builder.createLabel();
+                const MicroReg      candidateTypeReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegPtrReloc(candidateTypeReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
                 builder.emitCmpRegReg(typeInfoReg, candidateTypeReg, MicroOpBits::B64);
                 builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nextLabel);

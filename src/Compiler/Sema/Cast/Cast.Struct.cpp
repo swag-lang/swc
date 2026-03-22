@@ -274,7 +274,7 @@ namespace
             const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
             const uint64_t  fieldOffset  = dstFields[i]->offset();
             SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
-            ConstantLower::lowerToBytes(*args.sema, ByteSpanRW{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
+            SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, ByteSpanRW{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef));
         }
 
         args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});

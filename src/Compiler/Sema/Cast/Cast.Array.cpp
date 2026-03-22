@@ -86,8 +86,7 @@ namespace
         const uint64_t         arraySize = args.dstType->sizeOf(ctx);
         std::vector<std::byte> buffer(arraySize);
         const ByteSpanRW       bytes = asByteSpan(buffer);
-        ConstantLower::lowerAggregateArrayToBytes(*args.sema, bytes, *args.dstType, values);
-
+        SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateArrayToBytes(*args.sema, bytes, *args.dstType, values) == Result::Continue);
         const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
         SWC_ASSERT(result.isValid());
         return result;
@@ -185,7 +184,7 @@ namespace
                 ConstantRef castedRef;
                 SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, values[i], castedRef));
                 const ByteSpanRW dstChunk{bytes.data() + (i * subArraySize), subArraySize};
-                ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType);
+                SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
             }
 
             args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});

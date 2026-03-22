@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void   lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
+    Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
     Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr);
 
@@ -271,7 +271,7 @@ namespace
         return Result::Continue;
     }
 
-    void lowerAggregateArrayToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
+    Result lowerAggregateArrayToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
     {
         TaskContext&    ctx         = sema.ctx();
         const auto      elemTypeRef = dstType.payloadArrayElemTypeRef();
@@ -288,23 +288,24 @@ namespace
         const uint64_t maxCount = std::min<uint64_t>(values.size(), totalCount);
         for (uint64_t i = 0; i < maxCount; ++i)
         {
-            lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + (i * elemSize), elemSize}, elemTypeRef, values[i]);
+            SWC_RESULT(lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + (i * elemSize), elemSize}, elemTypeRef, values[i]));
         }
+
+        return Result::Continue;
     }
 
-    void lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
+    Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
     {
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
         if (cst.isUndefined())
-            return;
+            return Result::Continue;
 
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
         if (dstType.isAlias())
         {
             const TypeRef unwrappedTypeRef = dstType.unwrap(sema.ctx(), dstTypeRef, TypeExpandE::Alias);
             SWC_ASSERT(unwrappedTypeRef.isValid());
-            lowerConstantToBytes(sema, dstBytes, unwrappedTypeRef, cstRef);
-            return;
+            return lowerConstantToBytes(sema, dstBytes, unwrappedTypeRef, cstRef);
         }
 
         if (dstType.isEnum())
@@ -313,8 +314,7 @@ namespace
             ConstantRef   enumValueRef      = cstRef;
             if (cst.isEnumValue())
                 enumValueRef = cst.getEnumValue();
-            lowerConstantToBytes(sema, dstBytes, underlyingTypeRef, enumValueRef);
-            return;
+            return lowerConstantToBytes(sema, dstBytes, underlyingTypeRef, enumValueRef);
         }
 
         if (dstType.isStruct())
@@ -325,17 +325,17 @@ namespace
                 SWC_ASSERT(bytes.size() == dstBytes.size());
                 if (!dstBytes.empty())
                     std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
-                return;
+                return Result::Continue;
             }
 
             if (cst.isAggregateStruct())
             {
-                ConstantLower::lowerAggregateStructToBytes(sema, dstBytes, dstType, cst.getAggregateStruct());
-                return;
+                SWC_RESULT(ConstantLower::lowerAggregateStructToBytes(sema, dstBytes, dstType, cst.getAggregateStruct()));
+                return Result::Continue;
             }
 
             SWC_ASSERT(cst.isStruct() || cst.isAggregateStruct());
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isArray())
@@ -346,12 +346,11 @@ namespace
                 SWC_ASSERT(bytes.size() == dstBytes.size());
                 if (!dstBytes.empty())
                     std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
-                return;
+                return Result::Continue;
             }
 
             SWC_ASSERT(cst.isAggregateArray());
-            lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, cst.getAggregateArray());
-            return;
+            return lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, cst.getAggregateArray());
         }
 
         if (dstType.isBool())
@@ -359,7 +358,7 @@ namespace
             SWC_ASSERT(cst.isBool() && dstBytes.size() == 1);
             const uint8_t v = cst.getBool() ? 1 : 0;
             std::memcpy(dstBytes.data(), &v, sizeof(v));
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isChar())
@@ -367,7 +366,7 @@ namespace
             SWC_ASSERT(cst.isChar() && dstBytes.size() == sizeof(char32_t));
             const char32_t v = cst.getChar();
             std::memcpy(dstBytes.data(), &v, sizeof(v));
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isRune())
@@ -375,7 +374,7 @@ namespace
             SWC_ASSERT(cst.isRune() && dstBytes.size() == sizeof(char32_t));
             const char32_t v = cst.getRune();
             std::memcpy(dstBytes.data(), &v, sizeof(v));
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isInt())
@@ -384,7 +383,7 @@ namespace
             const uint64_t v = cst.getInt().as64();
             SWC_ASSERT(dstBytes.size() <= sizeof(v));
             std::memcpy(dstBytes.data(), &v, dstBytes.size());
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isFloat())
@@ -395,7 +394,7 @@ namespace
                 const float v = cst.getFloat().asFloat();
                 SWC_ASSERT(dstBytes.size() == sizeof(v));
                 std::memcpy(dstBytes.data(), &v, sizeof(v));
-                return;
+                return Result::Continue;
             }
 
             if (dstType.payloadFloatBits() == 64)
@@ -403,11 +402,11 @@ namespace
                 const double v = cst.getFloat().asDouble();
                 SWC_ASSERT(dstBytes.size() == sizeof(v));
                 std::memcpy(dstBytes.data(), &v, sizeof(v));
-                return;
+                return Result::Continue;
             }
 
             SWC_ASSERT(dstType.payloadFloatBits() == 32 || dstType.payloadFloatBits() == 64);
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isString())
@@ -419,7 +418,7 @@ namespace
                 SWC_ASSERT(bytes.size() == dstBytes.size());
                 if (!dstBytes.empty())
                     std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
-                return;
+                return Result::Continue;
             }
 
             Runtime::String rt = {};
@@ -429,7 +428,7 @@ namespace
                 rt                         = {.ptr = str.data(), .length = str.size()};
             }
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isSlice())
@@ -441,7 +440,7 @@ namespace
                 SWC_ASSERT(bytes.size() == dstBytes.size());
                 if (!dstBytes.empty())
                     std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
-                return;
+                return Result::Continue;
             }
 
             Runtime::Slice<uint8_t> rt = {};
@@ -454,7 +453,7 @@ namespace
                 rt.ptr                      = rt.count ? const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(bytes.data())) : nullptr;
             }
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isInterface())
@@ -462,7 +461,7 @@ namespace
             SWC_ASSERT(cst.isNull() && dstBytes.size() == sizeof(Runtime::Interface));
             constexpr Runtime::Interface rt = {};
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isAny())
@@ -472,7 +471,7 @@ namespace
             {
                 if (!dstBytes.empty())
                     std::memset(dstBytes.data(), 0, dstBytes.size());
-                return;
+                return Result::Continue;
             }
 
             if (cst.isStruct())
@@ -481,7 +480,7 @@ namespace
                 SWC_ASSERT(bytes.size() == dstBytes.size());
                 if (!dstBytes.empty())
                     std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
-                return;
+                return Result::Continue;
             }
 
             Runtime::Any anyValue{};
@@ -490,9 +489,8 @@ namespace
             SWC_ASSERT(valueTypeRef.isValid());
             SWC_ASSERT(valueTypeRef != dstTypeRef);
 
-            ConstantRef  typeInfoCstRef = ConstantRef::invalid();
-            const Result typeInfoRes    = sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, sema.ctx().state().nodeRef);
-            SWC_ASSERT(typeInfoRes == Result::Continue);
+            ConstantRef typeInfoCstRef = ConstantRef::invalid();
+            SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, sema.ctx().state().nodeRef));
             SWC_ASSERT(typeInfoCstRef.isValid());
             const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
             SWC_ASSERT(typeInfoCst.isValuePointer());
@@ -502,7 +500,7 @@ namespace
             if (valueSize)
             {
                 std::vector valueBytes(valueSize, std::byte{0});
-                lowerConstantToBytes(sema, valueBytes, valueTypeRef, cstRef);
+                SWC_RESULT(lowerConstantToBytes(sema, valueBytes, valueTypeRef, cstRef));
 
                 const std::string_view rawValueView(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());
                 const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(rawValueView);
@@ -510,7 +508,7 @@ namespace
             }
 
             std::memcpy(dstBytes.data(), &anyValue, sizeof(anyValue));
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isFunction() && dstType.isLambdaClosure())
@@ -520,7 +518,7 @@ namespace
             {
                 if (!dstBytes.empty())
                     std::memset(dstBytes.data(), 0, dstBytes.size());
-                return;
+                return Result::Continue;
             }
 
             if (cst.isStruct())
@@ -529,11 +527,11 @@ namespace
                 SWC_ASSERT(bytes.size() == dstBytes.size());
                 if (!dstBytes.empty())
                     std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
-                return;
+                return Result::Continue;
             }
 
             SWC_ASSERT(cst.isNull() || cst.isStruct());
-            return;
+            return Result::Continue;
         }
 
         if (dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction())
@@ -548,12 +546,13 @@ namespace
                 ptr = cst.getBlockPointer();
             SWC_ASSERT(cst.isNull() || cst.isValuePointer() || cst.isBlockPointer());
             std::memcpy(dstBytes.data(), &ptr, sizeof(ptr));
-            return;
+            return Result::Continue;
         }
 
         SWC_ASSERT(dstType.isEnum() || dstType.isStruct() || dstType.isArray() || dstType.isBool() || dstType.isChar() ||
                    dstType.isRune() || dstType.isInt() || dstType.isFloat() || dstType.isString() || dstType.isSlice() ||
                    dstType.isAny() || dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction());
+        return Result::Continue;
     }
 
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
@@ -624,17 +623,17 @@ namespace
     }
 }
 
-void ConstantLower::lowerToBytes(Sema& sema, ByteSpanRW dstBytes, ConstantRef cstRef, TypeRef dstTypeRef)
+Result ConstantLower::lowerToBytes(Sema& sema, ByteSpanRW dstBytes, ConstantRef cstRef, TypeRef dstTypeRef)
 {
-    lowerConstantToBytes(sema, dstBytes, dstTypeRef, cstRef);
+    return lowerConstantToBytes(sema, dstBytes, dstTypeRef, cstRef);
 }
 
-void ConstantLower::lowerAggregateArrayToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
+Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
-    lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, values);
+    return lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, values);
 }
 
-void ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
+Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
     const auto& dstFields = dstType.payloadSymStruct().fields();
     size_t      valueIdx  = 0;
@@ -662,10 +661,12 @@ void ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstBytes,
         }
 
         if (valueRef.isValid())
-            lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + fieldOffset, fieldSize}, fieldTypeRef, valueRef);
+            SWC_RESULT(lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + fieldOffset, fieldSize}, fieldTypeRef, valueRef));
         else if (fieldSize)
             std::memset(dstBytes.data() + fieldOffset, 0, fieldSize);
     }
+
+    return Result::Continue;
 }
 
 Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)

@@ -176,7 +176,7 @@ namespace
                         SmallVector<std::byte> rawBytes;
                         rawBytes.resize(rawSize);
                         std::memset(rawBytes.data(), 0, rawBytes.size());
-                        ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, cstRef, targetTypeRef);
+                        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, cstRef, targetTypeRef) == Result::Continue);
 
                         ConstantRef typedNullCstRef = ConstantRef::invalid();
                         if (targetType.isStruct() || targetType.isArray() || targetType.isAny() || targetType.isInterface() || targetType.isString() || targetType.isSlice())
@@ -283,7 +283,8 @@ namespace
         SmallVector<std::byte> rawBytes;
         rawBytes.resize(rawSize);
         std::memset(rawBytes.data(), 0, rawBytes.size());
-        ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef);
+        if (ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
+            return false;
 
         ConstantRef materializedCstRef = ConstantRef::invalid();
         if (storageType.isStruct() || storageType.isArray() || storageType.isAny() || storageType.isInterface() || storageType.isString() || storageType.isSlice())

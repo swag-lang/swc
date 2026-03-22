@@ -799,7 +799,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const uint64_t         arraySize = arrayType.sizeOf(ctx);
         std::vector<std::byte> arrayData(arraySize);
         const ByteSpanRW       arraySpan = asByteSpan(arrayData);
-        ConstantLower::lowerAggregateArrayToBytes(sema, arraySpan, arrayType, castedValues);
+        SWC_RESULT(ConstantLower::lowerAggregateArrayToBytes(sema, arraySpan, arrayType, castedValues));
 
         const ConstantValue sliceCst = ConstantValue::makeSlice(ctx, dstElemTypeRef, arraySpan, dstType.flags());
         castRequest.outConstRef      = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
@@ -981,7 +981,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         if (valueSize)
         {
             std::vector valueBytes(valueSize, std::byte{0});
-            ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, anyTypeRef);
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, anyTypeRef));
 
             uint32_t valueOffset = INVALID_REF;
             SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, anyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));

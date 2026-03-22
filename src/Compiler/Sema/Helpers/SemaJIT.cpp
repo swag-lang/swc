@@ -449,7 +449,7 @@ namespace
             auto& argStorage = outArgStorage.emplace_back();
             argStorage.resize(argStorageSize);
             std::memset(argStorage.data(), 0, argStorage.size());
-            ConstantLower::lowerToBytes(sema, ByteSpanRW{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, ByteSpanRW{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;

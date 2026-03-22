@@ -43,7 +43,7 @@ namespace
         SmallVector<std::byte> storage(sizeOf);
         const ByteSpanRW       storageSpan{storage.data(), storage.size()};
         std::memset(storageSpan.data(), 0, storageSpan.size());
-        ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), view.typeRef());
+        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), view.typeRef()) == Result::Continue);
 
         const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(storageSpan)));
         return reinterpret_cast<uint64_t>(persistentStorage.data());

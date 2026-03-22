@@ -157,7 +157,7 @@ namespace
         {
             loweredBytes.resize(size);
             std::memset(loweredBytes.data(), 0, loweredBytes.size());
-            ConstantLower::lowerToBytes(sema, ByteSpanRW{loweredBytes.data(), loweredBytes.size()}, symVar.cstRef(), storageTypeRef);
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, ByteSpanRW{loweredBytes.data(), loweredBytes.size()}, symVar.cstRef(), storageTypeRef));
 
             if (!isCompilerGlobal && !isAllZeroBytes(loweredBytes))
                 storageKind = DataSegmentKind::GlobalInit;

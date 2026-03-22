@@ -86,7 +86,7 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
         SWC_ASSERT(structSize);
         std::vector<std::byte> buffer(structSize);
         const ByteSpanRW       bytes = asByteSpan(buffer);
-        ConstantLower::lowerAggregateStructToBytes(sema, bytes, ty, {});
+        SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateStructToBytes(sema, bytes, ty, {}) == Result::Continue);
         defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, ByteSpan{bytes.data(), bytes.size()});
         SWC_ASSERT(defaultStructCst_.isValid());
     });

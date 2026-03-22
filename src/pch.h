@@ -53,6 +53,7 @@ namespace fs = std::filesystem;
 #define SWC_HAS_SEMA_DEBUG_INFO   1
 #define SWC_HAS_TOKEN_DEBUG_INFO  1
 #define SWC_HAS_UNITTEST          1
+#define SWC_HAS_INTERNAL_ERROR    1
 #else
 #define SWC_HAS_ASSERT            0
 #define SWC_HAS_NATIVE_VALIDATION 0
@@ -62,6 +63,7 @@ namespace fs = std::filesystem;
 #define SWC_HAS_SEMA_DEBUG_INFO   0
 #define SWC_HAS_TOKEN_DEBUG_INFO  0
 #define SWC_HAS_UNITTEST          0
+#define SWC_HAS_INTERNAL_ERROR    1
 #endif
 
 #ifdef SWC_FORCE_STATS

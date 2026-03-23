@@ -226,13 +226,6 @@ namespace
         return Result::Continue;
     }
 
-    AstNodeRef dynamicStructCaseTypeExprRef(const CodeGen& codeGen, AstNodeRef caseExprRef)
-    {
-        if (codeGen.node(caseExprRef).is(AstNodeId::AsCastExpr))
-            return codeGen.node(caseExprRef).cast<AstAsCastExpr>().nodeExprRef;
-        return caseExprRef;
-    }
-
     Result emitDynamicStructSwitchCaseTests(CodeGen& codeGen,
                                             const SwitchStmtCodeGenPayload& switchState,
                                             AstNodeRef                      caseRef,
@@ -247,20 +240,18 @@ namespace
         if (!runtimeFn)
             return Result::Error;
 
-        const auto& caseNode = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
-        SmallVector<AstNodeRef> caseExprRefs;
-        codeGen.ast().appendNodes(caseExprRefs, caseNode.spanExprRef);
+        const auto* casePayload = codeGen.sema().semaPayload<DynamicStructSwitchCasePayload>(caseRef);
+        SWC_ASSERT(casePayload != nullptr);
+        if (!casePayload)
+            return Result::Error;
 
-        const auto* bindingPayload = codeGen.sema().semaPayload<DynamicStructSwitchBindingPayload>(caseRef);
-        MicroBuilder& builder      = codeGen.builder();
-
-        if (bindingPayload)
+        MicroBuilder& builder = codeGen.builder();
+        if (casePayload->bindingSymbol != nullptr)
         {
-            SWC_ASSERT(bindingPayload->symbol != nullptr);
-            SWC_ASSERT(caseExprRefs.size() == 1);
+            SWC_ASSERT(casePayload->expressions.size() == 1);
 
             MicroReg targetTypeReg = MicroReg::invalid();
-            const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(dynamicStructCaseTypeExprRef(codeGen, caseExprRefs.front())).typeRef());
+            const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(casePayload->expressions.front().typeExprRef).typeRef());
             SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
 
             const MicroReg args[] = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
@@ -270,19 +261,19 @@ namespace
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, failLabel);
 
             CodeGenNodePayload boundPayload;
-            boundPayload.typeRef = bindingPayload->symbol->typeRef();
+            boundPayload.typeRef = casePayload->bindingSymbol->typeRef();
             boundPayload.setIsValue();
             boundPayload.reg = resultReg;
-            codeGen.setVariablePayload(*bindingPayload->symbol, boundPayload);
+            codeGen.setVariablePayload(*casePayload->bindingSymbol, boundPayload);
 
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, successLabel);
             return Result::Continue;
         }
 
-        for (const AstNodeRef caseExprRef : caseExprRefs)
+        for (const auto& expr : casePayload->expressions)
         {
             MicroReg targetTypeReg = MicroReg::invalid();
-            const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(dynamicStructCaseTypeExprRef(codeGen, caseExprRef)).typeRef());
+            const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(expr.typeExprRef).typeRef());
             SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
 
             const MicroReg args[] = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};

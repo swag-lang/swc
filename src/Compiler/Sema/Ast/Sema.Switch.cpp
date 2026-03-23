@@ -25,7 +25,6 @@ namespace
         TypeRef    exprTypeRef     = TypeRef::invalid();
         AstNodeRef firstDefaultRef = AstNodeRef::invalid();
         bool       isComplete      = false;
-        bool       isDynamicStruct = false;
     };
 
     Result setupStringCompareRuntimeCall(Sema& sema)
@@ -90,6 +89,26 @@ namespace
         return isDynamicStructSwitchType(sema, dynamicStructSwitchExprTypeRef(sema, switchRef));
     }
 
+    DynamicStructSwitchCasePayload& ensureDynamicStructSwitchCasePayload(Sema& sema, AstNodeRef caseRef)
+    {
+        auto* payload = sema.semaPayload<DynamicStructSwitchCasePayload>(caseRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<DynamicStructSwitchCasePayload>();
+        sema.setSemaPayload(caseRef, payload);
+        return *payload;
+    }
+
+    void markDynamicStructSwitchAsCaseExpr(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (sema.semaPayload<DynamicStructSwitchAsCastPayload>(nodeRef))
+            return;
+
+        auto* payload = sema.compiler().allocate<DynamicStructSwitchAsCastPayload>();
+        sema.setSemaPayload(nodeRef, payload);
+    }
+
     Result raiseDynamicStructSwitchCaseSyntaxError(Sema& sema, AstNodeRef nodeRef)
     {
         return SemaError::raise(sema, DiagnosticId::sema_err_switch_dynamic_case, nodeRef);
@@ -116,6 +135,21 @@ namespace
         return namedType.nodeIdentRef;
     }
 
+    void registerDynamicStructSwitchCaseExpr(Sema& sema, AstNodeRef caseRef, AstNodeRef caseExprRef, AstNodeRef typeExprRef)
+    {
+        auto& payload = ensureDynamicStructSwitchCasePayload(sema, caseRef);
+        for (auto& expr : payload.expressions)
+        {
+            if (expr.caseExprRef != caseExprRef)
+                continue;
+
+            expr.typeExprRef = typeExprRef;
+            return;
+        }
+
+        payload.expressions.push_back({caseExprRef, typeExprRef});
+    }
+
     Result registerDynamicStructSwitchBinding(Sema& sema,
                                               AstNodeRef caseRef,
                                               AstNodeRef caseExprRef,
@@ -123,12 +157,9 @@ namespace
                                               TypeRef    switchTypeRef,
                                               TypeRef    targetTypeRef)
     {
-        auto* payload = sema.semaPayload<DynamicStructSwitchBindingPayload>(caseRef);
-        if (payload)
-        {
-            payload->caseExprRef = caseExprRef;
+        auto& payload = ensureDynamicStructSwitchCasePayload(sema, caseRef);
+        if (payload.bindingSymbol != nullptr)
             return Result::Continue;
-        }
 
         if (!identRef.isValid())
             return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
@@ -162,10 +193,7 @@ namespace
         sym->setTyped(ctx);
         sym->setSemaCompleted(ctx);
 
-        payload             = sema.compiler().allocate<DynamicStructSwitchBindingPayload>();
-        payload->caseExprRef = caseExprRef;
-        payload->symbol      = sym;
-        sema.setSemaPayload(caseRef, payload);
+        payload.bindingSymbol = sym;
         return Result::Continue;
     }
 
@@ -234,6 +262,7 @@ namespace
         if (!targetStructType.isStruct())
             return raiseDynamicStructSwitchCaseCastError(sema, caseExprRef, switchTypeRef, targetTypeRef);
 
+        registerDynamicStructSwitchCaseExpr(sema, caseRef, caseExprRef, typeExprRef);
         if (bindingIdentRef.isValid())
             SWC_RESULT(registerDynamicStructSwitchBinding(sema, caseRef, caseExprRef, bindingIdentRef, switchTypeRef, targetTypeRef));
 
@@ -338,7 +367,6 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         auto* payload        = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
         payload->exprTypeRef = exprView.typeRef();
-        payload->isDynamicStruct = finalType.isInterface();
 
         if (finalType.isString())
             SWC_RESULT(setupStringCompareRuntimeCall(sema));
@@ -370,20 +398,6 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     const TypeRef switchTypeRef = payload->exprTypeRef;
     if (switchTypeRef.isInvalid())
         return Result::Continue;
-
-    if (isDynamicStructSwitchCase(sema, switchRef) && childRef == nodeWhereRef && !sema.semaPayload<DynamicStructSwitchBindingPayload>(sema.curNodeRef()))
-    {
-        SmallVector<AstNodeRef> caseExprRefs;
-        sema.ast().appendNodes(caseExprRefs, spanExprRef);
-        if (caseExprRefs.size() == 1 && sema.node(caseExprRefs.front()).is(AstNodeId::AsCastExpr))
-        {
-            const auto& asExpr         = sema.node(caseExprRefs.front()).cast<AstAsCastExpr>();
-            const AstNodeRef identRef  = dynamicStructSwitchBindingIdentRef(sema, asExpr.nodeTypeRef);
-            const TypeRef    targetRef = sema.viewType(asExpr.nodeExprRef).typeRef();
-            if (identRef.isValid() && targetRef.isValid())
-                SWC_RESULT(registerDynamicStructSwitchBinding(sema, sema.curNodeRef(), caseExprRefs.front(), identRef, switchTypeRef, targetRef));
-        }
-    }
 
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)
@@ -430,6 +444,9 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     const bool isExprChild = std::ranges::find(expressions, childRef) != expressions.end();
     if (!isExprChild)
         return Result::Continue;
+
+    if (isDynamicStructSwitchCase(sema, switchRef) && sema.node(childRef).is(AstNodeId::AsCastExpr))
+        markDynamicStructSwitchAsCaseExpr(sema, childRef);
 
     // If the switch is on an enum, allow shorthand by rewriting it to an
     // auto-member-access expression (equivalent to `.Value`), which will resolve in the

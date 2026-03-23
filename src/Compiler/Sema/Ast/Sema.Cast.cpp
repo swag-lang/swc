@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -207,31 +208,6 @@ namespace
         return true;
     }
 
-    bool isDynamicStructSwitchCaseAsSyntax(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (!nodeRef.isValid())
-            return false;
-
-        const AstNodeRef switchRef = sema.frame().currentSwitch();
-        const AstNodeRef caseRef   = sema.frame().currentSwitchCase();
-        if (switchRef.isInvalid() || caseRef.isInvalid())
-            return false;
-
-        const auto* switchNode = sema.node(switchRef).safeCast<AstSwitchStmt>();
-        if (!switchNode || !switchNode->nodeExprRef.isValid())
-            return false;
-
-        const TypeRef   switchTypeRef = unwrapAliasEnumTypeRef(sema, sema.viewType(switchNode->nodeExprRef).typeRef());
-        const TypeInfo& switchType    = sema.typeMgr().get(switchTypeRef);
-        if (!switchType.isInterface())
-            return false;
-
-        const auto& caseNode = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-        SmallVector<AstNodeRef> caseExprRefs;
-        sema.ast().appendNodes(caseExprRefs, caseNode.spanExprRef);
-        return caseExprRefs.size() == 1 && caseExprRefs.front() == nodeRef;
-    }
-
     Result attachDynamicStructCastRuntimeFunction(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind runtimeKind, const SourceCodeRef& codeRef)
     {
         SymbolFunction* runtimeFn = nullptr;
@@ -255,7 +231,7 @@ namespace
 
 Result AstAsCastExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeTypeRef && isDynamicStructSwitchCaseAsSyntax(sema, sema.curNodeRef()))
+    if (childRef == nodeTypeRef && sema.semaPayload<DynamicStructSwitchAsCastPayload>(sema.curNodeRef()))
         return Result::SkipChildren;
 
     return Result::Continue;
@@ -366,7 +342,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 
 Result AstAsCastExpr::semaPostNode(Sema& sema)
 {
-    if (isDynamicStructSwitchCaseAsSyntax(sema, sema.curNodeRef()))
+    if (sema.semaPayload<DynamicStructSwitchAsCastPayload>(sema.curNodeRef()))
     {
         sema.inheritPayload(*this, nodeExprRef);
         return Result::Continue;

@@ -42,6 +42,40 @@ const Ast& SourceFile::ast() const
     return nodePayloadContext_->ast();
 }
 
+void SourceFile::addErrorLineRange(const uint32_t lineStart, const uint32_t lineEnd) const
+{
+    if (!lineStart || !lineEnd)
+        return;
+
+    const uint32_t firstLine = std::min(lineStart, lineEnd);
+    const uint32_t lastLine  = std::max(lineStart, lineEnd);
+
+    const std::scoped_lock lock(errorLinesMutex_);
+    for (uint32_t line = firstLine; line <= lastLine; line++)
+    {
+        if (std::ranges::find(errorLines_, line) == errorLines_.end())
+            errorLines_.push_back(line);
+    }
+}
+
+bool SourceFile::hasErrorLineInRange(const uint32_t lineStart, const uint32_t lineEnd) const
+{
+    if (!lineStart || !lineEnd)
+        return false;
+
+    const uint32_t firstLine = std::min(lineStart, lineEnd);
+    const uint32_t lastLine  = std::max(lineStart, lineEnd);
+
+    const std::scoped_lock lock(errorLinesMutex_);
+    for (const uint32_t line : errorLines_)
+    {
+        if (line >= firstLine && line <= lastLine)
+            return true;
+    }
+
+    return false;
+}
+
 Result SourceFile::loadContent(TaskContext& ctx)
 {
     if (!content_.empty())

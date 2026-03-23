@@ -45,7 +45,8 @@ namespace
 
     bool shouldRegisterNativeFunction(const SymbolFunction& symbol)
     {
-        return !symbol.isForeign() &&
+        return !symbol.isIgnored() &&
+               !symbol.isForeign() &&
                !symbol.isEmpty() &&
                !symbol.isAttribute() &&
                !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
@@ -718,6 +719,12 @@ SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierRef idRe
     if (it == runtimeFunctionSymbols_.end())
         return nullptr;
     return it->second;
+}
+
+bool CompilerInstance::registerReportedDiagnostic(const std::string_view message)
+{
+    const std::scoped_lock lock(reportedDiagnosticsMutex_);
+    return reportedDiagnostics_.insert(Utf8{message}).second;
 }
 
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)

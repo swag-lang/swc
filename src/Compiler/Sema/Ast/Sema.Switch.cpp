@@ -524,6 +524,47 @@ namespace
         diag.report(sema.ctx());
         return Result::Error;
     }
+
+    Result checkDuplicateCaseValuesAfterWhere(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef)
+    {
+        const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+        if (!caseStmt.nodeWhereRef.isValid())
+            return Result::Continue;
+
+        const SemaNodeView whereView = sema.viewConstant(caseStmt.nodeWhereRef);
+        if (whereView.cstRef().isInvalid() || whereView.cstRef() != sema.cstMgr().cstTrue())
+            return Result::Continue;
+
+        if (isDynamicStructSwitchCase(sema, switchRef))
+        {
+            const auto* casePayload = sema.semaPayload<DynamicStructSwitchCasePayload>(caseRef);
+            if (!casePayload)
+                return Result::Continue;
+
+            for (const auto& expr : casePayload->expressions)
+            {
+                const TypeRef targetTypeRef = sema.viewType(expr.typeExprRef).typeRef();
+                SWC_ASSERT(targetTypeRef.isValid());
+
+                const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(sema, targetTypeRef);
+                SWC_RESULT(checkDuplicateDynamicCaseType(sema, switchRef, targetStructTypeRef, expr.caseExprRef, caseStmt.nodeWhereRef));
+            }
+
+            return Result::Continue;
+        }
+
+        SmallVector<AstNodeRef> expressions;
+        sema.ast().appendNodes(expressions, caseStmt.spanExprRef);
+        for (const AstNodeRef exprRef : expressions)
+        {
+            if (sema.node(exprRef).is(AstNodeId::RangeExpr))
+                continue;
+
+            SWC_RESULT(checkDuplicateConstCaseValue(sema, switchRef, exprRef, caseStmt.nodeWhereRef));
+        }
+
+        return Result::Continue;
+    }
 }
 
 Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -531,7 +572,11 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     if (childRef == nodeWhereRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
-        return Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition);
+        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+
+        const AstNodeRef switchRef = sema.frame().currentSwitch();
+        SWC_ASSERT(switchRef.isValid());
+        return checkDuplicateCaseValuesAfterWhere(sema, switchRef, sema.curNodeRef());
     }
 
     // Be sure this is a case expression

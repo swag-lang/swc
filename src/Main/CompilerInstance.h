@@ -117,6 +117,7 @@ public:
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
     void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
+    bool                     registerReportedDiagnostic(std::string_view message);
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *(files_[ref.get()].get()); }
@@ -201,6 +202,8 @@ private:
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;
     std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
+    std::mutex                                         reportedDiagnosticsMutex_;
+    std::unordered_set<Utf8>                           reportedDiagnostics_;
     std::once_flag                                     nativeRuntimeContextTlsIdOffsetOnce_;
     uint32_t                                           nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     std::vector<SymbolFunction*>                       nativeCodeSegment_;

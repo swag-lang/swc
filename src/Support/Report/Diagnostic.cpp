@@ -201,6 +201,9 @@ void Diagnostic::report(TaskContext& ctx) const
     const Utf8        msg     = eng.build();
     bool              dismiss = false;
 
+    if (!ctx.compiler().registerReportedDiagnostic(msg))
+        return;
+
     // Check that diagnostic was not awaited
     if (fileOwner_.isValid())
     {
@@ -219,6 +222,11 @@ void Diagnostic::report(TaskContext& ctx) const
             {
                 SourceFile& file = ctx.compiler().file(fileOwner_);
                 file.setHasError();
+                const SourceCodeRange startRange = elements_.front()->codeRange(0, ctx);
+                SourceCodeRange       endRange   = startRange;
+                if (startRange.srcView != nullptr && startRange.len != 0)
+                    endRange.fromOffset(ctx, *startRange.srcView, startRange.offset + startRange.len - 1, 1);
+                file.addErrorLineRange(startRange.line, endRange.line);
             }
             break;
         case DiagnosticSeverity::Warning:

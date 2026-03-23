@@ -47,14 +47,71 @@ namespace
         return false;
     }
 
+    bool functionHasSourceError(const CompilerInstance& compiler, const SymbolFunction& function)
+    {
+        const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
+        if (!file)
+            return false;
+
+        const AstNode* decl = function.decl();
+        if (!decl)
+            return file->hasError();
+
+        TaskContext           ctx(const_cast<CompilerInstance&>(compiler));
+        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, file->ast());
+        if (!startRange.srcView || !startRange.len)
+            return file->hasError();
+
+        SourceCodeRange endRange;
+        endRange.fromOffset(ctx, *startRange.srcView, startRange.offset + startRange.len - 1, 1);
+        return file->hasErrorLineInRange(startRange.line, endRange.line);
+    }
+
+    bool shouldSkipFunctionForTests(const CompilerInstance& compiler, const SymbolFunction& root)
+    {
+        SmallVector<SymbolFunction*>                         stack;
+        std::unordered_map<const SymbolFunction*, uint8_t> visited;
+        stack.push_back(const_cast<SymbolFunction*>(&root));
+
+        while (!stack.empty())
+        {
+            SymbolFunction* function = stack.back();
+            stack.pop_back();
+            if (!function)
+                continue;
+            if (visited.contains(function))
+                continue;
+            visited[function] = 1;
+
+            if (function->isIgnored() || functionHasSourceError(compiler, *function))
+                return true;
+
+            SmallVector<SymbolFunction*> dependencies;
+            function->appendCallDependencies(dependencies);
+            for (SymbolFunction* dependency : dependencies)
+            {
+                if (dependency && dependency != function)
+                    stack.push_back(dependency);
+            }
+        }
+
+        return false;
+    }
+
     bool shouldRunJitFunction(const CompilerInstance& compiler, const SymbolFunction& function)
     {
+        if (shouldSkipFunctionForTests(compiler, function))
+            return false;
+
         const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
         return !file || file->ast().srcView().runsJit();
     }
 
     bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)
     {
+        if (shouldSkipFunctionForTests(compiler, function))
+            return false;
+
         const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
         return !file || file->ast().srcView().runsNativeArtifact();
     }

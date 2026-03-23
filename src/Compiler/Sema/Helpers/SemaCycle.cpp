@@ -144,10 +144,15 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
         const auto& state = job->ctx().state();
         if (state.symbol && state.symbol->isIgnored())
             continue;
+        if (state.waiterSymbol && state.waiterSymbol->isIgnored())
+            continue;
 
         Sema* sema = jobSema(job);
         if (!sema)
             continue;
+
+        if (state.waiterSymbol)
+            const_cast<Symbol*>(state.waiterSymbol)->setIgnored(ctx);
 
         switch (state.kind)
         {

@@ -53,6 +53,8 @@ public:
 
     void setHasError() { hasError_ = true; }
     bool hasError() const { return hasError_; }
+    void addErrorLineRange(uint32_t lineStart, uint32_t lineEnd) const;
+    bool hasErrorLineInRange(uint32_t lineStart, uint32_t lineEnd) const;
     void setHasWarning() { hasWarning_ = true; }
     bool hasWarning() const { return hasWarning_; }
 
@@ -68,6 +70,9 @@ private:
     std::vector<char8_t>         content_;
     std::unique_ptr<NodePayload> nodePayloadContext_;
     std::unique_ptr<Verify>      unitTest_;
+
+    mutable std::mutex   errorLinesMutex_;
+    mutable std::vector<uint32_t> errorLines_;
 
     bool hasError_   = false;
     bool hasWarning_ = false;

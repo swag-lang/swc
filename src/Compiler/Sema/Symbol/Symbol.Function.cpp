@@ -46,6 +46,8 @@ namespace
             SymbolFunction* const function = current.function;
             if (!function)
                 continue;
+            if (function->isIgnored())
+                continue;
 
             const auto foundState = visitStates.find(function);
             if (current.expanded)

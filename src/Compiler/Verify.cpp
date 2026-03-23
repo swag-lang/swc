@@ -203,6 +203,9 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
         const SourceCodeRange codeRange = elem->codeRange(0, ctx);
         for (const VerifyDirective& directive : directives_)
         {
+            if (directive.touched)
+                continue;
+
             if (directive.kind != elem->severity())
                 continue;
 
@@ -239,6 +242,20 @@ void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView
 void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment)
 {
     const LangSpec& langSpec = ctx.global().langSpec();
+
+    auto emitDirective = [](std::vector<VerifyDirective>& directives, const VerifyDirective& directive, std::string_view match) {
+        VerifyDirective dir = directive;
+        dir.match           = match;
+
+        size_t repeatCount = 1;
+        if (!directive.allowedLines.empty())
+            repeatCount = directive.allowedLines.size();
+        else if (directive.lineMin != 0 && directive.lineMax != 0 && directive.lineMin != directive.lineMax)
+            repeatCount = directive.lineMax - directive.lineMin + 1;
+
+        for (size_t idx = 0; idx < repeatCount; idx++)
+            directives.emplace_back(dir);
+    };
 
     size_t pos = 0;
     while (true)
@@ -296,10 +313,8 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
             if (close == std::string_view::npos)
                 break;
 
-            VerifyDirective dir = directive;
-            dir.match           = comment.substr(open + 2, close - (open + 2));
-            dir.match           = Utf8Helper::trim(dir.match);
-            directives_.emplace_back(std::move(dir));
+            const Utf8 match = Utf8Helper::trim(comment.substr(open + 2, close - (open + 2)));
+            emitDirective(directives_, directive, match);
 
             i = close + 2;
         }

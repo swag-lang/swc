@@ -9,6 +9,18 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    void ignoreCurrentFunctionOnError(Sema& sema, const DiagnosticId id)
+    {
+        if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
+            return;
+
+        if (auto* currentFn = SemaHelpers::currentFunction(sema))
+            currentFn->setIgnored(sema.ctx());
+    }
+}
+
 SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location)
 {
     const TaskContext& ctx  = sema.ctx();
@@ -74,6 +86,8 @@ void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNod
 
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef)
 {
+    ignoreCurrentFunctionOnError(sema, id);
+
     Diagnostic        diag    = Diagnostic::get(id, sema.ast().srcView().fileRef());
     const SourceView& srcView = sema.srcView(atCodeRef.srcViewRef);
     diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef), "", DiagnosticSeverity::Error);
@@ -91,6 +105,8 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCode
 
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location)
 {
+    ignoreCurrentFunctionOnError(sema, id);
+
     Diagnostic diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
     diag.last().addSpan(getNodeCodeRange(sema, atNodeRef, location), "", DiagnosticSeverity::Error);
     setReportArguments(sema, diag, atNodeRef);

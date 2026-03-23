@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -10,6 +11,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -18,10 +20,12 @@ namespace
     struct SwitchPayload
     {
         std::unordered_map<ConstantRef, AstNodeRef> seen;
+        std::unordered_map<TypeRef, AstNodeRef>     seenDynamicTypes;
 
         TypeRef    exprTypeRef     = TypeRef::invalid();
         AstNodeRef firstDefaultRef = AstNodeRef::invalid();
         bool       isComplete      = false;
+        bool       isDynamicStruct = false;
     };
 
     Result setupStringCompareRuntimeCall(Sema& sema)
@@ -32,6 +36,209 @@ namespace
 
         SemaHelpers::addCurrentFunctionCallDependency(sema, stringCmpFn);
         return Result::Continue;
+    }
+
+    Result setupDynamicStructSwitchRuntimeCall(Sema& sema, const SourceCodeRef& codeRef)
+    {
+        SymbolFunction* runtimeFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::As, runtimeFn, codeRef));
+        SWC_ASSERT(runtimeFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
+        return Result::Continue;
+    }
+
+    TypeRef unwrapAliasEnumTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrapAliasEnum(sema.ctx(), typeRef);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
+    bool isDynamicStructSwitchType(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef   unwrappedTypeRef = unwrapAliasEnumTypeRef(sema, typeRef);
+        const TypeInfo& typeInfo         = sema.typeMgr().get(unwrappedTypeRef);
+        return typeInfo.isInterface();
+    }
+
+    TypeRef dynamicStructSwitchExprTypeRef(Sema& sema, AstNodeRef switchRef)
+    {
+        if (!switchRef.isValid() || sema.node(switchRef).isNot(AstNodeId::SwitchStmt))
+            return TypeRef::invalid();
+
+        if (const auto* payload = sema.semaPayload<SwitchPayload>(switchRef))
+        {
+            if (payload->exprTypeRef.isValid())
+                return payload->exprTypeRef;
+        }
+
+        const auto& switchNode = sema.node(switchRef).cast<AstSwitchStmt>();
+        if (!switchNode.nodeExprRef.isValid())
+            return TypeRef::invalid();
+
+        return sema.viewType(switchNode.nodeExprRef).typeRef();
+    }
+
+    bool isDynamicStructSwitchCase(Sema& sema, AstNodeRef switchRef)
+    {
+        return isDynamicStructSwitchType(sema, dynamicStructSwitchExprTypeRef(sema, switchRef));
+    }
+
+    Result raiseDynamicStructSwitchCaseSyntaxError(Sema& sema, AstNodeRef nodeRef)
+    {
+        return SemaError::raise(sema, DiagnosticId::sema_err_switch_dynamic_case, nodeRef);
+    }
+
+    Result raiseDynamicStructSwitchCaseCastError(Sema& sema, AstNodeRef nodeRef, TypeRef sourceTypeRef, TypeRef targetTypeRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast, nodeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, sourceTypeRef);
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    AstNodeRef dynamicStructSwitchBindingIdentRef(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid() || sema.node(nodeRef).isNot(AstNodeId::NamedType))
+            return AstNodeRef::invalid();
+
+        const auto& namedType = sema.node(nodeRef).cast<AstNamedType>();
+        if (!namedType.nodeIdentRef.isValid() || sema.node(namedType.nodeIdentRef).isNot(AstNodeId::Identifier))
+            return AstNodeRef::invalid();
+
+        return namedType.nodeIdentRef;
+    }
+
+    Result registerDynamicStructSwitchBinding(Sema& sema,
+                                              AstNodeRef caseRef,
+                                              AstNodeRef caseExprRef,
+                                              AstNodeRef identRef,
+                                              TypeRef    switchTypeRef,
+                                              TypeRef    targetTypeRef)
+    {
+        auto* payload = sema.semaPayload<DynamicStructSwitchBindingPayload>(caseRef);
+        if (payload)
+        {
+            payload->caseExprRef = caseExprRef;
+            return Result::Continue;
+        }
+
+        if (!identRef.isValid())
+            return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
+
+        TaskContext&        ctx       = sema.ctx();
+        const AstNode&      identNode = sema.node(identRef);
+        const IdentifierRef idRef     = SemaHelpers::resolveIdentifier(sema, identNode.codeRef());
+        const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
+
+        auto* sym = Symbol::make<SymbolVariable>(ctx, &sema.node(caseRef), identNode.tokRef(), idRef, flags);
+        if (sema.curScope().isLocal())
+            sema.curScope().addSymbol(sym);
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(symMap != nullptr);
+            symMap->addSymbol(ctx, sym, true);
+        }
+
+        TypeInfoFlags bindingFlags = TypeInfoFlagsE::Zero;
+        const TypeRef sourceType   = unwrapAliasEnumTypeRef(sema, switchTypeRef);
+        if (sema.typeMgr().get(sourceType).isConst() || sema.typeMgr().get(targetTypeRef).isConst())
+            bindingFlags.add(TypeInfoFlagsE::Const);
+
+        const TypeRef bindingTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(targetTypeRef, bindingFlags));
+        sym->registerAttributes(sema);
+        sym->setDeclared(ctx);
+        sym->addExtraFlag(SymbolVariableFlagsE::Initialized);
+        sym->setTypeRef(bindingTypeRef);
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, *sym, bindingTypeRef));
+        sym->setTyped(ctx);
+        sym->setSemaCompleted(ctx);
+
+        payload             = sema.compiler().allocate<DynamicStructSwitchBindingPayload>();
+        payload->caseExprRef = caseExprRef;
+        payload->symbol      = sym;
+        sema.setSemaPayload(caseRef, payload);
+        return Result::Continue;
+    }
+
+    Result checkDuplicateDynamicCaseType(Sema& sema, AstNodeRef switchRef, TypeRef targetStructTypeRef, AstNodeRef caseExprRef, AstNodeRef whereRef)
+    {
+        if (whereRef.isValid())
+        {
+            const SemaNodeView whereView = sema.viewConstant(whereRef);
+            if (whereView.cstRef().isInvalid() || whereView.cstRef() != sema.cstMgr().cstTrue())
+                return Result::Continue;
+        }
+
+        auto* seenSet = sema.semaPayload<SwitchPayload>(switchRef);
+        SWC_ASSERT(seenSet);
+
+        const auto it = seenSet->seenDynamicTypes.find(targetStructTypeRef);
+        if (it == seenSet->seenDynamicTypes.end())
+        {
+            seenSet->seenDynamicTypes.emplace(targetStructTypeRef, caseExprRef);
+            return Result::Continue;
+        }
+        if (it->second == caseExprRef)
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
+        diag.addArgument(Diagnostic::ARG_VALUE, sema.typeMgr().get(targetStructTypeRef).toName(sema.ctx()));
+        diag.addNote(DiagnosticId::sema_note_previous_case_value);
+        diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result validateDynamicStructCaseExpr(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef caseExprRef)
+    {
+        const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+
+        SmallVector<AstNodeRef> caseExprRefs;
+        sema.ast().appendNodes(caseExprRefs, caseStmt.spanExprRef);
+
+        AstNodeRef typeExprRef    = caseExprRef;
+        AstNodeRef bindingIdentRef = AstNodeRef::invalid();
+        if (sema.node(caseExprRef).is(AstNodeId::AsCastExpr))
+        {
+            if (caseExprRefs.size() != 1)
+                return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
+
+            const auto& asExpr = sema.node(caseExprRef).cast<AstAsCastExpr>();
+            typeExprRef        = asExpr.nodeExprRef;
+            bindingIdentRef    = dynamicStructSwitchBindingIdentRef(sema, asExpr.nodeTypeRef);
+            if (!bindingIdentRef.isValid())
+                return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
+        }
+        else if (sema.node(caseExprRef).is(AstNodeId::RangeExpr))
+        {
+            return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
+        }
+
+        const SemaNodeView typeView = sema.viewType(typeExprRef);
+        if (sema.isValue(typeExprRef) || typeView.typeRef().isInvalid())
+            return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
+
+        const TypeRef   switchTypeRef       = dynamicStructSwitchExprTypeRef(sema, switchRef);
+        const TypeRef   targetTypeRef       = typeView.typeRef();
+        const TypeRef   targetStructTypeRef = unwrapAliasEnumTypeRef(sema, targetTypeRef);
+        const TypeInfo& targetStructType    = sema.typeMgr().get(targetStructTypeRef);
+        if (!targetStructType.isStruct())
+            return raiseDynamicStructSwitchCaseCastError(sema, caseExprRef, switchTypeRef, targetTypeRef);
+
+        if (bindingIdentRef.isValid())
+            SWC_RESULT(registerDynamicStructSwitchBinding(sema, caseRef, caseExprRef, bindingIdentRef, switchTypeRef, targetTypeRef));
+
+        SWC_RESULT(checkDuplicateDynamicCaseType(sema, switchRef, targetStructTypeRef, caseExprRef, caseStmt.nodeWhereRef));
+        return setupDynamicStructSwitchRuntimeCall(sema, sema.node(caseExprRef).codeRef());
     }
 }
 
@@ -126,10 +333,12 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef());
         const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeInfo& finalType = sema.typeMgr().get(ultimate);
-        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isTypeInfo())
+        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isTypeInfo() && !finalType.isInterface())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
-        sema.semaPayload<SwitchPayload>(sema.curNodeRef())->exprTypeRef = exprView.typeRef();
+        auto* payload        = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
+        payload->exprTypeRef = exprView.typeRef();
+        payload->isDynamicStruct = finalType.isInterface();
 
         if (finalType.isString())
             SWC_RESULT(setupStringCompareRuntimeCall(sema));
@@ -161,6 +370,20 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     const TypeRef switchTypeRef = payload->exprTypeRef;
     if (switchTypeRef.isInvalid())
         return Result::Continue;
+
+    if (isDynamicStructSwitchCase(sema, switchRef) && childRef == nodeWhereRef && !sema.semaPayload<DynamicStructSwitchBindingPayload>(sema.curNodeRef()))
+    {
+        SmallVector<AstNodeRef> caseExprRefs;
+        sema.ast().appendNodes(caseExprRefs, spanExprRef);
+        if (caseExprRefs.size() == 1 && sema.node(caseExprRefs.front()).is(AstNodeId::AsCastExpr))
+        {
+            const auto& asExpr         = sema.node(caseExprRefs.front()).cast<AstAsCastExpr>();
+            const AstNodeRef identRef  = dynamicStructSwitchBindingIdentRef(sema, asExpr.nodeTypeRef);
+            const TypeRef    targetRef = sema.viewType(asExpr.nodeExprRef).typeRef();
+            if (identRef.isValid() && targetRef.isValid())
+                SWC_RESULT(registerDynamicStructSwitchBinding(sema, sema.curNodeRef(), caseExprRefs.front(), identRef, switchTypeRef, targetRef));
+        }
+    }
 
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)
@@ -314,6 +537,9 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
         return Result::Continue;
     }
+
+    if (isDynamicStructSwitchCase(sema, switchRef))
+        return validateDynamicStructCaseExpr(sema, switchRef, sema.curNodeRef(), childRef);
 
     // Range expression
     if (sema.node(childRef).is(AstNodeId::RangeExpr))

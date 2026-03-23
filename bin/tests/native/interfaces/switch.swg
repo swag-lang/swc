@@ -1,5 +1,3 @@
-// @BUG switching on interface-typed values is currently rejected, but std/examples rely on IEvent-style interface dispatch patterns.
-#global skip
 #global fileprivate
 
 struct EventBase
@@ -40,6 +38,19 @@ func dispatchEvent(evt: IEvent)->s32
     return -1
 }
 
+func classifyEvent(evt: IEvent)->s32
+{
+    switch evt
+    {
+    case MouseEvent:
+        return 1
+    case EventBase:
+        return 2
+    }
+
+    return -1
+}
+
 #test
 {
     var mouse: MouseEvent
@@ -49,4 +60,6 @@ func dispatchEvent(evt: IEvent)->s32
     @assert(dispatchEvent(cast(IEvent) mouse) == 12)
     @assert(dispatchEvent(cast(IEvent) key) == 17)
     @assert(dispatchEvent(cast(IEvent) base) == 10)
+    @assert(classifyEvent(cast(IEvent) mouse) == 1)
+    @assert(classifyEvent(cast(IEvent) base) == 2)
 }

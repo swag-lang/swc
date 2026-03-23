@@ -810,7 +810,9 @@ struct AstAsCastExpr : AstNodeT<AstNodeId::AsCastExpr>
     AstNodeRef nodeTypeRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
+    Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1573,8 +1575,8 @@ struct AstSwitchCaseStmt : AstNodeT<AstNodeId::SwitchCaseStmt>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
-        AstNode::collectChildren(out, {nodeWhereRef});
         AstNode::collectChildren(out, ast, spanExprRef);
+        AstNode::collectChildren(out, {nodeWhereRef});
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 

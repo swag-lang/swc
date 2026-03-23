@@ -173,6 +173,32 @@ namespace
         return true;
     }
 
+    bool isDynamicStructSwitchCaseAsSyntax(const CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return false;
+
+        const AstNodeRef switchRef = codeGen.frame().currentSwitch();
+        const AstNodeRef caseRef   = codeGen.frame().currentSwitchCase();
+        if (switchRef.isInvalid() || caseRef.isInvalid())
+            return false;
+
+        const auto* switchNode = codeGen.node(switchRef).safeCast<AstSwitchStmt>();
+        if (!switchNode || !switchNode->nodeExprRef.isValid())
+            return false;
+
+        auto&           mutableCodeGen = const_cast<CodeGen&>(codeGen);
+        const TypeRef   switchTypeRef  = unwrapAliasEnumTypeRef(mutableCodeGen, mutableCodeGen.viewType(switchNode->nodeExprRef).typeRef());
+        const TypeInfo& switchType    = codeGen.typeMgr().get(switchTypeRef);
+        if (!switchType.isInterface())
+            return false;
+
+        const auto& caseNode = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
+        SmallVector<AstNodeRef> caseExprRefs;
+        codeGen.ast().appendNodes(caseExprRefs, caseNode.spanExprRef);
+        return caseExprRefs.size() == 1 && caseExprRefs.front() == nodeRef;
+    }
+
     Result loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)
     {
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
@@ -878,6 +904,14 @@ namespace
     }
 }
 
+Result AstAsCastExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeTypeRef && isDynamicStructSwitchCaseAsSyntax(codeGen, codeGen.curNodeRef()))
+        return Result::SkipChildren;
+
+    return Result::Continue;
+}
+
 Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     return emitNumericCast(codeGen, nodeExprRef, codeGen.curViewType().typeRef());
@@ -890,6 +924,9 @@ Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstAsCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    if (isDynamicStructSwitchCaseAsSyntax(codeGen, codeGen.curNodeRef()))
+        return Result::Continue;
+
     return emitDynamicStructCast(codeGen, nodeExprRef, codeGen.viewType(nodeTypeRef).typeRef(), false);
 }
 

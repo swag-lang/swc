@@ -3,10 +3,14 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Runtime.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -33,11 +37,15 @@ namespace
         TypeRef                                                  compareTypeRef     = TypeRef::invalid();
         CodeGenNodePayload                                       switchValuePayload = {};
         MicroReg                                                 switchValueReg;
-        MicroOpBits                                              compareOpBits     = MicroOpBits::B64;
-        SymbolFunction*                                          stringCmpFunction = nullptr;
-        bool                                                     hasExpression     = false;
-        bool                                                     useStringCompare  = false;
-        bool                                                     useUnsignedCond   = false;
+        MicroReg                                                 dynamicSourceTypeReg;
+        MicroReg                                                 dynamicSourcePtrReg;
+        MicroOpBits                                              compareOpBits       = MicroOpBits::B64;
+        SymbolFunction*                                          stringCmpFunction   = nullptr;
+        SymbolFunction*                                          dynamicAsFunction   = nullptr;
+        bool                                                     hasExpression       = false;
+        bool                                                     useStringCompare    = false;
+        bool                                                     useUnsignedCond     = false;
+        bool                                                     dynamicStructSwitch = false;
         std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload> caseStates;
     };
 
@@ -128,6 +136,174 @@ namespace
             return nullptr;
 
         return codeGen.compiler().runtimeFunctionSymbol(idRef);
+    }
+
+    SymbolFunction* runtimeDynamicAsFunction(CodeGen& codeGen)
+    {
+        const IdentifierRef idRef = codeGen.idMgr().predefined(IdentifierManager::PredefinedName::RuntimeAs);
+        if (idRef.isInvalid())
+            return nullptr;
+
+        return codeGen.compiler().runtimeFunctionSymbol(idRef);
+    }
+
+    TypeRef unwrapAliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
+    bool isDynamicStructSwitchType(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeRef   unwrappedTypeRef = unwrapAliasEnumTypeRef(codeGen, typeRef);
+        const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
+        return typeInfo.isInterface();
+    }
+
+    Result loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)
+    {
+        ConstantRef typeInfoCstRef = ConstantRef::invalid();
+        SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, typeRef, codeGen.curNodeRef()));
+        const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
+        SWC_ASSERT(typeInfoCst.isValuePointer());
+
+        outReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(outReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
+        return Result::Continue;
+    }
+
+    void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
+                                 CodeGen&                           codeGen,
+                                 const CallConv&                    callConv,
+                                 TypeRef                            argTypeRef,
+                                 MicroReg                           srcReg)
+    {
+        const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
+
+        ABICall::PreparedArg arg;
+        arg.srcReg      = srcReg;
+        arg.kind        = ABICall::PreparedArgKind::Direct;
+        arg.isFloat     = normalizedArg.isFloat;
+        arg.isAddressed = false;
+        arg.numBits     = normalizedArg.numBits;
+        outArgs.push_back(arg);
+    }
+
+    Result emitDynamicStructRuntimeCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
+    {
+        codeGen.function().addCallDependency(&runtimeFunction);
+
+        const CallConvKind                callConvKind = runtimeFunction.callConvKind();
+        const CallConv&                   callConv     = CallConv::get(callConvKind);
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(argRegs.size());
+
+        const auto& params = runtimeFunction.parameters();
+        SWC_ASSERT(params.size() == argRegs.size());
+        for (size_t i = 0; i < argRegs.size(); ++i)
+        {
+            SWC_ASSERT(params[i] != nullptr);
+            appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
+        }
+
+        MicroBuilder&               builder      = codeGen.builder();
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        if (runtimeFunction.isForeign())
+            ABICall::callExtern(builder, callConvKind, &runtimeFunction, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
+
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, runtimeFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!normalizedRet.isVoid);
+        SWC_ASSERT(!normalizedRet.isIndirect);
+        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+        return Result::Continue;
+    }
+
+    AstNodeRef dynamicStructCaseTypeExprRef(const CodeGen& codeGen, AstNodeRef caseExprRef)
+    {
+        if (codeGen.node(caseExprRef).is(AstNodeId::AsCastExpr))
+            return codeGen.node(caseExprRef).cast<AstAsCastExpr>().nodeExprRef;
+        return caseExprRef;
+    }
+
+    Result emitDynamicStructSwitchCaseTests(CodeGen& codeGen,
+                                            const SwitchStmtCodeGenPayload& switchState,
+                                            AstNodeRef                      caseRef,
+                                            MicroLabelRef                   successLabel,
+                                            MicroLabelRef                   failLabel)
+    {
+        SymbolFunction* runtimeFn = switchState.dynamicAsFunction;
+        if (!runtimeFn)
+            runtimeFn = runtimeDynamicAsFunction(codeGen);
+
+        SWC_ASSERT(runtimeFn != nullptr);
+        if (!runtimeFn)
+            return Result::Error;
+
+        const auto& caseNode = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
+        SmallVector<AstNodeRef> caseExprRefs;
+        codeGen.ast().appendNodes(caseExprRefs, caseNode.spanExprRef);
+
+        const auto* bindingPayload = codeGen.sema().semaPayload<DynamicStructSwitchBindingPayload>(caseRef);
+        MicroBuilder& builder      = codeGen.builder();
+
+        if (bindingPayload)
+        {
+            SWC_ASSERT(bindingPayload->symbol != nullptr);
+            SWC_ASSERT(caseExprRefs.size() == 1);
+
+            MicroReg targetTypeReg = MicroReg::invalid();
+            const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(dynamicStructCaseTypeExprRef(codeGen, caseExprRefs.front())).typeRef());
+            SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
+
+            const MicroReg args[] = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
+            const MicroReg resultReg = codeGen.nextVirtualIntRegister();
+            SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, *runtimeFn, args, resultReg));
+            builder.emitCmpRegImm(resultReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, failLabel);
+
+            CodeGenNodePayload boundPayload;
+            boundPayload.typeRef = bindingPayload->symbol->typeRef();
+            boundPayload.setIsValue();
+            boundPayload.reg = resultReg;
+            codeGen.setVariablePayload(*bindingPayload->symbol, boundPayload);
+
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, successLabel);
+            return Result::Continue;
+        }
+
+        for (const AstNodeRef caseExprRef : caseExprRefs)
+        {
+            MicroReg targetTypeReg = MicroReg::invalid();
+            const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(dynamicStructCaseTypeExprRef(codeGen, caseExprRef)).typeRef());
+            SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
+
+            const MicroReg args[] = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
+            const MicroReg resultReg = codeGen.nextVirtualIntRegister();
+            SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, *runtimeFn, args, resultReg));
+            builder.emitCmpRegImm(resultReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, successLabel);
+        }
+
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, failLabel);
+        return Result::Continue;
+    }
+
+    bool isDynamicStructSwitchCaseTarget(CodeGen& codeGen, AstNodeRef switchRef, AstNodeRef caseRef)
+    {
+        const SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
+        if (!switchState || !switchState->dynamicStructSwitch)
+            return false;
+
+        const auto& caseNode = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
+        return caseNode.spanExprRef.isValid();
     }
 
     Result emitStringCompareEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const CodeGenNodePayload& casePayload, MicroLabelRef successLabel)
@@ -240,6 +416,19 @@ namespace
 
         return codeGen.node(statements.back()).is(AstNodeId::FallThroughStmt);
     }
+
+    AstNodeRef nextSwitchCaseRef(CodeGen& codeGen, AstNodeRef switchRef, AstNodeRef caseRef)
+    {
+        const auto& switchNode = codeGen.node(switchRef).cast<AstSwitchStmt>();
+        SmallVector<AstNodeRef> caseRefs;
+        codeGen.ast().appendNodes(caseRefs, switchNode.spanChildrenRef);
+
+        const auto itCase = std::ranges::find(caseRefs, caseRef);
+        if (itCase == caseRefs.end() || itCase + 1 == caseRefs.end())
+            return AstNodeRef::invalid();
+
+        return *(itCase + 1);
+    }
 }
 
 Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
@@ -322,6 +511,34 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         const TypeInfo&           exprType         = codeGen.typeMgr().get(exprView.typeRef());
         const TypeRef             compareTypeRef   = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
         const TypeInfo&           compareType      = codeGen.typeMgr().get(compareTypeRef);
+        if (isDynamicStructSwitchType(codeGen, compareTypeRef))
+        {
+            switchState->compareTypeRef     = compareTypeRef;
+            switchState->switchValuePayload = exprPayload;
+            switchState->dynamicStructSwitch = true;
+            switchState->dynamicAsFunction   = runtimeDynamicAsFunction(codeGen);
+
+            SWC_ASSERT(exprPayload.isAddress());
+            if (!exprPayload.isAddress())
+                return Result::Error;
+
+            MicroBuilder& builder = codeGen.builder();
+            const MicroReg itableReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(itableReg, exprPayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+
+            switchState->dynamicSourceTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(switchState->dynamicSourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            const MicroLabelRef typeDoneLabel = builder.createLabel();
+            builder.emitCmpRegImm(itableReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, typeDoneLabel);
+            builder.emitLoadRegMem(switchState->dynamicSourceTypeReg, itableReg, 0, MicroOpBits::B64);
+            builder.placeLabel(typeDoneLabel);
+
+            switchState->dynamicSourcePtrReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(switchState->dynamicSourcePtrReg, exprPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
+            return Result::Continue;
+        }
+
         const MicroOpBits         compareBits      = switchCompareOpBits(compareType, codeGen.ctx());
         const bool                useStringCompare = isStringCompareType(codeGen, compareTypeRef);
         MicroBuilder&             builder          = codeGen.builder();
@@ -363,9 +580,6 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeBodyRef)
-        return Result::Continue;
-
     const AstNodeRef switchRef = codeGen.frame().currentSwitch();
     if (switchRef.isInvalid())
         return Result::Continue;
@@ -380,6 +594,38 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     const MicroLabelRef             failLabel = caseState.hasNextCase ? caseState.nextTestLabel : switchState->doneLabel;
 
     MicroBuilder& builder = codeGen.builder();
+
+    if (switchState->dynamicStructSwitch && spanExprRef.isValid())
+    {
+        if (childRef == nodeWhereRef)
+        {
+            const MicroLabelRef matchLabel = builder.createLabel();
+            SWC_RESULT(emitDynamicStructSwitchCaseTests(codeGen, *switchState, codeGen.curNodeRef(), matchLabel, failLabel));
+            builder.placeLabel(matchLabel);
+            return Result::Continue;
+        }
+
+        if (childRef == nodeBodyRef)
+        {
+            if (!nodeWhereRef.isValid())
+            {
+                SWC_RESULT(emitDynamicStructSwitchCaseTests(codeGen, *switchState, codeGen.curNodeRef(), caseState.bodyLabel, failLabel));
+            }
+            else
+            {
+                const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
+                const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
+                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
+            }
+
+            builder.placeLabel(caseState.bodyLabel);
+        }
+
+        return Result::Continue;
+    }
+
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
 
     if (switchState->hasExpression)
     {
@@ -536,8 +782,11 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
     if (!itCase->second.hasNextCase)
         return Result::Continue;
 
+    const AstNodeRef nextCaseRef = nextSwitchCaseRef(codeGen, switchRef, caseRef);
     MicroBuilder& builder = codeGen.builder();
-    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, itCase->second.nextBodyLabel);
+    const MicroLabelRef targetLabel =
+        isDynamicStructSwitchCaseTarget(codeGen, switchRef, nextCaseRef) ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, targetLabel);
     return Result::Continue;
 }
 

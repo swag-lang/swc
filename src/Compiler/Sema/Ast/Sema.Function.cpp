@@ -1404,6 +1404,9 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     if (hasFlag(AstFunctionParamMeFlagsE::Const))
         typeFlags.add(TypeInfoFlagsE::Const);
     sym.setTypeRef(sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags)));
+    sym.setDeclared(sema.ctx());
+    sym.setTyped(sema.ctx());
+    sym.setSemaCompleted(sema.ctx());
 
     return Result::Continue;
 }

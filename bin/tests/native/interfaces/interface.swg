@@ -76,7 +76,7 @@ struct Point3 { x, y, z: f32 }
 
 impl IReset for Point2
 {
-    mtd impl set(val: f32)
+    func impl set(me, val: f32)
     {
         me.x = val
         me.y = val + 1

@@ -15,7 +15,7 @@ const SampleInput =
 3   3"""
 
 const DenseInput = "10   10\r\n20   30\r\n20   20\r\n30   10\r\n"
-const ActualInput = #include("../../../examples/modules/aoc2024/src/1.txt")
+const ActualInput = #include("1.txt")
 
 struct LocationLists
 {

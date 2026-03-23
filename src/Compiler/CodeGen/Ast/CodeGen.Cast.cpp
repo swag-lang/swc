@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
@@ -95,6 +98,256 @@ namespace
     {
         outBits = CodeGenTypeHelpers::scalarStoreBits(dstType, codeGen.ctx());
         return outBits != MicroOpBits::Zero;
+    }
+
+    enum class DynamicStructCastSourceKind : uint8_t
+    {
+        Invalid,
+        StructAddress,
+        StructPointerLike,
+        Interface,
+        Any,
+    };
+
+    struct DynamicStructCastSourceInfo
+    {
+        DynamicStructCastSourceKind kind          = DynamicStructCastSourceKind::Invalid;
+        TypeRef                     structTypeRef = TypeRef::invalid();
+    };
+
+    TypeRef unwrapAliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
+    bool resolveDynamicStructCastSourceInfo(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)
+    {
+        outInfo = {};
+        if (!sourceTypeRef.isValid())
+            return false;
+
+        const TypeRef   resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen, sourceTypeRef);
+        const TypeInfo& sourceType            = codeGen.typeMgr().get(resolvedSourceTypeRef);
+
+        if (sourceType.isInterface())
+        {
+            outInfo.kind = DynamicStructCastSourceKind::Interface;
+            return true;
+        }
+
+        if (sourceType.isAny())
+        {
+            outInfo.kind = DynamicStructCastSourceKind::Any;
+            return true;
+        }
+
+        if (sourceType.isPointerOrReference())
+        {
+            const TypeRef   pointeeTypeRef = unwrapAliasEnumTypeRef(codeGen, sourceType.payloadTypeRef());
+            const TypeInfo& pointeeType    = codeGen.typeMgr().get(pointeeTypeRef);
+            if (pointeeType.isStruct())
+            {
+                outInfo.kind          = DynamicStructCastSourceKind::StructPointerLike;
+                outInfo.structTypeRef = pointeeTypeRef;
+                return true;
+            }
+        }
+
+        if (!codeGen.sema().isLValue(sourceRef))
+            return false;
+
+        const TypeRef   structTypeRef = unwrapAliasEnumTypeRef(codeGen, resolvedSourceTypeRef);
+        const TypeInfo& structType    = codeGen.typeMgr().get(structTypeRef);
+        if (!structType.isStruct())
+            return false;
+
+        outInfo.kind          = DynamicStructCastSourceKind::StructAddress;
+        outInfo.structTypeRef = structTypeRef;
+        return true;
+    }
+
+    Result loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)
+    {
+        ConstantRef typeInfoCstRef = ConstantRef::invalid();
+        SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, typeRef, codeGen.curNodeRef()));
+        const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
+        SWC_ASSERT(typeInfoCst.isValuePointer());
+
+        outReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(outReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
+        return Result::Continue;
+    }
+
+    void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
+                                 CodeGen&                           codeGen,
+                                 const CallConv&                    callConv,
+                                 TypeRef                            argTypeRef,
+                                 MicroReg                           srcReg)
+    {
+        const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
+
+        ABICall::PreparedArg arg;
+        arg.srcReg      = srcReg;
+        arg.kind        = ABICall::PreparedArgKind::Direct;
+        arg.isFloat     = normalizedArg.isFloat;
+        arg.isAddressed = false;
+        arg.numBits     = normalizedArg.numBits;
+        outArgs.push_back(arg);
+    }
+
+    Result emitDynamicStructRuntimeCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
+    {
+        codeGen.function().addCallDependency(&runtimeFunction);
+
+        const CallConvKind                callConvKind = runtimeFunction.callConvKind();
+        const CallConv&                   callConv     = CallConv::get(callConvKind);
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(argRegs.size());
+
+        const auto& params = runtimeFunction.parameters();
+        SWC_ASSERT(params.size() == argRegs.size());
+        for (size_t i = 0; i < argRegs.size(); ++i)
+        {
+            SWC_ASSERT(params[i] != nullptr);
+            appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
+        }
+
+        MicroBuilder&               builder      = codeGen.builder();
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        if (runtimeFunction.isForeign())
+            ABICall::callExtern(builder, callConvKind, &runtimeFunction, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
+
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, runtimeFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!normalizedRet.isVoid);
+        SWC_ASSERT(!normalizedRet.isIndirect);
+        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+        return Result::Continue;
+    }
+
+    Result emitDynamicStructCast(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef targetTypeRef, bool checkOnly)
+    {
+        const CodeGenNodePayload& sourcePayload = codeGen.payload(sourceRef);
+        const TypeRef             sourceTypeRef = codeGen.viewType(sourceRef).typeRef();
+
+        DynamicStructCastSourceInfo sourceInfo;
+        const bool                  hasSourceInfo = resolveDynamicStructCastSourceInfo(codeGen, sourceRef, sourceTypeRef, sourceInfo);
+        SWC_ASSERT(hasSourceInfo);
+        if (!hasSourceInfo)
+            return Result::Error;
+
+        const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, targetTypeRef);
+
+        const auto* runtimePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(runtimePayload != nullptr);
+        SWC_ASSERT(runtimePayload->runtimeFunctionSymbol != nullptr);
+        auto& runtimeFunction = *runtimePayload->runtimeFunctionSymbol;
+
+        const TypeRef       resultTypeRef = codeGen.curViewType().typeRef();
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&       builder       = codeGen.builder();
+        const MicroOpBits   resultBits    = checkOnly ? MicroOpBits::B8 : MicroOpBits::B64;
+        resultPayload.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), resultBits);
+
+        MicroReg targetTypeReg = MicroReg::invalid();
+        SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
+
+        MicroReg sourceTypeReg = MicroReg::invalid();
+        MicroReg sourcePtrReg  = MicroReg::invalid();
+        switch (sourceInfo.kind)
+        {
+            case DynamicStructCastSourceKind::StructAddress:
+                SWC_RESULT(loadTypeInfoConstantReg(sourceTypeReg, codeGen, sourceInfo.structTypeRef));
+                sourcePtrReg = sourcePayload.reg;
+                if (!sourcePtrReg.isValid())
+                    return Result::Error;
+                break;
+
+            case DynamicStructCastSourceKind::StructPointerLike:
+                SWC_RESULT(loadTypeInfoConstantReg(sourceTypeReg, codeGen, sourceInfo.structTypeRef));
+                sourcePtrReg = codeGen.nextVirtualIntRegister();
+                if (sourcePayload.isAddress())
+                    builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, 0, MicroOpBits::B64);
+                else
+                    builder.emitLoadRegReg(sourcePtrReg, sourcePayload.reg, MicroOpBits::B64);
+                break;
+
+            case DynamicStructCastSourceKind::Interface:
+            {
+                SWC_ASSERT(sourcePayload.isAddress());
+                const MicroReg itableReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(itableReg, sourcePayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+
+                sourceTypeReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+                const MicroLabelRef typeDoneLabel = builder.createLabel();
+                builder.emitCmpRegImm(itableReg, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, typeDoneLabel);
+                builder.emitLoadRegMem(sourceTypeReg, itableReg, 0, MicroOpBits::B64);
+                builder.placeLabel(typeDoneLabel);
+
+                sourcePtrReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
+                break;
+            }
+
+            case DynamicStructCastSourceKind::Any:
+            {
+                SWC_ASSERT(sourcePayload.isAddress());
+                sourceTypeReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(sourceTypeReg, sourcePayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+
+                if (!checkOnly)
+                {
+                    sourcePtrReg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
+                }
+
+                const MicroLabelRef doneLabel = builder.createLabel();
+                builder.emitCmpRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+                const MicroReg kindReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(kindReg, sourceTypeReg, offsetof(Runtime::TypeInfo, kind), MicroOpBits::B8);
+                builder.emitCmpRegImm(kindReg, ApInt(static_cast<uint64_t>(Runtime::TypeInfoKind::Struct), 64), MicroOpBits::B8);
+                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doneLabel);
+
+                if (checkOnly)
+                {
+                    const MicroReg args[] = {targetTypeReg, sourceTypeReg};
+                    SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, runtimeFunction, args, resultPayload.reg));
+                }
+                else
+                {
+                    const MicroReg args[] = {targetTypeReg, sourceTypeReg, sourcePtrReg};
+                    SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, runtimeFunction, args, resultPayload.reg));
+                }
+
+                builder.placeLabel(doneLabel);
+                return Result::Continue;
+            }
+
+            default:
+                return Result::Error;
+        }
+
+        if (checkOnly)
+        {
+            const MicroReg args[] = {targetTypeReg, sourceTypeReg};
+            return emitDynamicStructRuntimeCall(codeGen, runtimeFunction, args, resultPayload.reg);
+        }
+
+        const MicroReg args[] = {targetTypeReg, sourceTypeReg, sourcePtrReg};
+        return emitDynamicStructRuntimeCall(codeGen, runtimeFunction, args, resultPayload.reg);
     }
 
     Result emitArrayToStringCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType)
@@ -633,6 +886,16 @@ Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     return emitNumericCast(codeGen, nodeExprRef, codeGen.curViewType().typeRef());
+}
+
+Result AstAsCastExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    return emitDynamicStructCast(codeGen, nodeExprRef, codeGen.viewType(nodeTypeRef).typeRef(), false);
+}
+
+Result AstIsTypeExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    return emitDynamicStructCast(codeGen, nodeExprRef, codeGen.viewType(nodeTypeRef).typeRef(), true);
 }
 
 SWC_END_NAMESPACE();

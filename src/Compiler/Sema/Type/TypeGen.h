@@ -40,6 +40,9 @@ public:
             uint32_t             structFieldsOffset = 0;
             uint32_t             structFieldsCount  = 0;
             SmallVector<TypeRef> structFieldTypes;
+            uint32_t             usingFieldsOffset = 0;
+            uint32_t             usingFieldsCount  = 0;
+            SmallVector<TypeRef> usingFieldTypes;
             uint32_t             funcParamsOffset = 0;
             uint32_t             funcParamsCount  = 0;
             SmallVector<TypeRef> funcParamTypes;

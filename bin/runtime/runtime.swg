@@ -18,45 +18,82 @@ func __concreteAlias(type1: typeinfo)->typeinfo
     return __concreteAlias(typeAlias.rawType)
 }
 
-func __is(toType, fromType: const *TypeInfoStruct)->{ offset: u32, yes: bool }
+func __is(toType, fromType: const *TypeInfoStruct)->bool
 {
     if @typecmp(toType, fromType, .Strict) do
-        return {0, true}
+        return true
     if !toType or !fromType do
-        return {0, false}
+        return false
 
     foreach ft in fromType.usingFields
     {
-        if ft.pointedType.kind == .Struct
+        let usingType = __concreteAlias(ft.pointedType)
+        if usingType.kind == .Struct
         {
-            let typeStruct = cast(const *Swag.TypeInfoStruct) ft.pointedType
-            if @typecmp(toType, typeStruct, .Strict) do
-                return {ft.offset, true}
+            let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
+            if __is(toType, typeStruct) do
+                return true
         }
-        elif ft.pointedType.kind == .Pointer
+        elif usingType.kind == .Pointer
         {
-            let ptr        = cast(const *Swag.TypeInfoPointer) ft.pointedType
-            let typeStruct = cast(const *Swag.TypeInfoStruct) ptr.pointedType
-            if @typecmp(toType, typeStruct, .Strict) do
-                return {ft.offset, true}
+            let ptr         = cast(const *Swag.TypeInfoPointer) usingType
+            let pointedType = __concreteAlias(ptr.pointedType)
+            if pointedType.kind != .Struct do
+                continue
+
+            let typeStruct = cast(const *Swag.TypeInfoStruct) pointedType
+            if __is(toType, typeStruct) do
+                return true
         }
     }
 
-    return {0, false}
+    return false
+}
+
+func __as(toType, fromType: const *TypeInfoStruct, ptr: *void)->#null *void
+{
+    if @typecmp(toType, fromType, .Strict) do
+        return ptr
+    if !toType or !fromType or !ptr do
+        return null
+
+    foreach ft in fromType.usingFields
+    {
+        let usingType = __concreteAlias(ft.pointedType)
+        if usingType.kind == .Struct
+        {
+            let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
+            let subPtr     = cast(*void) (cast([*] u8) ptr + ft.offset)
+            let result     = __as(toType, typeStruct, subPtr)
+            if result do
+                return result
+        }
+        elif usingType.kind == .Pointer
+        {
+            let ptrType      = cast(const *Swag.TypeInfoPointer) usingType
+            let pointedType  = __concreteAlias(ptrType.pointedType)
+            if pointedType.kind != .Struct do
+                continue
+
+            let fieldPtrAddr = cast(**void) (cast([*] u8) ptr + ft.offset)
+            let typeStruct   = cast(const *Swag.TypeInfoStruct) pointedType
+            let result       = __as(toType, typeStruct, dref fieldPtrAddr)
+            if result do
+                return result
+        }
+    }
+
+    return null
 }
 
 func @as(toType, fromType: const *TypeInfoStruct, ptr: *void)->#null *void
 {
-    let (offset, yes) = __is(toType, fromType)
-    if !yes do
-        return null
-    return cast([*] u8) ptr + offset
+    return __as(toType, fromType, ptr)
 }
 
 func @is(toType, fromType: const *TypeInfoStruct)->bool
 {
-    let (?, yes) = __is(toType, fromType)
-    return yes
+    return __is(toType, fromType)
 }
 
 func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool

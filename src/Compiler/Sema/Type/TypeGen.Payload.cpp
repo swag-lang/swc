@@ -259,39 +259,90 @@ namespace
         const Utf8 name          = type.toName(ctx);
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
 
-        const auto& fields  = type.payloadSymStruct().fields();
-        rtType.fields.count = fields.size();
+        const auto& fields       = type.payloadSymStruct().fields();
+        uint32_t    usingCount   = 0;
+        for (const SymbolVariable* symField : fields)
+        {
+            if (symField && symField->isUsingField())
+                ++usingCount;
+        }
+
+        rtType.fields.count      = fields.size();
+        rtType.usingFields.count = usingCount;
 
         entry.structFieldsCount = static_cast<uint32_t>(fields.size());
         entry.structFieldTypes.clear();
+        entry.usingFieldsCount = usingCount;
+        entry.usingFieldTypes.clear();
 
         if (fields.empty())
         {
             rtType.fields.ptr        = nullptr;
             entry.structFieldsOffset = 0;
+        }
+        else
+        {
+            const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
+            entry.structFieldsOffset             = fieldsOffset;
+            rtType.fields.ptr                    = fieldsPtr;
+            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
+
+            Runtime::TypeValue* usingFieldsPtr    = nullptr;
+            uint32_t            usingFieldsOffset = 0;
+            if (usingCount)
+            {
+                auto usingStorage    = storage.reserveSpan<Runtime::TypeValue>(usingCount);
+                usingFieldsOffset    = usingStorage.first;
+                usingFieldsPtr       = usingStorage.second;
+                entry.usingFieldsOffset = usingFieldsOffset;
+                rtType.usingFields.ptr  = usingFieldsPtr;
+                storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, usingFields.ptr), usingFieldsOffset);
+            }
+            else
+            {
+                entry.usingFieldsOffset = 0;
+                rtType.usingFields.ptr  = nullptr;
+            }
+
+            uint32_t usingIndex = 0;
+            for (uint32_t i = 0; i < fields.size(); ++i)
+            {
+                const SymbolVariable* symField = fields[i];
+                SWC_ASSERT(symField);
+
+                Runtime::TypeValue& tv = fieldsPtr[i];
+
+                const auto&    id         = ctx.idMgr().get(symField->idRef());
+                const Utf8     fName{id.name};
+                const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+                tv.offset                 = symField->offset();
+                if (symField->isUsingField())
+                    tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
+
+                entry.structFieldTypes.push_back(symField->typeRef());
+
+                if (!symField->isUsingField())
+                    continue;
+
+                SWC_ASSERT(usingFieldsPtr != nullptr);
+                SWC_ASSERT(usingIndex < usingCount);
+
+                Runtime::TypeValue& usingTv = usingFieldsPtr[usingIndex];
+                const uint32_t usingElemOffset =
+                    usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
+                usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+                usingTv.offset      = symField->offset();
+                usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
+                entry.usingFieldTypes.push_back(symField->typeRef());
+                ++usingIndex;
+            }
+
             return;
         }
 
-        const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
-        entry.structFieldsOffset             = fieldsOffset;
-        rtType.fields.ptr                    = fieldsPtr;
-        storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
-
-        for (uint32_t i = 0; i < fields.size(); ++i)
-        {
-            const SymbolVariable* symField = fields[i];
-            SWC_ASSERT(symField);
-
-            Runtime::TypeValue& tv = fieldsPtr[i];
-
-            const auto&    id = ctx.idMgr().get(symField->idRef());
-            const Utf8     fName{id.name};
-            const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-            tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
-            tv.offset                 = symField->offset();
-
-            entry.structFieldTypes.push_back(symField->typeRef());
-        }
+        rtType.usingFields.ptr  = nullptr;
+        entry.usingFieldsOffset = 0;
     }
 
     void initFunc(Sema& sema, DataSegment& storage, Runtime::TypeInfoFunc& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry)
@@ -515,17 +566,29 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Struct:
         {
-            // Wire each 'TypeValue.pointedType' of 'fields'.
-            if (!entry.structFieldsCount || !entry.structFieldsOffset)
-                break;
-
-            SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
-            for (uint32_t i = 0; i < entry.structFieldsCount; ++i)
+            if (entry.structFieldsCount && entry.structFieldsOffset)
             {
-                const TypeRef  depKey     = entry.structFieldTypes[i];
-                const auto&    dep        = requireEntry(depKey);
-                const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
+                // Wire each 'TypeValue.pointedType' of 'fields'.
+                SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
+                for (uint32_t i = 0; i < entry.structFieldsCount; ++i)
+                {
+                    const TypeRef  depKey     = entry.structFieldTypes[i];
+                    const auto&    dep        = requireEntry(depKey);
+                    const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                    addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
+                }
+            }
+
+            if (entry.usingFieldsCount && entry.usingFieldsOffset)
+            {
+                SWC_ASSERT(entry.usingFieldTypes.size() == entry.usingFieldsCount);
+                for (uint32_t i = 0; i < entry.usingFieldsCount; ++i)
+                {
+                    const TypeRef  depKey     = entry.usingFieldTypes[i];
+                    const auto&    dep        = requireEntry(depKey);
+                    const uint32_t elemOffset = entry.usingFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                    addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
+                }
             }
 
             break;

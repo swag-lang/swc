@@ -810,6 +810,8 @@ struct AstAsCastExpr : AstNodeT<AstNodeId::AsCastExpr>
     AstNodeRef nodeTypeRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
+    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -820,6 +822,8 @@ struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr>
     AstNodeRef nodeTypeRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
+    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

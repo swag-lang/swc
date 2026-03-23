@@ -18,6 +18,8 @@ public:
     enum class RuntimeFunctionKind : uint8_t
     {
         Exit,
+        As,
+        Is,
         TlsAlloc,
         TlsGetPtr,
         TlsGetValue,
@@ -111,6 +113,8 @@ public:
         Gvtd,
         BuildCfg,
         RuntimeExit,
+        RuntimeAs,
+        RuntimeIs,
         RuntimeStringCmp,
         RuntimeTlsAlloc,
         RuntimeTlsGetPtr,

@@ -3,14 +3,14 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Runtime.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
-#include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -226,7 +226,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitDynamicStructSwitchCaseTests(CodeGen& codeGen,
+    Result emitDynamicStructSwitchCaseTests(CodeGen&                        codeGen,
                                             const SwitchStmtCodeGenPayload& switchState,
                                             AstNodeRef                      caseRef,
                                             MicroLabelRef                   successLabel,
@@ -250,11 +250,11 @@ namespace
         {
             SWC_ASSERT(casePayload->expressions.size() == 1);
 
-            MicroReg targetTypeReg = MicroReg::invalid();
+            MicroReg      targetTypeReg       = MicroReg::invalid();
             const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(casePayload->expressions.front().typeExprRef).typeRef());
             SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
 
-            const MicroReg args[] = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
+            const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
             const MicroReg resultReg = codeGen.nextVirtualIntRegister();
             SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, *runtimeFn, args, resultReg));
             builder.emitCmpRegImm(resultReg, ApInt(0, 64), MicroOpBits::B64);
@@ -272,11 +272,11 @@ namespace
 
         for (const auto& expr : casePayload->expressions)
         {
-            MicroReg targetTypeReg = MicroReg::invalid();
+            MicroReg      targetTypeReg       = MicroReg::invalid();
             const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(expr.typeExprRef).typeRef());
             SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
 
-            const MicroReg args[] = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
+            const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
             const MicroReg resultReg = codeGen.nextVirtualIntRegister();
             SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, *runtimeFn, args, resultReg));
             builder.emitCmpRegImm(resultReg, ApInt(0, 64), MicroOpBits::B64);
@@ -410,7 +410,7 @@ namespace
 
     AstNodeRef nextSwitchCaseRef(CodeGen& codeGen, AstNodeRef switchRef, AstNodeRef caseRef)
     {
-        const auto& switchNode = codeGen.node(switchRef).cast<AstSwitchStmt>();
+        const auto&             switchNode = codeGen.node(switchRef).cast<AstSwitchStmt>();
         SmallVector<AstNodeRef> caseRefs;
         codeGen.ast().appendNodes(caseRefs, switchNode.spanChildrenRef);
 
@@ -497,15 +497,15 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
 
     if (childRef == nodeExprRef)
     {
-        const SemaNodeView        exprView         = codeGen.viewType(nodeExprRef);
-        const CodeGenNodePayload& exprPayload      = codeGen.payload(nodeExprRef);
-        const TypeInfo&           exprType         = codeGen.typeMgr().get(exprView.typeRef());
-        const TypeRef             compareTypeRef   = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
-        const TypeInfo&           compareType      = codeGen.typeMgr().get(compareTypeRef);
+        const SemaNodeView        exprView       = codeGen.viewType(nodeExprRef);
+        const CodeGenNodePayload& exprPayload    = codeGen.payload(nodeExprRef);
+        const TypeInfo&           exprType       = codeGen.typeMgr().get(exprView.typeRef());
+        const TypeRef             compareTypeRef = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
+        const TypeInfo&           compareType    = codeGen.typeMgr().get(compareTypeRef);
         if (isDynamicStructSwitchType(codeGen, compareTypeRef))
         {
-            switchState->compareTypeRef     = compareTypeRef;
-            switchState->switchValuePayload = exprPayload;
+            switchState->compareTypeRef      = compareTypeRef;
+            switchState->switchValuePayload  = exprPayload;
             switchState->dynamicStructSwitch = true;
             switchState->dynamicAsFunction   = runtimeDynamicAsFunction(codeGen);
 
@@ -513,7 +513,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
             if (!exprPayload.isAddress())
                 return Result::Error;
 
-            MicroBuilder& builder = codeGen.builder();
+            MicroBuilder&  builder   = codeGen.builder();
             const MicroReg itableReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(itableReg, exprPayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
 
@@ -530,9 +530,9 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
             return Result::Continue;
         }
 
-        const MicroOpBits         compareBits      = switchCompareOpBits(compareType, codeGen.ctx());
-        const bool                useStringCompare = isStringCompareType(codeGen, compareTypeRef);
-        MicroBuilder&             builder          = codeGen.builder();
+        const MicroOpBits compareBits      = switchCompareOpBits(compareType, codeGen.ctx());
+        const bool        useStringCompare = isStringCompareType(codeGen, compareTypeRef);
+        MicroBuilder&     builder          = codeGen.builder();
 
         const MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef);
         if (exprPayload.isAddress())
@@ -773,8 +773,8 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
     if (!itCase->second.hasNextCase)
         return Result::Continue;
 
-    const AstNodeRef nextCaseRef = nextSwitchCaseRef(codeGen, switchRef, caseRef);
-    MicroBuilder& builder = codeGen.builder();
+    const AstNodeRef    nextCaseRef = nextSwitchCaseRef(codeGen, switchRef, caseRef);
+    MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef targetLabel =
         isDynamicStructSwitchCaseTarget(codeGen, switchRef, nextCaseRef) ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, targetLabel);

@@ -14,7 +14,7 @@ struct DynamicStructSwitchCaseExpr
 struct DynamicStructSwitchCasePayload
 {
     SmallVector<DynamicStructSwitchCaseExpr, 2> expressions;
-    SymbolVariable*                             bindingSymbol      = nullptr;
+    SymbolVariable*                             bindingSymbol = nullptr;
 };
 
 struct DynamicStructSwitchAsCastPayload

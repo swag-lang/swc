@@ -150,7 +150,7 @@ namespace
         payload.expressions.push_back({caseExprRef, typeExprRef});
     }
 
-    Result registerDynamicStructSwitchBinding(Sema& sema,
+    Result registerDynamicStructSwitchBinding(Sema&      sema,
                                               AstNodeRef caseRef,
                                               AstNodeRef caseExprRef,
                                               AstNodeRef identRef,
@@ -233,7 +233,7 @@ namespace
         SmallVector<AstNodeRef> caseExprRefs;
         sema.ast().appendNodes(caseExprRefs, caseStmt.spanExprRef);
 
-        AstNodeRef typeExprRef    = caseExprRef;
+        AstNodeRef typeExprRef     = caseExprRef;
         AstNodeRef bindingIdentRef = AstNodeRef::invalid();
         if (sema.node(caseExprRef).is(AstNodeId::AsCastExpr))
         {

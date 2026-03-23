@@ -259,8 +259,8 @@ namespace
         const Utf8 name          = type.toName(ctx);
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
 
-        const auto& fields       = type.payloadSymStruct().fields();
-        uint32_t    usingCount   = 0;
+        const auto& fields     = type.payloadSymStruct().fields();
+        uint32_t    usingCount = 0;
         for (const SymbolVariable* symField : fields)
         {
             if (symField && symField->isUsingField())
@@ -291,9 +291,9 @@ namespace
             uint32_t            usingFieldsOffset = 0;
             if (usingCount)
             {
-                auto usingStorage    = storage.reserveSpan<Runtime::TypeValue>(usingCount);
-                usingFieldsOffset    = usingStorage.first;
-                usingFieldsPtr       = usingStorage.second;
+                auto usingStorage       = storage.reserveSpan<Runtime::TypeValue>(usingCount);
+                usingFieldsOffset       = usingStorage.first;
+                usingFieldsPtr          = usingStorage.second;
                 entry.usingFieldsOffset = usingFieldsOffset;
                 rtType.usingFields.ptr  = usingFieldsPtr;
                 storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, usingFields.ptr), usingFieldsOffset);
@@ -312,7 +312,7 @@ namespace
 
                 Runtime::TypeValue& tv = fieldsPtr[i];
 
-                const auto&    id         = ctx.idMgr().get(symField->idRef());
+                const auto&    id = ctx.idMgr().get(symField->idRef());
                 const Utf8     fName{id.name};
                 const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                 tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
@@ -329,7 +329,7 @@ namespace
                 SWC_ASSERT(usingIndex < usingCount);
 
                 Runtime::TypeValue& usingTv = usingFieldsPtr[usingIndex];
-                const uint32_t usingElemOffset =
+                const uint32_t      usingElemOffset =
                     usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
                 usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
                 usingTv.offset      = symField->offset();

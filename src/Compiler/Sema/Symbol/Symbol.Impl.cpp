@@ -69,6 +69,17 @@ const SymbolFunction* SymbolImpl::findFunction(IdentifierRef functionIdRef) cons
     return nullptr;
 }
 
+const SymbolFunction* SymbolImpl::resolveInterfaceMethodTarget(const SymbolFunction& interfaceMethod) const
+{
+    if (const SymbolFunction* implMethod = findFunction(interfaceMethod.idRef()))
+        return implMethod;
+
+    if (!interfaceMethod.isEmpty())
+        return &interfaceMethod;
+
+    return nullptr;
+}
+
 std::vector<SymbolFunction*> SymbolImpl::specOps() const
 {
     const std::shared_lock lk(mutex_);
@@ -120,7 +131,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     for (const SymbolFunction* interfaceMethod : methods)
     {
         SWC_ASSERT(interfaceMethod != nullptr);
-        const SymbolFunction* implMethod = findFunction(interfaceMethod->idRef());
+        const SymbolFunction* implMethod = resolveInterfaceMethodTarget(*interfaceMethod);
         SWC_ASSERT(implMethod != nullptr);
         if (!implMethod)
             return Result::Error;

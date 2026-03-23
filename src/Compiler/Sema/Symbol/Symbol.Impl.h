@@ -44,6 +44,7 @@ public:
 
     void                         addFunction(const TaskContext& ctx, SymbolFunction* sym);
     const SymbolFunction*        findFunction(IdentifierRef functionIdRef) const;
+    const SymbolFunction*        resolveInterfaceMethodTarget(const SymbolFunction& interfaceMethod) const;
     std::vector<SymbolFunction*> specOps() const;
     Result                       ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
 

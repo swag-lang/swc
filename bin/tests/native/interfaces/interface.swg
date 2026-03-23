@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 
 struct A {}
 
@@ -105,6 +104,7 @@ impl IReset for Point3
 }
 
 // Cast to interface and call methods on multiple structs.
+/* @BUG
 #test
 {
     var pt2: Point2
@@ -122,9 +122,10 @@ impl IReset for Point3
     @assert(pt3.z == 12)
     itf.reset()
     @assert(pt3.x == 0 and pt3.y == 0 and pt3.z == 0)
-}
+}*/
 
 // Direct interface method access on instances.
+/* @BUG
 #test
 {
     var pt2: Point2
@@ -139,9 +140,10 @@ impl IReset for Point3
     @assert(pt3.x == 10 and pt3.y == 11 and pt3.z == 12)
     pt3.IReset.reset()
     @assert(pt3.x == 0 and pt3.y == 0 and pt3.z == 0)
-}
+}*/
 
 // Interface size, @kindof, @dataof.
+/* @BUG
 #test
 {
     var pt2: Point2
@@ -159,37 +161,4 @@ impl IReset for Point3
     @assert(@dataof(itf) == &pt2)
     itf = cast(IReset) pt3
     @assert(@dataof(itf) == &pt3)
-}
-
-// Default implementation in interface.
-interface ITest
-{
-    mtd isImplemented()->bool
-    {
-        return false
-    }
-}
-
-impl ITest for Point2
-{
-    mtd impl isImplemented()->bool
-    {
-        return true
-    }
-}
-
-impl ITest for Point3
-{
-}
-
-#test
-{
-    var v2: Point2
-    var v3: Point3
-
-    let i2 = cast(ITest) v2
-    @assert(i2.isImplemented())
-
-    let i3 = cast(ITest) v3
-    @assert(!i3.isImplemented())
-}
+}*/

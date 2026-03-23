@@ -47,6 +47,16 @@ namespace
         return false;
     }
 
+    uint32_t codeRangeEndLine(const TaskContext& ctx, const SourceCodeRange& codeRange)
+    {
+        if (!codeRange.srcView || !codeRange.len)
+            return codeRange.line;
+
+        SourceCodeRange endRange;
+        endRange.fromOffset(ctx, *codeRange.srcView, codeRange.offset + codeRange.len - 1, 1);
+        return endRange.line;
+    }
+
     bool functionHasSourceError(const CompilerInstance& compiler, const SymbolFunction& function)
     {
         const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
@@ -62,15 +72,13 @@ namespace
         if (!startRange.srcView || !startRange.len)
             return file->hasError();
 
-        SourceCodeRange endRange;
-        endRange.fromOffset(ctx, *startRange.srcView, startRange.offset + startRange.len - 1, 1);
-        return file->hasErrorLineInRange(startRange.line, endRange.line);
+        return file->hasErrorLineInRange(startRange.line, codeRangeEndLine(ctx, startRange));
     }
 
     bool shouldSkipFunctionForTests(const CompilerInstance& compiler, const SymbolFunction& root)
     {
-        SmallVector<SymbolFunction*>                         stack;
-        std::unordered_map<const SymbolFunction*, uint8_t> visited;
+        SmallVector<SymbolFunction*>        stack;
+        std::unordered_set<const SymbolFunction*> visited;
         stack.push_back(const_cast<SymbolFunction*>(&root));
 
         while (!stack.empty())
@@ -79,9 +87,8 @@ namespace
             stack.pop_back();
             if (!function)
                 continue;
-            if (visited.contains(function))
+            if (!visited.insert(function).second)
                 continue;
-            visited[function] = 1;
 
             if (function->isIgnored() || functionHasSourceError(compiler, *function))
                 return true;

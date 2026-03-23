@@ -721,7 +721,7 @@ SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierRef idRe
     return it->second;
 }
 
-bool CompilerInstance::registerReportedDiagnostic(const std::string_view message)
+bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view message)
 {
     const std::scoped_lock lock(reportedDiagnosticsMutex_);
     return reportedDiagnostics_.insert(Utf8{message}).second;

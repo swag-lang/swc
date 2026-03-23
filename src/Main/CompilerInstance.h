@@ -117,7 +117,7 @@ public:
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
     void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
-    bool                     registerReportedDiagnostic(std::string_view message);
+    bool                     tryRegisterReportedDiagnostic(std::string_view message);
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *(files_[ref.get()].get()); }

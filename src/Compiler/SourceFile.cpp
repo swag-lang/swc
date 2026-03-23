@@ -47,15 +47,13 @@ void SourceFile::addErrorLineRange(const uint32_t lineStart, const uint32_t line
     if (!lineStart || !lineEnd)
         return;
 
-    const uint32_t firstLine = std::min(lineStart, lineEnd);
-    const uint32_t lastLine  = std::max(lineStart, lineEnd);
-
+    const std::pair range = {
+        std::min(lineStart, lineEnd),
+        std::max(lineStart, lineEnd),
+    };
     const std::scoped_lock lock(errorLinesMutex_);
-    for (uint32_t line = firstLine; line <= lastLine; line++)
-    {
-        if (std::ranges::find(errorLines_, line) == errorLines_.end())
-            errorLines_.push_back(line);
-    }
+    if (std::ranges::find(errorLineRanges_, range) == errorLineRanges_.end())
+        errorLineRanges_.push_back(range);
 }
 
 bool SourceFile::hasErrorLineInRange(const uint32_t lineStart, const uint32_t lineEnd) const
@@ -67,9 +65,9 @@ bool SourceFile::hasErrorLineInRange(const uint32_t lineStart, const uint32_t li
     const uint32_t lastLine  = std::max(lineStart, lineEnd);
 
     const std::scoped_lock lock(errorLinesMutex_);
-    for (const uint32_t line : errorLines_)
+    for (const auto [errorStart, errorEnd] : errorLineRanges_)
     {
-        if (line >= firstLine && line <= lastLine)
+        if (errorEnd >= firstLine && errorStart <= lastLine)
             return true;
     }
 

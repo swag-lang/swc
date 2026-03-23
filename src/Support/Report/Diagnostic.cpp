@@ -56,6 +56,16 @@ namespace
     }
 
     const std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> DIAGNOSTIC_INFOS = makeDiagnosticInfos();
+
+    uint32_t codeRangeEndLine(const TaskContext& ctx, const SourceCodeRange& codeRange)
+    {
+        if (codeRange.srcView == nullptr || codeRange.len == 0)
+            return codeRange.line;
+
+        SourceCodeRange endRange;
+        endRange.fromOffset(ctx, *codeRange.srcView, codeRange.offset + codeRange.len - 1, 1);
+        return endRange.line;
+    }
 }
 
 Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& codeRef)
@@ -201,7 +211,7 @@ void Diagnostic::report(TaskContext& ctx) const
     const Utf8        msg     = eng.build();
     bool              dismiss = false;
 
-    if (!ctx.compiler().registerReportedDiagnostic(msg))
+    if (!ctx.compiler().tryRegisterReportedDiagnostic(msg))
         return;
 
     // Check that diagnostic was not awaited
@@ -223,10 +233,7 @@ void Diagnostic::report(TaskContext& ctx) const
                 SourceFile& file = ctx.compiler().file(fileOwner_);
                 file.setHasError();
                 const SourceCodeRange startRange = elements_.front()->codeRange(0, ctx);
-                SourceCodeRange       endRange   = startRange;
-                if (startRange.srcView != nullptr && startRange.len != 0)
-                    endRange.fromOffset(ctx, *startRange.srcView, startRange.offset + startRange.len - 1, 1);
-                file.addErrorLineRange(startRange.line, endRange.line);
+                file.addErrorLineRange(startRange.line, codeRangeEndLine(ctx, startRange));
             }
             break;
         case DiagnosticSeverity::Warning:

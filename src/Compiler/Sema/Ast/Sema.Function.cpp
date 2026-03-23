@@ -38,6 +38,52 @@ namespace
         return *payload;
     }
 
+    bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const SemaNodeView view = sema.viewNodeType(nodeRef);
+        if (!sema.isValue(view.nodeRef()) || !view.type())
+            return false;
+
+        return !view.type()->isType();
+    }
+
+    AstNodeRef resolveUfcsReceiverArg(Sema& sema, AstNodeRef calleeExprRef)
+    {
+        const AstNodeRef resolvedCalleeRef = SemaHelpers::unwrapCallCalleeRef(sema, calleeExprRef);
+        if (resolvedCalleeRef.isInvalid() || sema.node(resolvedCalleeRef).isNot(AstNodeId::MemberAccessExpr))
+            return AstNodeRef::invalid();
+
+        const auto& outerMember = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();
+        if (sema.isValue(outerMember.nodeLeftRef))
+        {
+            if (outerMember.nodeLeftRef.isValid() && sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
+            {
+                const SemaNodeView outerLeftView = sema.viewNodeType(outerMember.nodeLeftRef);
+                if (outerLeftView.type() && outerLeftView.type()->isInterface())
+                {
+                    const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
+                    if (isNestedUfcsReceiverValue(sema, innerMember.nodeLeftRef))
+                        return innerMember.nodeLeftRef;
+                }
+            }
+
+            return outerMember.nodeLeftRef;
+        }
+
+        if (outerMember.nodeLeftRef.isInvalid() ||
+            sema.node(outerMember.nodeLeftRef).isNot(AstNodeId::MemberAccessExpr))
+            return AstNodeRef::invalid();
+
+        const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
+        if (isNestedUfcsReceiverValue(sema, innerMember.nodeLeftRef))
+            return innerMember.nodeLeftRef;
+
+        return AstNodeRef::invalid();
+    }
+
     bool isAttributeContextCall(const AstCallExpr& node)
     {
         return node.hasFlag(AstCallExprFlagsE::AttributeContext);
@@ -1097,16 +1143,7 @@ namespace
                 symbols.push_back(symFunc);
         }
 
-        AstNodeRef ufcsArg = AstNodeRef::invalid();
-        SWC_ASSERT(nodeCallee.node() != nullptr);
-        const AstNodeRef resolvedCalleeRef = SemaHelpers::unwrapCallCalleeRef(sema, node.nodeExprRef);
-        if (resolvedCalleeRef.isValid() && sema.node(resolvedCalleeRef).is(AstNodeId::MemberAccessExpr))
-        {
-            const auto&        memberAccess = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();
-            const SemaNodeView nodeLeftView = sema.viewZero(memberAccess.nodeLeftRef);
-            if (sema.isValue(nodeLeftView.nodeRef()))
-                ufcsArg = nodeLeftView.nodeRef();
-        }
+        AstNodeRef ufcsArg = resolveUfcsReceiverArg(sema, node.nodeExprRef);
 
         AstNodeRef       trailingBlockSiblingRef = AstNodeRef::invalid();
         const AstNodeRef trailingBlockArgRef     = resolveTrailingCodeBlockArgument(sema, nodeCallee, symbols, args.span(), ufcsArg, trailingBlockSiblingRef);

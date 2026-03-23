@@ -17,6 +17,7 @@ SWC_DIAG_DEF(parser_err_expected_do_block, Error, "expected a statement starting
 SWC_DIAG_DEF(parser_err_empty_indexing, Error, "invalid empty indexing '[]'")
 SWC_DIAG_DEF(parser_err_gen_param_type, Error, "unexpected start of type declaration")
 SWC_DIAG_DEF(parser_err_var_struct, Error, "unnecessary 'var' when declaring a struct/union value")
+SWC_DIAG_DEF(parser_err_interface_method_must_use_mtd, Error, "interface methods must use 'mtd' instead of 'func'")
 SWC_DIAG_DEF(parser_err_mtd_missing_capture, Error, "'mtd' must be followed by capture parameters (for example, '||')")
 SWC_DIAG_DEF(parser_err_invalid_compiler, Error, "unknown compiler instruction: '{tok}'")
 SWC_DIAG_DEF(parser_err_invalid_intrinsic, Error, "unknown intrinsic: '{tok}'")

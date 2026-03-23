@@ -162,7 +162,7 @@ private:
     AstNodeRef parseForCpp();
     AstNodeRef parseForInfinite();
     AstNodeRef parseForeach();
-    AstNodeRef parseFunctionDecl();
+    AstNodeRef parseFunctionDecl(bool isInterfaceDefinition = false);
     AstNodeRef parseFunctionBody();
     AstNodeRef parseFunctionParam();
     AstNodeRef parseFunctionParamList();

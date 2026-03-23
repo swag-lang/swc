@@ -146,13 +146,20 @@ AstNodeRef Parser::parseLambdaExpression()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseFunctionDecl()
+AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
 {
     EnumFlags flags = AstFunctionFlagsE::Zero;
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstFunctionFlagsE::Method);
     else
-        consumeAssert(TokenId::KwdFunc);
+    {
+        const TokenRef tokFunc = consumeAssert(TokenId::KwdFunc);
+        if (isInterfaceDefinition)
+        {
+            raiseError(DiagnosticId::parser_err_interface_method_must_use_mtd, tokFunc);
+            flags.add(AstFunctionFlagsE::Method);
+        }
+    }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FunctionDecl>(ref());
     nodePtr->flags()        = flags;

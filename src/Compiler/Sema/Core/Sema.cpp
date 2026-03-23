@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
@@ -17,6 +18,47 @@
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    bool shouldAbortSymbolWait(const Symbol* symbol)
+    {
+        return symbol != nullptr && symbol->isIgnored();
+    }
+
+    void cleanupPendingImplRegistrations(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::Impl))
+        {
+            const SemaNodeView view = sema.viewSymbol(nodeRef);
+            if (view.hasSymbol())
+            {
+                auto* const sym = view.sym();
+                if (sym != nullptr && sym->isImpl())
+                {
+                    auto& symImpl = sym->cast<SymbolImpl>();
+                    if (!symImpl.isPendingRegistrationResolved())
+                    {
+                        const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+                        info.semaErrorCleanup(sema, node, nodeRef);
+
+                        if (!symImpl.isSemaCompleted())
+                            symImpl.setIgnored(sema.ctx());
+                    }
+                }
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+            cleanupPendingImplRegistrations(sema, childRef);
+    }
+}
 
 Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass) :
     ctx_(&ctx),
@@ -389,6 +431,8 @@ Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isDeclared())
         return Result::Continue;
+    if (shouldAbortSymbolWait(symbol))
+        return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
     wait.kind                    = TaskStateKind::SemaWaitSymDeclared;
@@ -403,6 +447,8 @@ Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isTyped())
         return Result::Continue;
+    if (shouldAbortSymbolWait(symbol))
+        return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
     wait.kind                    = TaskStateKind::SemaWaitSymTyped;
@@ -417,6 +463,8 @@ Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRe
 {
     if (!symbol || symbol->isSemaCompleted())
         return Result::Continue;
+    if (shouldAbortSymbolWait(symbol))
+        return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
     wait.kind                    = TaskStateKind::SemaWaitSymSemaCompleted;
@@ -431,6 +479,8 @@ Result Sema::waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& cod
 {
     if (!symbol || symbol->isCodeGenCompleted())
         return Result::Continue;
+    if (shouldAbortSymbolWait(symbol))
+        return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
     wait.kind                    = TaskStateKind::SemaWaitSymCodeGenCompleted;
@@ -445,6 +495,8 @@ Result Sema::waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& cod
 {
     if (!symbol || symbol->isCodeGenPreSolved() || symbol->isCodeGenCompleted())
         return Result::Continue;
+    if (shouldAbortSymbolWait(symbol))
+        return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
     wait.kind                    = TaskStateKind::SemaWaitSymCodeGenPreSolved;
@@ -459,12 +511,15 @@ Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
     if (!type || type->isCompleted(ctx()))
         return Result::Continue;
+    const Symbol* blockingSymbol = type->getNotCompletedSymbol(ctx());
+    if (shouldAbortSymbolWait(blockingSymbol))
+        return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, nodeRef);
     TaskState&       wait        = ctx().state();
     wait.kind                    = TaskStateKind::SemaWaitTypeCompleted;
     wait.nodeRef                 = waitNodeRef;
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef);
-    wait.symbol                  = type->getNotCompletedSymbol(ctx());
+    wait.symbol                  = blockingSymbol;
     wait.waiterSymbol            = guessCurrentSymbol(*this);
     return Result::Pause;
 }
@@ -541,6 +596,14 @@ void Sema::errorCleanupNode(AstNodeRef nodeRef, AstNode& node)
 {
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     info.semaErrorCleanup(*this, node, nodeRef);
+
+    const SemaNodeView view = viewSymbol(nodeRef);
+    if (!view.hasSymbol())
+        return;
+
+    Symbol* const sym = view.sym();
+    if (sym != nullptr && !sym->isSemaCompleted())
+        sym->setIgnored(ctx());
 }
 
 Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
@@ -684,6 +747,10 @@ Result Sema::execResult()
                     break;
                 errorCleanupNode(parentRef, ast().node(parentRef));
             }
+
+            // A failure can stop the walk before later `impl` nodes in the same subtree are visited.
+            // Resolve their pending registration bookkeeping so struct completion barriers cannot stall.
+            cleanupPendingImplRegistrations(*this, visit_.root());
 
             semaResult = Result::Error;
             break;

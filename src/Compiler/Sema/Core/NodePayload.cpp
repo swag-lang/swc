@@ -765,7 +765,7 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
             .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
     };
 
-    NodePayloadFlags flags = static_cast<NodePayloadFlags>(AstNode::payloadBitsFromState(state) & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK);
+    auto flags = static_cast<NodePayloadFlags>(AstNode::payloadBitsFromState(state) & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK);
     while (true)
     {
         if (info.kind == NodePayloadKind::Substitute)

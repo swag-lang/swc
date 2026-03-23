@@ -72,6 +72,23 @@ namespace
                 return false;
         }
     }
+
+    bool isStackProbeLoad(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg probeReg, MicroReg stackPointer, uint64_t expectedOffset)
+    {
+        if (!ops)
+            return false;
+        if (inst.op != MicroInstrOpcode::LoadRegMem || inst.numOperands < 4)
+            return false;
+        if (ops[0].reg != probeReg)
+            return false;
+        if (ops[1].reg != stackPointer)
+            return false;
+        if (ops[2].opBits != MicroOpBits::B64)
+            return false;
+        if (ops[3].valueU64 != expectedOffset)
+            return false;
+        return true;
+    }
 }
 
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
@@ -138,6 +155,42 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
     if (!isStackAdjust(*secondSubInst, secondSubInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
     if (!isStackAdjust(*epilogueAddIns, epilogueAddIns->ops(operands), rsp, MicroOp::Add, 32))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ExpandsLargeWindowsStackAdjustIntoPageProbes)
+{
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    MicroBuilder       builder(ctx);
+
+    builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
+
+    if (builder.instructions().count() != 5)
+        return Result::Error;
+
+    const MicroOperandStorage& operands  = builder.operands();
+    const MicroInstr*          subInst   = instructionAt(builder, 0);
+    const MicroInstr*          probe0    = instructionAt(builder, 1);
+    const MicroInstr*          probe1    = instructionAt(builder, 2);
+    const MicroInstr*          probe2    = instructionAt(builder, 3);
+    const MicroInstr*          retInst   = instructionAt(builder, 4);
+    if (!subInst || !probe0 || !probe1 || !probe2 || !retInst)
+        return Result::Error;
+
+    if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 12 * 1024))
+        return Result::Error;
+    if (!isStackProbeLoad(*probe0, probe0->ops(operands), rax, rsp, 8 * 1024))
+        return Result::Error;
+    if (!isStackProbeLoad(*probe1, probe1->ops(operands), rax, rsp, 4 * 1024))
+        return Result::Error;
+    if (!isStackProbeLoad(*probe2, probe2->ops(operands), rax, rsp, 0))
+        return Result::Error;
+    if (retInst->op != MicroInstrOpcode::Ret)
         return Result::Error;
 }
 SWC_TEST_END()

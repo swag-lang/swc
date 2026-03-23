@@ -3,11 +3,15 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
+
     bool isFramePointerSetupInstruction(const CallConv& conv, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackPointer)
     {
         if (!ops || !conv.framePointer.isValid())
@@ -211,6 +215,67 @@ namespace
         return changedAny;
     }
 
+    bool needsWindowsStackProbe(const MicroPassContext& context, const uint64_t stackAdjust)
+    {
+        if (stackAdjust <= K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+            return false;
+        if (!context.taskContext)
+            return false;
+        return context.taskContext->cmdLine().targetOs == Runtime::TargetOs::Windows;
+    }
+
+    bool expandLargePrologueStackAdjustments(const MicroPassContext& context, const CallConv& conv)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        if (!conv.intReturn.isValid() || !conv.intReturn.isInt())
+            return false;
+
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        {
+            const MicroInstrOperand* ops = it->ops(*context.operands);
+            if (!isPrologueInstruction(conv, *it, ops, conv.stackPointer))
+                break;
+
+            uint64_t stackAdjust = 0;
+            if (!isStackAdjustWithOp(*it, ops, conv.stackPointer, MicroOp::Subtract, stackAdjust))
+                continue;
+            if (!needsWindowsStackProbe(context, stackAdjust))
+                continue;
+
+            auto nextIt = it;
+            ++nextIt;
+            if (nextIt == context.instructions->view().end())
+                return false;
+
+            const MicroInstrRef insertBeforeRef = nextIt.current;
+            uint64_t           remaining       = stackAdjust;
+
+            while (remaining > K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+            {
+                remaining -= K_WINDOWS_STACK_PROBE_PAGE_SIZE;
+
+                MicroInstrOperand probeOps[4];
+                probeOps[0].reg      = conv.intReturn;
+                probeOps[1].reg      = conv.stackPointer;
+                probeOps[2].opBits   = MicroOpBits::B64;
+                probeOps[3].valueU64 = remaining;
+                context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps, true);
+            }
+
+            MicroInstrOperand finalProbeOps[4];
+            finalProbeOps[0].reg      = conv.intReturn;
+            finalProbeOps[1].reg      = conv.stackPointer;
+            finalProbeOps[2].opBits   = MicroOpBits::B64;
+            finalProbeOps[3].valueU64 = 0;
+            context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, finalProbeOps, true);
+            return true;
+        }
+
+        return false;
+    }
+
     bool sanitizeEpilogueStackAdjustments(const MicroPassContext& context, const CallConv& conv)
     {
         SWC_ASSERT(context.instructions);
@@ -275,8 +340,9 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const CallConv& conv                      = CallConv::get(context.callConvKind);
     const bool      changedFramePointerProlog = sanitizePrologueFramePointerSetups(context, conv);
     const bool      changedStackProlog        = sanitizePrologueStackAdjustments(context, conv);
+    const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
     const bool      changedStackEpilogue      = sanitizeEpilogueStackAdjustments(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackEpilogue;
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue;
     context.passChanged                       = changed;
     return Result::Continue;
 }

@@ -291,7 +291,7 @@ namespace
             uint32_t            usingFieldsOffset = 0;
             if (usingCount)
             {
-                auto usingStorage       = storage.reserveSpan<Runtime::TypeValue>(usingCount);
+                const auto usingStorage = storage.reserveSpan<Runtime::TypeValue>(usingCount);
                 usingFieldsOffset       = usingStorage.first;
                 usingFieldsPtr          = usingStorage.second;
                 entry.usingFieldsOffset = usingFieldsOffset;

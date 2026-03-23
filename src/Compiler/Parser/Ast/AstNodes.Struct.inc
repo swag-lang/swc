@@ -812,7 +812,7 @@ struct AstAsCastExpr : AstNodeT<AstNodeId::AsCastExpr>
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
     Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

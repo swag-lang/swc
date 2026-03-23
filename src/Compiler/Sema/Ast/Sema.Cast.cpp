@@ -229,7 +229,7 @@ namespace
     }
 }
 
-Result AstAsCastExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstAsCastExpr::semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeTypeRef && sema.semaPayload<DynamicStructSwitchAsCastPayload>(sema.curNodeRef()))
         return Result::SkipChildren;

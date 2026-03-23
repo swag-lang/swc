@@ -124,7 +124,6 @@ impl IReset for Point3
 }
 
 // Direct interface method access on instances.
-/* @BUG
 #test
 {
     var pt2: Point2
@@ -139,7 +138,7 @@ impl IReset for Point3
     @assert(pt3.x == 10 and pt3.y == 11 and pt3.z == 12)
     pt3.IReset.reset()
     @assert(pt3.x == 0 and pt3.y == 0 and pt3.z == 0)
-}*/
+}
 
 // Interface size, @kindof, @dataof.
 #test

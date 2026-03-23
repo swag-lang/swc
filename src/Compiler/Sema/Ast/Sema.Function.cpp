@@ -43,11 +43,21 @@ namespace
         if (nodeRef.isInvalid())
             return false;
 
-        const SemaNodeView view = sema.viewNodeType(nodeRef);
-        if (!sema.isValue(view.nodeRef()) || !view.type())
+        const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
+        // Nested UFCS receiver discovery can happen before plain identifiers are fully typed,
+        // but a non-type variable symbol is already enough to identify a valid receiver.
+        if (view.sym())
+        {
+            if (view.sym()->isType())
+                return false;
+            if (view.sym()->isVariable())
+                return true;
+        }
+
+        if (!view.type() || view.type()->isType())
             return false;
 
-        return !view.type()->isType();
+        return sema.isValue(view.nodeRef());
     }
 
     AstNodeRef resolveUfcsReceiverArg(Sema& sema, AstNodeRef calleeExprRef)
@@ -61,10 +71,11 @@ namespace
         {
             if (outerMember.nodeLeftRef.isValid() && sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
             {
-                const SemaNodeView outerLeftView = sema.viewNodeType(outerMember.nodeLeftRef);
-                if (outerLeftView.type() && outerLeftView.type()->isInterface())
+                const SemaNodeView outerLeftView = sema.viewNodeTypeSymbol(outerMember.nodeLeftRef);
+                const auto&        innerMember   = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
+                if ((outerLeftView.sym() && outerLeftView.sym()->isImpl()) ||
+                    (outerLeftView.type() && outerLeftView.type()->isInterface()))
                 {
-                    const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
                     if (isNestedUfcsReceiverValue(sema, innerMember.nodeLeftRef))
                         return innerMember.nodeLeftRef;
                 }

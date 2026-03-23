@@ -104,7 +104,6 @@ impl IReset for Point3
 }
 
 // Cast to interface and call methods on multiple structs.
-/* @BUG
 #test
 {
     var pt2: Point2
@@ -122,7 +121,7 @@ impl IReset for Point3
     @assert(pt3.z == 12)
     itf.reset()
     @assert(pt3.x == 0 and pt3.y == 0 and pt3.z == 0)
-}*/
+}
 
 // Direct interface method access on instances.
 /* @BUG

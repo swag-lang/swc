@@ -64,15 +64,11 @@ namespace
             payload.setIsValue();
     }
 
-    TypeRef resolveNormalizedArgTypeRef(CodeGen& codeGen, const std::vector<SymbolVariable*>& params, size_t argIndex, const SemaNodeView& argView)
+    TypeRef resolveNormalizedArgTypeRef(CodeGen& codeGen, const SymbolVariable* param, const SemaNodeView& argView)
     {
         TypeRef normalizedTypeRef = TypeRef::invalid();
-        if (argIndex < params.size())
-        {
-            const SymbolVariable* param = params[argIndex];
-            SWC_ASSERT(param != nullptr);
+        if (param != nullptr)
             normalizedTypeRef = param->typeRef();
-        }
 
         if (normalizedTypeRef.isInvalid())
             return argView.typeRef();
@@ -460,7 +456,7 @@ namespace
         return ConstantRef::invalid();
     }
 
-    void appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const std::vector<SymbolVariable*>& params, size_t argIndex, const ResolvedCallArgument& arg)
+    void appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg)
     {
         CodeGenNodePayload argPayload;
         TypeRef            normalizedTypeRef = TypeRef::invalid();
@@ -468,7 +464,7 @@ namespace
         if (argRef.isValid())
         {
             const SemaNodeView argView           = codeGen.viewType(argRef);
-            normalizedTypeRef                    = resolveNormalizedArgTypeRef(codeGen, params, argIndex, argView);
+            normalizedTypeRef                    = resolveNormalizedArgTypeRef(codeGen, param, argView);
             const SemaNodeView argConstView      = codeGen.viewTypeConstant(argRef);
             const bool         isNullConstantArg = argConstView.cst() && argConstView.cst()->isNull();
 
@@ -499,9 +495,7 @@ namespace
         }
         else
         {
-            const SymbolVariable* param = params[argIndex];
             SWC_ASSERT(param != nullptr);
-            SWC_ASSERT(argIndex < params.size());
             normalizedTypeRef               = param->typeRef();
             const ConstantRef defaultCstRef = defaultArgumentConstantRef(codeGen, callRef, arg);
             SWC_ASSERT(defaultCstRef.isValid());
@@ -871,12 +865,28 @@ namespace
             }
         }
 
-        size_t numFixedArgs = args.size();
-        if (hasVariadic)
-            numFixedArgs = std::min(args.size(), variadicParamIdx);
+        size_t argIndex   = 0;
+        size_t paramIndex = 0;
+        while (argIndex < args.size())
+        {
+            const ResolvedCallArgument& resolvedArg = args[argIndex];
+            if (resolvedArg.passKind == CallArgumentPassKind::InterfaceObject)
+            {
+                // Interface dispatch prepends the runtime receiver object, but the selected
+                // interface method symbol only exposes the explicit user parameters.
+                appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, nullptr, resolvedArg);
+                ++argIndex;
+                continue;
+            }
 
-        for (size_t i = 0; i < numFixedArgs; ++i)
-            appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, params, i, args[i]);
+            if (hasVariadic && paramIndex >= variadicParamIdx)
+                break;
+
+            const SymbolVariable* param = paramIndex < params.size() ? params[paramIndex] : nullptr;
+            appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, param, resolvedArg);
+            ++argIndex;
+            ++paramIndex;
+        }
 
         if (!hasVariadic)
             return;
@@ -885,7 +895,7 @@ namespace
         SWC_ASSERT(params[variadicParamIdx] != nullptr);
         const TypeRef                               variadicParamTypeRef = params[variadicParamIdx]->typeRef();
         const ABITypeNormalize::NormalizedType      normalizedVariadic   = ABITypeNormalize::normalize(codeGen.ctx(), callConv, variadicParamTypeRef, ABITypeNormalize::Usage::Argument);
-        const std::span<const ResolvedCallArgument> variadicArgs         = args.subspan(numFixedArgs);
+        const std::span<const ResolvedCallArgument> variadicArgs         = args.subspan(argIndex);
         if (hasTypedVariadic)
             packTypedVariadicArgument(variadicPreparedArg, outTransientStackSize, codeGen, callConv, variadicArgs, typedVariadicElemType, normalizedVariadic);
         else

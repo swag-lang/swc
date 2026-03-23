@@ -23,7 +23,7 @@ impl IAction for RedoAction
 
 func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoStruct, expectNullObject: bool)->bool
 {
-    let runtimeItf = cast(*Swag.Interface) @dataof(itf)
+    let runtimeItf = cast(*Swag.Interface) &itf
     if runtimeItf == null or runtimeItf.itable == null do
         return false
 

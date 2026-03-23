@@ -215,7 +215,16 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
     }
     else if (type->isInterface())
     {
-        ptrValue = materializeConstantAndGetAddress(sema, view);
+        if (cst.isStruct())
+        {
+            const auto* runtimeInterface = cst.getStruct<Runtime::Interface>(view.typeRef());
+            ptrValue                     = reinterpret_cast<uint64_t>(runtimeInterface->obj);
+        }
+        else
+        {
+            const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(materializeConstantAndGetAddress(sema, view));
+            ptrValue                     = runtimeInterface ? reinterpret_cast<uint64_t>(runtimeInterface->obj) : 0;
+        }
     }
     else
     {

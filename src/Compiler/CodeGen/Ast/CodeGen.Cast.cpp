@@ -424,44 +424,52 @@ namespace
             SWC_ASSERT(hasCastInfo);
             SWC_ASSERT(castInfo.implSym != nullptr);
 
-            constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
-            const uint64_t     objectStorageSize    = srcType.sizeOf(codeGen.ctx());
+            constexpr uint64_t interfaceStorageSize  = sizeof(Runtime::Interface);
+            const uint64_t     objectStorageSize     = srcType.sizeOf(codeGen.ctx());
+            const bool         preserveSourceAddress = srcPayload.isAddress() && codeGen.sema().isLValue(srcNodeRef);
 
-            const MicroReg runtimeItfReg    = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-            MicroReg       objectStorageReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(objectStorageReg, runtimeItfReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(objectStorageReg, ApInt(interfaceStorageSize, 64), MicroOp::Add, MicroOpBits::B64);
-
-            if (objectStorageSize)
+            const MicroReg runtimeItfReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            MicroReg       objectReg     = srcPayload.reg;
+            if (!preserveSourceAddress)
             {
-                if (srcPayload.isAddress())
+                MicroReg objectStorageReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(objectStorageReg, runtimeItfReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(objectStorageReg, ApInt(interfaceStorageSize, 64), MicroOp::Add, MicroOpBits::B64);
+
+                if (objectStorageSize)
                 {
-                    SWC_ASSERT(objectStorageSize <= std::numeric_limits<uint32_t>::max());
-                    CodeGenMemoryHelpers::emitMemCopy(codeGen, objectStorageReg, srcPayload.reg, static_cast<uint32_t>(objectStorageSize));
+                    if (srcPayload.isAddress())
+                    {
+                        SWC_ASSERT(objectStorageSize <= std::numeric_limits<uint32_t>::max());
+                        CodeGenMemoryHelpers::emitMemCopy(codeGen, objectStorageReg, srcPayload.reg, static_cast<uint32_t>(objectStorageSize));
+                    }
+                    else
+                    {
+                        const MicroOpBits storeBits = microOpBitsFromChunkSize(static_cast<uint32_t>(objectStorageSize));
+                        SWC_ASSERT(storeBits != MicroOpBits::Zero);
+                        builder.emitLoadMemReg(objectStorageReg, 0, srcPayload.reg, storeBits);
+                    }
                 }
-                else
-                {
-                    const MicroOpBits storeBits = microOpBitsFromChunkSize(static_cast<uint32_t>(objectStorageSize));
-                    SWC_ASSERT(storeBits != MicroOpBits::Zero);
-                    builder.emitLoadMemReg(objectStorageReg, 0, srcPayload.reg, storeBits);
-                }
+
+                objectReg = objectStorageReg;
             }
 
-            MicroReg objectReg = objectStorageReg;
             if (castInfo.usingField)
             {
                 const SymbolVariable& usingField = *castInfo.usingField;
-                // The temporary storage contains the full source object; move the runtime object pointer to the
-                // embedded `using` field when the interface implementation lives there instead of on the root.
+                // The runtime object pointer must target the `using` field implementation, whether we reused the
+                // original lvalue address or spilled a temporary copy.
                 if (castInfo.usingFieldIsPointer)
                 {
-                    objectReg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegMem(objectReg, objectStorageReg, usingField.offset(), MicroOpBits::B64);
+                    const MicroReg baseObjectReg = objectReg;
+                    objectReg                    = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegMem(objectReg, baseObjectReg, usingField.offset(), MicroOpBits::B64);
                 }
                 else
                 {
-                    objectReg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegReg(objectReg, objectStorageReg, MicroOpBits::B64);
+                    const MicroReg baseObjectReg = objectReg;
+                    objectReg                    = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegReg(objectReg, baseObjectReg, MicroOpBits::B64);
                     if (usingField.offset())
                         builder.emitOpBinaryRegImm(objectReg, ApInt(usingField.offset(), 64), MicroOp::Add, MicroOpBits::B64);
                 }

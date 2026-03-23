@@ -910,7 +910,7 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
 
         if (exprView.type() && exprView.type()->isInterface())
-            builder.emitLoadRegReg(payload.reg, exprPayload.reg, MicroOpBits::B64);
+            builder.emitLoadRegMem(payload.reg, exprPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
         else if (exprView.type() && (exprView.type()->isString() || exprView.type()->isSlice() || exprView.type()->isAny()))
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, 0, MicroOpBits::B64);
         else if (exprView.type() && exprView.type()->isArray())

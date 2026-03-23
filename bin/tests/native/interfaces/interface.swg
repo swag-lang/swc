@@ -143,7 +143,6 @@ impl IReset for Point3
 }*/
 
 // Interface size, @kindof, @dataof.
-/* @BUG
 #test
 {
     var pt2: Point2
@@ -161,4 +160,4 @@ impl IReset for Point3
     @assert(@dataof(itf) == &pt2)
     itf = cast(IReset) pt3
     @assert(@dataof(itf) == &pt3)
-}*/
+}

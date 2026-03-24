@@ -18,7 +18,6 @@ class IdentifierManager;
 class SourceView;
 class SymbolVariable;
 struct ResolvedCallArgument;
-struct SemaDeferPayload;
 struct Token;
 struct SemaInlinePayload;
 
@@ -149,13 +148,15 @@ class CodeGen
 public:
     struct RegisteredDefer
     {
-        const SemaDeferPayload* payload                = nullptr;
-        uint32_t                visibleFrameCount      = 0;
-        uint32_t                visibleDeferScopeCount = 0;
+        AstNodeRef               bodyRef = AstNodeRef::invalid();
+        SmallVector<AstNodeRef>  parentPath;
+        uint32_t                 visibleFrameCount      = 0;
+        uint32_t                 visibleDeferScopeCount = 0;
     };
 
     struct DeferScope
     {
+        AstNodeRef                   ownerRef = AstNodeRef::invalid();
         SmallVector<RegisteredDefer> defers;
     };
 
@@ -305,9 +306,9 @@ public:
     uint32_t                          returnScratchSize() const { return returnScratchSize_; }
     TypeRef                           returnScratchTypeRef() const { return returnScratchTypeRef_; }
     uint32_t                          deferScopeCount() const { return static_cast<uint32_t>(activeDeferScopes_.size()); }
-    void                              pushDeferScope();
+    void                              pushDeferScope(AstNodeRef ownerRef);
     Result                            popDeferScope();
-    Result                            registerDeferredBody(AstNodeRef deferNodeRef);
+    Result                            registerDeferredBody(AstNodeRef bodyRef);
     Result                            emitDeferredScopesFrom(uint32_t baseCount);
     bool                              currentInstructionIsTerminator() const;
     void                              pushFrame(const CodeGenFrame& frame);

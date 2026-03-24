@@ -572,7 +572,7 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
 Result AstSwitchCaseStmt::codeGenPreNode(CodeGen& codeGen)
 {
     codeGen.frame().setBreakDeferScopeBaseCount(codeGen.deferScopeCount());
-    codeGen.pushDeferScope();
+    codeGen.pushDeferScope(codeGen.curNodeRef());
     return Result::Continue;
 }
 

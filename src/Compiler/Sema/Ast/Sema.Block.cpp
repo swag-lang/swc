@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Compiler/Sema/Ast/Sema.Block.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -10,26 +9,6 @@
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    void collectCurrentParentPath(Sema& sema, SmallVector<AstNodeRef>& out)
-    {
-        SmallVector<AstNodeRef> reversedParents;
-        for (size_t up = 0;; ++up)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
-            if (parentRef.isInvalid())
-                break;
-            reversedParents.push_back(parentRef);
-        }
-
-        out.reserve(reversedParents.size() + 1);
-        for (size_t idx = reversedParents.size(); idx > 0; --idx)
-            out.push_back(reversedParents[idx - 1]);
-        out.push_back(sema.curNodeRef());
-    }
-}
 
 Result AstFile::semaPreDecl(Sema& sema) const
 {
@@ -161,16 +140,6 @@ Result AstDeferStmt::semaPreNode(Sema& sema) const
     if (modifierFlags.has(AstModifierFlagsE::Err) || modifierFlags.has(AstModifierFlagsE::NoErr))
         return SemaError::raise(sema, DiagnosticId::sema_err_defer_mode_not_implemented, *this);
 
-    return Result::Continue;
-}
-
-Result AstDeferStmt::semaPostNode(Sema& sema) const
-{
-    auto* payload = sema.compiler().allocate<SemaDeferPayload>();
-    payload->bodyRef = sema.viewZero(nodeBodyRef).nodeRef();
-    SWC_ASSERT(payload->bodyRef.isValid());
-    collectCurrentParentPath(sema, payload->parentPath);
-    sema.setSemaPayload(sema.curNodeRef(), payload);
     return Result::Continue;
 }
 

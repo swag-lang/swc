@@ -73,7 +73,7 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
         codeGen.pushFrame(frame);
 
         if (needsSyntheticDeferScope(codeGen, bodyRef))
-            codeGen.pushDeferScope();
+            codeGen.pushDeferScope(bodyRef);
     }
 
     return Result::Continue;
@@ -149,7 +149,7 @@ Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     codeGen.pushFrame(frame);
 
     if (needsSyntheticDeferScope(codeGen, childRef))
-        codeGen.pushDeferScope();
+        codeGen.pushDeferScope(childRef);
     return Result::Continue;
 }
 

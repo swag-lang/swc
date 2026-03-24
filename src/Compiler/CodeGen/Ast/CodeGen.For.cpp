@@ -231,7 +231,7 @@ Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
         codeGen.pushFrame(frame);
 
         if (needsSyntheticDeferScope(codeGen, bodyRef))
-            codeGen.pushDeferScope();
+            codeGen.pushDeferScope(bodyRef);
     }
 
     return Result::Continue;
@@ -335,7 +335,7 @@ Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& child
     }
 
     if (childRef == bodyRef && needsSyntheticDeferScope(codeGen, bodyRef))
-        codeGen.pushDeferScope();
+        codeGen.pushDeferScope(bodyRef);
 
     return Result::Continue;
 }

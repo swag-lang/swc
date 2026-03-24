@@ -4,7 +4,6 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
-#include "Compiler/Sema/Ast/Sema.Block.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -411,9 +410,11 @@ void CodeGen::setReturnScratch(uint32_t offset, uint32_t size, TypeRef typeRef)
     returnScratchTypeRef_ = typeRef;
 }
 
-void CodeGen::pushDeferScope()
+void CodeGen::pushDeferScope(AstNodeRef ownerRef)
 {
-    activeDeferScopes_.push_back({});
+    DeferScope scope;
+    scope.ownerRef = ownerRef;
+    activeDeferScopes_.push_back(scope);
 }
 
 Result CodeGen::popDeferScope()
@@ -436,19 +437,32 @@ Result CodeGen::popDeferScope()
     return Result::Continue;
 }
 
-Result CodeGen::registerDeferredBody(AstNodeRef deferNodeRef)
+Result CodeGen::registerDeferredBody(AstNodeRef bodyRef)
 {
-    const auto* deferPayload = sema().semaPayload<SemaDeferPayload>(deferNodeRef);
-    SWC_ASSERT(deferPayload != nullptr);
-    SWC_ASSERT(deferPayload->bodyRef.isValid());
+    bodyRef = resolvedNodeRef(bodyRef);
+    SWC_ASSERT(bodyRef.isValid());
     SWC_ASSERT(!activeDeferScopes_.empty());
-    if (deferPayload == nullptr || activeDeferScopes_.empty())
+    if (bodyRef.isInvalid() || activeDeferScopes_.empty())
         return Result::Error;
 
     RegisteredDefer deferInfo;
-    deferInfo.payload                 = deferPayload;
+    deferInfo.bodyRef                 = bodyRef;
     deferInfo.visibleFrameCount       = static_cast<uint32_t>(frames_.size());
     deferInfo.visibleDeferScopeCount  = static_cast<uint32_t>(activeDeferScopes_.size());
+
+    SmallVector<AstNodeRef> reversedParents;
+    for (size_t up = 0;; ++up)
+    {
+        const AstNodeRef parentRef = visit_.parentNodeRef(up);
+        if (parentRef.isInvalid())
+            break;
+        reversedParents.push_back(parentRef);
+    }
+
+    deferInfo.parentPath.reserve(reversedParents.size() + 1);
+    for (size_t idx = reversedParents.size(); idx > 0; --idx)
+        deferInfo.parentPath.push_back(reversedParents[idx - 1]);
+    deferInfo.parentPath.push_back(curNodeRef());
 
     activeDeferScopes_.back().defers.push_back(std::move(deferInfo));
     return Result::Continue;
@@ -649,12 +663,10 @@ Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
 
 Result CodeGen::emitRegisteredDefer(const RegisteredDefer& deferInfo, uint32_t remainingScopeDefers)
 {
-    SWC_ASSERT(deferInfo.payload != nullptr);
-    SWC_ASSERT(deferInfo.payload->bodyRef.isValid());
+    SWC_ASSERT(deferInfo.bodyRef.isValid());
     SWC_ASSERT(deferInfo.visibleFrameCount <= frames_.size());
     SWC_ASSERT(deferInfo.visibleDeferScopeCount <= activeDeferScopes_.size());
-    if (deferInfo.payload == nullptr ||
-        deferInfo.payload->bodyRef.isInvalid() ||
+    if (deferInfo.bodyRef.isInvalid() ||
         deferInfo.visibleFrameCount > frames_.size() ||
         deferInfo.visibleDeferScopeCount > activeDeferScopes_.size())
         return Result::Error;
@@ -679,7 +691,7 @@ Result CodeGen::emitRegisteredDefer(const RegisteredDefer& deferInfo, uint32_t r
 
     AstVisit nestedVisit;
     configureVisit(nestedVisit);
-    nestedVisit.startNested(ast(), deferInfo.payload->bodyRef, deferInfo.payload->parentPath.span());
+    nestedVisit.startNested(ast(), deferInfo.bodyRef, deferInfo.parentPath.span());
     const Result result = runVisit(nestedVisit);
 
     frames_            = savedFrames;

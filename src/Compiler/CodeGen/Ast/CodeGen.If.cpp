@@ -103,7 +103,7 @@ Result AstIfStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childR
         return Result::Continue;
 
     if (needsSyntheticDeferScope(codeGen, resolvedChildRef))
-        codeGen.pushDeferScope();
+        codeGen.pushDeferScope(resolvedChildRef);
 
     return Result::Continue;
 }
@@ -143,7 +143,7 @@ Result AstIfVarDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
         return Result::Continue;
 
     if (needsSyntheticDeferScope(codeGen, resolvedChildRef))
-        codeGen.pushDeferScope();
+        codeGen.pushDeferScope(resolvedChildRef);
 
     return Result::Continue;
 }

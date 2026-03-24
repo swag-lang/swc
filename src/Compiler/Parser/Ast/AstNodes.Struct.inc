@@ -1317,7 +1317,6 @@ struct AstDeferStmt : AstNodeT<AstNodeId::DeferStmt>
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
     Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     semaPreNode(Sema& sema) const;
-    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

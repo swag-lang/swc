@@ -40,6 +40,8 @@ struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock, AstEmbeddedBloc
 {
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPreNode(Sema& sema);
+    static Result codeGenPreNode(CodeGen& codeGen);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------
@@ -299,7 +301,9 @@ struct AstReturnStmt : AstNodeT<AstNodeId::ReturnStmt>
 // -----------------------------------------------------------------------------
 struct AstFunctionBody : AstCompoundT<AstNodeId::FunctionBody>
 {
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    static Result codeGenPreNode(CodeGen& codeGen);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------
@@ -1313,6 +1317,8 @@ struct AstDeferStmt : AstNodeT<AstNodeId::DeferStmt>
     AstNodeRef       nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    static Result semaPreNode(Sema& sema);
+    static Result codeGenPreNode(CodeGen& codeGen);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1329,6 +1335,7 @@ struct AstIfStmt : AstIfBaseT<AstNodeId::IfStmt>
 
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1348,6 +1355,7 @@ struct AstIfVarDecl : AstIfBaseT<AstNodeId::IfVarDecl>
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1373,6 +1381,8 @@ struct AstWithStmt : AstNodeT<AstNodeId::WithStmt>
     AstNodeRef nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeBodyRef}); }
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1384,6 +1394,8 @@ struct AstWithVarDecl : AstNodeT<AstNodeId::WithVarDecl>
     AstNodeRef nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeVarRef, nodeBodyRef}); }
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

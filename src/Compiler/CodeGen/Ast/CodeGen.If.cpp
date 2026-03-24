@@ -88,6 +88,16 @@ namespace
     }
 }
 
+Result AstIfStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const AstNodeRef resolvedChildRef     = codeGen.resolvedNodeRef(childRef);
+    const AstNodeRef resolvedIfBlockRef   = codeGen.resolvedNodeRef(nodeIfBlockRef);
+    const AstNodeRef resolvedElseBlockRef = codeGen.resolvedNodeRef(nodeElseBlockRef);
+    if (resolvedChildRef == resolvedIfBlockRef || resolvedChildRef == resolvedElseBlockRef)
+        codeGen.pushDeferScope();
+    return Result::Continue;
+}
+
 Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     const AstNodeRef ifRef                = codeGen.curNodeRef();
@@ -105,7 +115,20 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
         return Result::Continue;
     }
 
+    if (resolvedChildRef == resolvedIfBlockRef || resolvedChildRef == resolvedElseBlockRef)
+        SWC_RESULT(codeGen.popDeferScope());
+
     return codeGenIfStmtPostBlockChild(codeGen, ifRef, resolvedIfBlockRef, resolvedElseBlockRef, resolvedChildRef);
+}
+
+Result AstIfVarDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const AstNodeRef resolvedChildRef     = codeGen.resolvedNodeRef(childRef);
+    const AstNodeRef resolvedIfBlockRef   = codeGen.resolvedNodeRef(nodeIfBlockRef);
+    const AstNodeRef resolvedElseBlockRef = codeGen.resolvedNodeRef(nodeElseBlockRef);
+    if (resolvedChildRef == resolvedIfBlockRef || resolvedChildRef == resolvedElseBlockRef)
+        codeGen.pushDeferScope();
+    return Result::Continue;
 }
 
 Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
@@ -120,7 +143,7 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     if (resolvedWhereRef.isInvalid() && resolvedVarRef.isValid() && resolvedChildRef == resolvedVarRef)
     {
         const SymbolVariable& symVar           = ifVarDeclConditionSymbol(codeGen, resolvedVarRef);
-        const auto*           conditionPayload = CodeGen::variablePayload(symVar);
+        const auto*           conditionPayload = codeGen.variablePayload(symVar);
         SWC_ASSERT(conditionPayload != nullptr);
         emitIfStmtCondition(codeGen, ifRef, *conditionPayload, symVar.typeRef(), resolvedElseBlockRef.isValid());
         return Result::Continue;
@@ -135,7 +158,38 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
         return Result::Continue;
     }
 
+    if (resolvedChildRef == resolvedIfBlockRef || resolvedChildRef == resolvedElseBlockRef)
+        SWC_RESULT(codeGen.popDeferScope());
+
     return codeGenIfStmtPostBlockChild(codeGen, ifRef, resolvedIfBlockRef, resolvedElseBlockRef, resolvedChildRef);
+}
+
+Result AstWithStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
+        codeGen.pushDeferScope();
+    return Result::Continue;
+}
+
+Result AstWithStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
+        return codeGen.popDeferScope();
+    return Result::Continue;
+}
+
+Result AstWithVarDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
+        codeGen.pushDeferScope();
+    return Result::Continue;
+}
+
+Result AstWithVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
+        return codeGen.popDeferScope();
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

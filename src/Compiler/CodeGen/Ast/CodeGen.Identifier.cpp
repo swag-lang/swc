@@ -39,7 +39,7 @@ namespace
             return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
-        const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar);
+        const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
         if (symbolPayload)
             return *symbolPayload;
 

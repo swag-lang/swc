@@ -235,7 +235,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
             auto [countRef, countPtr] = sema.ast().makeNode<AstNodeId::CountOfExpr>(exprNode.tokRef());
             countPtr->nodeExprRef     = nodeExprRef;
             SWC_RESULT(SemaHelpers::intrinsicCountOf(sema, countRef, nodeExprRef));
-            sema.setSubstitute(nodeExprRef, countRef);
+            const_cast<AstForStmt*>(this)->nodeExprRef = countRef;
         }
         else if (!view.type()->isInt())
         {

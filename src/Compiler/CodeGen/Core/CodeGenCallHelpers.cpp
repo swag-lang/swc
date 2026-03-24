@@ -468,7 +468,7 @@ namespace
             const SemaNodeView argConstView      = codeGen.viewTypeConstant(argRef);
             const bool         isNullConstantArg = argConstView.cst() && argConstView.cst()->isNull();
 
-            if (const CodeGenNodePayload* payload = codeGen.safePayload(argRef))
+            if (const CodeGenNodePayload* payload = codeGen.safePayload(argRef); payload && payload->reg.isValid())
             {
                 argPayload = *payload;
 
@@ -518,12 +518,15 @@ namespace
 
     const CodeGenNodePayload* resolveCallPayload(CodeGen& codeGen, AstNodeRef calleeRef)
     {
-        if (const CodeGenNodePayload* payload = codeGen.safePayload(calleeRef))
+        if (const CodeGenNodePayload* payload = codeGen.safePayload(calleeRef); payload && payload->reg.isValid())
             return payload;
 
         const AstNodeRef resolvedRef = codeGen.viewZero(calleeRef).nodeRef();
         if (resolvedRef.isValid() && resolvedRef != calleeRef)
-            return codeGen.safePayload(resolvedRef);
+        {
+            if (const CodeGenNodePayload* payload = codeGen.safePayload(resolvedRef); payload && payload->reg.isValid())
+                return payload;
+        }
 
         return nullptr;
     }

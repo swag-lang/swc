@@ -306,7 +306,8 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
             return Result::Continue;
     }
 
-    SWC_ASSERT(codeGen.safePayload(nodeRightRef));
+    const CodeGenNodePayload* rightPayload = codeGen.safePayload(nodeRightRef);
+    SWC_ASSERT(rightPayload && rightPayload->reg.isValid());
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curViewType().typeRef());
     return Result::Continue;
 }

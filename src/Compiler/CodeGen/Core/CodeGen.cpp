@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
@@ -20,6 +21,7 @@ namespace
     {
         CodeGenNodePayload payload;
         bool               hasPayload = false;
+        uint32_t           addressGeneration = 0;
     };
 
     VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym)
@@ -39,12 +41,22 @@ namespace
         return *(payload);
     }
 
+    bool isStackAddressPayload(const CodeGen& codeGen, const SymbolVariable& sym, const CodeGenNodePayload& payload)
+    {
+        if (!payload.isAddress())
+            return false;
+        if (sym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            return true;
+        return codeGen.localStackBaseReg().isValid() && sym.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal);
+    }
+
 }
 
 void CodeGenFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
 {
-    breakable_.nodeRef = nodeRef;
-    breakable_.kind    = kind;
+    breakable_.nodeRef          = nodeRef;
+    breakable_.kind             = kind;
+    currentLoopHasContinueJump_ = false;
 }
 
 void CodeGenFrame::setCurrentLoopIndex(MicroReg reg, TypeRef typeRef)
@@ -83,6 +95,11 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         localStackBaseReg_                = MicroReg::invalid();
         currentFunctionIndirectReturnReg_ = MicroReg::invalid();
         currentFunctionClosureContextReg_ = MicroReg::invalid();
+        deferScopes_.clear();
+        deferredEmitDepth_                = 0;
+        currentDeferredAddressGeneration_ = 0;
+        nextDeferredAddressGeneration_    = 1;
+        hasDeferredStatements_            = containsNodeId(root, AstNodeId::DeferStmt);
         clearGvtdScratchLayout();
         frames_.clear();
         frames_.emplace_back();
@@ -93,7 +110,10 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         {
             SWC_ASSERT(symVar != nullptr);
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
+            {
                 payload->hasPayload = false;
+                payload->addressGeneration = 0;
+            }
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
             symVar->setCodeGenLocalSize(0);
             symVar->setDebugStackSlotOffset(0);
@@ -104,7 +124,10 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         {
             SWC_ASSERT(symVar != nullptr);
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
+            {
                 payload->hasPayload = false;
+                payload->addressGeneration = 0;
+            }
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
         }
 
@@ -274,12 +297,16 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
     VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(*this, sym);
     symbolPayload.payload                       = payload;
     symbolPayload.hasPayload                    = true;
+    symbolPayload.addressGeneration            = isStackAddressPayload(*this, sym, payload) ? currentDeferredAddressGeneration_ : 0;
 }
 
-const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym)
+const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
 {
     const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
     if (!symbolPayload || !symbolPayload->hasPayload)
+        return nullptr;
+    if (isStackAddressPayload(*this, sym, symbolPayload->payload) &&
+        symbolPayload->addressGeneration != currentDeferredAddressGeneration_)
         return nullptr;
     return &symbolPayload->payload;
 }
@@ -354,20 +381,22 @@ MicroReg CodeGen::offsetAddressReg(const MicroReg baseReg, const uint32_t offset
     return addressReg;
 }
 
-CodeGenNodePayload CodeGen::resolveLocalStackPayload(const SymbolVariable& sym)
+CodeGenNodePayload CodeGen::resolveLocalStackPayload(const SymbolVariable& sym, const bool cache)
 {
-    if (const CodeGenNodePayload* symbolPayload = variablePayload(sym))
-        return *symbolPayload;
+    if (cache)
+    {
+        if (const CodeGenNodePayload* symbolPayload = variablePayload(sym))
+            return *symbolPayload;
+    }
 
     SWC_ASSERT(localStackBaseReg().isValid());
 
-    // Stack-backed symbols are reused heavily during codegen, so cache the computed
-    // address payload once instead of rebuilding the same base+offset sequence.
     CodeGenNodePayload localPayload;
     localPayload.typeRef = sym.typeRef();
     localPayload.setIsAddress();
     localPayload.reg = offsetAddressReg(localStackBaseReg(), sym.offset());
-    setVariablePayload(sym, localPayload);
+    if (cache)
+        setVariablePayload(sym, localPayload);
     return localPayload;
 }
 
@@ -384,9 +413,278 @@ MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
         return currentFunctionIndirectReturnReg();
     }
 
-    const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*(nodePayload->runtimeStorageSym));
+    const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*(nodePayload->runtimeStorageSym), !inDeferredEmission());
     SWC_ASSERT(storagePayload.isAddress());
     return storagePayload.reg;
+}
+
+void CodeGen::pushDeferScope(AstNodeRef scopeRef, AstNodeRef breakOwnerRef, AstNodeRef switchCaseRef)
+{
+    if (!hasDeferredStatements_)
+        return;
+
+    if (scopeRef.isValid())
+        scopeRef = resolvedNodeRef(scopeRef);
+    if (breakOwnerRef.isValid())
+        breakOwnerRef = resolvedNodeRef(breakOwnerRef);
+    if (switchCaseRef.isValid())
+        switchCaseRef = resolvedNodeRef(switchCaseRef);
+
+    CodeGenDeferScope deferScope;
+    deferScope.scopeRef      = scopeRef;
+    deferScope.breakOwnerRef = breakOwnerRef;
+    deferScope.switchCaseRef = switchCaseRef;
+    deferScopes_.push_back(std::move(deferScope));
+}
+
+void CodeGen::registerDefer(const AstNodeRef deferStmtRef, const AstNodeRef bodyRef, const AstModifierFlags modifierFlags)
+{
+    if (!hasDeferredStatements_)
+        return;
+
+    SWC_ASSERT(!deferScopes_.empty());
+    if (deferScopes_.empty())
+        return;
+
+    auto& action         = deferScopes_.back().actions.emplace_back();
+    action.deferStmtRef  = resolvedNodeRef(deferStmtRef);
+    action.bodyRef       = resolvedNodeRef(bodyRef);
+    action.modifierFlags = modifierFlags;
+}
+
+namespace
+{
+    Result emitDeferredActions(CodeGen& codeGen, const CodeGenDeferScope& deferScope)
+    {
+        for (size_t i = deferScope.actions.size(); i != 0; --i)
+        {
+            const auto& action = deferScope.actions[i - 1];
+            SWC_ASSERT(action.modifierFlags == AstModifierFlagsE::Zero);
+            if (action.bodyRef.isInvalid())
+                continue;
+
+            SWC_RESULT(codeGen.emitNodeNow(action.bodyRef));
+        }
+
+        return Result::Continue;
+    }
+}
+
+Result CodeGen::popDeferScope()
+{
+    if (!hasDeferredStatements_)
+        return Result::Continue;
+
+    SWC_ASSERT(!deferScopes_.empty());
+    if (deferScopes_.empty())
+        return Result::Continue;
+
+    CodeGenDeferScope deferScope = std::move(deferScopes_.back());
+    deferScopes_.pop_back();
+
+    if (currentInstructionBlocksFallthrough())
+        return Result::Continue;
+
+    return emitDeferredActions(*this, deferScope);
+}
+
+Result CodeGen::emitDeferredActionsForReturn()
+{
+    if (!hasDeferredStatements_)
+        return Result::Continue;
+
+    SmallVector<CodeGenDeferScope> pendingScopes;
+    pendingScopes.reserve(deferScopes_.size());
+    for (size_t i = deferScopes_.size(); i != 0; --i)
+        pendingScopes.push_back(deferScopes_[i - 1]);
+
+    for (const auto& deferScope : pendingScopes)
+        SWC_RESULT(emitDeferredActions(*this, deferScope));
+    return Result::Continue;
+}
+
+Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef)
+{
+    if (!hasDeferredStatements_)
+        return Result::Continue;
+
+    scopeRef = resolvedNodeRef(scopeRef);
+    if (scopeRef.isInvalid())
+        return Result::Continue;
+
+    SmallVector<CodeGenDeferScope> pendingScopes;
+    for (size_t i = deferScopes_.size(); i != 0; --i)
+    {
+        const auto& deferScope = deferScopes_[i - 1];
+        pendingScopes.push_back(deferScope);
+        if (deferScope.scopeRef == scopeRef)
+            break;
+    }
+
+    for (const auto& deferScope : pendingScopes)
+        SWC_RESULT(emitDeferredActions(*this, deferScope));
+    return Result::Continue;
+}
+
+Result CodeGen::emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef)
+{
+    if (!hasDeferredStatements_)
+        return Result::Continue;
+
+    breakOwnerRef = resolvedNodeRef(breakOwnerRef);
+    if (breakOwnerRef.isInvalid())
+        return Result::Continue;
+
+    SmallVector<CodeGenDeferScope> pendingScopes;
+    for (size_t i = deferScopes_.size(); i != 0; --i)
+    {
+        const auto& deferScope = deferScopes_[i - 1];
+        pendingScopes.push_back(deferScope);
+        if (deferScope.breakOwnerRef == breakOwnerRef)
+            break;
+    }
+
+    for (const auto& deferScope : pendingScopes)
+        SWC_RESULT(emitDeferredActions(*this, deferScope));
+    return Result::Continue;
+}
+
+Result CodeGen::emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef)
+{
+    if (!hasDeferredStatements_)
+        return Result::Continue;
+
+    switchCaseRef = resolvedNodeRef(switchCaseRef);
+    if (switchCaseRef.isInvalid())
+        return Result::Continue;
+
+    SmallVector<CodeGenDeferScope> pendingScopes;
+    for (size_t i = deferScopes_.size(); i != 0; --i)
+    {
+        const auto& deferScope = deferScopes_[i - 1];
+        pendingScopes.push_back(deferScope);
+        if (deferScope.switchCaseRef == switchCaseRef)
+            break;
+    }
+
+    for (const auto& deferScope : pendingScopes)
+        SWC_RESULT(emitDeferredActions(*this, deferScope));
+    return Result::Continue;
+}
+
+bool CodeGen::currentInstructionBlocksFallthrough() const
+{
+    const MicroStorage& instructions = builder().instructions();
+    const MicroInstrRef ref          = instructions.findPreviousInstructionRef(MicroInstrRef::invalid());
+    if (!ref.isValid())
+        return false;
+
+    const MicroInstr* inst = instructions.ptr(ref);
+    if (!inst)
+        return false;
+
+    if (inst->op == MicroInstrOpcode::Label)
+        return false;
+
+    if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::JumpReg)
+        return true;
+
+    const MicroInstrOperand* ops = inst->ops(builder().operands());
+    return ops && MicroInstrInfo::isUnconditionalJumpInstruction(*inst, ops);
+}
+
+void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
+{
+    if (nodeRef.isInvalid())
+        return;
+
+    SmallVector<AstNodeRef> stack;
+    stack.push_back(nodeRef);
+    while (!stack.empty())
+    {
+        const AstNodeRef currentRef = stack.back();
+        stack.pop_back();
+
+        if (CodeGenNodePayload* payload = safePayload(currentRef))
+            payload->reg = MicroReg::invalid();
+
+        SmallVector<AstNodeRef> children;
+        node(currentRef).collectChildrenFromAst(children, ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (childRef.isValid())
+                stack.push_back(childRef);
+        }
+    }
+}
+
+bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+
+    SmallVector<AstNodeRef> stack;
+    stack.push_back(nodeRef);
+    while (!stack.empty())
+    {
+        const AstNodeRef currentRef = stack.back();
+        stack.pop_back();
+
+        const AstNode& currentNode = ast().node(currentRef);
+        if (currentNode.id() == nodeId)
+            return true;
+
+        SmallVector<AstNodeRef> children;
+        currentNode.collectChildrenFromAst(children, ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (childRef.isValid())
+                stack.push_back(childRef);
+        }
+    }
+
+    return false;
+}
+
+Result CodeGen::emitNodeNow(AstNodeRef nodeRef)
+{
+    nodeRef = resolvedNodeRef(nodeRef);
+    if (nodeRef.isInvalid())
+        return Result::Continue;
+
+    invalidateNodePayloadRegs(nodeRef);
+
+    AstVisit savedVisit = std::move(visit_);
+    visit_              = {};
+    setVisitors();
+    visit_.start(ast(), nodeRef);
+
+    const uint32_t savedDeferredAddressGeneration = currentDeferredAddressGeneration_;
+    currentDeferredAddressGeneration_             = nextDeferredAddressGeneration_++;
+    SWC_ASSERT(currentDeferredAddressGeneration_ != 0);
+    ++deferredEmitDepth_;
+
+    Result result = Result::Continue;
+    while (true)
+    {
+        const AstVisitResult visitResult = visit_.step(ctx());
+        if (visitResult == AstVisitResult::Continue)
+            continue;
+
+        if (visitResult == AstVisitResult::Pause)
+            result = Result::Pause;
+        else if (visitResult == AstVisitResult::Error)
+            result = Result::Error;
+        break;
+    }
+
+    --deferredEmitDepth_;
+    currentDeferredAddressGeneration_ = savedDeferredAddressGeneration;
+    visit_ = std::move(savedVisit);
+    if (curNodeRef().isValid())
+        builder().setCurrentDebugSourceCodeRef(node(curNodeRef()).codeRef());
+
+    return result;
 }
 
 void CodeGen::clearGvtdScratchLayout()
@@ -414,6 +712,24 @@ void CodeGen::pushFrame(const CodeGenFrame& frame)
 void CodeGen::popFrame()
 {
     SWC_ASSERT(!frames_.empty());
+    if (frames_.size() >= 2)
+    {
+        const CodeGenFrame& currentFrame = frames_.back();
+        CodeGenFrame&       parentFrame  = frames_[frames_.size() - 2];
+
+        // Inline/macro expansion runs inside a copied frame. If that copy records a `continue`,
+        // propagate the flag back so the enclosing loop still materializes its continue block.
+        if (currentFrame.hasCurrentInlineContext() &&
+            currentFrame.currentLoopHasContinueJump() &&
+            currentFrame.currentBreakableKind() == CodeGenFrame::BreakContextKind::Loop &&
+            parentFrame.currentBreakableKind() == currentFrame.currentBreakableKind() &&
+            parentFrame.currentBreakContext().nodeRef == currentFrame.currentBreakContext().nodeRef &&
+            parentFrame.currentLoopContinueLabel() == currentFrame.currentLoopContinueLabel())
+        {
+            parentFrame.setCurrentLoopHasContinueJump(true);
+        }
+    }
+
     frames_.pop_back();
 }
 

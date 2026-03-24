@@ -180,6 +180,21 @@ func remapLoopFlow(stmt: #code void)
 #test
 {
     var count = 0
+    var values: [4] s32 = [10, 20, 30, 40]
+    foreach value in values
+    {
+        count += 1
+        breakAsContinue(#code {
+            break
+        })
+    }
+
+    @assert(count == 4)
+}
+
+#test
+{
+    var count = 0
     #scope(Outer)
     {
         for 4

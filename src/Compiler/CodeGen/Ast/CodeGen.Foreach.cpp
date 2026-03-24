@@ -87,7 +87,7 @@ namespace
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
-            if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+            if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
                 return *symbolPayload;
             const SymbolFunction& symbolFunc = codeGen.function();
             return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
@@ -95,7 +95,7 @@ namespace
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
-            if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+            if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
                 return *symbolPayload;
             return codeGen.resolveLocalStackPayload(symVar);
         }
@@ -135,7 +135,7 @@ namespace
             return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+        if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
             return *symbolPayload;
 
         if (symVar.hasGlobalStorage())
@@ -159,7 +159,7 @@ namespace
 
     CodeGenNodePayload foreachExprPayload(CodeGen& codeGen, AstNodeRef exprRef)
     {
-        if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(exprRef))
+        if (const auto* payload = codeGen.safePayload(exprRef))
         {
             if (payload->reg.isValid())
                 return *payload;
@@ -173,7 +173,7 @@ namespace
                 symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
                 symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
                 symVar.hasGlobalStorage() ||
-                CodeGen::variablePayload(symVar) ||
+                codeGen.variablePayload(symVar) ||
                 (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
                 return resolveForeachStoredVariablePayload(codeGen, symVar);
         }
@@ -379,6 +379,7 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
     frame.setCurrentLoopBreakLabel(loopState->doneLabel);
     frame.setCurrentLoopIndex(loopState->indexReg, codeGen.typeMgr().typeU64());
     codeGen.pushFrame(frame);
+    codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     return Result::Continue;
 }
 
@@ -421,6 +422,14 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
     if (childRef == bodyRef)
     {
+        SWC_RESULT(codeGen.popDeferScope());
+
+        if (codeGen.currentInstructionBlocksFallthrough() && !codeGen.frame().currentLoopHasContinueJump())
+        {
+            codeGen.popFrame();
+            return Result::Continue;
+        }
+
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);
         builder.placeLabel(loopState->continueLabel);

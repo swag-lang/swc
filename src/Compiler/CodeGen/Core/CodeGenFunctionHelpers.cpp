@@ -247,7 +247,7 @@ bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const Sym
 
 CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(CodeGen& codeGen, const SymbolVariable& symVar)
 {
-    if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+    if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
         return *symbolPayload;
 
     SWC_ASSERT(usesCallerReturnStorage(codeGen, symVar));
@@ -263,7 +263,7 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(Cod
 
 CodeGenNodePayload CodeGenFunctionHelpers::resolveClosureCapturePayload(CodeGen& codeGen, const SymbolVariable& symVar)
 {
-    if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+    if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
         return *symbolPayload;
 
     SWC_ASSERT(symVar.isClosureCapture());
@@ -337,8 +337,15 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
 
 CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
 {
-    if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+    if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
         return *symbolPayload;
+
+    if (symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
+        symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
+        codeGen.localStackBaseReg().isValid())
+    {
+        return codeGen.resolveLocalStackPayload(symVar);
+    }
 
     CodeGenNodePayload outPayload;
 

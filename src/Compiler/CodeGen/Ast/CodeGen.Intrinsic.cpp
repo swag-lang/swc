@@ -770,7 +770,7 @@ namespace
             return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+        if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
             return *symbolPayload;
 
         if (symVar.hasGlobalStorage())
@@ -794,7 +794,7 @@ namespace
 
     CodeGenNodePayload countOfExprPayload(CodeGen& codeGen, AstNodeRef exprRef)
     {
-        if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(exprRef))
+        if (const auto* payload = codeGen.safePayload(exprRef))
         {
             if (payload->reg.isValid())
                 return *payload;
@@ -811,7 +811,7 @@ namespace
                 symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
                 symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
                 symVar.hasGlobalStorage() ||
-                CodeGen::variablePayload(symVar) ||
+                codeGen.variablePayload(symVar) ||
                 (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
                 return resolveStoredVariablePayload(codeGen, symVar);
         }

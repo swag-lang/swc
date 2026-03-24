@@ -133,7 +133,8 @@ namespace
         const SemaNodeView        view      = codeGen.curViewType();
         const SemaNodeView        childView = codeGen.viewSymbol(nodeExprRef);
         const CodeGenNodePayload& payload   = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
-        if (childView.sym() && childView.sym()->isFunction() && !codeGen.safePayload(nodeExprRef))
+        const CodeGenNodePayload* childPayloadMaybe = codeGen.safePayload(nodeExprRef);
+        if (childView.sym() && childView.sym()->isFunction() && (!childPayloadMaybe || !childPayloadMaybe->reg.isValid()))
         {
             // Function symbols do not materialize an lvalue payload, so taking their address loads the
             // code pointer directly.

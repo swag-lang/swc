@@ -1083,15 +1083,8 @@ namespace
         const MicroInstrRef storeRef = storeIt.current;
         const MicroInstrRef copyRef  = hasRhsCopy ? nextIt.current : MicroInstrRef::invalid();
 
-        MicroInstr*        binMutable    = context.instructions->ptr(binRef);
-        MicroInstrOperand* binMutableOps = binMutable ? binMutable->ops(*context.operands) : nullptr;
-        if (!binMutable || !binMutableOps)
-            return false;
-
-        MicroInstr        probeBinInst         = *binMutable;
-        std::array        rewrittenBinOps      = {binMutableOps[0], binMutableOps[1], binMutableOps[2], binMutableOps[3], MicroInstrOperand{}};
-        auto              rewrittenBinOpcode   = MicroInstrOpcode::End;
-        constexpr uint8_t rewrittenBinOperands = 5;
+        std::array<MicroInstrOperand, 5> rewrittenBinOps{};
+        auto                             rewrittenBinOpcode = MicroInstrOpcode::End;
 
         if (binInst.op == MicroInstrOpcode::OpBinaryRegImm)
         {
@@ -1135,17 +1128,17 @@ namespace
             return false;
         }
 
-        probeBinInst.op          = rewrittenBinOpcode;
-        probeBinInst.numOperands = rewrittenBinOperands;
+        constexpr uint8_t rewrittenBinOperands = static_cast<uint8_t>(rewrittenBinOps.size());
+        MicroInstr        probeBinInst         = binInst;
+        probeBinInst.op                        = rewrittenBinOpcode;
+        probeBinInst.numOperands               = rewrittenBinOperands;
         if (MicroPassHelpers::violatesEncoderConformance(context, probeBinInst, rewrittenBinOps.data()))
             return false;
 
-        binMutable->op          = rewrittenBinOpcode;
-        binMutable->numOperands = rewrittenBinOperands;
-        for (uint32_t i = 0; i < rewrittenBinOperands; ++i)
-            binMutableOps[i] = rewrittenBinOps[i];
+        context.instructions->insertBefore(*context.operands, binRef, rewrittenBinOpcode, rewrittenBinOps, binInst.debugNoStep);
 
         context.instructions->erase(instRef);
+        context.instructions->erase(binRef);
         context.instructions->erase(storeRef);
         if (hasRhsCopy && eraseRhsCopy)
             context.instructions->erase(copyRef);

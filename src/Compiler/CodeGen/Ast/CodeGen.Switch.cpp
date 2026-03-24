@@ -610,6 +610,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             }
 
             builder.placeLabel(caseState.bodyLabel);
+            codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
         }
 
         return Result::Continue;
@@ -705,6 +706,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     }
 
     builder.placeLabel(caseState.bodyLabel);
+    codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
     return Result::Continue;
 }
 
@@ -713,6 +715,7 @@ Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRe
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
+    SWC_RESULT(codeGen.popDeferScope());
     if (caseBodyEndsWithFallthrough(codeGen, *this))
         return Result::Continue;
 
@@ -735,6 +738,8 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
     const CodeGenFrame::BreakContext& breakCtx = codeGen.frame().currentBreakContext();
     if (breakCtx.kind == CodeGenFrame::BreakContextKind::None)
         return Result::Continue;
+
+    SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(breakCtx.nodeRef));
 
     if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop ||
         breakCtx.kind == CodeGenFrame::BreakContextKind::Scope)
@@ -773,6 +778,7 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
     if (!itCase->second.hasNextCase)
         return Result::Continue;
 
+    SWC_RESULT(codeGen.emitDeferredActionsUntilSwitchCase(caseRef));
     const AstNodeRef    nextCaseRef = nextSwitchCaseRef(codeGen, switchRef, caseRef);
     MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef targetLabel =

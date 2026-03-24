@@ -64,6 +64,7 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
         frame.setCurrentLoopContinueLabel(loopState->continueLabel);
         frame.setCurrentLoopBreakLabel(loopState->doneLabel);
         codeGen.pushFrame(frame);
+        codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     }
 
     return Result::Continue;
@@ -87,6 +88,7 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
     if (childRef == bodyRef)
     {
+        SWC_RESULT(codeGen.popDeferScope());
         MicroBuilder&           builder = codeGen.builder();
         const ScopedDebugNoStep noStep(builder, true);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
@@ -133,6 +135,7 @@ Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     frame.setCurrentLoopContinueLabel(loopState->continueLabel);
     frame.setCurrentLoopBreakLabel(loopState->doneLabel);
     codeGen.pushFrame(frame);
+    codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     return Result::Continue;
 }
 
@@ -144,6 +147,7 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
+    SWC_RESULT(codeGen.popDeferScope());
     MicroBuilder&           builder = codeGen.builder();
     const ScopedDebugNoStep noStep(builder, true);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);

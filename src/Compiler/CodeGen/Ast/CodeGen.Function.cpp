@@ -387,7 +387,7 @@ namespace
             if (!symVar->debugStackSlotSize())
                 continue;
 
-            const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(*symVar);
+            const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(*symVar);
             if (!symbolPayload)
                 continue;
 
@@ -469,6 +469,8 @@ namespace
             SWC_ASSERT(exprRef.isValid());
             SWC_RESULT(emitInlineResultStore(codeGen, inlinePayload, exprRef));
         }
+
+        SWC_RESULT(codeGen.emitDeferredActionsUntilScopeRef(inlinePayload.inlineRootRef));
 
         CodeGenFrame& frame     = codeGen.frame();
         MicroLabelRef doneLabel = frame.currentInlineContext().doneLabel;
@@ -617,42 +619,19 @@ namespace
             if (symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
                 symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
             {
-                if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar); symbolPayload && symbolPayload->isAddress())
+                if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar); symbolPayload && symbolPayload->isAddress())
                     return *symbolPayload;
-
-                SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-
-                CodeGenNodePayload sourcePayload;
-                if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
-                    sourcePayload = *symbolPayload;
-                else
-                    sourcePayload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), symVar);
-
-                const TypeInfo& typeInfo = codeGen.typeMgr().get(symVar.typeRef());
-                const uint32_t  copySize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
-                const MicroReg  localReg = codeGen.offsetAddressReg(codeGen.localStackBaseReg(), symVar.offset());
-
-                if (sourcePayload.isAddress())
-                    CodeGenMemoryHelpers::emitMemCopy(codeGen, localReg, sourcePayload.reg, copySize);
-                else
-                    codeGen.builder().emitLoadMemReg(localReg, 0, sourcePayload.reg, microOpBitsFromChunkSize(copySize));
-
-                CodeGenNodePayload localPayload;
-                localPayload.typeRef = symVar.typeRef();
-                localPayload.setIsAddress();
-                localPayload.reg = localReg;
-                codeGen.setVariablePayload(symVar, localPayload);
-                return localPayload;
+                return codeGen.resolveLocalStackPayload(symVar);
             }
 
-            if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+            if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
                 return *symbolPayload;
 
             const SymbolFunction& symbolFunc = codeGen.function();
             return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
-        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+        if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
             return *symbolPayload;
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
@@ -677,7 +656,11 @@ namespace
     {
         const CodeGenNodePayload* sourcePayload = nullptr;
         if (const auto* captureArg = captureVar.decl() ? captureVar.decl()->safeCast<AstClosureArgument>() : nullptr)
-            sourcePayload = codeGen.safePayload(captureArg->nodeIdentifierRef);
+        {
+            const CodeGenNodePayload* capturePayload = codeGen.safePayload(captureArg->nodeIdentifierRef);
+            if (capturePayload && capturePayload->reg.isValid())
+                sourcePayload = capturePayload;
+        }
 
         CodeGenNodePayload resolvedSourcePayload;
         if (!sourcePayload)
@@ -774,7 +757,7 @@ namespace
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
                 continue;
 
-            const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(*symVar);
+            const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(*symVar);
             if (!symbolPayload)
                 continue;
 
@@ -812,6 +795,7 @@ namespace
         if (normalizedRet.isVoid)
         {
             // Void returns only need control transfer; ABI return registers are irrelevant.
+            SWC_RESULT(codeGen.emitDeferredActionsForReturn());
             const ScopedDebugNoStep noStep(builder, true);
             emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
@@ -843,15 +827,26 @@ namespace
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, copySize);
             }
 
+            SWC_RESULT(codeGen.emitDeferredActionsForReturn());
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
         {
             // Direct returns are normalized to ABI return registers (int/float lane).
-            const bool      isAddressed    = exprPayload.isAddress();
             const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
             SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet.isIndirect, normalizedRet.isFloat, normalizedRet.numBits));
-            ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload.reg, isAddressed, normalizedRet);
+
+            const MicroOpBits retBits = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
+            SWC_ASSERT(retBits != MicroOpBits::Zero);
+
+            const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
+            if (exprPayload.isAddress())
+                builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
+            else
+                builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
+
+            SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+            ABICall::materializeValueToReturnRegs(builder, callConvKind, returnValueReg, false, normalizedRet);
         }
 
         {
@@ -929,6 +924,7 @@ namespace
             }
         }
 
+        SWC_RESULT(codeGen.emitDeferredActionsForReturn());
         {
             const ScopedDebugNoStep noStep(builder, true);
             emitCompilerRunBlockStackEpilogue(codeGen, callConvKind);

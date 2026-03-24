@@ -282,6 +282,7 @@ Result AstCompilerScope::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
     frame.setCurrentLoopContinueLabel(scopeState->continueLabel);
     frame.setCurrentLoopBreakLabel(scopeState->doneLabel);
     codeGen.pushFrame(frame);
+    codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     return Result::Continue;
 }
 
@@ -290,6 +291,7 @@ Result AstCompilerScope::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
+    SWC_RESULT(codeGen.popDeferScope());
     codeGen.popFrame();
     return Result::Continue;
 }
@@ -319,6 +321,7 @@ Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
     if (!scopeState)
         return Result::Continue;
 
+    SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(scopeRef));
     MicroBuilder& builder = codeGen.builder();
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, scopeState->doneLabel);
     return Result::Continue;
@@ -372,6 +375,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
                                                                 codeGen.localStackFrameSize());
         }
     }
+    SWC_RESULT(codeGen.emitDeferredActionsForReturn());
     builder.emitRet();
     return Result::Continue;
 }

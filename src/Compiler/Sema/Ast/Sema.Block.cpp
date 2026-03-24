@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -131,6 +132,12 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 {
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     return Result::Continue;
+}
+
+Result AstDeferStmt::semaPreNode(Sema& sema)
+{
+    const auto& node = sema.curNode().cast<AstDeferStmt>();
+    return SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero);
 }
 
 Result AstNamedArgument::semaPostNode(Sema& sema)

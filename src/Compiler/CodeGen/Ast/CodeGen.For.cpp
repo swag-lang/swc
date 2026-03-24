@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -32,7 +31,6 @@ namespace
         bool            reverse         = false;
         bool            inclusive       = false;
         bool            unsignedCmp     = false;
-        bool            hasContinueJump = false;
     };
 
     ForCStyleStmtCodeGenPayload* forCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -101,20 +99,6 @@ namespace
         symbolPayload.setIsValue();
         symbolPayload.reg = valueReg;
         codeGen.setVariablePayload(symVar, symbolPayload);
-    }
-
-    bool currentInstructionIsTerminator(const CodeGen& codeGen)
-    {
-        const MicroBuilder& builder = codeGen.builder();
-        const MicroInstrRef lastRef = builder.instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
-        if (lastRef.isInvalid())
-            return false;
-
-        const MicroInstr* lastInst = builder.instructions().ptr(lastRef);
-        if (!lastInst || lastInst->op == MicroInstrOpcode::Label)
-            return false;
-
-        return MicroInstrInfo::isTerminatorInstruction(*lastInst);
     }
 
     void emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)
@@ -236,6 +220,7 @@ Result AstForCStyleStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
         frame.setCurrentLoopContinueLabel(postStmtRef.isValid() ? loopState->continueLabel : loopState->loopLabel);
         frame.setCurrentLoopBreakLabel(loopState->doneLabel);
         codeGen.pushFrame(frame);
+        codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     }
 
     return Result::Continue;
@@ -277,6 +262,7 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 
     if (childRef == bodyRef)
     {
+        SWC_RESULT(codeGen.popDeferScope());
         MicroBuilder&           builder = codeGen.builder();
         const ScopedDebugNoStep noStep(builder, true);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, postStmtRef.isValid() ? loopState->continueLabel : loopState->loopLabel);
@@ -333,6 +319,7 @@ Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& child
     frame.setCurrentLoopBreakLabel(loopState->doneLabel);
     frame.setCurrentLoopIndex(loopState->indexReg, loopState->indexTypeRef);
     codeGen.pushFrame(frame);
+    codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     return Result::Continue;
 }
 
@@ -363,7 +350,9 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
 
     if (childRef == bodyRef)
     {
-        if (currentInstructionIsTerminator(codeGen) && !loopState->hasContinueJump)
+        SWC_RESULT(codeGen.popDeferScope());
+
+        if (codeGen.currentInstructionBlocksFallthrough() && !codeGen.frame().currentLoopHasContinueJump())
         {
             codeGen.popFrame();
             return Result::Continue;
@@ -417,21 +406,14 @@ Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
         return Result::Continue;
 
     const AstNodeRef breakRef = codeGen.frame().currentBreakContext().nodeRef;
-    if (breakKind == CodeGenFrame::BreakContextKind::Loop && breakRef.isValid())
-    {
-        const AstNode& loopNode = codeGen.node(breakRef);
-        if (loopNode.is(AstNodeId::ForStmt))
-        {
-            ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, breakRef);
-            SWC_ASSERT(loopState != nullptr);
-            loopState->hasContinueJump = true;
-        }
-    }
+    if (breakKind == CodeGenFrame::BreakContextKind::Loop)
+        codeGen.frame().setCurrentLoopHasContinueJump(true);
 
     const MicroLabelRef continueLabel = codeGen.frame().currentLoopContinueLabel();
     if (continueLabel == MicroLabelRef::invalid())
         return Result::Continue;
 
+    SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(breakRef));
     MicroBuilder& builder = codeGen.builder();
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, continueLabel);
     return Result::Continue;

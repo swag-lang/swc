@@ -479,7 +479,7 @@ Result CodeGen::popDeferScope()
     if (deferScopes_.empty())
         return Result::Continue;
 
-    CodeGenDeferScope deferScope = std::move(deferScopes_.back());
+    const CodeGenDeferScope deferScope = std::move(deferScopes_.back());
     deferScopes_.pop_back();
 
     if (currentInstructionBlocksFallthrough())

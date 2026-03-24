@@ -67,7 +67,7 @@ namespace
         if (!decl)
             return file->hasError();
 
-        TaskContext           ctx(const_cast<CompilerInstance&>(compiler));
+        const TaskContext     ctx(const_cast<CompilerInstance&>(compiler));
         const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, file->ast());
         if (!startRange.srcView || !startRange.len)
             return file->hasError();
@@ -83,7 +83,7 @@ namespace
 
         while (!stack.empty())
         {
-            SymbolFunction* function = stack.back();
+            const SymbolFunction* function = stack.back();
             stack.pop_back();
             if (!function)
                 continue;

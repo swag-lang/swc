@@ -182,11 +182,11 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ExpandsLargeWindowsStackAdjustIntoPageP
     if (!subInst || !probe0 || !probe1 || !probe2 || !retInst)
         return Result::Error;
 
-    if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 12 * 1024))
+    if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 12 * 1024ull))
         return Result::Error;
-    if (!isStackProbeLoad(*probe0, probe0->ops(operands), rax, rsp, 8 * 1024))
+    if (!isStackProbeLoad(*probe0, probe0->ops(operands), rax, rsp, 8 * 1024ull))
         return Result::Error;
-    if (!isStackProbeLoad(*probe1, probe1->ops(operands), rax, rsp, 4 * 1024))
+    if (!isStackProbeLoad(*probe1, probe1->ops(operands), rax, rsp, 4 * 1024ull))
         return Result::Error;
     if (!isStackProbeLoad(*probe2, probe2->ops(operands), rax, rsp, 0))
         return Result::Error;

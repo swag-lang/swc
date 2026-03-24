@@ -1128,10 +1128,10 @@ namespace
             return false;
         }
 
-        constexpr uint8_t rewrittenBinOperands = rewrittenBinOps.size();
-        MicroInstr        probeBinInst         = binInst;
-        probeBinInst.op                        = rewrittenBinOpcode;
-        probeBinInst.numOperands               = rewrittenBinOperands;
+        constexpr size_t rewrittenBinOperands = rewrittenBinOps.size();
+        MicroInstr       probeBinInst         = binInst;
+        probeBinInst.op                       = rewrittenBinOpcode;
+        probeBinInst.numOperands              = rewrittenBinOperands;
         if (MicroPassHelpers::violatesEncoderConformance(context, probeBinInst, rewrittenBinOps.data()))
             return false;
 

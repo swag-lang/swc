@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -53,11 +54,12 @@ void CodeGenFrame::setCurrentLoopIndex(MicroReg reg, TypeRef typeRef)
     currentLoopIndexTypeRef_ = typeRef;
 }
 
-void CodeGenFrame::setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel)
+void CodeGenFrame::setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel, uint32_t deferScopeBaseCount)
 {
-    inlineContext_.rootNodeRef = rootNodeRef;
-    inlineContext_.payload     = payload;
-    inlineContext_.doneLabel   = doneLabel;
+    inlineContext_.rootNodeRef          = rootNodeRef;
+    inlineContext_.payload              = payload;
+    inlineContext_.doneLabel            = doneLabel;
+    inlineContext_.deferScopeBaseCount  = deferScopeBaseCount;
 }
 
 CodeGen::CodeGen(Sema& sema) :
@@ -84,6 +86,8 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         currentFunctionIndirectReturnReg_ = MicroReg::invalid();
         currentFunctionClosureContextReg_ = MicroReg::invalid();
         clearGvtdScratchLayout();
+        clearReturnScratch();
+        activeDeferScopes_.clear();
         frames_.clear();
         frames_.emplace_back();
         symbolFunc.setDebugStackFrameSize(0);
@@ -137,26 +141,12 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         SWC_ASSERT(root_ == root);
     }
 
-    while (true)
-    {
-        const AstNodeRef    currentNodeRef = visit_.currentNodeRef();
-        const SourceCodeRef currentCodeRef = currentNodeRef.isValid() ? node(currentNodeRef).codeRef() : symbolFunc.codeRef();
-        ctx().state().setCodeGenParsing(&symbolFunc, currentNodeRef, currentCodeRef);
+    const Result result = runVisit(visit_);
+    if (result == Result::Pause)
+        return Result::Pause;
 
-        const AstVisitResult result = visit_.step(ctx());
-        if (result == AstVisitResult::Pause)
-            return Result::Pause;
-        if (result == AstVisitResult::Error)
-        {
-            completed_ = true;
-            return Result::Error;
-        }
-        if (result == AstVisitResult::Stop)
-        {
-            completed_ = true;
-            return Result::Continue;
-        }
-    }
+    completed_ = true;
+    return result;
 }
 
 TaskContext& CodeGen::ctx()
@@ -406,6 +396,94 @@ void CodeGen::setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<con
         gvtdScratchEntries_.push_back(entry);
 }
 
+void CodeGen::clearReturnScratch()
+{
+    returnScratchOffset_  = 0;
+    returnScratchSize_    = 0;
+    returnScratchTypeRef_ = TypeRef::invalid();
+}
+
+void CodeGen::setReturnScratch(uint32_t offset, uint32_t size, TypeRef typeRef)
+{
+    returnScratchOffset_  = offset;
+    returnScratchSize_    = size;
+    returnScratchTypeRef_ = typeRef;
+}
+
+void CodeGen::pushDeferScope(AstNodeRef ownerRef)
+{
+    DeferScope scope;
+    scope.ownerRef = ownerRef;
+    activeDeferScopes_.push_back(scope);
+}
+
+Result CodeGen::popDeferScope()
+{
+    SWC_ASSERT(!activeDeferScopes_.empty());
+    if (activeDeferScopes_.empty())
+        return Result::Error;
+
+    if (currentInstructionIsTerminator())
+    {
+        activeDeferScopes_.pop_back();
+        return Result::Continue;
+    }
+
+    const DeferScope scope = activeDeferScopes_.back();
+    for (uint32_t idx = static_cast<uint32_t>(scope.defers.size()); idx > 0; --idx)
+        SWC_RESULT(emitRegisteredDefer(scope.defers[idx - 1], idx - 1));
+
+    activeDeferScopes_.pop_back();
+    return Result::Continue;
+}
+
+Result CodeGen::registerDeferredBody(AstNodeRef bodyRef)
+{
+    bodyRef = resolvedNodeRef(bodyRef);
+    SWC_ASSERT(bodyRef.isValid());
+    SWC_ASSERT(!activeDeferScopes_.empty());
+    if (bodyRef.isInvalid() || activeDeferScopes_.empty())
+        return Result::Error;
+
+    RegisteredDefer deferInfo;
+    deferInfo.bodyRef                 = bodyRef;
+    deferInfo.visibleFrameCount       = static_cast<uint32_t>(frames_.size());
+    deferInfo.visibleDeferScopeCount  = static_cast<uint32_t>(activeDeferScopes_.size());
+
+    SmallVector<AstNodeRef> reversedParents;
+    for (size_t up = 0;; ++up)
+    {
+        const AstNodeRef parentRef = visit_.parentNodeRef(up);
+        if (parentRef.isInvalid())
+            break;
+        reversedParents.push_back(parentRef);
+    }
+
+    deferInfo.parentPath.reserve(reversedParents.size() + 1);
+    for (size_t idx = reversedParents.size(); idx > 0; --idx)
+        deferInfo.parentPath.push_back(reversedParents[idx - 1]);
+    deferInfo.parentPath.push_back(curNodeRef());
+
+    activeDeferScopes_.back().defers.push_back(std::move(deferInfo));
+    return Result::Continue;
+}
+
+Result CodeGen::emitDeferredScopesFrom(uint32_t baseCount)
+{
+    SWC_ASSERT(baseCount <= activeDeferScopes_.size());
+    if (baseCount > activeDeferScopes_.size())
+        return Result::Error;
+
+    for (uint32_t scopeIdx = static_cast<uint32_t>(activeDeferScopes_.size()); scopeIdx > baseCount; --scopeIdx)
+    {
+        const DeferScope scope = activeDeferScopes_[scopeIdx - 1];
+        for (uint32_t deferIdx = static_cast<uint32_t>(scope.defers.size()); deferIdx > 0; --deferIdx)
+            SWC_RESULT(emitRegisteredDefer(scope.defers[deferIdx - 1], deferIdx - 1));
+    }
+
+    return Result::Continue;
+}
+
 void CodeGen::pushFrame(const CodeGenFrame& frame)
 {
     frames_.push_back(frame);
@@ -415,6 +493,26 @@ void CodeGen::popFrame()
 {
     SWC_ASSERT(!frames_.empty());
     frames_.pop_back();
+}
+
+bool CodeGen::currentInstructionIsTerminator() const
+{
+    const MicroInstrRef lastRef = builder().instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
+    if (lastRef.isInvalid())
+        return false;
+
+    const MicroInstr* lastInst = builder().instructions().ptr(lastRef);
+    if (!lastInst || lastInst->op == MicroInstrOpcode::Label)
+        return false;
+
+    if (!MicroInstrInfo::isTerminatorInstruction(*lastInst))
+        return false;
+
+    if (lastInst->op == MicroInstrOpcode::Ret || lastInst->op == MicroInstrOpcode::JumpReg)
+        return true;
+
+    const MicroInstrOperand* ops = lastInst->ops(builder().operands());
+    return MicroInstrInfo::isUnconditionalJumpInstruction(*lastInst, ops);
 }
 
 MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
@@ -429,14 +527,55 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
     return nextVirtualIntRegister();
 }
 
+void CodeGen::configureVisit(AstVisit& visit)
+{
+    visit.setMode(AstVisitMode::ResolveBeforeCallbacks);
+    visit.setNodeRefResolver([this](const AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); });
+    visit.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
+    visit.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
+    visit.setPostChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return postNodeChild(node, childRef); });
+    visit.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
+}
+
 void CodeGen::setVisitors()
 {
-    visit_.setMode(AstVisitMode::ResolveBeforeCallbacks);
-    visit_.setNodeRefResolver([this](const AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); });
-    visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
-    visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
-    visit_.setPostChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return postNodeChild(node, childRef); });
-    visit_.setPostNodeVisitor([this](AstNode& node) { return postNode(node); });
+    configureVisit(visit_);
+}
+
+Result CodeGen::runVisit(AstVisit& visit)
+{
+    const bool swapVisit = &visit != &visit_;
+    if (swapVisit)
+        std::swap(visit_, visit);
+
+    while (true)
+    {
+        const AstNodeRef    currentNodeRef = visit_.currentNodeRef();
+        const SourceCodeRef currentCodeRef = currentNodeRef.isValid() ? node(currentNodeRef).codeRef() : function().codeRef();
+        ctx().state().setCodeGenParsing(function_, currentNodeRef, currentCodeRef);
+
+        const AstVisitResult result = visit_.step(ctx());
+        if (result == AstVisitResult::Pause)
+        {
+            if (swapVisit)
+                std::swap(visit_, visit);
+            return Result::Pause;
+        }
+
+        if (result == AstVisitResult::Error)
+        {
+            if (swapVisit)
+                std::swap(visit_, visit);
+            return Result::Error;
+        }
+
+        if (result == AstVisitResult::Stop)
+        {
+            if (swapVisit)
+                std::swap(visit_, visit);
+            return Result::Continue;
+        }
+    }
 }
 
 Result CodeGen::preNode(AstNode& node)
@@ -445,6 +584,7 @@ Result CodeGen::preNode(AstNode& node)
     if (node.id() == AstNodeId::Attribute)
         return Result::SkipChildren;
 
+    const uint32_t deferScopeBaseCount = deferScopeCount();
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     SWC_RESULT(info.codeGenPreNode(*this, node));
 
@@ -452,7 +592,7 @@ Result CodeGen::preNode(AstNode& node)
     if (inlinePayload && inlinePayload->inlineRootRef == curNodeRef())
     {
         CodeGenFrame frame = this->frame();
-        frame.setCurrentInlineContext(curNodeRef(), inlinePayload, MicroLabelRef::invalid());
+        frame.setCurrentInlineContext(curNodeRef(), inlinePayload, MicroLabelRef::invalid(), deferScopeBaseCount);
         pushFrame(frame);
     }
 
@@ -519,6 +659,44 @@ Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
         builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPostNodeChild(*this, node, childRef);
+}
+
+Result CodeGen::emitRegisteredDefer(const RegisteredDefer& deferInfo, uint32_t remainingScopeDefers)
+{
+    SWC_ASSERT(deferInfo.bodyRef.isValid());
+    SWC_ASSERT(deferInfo.visibleFrameCount <= frames_.size());
+    SWC_ASSERT(deferInfo.visibleDeferScopeCount <= activeDeferScopes_.size());
+    if (deferInfo.bodyRef.isInvalid() ||
+        deferInfo.visibleFrameCount > frames_.size() ||
+        deferInfo.visibleDeferScopeCount > activeDeferScopes_.size())
+        return Result::Error;
+
+    const auto savedFrames       = frames_;
+    const auto savedDeferScopes  = activeDeferScopes_;
+    frames_.resize(deferInfo.visibleFrameCount);
+    activeDeferScopes_.resize(deferInfo.visibleDeferScopeCount);
+    if (!activeDeferScopes_.empty())
+    {
+        auto& currentScope = activeDeferScopes_.back();
+        SWC_ASSERT(remainingScopeDefers <= currentScope.defers.size());
+        if (remainingScopeDefers > currentScope.defers.size())
+        {
+            frames_            = savedFrames;
+            activeDeferScopes_ = savedDeferScopes;
+            return Result::Error;
+        }
+
+        currentScope.defers.resize(remainingScopeDefers);
+    }
+
+    AstVisit nestedVisit;
+    configureVisit(nestedVisit);
+    nestedVisit.startNested(ast(), deferInfo.bodyRef, deferInfo.parentPath.span());
+    const Result result = runVisit(nestedVisit);
+
+    frames_            = savedFrames;
+    activeDeferScopes_ = savedDeferScopes;
+    return result;
 }
 
 SWC_END_NAMESPACE();

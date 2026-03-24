@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -130,6 +131,15 @@ Result AstParenExpr::semaPostNode(Sema& sema)
 Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 {
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+    return Result::Continue;
+}
+
+Result AstDeferStmt::semaPreNode(Sema& sema) const
+{
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Err | AstModifierFlagsE::NoErr));
+    if (modifierFlags.has(AstModifierFlagsE::Err) || modifierFlags.has(AstModifierFlagsE::NoErr))
+        return SemaError::raise(sema, DiagnosticId::sema_err_defer_mode_not_implemented, *this);
+
     return Result::Continue;
 }
 

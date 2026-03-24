@@ -544,9 +544,6 @@ namespace
 
 Result CodeGen::emitConstant(AstNodeRef nodeRef)
 {
-    if (safePayload(nodeRef))
-        return Result::Continue;
-
     const SemaNodeView view = viewTypeConstant(nodeRef);
     if (view.cstRef().isInvalid())
         return Result::Continue;
@@ -562,9 +559,6 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
 
 Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
 {
-    if (codeGen.safePayload(codeGen.curNodeRef()))
-        return Result::Continue;
-
     const TypeRef targetTypeRef = codeGen.curViewType().typeRef();
     if (targetTypeRef.isValid())
     {

@@ -31,6 +31,7 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
 
     ast_     = &ast;
     rootRef_ = root;
+    baseStackSize_ = 0;
 
     stack_.clear();
     children_.clear();
@@ -38,6 +39,38 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     Frame fr;
     resetFrame(fr, root);
     stack_.push_back(fr);
+}
+
+void AstVisit::startNested(Ast& ast, AstNodeRef root, std::span<const AstNodeRef> parentPath)
+{
+    SWC_ASSERT(root.isValid());
+
+    ast_           = &ast;
+    rootRef_       = root;
+    baseStackSize_ = static_cast<uint32_t>(parentPath.size());
+
+    stack_.clear();
+    children_.clear();
+    stack_.reserve(parentPath.size() + 1);
+
+    for (const AstNodeRef parentRef : parentPath)
+    {
+        SWC_ASSERT(parentRef.isValid());
+        Frame parentFrame;
+        resetFrame(parentFrame, parentRef);
+        parentFrame.node          = &ast.node(parentRef);
+        parentFrame.stage         = Frame::Stage::Post;
+        parentFrame.preNodeState  = Frame::CallState::Done;
+        parentFrame.postNodeState = Frame::CallState::Done;
+        parentFrame.preChildState = Frame::CallState::Done;
+        parentFrame.postChildState = Frame::CallState::Done;
+        parentFrame.firstPass     = false;
+        stack_.push_back(parentFrame);
+    }
+
+    Frame rootFrame;
+    resetFrame(rootFrame, root);
+    stack_.push_back(rootFrame);
 }
 
 void AstVisit::restartCurrentNode(AstNodeRef nodeRef)
@@ -197,7 +230,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
         frame.postChildState   = Frame::CallState::NotCalled;
         frame.preChildState    = Frame::CallState::NotCalled;
         stack_.push_back(childFrame);
-        SWC_ASSERT(stack_.size() < 10000); // TEMP: fail
+        SWC_ASSERT(stack_.size() < 10000);
 
         return AstVisitResult::Continue;
     }
@@ -233,7 +266,7 @@ AstVisitResult AstVisit::stepPostStage(Frame& frame)
     }
 
     stack_.pop_back();
-    if (stack_.empty())
+    if (stack_.size() == baseStackSize_)
         return AstVisitResult::Stop;
 
     return AstVisitResult::Continue;

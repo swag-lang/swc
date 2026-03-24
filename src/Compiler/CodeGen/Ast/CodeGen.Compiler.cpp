@@ -28,6 +28,7 @@ namespace
     {
         MicroLabelRef continueLabel = MicroLabelRef::invalid();
         MicroLabelRef doneLabel     = MicroLabelRef::invalid();
+        uint32_t      deferBaseCount = 0;
     };
 
     CompilerScopeCodeGenPayload* compilerScopeCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -69,13 +70,68 @@ namespace
         }
     }
 
+    bool subtreeUsesDefer(const CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return false;
+
+        const AstNode& node = codeGen.node(nodeRef);
+        if (node.is(AstNodeId::DeferStmt))
+            return true;
+
+        if (node.is(AstNodeId::FunctionDecl) ||
+            node.is(AstNodeId::FunctionExpr) ||
+            node.is(AstNodeId::ClosureExpr) ||
+            node.is(AstNodeId::CompilerFunc) ||
+            node.is(AstNodeId::CompilerRunBlock))
+        {
+            return false;
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, codeGen.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (subtreeUsesDefer(codeGen, childRef))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool compilerFunctionUsesDefer(const CodeGen& codeGen)
+    {
+        const AstNodeRef declRef = codeGen.function().declNodeRef();
+        if (!declRef.isValid())
+            return false;
+
+        const AstNode& declNode = codeGen.node(declRef);
+        AstNodeRef      bodyRef = AstNodeRef::invalid();
+        switch (declNode.id())
+        {
+            case AstNodeId::CompilerFunc:
+                bodyRef = declNode.cast<AstCompilerFunc>().nodeBodyRef;
+                break;
+            case AstNodeId::CompilerRunBlock:
+                bodyRef = declNode.cast<AstCompilerRunBlock>().nodeBodyRef;
+                break;
+            default:
+                return false;
+        }
+
+        return subtreeUsesDefer(codeGen, bodyRef);
+    }
+
     void buildCompilerFunctionStackLayout(CodeGen& codeGen)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
-        if (localSymbols.empty())
+        const CallConv&                     callConv      = CallConv::get(codeGen.function().callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.function().returnTypeRef(), ABITypeNormalize::Usage::Return);
+        codeGen.clearReturnScratch();
+
+        if (localSymbols.empty() && (normalizedRet.isVoid || normalizedRet.isIndirect || !compilerFunctionUsesDefer(codeGen)))
             return;
 
-        const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
         uint64_t        frameSize = 0;
         // Sema already fixed the per-local offsets. Codegen only turns that sparse layout into one
         // contiguous stack frame and marks each symbol as stack-backed.
@@ -112,6 +168,22 @@ namespace
             symVar->setCodeGenLocalSize(size);
             symVar->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
             frameSize += size;
+        }
+
+        if (!normalizedRet.isVoid && !normalizedRet.isIndirect && compilerFunctionUsesDefer(codeGen))
+        {
+            const TypeInfo& returnType = codeGen.typeMgr().get(codeGen.function().returnTypeRef());
+            const uint32_t  size       = static_cast<uint32_t>(returnType.sizeOf(codeGen.ctx()));
+            uint32_t        alignment  = returnType.alignOf(codeGen.ctx());
+            if (!alignment)
+                alignment = 1;
+            if (size)
+            {
+                frameSize = Math::alignUpU64(frameSize, alignment);
+                SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+                codeGen.setReturnScratch(static_cast<uint32_t>(frameSize), size, codeGen.function().returnTypeRef());
+                frameSize += size;
+            }
         }
 
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
@@ -158,6 +230,12 @@ namespace
             return false;
 
         return payload.isValue();
+    }
+
+    bool needsSyntheticDeferScope(CodeGen& codeGen, AstNodeRef bodyRef)
+    {
+        bodyRef = codeGen.resolvedNodeRef(bodyRef);
+        return bodyRef.isValid() && codeGen.node(bodyRef).isNot(AstNodeId::EmbeddedBlock);
     }
 }
 
@@ -274,6 +352,10 @@ Result AstCompilerScope::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
     const CompilerScopeCodeGenPayload* scopeState = compilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(scopeState != nullptr);
 
+    auto* mutableScopeState = compilerScopeCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(mutableScopeState != nullptr);
+    mutableScopeState->deferBaseCount = codeGen.deferScopeCount();
+
     MicroBuilder& builder = codeGen.builder();
     builder.placeLabel(scopeState->continueLabel);
 
@@ -281,7 +363,12 @@ Result AstCompilerScope::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Scope);
     frame.setCurrentLoopContinueLabel(scopeState->continueLabel);
     frame.setCurrentLoopBreakLabel(scopeState->doneLabel);
+    frame.setBreakDeferScopeBaseCount(codeGen.deferScopeCount());
     codeGen.pushFrame(frame);
+
+    if (needsSyntheticDeferScope(codeGen, childRef))
+        codeGen.pushDeferScope(childRef);
+
     return Result::Continue;
 }
 
@@ -289,6 +376,9 @@ Result AstCompilerScope::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
 {
     if (childRef != nodeBodyRef)
         return Result::Continue;
+
+    if (needsSyntheticDeferScope(codeGen, childRef))
+        SWC_RESULT(codeGen.popDeferScope());
 
     codeGen.popFrame();
     return Result::Continue;
@@ -318,6 +408,8 @@ Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
     SWC_ASSERT(scopeState != nullptr);
     if (!scopeState)
         return Result::Continue;
+
+    SWC_RESULT(codeGen.emitDeferredScopesFrom(scopeState->deferBaseCount));
 
     MicroBuilder& builder = codeGen.builder();
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, scopeState->doneLabel);

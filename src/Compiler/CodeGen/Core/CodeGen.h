@@ -107,6 +107,7 @@ public:
         AstNodeRef               rootNodeRef = AstNodeRef::invalid();
         const SemaInlinePayload* payload     = nullptr;
         MicroLabelRef            doneLabel   = MicroLabelRef::invalid();
+        uint32_t                 deferScopeBaseCount = 0;
     };
 
     const BreakContext&  currentBreakContext() const { return breakable_; }
@@ -123,8 +124,10 @@ public:
     MicroReg             currentLoopIndexReg() const { return currentLoopIndexReg_; }
     void                 setCurrentLoopIndex(MicroReg reg, TypeRef typeRef);
     TypeRef              currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
+    uint32_t             breakDeferScopeBaseCount() const { return breakDeferScopeBaseCount_; }
+    void                 setBreakDeferScopeBaseCount(uint32_t count) { breakDeferScopeBaseCount_ = count; }
     const InlineContext& currentInlineContext() const { return inlineContext_; }
-    void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel);
+    void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel, uint32_t deferScopeBaseCount);
     void                 setCurrentInlineDoneLabel(MicroLabelRef doneLabel) { inlineContext_.doneLabel = doneLabel; }
     bool                 hasCurrentInlineContext() const { return inlineContext_.payload != nullptr && inlineContext_.rootNodeRef.isValid(); }
 
@@ -136,12 +139,27 @@ private:
     MicroLabelRef currentLoopBreakLabel_    = MicroLabelRef::invalid();
     MicroReg      currentLoopIndexReg_      = MicroReg::invalid();
     TypeRef       currentLoopIndexTypeRef_  = TypeRef::invalid();
+    uint32_t      breakDeferScopeBaseCount_ = 0;
     InlineContext inlineContext_;
 };
 
 class CodeGen
 {
 public:
+    struct RegisteredDefer
+    {
+        AstNodeRef               bodyRef = AstNodeRef::invalid();
+        SmallVector<AstNodeRef>  parentPath;
+        uint32_t                 visibleFrameCount      = 0;
+        uint32_t                 visibleDeferScopeCount = 0;
+    };
+
+    struct DeferScope
+    {
+        AstNodeRef                   ownerRef = AstNodeRef::invalid();
+        SmallVector<RegisteredDefer> defers;
+    };
+
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
@@ -281,6 +299,18 @@ public:
     uint32_t                          gvtdScratchOffset() const { return gvtdScratchOffset_; }
     uint32_t                          gvtdScratchSize() const { return gvtdScratchSize_; }
     std::span<const CodeGenGvtdEntry> gvtdScratchEntries() const { return gvtdScratchEntries_; }
+    void                              clearReturnScratch();
+    void                              setReturnScratch(uint32_t offset, uint32_t size, TypeRef typeRef);
+    bool                              hasReturnScratch() const { return returnScratchSize_ != 0; }
+    uint32_t                          returnScratchOffset() const { return returnScratchOffset_; }
+    uint32_t                          returnScratchSize() const { return returnScratchSize_; }
+    TypeRef                           returnScratchTypeRef() const { return returnScratchTypeRef_; }
+    uint32_t                          deferScopeCount() const { return static_cast<uint32_t>(activeDeferScopes_.size()); }
+    void                              pushDeferScope(AstNodeRef ownerRef);
+    Result                            popDeferScope();
+    Result                            registerDeferredBody(AstNodeRef bodyRef);
+    Result                            emitDeferredScopesFrom(uint32_t baseCount);
+    bool                              currentInstructionIsTerminator() const;
     void                              pushFrame(const CodeGenFrame& frame);
     void                              popFrame();
 
@@ -290,12 +320,15 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
+    void   configureVisit(AstVisit& visit);
     void   setVisitors();
+    Result runVisit(AstVisit& visit);
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
     Result emitConstant(AstNodeRef nodeRef);
+    Result emitRegisteredDefer(const RegisteredDefer& deferInfo, uint32_t remainingScopeDefers);
 
     Sema*                         sema_ = nullptr;
     AstVisit                      visit_;
@@ -310,6 +343,10 @@ private:
     uint32_t                      gvtdScratchOffset_ = 0;
     uint32_t                      gvtdScratchSize_   = 0;
     SmallVector<CodeGenGvtdEntry> gvtdScratchEntries_;
+    uint32_t                      returnScratchOffset_ = 0;
+    uint32_t                      returnScratchSize_   = 0;
+    TypeRef                       returnScratchTypeRef_ = TypeRef::invalid();
+    SmallVector<DeferScope>       activeDeferScopes_;
     AstNodeRef                    root_      = AstNodeRef::invalid();
     bool                          started_   = false;
     bool                          completed_ = false;

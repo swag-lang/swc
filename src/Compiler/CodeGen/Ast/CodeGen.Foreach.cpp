@@ -52,6 +52,12 @@ namespace
             *payload = {};
     }
 
+    bool needsSyntheticDeferScope(CodeGen& codeGen, AstNodeRef bodyRef)
+    {
+        bodyRef = codeGen.resolvedNodeRef(bodyRef);
+        return bodyRef.isValid() && codeGen.node(bodyRef).isNot(AstNodeId::EmbeddedBlock);
+    }
+
     CodeGenNodePayload resolveForeachVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
 
     MicroReg materializeForeachInternalStackAddress(CodeGen& codeGen, const SymbolVariable& symVar)
@@ -370,15 +376,20 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
 
     const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
     const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
-    if (childRef != whereRef && !(childRef == bodyRef && whereRef.isInvalid()))
-        return Result::Continue;
+    if (childRef == whereRef || (childRef == bodyRef && whereRef.isInvalid()))
+    {
+        CodeGenFrame frame = codeGen.frame();
+        frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopContinueLabel(loopState->continueLabel);
+        frame.setCurrentLoopBreakLabel(loopState->doneLabel);
+        frame.setCurrentLoopIndex(loopState->indexReg, codeGen.typeMgr().typeU64());
+        frame.setBreakDeferScopeBaseCount(codeGen.deferScopeCount());
+        codeGen.pushFrame(frame);
+    }
 
-    CodeGenFrame frame = codeGen.frame();
-    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
-    frame.setCurrentLoopContinueLabel(loopState->continueLabel);
-    frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-    frame.setCurrentLoopIndex(loopState->indexReg, codeGen.typeMgr().typeU64());
-    codeGen.pushFrame(frame);
+    if (childRef == bodyRef && needsSyntheticDeferScope(codeGen, bodyRef))
+        codeGen.pushDeferScope(bodyRef);
+
     return Result::Continue;
 }
 
@@ -421,6 +432,9 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
     if (childRef == bodyRef)
     {
+        if (needsSyntheticDeferScope(codeGen, bodyRef))
+            SWC_RESULT(codeGen.popDeferScope());
+
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);
         builder.placeLabel(loopState->continueLabel);

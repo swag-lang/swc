@@ -451,3 +451,27 @@ func deferBreakToScope()->s64
     }
     @assert(a == 2)
 }
+
+/*
+#[Swag.Mixin]
+func scopeLock()
+{
+    var a = 4
+    defer G = a
+}
+
+var G = 0
+
+//#[Swag.PrintBc]
+#test
+{
+    {
+        scopeLock()
+        @assert(a == 4)
+        defer a += 1
+    }
+
+    @print(G)
+    @assert(G == 5)
+}
+*/

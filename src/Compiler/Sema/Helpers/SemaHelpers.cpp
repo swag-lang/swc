@@ -425,29 +425,32 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
     return Result::Continue;
 }
 
-Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef)
+Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef)
 {
+    outResult          = {};
     auto               ctx  = sema.ctx();
     const SemaNodeView view = sema.viewTypeConstant(exprRef);
 
     if (!view.type())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, view.nodeRef());
 
+    const auto setConstantResult = [&](ConstantRef cstRef) {
+        outResult.cstRef  = cstRef;
+        outResult.typeRef = sema.cstMgr().get(cstRef).typeRef();
+        return Result::Continue;
+    };
+
     if (view.cst())
     {
         if (view.cst()->isString())
-        {
-            sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, view.cst()->getString().length()));
-            return Result::Continue;
-        }
+            return setConstantResult(sema.cstMgr().addInt(ctx, view.cst()->getString().length()));
 
         if (view.cst()->isSlice())
         {
             const TypeInfo& elementType = sema.typeMgr().get(view.type()->payloadTypeRef());
             const uint64_t  elementSize = elementType.sizeOf(ctx);
             const uint64_t  count       = elementSize ? view.cst()->getSlice().size() / elementSize : 0;
-            sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, count));
-            return Result::Continue;
+            return setConstantResult(sema.cstMgr().addInt(ctx, count));
         }
 
         if (view.cst()->isInt())
@@ -462,29 +465,27 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
 
             ConstantRef newCstRef;
             SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unsigned));
-            sema.setConstant(targetRef, newCstRef);
-            return Result::Continue;
+            return setConstantResult(newCstRef);
         }
     }
 
     if (view.type()->isEnum())
     {
         SWC_RESULT(sema.waitSemaCompleted(view.type(), view.nodeRef()));
-        sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, view.type()->payloadSymEnum().count()));
+        outResult.cstRef  = sema.cstMgr().addInt(ctx, view.type()->payloadSymEnum().count());
+        outResult.typeRef = sema.cstMgr().get(outResult.cstRef).typeRef();
         return Result::Continue;
     }
 
     if (view.type()->isCString())
     {
-        sema.setType(targetRef, sema.typeMgr().typeU64());
-        sema.setIsValue(targetRef);
+        outResult.typeRef = sema.typeMgr().typeU64();
         return Result::Continue;
     }
 
     if (view.type()->isString())
     {
-        sema.setType(targetRef, sema.typeMgr().typeU64());
-        sema.setIsValue(targetRef);
+        outResult.typeRef = sema.typeMgr().typeU64();
         return Result::Continue;
     }
 
@@ -495,21 +496,18 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
         const TypeInfo& ty         = sema.typeMgr().get(typeRef);
         const uint64_t  sizeOfElem = ty.sizeOf(ctx);
         SWC_ASSERT(sizeOfElem > 0);
-        sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, sizeOf / sizeOfElem));
-        return Result::Continue;
+        return setConstantResult(sema.cstMgr().addInt(ctx, sizeOf / sizeOfElem));
     }
 
     if (view.type()->isSlice() || view.type()->isAnyVariadic())
     {
-        sema.setType(targetRef, sema.typeMgr().typeU64());
-        sema.setIsValue(targetRef);
+        outResult.typeRef = sema.typeMgr().typeU64();
         return Result::Continue;
     }
 
     if (view.type()->isIntUnsigned())
     {
-        sema.setType(targetRef, view.typeRef());
-        sema.setIsValue(targetRef);
+        outResult.typeRef = view.typeRef();
         return Result::Continue;
     }
 
@@ -517,6 +515,21 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
     diag.report(ctx);
     return Result::Error;
+}
+
+Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef)
+{
+    CountOfResultInfo result;
+    SWC_RESULT(resolveCountOfResult(sema, result, exprRef));
+    if (result.cstRef.isValid())
+    {
+        sema.setConstant(targetRef, result.cstRef);
+        return Result::Continue;
+    }
+
+    sema.setType(targetRef, result.typeRef);
+    sema.setIsValue(targetRef);
+    return Result::Continue;
 }
 
 Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children)

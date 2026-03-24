@@ -3,6 +3,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -32,9 +33,17 @@ namespace
 
         if (breakNode.is(AstNodeId::ForStmt))
         {
-            const auto&        forNode  = breakNode.cast<AstForStmt>();
-            const SemaNodeView exprView = sema.viewType(forNode.nodeExprRef);
-            return exprView.typeRef();
+            const auto& forNode = breakNode.cast<AstForStmt>();
+            if (sema.node(forNode.nodeExprRef).is(AstNodeId::RangeExpr))
+                return sema.viewType(forNode.nodeExprRef).typeRef();
+
+            if (const auto* payload = sema.semaPayload<ForStmtSemaPayload>(breakContext.nodeRef))
+                return payload->indexTypeRef;
+
+            SemaHelpers::CountOfResultInfo countResult;
+            if (SemaHelpers::resolveCountOfResult(sema, countResult, forNode.nodeExprRef) == Result::Continue)
+                return countResult.typeRef;
+            return TypeRef::invalid();
         }
 
         return TypeRef::invalid();

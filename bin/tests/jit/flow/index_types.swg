@@ -56,3 +56,30 @@
     const V = #run foreachIndexType()
     #assert(V == 21'u64)
 }
+
+#test
+{
+    func countLikeIndexType()->u64
+    {
+        var arr: [3] u8 = [5, 6, 7]
+        var str: string = "abcd"
+        var acc: u64    = 0
+
+        for i in arr
+        {
+            acc += cast(u64) i
+        }
+
+        for i in str
+        {
+            @assert(#typeof(i) == u64)
+            @assert(#typeof(@index) == u64)
+            acc += i
+        }
+
+        return acc
+    }
+
+    const V = #run countLikeIndexType()
+    #assert(V == 9'u64)
+}

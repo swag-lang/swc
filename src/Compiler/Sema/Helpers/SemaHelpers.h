@@ -13,6 +13,12 @@ class SymbolFunction;
 
 namespace SemaHelpers
 {
+    struct CountOfResultInfo
+    {
+        TypeRef     typeRef = TypeRef::invalid();
+        ConstantRef cstRef  = ConstantRef::invalid();
+    };
+
     inline const Runtime::BuildCfg&        buildCfg(const Sema& sema) { return sema.compiler().buildCfg(); }
     inline const Runtime::BuildCfgBackend& buildCfgBackend(const Sema& sema) { return buildCfg(sema).backend; }
     inline Runtime::BuildCfgBackendKind    buildCfgBackendKind(const Sema& sema) { return buildCfg(sema).backendKind; }
@@ -49,6 +55,7 @@ namespace SemaHelpers
     IdentifierRef         resolveUniqIdentifier(Sema& sema, TokenId tokenId);
     Result                checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView);
     Result                castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind);
+    Result                resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef);
     Result                intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
     Result                finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children);
     void                  handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);

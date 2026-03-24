@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -16,6 +17,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    ForStmtSemaPayload& ensureForStmtSemaPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (auto* payload = sema.semaPayload<ForStmtSemaPayload>(nodeRef))
+            return *payload;
+
+        auto* payload = sema.compiler().allocate<ForStmtSemaPayload>();
+        sema.setSemaPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    Result resolveForStmtIndexTypeRef(Sema& sema, TypeRef& outTypeRef, AstNodeRef forRef, const AstForStmt& node)
+    {
+        outTypeRef = TypeRef::invalid();
+        if (sema.node(node.nodeExprRef).is(AstNodeId::RangeExpr))
+        {
+            outTypeRef = sema.viewType(node.nodeExprRef).typeRef();
+            return Result::Continue;
+        }
+
+        if (const auto* payload = sema.semaPayload<ForStmtSemaPayload>(forRef))
+        {
+            outTypeRef = payload->indexTypeRef;
+            return Result::Continue;
+        }
+
+        SemaHelpers::CountOfResultInfo countResult;
+        SWC_RESULT(SemaHelpers::resolveCountOfResult(sema, countResult, node.nodeExprRef));
+        outTypeRef = countResult.typeRef;
+        return Result::Continue;
+    }
+
     TypeRef foreachInternalArrayType(Sema& sema, TypeRef elemTypeRef, uint64_t count)
     {
         SmallVector<uint64_t> dims;
@@ -212,9 +244,10 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
             symVar.setDeclared(sema.ctx());
             SWC_RESULT(Match::ghosting(sema, symVar));
 
-            const SemaNodeView view = sema.viewType(nodeExprRef);
+            TypeRef indexTypeRef = TypeRef::invalid();
+            SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexTypeRef, sema.curNodeRef(), *this));
             symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-            symVar.setTypeRef(view.typeRef());
+            symVar.setTypeRef(indexTypeRef);
             symVar.setTyped(sema.ctx());
             symVar.setSemaCompleted(sema.ctx());
         }
@@ -231,11 +264,11 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
         if (view.node()->isNot(AstNodeId::RangeExpr))
         {
-            const AstNode& exprNode   = sema.node(nodeExprRef);
-            auto [countRef, countPtr] = sema.ast().makeNode<AstNodeId::CountOfExpr>(exprNode.tokRef());
-            countPtr->nodeExprRef     = nodeExprRef;
-            SWC_RESULT(SemaHelpers::intrinsicCountOf(sema, countRef, nodeExprRef));
-            const_cast<AstForStmt*>(this)->nodeExprRef = countRef;
+            SemaHelpers::CountOfResultInfo countResult;
+            SWC_RESULT(SemaHelpers::resolveCountOfResult(sema, countResult, nodeExprRef));
+            auto& payload       = ensureForStmtSemaPayload(sema, sema.curNodeRef());
+            payload.indexTypeRef = countResult.typeRef;
+            payload.countCstRef  = countResult.cstRef;
         }
         else if (!view.type()->isInt())
         {

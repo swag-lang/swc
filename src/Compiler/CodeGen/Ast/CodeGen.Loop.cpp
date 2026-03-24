@@ -30,12 +30,6 @@ namespace
         if (payload)
             *payload = {};
     }
-
-    bool needsSyntheticDeferScope(CodeGen& codeGen, AstNodeRef bodyRef)
-    {
-        bodyRef = codeGen.resolvedNodeRef(bodyRef);
-        return bodyRef.isValid() && codeGen.node(bodyRef).isNot(AstNodeId::EmbeddedBlock);
-    }
 }
 
 Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
@@ -69,11 +63,7 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
         frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
         frame.setCurrentLoopContinueLabel(loopState->continueLabel);
         frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-        frame.setBreakDeferScopeBaseCount(codeGen.deferScopeCount());
         codeGen.pushFrame(frame);
-
-        if (needsSyntheticDeferScope(codeGen, bodyRef))
-            codeGen.pushDeferScope(bodyRef);
     }
 
     return Result::Continue;
@@ -97,9 +87,6 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
     if (childRef == bodyRef)
     {
-        if (needsSyntheticDeferScope(codeGen, bodyRef))
-            SWC_RESULT(codeGen.popDeferScope());
-
         MicroBuilder&           builder = codeGen.builder();
         const ScopedDebugNoStep noStep(builder, true);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
@@ -145,11 +132,7 @@ Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
     frame.setCurrentLoopContinueLabel(loopState->continueLabel);
     frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-    frame.setBreakDeferScopeBaseCount(codeGen.deferScopeCount());
     codeGen.pushFrame(frame);
-
-    if (needsSyntheticDeferScope(codeGen, childRef))
-        codeGen.pushDeferScope(childRef);
     return Result::Continue;
 }
 
@@ -160,9 +143,6 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
 
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
-
-    if (needsSyntheticDeferScope(codeGen, childRef))
-        SWC_RESULT(codeGen.popDeferScope());
 
     MicroBuilder&           builder = codeGen.builder();
     const ScopedDebugNoStep noStep(builder, true);

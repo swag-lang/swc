@@ -569,13 +569,6 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
     return Result::Continue;
 }
 
-Result AstSwitchCaseStmt::codeGenPreNode(CodeGen& codeGen)
-{
-    codeGen.frame().setBreakDeferScopeBaseCount(codeGen.deferScopeCount());
-    codeGen.pushDeferScope(codeGen.curNodeRef());
-    return Result::Continue;
-}
-
 Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     const AstNodeRef switchRef = codeGen.frame().currentSwitch();
@@ -720,8 +713,6 @@ Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRe
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    SWC_RESULT(codeGen.popDeferScope());
-
     if (caseBodyEndsWithFallthrough(codeGen, *this))
         return Result::Continue;
 
@@ -744,8 +735,6 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
     const CodeGenFrame::BreakContext& breakCtx = codeGen.frame().currentBreakContext();
     if (breakCtx.kind == CodeGenFrame::BreakContextKind::None)
         return Result::Continue;
-
-    SWC_RESULT(codeGen.emitDeferredScopesFrom(codeGen.frame().breakDeferScopeBaseCount()));
 
     if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop ||
         breakCtx.kind == CodeGenFrame::BreakContextKind::Scope)
@@ -775,8 +764,6 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
     const AstNodeRef caseRef   = codeGen.frame().currentSwitchCase();
     if (switchRef.isInvalid() || caseRef.isInvalid())
         return Result::Continue;
-
-    SWC_RESULT(codeGen.emitDeferredScopesFrom(codeGen.frame().breakDeferScopeBaseCount()));
 
     SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
     SWC_ASSERT(switchState != nullptr);

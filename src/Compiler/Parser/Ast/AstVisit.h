@@ -26,7 +26,6 @@ class AstVisit
 {
 public:
     void           start(Ast& ast, AstNodeRef root);
-    void           startNested(Ast& ast, AstNodeRef root, std::span<const AstNodeRef> parentPath);
     void           restartCurrentNode(AstNodeRef nodeRef);
     void           setMode(AstVisitMode mode) { mode_ = mode; }
     void           setNodeRefResolver(const std::function<AstNodeRef(AstNodeRef)>& resolver) { nodeRefResolver_ = resolver; }
@@ -97,7 +96,6 @@ private:
 
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;
-    uint32_t                baseStackSize_ = 0;
 
     static void    resetFrame(Frame& frame, AstNodeRef nodeRef);
     AstVisitResult stepPreStage(Frame& frame);

@@ -87,72 +87,6 @@ namespace
         return false;
     }
 
-    bool subtreeUsesDefer(const CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        if (!nodeRef.isValid())
-            return false;
-
-        const AstNode& node = codeGen.node(nodeRef);
-        if (node.is(AstNodeId::DeferStmt))
-            return true;
-
-        if (node.is(AstNodeId::FunctionDecl) ||
-            node.is(AstNodeId::FunctionExpr) ||
-            node.is(AstNodeId::ClosureExpr) ||
-            node.is(AstNodeId::CompilerFunc) ||
-            node.is(AstNodeId::CompilerRunBlock))
-        {
-            return false;
-        }
-
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, codeGen.ast());
-        for (const AstNodeRef childRef : children)
-        {
-            if (subtreeUsesDefer(codeGen, childRef))
-                return true;
-        }
-
-        return false;
-    }
-
-    bool functionUsesDefer(const CodeGen& codeGen)
-    {
-        const AstNodeRef declRef = codeGen.function().declNodeRef();
-        if (!declRef.isValid())
-            return false;
-
-        const AstNode& declNode = codeGen.node(declRef);
-        AstNodeRef      bodyRef = AstNodeRef::invalid();
-        switch (declNode.id())
-        {
-            case AstNodeId::FunctionDecl:
-                bodyRef = declNode.cast<AstFunctionDecl>().nodeBodyRef;
-                break;
-            case AstNodeId::FunctionExpr:
-                bodyRef = declNode.cast<AstFunctionExpr>().nodeBodyRef;
-                break;
-            case AstNodeId::ClosureExpr:
-                bodyRef = declNode.cast<AstClosureExpr>().nodeBodyRef;
-                break;
-            default:
-                return false;
-        }
-
-        return subtreeUsesDefer(codeGen, bodyRef);
-    }
-
-    bool canUseDirectCallReturnWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
-    {
-        if (normalizedRet.isVoid || normalizedRet.isIndirect)
-            return false;
-
-        if (exprNode.isNot(AstNodeId::CallExpr))
-            return false;
-
-        return payload.isValue();
-    }
-
     bool tryBuildGvtdEntry(CodeGen& codeGen, TypeRef typeRef, SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
     {
         outOpDrop = nullptr;
@@ -352,7 +286,6 @@ namespace
         const std::vector<SymbolVariable*>& params       = codeGen.function().parameters();
         const CallConv&                     callConv     = CallConv::get(codeGen.function().callConvKind());
         uint64_t                            frameSize    = 0;
-        codeGen.clearReturnScratch();
         for (SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
@@ -397,21 +330,6 @@ namespace
                 continue;
 
             assignLocalStackSlot(*symVar, frameSize, size, alignment);
-        }
-
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.function().returnTypeRef(), ABITypeNormalize::Usage::Return);
-        if (!normalizedRet.isVoid && !normalizedRet.isIndirect && functionUsesDefer(codeGen))
-        {
-            const TypeInfo& returnTypeInfo = codeGen.typeMgr().get(codeGen.function().returnTypeRef());
-            uint32_t        size           = 0;
-            uint32_t        alignment      = 0;
-            if (tryGetSizedTypeLayout(size, alignment, codeGen, returnTypeInfo))
-            {
-                frameSize = Math::alignUpU64(frameSize, alignment);
-                SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
-                codeGen.setReturnScratch(static_cast<uint32_t>(frameSize), size, codeGen.function().returnTypeRef());
-                frameSize += size;
-            }
         }
 
         appendDebugParameterSlots(codeGen, frameSize);
@@ -551,8 +469,6 @@ namespace
             SWC_ASSERT(exprRef.isValid());
             SWC_RESULT(emitInlineResultStore(codeGen, inlinePayload, exprRef));
         }
-
-        SWC_RESULT(codeGen.emitDeferredScopesFrom(codeGen.frame().currentInlineContext().deferScopeBaseCount));
 
         CodeGenFrame& frame     = codeGen.frame();
         MicroLabelRef doneLabel = frame.currentInlineContext().doneLabel;
@@ -896,7 +812,6 @@ namespace
         if (normalizedRet.isVoid)
         {
             // Void returns only need control transfer; ABI return registers are irrelevant.
-            SWC_RESULT(codeGen.emitDeferredScopesFrom(0));
             const ScopedDebugNoStep noStep(builder, true);
             emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
@@ -927,34 +842,16 @@ namespace
                 else
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, copySize);
             }
-            SWC_RESULT(codeGen.emitDeferredScopesFrom(0));
+
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
         {
-            if (codeGen.hasReturnScratch())
-            {
-                SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-                const MicroReg scratchStoreAddrReg = codeGen.offsetAddressReg(codeGen.localStackBaseReg(), codeGen.returnScratchOffset());
-                if (canUseDirectCallReturnWriteBack(codeGen.node(exprRef), exprPayload, normalizedRet))
-                    ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, scratchStoreAddrReg, normalizedRet);
-                else
-                    ABICall::storeValueToReturnBuffer(builder, callConvKind, scratchStoreAddrReg, exprPayload.reg, exprPayload.isAddress(), normalizedRet);
-
-                SWC_RESULT(codeGen.emitDeferredScopesFrom(0));
-
-                const MicroReg scratchLoadAddrReg = codeGen.offsetAddressReg(codeGen.localStackBaseReg(), codeGen.returnScratchOffset());
-                ABICall::materializeValueToReturnRegs(builder, callConvKind, scratchLoadAddrReg, true, normalizedRet);
-            }
-            else
-            {
-                // Direct returns are normalized to ABI return registers (int/float lane).
-                const bool      isAddressed    = exprPayload.isAddress();
-                const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
-                SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet.isIndirect, normalizedRet.isFloat, normalizedRet.numBits));
-                ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload.reg, isAddressed, normalizedRet);
-                SWC_RESULT(codeGen.emitDeferredScopesFrom(0));
-            }
+            // Direct returns are normalized to ABI return registers (int/float lane).
+            const bool      isAddressed    = exprPayload.isAddress();
+            const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
+            SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet.isIndirect, normalizedRet.isFloat, normalizedRet.numBits));
+            ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload.reg, isAddressed, normalizedRet);
         }
 
         {
@@ -1031,8 +928,6 @@ namespace
                 }
             }
         }
-
-        SWC_RESULT(codeGen.emitDeferredScopesFrom(0));
 
         {
             const ScopedDebugNoStep noStep(builder, true);

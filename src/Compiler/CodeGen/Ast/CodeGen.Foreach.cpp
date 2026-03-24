@@ -388,7 +388,7 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
     }
 
     if (childRef == bodyRef && needsSyntheticDeferScope(codeGen, bodyRef))
-        codeGen.pushDeferScope(bodyRef);
+        codeGen.pushDeferScope();
 
     return Result::Continue;
 }

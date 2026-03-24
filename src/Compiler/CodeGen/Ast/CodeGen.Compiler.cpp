@@ -367,7 +367,7 @@ Result AstCompilerScope::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
     codeGen.pushFrame(frame);
 
     if (needsSyntheticDeferScope(codeGen, childRef))
-        codeGen.pushDeferScope(childRef);
+        codeGen.pushDeferScope();
 
     return Result::Continue;
 }

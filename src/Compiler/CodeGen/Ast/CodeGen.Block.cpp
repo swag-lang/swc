@@ -15,7 +15,7 @@ namespace
 
 Result AstEmbeddedBlock::codeGenPreNode(CodeGen& codeGen)
 {
-    codeGen.pushDeferScope(codeGen.curNodeRef());
+    codeGen.pushDeferScope();
     return Result::Continue;
 }
 
@@ -43,7 +43,7 @@ Result AstDeferStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
     if (codeGen.resolvedNodeRef(childRef) != codeGen.resolvedNodeRef(nodeBodyRef))
         return Result::Continue;
 
-    SWC_RESULT(codeGen.registerDeferredBody(childRef));
+    SWC_RESULT(codeGen.registerDeferredBody(codeGen.curNodeRef()));
     return Result::SkipChildren;
 }
 
@@ -53,7 +53,7 @@ Result AstWithStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         return Result::Continue;
 
     if (needsSyntheticDeferScope(codeGen, childRef))
-        codeGen.pushDeferScope(codeGen.resolvedNodeRef(childRef));
+        codeGen.pushDeferScope();
 
     return Result::Continue;
 }
@@ -75,7 +75,7 @@ Result AstWithVarDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
         return Result::Continue;
 
     if (needsSyntheticDeferScope(codeGen, childRef))
-        codeGen.pushDeferScope(codeGen.resolvedNodeRef(childRef));
+        codeGen.pushDeferScope();
 
     return Result::Continue;
 }

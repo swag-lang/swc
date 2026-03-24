@@ -70,6 +70,9 @@ public:
     std::string_view foreignLinkModuleName() const { return attributes().foreignLinkModuleName; }
     Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
 
+    bool             usesGvtd() const noexcept { return usesGvtd_; }
+    void             setUsesGvtd() noexcept { usesGvtd_ = true; }
+
     bool     hasInterfaceMethodSlot() const noexcept { return interfaceMethodSlot_ != K_INVALID_INTERFACE_METHOD_SLOT; }
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
     void     setInterfaceMethodSlot(uint32_t slot) noexcept { interfaceMethodSlot_ = slot; }
@@ -133,6 +136,7 @@ private:
     std::atomic<void*>           jitPreparedAddress_  = nullptr;
     std::atomic<void*>           jitEntryAddress_     = nullptr;
     std::atomic<bool>            codeGenJobScheduled_ = false;
+    bool                         usesGvtd_           = false;
 };
 
 SWC_END_NAMESPACE();

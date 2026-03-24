@@ -4,6 +4,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -189,7 +190,9 @@ namespace
 
     Result emitSliceValue(CodeGen& codeGen, const AstIndexExpr& node)
     {
-        const auto&               range          = codeGen.node(node.nodeArgRef).cast<AstRangeExpr>();
+        const auto* slicePayload = codeGen.sema().semaPayload<SliceIndexSemaPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(slicePayload != nullptr);
+
         const CodeGenNodePayload& indexedPayload = codeGen.payload(node.nodeExprRef);
         const SemaNodeView        indexedView    = codeGen.viewType(node.nodeExprRef);
         const SemaNodeView        resultView     = codeGen.curViewType();
@@ -203,10 +206,10 @@ namespace
         const MicroReg baseReg = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
 
         const MicroReg lowReg = codeGen.nextVirtualIntRegister();
-        if (range.nodeExprDownRef.isValid())
+        if (slicePayload->lowerBoundRef.isValid())
         {
             auto       lowBits   = MicroOpBits::B64;
-            const auto rawLowReg = materializeIndexReg(codeGen, range.nodeExprDownRef, lowBits);
+            const auto rawLowReg = materializeIndexReg(codeGen, slicePayload->lowerBoundRef, lowBits);
             builder.emitLoadRegReg(lowReg, rawLowReg, MicroOpBits::B64);
         }
         else
@@ -215,12 +218,12 @@ namespace
         }
 
         const MicroReg endExclusiveReg = codeGen.nextVirtualIntRegister();
-        if (range.nodeExprUpRef.isValid())
+        if (slicePayload->upperBoundRef.isValid())
         {
             auto       upBits   = MicroOpBits::B64;
-            const auto rawUpReg = materializeIndexReg(codeGen, range.nodeExprUpRef, upBits);
+            const auto rawUpReg = materializeIndexReg(codeGen, slicePayload->upperBoundRef, upBits);
             builder.emitLoadRegReg(endExclusiveReg, rawUpReg, MicroOpBits::B64);
-            if (range.hasFlag(AstRangeExprFlagsE::Inclusive))
+            if (slicePayload->inclusive)
                 builder.emitOpBinaryRegImm(endExclusiveReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         }
         else if (indexedType.isArray())

@@ -67,26 +67,6 @@ namespace
         return typeInfo.payloadSymFunction();
     }
 
-    bool functionUsesGvtdIntrinsic(const CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        if (!nodeRef.isValid())
-            return false;
-
-        const AstNode& node = codeGen.node(nodeRef);
-        if (node.is(AstNodeId::IntrinsicCallExpr) && codeGen.token(node.codeRef()).id == TokenId::IntrinsicGvtd)
-            return true;
-
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, codeGen.ast());
-        for (const AstNodeRef childRef : children)
-        {
-            if (functionUsesGvtdIntrinsic(codeGen, childRef))
-                return true;
-        }
-
-        return false;
-    }
-
     bool tryBuildGvtdEntry(CodeGen& codeGen, TypeRef typeRef, SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
     {
         outOpDrop = nullptr;
@@ -188,10 +168,7 @@ namespace
         if (!functionDeclRef.isValid())
             return;
 
-        const auto* functionDecl = codeGen.node(functionDeclRef).safeCast<AstFunctionDecl>();
-        if (!functionDecl || !functionDecl->nodeBodyRef.isValid())
-            return;
-        if (!functionUsesGvtdIntrinsic(codeGen, functionDecl->nodeBodyRef))
+        if (!codeGen.function().usesGvtd())
             return;
 
         // `@gvtd` returns a slice built in the current frame, so reserve scratch space once in the local

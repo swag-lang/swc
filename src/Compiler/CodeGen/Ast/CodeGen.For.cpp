@@ -180,17 +180,19 @@ namespace
         const SemaNodeView exprView = codeGen.viewType(exprRef);
         MicroBuilder&      builder  = codeGen.builder();
 
+        const auto* semaPayload = codeGen.sema().semaPayload<ForStmtSemaPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(semaPayload != nullptr);
+
+        loopState.indexTypeRef = semaPayload->indexTypeRef;
+        loopState.inclusive    = semaPayload->inclusive;
+
         MicroReg lowerReg = MicroReg::invalid();
         MicroReg upperReg = MicroReg::invalid();
-        if (codeGen.node(exprRef).is(AstNodeId::RangeExpr))
+        if (semaPayload->isRangeLoop)
         {
-            loopState.indexTypeRef        = exprView.typeRef();
-            const AstRangeExpr& rangeExpr = codeGen.node(exprRef).cast<AstRangeExpr>();
-            loopState.inclusive           = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
-
-            if (rangeExpr.nodeExprDownRef.isValid())
+            if (semaPayload->lowerBoundRef.isValid())
             {
-                const AstNodeRef downRef = codeGen.resolvedNodeRef(rangeExpr.nodeExprDownRef);
+                const AstNodeRef downRef = codeGen.resolvedNodeRef(semaPayload->lowerBoundRef);
                 lowerReg                 = materializeLoopValueReg(codeGen, codeGen.payload(downRef), loopState.indexTypeRef);
             }
             else
@@ -198,15 +200,12 @@ namespace
                 lowerReg = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
             }
 
-            const AstNodeRef upRef = codeGen.resolvedNodeRef(rangeExpr.nodeExprUpRef);
+            const AstNodeRef upRef = codeGen.resolvedNodeRef(semaPayload->upperBoundRef);
             upperReg               = materializeLoopValueReg(codeGen, codeGen.payload(upRef), loopState.indexTypeRef);
         }
         else
         {
-            const auto* semaPayload = codeGen.sema().semaPayload<ForStmtSemaPayload>(codeGen.curNodeRef());
-            SWC_ASSERT(semaPayload != nullptr);
-            loopState.indexTypeRef = semaPayload->indexTypeRef;
-            lowerReg               = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
+            lowerReg = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
             if (semaPayload->countCstRef.isValid())
                 upperReg = materializeLoopConstantReg(codeGen, semaPayload->countCstRef, loopState.indexTypeRef);
             else

@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -160,6 +161,12 @@ namespace
                 return Result::Error;
             }
         }
+
+        auto* slicePayload          = sema.compiler().allocate<SliceIndexSemaPayload>();
+        slicePayload->lowerBoundRef = range.nodeExprDownRef;
+        slicePayload->upperBoundRef = range.nodeExprUpRef;
+        slicePayload->inclusive     = range.hasFlag(AstRangeExprFlagsE::Inclusive);
+        sema.setSemaPayload(sema.curNodeRef(), slicePayload);
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsValue(sema.node(sema.curNodeRef()));

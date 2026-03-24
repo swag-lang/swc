@@ -1458,6 +1458,11 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(setupIntrinsicGetContextRuntimeCall(sema, *this));
     else if (tok.id == TokenId::IntrinsicAssert)
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
+    else if (tok.id == TokenId::IntrinsicGvtd)
+    {
+        if (SymbolFunction* fn = SemaHelpers::currentFunction(sema))
+            fn->setUsesGvtd();
+    }
 
     return Result::Continue;
 }

@@ -12,14 +12,61 @@ func appendDeferTrace(value: s64)
     DeferTrace = DeferTrace * 10 + value
 }
 
+func deferValue()->s64
+{
+    return 6
+}
+
 struct DeferReturnInfo
 {
     value: s32
     trace: s64
 }
 
+struct DeferDropTracker {}
+
+var DropCount: u32 = 0
+
+impl DeferDropTracker
+{
+    func opDrop(me)
+    {
+        DropCount += 1
+    }
+}
+
+struct DeferDropInfo
+{
+    count: s32
+    drops: u32
+}
+
+struct ErrDefer {}
+
+#[Swag.Inline]
+func deferThrowLeaf() throw
+{
+    defer appendDeferTrace(1)
+    throw ErrDefer{}
+}
+
+#[Swag.Inline]
+func deferThrowMid() throw
+{
+    defer appendDeferTrace(2)
+    try deferThrowLeaf()
+}
+
+#[Swag.Inline]
+func deferThrowTop() throw
+{
+    defer appendDeferTrace(4)
+    try deferThrowMid()
+}
+
 #test
 {
+    // compiler829, compiler833
     func deferScopeOrder()->s64
     {
         resetDeferTrace()
@@ -44,6 +91,7 @@ struct DeferReturnInfo
 
 #test
 {
+    // compiler830, compiler831
     func deferFunctionReturnTrace()->DeferReturnInfo
     {
         resetDeferTrace()
@@ -66,6 +114,7 @@ struct DeferReturnInfo
 
 #test
 {
+    // compiler841, compiler842, compiler843
     func deferIfBranch(takeIf: bool)->s64
     {
         resetDeferTrace()
@@ -110,6 +159,7 @@ struct DeferReturnInfo
 
 #test
 {
+    // compiler839, compiler840
     func deferWhileControl()->s64
     {
         resetDeferTrace()
@@ -168,6 +218,51 @@ struct DeferReturnInfo
     const V = #run deferWhileReturnTrace()
     #assert(V.value == 42)
     #assert(V.trace == 172)
+}
+
+#test
+{
+    func deferBlockBodyTrace()->DeferReturnInfo
+    {
+        with var result: retval
+        {
+            .value = 666
+            .trace = 0
+        }
+
+        defer
+        {
+            result.trace = deferValue()
+        }
+
+        return result
+    }
+
+    const V = #run deferBlockBodyTrace()
+    #assert(V.value == 666)
+    #assert(V.trace == 6)
+}
+
+#test
+{
+    // compiler832, compiler854, compiler855
+    func deferNestedLoopControl()->s32
+    {
+        var count = 0
+        for 10
+        {
+            defer count -= 1
+            {
+                defer count += 2
+                continue
+            }
+        }
+
+        return count
+    }
+
+    const V = #run deferNestedLoopControl()
+    #assert(V == 10)
 }
 
 #test
@@ -246,6 +341,7 @@ struct DeferReturnInfo
 
 #test
 {
+    // compiler860, compiler861
     func deferSwitch(v: s32)->s64
     {
         resetDeferTrace()
@@ -267,7 +363,8 @@ struct DeferReturnInfo
                 break
 
             default:
-                appendDeferTrace(5)
+                defer appendDeferTrace(5)
+                appendDeferTrace(6)
         }
 
         return DeferTrace
@@ -280,8 +377,72 @@ struct DeferReturnInfo
     #assert(V0 == 8192)
     #assert(V1 == 92)
     #assert(V2 == 43)
-    #assert(V3 == 5)
+    #assert(V3 == 65)
 }
+
+/*
+#test
+{
+    // compiler1312, compiler1313, compiler1314
+    func deferBreakToScopeAndDrop()->DeferDropInfo
+    {
+        DropCount = 0
+        with var result: retval
+        {
+            .count = 0
+            .drops = 0
+        }
+
+        #scope(Outer)
+        {
+            var x: DeferDropTracker
+            defer result.count += 1
+            for 1
+            {
+                var y: DeferDropTracker
+                defer result.count += 1
+                break to Outer
+            }
+        }
+
+        result.drops = DropCount
+        return result
+    }
+
+    const V = #run deferBreakToScopeAndDrop()
+    #assert(V.count == 2)
+    #assert(V.drops == 2)
+}
+
+#test
+{
+    // compiler2346
+    func deferEarlyReturnBeforeRegistration()->s64
+    {
+        resetDeferTrace()
+        appendDeferTrace(1)
+        return DeferTrace
+        defer appendDeferTrace(2)
+    }
+
+    const V = #run deferEarlyReturnBeforeRegistration()
+    #assert(V == 1)
+}
+
+#test
+{
+    // compiler2735, compiler2736
+    func deferThrowTrace()->s64
+    {
+        resetDeferTrace()
+        catch deferThrowTop()
+        return DeferTrace
+    }
+
+    const V = #run deferThrowTrace()
+    #assert(V == 124)
+}
+*/
 
 #test
 {
@@ -306,3 +467,14 @@ struct DeferReturnInfo
     const V = #run deferBreakToScope()
     #assert(V == 213)
 }
+
+// Legacy cases intentionally left commented until #err/#noerr/catch defer modes land.
+// compiler2731
+// compiler2732
+// compiler2738
+// compiler2739
+// compiler3692
+// compiler3719
+// compiler3775
+// compiler4563
+// compiler5208

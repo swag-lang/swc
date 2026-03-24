@@ -147,13 +147,13 @@ public:
 
 private:
     BreakContext  breakable_;
-    AstNodeRef    currentSwitch_            = AstNodeRef::invalid();
-    AstNodeRef    currentSwitchCase_        = AstNodeRef::invalid();
-    MicroLabelRef currentLoopContinueLabel_ = MicroLabelRef::invalid();
-    MicroLabelRef currentLoopBreakLabel_    = MicroLabelRef::invalid();
+    AstNodeRef    currentSwitch_              = AstNodeRef::invalid();
+    AstNodeRef    currentSwitchCase_          = AstNodeRef::invalid();
+    MicroLabelRef currentLoopContinueLabel_   = MicroLabelRef::invalid();
+    MicroLabelRef currentLoopBreakLabel_      = MicroLabelRef::invalid();
     bool          currentLoopHasContinueJump_ = false;
-    MicroReg      currentLoopIndexReg_      = MicroReg::invalid();
-    TypeRef       currentLoopIndexTypeRef_  = TypeRef::invalid();
+    MicroReg      currentLoopIndexReg_        = MicroReg::invalid();
+    TypeRef       currentLoopIndexTypeRef_    = TypeRef::invalid();
     InlineContext inlineContext_;
 };
 
@@ -271,39 +271,39 @@ public:
         return payload;
     }
 
-    CodeGenNodePayload&              payload(AstNodeRef nodeRef);
-    CodeGenNodePayload*              safePayload(AstNodeRef nodeRef);
-    void                             setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
-    const CodeGenNodePayload*        variablePayload(const SymbolVariable& sym) const;
-    void                             setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
-    uint32_t                         localStackFrameSize() const { return localStackFrameSize_; }
-    bool                             hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
-    void                             setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
-    MicroReg                         localStackBaseReg() const { return localStackBaseReg_; }
-    void                             setCurrentFunctionIndirectReturnReg(MicroReg reg) { currentFunctionIndirectReturnReg_ = reg; }
-    MicroReg                         currentFunctionIndirectReturnReg() const { return currentFunctionIndirectReturnReg_; }
-    void                             setCurrentFunctionClosureContextReg(MicroReg reg) { currentFunctionClosureContextReg_ = reg; }
-    MicroReg                         currentFunctionClosureContextReg() const { return currentFunctionClosureContextReg_; }
-    CodeGenNodePayload&              inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&              setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&              setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&              setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&              setPayloadAddressReg(AstNodeRef nodeRef, MicroReg reg, TypeRef typeRef = TypeRef::invalid());
-    MicroReg                         offsetAddressReg(MicroReg baseReg, uint32_t offset);
-    CodeGenNodePayload               resolveLocalStackPayload(const SymbolVariable& sym, bool cache = true);
-    MicroReg                         runtimeStorageAddressReg(AstNodeRef nodeRef);
-    void                             pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
-    Result                           popDeferScope();
-    void                             registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
-    Result                           emitDeferredActionsForReturn();
-    Result                           emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef);
-    Result                           emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);
-    Result                           emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
-    Result                           emitNodeNow(AstNodeRef nodeRef);
-    void                             invalidateNodePayloadRegs(AstNodeRef nodeRef);
-    bool                             containsNodeId(AstNodeRef nodeRef, AstNodeId nodeId) const;
-    bool                             currentInstructionBlocksFallthrough() const;
-    bool                             inDeferredEmission() const { return deferredEmitDepth_ != 0; }
+    CodeGenNodePayload&       payload(AstNodeRef nodeRef);
+    CodeGenNodePayload*       safePayload(AstNodeRef nodeRef);
+    void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
+    const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
+    void                      setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
+    uint32_t                  localStackFrameSize() const { return localStackFrameSize_; }
+    bool                      hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
+    void                      setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
+    MicroReg                  localStackBaseReg() const { return localStackBaseReg_; }
+    void                      setCurrentFunctionIndirectReturnReg(MicroReg reg) { currentFunctionIndirectReturnReg_ = reg; }
+    MicroReg                  currentFunctionIndirectReturnReg() const { return currentFunctionIndirectReturnReg_; }
+    void                      setCurrentFunctionClosureContextReg(MicroReg reg) { currentFunctionClosureContextReg_ = reg; }
+    MicroReg                  currentFunctionClosureContextReg() const { return currentFunctionClosureContextReg_; }
+    CodeGenNodePayload&       inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&       setPayloadAddressReg(AstNodeRef nodeRef, MicroReg reg, TypeRef typeRef = TypeRef::invalid());
+    MicroReg                  offsetAddressReg(MicroReg baseReg, uint32_t offset);
+    CodeGenNodePayload        resolveLocalStackPayload(const SymbolVariable& sym, bool cache = true);
+    MicroReg                  runtimeStorageAddressReg(AstNodeRef nodeRef);
+    void                      pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
+    Result                    popDeferScope();
+    void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
+    Result                    emitDeferredActionsForReturn();
+    Result                    emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef);
+    Result                    emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);
+    Result                    emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
+    Result                    emitNodeNow(AstNodeRef nodeRef);
+    void                      invalidateNodePayloadRegs(AstNodeRef nodeRef);
+    bool                      containsNodeId(AstNodeRef nodeRef, AstNodeId nodeId) const;
+    bool                      currentInstructionBlocksFallthrough() const;
+    bool                      inDeferredEmission() const { return deferredEmitDepth_ != 0; }
 
     void                              clearGvtdScratchLayout();
     void                              setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries);
@@ -327,27 +327,27 @@ private:
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
     Result emitConstant(AstNodeRef nodeRef);
 
-    Sema*                         sema_ = nullptr;
-    AstVisit                      visit_;
-    std::vector<CodeGenFrame>     frames_;
-    SymbolFunction*               function_            = nullptr;
-    MicroBuilder*                 builder_             = nullptr;
-    uint32_t                      nextVirtualRegister_ = 1;
-    uint32_t                      localStackFrameSize_ = 0;
-    MicroReg                         localStackBaseReg_;
-    MicroReg                         currentFunctionIndirectReturnReg_;
-    MicroReg                         currentFunctionClosureContextReg_;
+    Sema*                              sema_ = nullptr;
+    AstVisit                           visit_;
+    std::vector<CodeGenFrame>          frames_;
+    SymbolFunction*                    function_            = nullptr;
+    MicroBuilder*                      builder_             = nullptr;
+    uint32_t                           nextVirtualRegister_ = 1;
+    uint32_t                           localStackFrameSize_ = 0;
+    MicroReg                           localStackBaseReg_;
+    MicroReg                           currentFunctionIndirectReturnReg_;
+    MicroReg                           currentFunctionClosureContextReg_;
     SmallVector<CodeGenDeferScope, 32> deferScopes_;
-    uint32_t                         deferredEmitDepth_ = 0;
-    uint32_t                         currentDeferredAddressGeneration_ = 0;
-    uint32_t                         nextDeferredAddressGeneration_    = 1;
-    bool                             hasDeferredStatements_            = false;
-    uint32_t                         gvtdScratchOffset_                = 0;
-    uint32_t                         gvtdScratchSize_                  = 0;
-    SmallVector<CodeGenGvtdEntry>    gvtdScratchEntries_;
-    AstNodeRef                       root_      = AstNodeRef::invalid();
-    bool                             started_   = false;
-    bool                             completed_ = false;
+    uint32_t                           deferredEmitDepth_                = 0;
+    uint32_t                           currentDeferredAddressGeneration_ = 0;
+    uint32_t                           nextDeferredAddressGeneration_    = 1;
+    bool                               hasDeferredStatements_            = false;
+    uint32_t                           gvtdScratchOffset_                = 0;
+    uint32_t                           gvtdScratchSize_                  = 0;
+    SmallVector<CodeGenGvtdEntry>      gvtdScratchEntries_;
+    AstNodeRef                         root_      = AstNodeRef::invalid();
+    bool                               started_   = false;
+    bool                               completed_ = false;
 };
 
 SWC_END_NAMESPACE();

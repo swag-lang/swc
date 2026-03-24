@@ -250,7 +250,7 @@ namespace
                 return false;
 
             const MicroInstrRef insertBeforeRef = nextIt.current;
-            uint64_t           remaining       = stackAdjust;
+            uint64_t            remaining       = stackAdjust;
 
             while (remaining > K_WINDOWS_STACK_PROBE_PAGE_SIZE)
             {

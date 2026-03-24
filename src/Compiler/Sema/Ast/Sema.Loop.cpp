@@ -266,7 +266,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
         {
             SemaHelpers::CountOfResultInfo countResult;
             SWC_RESULT(SemaHelpers::resolveCountOfResult(sema, countResult, nodeExprRef));
-            auto& payload       = ensureForStmtSemaPayload(sema, sema.curNodeRef());
+            auto& payload        = ensureForStmtSemaPayload(sema, sema.curNodeRef());
             payload.indexTypeRef = countResult.typeRef;
             payload.countCstRef  = countResult.cstRef;
         }

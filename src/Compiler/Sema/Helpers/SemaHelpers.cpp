@@ -427,7 +427,7 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
 
 Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef)
 {
-    outResult          = {};
+    outResult               = {};
     auto               ctx  = sema.ctx();
     const SemaNodeView view = sema.viewTypeConstant(exprRef);
 

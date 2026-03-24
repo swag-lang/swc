@@ -77,7 +77,7 @@ namespace
 
     bool shouldSkipFunctionForTests(const CompilerInstance& compiler, const SymbolFunction& root)
     {
-        SmallVector<SymbolFunction*>        stack;
+        SmallVector<SymbolFunction*>              stack;
         std::unordered_set<const SymbolFunction*> visited;
         stack.push_back(const_cast<SymbolFunction*>(&root));
 

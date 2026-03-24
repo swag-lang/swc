@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -20,7 +20,7 @@ namespace
     struct VariableSymbolCodeGenPayload
     {
         CodeGenNodePayload payload;
-        bool               hasPayload = false;
+        bool               hasPayload        = false;
         uint32_t           addressGeneration = 0;
     };
 
@@ -111,7 +111,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             SWC_ASSERT(symVar != nullptr);
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
             {
-                payload->hasPayload = false;
+                payload->hasPayload        = false;
                 payload->addressGeneration = 0;
             }
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
@@ -125,7 +125,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             SWC_ASSERT(symVar != nullptr);
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
             {
-                payload->hasPayload = false;
+                payload->hasPayload        = false;
                 payload->addressGeneration = 0;
             }
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
@@ -297,7 +297,7 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
     VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(*this, sym);
     symbolPayload.payload                       = payload;
     symbolPayload.hasPayload                    = true;
-    symbolPayload.addressGeneration            = isStackAddressPayload(*this, sym, payload) ? currentDeferredAddressGeneration_ : 0;
+    symbolPayload.addressGeneration             = isStackAddressPayload(*this, sym, payload) ? currentDeferredAddressGeneration_ : 0;
 }
 
 const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
@@ -664,7 +664,7 @@ Result CodeGen::emitNodeNow(AstNodeRef nodeRef)
     SWC_ASSERT(currentDeferredAddressGeneration_ != 0);
     ++deferredEmitDepth_;
 
-    Result result = Result::Continue;
+    auto result = Result::Continue;
     while (true)
     {
         const AstVisitResult visitResult = visit_.step(ctx());
@@ -680,7 +680,7 @@ Result CodeGen::emitNodeNow(AstNodeRef nodeRef)
 
     --deferredEmitDepth_;
     currentDeferredAddressGeneration_ = savedDeferredAddressGeneration;
-    visit_ = std::move(savedVisit);
+    visit_                            = std::move(savedVisit);
     if (curNodeRef().isValid())
         builder().setCurrentDebugSourceCodeRef(node(curNodeRef()).codeRef());
 

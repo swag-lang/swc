@@ -1,13 +1,13 @@
 #include "pch.h"
-#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -25,16 +25,16 @@ namespace
 
     struct ForStmtCodeGenPayload
     {
-        MicroLabelRef   loopLabel       = MicroLabelRef::invalid();
-        MicroLabelRef   continueLabel   = MicroLabelRef::invalid();
-        MicroLabelRef   doneLabel       = MicroLabelRef::invalid();
-        MicroReg        indexReg        = MicroReg::invalid();
-        MicroReg        boundReg        = MicroReg::invalid();
-        TypeRef         indexTypeRef    = TypeRef::invalid();
-        SymbolVariable* indexSym        = nullptr;
-        bool            reverse         = false;
-        bool            inclusive       = false;
-        bool            unsignedCmp     = false;
+        MicroLabelRef   loopLabel     = MicroLabelRef::invalid();
+        MicroLabelRef   continueLabel = MicroLabelRef::invalid();
+        MicroLabelRef   doneLabel     = MicroLabelRef::invalid();
+        MicroReg        indexReg      = MicroReg::invalid();
+        MicroReg        boundReg      = MicroReg::invalid();
+        TypeRef         indexTypeRef  = TypeRef::invalid();
+        SymbolVariable* indexSym      = nullptr;
+        bool            reverse       = false;
+        bool            inclusive     = false;
+        bool            unsignedCmp   = false;
     };
 
     ForCStyleStmtCodeGenPayload* forCStyleStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -98,7 +98,7 @@ namespace
 
     MicroReg materializeLoopConstantReg(CodeGen& codeGen, ConstantRef cstRef, TypeRef typeRef)
     {
-        const ConstantValue& cst     = codeGen.cstMgr().get(cstRef);
+        const ConstantValue& cst      = codeGen.cstMgr().get(cstRef);
         const TypeInfo&      typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits    opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         const MicroReg       outReg   = codeGen.nextVirtualIntRegister();
@@ -176,15 +176,15 @@ namespace
 
     Result emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)
     {
-        const AstNodeRef   exprRef   = codeGen.resolvedNodeRef(node.nodeExprRef);
-        const SemaNodeView exprView  = codeGen.viewType(exprRef);
-        MicroBuilder&      builder   = codeGen.builder();
+        const AstNodeRef   exprRef  = codeGen.resolvedNodeRef(node.nodeExprRef);
+        const SemaNodeView exprView = codeGen.viewType(exprRef);
+        MicroBuilder&      builder  = codeGen.builder();
 
         MicroReg lowerReg = MicroReg::invalid();
         MicroReg upperReg = MicroReg::invalid();
         if (codeGen.node(exprRef).is(AstNodeId::RangeExpr))
         {
-            loopState.indexTypeRef = exprView.typeRef();
+            loopState.indexTypeRef        = exprView.typeRef();
             const AstRangeExpr& rangeExpr = codeGen.node(exprRef).cast<AstRangeExpr>();
             loopState.inclusive           = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
 
@@ -206,7 +206,7 @@ namespace
             const auto* semaPayload = codeGen.sema().semaPayload<ForStmtSemaPayload>(codeGen.curNodeRef());
             SWC_ASSERT(semaPayload != nullptr);
             loopState.indexTypeRef = semaPayload->indexTypeRef;
-            lowerReg = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
+            lowerReg               = materializeLoopZeroReg(codeGen, loopState.indexTypeRef);
             if (semaPayload->countCstRef.isValid())
                 upperReg = materializeLoopConstantReg(codeGen, semaPayload->countCstRef, loopState.indexTypeRef);
             else

@@ -173,12 +173,12 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ExpandsLargeWindowsStackAdjustIntoPageP
     if (builder.instructions().count() != 5)
         return Result::Error;
 
-    const MicroOperandStorage& operands  = builder.operands();
-    const MicroInstr*          subInst   = instructionAt(builder, 0);
-    const MicroInstr*          probe0    = instructionAt(builder, 1);
-    const MicroInstr*          probe1    = instructionAt(builder, 2);
-    const MicroInstr*          probe2    = instructionAt(builder, 3);
-    const MicroInstr*          retInst   = instructionAt(builder, 4);
+    const MicroOperandStorage& operands = builder.operands();
+    const MicroInstr*          subInst  = instructionAt(builder, 0);
+    const MicroInstr*          probe0   = instructionAt(builder, 1);
+    const MicroInstr*          probe1   = instructionAt(builder, 2);
+    const MicroInstr*          probe2   = instructionAt(builder, 3);
+    const MicroInstr*          retInst  = instructionAt(builder, 4);
     if (!subInst || !probe0 || !probe1 || !probe2 || !retInst)
         return Result::Error;
 

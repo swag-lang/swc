@@ -1316,10 +1316,10 @@ struct AstDeferStmt : AstNodeT<AstNodeId::DeferStmt>
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeBodyRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
     static Result semaPreNode(Sema& sema);
     static Result codeGenPreNode(CodeGen& codeGen);
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

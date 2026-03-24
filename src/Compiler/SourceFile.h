@@ -71,7 +71,7 @@ private:
     std::unique_ptr<NodePayload> nodePayloadContext_;
     std::unique_ptr<Verify>      unitTest_;
 
-    mutable std::mutex                              errorLinesMutex_;
+    mutable std::mutex                                 errorLinesMutex_;
     mutable std::vector<std::pair<uint32_t, uint32_t>> errorLineRanges_;
 
     bool hasError_   = false;

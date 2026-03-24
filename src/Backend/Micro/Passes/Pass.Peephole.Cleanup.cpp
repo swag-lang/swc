@@ -1128,7 +1128,7 @@ namespace
             return false;
         }
 
-        constexpr uint8_t rewrittenBinOperands = static_cast<uint8_t>(rewrittenBinOps.size());
+        constexpr uint8_t rewrittenBinOperands = rewrittenBinOps.size();
         MicroInstr        probeBinInst         = binInst;
         probeBinInst.op                        = rewrittenBinOpcode;
         probeBinInst.numOperands               = rewrittenBinOperands;

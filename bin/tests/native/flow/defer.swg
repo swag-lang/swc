@@ -469,6 +469,5 @@ var G = 0
         defer a += 1
     }
 
-    @print(G)
     @assert(G == 5)
 }

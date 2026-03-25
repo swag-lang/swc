@@ -24,6 +24,12 @@ namespace
         return SemaClone::CloneContext{inlineContext.bindings};
     }
 
+    SemaClone::CloneContext cloneContextWithoutBindings(const CloneContext& cloneContext)
+    {
+        const auto& inlineContext = cloneContextAsInline(cloneContext);
+        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, inlineContext.replacements};
+    }
+
     const SemaClone::ParamBinding* findBinding(const CloneContext& cloneContext, IdentifierRef idRef)
     {
         for (const SemaClone::ParamBinding& binding : cloneContextAsInline(cloneContext).bindings)
@@ -84,6 +90,15 @@ namespace
 
         const auto noReplacements = cloneContextWithoutReplacements(cloneContext);
         return SemaClone::cloneAst(sema, nodeRef, noReplacements);
+    }
+
+    AstNodeRef cloneNodeRefWithoutBindings(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
+    {
+        if (nodeRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const auto noBindings = cloneContextWithoutBindings(cloneContext);
+        return SemaClone::cloneAst(sema, nodeRef, noBindings);
     }
 
     AstNodeRef cloneNodeReplacement(Sema& sema, const AstNode& node, const CloneContext& cloneContext)
@@ -790,7 +805,7 @@ AstNodeRef AstAutoMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cl
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::AutoMemberAccessExpr>(tokRef());
     newPtr->flags()       = flags();
-    newPtr->nodeIdentRef  = SemaClone::cloneAst(sema, nodeIdentRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeIdentRef  = cloneNodeRefWithoutBindings(sema, nodeIdentRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
@@ -799,7 +814,7 @@ AstNodeRef AstMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneC
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());
     newPtr->flags()       = flags();
     newPtr->nodeLeftRef   = SemaClone::cloneAst(sema, nodeLeftRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeRightRef  = SemaClone::cloneAst(sema, nodeRightRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeRightRef  = cloneNodeRefWithoutBindings(sema, nodeRightRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

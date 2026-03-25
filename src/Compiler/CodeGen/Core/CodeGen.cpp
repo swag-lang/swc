@@ -286,10 +286,15 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 
 CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 {
-    nodeRef = resolvedNodeRef(nodeRef);
-    if (nodeRef.isInvalid())
+    const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
+    if (resolvedRef.isInvalid())
         return nullptr;
-    return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    auto* payload = sema().codeGenPayload<CodeGenNodePayload>(resolvedRef);
+    // Implicit casts created by Cast::createCast substitute the original node
+    // but are never visited by CodeGen. Fall back to the original node's payload.
+    if (!payload && resolvedRef != nodeRef)
+        payload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    return payload;
 }
 
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)

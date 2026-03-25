@@ -495,7 +495,7 @@ namespace
             if (numFixed > 0)
             {
                 bound[0].idRef   = params[0]->idRef();
-                bound[0].exprRef = ufcsRef;
+                bound[0].exprRef = ufcsArg;
                 nextParam        = 1;
             }
             else if (hasAnyVariadic)

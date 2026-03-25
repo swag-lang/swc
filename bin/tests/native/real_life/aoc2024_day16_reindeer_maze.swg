@@ -37,9 +37,9 @@ const TinyInput =
 
 const MaxDim  = 64'u32
 const MaxCells = MaxDim * MaxDim
-const Wall = '#'
-const Start = 'S'
-const End = 'E'
+const Wall:  u8 = '#'
+const Start: u8 = 'S'
+const End:   u8 = 'E'
 
 struct Maze
 {
@@ -77,13 +77,13 @@ func cellAt(m: *Maze, r: u32, c: u32) -> u8
 #[Swag.Inline]
 func isWall(m: *Maze, r: u32, c: u32) -> bool
 {
-    return cellAt(m, r, c) == '#'
+    return cellAt(m, r, c) == Wall
 }
 
 #[Swag.Inline]
 func isEnd(m: *Maze, r: u32, c: u32) -> bool
 {
-    return cellAt(m, r, c) == 'E'
+    return cellAt(m, r, c) == End
 }
 
 func parseMaze(text: string) -> Maze
@@ -239,7 +239,7 @@ func solve(text: string) -> u64
     var m = parseMaze(TinyInput)
     defer mazeFree(&m)
 
-    @assert(cellAt(&m, 0, 0) == '#')
+    @assert(cellAt(&m, 0, 0) == Wall)
     @assert(isWall(&m, 0, 0))
     @assert(!isWall(&m, 1, 1))
     @assert(isEnd(&m, 1, 3))

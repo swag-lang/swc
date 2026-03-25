@@ -131,6 +131,24 @@ namespace
             sema.unsetIsLValue(clonedRef);
     }
 
+    // Implicit casts (created by Cast::createCast) store their target type
+    // directly in the payload and have no AST type node. semaPostNode skips
+    // them, so the type must be carried over to the clone explicitly.
+    // Skip when the source has a constant, as setType would overwrite the
+    // payload slot that constant folding relies on.
+    void copyImplicitCastType(Sema& sema, const AstNode& sourceNode, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    {
+        if (sourceNode.isNot(AstNodeId::CastExpr))
+            return;
+        if (sourceNode.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit))
+            return;
+        const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        if (storedView.hasConstant())
+            return;
+        if (storedView.typeRef().isValid())
+            sema.setType(clonedRef, storedView.typeRef());
+    }
+
     SpanRef cloneSpan(Sema& sema, SpanRef spanRef, const CloneContext& cloneContext)
     {
         if (spanRef.isInvalid())
@@ -204,12 +222,14 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
     if (clonedRef.isValid())
     {
         copyCallableClonePayload(sema, nodeRef, clonedRef);
+        copyImplicitCastType(sema, node, nodeRef, clonedRef);
         return clonedRef;
     }
 
     clonedRef = cloneShallowNode(sema, node);
     SWC_ASSERT(clonedRef.isValid());
     copyCallableClonePayload(sema, nodeRef, clonedRef);
+    copyImplicitCastType(sema, node, nodeRef, clonedRef);
     return clonedRef;
 }
 

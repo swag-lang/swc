@@ -102,7 +102,7 @@ func parseGrid(text: string)->Grid
 }
 
 #[Swag.Inline]
-func cellAt(grid: *Grid, row, col: u32)->u8
+func cellAt(grid: const &Grid, row, col: u32)->u8
 {
     @assert(row < grid.height and col < grid.width)
     return grid.cells[row * MaxDim + col]
@@ -126,7 +126,7 @@ func addTrailResult(a, b: TrailResult)->TrailResult
 
 // Nested function: DFS from a cell, returns number of distinct paths to any 9.
 // scoreOut is incremented for each newly-discovered 9-cell.
-func dfs(g: *Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
+func dfs(g: const &Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
 {
     let h = cellAt(g, row, col)
     if h == TrailEnd
@@ -160,7 +160,7 @@ func dfs(g: *Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
     return paths
 }
 
-func findTrails(grid: *Grid)->TrailResult
+func findTrails(grid: const &Grid)->TrailResult
 {
     var visited: [MaxDim * MaxDim] bool
     var totalScore: u32

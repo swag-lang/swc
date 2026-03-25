@@ -698,28 +698,42 @@ namespace
             const SemaNodeView argView = codeGen.viewType(resolvedArg.argRef);
             SWC_ASSERT(argView.type());
 
-            const TypeInfo& argType    = ctx.typeMgr().get(argView.typeRef());
+            const TypeRef   argTypeRef = argPayload.effectiveTypeRef(argView.typeRef());
+            const TypeInfo& argType    = ctx.typeMgr().get(argTypeRef);
             const uint64_t  rawArgSize = argType.sizeOf(ctx);
             SWC_ASSERT(rawArgSize > 0 && rawArgSize <= std::numeric_limits<uint32_t>::max());
 
             UntypedVariadicArgInfo info;
             info.argRef     = resolvedArg.argRef;
             info.argPayload = argPayload;
-            info.argTypeRef = argView.typeRef();
+            info.argTypeRef = argTypeRef;
             info.valueSize  = static_cast<uint32_t>(rawArgSize);
             info.valueAlign = std::max<uint32_t>(argType.alignOf(ctx), 1);
 
-            ConstantRef  typeInfoCstRef = ConstantRef::invalid();
-            const Result typeInfoRes    = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, info.argTypeRef, info.argRef);
-            SWC_INTERNAL_CHECK(typeInfoRes == Result::Continue);
-            info.typeInfoCstRef = typeInfoCstRef;
+            info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
+            if (!info.typeInfoCstRef.isValid())
+            {
+                ConstantRef  typeInfoCstRef = ConstantRef::invalid();
+                const Result typeInfoRes    = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, info.argTypeRef, info.argRef);
+                SWC_INTERNAL_CHECK(typeInfoRes == Result::Continue);
+                info.typeInfoCstRef = typeInfoCstRef;
+            }
             if (info.argPayload.reg == callConv.stackPointer)
             {
                 info.argPayload.reg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegReg(info.argPayload.reg, callConv.stackPointer, MicroOpBits::B64);
             }
 
-            info.needsSpill = info.argPayload.isValue() && (info.valueSize <= 8 || argType.isAny());
+            const MicroOpBits scalarBits = CodeGenTypeHelpers::scalarStoreBits(argType, ctx);
+            if (info.argPayload.isAddress() && scalarBits != MicroOpBits::Zero)
+            {
+                const MicroReg addressReg = info.argPayload.reg;
+                info.argPayload.reg       = argType.isFloat() ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(info.argPayload.reg, addressReg, 0, scalarBits);
+                info.argPayload.setIsValue();
+            }
+
+            info.needsSpill = info.valueSize <= 8 || argType.isAny();
             SWC_ASSERT(info.typeInfoCstRef.isValid());
             variadicInfos.push_back(info);
         }

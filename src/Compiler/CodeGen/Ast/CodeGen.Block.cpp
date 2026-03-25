@@ -1,8 +1,24 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    // A mixin body is transparent: its defers belong to the caller's scope, not
+    // an isolated scope of their own.  Returns true when the current node is
+    // the inline root of a mixin expansion.
+    bool isMixinBody(CodeGen& codeGen)
+    {
+        const SemaInlinePayload* inlinePayload = codeGen.sema().semaPayload<SemaInlinePayload>(codeGen.curNodeRef());
+        return inlinePayload &&
+               inlinePayload->inlineRootRef == codeGen.curNodeRef() &&
+               inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+    }
+}
 
 Result AstEmbeddedBlock::codeGenPreNode(CodeGen& codeGen)
 {
@@ -17,12 +33,16 @@ Result AstEmbeddedBlock::codeGenPostNode(CodeGen& codeGen)
 
 Result AstFunctionBody::codeGenPreNode(CodeGen& codeGen)
 {
+    if (isMixinBody(codeGen))
+        return Result::Continue;
     codeGen.pushDeferScope(codeGen.curNodeRef());
     return Result::Continue;
 }
 
 Result AstFunctionBody::codeGenPostNode(CodeGen& codeGen)
 {
+    if (isMixinBody(codeGen))
+        return Result::Continue;
     return codeGen.popDeferScope();
 }
 

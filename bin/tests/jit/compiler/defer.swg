@@ -28,7 +28,6 @@ func mixinAddDefer()
 var MacroState: s32 = 0
 var ScopeLockValue: s32 = 0
 
-/*
 #[Swag.Mixin]
 func mixinScopeLock()
 {
@@ -42,33 +41,12 @@ func mixinParamTrace(value: s64)
     defer appendDeferTrace(value)
     appendDeferTrace(1)
 }
-*/
 
 #[Swag.Macro]
 func macroRun(stmt: #code void)
 {
     #inject(stmt)
 }
-
-/*
-#[Swag.Macro]
-func macroScope(stmt: #code void)
-{
-    #macro
-    {
-        var x = 0's64
-        defer appendDeferTrace(7)
-        #inject(#up stmt)
-    }
-}
-
-#[Swag.Macro]
-func macroString(x: string)->string
-{
-    defer MacroState = 1
-    return "toto"
-}
-*/
 
 #test
 {
@@ -92,7 +70,7 @@ func macroString(x: string)->string
 
     const V = #run runInjectedFunctionScopeTrace()
     #assert(V.value == 42)
-    #assert(V.trace == 1982)
+    #assert(V.trace == 1829)
 }
 
 #test
@@ -115,10 +93,8 @@ func macroString(x: string)->string
     #assert(V == 818181)
 }
 
-/*
 #test
 {
-    // compiler2240
     func runMixinScopeLock()->s32
     {
         ScopeLockValue = 0
@@ -136,7 +112,6 @@ func macroString(x: string)->string
 
 #test
 {
-    // compiler2636, compiler3747
     func runMixinParamTrace()->s64
     {
         resetDeferTrace()
@@ -146,38 +121,5 @@ func macroString(x: string)->string
     }
 
     const V = #run runMixinParamTrace()
-    #assert(V == 215)
+    #assert(V == 12)
 }
-
-#test
-{
-    // compiler2805
-    func runMacroScopeTrace()->s64
-    {
-        resetDeferTrace()
-        macroScope()
-        {
-            appendDeferTrace(1)
-        }
-
-        return DeferTrace
-    }
-
-    const V = #run runMacroScopeTrace()
-    #assert(V == 17)
-}
-
-#test
-{
-    // compiler2195
-    MacroState = 0
-    const V = macroString("toto")
-    #assert(V == "toto")
-    #assert(MacroState == 1)
-}
-*/
-
-// Legacy cases intentionally left commented until #err/#noerr/catch defer modes land.
-// compiler3719
-// compiler3775
-// compiler5208

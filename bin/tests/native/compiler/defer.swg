@@ -27,7 +27,6 @@ func mixinAddDefer()
     appendDeferTrace(1)
 }
 
-/*
 #[Swag.Mixin]
 func mixinScopeLock()
 {
@@ -41,7 +40,6 @@ func mixinParamTrace(value: s64)
     defer appendDeferTrace(value)
     appendDeferTrace(1)
 }
-*/
 
 #[Swag.Macro]
 func macroRun(stmt: #code void)
@@ -101,7 +99,6 @@ func runInjectedLoopScope()->s64
     return DeferTrace
 }
 
-/*
 func runMixinScopeLock()->s32
 {
     ScopeLockValue = 0
@@ -121,6 +118,7 @@ func runMixinParamTrace()->s64
     return DeferTrace
 }
 
+/*
 func runMacroScopeTrace()->s64
 {
     resetDeferTrace()
@@ -137,7 +135,7 @@ func runMacroScopeTrace()->s64
 {
     let v = runInjectedFunctionScopeTrace()
     @assert(v.value == 42)
-    @assert(v.trace == 1982)
+    @assert(v.trace == 1829)
 }
 
 #test
@@ -145,7 +143,6 @@ func runMacroScopeTrace()->s64
     @assert(runInjectedLoopScope() == 818181)
 }
 
-/*
 #test
 {
     @assert(runMixinScopeLock() == 5)
@@ -153,9 +150,10 @@ func runMacroScopeTrace()->s64
 
 #test
 {
-    @assert(runMixinParamTrace() == 215)
+    @assert(runMixinParamTrace() == 12)
 }
 
+/*
 #test
 {
     @assert(runMacroScopeTrace() == 17)

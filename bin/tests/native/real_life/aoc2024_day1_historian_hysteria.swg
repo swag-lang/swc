@@ -15,7 +15,15 @@ const SampleInput =
 3   3"""
 
 const DenseInput = "10   10\r\n20   30\r\n20   20\r\n30   10\r\n"
-const ActualInput = #include("1.txt")
+const CoverageInput =
+"""10   30
+20   10
+20   20
+30   20
+40   50
+50   40
+50   50
+60   20"""
 
 struct LocationLists
 {
@@ -326,7 +334,7 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->HistorianReport
 
 const SampleLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
 const DenseLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) DenseInput)
-const ActualLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) ActualInput)
+const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
 
 #test
 {
@@ -362,13 +370,13 @@ const ActualLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cas
 
 #test
 {
-    let actualLists = parseLocationLists(cast(const [..] u8) ActualInput)
-    let actualClean = solveClean(actualLists)
+    let coverageLists = parseLocationLists(cast(const [..] u8) CoverageInput)
+    let coverageClean = solveClean(coverageLists)
 
-    @assert(ActualLanguageReport.pairCount == 1000'u32)
-    @assert(ActualLanguageReport.totalDistance == 2_742_123'u64)
-    @assert(ActualLanguageReport.similarityScore == 21_328_497'u64)
-    @assert(actualClean.pairCount == ActualLanguageReport.pairCount)
-    @assert(actualClean.totalDistance == ActualLanguageReport.totalDistance)
-    @assert(actualClean.similarityScore == ActualLanguageReport.similarityScore)
+    @assert(CoverageLanguageReport.pairCount == 8'u32)
+    @assert(CoverageLanguageReport.totalDistance == 40'u64)
+    @assert(CoverageLanguageReport.similarityScore == 400'u64)
+    @assert(coverageClean.pairCount == CoverageLanguageReport.pairCount)
+    @assert(coverageClean.totalDistance == CoverageLanguageReport.totalDistance)
+    @assert(coverageClean.similarityScore == CoverageLanguageReport.similarityScore)
 }

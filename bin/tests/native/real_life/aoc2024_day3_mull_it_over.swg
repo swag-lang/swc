@@ -10,7 +10,7 @@ const SampleInputB = "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)u
 
 const EdgeInput = "mul(1,1)don't()mul(2,2)do()mul(3,3)"
 const EmptyInput = "nothing here at all"
-const ActualInput = #include("3.txt")
+const CoverageInput = "mul(2,3)xxdon't()mul(4,5)??do()mul(6,7)!mul[8,9]don't()mul(1,1)do()mul(3,4)"
 
 enum TokenKind: u8
 {
@@ -349,13 +349,14 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
 
 #test
 {
-    let actualStream = tokenizeClean(cast(const [..] u8) ActualInput)
-    let actualClean  = evaluateClean(actualStream)
+    let coverageStream = tokenizeClean(cast(const [..] u8) CoverageInput)
+    let coverageClean  = evaluateClean(coverageStream)
 
-    @assert(actualClean.sumAll == 196826776)
-    @assert(actualClean.sumEnabled == 106780429)
+    @assert(coverageStream.count == 9'u32)
+    @assert(coverageClean.sumAll == 81)
+    @assert(coverageClean.sumEnabled == 60)
 
-    let actualFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8) ActualInput))
-    @assert(actualFeat.sumAll == actualClean.sumAll)
-    @assert(actualFeat.sumEnabled == actualClean.sumEnabled)
+    let coverageFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8) CoverageInput))
+    @assert(coverageFeat.sumAll == coverageClean.sumAll)
+    @assert(coverageFeat.sumEnabled == coverageClean.sumEnabled)
 }

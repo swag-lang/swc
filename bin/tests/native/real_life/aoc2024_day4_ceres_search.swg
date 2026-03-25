@@ -19,7 +19,12 @@ MAMMMXMMMM
 MXMXAXMASX"""
 
 const TinyInput = "XMAS\nSAMX\n"
-const ActualInput = #include("4.txt")
+const CoverageInput =
+"""XMASX
+.M.S.
+..A..
+.M.S.
+XMASX"""
 
 enum Direction: u8
 {
@@ -276,12 +281,14 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
 
 #test
 {
-    let actualGrid  = parseGrid(cast(const [..] u8) ActualInput)
-    let actualClean = solveClean(actualGrid)
-    let actualFeat  = solveWithLanguageFeatures(actualGrid)
+    let coverageGrid  = parseGrid(cast(const [..] u8) CoverageInput)
+    let coverageClean = solveClean(coverageGrid)
+    let coverageFeat  = solveWithLanguageFeatures(coverageGrid)
 
-    @assert(actualClean.xmasCount == 2547'u32)
-    @assert(actualClean.crossCount == 1939'u32)
-    @assert(actualFeat.xmasCount == actualClean.xmasCount)
-    @assert(actualFeat.crossCount == actualClean.crossCount)
+    @assert(coverageGrid.rowCount == 5'u32)
+    @assert(coverageGrid.colCount == 5'u32)
+    @assert(coverageClean.xmasCount == 4'u32)
+    @assert(coverageClean.crossCount == 1'u32)
+    @assert(coverageFeat.xmasCount == coverageClean.xmasCount)
+    @assert(coverageFeat.crossCount == coverageClean.crossCount)
 }

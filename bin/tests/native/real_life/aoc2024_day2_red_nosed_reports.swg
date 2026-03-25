@@ -15,7 +15,15 @@ const SampleInput =
 1 3 6 7 9"""
 
 const EdgeInput = "1 2 3 4\r\n1 3 2 4 5\r\n8 6 4 4 1\r\n9 7 6 2 1\r\n"
-const ActualInput = #include("2.txt")
+const CoverageInput =
+"""1 2 3 4
+9 7 5 3
+1 3 2 4
+8 6 4 4 1
+1 2 7 8 9
+9 7 6 2 1
+4 7 10 13
+10 8 6 7"""
 
 enum Trend: u8
 {
@@ -339,14 +347,14 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
 #test
 {
-    let actualBatch = parseReports(cast(const [..] u8) ActualInput)
-    let actualClean = auditReportsClean(actualBatch)
-    let actualFeatures = auditReportsWithLanguageFeatures(actualBatch)
+    let coverageBatch = parseReports(cast(const [..] u8) CoverageInput)
+    let coverageClean = auditReportsClean(coverageBatch)
+    let coverageFeatures = auditReportsWithLanguageFeatures(coverageBatch)
 
-    @assert(actualClean.reportCount == 1000'u32)
-    @assert(actualClean.safeWithoutDampener == 549'u32)
-    @assert(actualClean.safeWithDampener == 589'u32)
-    @assert(actualFeatures.reportCount == actualClean.reportCount)
-    @assert(actualFeatures.safeWithoutDampener == actualClean.safeWithoutDampener)
-    @assert(actualFeatures.safeWithDampener == actualClean.safeWithDampener)
+    @assert(coverageClean.reportCount == 8'u32)
+    @assert(coverageClean.safeWithoutDampener == 3'u32)
+    @assert(coverageClean.safeWithDampener == 6'u32)
+    @assert(coverageFeatures.reportCount == coverageClean.reportCount)
+    @assert(coverageFeatures.safeWithoutDampener == coverageClean.safeWithoutDampener)
+    @assert(coverageFeatures.safeWithDampener == coverageClean.safeWithDampener)
 }

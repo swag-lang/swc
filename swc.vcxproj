@@ -452,7 +452,6 @@
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Index.h" />
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Loop.h" />
-        <ClInclude Include="src\Compiler\Sema\Ast\Sema.MemberAccess.h" />
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Switch.h" />
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>
         <ClInclude Include="src\Support\Report\ScopedTimedAction.h"/>

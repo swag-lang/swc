@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.MemberAccess.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -188,7 +188,7 @@ namespace
             return false;
 
         size_t memberIndex = 0;
-        return SemaMemberAccess::resolveAggregateMemberIndex(sema, typeInfo, idRef, memberIndex);
+        return SemaHelpers::resolveAggregateMemberIndex(sema, typeInfo, idRef, memberIndex);
     }
 
     Result addCandidateFromType(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, TypeRef typeRef, const SymbolVariable* symVar, AstNodeRef baseExprRef, uint32_t precedence)
@@ -463,7 +463,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     // the regular member-access semantic path.
     AstMemberAccessExpr* substituteNode = nullptr;
     const AstNodeRef     nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), selected, nodeIdentRef, substituteNode);
-    SWC_RESULT(SemaMemberAccess::resolve(sema, nodeRef, *substituteNode, allowOverloadSet));
+    SWC_RESULT(SemaHelpers::resolveMemberAccess(sema, nodeRef, *substituteNode, allowOverloadSet));
 
     sema.setSubstitute(sema.curNodeRef(), nodeRef);
     return Result::SkipChildren;

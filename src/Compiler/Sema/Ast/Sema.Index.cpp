@@ -97,7 +97,7 @@ namespace
 
     Result completeSliceRuntimeStorage(Sema& sema, TypeRef storageTypeRef)
     {
-        if (storageTypeRef.isInvalid() || SemaHelpers::isGlobalScope(sema))
+        if (storageTypeRef.isInvalid() || sema.isGlobalScope())
             return Result::Continue;
 
         if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
@@ -333,7 +333,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
 
     const TypeRef runtimeStorageTypeRef = indexRuntimeStorageTypeRef(sema, nodeExprView, nodeExprRef);
-    if (runtimeStorageTypeRef.isValid() && SemaHelpers::isCurrentFunction(sema))
+    if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
     {
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
         if (!payload)
@@ -476,3 +476,4 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

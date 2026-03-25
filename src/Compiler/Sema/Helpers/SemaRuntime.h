@@ -141,14 +141,14 @@ namespace SemaRuntime
 
     inline bool isRuntimeArtifactContext(const Sema& sema)
     {
-        if (SemaHelpers::isRunExprContext(sema))
+        if (sema.isRunExprContext())
             return false;
-        if (SemaHelpers::isConstExprRequired(sema))
+        if (sema.isConstExprRequired())
             return false;
         if (hasCompilerEvalAstContext(sema))
             return false;
 
-        const auto* const currentFunction = SemaHelpers::currentFunction(sema);
+        const auto* const currentFunction = sema.currentFunction();
         return currentFunction != nullptr && isRuntimeArtifactFunction(sema, *currentFunction);
     }
 
@@ -184,3 +184,4 @@ namespace SemaRuntime
 }
 
 SWC_END_NAMESPACE();
+

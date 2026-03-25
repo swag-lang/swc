@@ -140,7 +140,7 @@ namespace
         const TypeRef runtimeStorageTypeRef = literalRuntimeStorageTypeRef(literalView);
         if (runtimeStorageTypeRef.isInvalid())
             return Result::Continue;
-        if (SemaHelpers::isGlobalScope(sema))
+        if (sema.isGlobalScope())
             return Result::Continue;
 
         if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
@@ -590,3 +590,4 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

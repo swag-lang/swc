@@ -54,7 +54,7 @@ namespace
             return Result::Continue;
         if (!literalView.type()->isAggregateStruct() && !literalView.type()->isAggregateArray())
             return Result::Continue;
-        if (SemaHelpers::isGlobalScope(sema))
+        if (sema.isGlobalScope())
             return Result::Continue;
 
         if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
@@ -216,3 +216,4 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+

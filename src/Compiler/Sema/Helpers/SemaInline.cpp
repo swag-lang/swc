@@ -385,7 +385,7 @@ namespace
         if (returnTypeRef.isInvalid() || returnTypeRef == sema.typeMgr().typeVoid())
             return Result::Continue;
 
-        if (!SemaHelpers::isCurrentFunction(sema))
+        if (!sema.isCurrentFunction())
             return Result::Continue;
 
         const TypeInfo& resultType = sema.typeMgr().get(returnTypeRef);
@@ -628,7 +628,7 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
         return true;
 
-    return SemaHelpers::isOptimizeEnabled(sema) && attributes.hasRtFlag(RtAttributeFlagsE::Inline);
+    return sema.isOptimizeEnabled() && attributes.hasRtFlag(RtAttributeFlagsE::Inline);
 }
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
@@ -711,3 +711,4 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 }
 
 SWC_END_NAMESPACE();
+

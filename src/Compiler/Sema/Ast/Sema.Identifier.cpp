@@ -73,7 +73,7 @@ namespace
 
     bool requiresExplicitClosureCapture(Sema& sema, const Symbol& symbol)
     {
-        const SymbolFunction* currentFn = SemaHelpers::currentFunction(sema);
+        const SymbolFunction* currentFn = sema.currentFunction();
         if (!currentFn || !requiresExplicitCaptureList(sema, *currentFn))
             return false;
 
@@ -127,3 +127,4 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+

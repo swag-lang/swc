@@ -435,7 +435,7 @@ namespace
             return Result::Continue;
         }
 
-        auto* sym = SemaHelpers::currentFunction(sema);
+        auto* sym = sema.currentFunction();
         SWC_ASSERT(sym);
         if (!sym)
             return Result::Error;
@@ -894,7 +894,7 @@ namespace
         symVar.setTypeRef(typeRef);
 
         if (!ownerFunction)
-            ownerFunction = SemaHelpers::currentFunction(sema);
+            ownerFunction = sema.currentFunction();
         if (ownerFunction && typeRef.isValid())
         {
             const TypeInfo& symType = sema.typeMgr().get(typeRef);
@@ -953,7 +953,7 @@ namespace
 
     Result attachClosureExprRuntimeStorageIfNeeded(Sema& sema, const AstClosureExpr& node, const SymbolFunction& sym)
     {
-        if (SemaHelpers::isGlobalScope(sema))
+        if (sema.isGlobalScope())
             return Result::Continue;
         if (!sym.typeRef().isValid())
             return Result::Continue;
@@ -1054,7 +1054,7 @@ namespace
 
     Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
-        if (SemaHelpers::isNativeBuild(sema))
+        if (sema.isNativeBuild())
         {
             SymbolFunction* tlsAllocFn  = nullptr;
             SymbolFunction* tlsGetPtrFn = nullptr;
@@ -1107,7 +1107,7 @@ namespace
 
     TypeRef callExprRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
     {
-        if (SemaHelpers::isGlobalScope(sema))
+        if (sema.isGlobalScope())
             return TypeRef::invalid();
 
         const TypeRef returnTypeRef = calledFn.returnTypeRef();
@@ -1173,7 +1173,7 @@ namespace
         auto&      calledFn    = nodeSymView.sym()->cast<SymbolFunction>();
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
         const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-        if (auto* currentFn = SemaHelpers::currentFunction(sema); currentFn &&
+        if (auto* currentFn = sema.currentFunction(); currentFn &&
                                                                   currentFn->decl() &&
                                                                   calledFn.decl() &&
                                                                   calledFn.declNodeRef().isValid() &&
@@ -1460,7 +1460,7 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
     else if (tok.id == TokenId::IntrinsicGvtd)
     {
-        if (SymbolFunction* fn = SemaHelpers::currentFunction(sema))
+        if (SymbolFunction* fn = sema.currentFunction())
             fn->setUsesGvtd();
     }
 
@@ -1481,3 +1481,4 @@ Result AstDiscardExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

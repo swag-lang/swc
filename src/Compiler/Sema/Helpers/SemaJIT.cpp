@@ -580,10 +580,10 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     // Eligibility and prerequisites.
     if (!supportsConstCallJit(sema, calledFn))
         return Result::Continue;
-    if (SemaHelpers::isRunExprContext(sema))
+    if (sema.isRunExprContext())
         return Result::Continue;
-    if (!SemaHelpers::isOptimizeEnabled(sema) &&
-        !SemaHelpers::isConstExprRequired(sema))
+    if (!sema.isOptimizeEnabled() &&
+        !sema.isConstExprRequired())
         return Result::Continue;
     if (sema.viewConstant(callRef).hasConstant())
         return Result::Continue;
@@ -591,7 +591,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (hasPendingJitNode(sema, callRef))
         return waitPendingJitNode(sema, calledFn, callRef);
 
-    const SymbolFunction* currentFn = SemaHelpers::currentFunction(sema);
+    const SymbolFunction* currentFn = sema.currentFunction();
     if (currentFn == &calledFn)
         return Result::Continue;
     SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
@@ -644,3 +644,4 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
 }
 
 SWC_END_NAMESPACE();
+

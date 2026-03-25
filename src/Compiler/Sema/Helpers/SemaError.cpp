@@ -16,7 +16,7 @@ namespace
         if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
             return;
 
-        if (auto* currentFn = SemaHelpers::currentFunction(sema))
+        if (auto* currentFn = sema.currentFunction())
             currentFn->setIgnored(sema.ctx());
     }
 }
@@ -151,7 +151,7 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
     auto diag = report(sema, DiagnosticId::sema_err_runtime_uses_compiler_only_symbol, atNodeRef);
     setReportArguments(sema, diag, &symbol);
 
-    if (const SymbolFunction* currentFn = SemaHelpers::currentFunction(sema))
+    if (const SymbolFunction* currentFn = sema.currentFunction())
         diag.addArgument(Diagnostic::ARG_WHAT, currentFn->getFullScopedName(sema.ctx()));
 
     diag.addNote(DiagnosticId::sema_note_compiler_only_symbol);
@@ -161,3 +161,4 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
 }
 
 SWC_END_NAMESPACE();
+

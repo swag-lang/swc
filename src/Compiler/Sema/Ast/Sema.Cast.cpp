@@ -319,7 +319,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView dstTypeView = sema.curViewType();
     SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, nodeExprView.nodeRef(), srcTypeView.typeRef(), dstTypeView.typeRef()));
     const TypeRef runtimeStorageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeView, dstTypeView);
-    if (runtimeStorageTypeRef.isValid() && SemaHelpers::isCurrentFunction(sema))
+    if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
     {
         auto& storageSym = getOrCreateCastRuntimeStorageSymbol(sema, *this);
         if (&storageSym == SemaHelpers::currentRuntimeStorage(sema))
@@ -425,3 +425,4 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

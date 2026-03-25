@@ -220,7 +220,7 @@ namespace
 
             if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && needsStandaloneVariableStorage(symVar))
             {
-                if (SemaHelpers::isCurrentFunction(sema))
+                if (sema.isCurrentFunction())
                 {
                     // Local type fields are part of the type layout and must not be rewritten as stack locals.
                     SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
@@ -626,7 +626,7 @@ namespace
 
         if (finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isCodeBlock())
         {
-            const auto* currentFn        = SemaHelpers::currentFunction(sema);
+            const auto* currentFn        = sema.currentFunction();
             const bool  allowedCodeParam = isParameter && currentFn &&
                                           (currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
                                            currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));
@@ -958,3 +958,4 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

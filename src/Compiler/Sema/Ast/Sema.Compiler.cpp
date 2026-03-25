@@ -33,7 +33,7 @@ namespace
     {
         if (nodeRef.isInvalid())
             return false;
-        if (SemaHelpers::isGlobalScope(sema))
+        if (sema.isGlobalScope())
             return false;
 
         const AstNodeRef parentRef = sema.visit().parentNodeRef();
@@ -1186,7 +1186,7 @@ Result AstCompilerRunBlock::semaPreNode(Sema& sema)
 
 Result AstCompilerRunBlock::semaPostNode(Sema& sema)
 {
-    auto* runExprSymFn = SemaHelpers::currentFunction(sema);
+    auto* runExprSymFn = sema.currentFunction();
     SWC_ASSERT(runExprSymFn != nullptr);
 
     const TypeRef returnTypeRef = runExprSymFn->returnTypeRef();
@@ -1221,3 +1221,4 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+

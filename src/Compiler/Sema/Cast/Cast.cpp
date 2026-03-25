@@ -100,7 +100,7 @@ namespace
 
     Result attachCastRuntimeStorageIfNeededImpl(Sema& sema, AstNodeRef castNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
     {
-        if (SemaHelpers::isGlobalScope(sema))
+        if (sema.isGlobalScope())
             return Result::Continue;
 
         const TypeRef storageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);
@@ -173,3 +173,4 @@ AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, 
 }
 
 SWC_END_NAMESPACE();
+

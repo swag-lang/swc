@@ -212,7 +212,7 @@ namespace
         sema.setType(sema.curNodeRef(), typeRef);
         sema.setIsValue(node);
 
-        if (SemaHelpers::isCurrentFunction(sema))
+        if (sema.isCurrentFunction())
         {
             auto& storageSym = registerUniqueIntrinsicRuntimeStorageSymbol(sema, node, Utf8("__intrinsic_runtime_storage"));
             storageSym.registerAttributes(sema);
@@ -263,7 +263,7 @@ namespace
         sema.setType(sema.curNodeRef(), typeRef);
         sema.setIsValue(node);
 
-        if (SemaHelpers::isCurrentFunction(sema))
+        if (sema.isCurrentFunction())
         {
             auto& storageSym = registerUniqueIntrinsicRuntimeStorageSymbol(sema, node, Utf8("__intrinsic_runtime_storage"));
             storageSym.registerAttributes(sema);
@@ -372,7 +372,7 @@ namespace
         sema.setType(sema.curNodeRef(), interfaceTypeRef);
         sema.setIsValue(node);
 
-        if (SemaHelpers::isCurrentFunction(sema))
+        if (sema.isCurrentFunction())
         {
             const TypeRef storageTypeRef = intrinsicMakeInterfaceRuntimeStorageTypeRef(sema, objectView.typeRef(), interfaceTypeRef);
             auto&         storageSym     = registerUniqueIntrinsicRuntimeStorageSymbol(sema, node, Utf8("__intrinsic_runtime_storage"));
@@ -438,3 +438,4 @@ Result AstCountOfExpr::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+

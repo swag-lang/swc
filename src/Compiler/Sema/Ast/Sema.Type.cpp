@@ -110,7 +110,7 @@ Result AstCodeType::semaPostNode(Sema& sema) const
 
 Result AstRetValType::semaPostNode(Sema& sema)
 {
-    const SymbolFunction* currentFn = SemaHelpers::currentFunction(sema);
+    const SymbolFunction* currentFn = sema.currentFunction();
     if (!currentFn)
         return SemaError::raise(sema, DiagnosticId::sema_err_retval_outside_function, sema.curNodeRef());
 
@@ -457,3 +457,4 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+

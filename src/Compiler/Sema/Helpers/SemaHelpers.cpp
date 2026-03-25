@@ -37,20 +37,23 @@ SymbolVariable* SemaHelpers::currentRuntimeStorage(Sema& sema)
     return sym;
 }
 
-void SemaHelpers::addCurrentFunctionCallDependency(const Sema& sema, SymbolFunction* calleeSym)
+void SemaHelpers::addCurrentFunctionCallDependency(Sema& sema, SymbolFunction* calleeSym)
 {
-    if (SymbolFunction* currentFn = currentFunction(sema); currentFn && calleeSym)
-        currentFn->addCallDependency(calleeSym);
+    SWC_ASSERT(calleeSym);
+    if (!sema.isCurrentFunction())
+        return;
+
+    sema.currentFunction()->addCallDependency(calleeSym);
 }
 
 Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
 {
-    if (!isCurrentFunction(sema) || !typeRef.isValid())
+    if (!sema.isCurrentFunction() || !typeRef.isValid())
         return Result::Continue;
 
     const TypeInfo& symType = sema.typeMgr().get(typeRef);
     SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-    currentFunction(sema)->addLocalVariable(sema.ctx(), &symVar);
+    sema.currentFunction()->addLocalVariable(sema.ctx(), &symVar);
     return Result::Continue;
 }
 
@@ -115,7 +118,7 @@ bool SemaHelpers::functionUsesIndirectReturnStorage(TaskContext& ctx, const Symb
 
 bool SemaHelpers::currentFunctionUsesIndirectReturnStorage(Sema& sema)
 {
-    const SymbolFunction* currentFn = currentFunction(sema);
+    const SymbolFunction* currentFn = sema.currentFunction();
     return currentFn && functionUsesIndirectReturnStorage(sema.ctx(), *currentFn);
 }
 
@@ -155,7 +158,7 @@ const SymbolFunction* SemaHelpers::currentLocationFunction(const Sema& sema)
     if (inlinePayload && inlinePayload->sourceFunction)
         return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
 
-    return SemaRuntime::transparentLocationFunction(currentFunction(sema));
+    return SemaRuntime::transparentLocationFunction(sema.currentFunction());
 }
 
 AstNodeRef SemaHelpers::defaultArgumentExprRef(const SymbolVariable& param)
@@ -632,7 +635,7 @@ namespace
 
     bool needsStructMemberRuntimeStorage(Sema& sema, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView)
     {
-        if (SemaHelpers::isGlobalScope(sema))
+        if (sema.isGlobalScope())
             return false;
         if (!nodeLeftView.type())
             return false;

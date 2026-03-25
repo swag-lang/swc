@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -219,6 +220,31 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownIndexedStackLoad)
 
     const MicroInstrOperand* ops2 = inst2->ops(builder.operands());
     if (inst2->op != MicroInstrOpcode::LoadRegImm || ops2[2].valueU64 != 0x1234ull)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroConstantPropagation_ClearsKnownStackSlotsForCallWithStackAddressArg)
+{
+    MicroBuilder      builder(ctx);
+    const CallConv&   conv     = CallConv::host();
+    const MicroReg    stackPtr = conv.stackPointer;
+    const MicroReg    arg0     = conv.intArgRegs[0];
+    constexpr MicroReg callee  = MicroReg::intReg(10);
+    constexpr MicroReg dstReg  = MicroReg::intReg(11);
+
+    builder.emitLoadMemImm(stackPtr, 64, ApInt(0x11223344ull, 32), MicroOpBits::B32);
+    builder.emitLoadAddressRegMem(arg0, stackPtr, 64, MicroOpBits::B64);
+    builder.emitCallReg(callee, CallConvKind::Host);
+    builder.emitLoadRegMem(dstReg, stackPtr, 64, MicroOpBits::B32);
+
+    SWC_RESULT(runConstantPropagationPass(builder));
+
+    const MicroInstr* inst3 = instructionAt(builder, 3);
+    if (!inst3)
+        return Result::Error;
+
+    if (inst3->op != MicroInstrOpcode::LoadRegMem)
         return Result::Error;
 }
 SWC_TEST_END()

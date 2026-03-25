@@ -34,12 +34,13 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         // Phase 2: consume defs/calls and invalidate stale state.
         updateCompareStateForInstruction(inst, ops, deferredKnownDef);
 
-        const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context.encoder);
+        const MicroInstrUseDef useDef              = inst.collectUseDef(*operands_, context.encoder);
+        const bool             hasStackAddressArg  = useDef.isCall && callHasStackAddressArgument(useDef.callConv);
         invalidateStateForDefinitions(useDef);
 
         if (useDef.isCall)
         {
-            clearForCallBoundary(useDef.callConv);
+            clearForCallBoundary(hasStackAddressArg);
             prevInst = &inst;
             prevOps  = ops;
             continue;

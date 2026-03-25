@@ -268,6 +268,46 @@ namespace
         b.emitRet();
     }
 
+    void buildLoadBaseAddressAcrossCall(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv& conv = CallConv::get(callConvKind);
+
+        constexpr MicroReg basePtr     = MicroReg::virtualIntReg(7200);
+        constexpr MicroReg storedValue = MicroReg::virtualIntReg(7201);
+        constexpr MicroReg loadedValue = MicroReg::virtualIntReg(7202);
+        constexpr MicroReg reloadValue = MicroReg::virtualIntReg(7203);
+
+        b.emitLoadRegReg(basePtr, conv.stackPointer, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(basePtr, ApInt(0x40, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(storedValue, ApInt(0x11223344, 64), MicroOpBits::B64);
+        b.emitLoadMemReg(basePtr, 0, storedValue, MicroOpBits::B32);
+        b.emitLoadRegMem(loadedValue, basePtr, 0, MicroOpBits::B64);
+        b.emitLoadRegReg(conv.intArgRegs[0], loadedValue, MicroOpBits::B64);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitLoadRegMem(reloadValue, basePtr, 0, MicroOpBits::B32);
+        b.emitRet();
+    }
+
+    void buildConcreteLoadDestAcrossCall(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv& conv = CallConv::get(callConvKind);
+
+        constexpr MicroReg basePtr     = MicroReg::virtualIntReg(7300);
+        constexpr MicroReg storedValue = MicroReg::virtualIntReg(7301);
+        constexpr MicroReg reloadValue = MicroReg::virtualIntReg(7302);
+
+        SWC_ASSERT(!conv.intArgRegs.empty());
+
+        b.emitLoadRegReg(basePtr, conv.stackPointer, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(basePtr, ApInt(0x48, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(storedValue, ApInt(0x55667788, 64), MicroOpBits::B64);
+        b.emitLoadMemReg(basePtr, 0, storedValue, MicroOpBits::B32);
+        b.emitLoadRegMem(conv.intArgRegs[0], basePtr, 0, MicroOpBits::B64);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitLoadRegMem(reloadValue, basePtr, 0, MicroOpBits::B32);
+        b.emitRet();
+    }
+
     bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
@@ -386,6 +426,27 @@ namespace
                 if (std::ranges::find(conv.intArgRegs, reg) != conv.intArgRegs.end())
                     return true;
             }
+        }
+
+        return false;
+    }
+
+    bool hasAliasingLoadBase(MicroBuilder& builder)
+    {
+        auto& storeOps = builder.operands();
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadRegMem &&
+                inst.op != MicroInstrOpcode::LoadSignedExtRegMem &&
+                inst.op != MicroInstrOpcode::LoadZeroExtRegMem)
+                continue;
+
+            const MicroInstrOperand* ops = inst.ops(storeOps);
+            if (!ops)
+                continue;
+
+            if (ops[0].reg == ops[1].reg)
+                return true;
         }
 
         return false;
@@ -578,6 +639,52 @@ SWC_TEST_BEGIN(RegAlloc_Spill_BalancedControlFlow)
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
 
         if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_LoadBaseAddressAcrossCall)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroBuilder builder(ctx);
+        buildLoadBaseAddressAcrossCall(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+
+        if (hasAliasingLoadBase(builder))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_ConcreteLoadDestAcrossCall)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroBuilder builder(ctx);
+        buildConcreteLoadDestAcrossCall(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+
+        if (hasAliasingLoadBase(builder))
             return Result::Error;
     }
 }

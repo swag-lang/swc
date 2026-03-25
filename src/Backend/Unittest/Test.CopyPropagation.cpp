@@ -2,7 +2,9 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.CopyPropagation.h"
@@ -34,6 +36,17 @@ namespace
         }
 
         return nullptr;
+    }
+
+    bool containsReg(MicroRegSpan regs, MicroReg reg)
+    {
+        for (const auto value : regs)
+        {
+            if (value == reg)
+                return true;
+        }
+
+        return false;
     }
 }
 
@@ -91,6 +104,46 @@ SWC_TEST_BEGIN(MicroCopyPropagation_StopsAtLabel)
     const MicroInstrOperand* ops3 = inst3->ops(operands);
     if (inst3->op != MicroInstrOpcode::CmpRegReg || ops3[1].reg != r9)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroCopyPropagation_CallUseDefDefinesTransientRegs)
+{
+    MicroBuilder builder(ctx);
+    builder.emitCallReg(MicroReg::intReg(10), CallConvKind::Host);
+
+    const MicroInstr* inst = instructionAt(builder, 0);
+    if (!inst)
+        return Result::Error;
+
+    const MicroInstrUseDef useDef = inst->collectUseDef(builder.operands(), nullptr);
+    if (!useDef.isCall)
+        return Result::Error;
+
+    const CallConv& conv = CallConv::host();
+    for (const auto reg : conv.intArgRegs)
+    {
+        if (!containsReg(useDef.uses, reg))
+            return Result::Error;
+    }
+
+    for (const auto reg : conv.floatArgRegs)
+    {
+        if (!containsReg(useDef.uses, reg))
+            return Result::Error;
+    }
+
+    for (const auto reg : conv.intTransientRegs)
+    {
+        if (!containsReg(useDef.defs, reg))
+            return Result::Error;
+    }
+
+    for (const auto reg : conv.floatTransientRegs)
+    {
+        if (!containsReg(useDef.defs, reg))
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

@@ -175,9 +175,8 @@ void MicroConstantPropagationPass::clearControlFlowBoundaryForInstruction(const 
     }
 }
 
-void MicroConstantPropagationPass::clearForCallBoundary(CallConvKind callConvKind)
+void MicroConstantPropagationPass::clearForCallBoundary(const bool hasStackAddressArg)
 {
-    const bool hasStackAddressArg = callHasStackAddressArgument(callConvKind);
     known_.clear();
     if (hasStackAddressArg)
         knownStackSlots_.clear();

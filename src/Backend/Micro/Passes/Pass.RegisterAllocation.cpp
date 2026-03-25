@@ -844,13 +844,16 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&      
 MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest&         request,
                                                     MicroRegSpan                protectedKeys,
                                                     MicroRegSpan                forbiddenPhysRegs,
+                                                    MicroRegSpan                remapForbiddenPhysRegs,
                                                     uint32_t                    stamp,
                                                     int64_t                     stackDepth,
                                                     std::vector<PendingInsert>& pending)
 {
     // Reuse existing mapping when possible, otherwise allocate and load from spill on use.
     auto& regState = states_[request.virtKey];
-    if (regState.mapped && request.isDef && containsKey(forbiddenPhysRegs, regState.phys))
+    if (regState.mapped &&
+        ((request.isDef && containsKey(forbiddenPhysRegs, regState.phys)) ||
+         containsKey(remapForbiddenPhysRegs, regState.phys)))
     {
         const MicroReg conflictedPhys = regState.phys;
         if (request.isUse)
@@ -1119,6 +1122,40 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 protectedKeys.push_back(reg);
         }
 
+        SmallVector<AllocRequest> allocRequests;
+        allocRequests.reserve(protectedKeys.size());
+        for (const auto& regRef : regRefs)
+        {
+            if (!regRef.reg)
+                continue;
+
+            const auto reg = *regRef.reg;
+            if (!reg.isVirtual())
+                continue;
+
+            AllocRequest* existing = nullptr;
+            for (auto& request : allocRequests)
+            {
+                if (request.virtKey == reg)
+                {
+                    existing = &request;
+                    break;
+                }
+            }
+
+            if (!existing)
+            {
+                auto& request             = allocRequests.emplace_back();
+                request.virtReg           = reg;
+                request.virtKey           = reg;
+                request.instructionIndex  = idx;
+                existing                  = &request;
+            }
+
+            existing->isUse = existing->isUse || regRef.use;
+            existing->isDef = existing->isDef || regRef.def;
+        }
+
         const MicroInstrOperand* instOps = it->ops(*operands_);
         SmallVector<MicroReg>    mentionedConcreteRegs;
         mentionedConcreteRegs.reserve(instructionUseDefs_[idx].uses.size() + instructionUseDefs_[idx].defs.size());
@@ -1158,29 +1195,96 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
+        SmallVector<MicroReg> destructiveLoadLiveBases;
+        destructiveLoadLiveBases.reserve(1);
+        struct ForbiddenAlias
+        {
+            MicroReg virtKey = MicroReg::invalid();
+            MicroReg physReg = MicroReg::invalid();
+        };
+
+        SmallVector<ForbiddenAlias> destructiveConcreteAliases;
+        destructiveConcreteAliases.reserve(2);
+        if (instOps)
+        {
+            switch (it->op)
+            {
+                case MicroInstrOpcode::LoadRegMem:
+                case MicroInstrOpcode::LoadSignedExtRegMem:
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                    {
+                        const MicroReg dstReg  = instOps[0].reg;
+                        const MicroReg baseReg = instOps[1].reg;
+                        if (!baseReg.isVirtual() || !isLiveOut(baseReg, stamp))
+                            break;
+
+                        if (dstReg.isVirtual())
+                        {
+                            if (dstReg != baseReg)
+                                destructiveLoadLiveBases.push_back(baseReg);
+                        }
+                        else if (dstReg.isInt() || dstReg.isFloat())
+                        {
+                            destructiveConcreteAliases.push_back({baseReg, dstReg});
+                        }
+                    }
+                    break;
+
+                case MicroInstrOpcode::LoadAddrRegMem:
+                    {
+                        const MicroReg dstReg  = instOps[0].reg;
+                        const MicroReg baseReg = instOps[1].reg;
+                        if (!baseReg.isVirtual() || !isLiveOut(baseReg, stamp) || !instOps[3].valueU64)
+                            break;
+
+                        if (dstReg.isInt() || dstReg.isFloat())
+                            destructiveConcreteAliases.push_back({baseReg, dstReg});
+                    }
+                    break;
+
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                    {
+                        const MicroReg dstReg  = instOps[0].reg;
+                        const MicroReg baseReg = instOps[1].reg;
+                        const MicroReg mulReg  = instOps[2].reg;
+                        if (!dstReg.isInt() && !dstReg.isFloat())
+                            break;
+
+                        if (baseReg.isVirtual() && isLiveOut(baseReg, stamp))
+                            destructiveConcreteAliases.push_back({baseReg, dstReg});
+
+                        if (mulReg.isVirtual() && mulReg != baseReg && isLiveOut(mulReg, stamp))
+                            destructiveConcreteAliases.push_back({mulReg, dstReg});
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
         std::vector<PendingInsert> pending;
         pending.reserve(4);
 
         spillMappedVirtualsForConcreteTouches(instructionUseDefs_[idx], protectedKeys, stamp, stackDepth, pending);
 
-        for (const auto& regRef : regRefs)
+        struct AssignedPhysReg
         {
-            if (!regRef.reg)
-                continue;
+            MicroReg virtKey = MicroReg::invalid();
+            MicroReg physReg = MicroReg::invalid();
+        };
 
-            const auto reg = *regRef.reg;
-            if (!reg.isVirtual())
-                continue;
+        SmallVector<AssignedPhysReg> assignedPhysRegs;
+        assignedPhysRegs.reserve(allocRequests.size());
 
-            AllocRequest request;
-            request.virtReg          = reg;
-            request.virtKey          = reg;
-            request.isUse            = regRef.use;
-            request.isDef            = regRef.def;
-            request.instructionIndex = idx;
+        for (const auto& requestInfo : allocRequests)
+        {
+            AllocRequest request = requestInfo;
 
             SmallVector<MicroReg> forbiddenPhysRegs;
             forbiddenPhysRegs.reserve((request.isUse ? concreteLiveOut_[idx].size() : 0) + addressSourceRegs.size());
+            SmallVector<MicroReg> remapForbiddenPhysRegs;
+            remapForbiddenPhysRegs.reserve(1);
             if (request.isUse)
             {
                 for (const MicroReg key : concreteLiveOut_[idx])
@@ -1202,8 +1306,33 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 forbiddenPhysRegs.push_back(key);
             }
 
+            for (const MicroReg key : destructiveLoadLiveBases)
+            {
+                if (!request.isDef || key == request.virtKey)
+                    continue;
+
+                const auto stateIt = states_.find(key);
+                if (stateIt == states_.end() || !stateIt->second.mapped)
+                    continue;
+
+                const MicroReg protectedPhys = stateIt->second.phys;
+                if (containsKey(forbiddenPhysRegs, protectedPhys))
+                    continue;
+
+                forbiddenPhysRegs.push_back(protectedPhys);
+            }
+
+            for (const auto& alias : destructiveConcreteAliases)
+            {
+                if (alias.virtKey != request.virtKey || containsKey(forbiddenPhysRegs, alias.physReg))
+                    continue;
+
+                forbiddenPhysRegs.push_back(alias.physReg);
+                remapForbiddenPhysRegs.push_back(alias.physReg);
+            }
+
             const bool liveAcrossCall = vregsLiveAcrossCall_.contains(request.virtKey);
-            if (reg.isVirtualInt())
+            if (request.virtReg.isVirtualInt())
                 request.needsPersistent = liveAcrossCall && !conv_->intPersistentRegs.empty();
             else
                 request.needsPersistent = liveAcrossCall && !conv_->floatPersistentRegs.empty();
@@ -1212,14 +1341,33 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (liveAcrossCall && !request.needsPersistent)
                 callSpillVregs_.insert(request.virtKey);
 
-            const auto physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, stamp, stackDepth, pending);
-            *(regRef.reg)      = physReg;
+            const auto physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, remapForbiddenPhysRegs, stamp, stackDepth, pending);
+            assignedPhysRegs.push_back({request.virtKey, physReg});
 
             if (liveAcrossCall && !isPersistentPhysReg(physReg))
                 callSpillVregs_.insert(request.virtKey);
 
             if (request.isDef)
                 states_[request.virtKey].dirty = true;
+        }
+
+        for (const auto& regRef : regRefs)
+        {
+            if (!regRef.reg)
+                continue;
+
+            const auto reg = *regRef.reg;
+            if (!reg.isVirtual())
+                continue;
+
+            for (const auto& assigned : assignedPhysRegs)
+            {
+                if (assigned.virtKey != reg)
+                    continue;
+
+                *(regRef.reg) = assigned.physReg;
+                break;
+            }
         }
 
         if (isCall)

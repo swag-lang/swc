@@ -12,6 +12,12 @@ enum UnsignedCode: u16
     B = 255,
 }
 
+enum TinyCode: u8
+{
+    Zero = 0,
+    Three = 3,
+}
+
 #[Swag.EnumFlags]
 enum Flags16: u16
 {
@@ -55,6 +61,23 @@ const FLAGS_ALL = Flags16.Read | Flags16.Write | Flags16.Exec
     let v = Flags16.Read | Flags16.Write
     @assert(cast(u16) v == 3)
     @assert(cast(bool) v)
+}
+
+struct TinyCodeBytes
+{
+    value: TinyCode
+    x:     u8
+    y:     u8
+    z:     u8
+}
+
+#test
+{
+    var bytes: TinyCodeBytes = {value: TinyCode.Three, x: 0x44'u8, y: 0x55'u8, z: 0x66'u8}
+
+    @assert(cast(u32) bytes.value == 3'u32)
+    bytes.value = TinyCode.Zero
+    @assert(cast(u32) bytes.value == 0'u32)
 }
 
 

@@ -588,6 +588,10 @@ namespace
 
         const TypeInfo& srcType = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(codeGen, sourceTypeRef);
+        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(codeGen, dstTypeRef);
+        const TypeInfo& resolvedSrcType    = codeGen.typeMgr().get(resolvedSrcTypeRef);
+        const TypeInfo& resolvedDstType    = codeGen.typeMgr().get(resolvedDstTypeRef);
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
 
@@ -739,10 +743,10 @@ namespace
             return Result::Continue;
         }
 
-        const bool srcFloatType   = srcType.isFloat();
-        const bool srcIntLikeType = srcType.isNumericIntLike();
-        const bool dstFloatType   = dstType.isFloat();
-        const bool dstIntLikeType = dstType.isNumericIntLike();
+        const bool srcFloatType   = resolvedSrcType.isFloat();
+        const bool srcIntLikeType = resolvedSrcType.isNumericIntLike();
+        const bool dstFloatType   = resolvedDstType.isFloat();
+        const bool dstIntLikeType = resolvedDstType.isNumericIntLike();
 
         if (dstType.isBool() && (srcType.isPointerLike() || srcType.isReference() || srcType.isMoveReference() || srcType.isNull()))
         {
@@ -762,8 +766,8 @@ namespace
 
         if (srcIntLikeType && dstIntLikeType)
         {
-            const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
-            const MicroOpBits dstOpBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+            const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(resolvedSrcType);
+            const MicroOpBits dstOpBits = CodeGenTypeHelpers::numericOrBoolBits(resolvedDstType);
             SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
             SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
 
@@ -777,7 +781,7 @@ namespace
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
 
-            if (dstType.isBool())
+            if (resolvedDstType.isBool())
             {
                 builder.emitCmpRegImm(srcReg, ApInt(0, 64), srcOpBits);
                 builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
@@ -798,7 +802,7 @@ namespace
                 return Result::Continue;
             }
 
-            if (srcType.isNumericSigned())
+            if (resolvedSrcType.isNumericSigned())
             {
                 builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
                 return Result::Continue;
@@ -820,8 +824,8 @@ namespace
             return Result::Continue;
         }
 
-        const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
-        const MicroOpBits dstOpBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+        const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(resolvedSrcType);
+        const MicroOpBits dstOpBits = CodeGenTypeHelpers::numericOrBoolBits(resolvedDstType);
         if (srcOpBits == MicroOpBits::Zero || dstOpBits == MicroOpBits::Zero)
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
@@ -831,7 +835,7 @@ namespace
         MicroReg srcReg = srcPayload.reg;
         if (srcPayload.isAddress())
         {
-            srcReg = codeGen.nextVirtualRegisterForType(sourceTypeRef);
+            srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef);
             builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
         }
 
@@ -841,7 +845,7 @@ namespace
             {
                 const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
                 const MicroOpBits widenedBits = dstOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                if (srcType.isIntSigned())
+                if (resolvedSrcType.isIntSigned())
                     builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
                 else
                     builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);

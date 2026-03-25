@@ -57,6 +57,57 @@ namespace
         return symbol->getFullScopedName(ctx);
     }
 
+#ifdef _WIN32
+    template <typename T>
+    bool tryReadHostValue(const void* ptr, T& outValue)
+    {
+        __try
+        {
+            std::memcpy(&outValue, ptr, sizeof(T));
+            return true;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return false;
+        }
+    }
+
+    void appendHostValue(Utf8& out, std::string_view label, const void* ptr, const uint32_t numBits)
+    {
+        if (!ptr)
+        {
+            out += std::format("{} = <null>\n", label);
+            return;
+        }
+
+        switch (numBits)
+        {
+            case 32:
+            {
+                uint32_t value = 0;
+                if (tryReadHostValue(ptr, value))
+                    out += std::format("{} = [0x{:016X}] -> 0x{:08X}\n", label, reinterpret_cast<uint64_t>(ptr), value);
+                else
+                    out += std::format("{} = [0x{:016X}] -> <unreadable>\n", label, reinterpret_cast<uint64_t>(ptr));
+                return;
+            }
+
+            case 64:
+            {
+                uint64_t value = 0;
+                if (tryReadHostValue(ptr, value))
+                    out += std::format("{} = [0x{:016X}] -> 0x{:016X}\n", label, reinterpret_cast<uint64_t>(ptr), value);
+                else
+                    out += std::format("{} = [0x{:016X}] -> <unreadable>\n", label, reinterpret_cast<uint64_t>(ptr));
+                return;
+            }
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+#endif
+
     bool ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction)
     {
         if (targetFunction.jitPatchAddress())
@@ -783,6 +834,117 @@ namespace
         return true;
     }
 
+    Utf8 formatJitCrashContext(const TaskContext& ctx, const void* platformExceptionPointers)
+    {
+#ifdef _WIN32
+        const auto* const args    = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
+        const auto* const context = args ? args->ContextRecord : nullptr;
+        if (!context)
+            return {};
+
+        const uint64_t        rip          = context->Rip;
+        const SymbolFunction* matchedFn    = nullptr;
+        uint64_t              matchedEntry = 0;
+        const MachineCode*    matchedCode  = nullptr;
+        auto                  functions    = ctx.compiler().jitPreparedFunctionsSnapshot();
+
+        if (const SymbolFunction* const currentFn = ctx.state().runJitFunction)
+            functions.insert(functions.begin(), const_cast<SymbolFunction*>(currentFn));
+
+        for (const SymbolFunction* function : functions)
+        {
+            if (!function)
+                continue;
+
+            const void* const entryPtr = function->jitEntryAddress();
+            if (!entryPtr)
+                continue;
+
+            const auto& code = function->loweredCode();
+            if (code.bytes.empty())
+                continue;
+
+            const uint64_t entryAddress = reinterpret_cast<uint64_t>(entryPtr);
+            const uint64_t codeEnd      = entryAddress + code.bytes.size();
+            if (rip < entryAddress || rip >= codeEnd)
+                continue;
+
+            matchedFn    = function;
+            matchedEntry = entryAddress;
+            matchedCode  = &code;
+            break;
+        }
+
+        Utf8 out;
+        if (!matchedFn || !matchedCode)
+        {
+            if (const SymbolFunction* const currentFn = ctx.state().runJitFunction)
+            {
+                out += std::format("jit current function: {}\n", currentFn->getFullScopedName(ctx));
+                out += std::format("jit current entry: 0x{:016X}\n", reinterpret_cast<uint64_t>(currentFn->jitEntryAddress()));
+                out += std::format("jit current size: 0x{:X}\n", currentFn->loweredCode().bytes.size());
+            }
+            out += std::format("jit offset: unresolved (rip=0x{:016X})\n", rip);
+            return out;
+        }
+
+        const uint32_t offset = static_cast<uint32_t>(rip - matchedEntry);
+        out += std::format("jit function: {}\n", matchedFn->getFullScopedName(ctx));
+        out += std::format("jit entry: 0x{:016X}\n", matchedEntry);
+        out += std::format("jit offset: 0x{:X}\n", offset);
+
+        for (const auto& range : matchedCode->debugSourceRanges)
+        {
+            if (offset < range.codeStartOffset || offset >= range.codeEndOffset)
+                continue;
+            if (!range.sourceCodeRef.isValid())
+                break;
+
+            const SourceView&     srcView    = ctx.compiler().srcView(range.sourceCodeRef.srcViewRef);
+            const Token&          token      = srcView.token(range.sourceCodeRef.tokRef);
+            const SourceCodeRange codeRange  = token.codeRange(ctx, srcView);
+            const SourceFile*     sourceFile = srcView.file();
+            if (sourceFile)
+                out += std::format("jit source: {}:{}:{}\n", sourceFile->path().string(), codeRange.line, codeRange.column);
+            out += std::format("jit source span: [0x{:X}, 0x{:X})\n", range.codeStartOffset, range.codeEndOffset);
+            break;
+        }
+
+        const uint32_t dumpStart = offset > 8 ? offset - 8 : 0;
+        const uint32_t dumpEnd   = std::min<uint32_t>(static_cast<uint32_t>(matchedCode->bytes.size()), offset + 8);
+        out += "jit bytes:";
+        for (uint32_t i = dumpStart; i < dumpEnd; ++i)
+        {
+            if (i == offset)
+                out += " |";
+            out += std::format(" {:02X}", static_cast<uint8_t>(matchedCode->bytes[i]));
+        }
+        if (dumpEnd == offset)
+            out += " |";
+        out += "\n";
+
+        out += "jit stack snapshot:\n";
+        appendHostValue(out, "  [rsp+0x88]  x", reinterpret_cast<const void*>(context->Rsp + 0x88), 32);
+        appendHostValue(out, "  [rsp+0x94]  y", reinterpret_cast<const void*>(context->Rsp + 0x94), 32);
+        appendHostValue(out, "  [rsp+0x98]  dir", reinterpret_cast<const void*>(context->Rsp + 0x98), 32);
+        appendHostValue(out, "  [rsp+0xB4]  startIndex", reinterpret_cast<const void*>(context->Rsp + 0xB4), 32);
+        appendHostValue(out, "  [rsp+0x120] seenStates", reinterpret_cast<const void*>(context->Rsp + 0x120), 64);
+        appendHostValue(out, "  [rsp+0x128] trace", reinterpret_cast<const void*>(context->Rsp + 0x128), 64);
+        appendHostValue(out, "  [rsp+0x138] stateIndexAddr", reinterpret_cast<const void*>(context->Rsp + 0x138), 64);
+        appendHostValue(out, "  [rsp+0xD8]  stateIndex", reinterpret_cast<const void*>(context->Rsp + 0xD8), 32);
+        appendHostValue(out, "  [r13+0x0]   grid.width", reinterpret_cast<const void*>(context->R13 + 0x0), 32);
+        appendHostValue(out, "  [r13+0x4]   grid.height", reinterpret_cast<const void*>(context->R13 + 0x4), 32);
+        appendHostValue(out, "  [r13+0x8]   grid.startX", reinterpret_cast<const void*>(context->R13 + 0x8), 32);
+        appendHostValue(out, "  [r13+0xC]   grid.startY", reinterpret_cast<const void*>(context->R13 + 0xC), 32);
+        appendHostValue(out, "  [r13+0x10]  grid.cells", reinterpret_cast<const void*>(context->R13 + 0x10), 64);
+        return out;
+#else
+        SWC_UNUSED(ctx);
+        SWC_UNUSED(platformExceptionPointers);
+        return {};
+#endif
+    }
+
     int exceptionHandler(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind& outErrorKind)
     {
         uint32_t    exceptionCode    = 0;
@@ -799,7 +961,8 @@ namespace
         else
             outErrorKind = JITCallErrorKind::HardwareException;
 
-        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", platformExceptionPointers);
+        const Utf8 extraInfo = formatJitCrashContext(ctx, platformExceptionPointers);
+        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", platformExceptionPointers, extraInfo);
         Stats::get().numErrors.fetch_add(1);
         Os::exit(ExitCode::HardwareException);
     }

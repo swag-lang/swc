@@ -90,6 +90,7 @@ public:
     void                                resetPreparedJitFunctions();
     std::vector<SymbolFunction*>        nativeGlobalFunctionInitTargetsSnapshot() const;
     std::vector<SymbolVariable*>        nativeGlobalVariablesSnapshot() const;
+    std::vector<SymbolFunction*>        jitPreparedFunctionsSnapshot() const;
     const std::vector<SymbolFunction*>& nativeCodeSegment() const { return nativeCodeSegment_; }
     const std::vector<SymbolFunction*>& nativeTestFunctions() const { return nativeTestFunctions_; }
     const std::vector<SymbolFunction*>& nativeInitFunctions() const { return nativeInitFunctions_; }

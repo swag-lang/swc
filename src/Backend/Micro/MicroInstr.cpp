@@ -142,6 +142,10 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
             useDef.addUse(reg);
         for (const MicroReg reg : callConv.floatArgRegs)
             useDef.addUse(reg);
+        for (const MicroReg reg : callConv.intTransientRegs)
+            useDef.addDef(reg);
+        for (const MicroReg reg : callConv.floatTransientRegs)
+            useDef.addDef(reg);
     }
 
     const auto modes = resolveRegModes(opcodeInfo, ops);

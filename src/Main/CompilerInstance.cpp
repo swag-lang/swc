@@ -584,6 +584,12 @@ std::vector<SymbolVariable*> CompilerInstance::nativeGlobalVariablesSnapshot() c
     return nativeGlobalVariables_;
 }
 
+std::vector<SymbolFunction*> CompilerInstance::jitPreparedFunctionsSnapshot() const
+{
+    const std::shared_lock lock(mutex_);
+    return jitPreparedFunctions_;
+}
+
 ExitCode CompilerInstance::run()
 {
     logBefore();

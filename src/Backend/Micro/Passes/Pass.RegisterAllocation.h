@@ -50,11 +50,18 @@ private:
         SmallVector<MicroReg>* secondary = nullptr;
     };
 
+    struct DestructiveAlias
+    {
+        MicroReg virtKey = MicroReg::invalid();
+        MicroReg physReg = MicroReg::invalid();
+    };
+
     void clearState();
     void initState(MicroPassContext& context);
 
     bool            isLiveOut(MicroReg key, uint32_t stamp) const;
     static bool     containsKey(MicroRegSpan keys, MicroReg key);
+    static void     appendUniqueReg(SmallVector<MicroReg>& regs, MicroReg reg);
     bool            isPersistentPhysReg(MicroReg reg) const;
     bool            isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
     bool            isLiveInAt(MicroReg key, uint32_t instructionIndex) const;
@@ -80,6 +87,8 @@ private:
     void            mapVirtReg(MicroReg virtKey, MicroReg physReg);
     bool            selectEvictionCandidateWithFallback(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool preferPersistentPool, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;
     MicroReg        allocatePhysical(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void            recordDestructiveAlias(SmallVector<MicroReg>& liveBases, SmallVector<DestructiveAlias>& concreteAliases, MicroReg dstReg, MicroReg baseReg, uint32_t stamp, bool trackVirtualDestConflict) const;
+    void            collectDestructiveLoadConstraints(SmallVector<MicroReg>& liveBases, SmallVector<DestructiveAlias>& concreteAliases, const MicroInstr& inst, const MicroInstrOperand* instOps, uint32_t stamp) const;
     MicroReg        assignVirtReg(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, MicroRegSpan remapForbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void            spillMappedVirtualsForConcreteTouches(const MicroInstrUseDef& useDef, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void            spillCallLiveOut(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);

@@ -75,6 +75,12 @@ bool MicroRegisterAllocationPass::containsKey(const MicroRegSpan keys, MicroReg 
     return false;
 }
 
+void MicroRegisterAllocationPass::appendUniqueReg(SmallVector<MicroReg>& regs, MicroReg reg)
+{
+    if (!containsKey(regs, reg))
+        regs.push_back(reg);
+}
+
 bool MicroRegisterAllocationPass::isPersistentPhysReg(MicroReg reg) const
 {
     if (reg.isInt())
@@ -841,6 +847,67 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&      
     return victimReg;
 }
 
+void MicroRegisterAllocationPass::recordDestructiveAlias(SmallVector<MicroReg>&            liveBases,
+                                                         SmallVector<DestructiveAlias>&     concreteAliases,
+                                                         const MicroReg                     dstReg,
+                                                         const MicroReg                     baseReg,
+                                                         const uint32_t                     stamp,
+                                                         const bool                         trackVirtualDestConflict) const
+{
+    if (!baseReg.isVirtual() || !isLiveOut(baseReg, stamp))
+        return;
+
+    if (trackVirtualDestConflict && dstReg.isVirtual())
+    {
+        if (dstReg != baseReg)
+            appendUniqueReg(liveBases, baseReg);
+        return;
+    }
+
+    if (!dstReg.isInt() && !dstReg.isFloat())
+        return;
+
+    for (const auto& alias : concreteAliases)
+    {
+        if (alias.virtKey == baseReg && alias.physReg == dstReg)
+            return;
+    }
+
+    concreteAliases.push_back({baseReg, dstReg});
+}
+
+void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<MicroReg>&        liveBases,
+                                                                    SmallVector<DestructiveAlias>& concreteAliases,
+                                                                    const MicroInstr&              inst,
+                                                                    const MicroInstrOperand*       instOps,
+                                                                    const uint32_t                 stamp) const
+{
+    if (!instOps)
+        return;
+
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::LoadRegMem:
+        case MicroInstrOpcode::LoadSignedExtRegMem:
+        case MicroInstrOpcode::LoadZeroExtRegMem:
+            recordDestructiveAlias(liveBases, concreteAliases, instOps[0].reg, instOps[1].reg, stamp, true);
+            break;
+
+        case MicroInstrOpcode::LoadAddrRegMem:
+            if (instOps[3].valueU64)
+                recordDestructiveAlias(liveBases, concreteAliases, instOps[0].reg, instOps[1].reg, stamp, false);
+            break;
+
+        case MicroInstrOpcode::LoadAddrAmcRegMem:
+            recordDestructiveAlias(liveBases, concreteAliases, instOps[0].reg, instOps[1].reg, stamp, false);
+            recordDestructiveAlias(liveBases, concreteAliases, instOps[0].reg, instOps[2].reg, stamp, false);
+            break;
+
+        default:
+            break;
+    }
+}
+
 MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest&         request,
                                                     MicroRegSpan                protectedKeys,
                                                     MicroRegSpan                forbiddenPhysRegs,
@@ -1181,87 +1248,25 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             {
                 const MicroReg baseReg = instOps[1].reg;
                 if ((baseReg.isInt() || baseReg.isFloat()) && containsKey(concreteLiveOut_[idx], baseReg))
-                    addressSourceRegs.push_back(baseReg);
+                    appendUniqueReg(addressSourceRegs, baseReg);
             }
             else if (it->op == MicroInstrOpcode::LoadAddrAmcRegMem)
             {
                 const MicroReg baseReg = instOps[1].reg;
                 if ((baseReg.isInt() || baseReg.isFloat()) && containsKey(concreteLiveOut_[idx], baseReg))
-                    addressSourceRegs.push_back(baseReg);
+                    appendUniqueReg(addressSourceRegs, baseReg);
 
                 const MicroReg mulReg = instOps[2].reg;
-                if ((mulReg.isInt() || mulReg.isFloat()) && !containsKey(addressSourceRegs, mulReg) && containsKey(concreteLiveOut_[idx], mulReg))
-                    addressSourceRegs.push_back(mulReg);
+                if ((mulReg.isInt() || mulReg.isFloat()) && containsKey(concreteLiveOut_[idx], mulReg))
+                    appendUniqueReg(addressSourceRegs, mulReg);
             }
         }
 
         SmallVector<MicroReg> destructiveLoadLiveBases;
         destructiveLoadLiveBases.reserve(1);
-        struct ForbiddenAlias
-        {
-            MicroReg virtKey = MicroReg::invalid();
-            MicroReg physReg = MicroReg::invalid();
-        };
-
-        SmallVector<ForbiddenAlias> destructiveConcreteAliases;
+        SmallVector<DestructiveAlias> destructiveConcreteAliases;
         destructiveConcreteAliases.reserve(2);
-        if (instOps)
-        {
-            switch (it->op)
-            {
-                case MicroInstrOpcode::LoadRegMem:
-                case MicroInstrOpcode::LoadSignedExtRegMem:
-                case MicroInstrOpcode::LoadZeroExtRegMem:
-                    {
-                        const MicroReg dstReg  = instOps[0].reg;
-                        const MicroReg baseReg = instOps[1].reg;
-                        if (!baseReg.isVirtual() || !isLiveOut(baseReg, stamp))
-                            break;
-
-                        if (dstReg.isVirtual())
-                        {
-                            if (dstReg != baseReg)
-                                destructiveLoadLiveBases.push_back(baseReg);
-                        }
-                        else if (dstReg.isInt() || dstReg.isFloat())
-                        {
-                            destructiveConcreteAliases.push_back({baseReg, dstReg});
-                        }
-                    }
-                    break;
-
-                case MicroInstrOpcode::LoadAddrRegMem:
-                    {
-                        const MicroReg dstReg  = instOps[0].reg;
-                        const MicroReg baseReg = instOps[1].reg;
-                        if (!baseReg.isVirtual() || !isLiveOut(baseReg, stamp) || !instOps[3].valueU64)
-                            break;
-
-                        if (dstReg.isInt() || dstReg.isFloat())
-                            destructiveConcreteAliases.push_back({baseReg, dstReg});
-                    }
-                    break;
-
-                case MicroInstrOpcode::LoadAddrAmcRegMem:
-                    {
-                        const MicroReg dstReg  = instOps[0].reg;
-                        const MicroReg baseReg = instOps[1].reg;
-                        const MicroReg mulReg  = instOps[2].reg;
-                        if (!dstReg.isInt() && !dstReg.isFloat())
-                            break;
-
-                        if (baseReg.isVirtual() && isLiveOut(baseReg, stamp))
-                            destructiveConcreteAliases.push_back({baseReg, dstReg});
-
-                        if (mulReg.isVirtual() && mulReg != baseReg && isLiveOut(mulReg, stamp))
-                            destructiveConcreteAliases.push_back({mulReg, dstReg});
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        }
+        collectDestructiveLoadConstraints(destructiveLoadLiveBases, destructiveConcreteAliases, *it, instOps, stamp);
 
         std::vector<PendingInsert> pending;
         pending.reserve(4);
@@ -1301,9 +1306,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
             for (const MicroReg key : addressSourceRegs)
             {
-                if (containsKey(forbiddenPhysRegs, key))
-                    continue;
-                forbiddenPhysRegs.push_back(key);
+                appendUniqueReg(forbiddenPhysRegs, key);
             }
 
             for (const MicroReg key : destructiveLoadLiveBases)
@@ -1316,10 +1319,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                     continue;
 
                 const MicroReg protectedPhys = stateIt->second.phys;
-                if (containsKey(forbiddenPhysRegs, protectedPhys))
-                    continue;
-
-                forbiddenPhysRegs.push_back(protectedPhys);
+                appendUniqueReg(forbiddenPhysRegs, protectedPhys);
             }
 
             for (const auto& alias : destructiveConcreteAliases)
@@ -1327,8 +1327,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 if (alias.virtKey != request.virtKey || containsKey(forbiddenPhysRegs, alias.physReg))
                     continue;
 
-                forbiddenPhysRegs.push_back(alias.physReg);
-                remapForbiddenPhysRegs.push_back(alias.physReg);
+                appendUniqueReg(forbiddenPhysRegs, alias.physReg);
+                appendUniqueReg(remapForbiddenPhysRegs, alias.physReg);
             }
 
             const bool liveAcrossCall = vregsLiveAcrossCall_.contains(request.virtKey);

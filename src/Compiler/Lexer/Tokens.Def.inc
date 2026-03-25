@@ -365,14 +365,14 @@ SWC_TOKEN_DEF(IntrinsicMulAdd, "@muladd",  TokenIdKindE::Intrinsic | TokenIdKind
 
 // INTRINSICS - MEMORY
 
-SWC_TOKEN_DEF(IntrinsicFree, "@free",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicMemCpy, "@memcpy",  TokenIdKindE::Intrinsic) 
 SWC_TOKEN_DEF(IntrinsicMemMove, "@memmove",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicMemSet, "@memset",  TokenIdKindE::Intrinsic)
+SWC_TOKEN_DEF(IntrinsicMemCmp, "@memcmp",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 SWC_TOKEN_DEF(IntrinsicAlloc, "@alloc",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicRealloc, "@realloc",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicMemCmp, "@memcmp",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicFree, "@free",  TokenIdKindE::Intrinsic)
 
 // INTRINSICS - ATOMIC
 

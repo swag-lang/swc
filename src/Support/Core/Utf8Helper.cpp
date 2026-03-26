@@ -386,4 +386,10 @@ Utf8 Utf8Helper::addArticleAAn(std::string_view s)
     }
 }
 
+Utf8 Utf8Helper::countWithLabel(const size_t value, const std::string_view singular, const char* plural)
+{
+    const Utf8 label = std::format("{}{}", singular, (value == 1) ? "" : (plural ? plural : "s"));
+    return std::format("{} {}", toNiceBigNumber(value), label);
+}
+
 SWC_END_NAMESPACE();

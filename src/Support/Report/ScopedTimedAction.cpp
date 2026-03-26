@@ -179,9 +179,9 @@ namespace
         const size_t deltaWarnings = deltaValue(after.numWarnings, before.numWarnings);
         const size_t deltaErrors   = deltaValue(after.numErrors, before.numErrors);
         if (deltaWarnings)
-            parts.emplace_back(std::format("{} warnings", Utf8Helper::toNiceBigNumber(deltaWarnings)));
+            parts.emplace_back(Utf8Helper::countWithLabel(deltaWarnings, "warning"));
         if (deltaErrors)
-            parts.emplace_back(std::format("{} errors", Utf8Helper::toNiceBigNumber(deltaErrors)));
+            parts.emplace_back(Utf8Helper::countWithLabel(deltaErrors, "error"));
 
         return joinHumanParts(ctx, parts, LogColor::White);
     }
@@ -418,25 +418,18 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     else if (snapshot.numWarnings)
         outcome = StageOutcome::Warning;
 
-    auto countWithLabel = [](uint64_t value, std::string_view singular, std::string_view plural) -> Utf8 {
-        return std::format(
-            "{} {}",
-            Utf8Helper::toNiceBigNumber(value),
-            value == 1 ? singular : plural);
-    };
-
     std::vector<Utf8> parts;
 #if SWC_HAS_STATS
     if (snapshot.numFiles)
-        parts.emplace_back(countWithLabel(snapshot.numFiles, "file", "files"));
+        parts.emplace_back(Utf8Helper::countWithLabel(snapshot.numFiles, "file"));
     if (snapshot.numTokens)
-        parts.emplace_back(countWithLabel(snapshot.numTokens, "token", "tokens"));
+        parts.emplace_back(Utf8Helper::countWithLabel(snapshot.numTokens, "token"));
 #endif
     parts.push_back(Utf8Helper::toNiceTime(Timer::toSeconds(snapshot.timeTotal)));
     if (snapshot.numWarnings)
-        parts.emplace_back(countWithLabel(snapshot.numWarnings, "warning", "warnings"));
+        parts.emplace_back(Utf8Helper::countWithLabel(snapshot.numWarnings, "warning"));
     if (snapshot.numErrors)
-        parts.emplace_back(countWithLabel(snapshot.numErrors, "error", "errors"));
+        parts.emplace_back(Utf8Helper::countWithLabel(snapshot.numErrors, "error"));
     else if (!snapshot.numWarnings)
         parts.emplace_back("clean");
 

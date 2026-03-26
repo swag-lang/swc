@@ -469,6 +469,8 @@ void SymbolFunction::addCallDependency(SymbolFunction* sym)
 {
     if (!sym || sym == this)
         return;
+    if (sym->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        return;
 
     const std::scoped_lock lock(callDepsMutex_);
     if (std::ranges::find(callDependencies_, sym) != callDependencies_.end())

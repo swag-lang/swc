@@ -27,6 +27,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool inlineReturnTargetsCaller(const SemaInlinePayload* inlinePayload)
+    {
+        return inlinePayload &&
+               inlinePayload->sourceFunction &&
+               inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
+    }
+
     CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
     {
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
@@ -429,7 +436,7 @@ namespace
     {
         outTypeRef                             = TypeRef::invalid();
         const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        if (inlinePayload)
+        if (inlinePayload && !inlineReturnTargetsCaller(inlinePayload))
         {
             outTypeRef = inlinePayload->returnTypeRef;
             return Result::Continue;
@@ -1375,7 +1382,8 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
 
     sym.setSemaCompleted(sema.ctx());
-    sema.compiler().registerNativeCodeFunction(&sym);
+    if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        sema.compiler().registerNativeCodeFunction(&sym);
     return Result::Continue;
 }
 
@@ -1386,7 +1394,8 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
     sym.setSemaCompleted(sema.ctx());
-    sema.compiler().registerNativeCodeFunction(&sym);
+    if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        sema.compiler().registerNativeCodeFunction(&sym);
     return Result::Continue;
 }
 
@@ -1398,7 +1407,8 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
 
     SWC_RESULT(attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym));
     sym.setSemaCompleted(sema.ctx());
-    sema.compiler().registerNativeCodeFunction(&sym);
+    if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        sema.compiler().registerNativeCodeFunction(&sym);
     return Result::Continue;
 }
 

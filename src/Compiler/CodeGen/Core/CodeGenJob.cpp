@@ -63,6 +63,12 @@ JobResult CodeGenJob::exec()
     ctx().state().reset();
     if (symbolFunc_->isCodeGenCompleted())
         return JobResult::Done;
+    if (symbolFunc_->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbolFunc_->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    {
+        symbolFunc_->setCodeGenPreSolved(ctx());
+        symbolFunc_->setCodeGenCompleted(ctx());
+        return JobResult::Done;
+    }
 
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);

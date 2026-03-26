@@ -18,6 +18,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool inlineReturnTargetsCaller(const SemaInlinePayload& inlinePayload)
+    {
+        return inlinePayload.sourceFunction &&
+               inlinePayload.sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
+    }
+
     SymbolFunction* recoverFunctionExprSymbolFromDependencies(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (!nodeRef.isValid())
@@ -1070,7 +1076,8 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
     {
         const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
         SWC_ASSERT(inlineCtx.payload != nullptr);
-        return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef);
+        if (!inlineReturnTargetsCaller(*inlineCtx.payload))
+            return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef);
     }
 
     if (isCompilerRunBlockFunction(codeGen))

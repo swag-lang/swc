@@ -81,7 +81,7 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Overload()
 
-    // A 'return' in the following inlined function must be done in the callee context
+    // A 'return' in the following macro/mixin function must be done in the callee context
     #[AttrUsage(AttributeUsage.Function)]
     attr CalleeReturn()
 

@@ -176,9 +176,8 @@ namespace
 
     Result emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)
     {
-        const AstNodeRef   exprRef  = codeGen.resolvedNodeRef(node.nodeExprRef);
-        const SemaNodeView exprView = codeGen.viewType(exprRef);
-        MicroBuilder&      builder  = codeGen.builder();
+        const AstNodeRef exprRef = codeGen.resolvedNodeRef(node.nodeExprRef);
+        MicroBuilder&    builder = codeGen.builder();
 
         const auto* semaPayload = codeGen.sema().semaPayload<ForStmtSemaPayload>(codeGen.curNodeRef());
         SWC_ASSERT(semaPayload != nullptr);

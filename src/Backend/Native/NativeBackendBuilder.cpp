@@ -107,6 +107,8 @@ namespace
 
     bool isRuntimeArtifactFunction(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
     {
+        if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return false;
 
@@ -168,6 +170,8 @@ namespace
                     continue;
                 if (dep->isForeign() || dep->isEmpty() || dep->isAttribute())
                     continue;
+                if (dep->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || dep->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                    continue;
                 if (!dep->isSemaCompleted())
                     continue;
                 if (!shouldPrepareSymbol(builder, *dep))
@@ -196,6 +200,8 @@ namespace
             if (!target)
                 continue;
             if (target->isForeign() || target->isEmpty() || target->isAttribute())
+                continue;
+            if (target->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || target->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
                 continue;
             if (!target->isSemaCompleted())
                 continue;

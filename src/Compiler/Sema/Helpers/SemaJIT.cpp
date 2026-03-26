@@ -189,6 +189,8 @@ namespace
         {
             if (!function)
                 continue;
+            if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                continue;
             if (!seen.insert(function).second)
                 continue;
 
@@ -421,6 +423,8 @@ namespace
             return false;
         };
 
+        if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
         if (!calledFn.isPure() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
         if (calledFn.isForeign() || calledFn.isEmpty())

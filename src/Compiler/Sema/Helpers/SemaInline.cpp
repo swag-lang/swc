@@ -67,6 +67,23 @@ namespace
         return wrappedRef;
     }
 
+    AstNodeRef bindingValueArgumentRef(Sema& sema, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
+        if (resolvedRef.isInvalid())
+            return argRef;
+
+        if (resolvedRef != argRef &&
+            sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock) &&
+            sema.semaPayload<SemaInlinePayload>(resolvedRef))
+            return argRef;
+
+        return resolvedRef;
+    }
+
     AstNodeRef bindingArgumentRef(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -81,7 +98,7 @@ namespace
             return wrapCodeArgument(sema, param, argRef);
         }
 
-        return sema.viewZero(argRef).nodeRef();
+        return bindingValueArgumentRef(sema, argRef);
     }
 
     bool tryGetSimpleInlineConstant(Sema& sema, AstNodeRef inlineRootRef, ConstantRef& outConstant)
@@ -445,7 +462,7 @@ namespace
 
         for (const AstNodeRef rawArgRef : variadicBinding.argRefs)
         {
-            AstNodeRef argRef = sema.viewZero(rawArgRef).nodeRef();
+            AstNodeRef argRef = bindingValueArgumentRef(sema, rawArgRef);
             if (argRef.isInvalid())
                 return Result::Continue;
 
@@ -555,7 +572,7 @@ namespace
             while (nextParam < numFixed && isBindingAssigned(bound[nextParam]))
                 nextParam++;
 
-            const AstNodeRef argValueRef = nextParam < numFixed ? bindingArgumentRef(sema, *params[nextParam], argRef) : sema.viewZero(argRef).nodeRef();
+            const AstNodeRef argValueRef = nextParam < numFixed ? bindingArgumentRef(sema, *params[nextParam], argRef) : bindingValueArgumentRef(sema, argRef);
             if (nextParam < numFixed)
             {
                 bound[nextParam].idRef   = params[nextParam]->idRef();

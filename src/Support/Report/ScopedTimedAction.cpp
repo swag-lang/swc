@@ -418,18 +418,25 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     else if (snapshot.numWarnings)
         outcome = StageOutcome::Warning;
 
+    auto countWithLabel = [](uint64_t value, std::string_view singular, std::string_view plural) -> Utf8 {
+        return std::format(
+            "{} {}",
+            Utf8Helper::toNiceBigNumber(value),
+            value == 1 ? singular : plural);
+    };
+
     std::vector<Utf8> parts;
 #if SWC_HAS_STATS
     if (snapshot.numFiles)
-        parts.emplace_back(std::format("{} files", Utf8Helper::toNiceBigNumber(snapshot.numFiles)));
+        parts.emplace_back(countWithLabel(snapshot.numFiles, "file", "files"));
     if (snapshot.numTokens)
-        parts.emplace_back(std::format("{} tokens", Utf8Helper::toNiceBigNumber(snapshot.numTokens)));
+        parts.emplace_back(countWithLabel(snapshot.numTokens, "token", "tokens"));
 #endif
     parts.push_back(Utf8Helper::toNiceTime(Timer::toSeconds(snapshot.timeTotal)));
     if (snapshot.numWarnings)
-        parts.emplace_back(std::format("{} warnings", Utf8Helper::toNiceBigNumber(snapshot.numWarnings)));
+        parts.emplace_back(countWithLabel(snapshot.numWarnings, "warning", "warnings"));
     if (snapshot.numErrors)
-        parts.emplace_back(std::format("{} errors", Utf8Helper::toNiceBigNumber(snapshot.numErrors)));
+        parts.emplace_back(countWithLabel(snapshot.numErrors, "error", "errors"));
     else if (!snapshot.numWarnings)
         parts.emplace_back("clean");
 

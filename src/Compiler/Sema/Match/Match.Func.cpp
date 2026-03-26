@@ -1186,6 +1186,54 @@ namespace
         return Result::Continue;
     }
 
+    AstNodeRef resolveResolvedArgSourceRef(Sema& sema, AstNodeRef argRef)
+    {
+        AstNodeRef sourceRef = argRef;
+        for (;;)
+        {
+            const AstNode& sourceNode = sema.node(sourceRef);
+            if (sourceNode.is(AstNodeId::AutoCastExpr))
+            {
+                sourceRef = sourceNode.cast<AstAutoCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (sourceNode.is(AstNodeId::CastExpr))
+            {
+                sourceRef = sourceNode.cast<AstCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (sourceNode.is(AstNodeId::AsCastExpr))
+            {
+                sourceRef = sourceNode.cast<AstAsCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            return sourceRef;
+        }
+    }
+
+    bool bindsReferenceToValue(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return false;
+
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        if (!paramType.isReference())
+            return false;
+
+        const AstNodeRef sourceRef = resolveResolvedArgSourceRef(sema, argRef);
+        const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
+        if (sourceTypeRef.isInvalid())
+            return true;
+
+        const TypeRef   unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
+        const TypeInfo& sourceType             = sema.typeMgr().get(resolvedSourceTypeRef);
+        return !sourceType.isPointerOrReference();
+    }
+
     Result buildResolvedCallArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         outResolvedArgs.clear();
@@ -1250,8 +1298,9 @@ namespace
             }
 
             ResolvedCallArgument resolvedArg{
-                .argRef   = finalArgRef,
-                .passKind = passKind,
+                .argRef                 = finalArgRef,
+                .passKind               = passKind,
+                .bindsReferenceToValue  = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
             };
 
             if (hasUntypedVariadic && i == variadicParamIdx)

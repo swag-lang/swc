@@ -80,37 +80,6 @@ namespace
         return normalizedTypeRef;
     }
 
-    AstNodeRef resolvePreparedArgSourceRef(CodeGen& codeGen, AstNodeRef argRef)
-    {
-        AstNodeRef sourceRef = codeGen.viewZero(argRef).nodeRef();
-        if (sourceRef.isInvalid())
-            sourceRef = argRef;
-
-        for (;;)
-        {
-            const AstNode& sourceNode = codeGen.node(sourceRef);
-            if (sourceNode.is(AstNodeId::AutoCastExpr))
-            {
-                sourceRef = sourceNode.cast<AstAutoCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            if (sourceNode.is(AstNodeId::CastExpr))
-            {
-                sourceRef = sourceNode.cast<AstCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            if (sourceNode.is(AstNodeId::AsCastExpr))
-            {
-                sourceRef = sourceNode.cast<AstAsCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            return sourceRef;
-        }
-    }
-
     bool emitMaterializedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef cstRef)
     {
         if (!cstRef.isValid())
@@ -446,7 +415,7 @@ namespace
                                    const CallConv&      callConv,
                                    const CodeGenNodePayload& argPayload,
                                    TypeRef                  normalizedTypeRef,
-                                   TypeRef                  sourceTypeRef)
+                                   const ResolvedCallArgument& resolvedArg)
     {
         if (normalizedTypeRef.isInvalid())
             return;
@@ -455,15 +424,7 @@ namespace
         const TypeInfo&                        normalizedType = ctx.typeMgr().get(normalizedTypeRef);
         const ABITypeNormalize::NormalizedType normalizedArg  = ABITypeNormalize::normalize(ctx, callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
         SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect, normalizedArg.isFloat, normalizedArg.numBits));
-        bool       passAddressRef  = normalizedType.isReference();
-        if (passAddressRef && argPayload.isAddress() && sourceTypeRef.isValid())
-        {
-            const TypeRef   unwrappedSourceTypeRef = ctx.typeMgr().get(sourceTypeRef).unwrap(ctx, sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-            const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
-            const TypeInfo& sourceType             = ctx.typeMgr().get(resolvedSourceTypeRef);
-            if (sourceType.isPointerOrReference())
-                passAddressRef = false;
-        }
+        const bool passAddressRef = normalizedType.isReference() && resolvedArg.bindsReferenceToValue;
 
         outPreparedArg.isFloat     = normalizedArg.isFloat;
         outPreparedArg.isSigned    = normalizedArg.isSigned;
@@ -557,22 +518,7 @@ namespace
         }
 
         preparedArg.srcReg = argPayload.reg;
-
-        TypeRef sourceTypeRef = TypeRef::invalid();
-        if (argRef.isValid())
-        {
-            const AstNodeRef sourceRef = resolvePreparedArgSourceRef(codeGen, argRef);
-            if (sourceRef.isValid())
-            {
-                sourceTypeRef = codeGen.sema().viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
-                if (sourceTypeRef.isInvalid())
-                    sourceTypeRef = codeGen.viewType(sourceRef).typeRef();
-            }
-        }
-        if (sourceTypeRef.isInvalid())
-            sourceTypeRef = argPayload.typeRef;
-
-        fillPreparedDirectArgType(preparedArg, codeGen, callConv, argPayload, normalizedTypeRef, sourceTypeRef);
+        fillPreparedDirectArgType(preparedArg, codeGen, callConv, argPayload, normalizedTypeRef, arg);
         preparedArg.kind = abiPreparedArgKind(arg.passKind);
         outArgs.push_back(preparedArg);
     }

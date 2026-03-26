@@ -95,8 +95,7 @@ func runNestedInlineStress(count: u32)->s32
     @assert(firstAboveIndex(&data[0], 6, 8) == 3)
     @assert(firstAboveIndex(&data[0], 6, 9) == -1)
 
-    // @BUG repeated inline loop scans do not preserve the expected aggregate result yet.
-    // @assert(runInlineScanStress(&data[0], 6) == 7)
+    @assert(runInlineScanStress(&data[0], 6) == 7)
 }
 
 #test

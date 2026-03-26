@@ -190,6 +190,7 @@ namespace
             {
                 auto [newRef, newNodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
                 newNodePtr->flags()       = node.flags();
+                newNodePtr->setCodeRef(node.codeRef());
                 if (binding->typeRef.isValid())
                     sema.setType(newRef, binding->typeRef);
                 sema.setConstant(newRef, binding->cstRef);
@@ -206,6 +207,7 @@ namespace
 
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()        = node.flags();
+        nodePtr->setCodeRef(node.codeRef());
         return nodeRef;
     }
 }

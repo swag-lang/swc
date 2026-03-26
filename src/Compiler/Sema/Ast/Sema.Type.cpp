@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -110,6 +111,17 @@ Result AstCodeType::semaPostNode(Sema& sema) const
 
 Result AstRetValType::semaPostNode(Sema& sema)
 {
+    // When inside an inline expansion, the current function is the caller, not the inlined
+    // function. Use the inline payload's return type so that `retval` resolves correctly.
+    if (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload())
+    {
+        if (inlinePayload->returnTypeRef.isValid())
+        {
+            sema.setType(sema.curNodeRef(), inlinePayload->returnTypeRef);
+            return Result::Continue;
+        }
+    }
+
     const SymbolFunction* currentFn = sema.currentFunction();
     if (!currentFn)
         return SemaError::raise(sema, DiagnosticId::sema_err_retval_outside_function, sema.curNodeRef());

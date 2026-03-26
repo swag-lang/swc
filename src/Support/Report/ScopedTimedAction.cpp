@@ -90,42 +90,26 @@ namespace
 
     Utf8 funStartGlyph(const TaskContext& ctx, const size_t sequence)
     {
-        if (ctx.cmdLine().logAscii)
-            return ">";
-
-        constexpr std::string_view frames[] = {
-            "\xE2\x97\x90",
-            "\xE2\x97\x93",
-            "\xE2\x97\x91",
-            "\xE2\x97\x92",
+        static constexpr LogSymbol START_FRAMES[] = {
+            LogSymbol::StartFrameA,
+            LogSymbol::StartFrameB,
+            LogSymbol::StartFrameC,
+            LogSymbol::StartFrameD,
         };
 
-        return {frames[(sequence - 1) % std::size(frames)]};
+        return LogSymbolHelper::toString(ctx, START_FRAMES[(sequence - 1) % std::size(START_FRAMES)]);
     }
 
     Utf8 funOutcomeGlyph(const TaskContext& ctx, const TimedActionLog::StageOutcome outcome)
     {
-        if (ctx.cmdLine().logAscii)
-        {
-            switch (outcome)
-            {
-                case TimedActionLog::StageOutcome::Success:
-                    return "*";
-                case TimedActionLog::StageOutcome::Warning:
-                    return "!";
-                case TimedActionLog::StageOutcome::Error:
-                    return "x";
-            }
-        }
-
         switch (outcome)
         {
             case TimedActionLog::StageOutcome::Success:
-                return "\xE2\x9C\x93";
+                return LogSymbolHelper::toString(ctx, LogSymbol::Check);
             case TimedActionLog::StageOutcome::Warning:
-                return "\xE2\x9A\xA0";
+                return LogSymbolHelper::toString(ctx, LogSymbol::Warning);
             case TimedActionLog::StageOutcome::Error:
-                return "\xE2\x9C\x96";
+                return LogSymbolHelper::toString(ctx, LogSymbol::Error);
         }
 
         SWC_UNREACHABLE();

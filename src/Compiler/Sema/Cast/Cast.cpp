@@ -173,4 +173,3 @@ AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, 
 }
 
 SWC_END_NAMESPACE();
-

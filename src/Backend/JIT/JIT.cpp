@@ -58,7 +58,7 @@ namespace
     }
 
 #ifdef _WIN32
-    template <typename T>
+    template<typename T>
     bool tryReadHostValue(const void* ptr, T& outValue)
     {
         __try

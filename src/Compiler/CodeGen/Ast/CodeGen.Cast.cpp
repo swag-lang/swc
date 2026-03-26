@@ -586,8 +586,8 @@ namespace
         if (codeGen.typeMgr().get(sourceTypeRef).isAny())
             return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
 
-        const TypeInfo& srcType = codeGen.typeMgr().get(sourceTypeRef);
-        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        const TypeInfo& srcType            = codeGen.typeMgr().get(sourceTypeRef);
+        const TypeInfo& dstType            = codeGen.typeMgr().get(dstTypeRef);
         const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(codeGen, sourceTypeRef);
         const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(codeGen, dstTypeRef);
         const TypeInfo& resolvedSrcType    = codeGen.typeMgr().get(resolvedSrcTypeRef);

@@ -1221,4 +1221,3 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
-

@@ -161,4 +161,3 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
 }
 
 SWC_END_NAMESPACE();
-

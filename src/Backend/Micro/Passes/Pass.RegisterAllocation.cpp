@@ -847,12 +847,12 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&      
     return victimReg;
 }
 
-void MicroRegisterAllocationPass::recordDestructiveAlias(SmallVector<MicroReg>&            liveBases,
-                                                         SmallVector<DestructiveAlias>&     concreteAliases,
-                                                         const MicroReg                     dstReg,
-                                                         const MicroReg                     baseReg,
-                                                         const uint32_t                     stamp,
-                                                         const bool                         trackVirtualDestConflict) const
+void MicroRegisterAllocationPass::recordDestructiveAlias(SmallVector<MicroReg>&         liveBases,
+                                                         SmallVector<DestructiveAlias>& concreteAliases,
+                                                         const MicroReg                 dstReg,
+                                                         const MicroReg                 baseReg,
+                                                         const uint32_t                 stamp,
+                                                         const bool                     trackVirtualDestConflict) const
 {
     if (!baseReg.isVirtual() || !isLiveOut(baseReg, stamp))
         return;
@@ -876,7 +876,7 @@ void MicroRegisterAllocationPass::recordDestructiveAlias(SmallVector<MicroReg>& 
     concreteAliases.push_back({baseReg, dstReg});
 }
 
-void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<MicroReg>&        liveBases,
+void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<MicroReg>&         liveBases,
                                                                     SmallVector<DestructiveAlias>& concreteAliases,
                                                                     const MicroInstr&              inst,
                                                                     const MicroInstrOperand*       instOps,
@@ -1212,11 +1212,11 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
             if (!existing)
             {
-                auto& request             = allocRequests.emplace_back();
-                request.virtReg           = reg;
-                request.virtKey           = reg;
-                request.instructionIndex  = idx;
-                existing                  = &request;
+                auto& request            = allocRequests.emplace_back();
+                request.virtReg          = reg;
+                request.virtKey          = reg;
+                request.instructionIndex = idx;
+                existing                 = &request;
             }
 
             existing->isUse = existing->isUse || regRef.use;

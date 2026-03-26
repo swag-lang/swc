@@ -2,11 +2,11 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -476,4 +476,3 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
-

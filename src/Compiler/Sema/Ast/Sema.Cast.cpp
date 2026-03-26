@@ -425,4 +425,3 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
-

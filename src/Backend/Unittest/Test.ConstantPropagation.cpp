@@ -226,12 +226,12 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroConstantPropagation_ClearsKnownStackSlotsForCallWithStackAddressArg)
 {
-    MicroBuilder      builder(ctx);
-    const CallConv&   conv     = CallConv::host();
-    const MicroReg    stackPtr = conv.stackPointer;
-    const MicroReg    arg0     = conv.intArgRegs[0];
-    constexpr MicroReg callee  = MicroReg::intReg(10);
-    constexpr MicroReg dstReg  = MicroReg::intReg(11);
+    MicroBuilder       builder(ctx);
+    const CallConv&    conv     = CallConv::host();
+    const MicroReg     stackPtr = conv.stackPointer;
+    const MicroReg     arg0     = conv.intArgRegs[0];
+    constexpr MicroReg callee   = MicroReg::intReg(10);
+    constexpr MicroReg dstReg   = MicroReg::intReg(11);
 
     builder.emitLoadMemImm(stackPtr, 64, ApInt(0x11223344ull, 32), MicroOpBits::B32);
     builder.emitLoadAddressRegMem(arg0, stackPtr, 64, MicroOpBits::B64);

@@ -279,13 +279,13 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
         }
         else
         {
-            const auto& rangeExpr    = sema.node(nodeExprRef).cast<AstRangeExpr>();
-            auto&       payload      = ensureForStmtSemaPayload(sema, sema.curNodeRef());
-            payload.isRangeLoop      = true;
-            payload.indexTypeRef     = view.typeRef();
-            payload.inclusive        = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
-            payload.lowerBoundRef   = rangeExpr.nodeExprDownRef;
-            payload.upperBoundRef   = rangeExpr.nodeExprUpRef;
+            const auto& rangeExpr = sema.node(nodeExprRef).cast<AstRangeExpr>();
+            auto&       payload   = ensureForStmtSemaPayload(sema, sema.curNodeRef());
+            payload.isRangeLoop   = true;
+            payload.indexTypeRef  = view.typeRef();
+            payload.inclusive     = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
+            payload.lowerBoundRef = rangeExpr.nodeExprDownRef;
+            payload.upperBoundRef = rangeExpr.nodeExprUpRef;
         }
     }
 

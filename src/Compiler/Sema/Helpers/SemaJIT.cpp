@@ -644,4 +644,3 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
 }
 
 SWC_END_NAMESPACE();
-

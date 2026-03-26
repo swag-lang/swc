@@ -20,27 +20,8 @@ namespace TimedActionLog
         uint64_t timeTotal   = 0;
         size_t   numErrors   = 0;
         size_t   numWarnings = 0;
-
-#if SWC_HAS_STATS
-        uint64_t timeLoadFile   = 0;
-        uint64_t timeLexer      = 0;
-        uint64_t timeParser     = 0;
-        uint64_t timeSema       = 0;
-        uint64_t timeCodeGen    = 0;
-        uint64_t timeMicroLower = 0;
-
-        size_t numFiles             = 0;
-        size_t numTokens            = 0;
-        size_t numAstNodes          = 0;
-        size_t numVisitedAstNodes   = 0;
-        size_t numConstants         = 0;
-        size_t numTypes             = 0;
-        size_t numIdentifiers       = 0;
-        size_t numSymbols           = 0;
-        size_t numMicroInstrNoOptim = 0;
-        size_t numMicroInstrFinal   = 0;
-        size_t numCodeGenFunctions  = 0;
-#endif
+        size_t   numFiles    = 0;
+        size_t   numTokens   = 0;
 
         static StatsSnapshot capture();
     };
@@ -54,14 +35,7 @@ namespace TimedActionLog
     };
 
     Utf8 formatStageStartLine(const TaskContext& ctx, const StageSpec& spec, size_t sequence);
-    Utf8 formatStageEndLine(const TaskContext&   ctx,
-                            const StageSpec&     spec,
-                            size_t               sequence,
-                            StageOutcome         outcome,
-                            const StatsSnapshot& before,
-                            const StatsSnapshot& after,
-                            uint64_t             durationNs);
-
+    Utf8 formatStageEndLine(const TaskContext& ctx, const StageSpec& spec, StageOutcome outcome, uint64_t durationNs);
     void printBuildConfiguration(const TaskContext& ctx);
     void printSessionFlags(const TaskContext& ctx);
 
@@ -81,8 +55,9 @@ namespace TimedActionLog
     private:
         const TaskContext*          ctx_ = nullptr;
         StageSpec                   spec_;
-        StatsSnapshot               before_;
         Clock::time_point           startTick_{};
+        size_t                      startErrors_   = 0;
+        size_t                      startWarnings_ = 0;
         size_t                      sequence_ = 0;
         std::optional<StageOutcome> forcedOutcome_;
     };

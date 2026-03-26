@@ -53,6 +53,18 @@ namespace
         if (resolvedNode.is(AstNodeId::AssignStmt))
             return resolvedNode.cast<AstAssignStmt>().nodeLeftRef;
 
+        // When the `with` expression is an address-of (`&var`), unwrap to the underlying
+        // variable so that configureWithBindings can use the direct variable binding path.
+        // Without this, the address-of expression would be stored as a baseExprRef and
+        // cloned during auto-member resolution, but the clone's children are never visited
+        // by the codegen walker (they are not part of the original AST tree).
+        if (resolvedNode.is(AstNodeId::UnaryExpr))
+        {
+            const Token& tok = sema.token(resolvedNode.codeRef());
+            if (tok.id == TokenId::SymAmpersand)
+                return resolvedNode.cast<AstUnaryExpr>().nodeExprRef;
+        }
+
         return resolvedRef;
     }
 

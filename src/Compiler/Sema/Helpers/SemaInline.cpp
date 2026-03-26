@@ -14,6 +14,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isInlineReexpandableCall(const AstNode& node)
+    {
+        return node.is(AstNodeId::CallExpr) ||
+               node.is(AstNodeId::AliasCallExpr) ||
+               node.is(AstNodeId::IntrinsicCallExpr);
+    }
+
     bool isBindingAssigned(const SemaClone::ParamBinding& binding)
     {
         return binding.exprRef.isValid() || binding.cstRef.isValid();
@@ -72,13 +79,23 @@ namespace
         if (argRef.isInvalid())
             return AstNodeRef::invalid();
 
+        if (sema.node(argRef).is(AstNodeId::EmbeddedBlock))
+        {
+            if (const auto* inlinePayload = sema.semaPayload<SemaInlinePayload>(argRef);
+                inlinePayload && inlinePayload->callRef.isValid())
+                return inlinePayload->callRef;
+        }
+
         const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
         if (resolvedRef.isInvalid())
             return argRef;
 
+        // Preserve call syntax for already-inlined value arguments. Cloning the substituted
+        // inline block into a new inline context would orphan its `return` statements from the
+        // payload that gives that block expression semantics, so let the cloned call re-inline.
         if (resolvedRef != argRef &&
             sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock) &&
-            sema.semaPayload<SemaInlinePayload>(resolvedRef))
+            isInlineReexpandableCall(sema.node(argRef)))
             return argRef;
 
         return resolvedRef;
@@ -413,7 +430,6 @@ namespace
     {
         SWC_ASSERT(inlineRootRef.isValid());
         SWC_ASSERT(payload.returnTypeRef.isValid());
-
         sema.setType(inlineRootRef, payload.returnTypeRef);
         const TypeInfo& returnType = sema.typeMgr().get(payload.returnTypeRef);
         if (!returnType.isVoid())
@@ -690,7 +706,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext) : inlineBodyRef(sema, *decl, cloneContext);
     if (inlineRootRef.isInvalid())
         return Result::Continue;
-
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());
 
     SymbolVariable* resultVar = nullptr;

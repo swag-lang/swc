@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 
 #[Swag.Inline]
 func addOne(value: s32)->s32

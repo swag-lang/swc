@@ -722,6 +722,21 @@ void CodeGen::popFrame()
         const CodeGenFrame& currentFrame = frames_.back();
         CodeGenFrame&       parentFrame  = frames_[frames_.size() - 2];
 
+        if (currentFrame.hasCurrentInlineContext() &&
+            parentFrame.hasCurrentInlineContext() &&
+            currentFrame.currentInlineContext().rootNodeRef == parentFrame.currentInlineContext().rootNodeRef &&
+            currentFrame.currentInlineContext().payload == parentFrame.currentInlineContext().payload)
+        {
+            const MicroLabelRef childDoneLabel = currentFrame.currentInlineContext().doneLabel;
+            if (childDoneLabel.isValid())
+            {
+                const MicroLabelRef parentDoneLabel = parentFrame.currentInlineContext().doneLabel;
+                SWC_ASSERT(parentDoneLabel == MicroLabelRef::invalid() || parentDoneLabel == childDoneLabel);
+                if (parentDoneLabel == MicroLabelRef::invalid())
+                    parentFrame.setCurrentInlineDoneLabel(childDoneLabel);
+            }
+        }
+
         // Inline/macro expansion runs inside a copied frame. If that copy records a `continue`,
         // propagate the flag back so the enclosing loop still materializes its continue block.
         if (currentFrame.hasCurrentInlineContext() &&

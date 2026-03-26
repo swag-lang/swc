@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 
 #[Swag.Inline]
 func hasAnyAbove(arr: [*] u8, count: u32, limit: u8) -> bool

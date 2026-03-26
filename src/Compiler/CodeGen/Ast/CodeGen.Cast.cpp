@@ -198,6 +198,7 @@ namespace
         arg.srcReg      = srcReg;
         arg.kind        = ABICall::PreparedArgKind::Direct;
         arg.isFloat     = normalizedArg.isFloat;
+        arg.isSigned    = normalizedArg.isSigned;
         arg.isAddressed = false;
         arg.numBits     = normalizedArg.numBits;
         outArgs.push_back(arg);

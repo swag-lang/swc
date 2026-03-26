@@ -16,6 +16,7 @@ namespace ABITypeNormalize
         // Normalized ABI shape consumed by call/return lowering.
         bool     isVoid            = true;
         bool     isFloat           = false;
+        bool     isSigned          = false;
         bool     isIndirect        = false;
         bool     needsIndirectCopy = false;
         uint8_t  numBits           = 0;

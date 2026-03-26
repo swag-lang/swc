@@ -59,6 +59,21 @@ namespace
         return MicroOpBits::B64;
     }
 
+    MicroOpBits canonicalIntBits(uint8_t numBits)
+    {
+        if (!numBits)
+            return MicroOpBits::B64;
+
+        const MicroOpBits bits = microOpBitsFromBitWidth(numBits);
+        SWC_ASSERT(bits != MicroOpBits::Zero);
+        return bits;
+    }
+
+    bool needsCanonicalIntExtension(uint8_t numBits)
+    {
+        return numBits && numBits < 64;
+    }
+
     void emitReturnWriteBack(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret, MicroReg regBase)
     {
         if (ret.isVoid || ret.isIndirect)
@@ -134,6 +149,36 @@ namespace
         SWC_INTERNAL_CHECK(regTmp.isValid());
         emitReturnWriteBack(builder, conv, ret, regBase);
     }
+}
+
+void ABICall::loadCanonicalIntFromMemToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcBaseReg, uint64_t srcOffset, uint8_t numBits, bool isSigned)
+{
+    const MicroOpBits srcBits = canonicalIntBits(numBits);
+    if (!needsCanonicalIntExtension(numBits))
+    {
+        builder.emitLoadRegMem(dstReg, srcBaseReg, srcOffset, srcBits);
+        return;
+    }
+
+    if (isSigned)
+        builder.emitLoadSignedExtendRegMem(dstReg, srcBaseReg, srcOffset, MicroOpBits::B64, srcBits);
+    else
+        builder.emitLoadZeroExtendRegMem(dstReg, srcBaseReg, srcOffset, MicroOpBits::B64, srcBits);
+}
+
+void ABICall::loadCanonicalIntToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint8_t numBits, bool isSigned)
+{
+    const MicroOpBits srcBits = canonicalIntBits(numBits);
+    if (!needsCanonicalIntExtension(numBits))
+    {
+        builder.emitLoadRegReg(dstReg, srcReg, srcBits);
+        return;
+    }
+
+    if (isSigned)
+        builder.emitLoadSignedExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
+    else
+        builder.emitLoadZeroExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
 }
 
 uint32_t ABICall::argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKind callConvKind, TypeRef returnTypeRef, uint32_t parameterIndex)
@@ -282,7 +327,10 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 else
                 {
                     SWC_ASSERT(i < conv.intArgRegs.size());
-                    builder.emitLoadRegMem(conv.intArgRegs[i], conv.stackPointer, homeOffset, argBits);
+                    if (arg.kind == PreparedArgKind::Direct)
+                        loadCanonicalIntFromMemToReg(builder, conv.intArgRegs[i], conv.stackPointer, homeOffset, arg.numBits, arg.isSigned);
+                    else
+                        builder.emitLoadRegMem(conv.intArgRegs[i], conv.stackPointer, homeOffset, argBits);
                 }
                 continue;
             }
@@ -292,7 +340,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             switch (arg.kind)
             {
                 case PreparedArgKind::Direct:
-                    builder.emitLoadRegReg(conv.intArgRegs[i], arg.srcReg, MicroOpBits::B64);
+                    loadCanonicalIntToReg(builder, conv.intArgRegs[i], arg.srcReg, arg.numBits, arg.isSigned);
                     break;
 
                 case PreparedArgKind::InterfaceObject:
@@ -344,9 +392,9 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 {
                     SWC_ASSERT(i < conv.intArgRegs.size());
                     if (arg.isAddressed)
-                        builder.emitLoadRegMem(conv.intArgRegs[i], arg.srcReg, 0, argBits);
+                        loadCanonicalIntFromMemToReg(builder, conv.intArgRegs[i], arg.srcReg, 0, arg.numBits, arg.isSigned);
                     else
-                        builder.emitLoadRegReg(conv.intArgRegs[i], arg.srcReg, argBits);
+                        loadCanonicalIntToReg(builder, conv.intArgRegs[i], arg.srcReg, arg.numBits, arg.isSigned);
                 }
                 break;
             }
@@ -450,9 +498,9 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
     }
 
     if (valueIsLValue)
-        builder.emitLoadRegMem(conv.intReturn, valueReg, 0, retBits);
+        loadCanonicalIntFromMemToReg(builder, conv.intReturn, valueReg, 0, ret.numBits, ret.isSigned);
     else
-        builder.emitLoadRegReg(conv.intReturn, valueReg, retBits);
+        loadCanonicalIntToReg(builder, conv.intReturn, valueReg, ret.numBits, ret.isSigned);
 }
 
 void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)
@@ -474,7 +522,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
     if (ret.isFloat)
         builder.emitLoadRegReg(dstReg, conv.floatReturn, retBits);
     else
-        builder.emitLoadRegReg(dstReg, conv.intReturn, retBits);
+        loadCanonicalIntToReg(builder, dstReg, conv.intReturn, ret.numBits, ret.isSigned);
 }
 
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)

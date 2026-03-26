@@ -36,6 +36,7 @@ namespace ABICall
         MicroReg        srcReg;
         PreparedArgKind kind        = PreparedArgKind::Direct;
         bool            isFloat     = false;
+        bool            isSigned    = false;
         bool            isAddressed = false;
         uint8_t         numBits     = 0;
     };
@@ -60,6 +61,8 @@ namespace ABICall
 
     PreparedCall prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args);
     PreparedCall prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args, const ABITypeNormalize::NormalizedType& ret, MicroReg hiddenRetStorageReg = MicroReg::invalid());
+    void         loadCanonicalIntFromMemToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcBaseReg, uint64_t srcOffset, uint8_t numBits, bool isSigned);
+    void         loadCanonicalIntToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint8_t numBits, bool isSigned);
     void         materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind callConvKind, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
     void         storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, const ABITypeNormalize::NormalizedType& ret);
     void         storeValueToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);

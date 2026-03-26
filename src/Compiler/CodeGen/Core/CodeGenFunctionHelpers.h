@@ -19,8 +19,10 @@ namespace CodeGenFunctionHelpers
         uint32_t    slotIndex     = 0;
         MicroOpBits opBits        = MicroOpBits::Zero;
         bool        isFloat       = false;
+        bool        isSigned      = false;
         bool        isIndirect    = false;
         bool        isRegisterArg = false;
+        uint8_t     numBits       = 0;
     };
 
     bool                  functionUsesIndirectReturnStorage(CodeGen& codeGen, const SymbolFunction& symbolFunc);

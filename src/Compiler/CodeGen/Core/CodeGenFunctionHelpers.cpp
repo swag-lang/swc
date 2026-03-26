@@ -299,7 +299,9 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
 
     result.slotIndex     = parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
     result.isFloat       = normalizedParam.isFloat;
+    result.isSigned      = normalizedParam.isSigned;
     result.isIndirect    = normalizedParam.isIndirect;
+    result.numBits       = normalizedParam.numBits;
     result.opBits        = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
     result.isRegisterArg = result.slotIndex < callConv.numArgRegisterSlots();
     return result;
@@ -325,13 +327,16 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
         else
         {
             SWC_ASSERT(paramInfo.slotIndex < callConv.intArgRegs.size());
-            builder.emitLoadRegReg(dstReg, callConv.intArgRegs[paramInfo.slotIndex], paramInfo.opBits);
+            ABICall::loadCanonicalIntToReg(builder, dstReg, callConv.intArgRegs[paramInfo.slotIndex], paramInfo.numBits, paramInfo.isSigned);
         }
     }
     else
     {
         const uint64_t frameOffset = ABICall::incomingArgFrameOffset(callConv, paramInfo.slotIndex);
-        builder.emitLoadRegMem(dstReg, callConv.framePointer, frameOffset, paramInfo.opBits);
+        if (paramInfo.isFloat)
+            builder.emitLoadRegMem(dstReg, callConv.framePointer, frameOffset, paramInfo.opBits);
+        else
+            ABICall::loadCanonicalIntFromMemToReg(builder, dstReg, callConv.framePointer, frameOffset, paramInfo.numBits, paramInfo.isSigned);
     }
 }
 

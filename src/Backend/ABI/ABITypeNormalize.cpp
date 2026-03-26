@@ -7,14 +7,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    ABITypeNormalize::NormalizedType makeNormalizedType(bool isVoid, bool isFloat, uint8_t numBits)
+    ABITypeNormalize::NormalizedType makeNormalizedType(bool isVoid, bool isFloat, bool isSigned, uint8_t numBits)
     {
-        return ABITypeNormalize::NormalizedType{.isVoid = isVoid, .isFloat = isFloat, .numBits = numBits};
+        return ABITypeNormalize::NormalizedType{.isVoid = isVoid, .isFloat = isFloat, .isSigned = isSigned, .numBits = numBits};
     }
 
     ABITypeNormalize::NormalizedType makeIndirectStructType(uint32_t copySize, uint32_t copyAlign, bool needsCopy)
     {
-        ABITypeNormalize::NormalizedType outType = makeNormalizedType(false, false, 64);
+        ABITypeNormalize::NormalizedType outType = makeNormalizedType(false, false, false, 64);
         outType.isIndirect                       = true;
         outType.needsIndirectCopy                = needsCopy;
         outType.indirectSize                     = copySize;
@@ -33,28 +33,28 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
 
     const TypeInfo& ty = ctx.typeMgr().get(expanded);
     if (ty.isVoid())
-        return makeNormalizedType(true, false, 0);
+        return makeNormalizedType(true, false, false, 0);
 
     if (ty.isBool())
-        return makeNormalizedType(false, false, 8);
+        return makeNormalizedType(false, false, false, 8);
 
     if (ty.isCharRune())
-        return makeNormalizedType(false, false, 32);
+        return makeNormalizedType(false, false, false, 32);
 
     if (ty.isInt() && ty.payloadIntBits() <= 64 && ty.payloadIntBits() != 0)
-        return makeNormalizedType(false, false, static_cast<uint8_t>(ty.payloadIntBits()));
+        return makeNormalizedType(false, false, ty.payloadIntSign() == TypeInfo::Sign::Signed, static_cast<uint8_t>(ty.payloadIntBits()));
 
     if (ty.isFloat() && (ty.payloadFloatBits() == 32 || ty.payloadFloatBits() == 64))
-        return makeNormalizedType(false, true, static_cast<uint8_t>(ty.payloadFloatBits()));
+        return makeNormalizedType(false, true, false, static_cast<uint8_t>(ty.payloadFloatBits()));
 
     if (ty.isAnyPointer() || ty.isReference() || ty.isMoveReference() || ty.isNull() || ty.isCString() || (ty.isFunction() && !ty.isLambdaClosure()) || ty.isTypeInfo())
-        return makeNormalizedType(false, false, 64);
+        return makeNormalizedType(false, false, false, 64);
 
     if (ty.isVariadic())
-        return makeNormalizedType(false, false, 64);
+        return makeNormalizedType(false, false, false, 64);
 
     if (ty.isTypedVariadic())
-        return makeNormalizedType(false, false, 64);
+        return makeNormalizedType(false, false, false, 64);
 
     if (ty.isFunction() && ty.isLambdaClosure())
     {
@@ -89,7 +89,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         {
             // Current supported by-value aggregate widths match the platform ABI slots.
             SWC_ASSERT(size == 1 || size == 2 || size == 4 || size == 8);
-            return makeNormalizedType(false, false, static_cast<uint8_t>(size * 8));
+            return makeNormalizedType(false, false, false, static_cast<uint8_t>(size * 8));
         }
 
         // Non-by-value aggregates are passed/returned through an ABI-managed pointer.
@@ -99,7 +99,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     }
 
     SWC_ASSERT(false);
-    return makeNormalizedType(true, false, 0);
+    return makeNormalizedType(true, false, false, 0);
 }
 
 SWC_END_NAMESPACE();

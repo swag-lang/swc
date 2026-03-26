@@ -104,10 +104,10 @@ func parseInput(text: string) -> { patterns: PatternList, designs: DesignList }
         {
             if pos >= @countof(bytes) do break
             let ch = bytes[pos]
-            if ch != ' ' and ch != ',' do break
+            if ch != ' ' and ch != ',' and ch != '\r' do break
             pos += 1
         }
-        if pos >= @countof(bytes) or bytes[pos] == '\n' do break
+        if pos >= @countof(bytes) or bytes[pos] == '\n' or bytes[pos] == '\r' do break
 
         // read pattern
         var pat: Pattern
@@ -115,7 +115,7 @@ func parseInput(text: string) -> { patterns: PatternList, designs: DesignList }
         {
             if pos >= @countof(bytes) do break
             let ch = bytes[pos]
-            if ch == ',' or ch == '\n' or ch == ' ' do break
+            if ch == ',' or ch == '\n' or ch == '\r' or ch == ' ' do break
             if pat.len < MaxPatLen
             {
                 pat.bytes[pat.len] = ch
@@ -288,6 +288,25 @@ func solve(text: string) -> SolveResult
     @assert(!pat.matchAt(sl, 4))
 }
 
+// Pointer-backed receiver: hidden 'me' reference and narrow return value
+#test
+{
+    var pats: PatternList
+    pats.items[0].bytes[0] = 'a'
+    pats.items[0].len = 1
+    pats.count = 1
+
+    let pat = &pats.items[0]
+
+    var buf: [1] u8
+    buf[0] = 'a'
+    let sl = @mkslice(&buf[0], 1'u64)
+
+    @assert(pat.len == 1'u32)
+    @assert(pat.byteAt(0) == 'a')
+    @assert(pat.matchAt(sl, 0))
+}
+
 // Design asSlice inline method — exercises inline returning a slice
 #test
 {
@@ -359,6 +378,14 @@ func solve(text: string) -> SolveResult
 {
     let result = solve(SampleInput)
     @assert(result.totalWays == 16'u64)
+}
+
+// CRLF input should parse the last pattern correctly.
+#test
+{
+    let result = solve("r, wr, b, g, bwu, rb, gb, br\r\n\r\nbrwrr\r\n")
+    @assert(result.possible == 1'u32)
+    @assert(result.totalWays == 2'u64)
 }
 
 // Edge: empty design list

@@ -1223,7 +1223,7 @@ namespace
         if (!paramType.isReference())
             return false;
 
-        const AstNodeRef sourceRef = resolveResolvedArgSourceRef(sema, argRef);
+        const AstNodeRef sourceRef     = resolveResolvedArgSourceRef(sema, argRef);
         const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
         if (sourceTypeRef.isInvalid())
             return true;
@@ -1298,9 +1298,9 @@ namespace
             }
 
             ResolvedCallArgument resolvedArg{
-                .argRef                 = finalArgRef,
-                .passKind               = passKind,
-                .bindsReferenceToValue  = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
+                .argRef                = finalArgRef,
+                .passKind              = passKind,
+                .bindsReferenceToValue = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
             };
 
             if (hasUntypedVariadic && i == variadicParamIdx)

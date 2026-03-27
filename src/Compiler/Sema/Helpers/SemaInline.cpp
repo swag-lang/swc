@@ -822,10 +822,10 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     return sema.isOptimizeEnabled() && attributes.hasRtFlag(RtAttributeFlagsE::Inline);
 }
 
-    Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
-    {
-        if (sema.hasSubstitute(callRef))
-            return Result::Continue;
+Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+{
+    if (sema.hasSubstitute(callRef))
+        return Result::Continue;
 
     if (!canInlineCall(sema, fn))
         return Result::Continue;

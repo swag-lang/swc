@@ -58,7 +58,7 @@ namespace TimedActionLog
         Clock::time_point           startTick_{};
         size_t                      startErrors_   = 0;
         size_t                      startWarnings_ = 0;
-        size_t                      sequence_ = 0;
+        size_t                      sequence_      = 0;
         std::optional<StageOutcome> forcedOutcome_;
     };
 

@@ -410,11 +410,11 @@ namespace
         argPayload.setIsValue();
     }
 
-    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg,
-                                   CodeGen&             codeGen,
-                                   const CallConv&      callConv,
-                                   const CodeGenNodePayload& argPayload,
-                                   TypeRef                  normalizedTypeRef,
+    void fillPreparedDirectArgType(ABICall::PreparedArg&       outPreparedArg,
+                                   CodeGen&                    codeGen,
+                                   const CallConv&             callConv,
+                                   const CodeGenNodePayload&   argPayload,
+                                   TypeRef                     normalizedTypeRef,
                                    const ResolvedCallArgument& resolvedArg)
     {
         if (normalizedTypeRef.isInvalid())

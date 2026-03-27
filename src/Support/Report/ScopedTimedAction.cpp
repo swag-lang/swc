@@ -214,8 +214,8 @@ TimedActionLog::StatsSnapshot TimedActionLog::StatsSnapshot::capture()
     result.numErrors   = stats.numErrors.load(std::memory_order_relaxed);
     result.numWarnings = stats.numWarnings.load(std::memory_order_relaxed);
 #if SWC_HAS_STATS
-    result.numFiles    = stats.numFiles.load(std::memory_order_relaxed);
-    result.numTokens   = stats.numTokens.load(std::memory_order_relaxed);
+    result.numFiles  = stats.numFiles.load(std::memory_order_relaxed);
+    result.numTokens = stats.numTokens.load(std::memory_order_relaxed);
 #endif
 
     return result;
@@ -226,10 +226,10 @@ Utf8 TimedActionLog::formatStageStartLine(const TaskContext& ctx, const StageSpe
     return formatStageStart(ctx, spec, sequence);
 }
 
-Utf8 TimedActionLog::formatStageEndLine(const TaskContext&   ctx,
-                                        const StageSpec&     spec,
-                                        const StageOutcome   outcome,
-                                        const uint64_t       durationNs)
+Utf8 TimedActionLog::formatStageEndLine(const TaskContext& ctx,
+                                        const StageSpec&   spec,
+                                        const StageOutcome outcome,
+                                        const uint64_t     durationNs)
 {
     return formatStageEnd(ctx, spec, outcome, durationNs);
 }
@@ -311,7 +311,7 @@ TimedActionLog::ScopedStage::~ScopedStage()
     if (!ctx_)
         return;
 
-    const uint64_t      durationNs =
+    const uint64_t durationNs =
         std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - startTick_).count();
 
     StatsSnapshot after = StatsSnapshot::capture();

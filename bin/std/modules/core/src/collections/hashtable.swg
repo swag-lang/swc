@@ -141,12 +141,12 @@ impl HashTable
                 }
                 #else
                 {
-                    #if Reflection.isStruct(K) do
-                        let #alias0 = cast(const &K) &#up me.table[@index].key
+                    #if Reflection.isStruct(#up K) do
+                        let #alias0 = cast(const &#up K) &#up me.table[@index].key
                     #else do
                         let #alias0 = #up me.table[@index].key
-                    #if Reflection.isStruct(V) do
-                        let #alias1 = cast(const &V) &#up me.table[@index].value
+                    #if Reflection.isStruct(#up V) do
+                        let #alias1 = cast(const &#up V) &#up me.table[@index].value
                     #else do
                         let #alias1 = #up me.table[@index].value
                 }

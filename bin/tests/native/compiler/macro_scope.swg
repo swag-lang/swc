@@ -62,6 +62,18 @@ func bindTypedAlias(stmt: #code void)
     }
 }
 
+#[Swag.Macro]
+func nestedBlock(seed: s32, stmt: #code void)
+{
+    #macro
+    {
+        {
+            let value = #up seed + 1
+            #inject(#up stmt)
+        }
+    }
+}
+
 #test
 {
     var a = 1
@@ -115,6 +127,17 @@ func bindTypedAlias(stmt: #code void)
     bindTypedAlias()
     {
         result = typed + 1
+    }
+
+    @assert(result == 42)
+}
+
+#test
+{
+    var result = 0
+    nestedBlock(41)
+    {
+        result = value
     }
 
     @assert(result == 42)

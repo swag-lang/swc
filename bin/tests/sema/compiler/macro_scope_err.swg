@@ -57,6 +57,16 @@ func missingUpOnValueParam(inputCfg: MacroScopeConfig)
 }
 
 #[Swag.Macro]
+func missingUpOnCompilerIf(flag: bool)
+{
+    #macro
+    {
+        #if flag do // swc-expected-error {{sema_err_unknown_symbol}}
+            let value = 1
+    }
+}
+
+#[Swag.Macro]
 func missingUpOnTypeAlias()
 {
     alias ScopeValue = s32
@@ -84,6 +94,12 @@ const TriggerMissingUpOnValueParam = #run
     var cfg: MacroScopeConfig
     cfg.delta = 1
     missingUpOnValueParam(cfg)
+    return 0
+}
+
+const TriggerMissingUpOnCompilerIf = #run
+{
+    missingUpOnCompilerIf(true)
     return 0
 }
 

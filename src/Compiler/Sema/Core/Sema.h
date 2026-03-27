@@ -77,14 +77,18 @@ public:
     const SemaScope*           lookupScope() const { return frame().lookupScope() ? frame().lookupScope() : curScope_; }
     SemaScope*                 upLookupScope() { return frame().upLookupScope(); }
     const SemaScope*           upLookupScope() const { return frame().upLookupScope(); }
-    AstVisit&                  visit() { return visit_; }
-    const AstVisit&            visit() const { return visit_; }
-    AstNodeRef                 curNodeRef() const { return visit_.currentNodeRef(); }
-    AstNode&                   curNode() { return node(curNodeRef()); }
-    const AstNode&             curNode() const { return node(curNodeRef()); }
-    SymbolMap*                 curSymMap() { return curScope_->symMap(); }
-    const SymbolMap*           curSymMap() const { return curScope_->symMap(); }
-    const SymbolMap*           topSymMap() const { return startSymMap_; }
+    SemaScope*                 resolvedUpLookupScope();
+    const SemaScope*           resolvedUpLookupScope() const;
+    static void                configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess = false);
+
+    AstVisit&        visit() { return visit_; }
+    const AstVisit&  visit() const { return visit_; }
+    AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
+    AstNode&         curNode() { return node(curNodeRef()); }
+    const AstNode&   curNode() const { return node(curNodeRef()); }
+    SymbolMap*       curSymMap() { return curScope_->symMap(); }
+    const SymbolMap* curSymMap() const { return curScope_->symMap(); }
+    const SymbolMap* topSymMap() const { return startSymMap_; }
 
     const SymbolNamespace& moduleNamespace() const { return nodePayloadContext().moduleNamespace(); }
     SymbolNamespace&       moduleNamespace() { return nodePayloadContext().moduleNamespace(); }

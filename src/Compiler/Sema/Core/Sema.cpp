@@ -181,6 +181,29 @@ const SourceFile* Sema::file() const
     return ast().srcView().file();
 }
 
+SemaScope* Sema::resolvedUpLookupScope()
+{
+    if (auto* scope = upLookupScope())
+        return scope;
+    const auto* scope = lookupScope();
+    return scope ? scope->lookupParent() : nullptr;
+}
+
+const SemaScope* Sema::resolvedUpLookupScope() const
+{
+    if (const auto* scope = upLookupScope())
+        return scope;
+    const auto* const scope = lookupScope();
+    return scope ? scope->lookupParent() : nullptr;
+}
+
+void Sema::configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess)
+{
+    frame.setLookupScope(lookupScope);
+    frame.setUpLookupScope(lookupScope ? lookupScope->lookupParent() : nullptr);
+    frame.setIgnoreRuntimeAccess(ignoreRuntimeAccess);
+}
+
 const Ast& Sema::ast() const
 {
     return nodePayloadContext_->ast();

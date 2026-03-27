@@ -166,9 +166,9 @@ impl Array
             #macro
             {
                 #if #up ptr do
-                    let #alias0 = cast(*T) #up scan
-                #elif Reflection.isStruct(T) do
-                    let #alias0 = cast(&T) #up scan
+                    let #alias0 = cast(*#up T) #up scan
+                #elif Reflection.isStruct(#up T) do
+                    let #alias0 = cast(&#up T) #up scan
                 #else do
                     let #alias0 = #up scan[0]
                 let #alias1 = @index

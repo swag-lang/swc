@@ -1014,9 +1014,7 @@ Result AstCompilerMacro::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     bodyNode.addFlag(AstEmbeddedBlockFlagsE::CompilerMacroBody);
 
     auto* hiddenScope = sema.curScopePtr();
-    auto* callerScope = sema.upLookupScope();
-    if (!callerScope && hiddenScope)
-        callerScope = hiddenScope->lookupParent();
+    auto* callerScope = sema.resolvedUpLookupScope();
 
     auto* macroScope = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     macroScope->setLookupParent(callerScope);

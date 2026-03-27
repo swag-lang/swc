@@ -62,6 +62,18 @@ func bindTypedAlias(stmt: #code void)
     }
 }
 
+#[Swag.Macro]
+func nestedBlock(seed: s32, stmt: #code void)
+{
+    #macro
+    {
+        {
+            let value = #up seed + 1
+            #inject(#up stmt)
+        }
+    }
+}
+
 func runDoItTwice()->bool
 {
     var a = 1
@@ -120,14 +132,27 @@ func runBindTypedAlias()->bool
     return result == 42
 }
 
+func runNestedBlock()->bool
+{
+    var result = 0
+    nestedBlock(41)
+    {
+        result = value
+    }
+
+    return result == 42
+}
+
 const MacroScopeDoItTwiceOk      = #run runDoItTwice()
 const MacroScopeCallerScopeOk    = #run runPreferCallerScope()
 const MacroScopeRepeatWithIdxOk  = #run runRepeatWithIndex()
 const MacroScopeApplyConfigOk    = #run runApplyConfig()
 const MacroScopeBindTypedAliasOk = #run runBindTypedAlias()
+const MacroScopeNestedBlockOk    = #run runNestedBlock()
 
 #assert(MacroScopeDoItTwiceOk)
 #assert(MacroScopeCallerScopeOk)
 #assert(MacroScopeRepeatWithIdxOk)
 #assert(MacroScopeApplyConfigOk)
 #assert(MacroScopeBindTypedAliasOk)
+#assert(MacroScopeNestedBlockOk)

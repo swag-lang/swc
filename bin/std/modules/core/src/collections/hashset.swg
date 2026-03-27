@@ -97,9 +97,9 @@ impl HashSet
                 {
                     let #alias0 = &#up me.table[@index].key
                 }
-                #elif Reflection.isStruct(K)
+                #elif Reflection.isStruct(#up K)
                 {
-                    let #alias0 = cast(const &K) &#up me.table[@index].key
+                    let #alias0 = cast(const &#up K) &#up me.table[@index].key
                 }
                 #else
                 {

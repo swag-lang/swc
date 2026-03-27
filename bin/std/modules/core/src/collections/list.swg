@@ -47,9 +47,9 @@ impl List
             #macro
             {
                 #if #up ptr do
-                    let #alias0 = cast(*T) &#up n.value
-                #elif Reflection.isStruct(T) do
-                    let #alias0 = cast(&T) &#up n.value
+                    let #alias0 = cast(*#up T) &#up n.value
+                #elif Reflection.isStruct(#up T) do
+                    let #alias0 = cast(&#up T) &#up n.value
                 #else do
                     let #alias0 = #up n.value
                 let #alias1 = #up n

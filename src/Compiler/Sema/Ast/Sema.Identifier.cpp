@@ -131,7 +131,8 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
     if (nodeValueRef.isValid() || nodeIdentRef.isInvalid())
         return Result::Continue;
 
-    AstNodeRef targetRef = nodeIdentRef;
+    AstNodeRef targetRef         = nodeIdentRef;
+    bool       usedInlineBinding = false;
     if (const auto* inlinePayload = sema.frame().currentInlinePayload();
         inlinePayload &&
         containsInlineBindingUse(sema, nodeIdentRef, inlinePayload->argMappings.span()))
@@ -140,21 +141,14 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
         targetRef = SemaClone::cloneAst(sema, nodeIdentRef, cloneContext);
         if (targetRef.isInvalid())
             return Result::Error;
+        usedInlineBinding = true;
     }
 
-    SemaScope* lookupScope = sema.upLookupScope();
-    if (!lookupScope)
-    {
-        const SemaScope* baseScope = sema.lookupScope();
-        lookupScope                = baseScope ? baseScope->lookupParent() : nullptr;
-    }
-
+    auto* lookupScope = usedInlineBinding ? sema.lookupScope() : sema.resolvedUpLookupScope();
     if (lookupScope)
     {
         auto frame = sema.frame();
-        frame.setLookupScope(lookupScope);
-        frame.setUpLookupScope(lookupScope->lookupParent());
-        frame.setIgnoreRuntimeAccess(true);
+        Sema::configureLookupFrame(frame, lookupScope, true);
         sema.pushFramePopOnPostNode(frame, targetRef);
     }
 

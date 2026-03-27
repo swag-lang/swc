@@ -19,6 +19,116 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint32_t stringDelimiterSize(TokenId id)
+    {
+        switch (id)
+        {
+            case TokenId::StringLine:
+                return 1;
+            case TokenId::StringMultiLine:
+                return 3;
+            case TokenId::StringRaw:
+                return 2;
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    uint32_t stringAlignColumn(const Token& tok, const SourceView& srcView)
+    {
+        SWC_ASSERT(tok.isAny({TokenId::StringMultiLine, TokenId::StringRaw}));
+
+        const auto it = std::ranges::upper_bound(srcView.lines(), tok.byteStart);
+        SWC_ASSERT(it != srcView.lines().begin());
+        return tok.byteStart - *std::prev(it) + stringDelimiterSize(tok.id);
+    }
+
+    // Trim continuation-line indentation up to the opening delimiter column,
+    // but never invent padding when a line starts earlier on purpose.
+    Utf8 normalizeMultilineLiteral(std::string_view str, uint32_t alignColumn, const LangSpec& langSpec)
+    {
+        Utf8 result;
+        result.reserve(str.size());
+
+        bool atLineStart = false;
+        for (size_t i = 0; i < str.size();)
+        {
+            if (atLineStart)
+            {
+                uint32_t eat = 0;
+                while (eat < alignColumn && i < str.size() && langSpec.isBlank(static_cast<unsigned char>(str[i])))
+                {
+                    ++i;
+                    ++eat;
+                }
+
+                atLineStart = false;
+                if (i >= str.size())
+                    break;
+            }
+
+            if (str[i] == '\r')
+            {
+                result += '\r';
+                ++i;
+                if (i < str.size() && str[i] == '\n')
+                {
+                    result += '\n';
+                    ++i;
+                }
+
+                atLineStart = true;
+                continue;
+            }
+
+            if (str[i] == '\n')
+            {
+                result += '\n';
+                ++i;
+                atLineStart = true;
+                continue;
+            }
+
+            result += str[i];
+            ++i;
+        }
+
+        return result;
+    }
+
+    Utf8 foldEscapedEols(std::string_view str)
+    {
+        Utf8 result;
+        result.reserve(str.size());
+
+        for (size_t i = 0; i < str.size(); ++i)
+        {
+            if (str[i] != '\\' || i + 1 >= str.size())
+            {
+                result += str[i];
+                continue;
+            }
+
+            if (str[i + 1] == '\n')
+            {
+                ++i;
+                continue;
+            }
+
+            if (str[i + 1] == '\r')
+            {
+                ++i;
+                if (i + 1 < str.size() && str[i + 1] == '\n')
+                    ++i;
+                continue;
+            }
+
+            result += str[i];
+        }
+
+        return result;
+    }
+
     void parseHexEscape(const Utf8& str, size_t& index, size_t maxDigits, char32_t& valueOut, const LangSpec& langSpec)
     {
         char32_t value  = 0;
@@ -259,23 +369,39 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
             SWC_UNREACHABLE();
     }
 
+    const LangSpec&  langSpec = sema.compiler().global().langSpec();
+    Utf8             normalized;
+    std::string_view value = str;
+
+    if (tok.isAny({TokenId::StringMultiLine, TokenId::StringRaw}) && tok.hasFlag(TokenFlagsE::EolInside))
+    {
+        normalized = normalizeMultilineLiteral(str, stringAlignColumn(tok, srcView), langSpec);
+        normalized = foldEscapedEols(normalized);
+        value      = normalized;
+    }
+
+    if (tok.id == TokenId::StringRaw)
+    {
+        const auto val = ConstantValue::makeString(ctx, value);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+        return Result::SkipChildren;
+    }
+
     // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
-        const auto val = ConstantValue::makeString(ctx, str);
+        const auto val = ConstantValue::makeString(ctx, value);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
         return Result::SkipChildren;
     }
 
     Utf8 result;
-    result.reserve(str.size());
-
-    const LangSpec& langSpec = sema.compiler().global().langSpec();
+    result.reserve(value.size());
 
     // Decode escape sequences
-    for (size_t i = 0; i < str.size(); ++i)
+    for (size_t i = 0; i < value.size(); ++i)
     {
-        const char ch = str[i];
+        const char ch = value[i];
 
         if (ch != '\\')
         {
@@ -283,7 +409,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
             continue;
         }
 
-        const char32_t cp = decodeEscapeSequence(str, i, langSpec);
+        const char32_t cp = decodeEscapeSequence(value, i, langSpec);
         result += cp;
     }
 

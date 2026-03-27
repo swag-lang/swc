@@ -1,5 +1,8 @@
 #global fileprivate //
 
+const Eol = #"
+"#
+
 // Raw strings: no escape processing
 #test
 {
@@ -59,6 +62,44 @@ line3"""
 {
     let a = """This is "quoted" text"""
     @assert(a == "This is \"quoted\" text")
+}
+
+#test
+{
+    let a = """this is
+               a
+               string
+               """
+    @assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+}
+
+#test
+{
+    let a = #"this is
+              a
+              string
+              "#
+    @assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+}
+
+#test
+{
+    let a = """first
+               second
+           third
+                 fourth
+               """
+    @assert(a == "first" ++ Eol ++ "second" ++ Eol ++ "third" ++ Eol ++ "  fourth" ++ Eol)
+}
+
+#test
+{
+    let a = """\
+            this is
+            a
+            string
+            """
+    @assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
 }
 
 // Multiline empty

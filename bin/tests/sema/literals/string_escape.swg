@@ -75,3 +75,32 @@
 #assert("\\\\" == "\\\\")
 #assert("C:\\\\" == "C:\\\\")
 #assert(#"C:\\"# == "C:\\\\")
+
+const Eol = #"
+"#
+
+const MultiAlign = """this is
+                     a
+                     string
+                     """
+#assert(MultiAlign == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+
+const RawAlign = #"this is
+                  a
+                  string
+                  "#
+#assert(RawAlign == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+
+const MultiKeepShorter = """first
+                            second
+                        third
+                              fourth
+                            """
+#assert(MultiKeepShorter == "first" ++ Eol ++ "second" ++ Eol ++ "third" ++ Eol ++ "  fourth" ++ Eol)
+
+const MultiTrimAfterContinuation = """\
+                                     this is
+                                     a
+                                     string
+                                     """
+#assert(MultiTrimAfterContinuation == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)

@@ -792,6 +792,9 @@
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaGeneric.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
@@ -1323,6 +1326,9 @@
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaGeneric.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h">

@@ -420,6 +420,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaGeneric.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp"/>
@@ -603,6 +604,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaGeneric.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSymbolLookup.h"/>

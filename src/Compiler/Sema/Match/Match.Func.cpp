@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -863,7 +864,7 @@ namespace
                 Candidate       candidate;
                 SymbolFunction* concreteFn = nullptr;
 
-                SWC_RESULT(SemaHelpers::instantiateGenericFunctionFromCall(sema, *fn, args, AstNodeRef::invalid(), concreteFn));
+                SWC_RESULT(SemaGeneric::instantiateFunctionFromCall(sema, *fn, args, AstNodeRef::invalid(), concreteFn));
                 if (concreteFn)
                 {
                     SWC_RESULT(tryBuildCandidate(sema, *concreteFn, args, AstNodeRef::invalid(), candidate, fail));
@@ -879,7 +880,7 @@ namespace
                     concreteFn = nullptr;
                     candidate  = {};
                     fail       = {};
-                    SWC_RESULT(SemaHelpers::instantiateGenericFunctionFromCall(sema, *fn, args, ufcsArg, concreteFn));
+                    SWC_RESULT(SemaGeneric::instantiateFunctionFromCall(sema, *fn, args, ufcsArg, concreteFn));
                     if (concreteFn)
                     {
                         SWC_RESULT(tryBuildCandidate(sema, *concreteFn, args, ufcsArg, candidate, fail));

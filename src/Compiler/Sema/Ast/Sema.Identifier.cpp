@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
@@ -162,9 +163,9 @@ namespace
                 sawFunction = true;
                 auto& fn    = baseSym->cast<SymbolFunction>();
 
-                SmallVector<Symbol*> instances;
-                SWC_RESULT(SemaHelpers::instantiateGenericFunctionExplicit(sema, fn, genericArgs.span(), instances));
-                for (Symbol* instance : instances)
+                SymbolFunction* instance = nullptr;
+                SWC_RESULT(SemaGeneric::instantiateFunctionExplicit(sema, fn, genericArgs.span(), instance));
+                if (instance)
                     specializedFunctions.push_back(instance);
             }
             else if (baseSym->isStruct())
@@ -175,7 +176,7 @@ namespace
                     continue;
 
                 SymbolStruct* instance = nullptr;
-                SWC_RESULT(SemaHelpers::instantiateGenericStructExplicit(sema, st, genericArgs.span(), instance));
+                SWC_RESULT(SemaGeneric::instantiateStructExplicit(sema, st, genericArgs.span(), instance));
                 if (instance)
                 {
                     if (specializedStruct && specializedStruct != instance)

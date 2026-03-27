@@ -884,7 +884,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     for (const SemaClone::ParamBinding& binding : bindings)
         inlinePayload->argMappings.push_back(binding);
 
-    auto frame = sema.frame();
+    auto       frame       = sema.frame();
     SemaScope* callerScope = sema.curScopePtr();
     if (returnTypeRef != sema.typeMgr().typeVoid())
         frame.pushBindingType(returnTypeRef);

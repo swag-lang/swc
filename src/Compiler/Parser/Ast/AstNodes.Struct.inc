@@ -1607,10 +1607,10 @@ struct AstCompilerMacro : AstNodeT<AstNodeId::CompilerMacro>
 {
     AstNodeRef nodeBodyRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

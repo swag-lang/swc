@@ -93,8 +93,8 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
     if (preNodeVisitor_ && frame.preNodeState != Frame::CallState::Done)
     {
         const AstNodeRef initialNodeRef = frame.nodeRef;
-        frame.firstPass     = (frame.preNodeState == Frame::CallState::NotCalled);
-        const Result result = preNodeVisitor_(*frame.node);
+        frame.firstPass                 = (frame.preNodeState == Frame::CallState::NotCalled);
+        const Result result             = preNodeVisitor_(*frame.node);
 
         if (result == Result::Error)
             return AstVisitResult::Error;

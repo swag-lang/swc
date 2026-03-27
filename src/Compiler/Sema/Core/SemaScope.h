@@ -85,10 +85,10 @@ public:
     }
 
 private:
-    SemaScope*                            parent_ = nullptr;
+    SemaScope*                            parent_       = nullptr;
     SemaScope*                            lookupParent_ = nullptr;
-    SemaScopeFlags                        flags_  = SemaScopeFlagsE::Zero;
-    SymbolMap*                            symMap_ = nullptr;
+    SemaScopeFlags                        flags_        = SemaScopeFlagsE::Zero;
+    SymbolMap*                            symMap_       = nullptr;
     SmallVector<SymbolMap*>               usingSymMaps_;
     SmallVector<Symbol*>                  symbols_;
     std::vector<AutoMemberBinding>        autoMemberBindings_;

@@ -649,7 +649,7 @@ namespace
 
         for (const auto argRef : args)
         {
-            const AstNode&   argNode = sema.node(argRef);
+            const AstNode& argNode = sema.node(argRef);
 
             if (argNode.is(AstNodeId::NamedArgument))
             {

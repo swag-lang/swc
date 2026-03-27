@@ -894,7 +894,7 @@ namespace
 
                 if (!a.viable)
                 {
-                    a.fail.kind = MatchFailKind::InvalidArgumentType;
+                    a.fail.kind        = MatchFailKind::InvalidArgumentType;
                     a.fail.hasLocation = false;
                 }
 

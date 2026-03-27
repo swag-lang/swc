@@ -115,10 +115,10 @@ public:
     void                jit(TaskContext& ctx);
     const MachineCode&  loweredCode() const noexcept { return loweredMicroCode_; }
 
-    bool             isGenericRoot() const noexcept { return genericRoot_; }
-    void             setGenericRoot(bool value) noexcept { genericRoot_ = value; }
-    bool             isGenericInstance() const noexcept { return genericInstance_; }
-    void             setGenericInstance(SymbolFunction* root) noexcept
+    bool isGenericRoot() const noexcept { return genericRoot_; }
+    void setGenericRoot(bool value) noexcept { genericRoot_ = value; }
+    bool isGenericInstance() const noexcept { return genericInstance_; }
+    void setGenericInstance(SymbolFunction* root) noexcept
     {
         genericInstance_ = root != nullptr;
         genericRootSym_  = root;
@@ -130,10 +130,10 @@ public:
         genericDeclImpl_      = impl;
         genericDeclInterface_ = itf;
     }
-    SymbolImpl*              genericDeclImpl() const noexcept { return genericDeclImpl_; }
-    SymbolInterface*         genericDeclInterface() const noexcept { return genericDeclInterface_; }
-    SymbolFunction*          findGenericInstance(std::span<const GenericArgKey> args) const;
-    void                     addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance);
+    SymbolImpl*      genericDeclImpl() const noexcept { return genericDeclImpl_; }
+    SymbolInterface* genericDeclInterface() const noexcept { return genericDeclInterface_; }
+    SymbolFunction*  findGenericInstance(std::span<const GenericArgKey> args) const;
+    void             addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance);
 
 private:
     struct GenericInstanceEntry
@@ -164,25 +164,25 @@ private:
     uint32_t                     debugStackFrameSize_ = 0;
     MicroReg                     debugStackBaseReg_   = MicroReg::invalid();
 
-    MicroBuilder                 microInstrBuilder_;
-    MachineCode                  loweredMicroCode_;
-    mutable std::mutex           callDepsMutex_;
-    std::vector<SymbolFunction*> callDependencies_;
-    mutable std::mutex           genericMutex_;
+    MicroBuilder                      microInstrBuilder_;
+    MachineCode                       loweredMicroCode_;
+    mutable std::mutex                callDepsMutex_;
+    std::vector<SymbolFunction*>      callDependencies_;
+    mutable std::mutex                genericMutex_;
     std::vector<GenericInstanceEntry> genericInstances_;
-    mutable std::mutex           closureAdapterMutex_;
-    SymbolFunction*              closureAdapter_ = nullptr;
-    std::mutex                   emitMutex_;
-    JITMemory                    jitExecMemory_;
-    std::atomic<void*>           jitPreparedAddress_  = nullptr;
-    std::atomic<void*>           jitEntryAddress_     = nullptr;
-    std::atomic<bool>            codeGenJobScheduled_ = false;
-    bool                         usesGvtd_            = false;
-    bool                         genericRoot_         = false;
-    bool                         genericInstance_     = false;
-    SymbolFunction*              genericRootSym_      = nullptr;
-    SymbolImpl*                  genericDeclImpl_     = nullptr;
-    SymbolInterface*             genericDeclInterface_ = nullptr;
+    mutable std::mutex                closureAdapterMutex_;
+    SymbolFunction*                   closureAdapter_ = nullptr;
+    std::mutex                        emitMutex_;
+    JITMemory                         jitExecMemory_;
+    std::atomic<void*>                jitPreparedAddress_   = nullptr;
+    std::atomic<void*>                jitEntryAddress_      = nullptr;
+    std::atomic<bool>                 codeGenJobScheduled_  = false;
+    bool                              usesGvtd_             = false;
+    bool                              genericRoot_          = false;
+    bool                              genericInstance_      = false;
+    SymbolFunction*                   genericRootSym_       = nullptr;
+    SymbolImpl*                       genericDeclImpl_      = nullptr;
+    SymbolInterface*                  genericDeclInterface_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

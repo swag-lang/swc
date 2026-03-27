@@ -74,6 +74,77 @@ func nestedBlock(seed: s32, stmt: #code void)
     }
 }
 
+#[Swag.Macro]
+func singleAlias(value: s32, stmt: #code void)
+{
+    #macro
+    {
+        let #alias0 = #up value * 3
+        #inject(#up stmt)
+    }
+}
+
+#[Swag.Macro]
+func pairAlias(a: s32, b: s32, stmt: #code void)
+{
+    #macro
+    {
+        let #alias0 = #up a + #up b
+        let #alias1 = #up a * #up b
+        #inject(#up stmt)
+    }
+}
+
+#[Swag.Macro]
+func aliasWithUpVar(offset: s32, stmt: #code void)
+{
+    var local = offset + 100
+    #macro
+    {
+        let #alias0 = #up local
+        #inject(#up stmt)
+    }
+}
+
+#[Swag.Macro]
+func repeatWithAlias(count: s32, stmt: #code void)
+{
+    var i = 0
+    while i < count
+    {
+        #macro
+        {
+            let #alias0 = #up i
+            #inject(#up stmt)
+        }
+        i += 1
+    }
+}
+
+#[Swag.Macro]
+func nestedBlockAlias(seed: s32, stmt: #code void)
+{
+    #macro
+    {
+        {
+            let #alias0 = #up seed + 1
+            let #alias1 = #up seed * 2
+            #inject(#up stmt)
+        }
+    }
+}
+
+#[Swag.Macro]
+func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
+{
+    #macro
+    {
+        let #alias0 = #up cfg.delta
+        let #alias1 = #up cfg.delta * 2
+        #inject(#up stmt)
+    }
+}
+
 #test
 {
     var a = 1
@@ -141,4 +212,75 @@ func nestedBlock(seed: s32, stmt: #code void)
     }
 
     @assert(result == 42)
+}
+
+// --- Alias tests ---
+
+#test
+{
+    var result = 0
+    singleAlias(|tripled| 14)
+    {
+        result = tripled
+    }
+
+    @assert(result == 42)
+}
+
+#test
+{
+    var result = 0
+    pairAlias(|sum, product| 3, 7)
+    {
+        result = sum + product
+    }
+
+    @assert(result == 10 + 21)
+}
+
+#test
+{
+    var result = 0
+    aliasWithUpVar(|val| 5)
+    {
+        result = val
+    }
+
+    @assert(result == 105)
+}
+
+#test
+{
+    var sum = 0
+    repeatWithAlias(|idx| 4)
+    {
+        sum += idx
+    }
+
+    @assert(sum == 6)
+}
+
+#test
+{
+    var result = 0
+    nestedBlockAlias(|inc, doubled| 20)
+    {
+        result = inc + doubled
+    }
+
+    @assert(result == 21 + 40)
+}
+
+#test
+{
+    var cfg: MacroScopeConfig
+    cfg.delta = 5
+
+    var result = 0
+    aliasWithConfig(|single, doubled| cfg)
+    {
+        result = single + doubled
+    }
+
+    @assert(result == 5 + 10)
 }

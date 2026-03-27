@@ -8,33 +8,32 @@ const DigitCount = 9
 
 const SampleInputA =
 """1abc2
-pqr3stu8vwx
-a1b2c3d4e5f
-treb7uchet"""
+   pqr3stu8vwx
+   a1b2c3d4e5f
+   treb7uchet"""
 
 const SampleInputB =
 """two1nine
-eightwothree
-abcone2threexyz
-xtwone3four
-4nineeightseven2
-zoneight234
-7pqrstsixteen"""
+   eightwothree
+   abcone2threexyz
+   xtwone3four
+   4nineeightseven2
+   zoneight234
+   7pqrstsixteen"""
 
 const EdgeOverlap  = "eightwo"
 const EdgeAllWords = "onetwothreefourfivesixseveneightnine"
 const EdgeEmpty    = "abcxyz"
 const EdgeSingle   = "7"
 
-const CoverageInput =
-"""abc1def
-2ghi3
-fourjkl
-fiveight
-sevenine
-twone
-nineight1twothree
-oneone"""
+const CoverageInput = """abc1def
+                         2ghi3
+                         fourjkl
+                         fiveight
+                         sevenine
+                         twone
+                         nineight1twothree
+                         oneone"""
 
 struct CalibrationResult
 {

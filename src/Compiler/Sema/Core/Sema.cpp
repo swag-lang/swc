@@ -90,9 +90,28 @@ Sema::Sema(TaskContext& ctx, Sema& parent, AstNodeRef root) :
             scopes_.back()->setParent(nullptr);
     }
 
+    const auto remapScope = [&](const SemaScope* oldScope) -> SemaScope* {
+        if (!oldScope)
+            return nullptr;
+
+        for (size_t i = 0; i < parent.scopes_.size(); ++i)
+        {
+            if (parent.scopes_[i].get() == oldScope)
+                return scopes_[i].get();
+        }
+
+        return nullptr;
+    };
+
+    for (size_t i = 0; i < parent.scopes_.size(); ++i)
+        scopes_[i]->setLookupParent(remapScope(parent.scopes_[i]->lookupParent()));
+
     curScope_ = scopes_.empty() ? nullptr : scopes_.back().get();
     if (curScope_ && curScope_->isTopLevel())
         curScope_->setSymMap(startSymMap_);
+
+    frame().setLookupScope(remapScope(parent.frame().lookupScope()));
+    frame().setUpLookupScope(remapScope(parent.frame().upLookupScope()));
 }
 
 Sema::~Sema() = default;

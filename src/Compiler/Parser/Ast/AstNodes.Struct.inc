@@ -34,6 +34,7 @@ enum class AstEmbeddedBlockFlagsE : AstNode::ParserFlags
 {
     Zero                 = 0,
     ImplicitCodeBlockArg = 1 << 0,
+    CompilerMacroBody    = 1 << 1,
 };
 
 struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock, AstEmbeddedBlockFlagsE>
@@ -446,6 +447,7 @@ struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
     AstNodeRef nodeIdentRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeValueRef, nodeIdentRef}); }
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1606,6 +1608,8 @@ struct AstCompilerMacro : AstNodeT<AstNodeId::CompilerMacro>
     AstNodeRef nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    static Result semaPreNode(Sema& sema);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

@@ -305,7 +305,7 @@ IdentifierRef SemaHelpers::resolveUniqIdentifier(Sema& sema, const TokenId token
     SWC_ASSERT(Token::isCompilerUniq(tokenId));
 
     const uint32_t slot = uniqSlotIndex(tokenId);
-    for (const SemaScope* scope = &sema.curScope(); scope; scope = scope->parent())
+    for (const SemaScope* scope = sema.lookupScope(); scope; scope = scope->lookupParent())
     {
         const IdentifierRef idRef = scope->uniqIdentifier(slot);
         if (idRef.isValid())

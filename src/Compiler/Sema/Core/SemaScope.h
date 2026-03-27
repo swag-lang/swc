@@ -35,12 +35,15 @@ public:
 
     SemaScope(SemaScopeFlags flags, SemaScope* parent) :
         parent_(parent),
+        lookupParent_(parent),
         flags_(flags)
     {
     }
 
     SemaScope* parent() const { return parent_; }
     void       setParent(SemaScope* parent) { parent_ = parent; }
+    SemaScope* lookupParent() const { return lookupParent_ ? lookupParent_ : parent_; }
+    void       setLookupParent(SemaScope* parent) { lookupParent_ = parent; }
 
     SemaScopeFlags flags() const { return flags_; }
     bool           hasFlag(SemaScopeFlags flag) const { return flags_.has(flag); }
@@ -83,6 +86,7 @@ public:
 
 private:
     SemaScope*                            parent_ = nullptr;
+    SemaScope*                            lookupParent_ = nullptr;
     SemaScopeFlags                        flags_  = SemaScopeFlagsE::Zero;
     SymbolMap*                            symMap_ = nullptr;
     SmallVector<SymbolMap*>               usingSymMaps_;

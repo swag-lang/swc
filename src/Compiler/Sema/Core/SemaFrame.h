@@ -7,6 +7,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolEnum;
+class SemaScope;
 struct SemaInlinePayload;
 
 struct SemaCompilerIf
@@ -71,6 +72,12 @@ public:
     void                     removeContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.remove(flag); }
     const SemaInlinePayload* currentInlinePayload() const { return inlinePayload_; }
     void                     setCurrentInlinePayload(const SemaInlinePayload* payload) { inlinePayload_ = payload; }
+    SemaScope*               lookupScope() const { return lookupScope_; }
+    void                     setLookupScope(SemaScope* scope) { lookupScope_ = scope; }
+    SemaScope*               upLookupScope() const { return upLookupScope_; }
+    void                     setUpLookupScope(SemaScope* scope) { upLookupScope_ = scope; }
+    bool                     ignoreRuntimeAccess() const { return ignoreRuntimeAccess_; }
+    void                     setIgnoreRuntimeAccess(bool value) { ignoreRuntimeAccess_ = value; }
 
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
@@ -108,6 +115,9 @@ private:
     SymbolFunction*               function_      = nullptr;
     SemaFrameContextFlags         contextFlags_  = SemaFrameContextFlagsE::Zero;
     const SemaInlinePayload*      inlinePayload_ = nullptr;
+    SemaScope*                    lookupScope_   = nullptr;
+    SemaScope*                    upLookupScope_ = nullptr;
+    bool                          ignoreRuntimeAccess_ = false;
     BreakContext                  breakable_;
     AstNodeRef                    currentSwitch_         = AstNodeRef::invalid();
     AstNodeRef                    currentSwitchCase_     = AstNodeRef::invalid();

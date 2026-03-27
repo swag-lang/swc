@@ -15,6 +15,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool containsInlineBindingUse(Sema& sema, AstNodeRef nodeRef, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        if (nodeRef.isInvalid() || bindings.empty())
+            return false;
+
+        const AstNode& node = sema.node(nodeRef);
+        if (const auto* ident = node.safeCast<AstIdentifier>())
+        {
+            const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+            for (const SemaClone::ParamBinding& binding : bindings)
+            {
+                if (binding.idRef == idRef)
+                    return true;
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (containsInlineBindingUse(sema, childRef, bindings))
+                return true;
+        }
+
+        return false;
+    }
+
     TypeRef unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
     {
         while (typeRef.isValid())
@@ -97,6 +124,43 @@ namespace
         return true;
     }
 
+}
+
+Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
+{
+    if (nodeValueRef.isValid() || nodeIdentRef.isInvalid())
+        return Result::Continue;
+
+    AstNodeRef targetRef = nodeIdentRef;
+    if (const auto* inlinePayload = sema.frame().currentInlinePayload();
+        inlinePayload &&
+        containsInlineBindingUse(sema, nodeIdentRef, inlinePayload->argMappings.span()))
+    {
+        const SemaClone::CloneContext cloneContext{inlinePayload->argMappings.span()};
+        targetRef = SemaClone::cloneAst(sema, nodeIdentRef, cloneContext);
+        if (targetRef.isInvalid())
+            return Result::Error;
+    }
+
+    SemaScope* lookupScope = sema.upLookupScope();
+    if (!lookupScope)
+    {
+        const SemaScope* baseScope = sema.lookupScope();
+        lookupScope                = baseScope ? baseScope->lookupParent() : nullptr;
+    }
+
+    if (lookupScope)
+    {
+        auto frame = sema.frame();
+        frame.setLookupScope(lookupScope);
+        frame.setUpLookupScope(lookupScope->lookupParent());
+        frame.setIgnoreRuntimeAccess(true);
+        sema.pushFramePopOnPostNode(frame, targetRef);
+    }
+
+    sema.setSubstitute(sema.curNodeRef(), targetRef);
+    sema.visit().restartCurrentNode(targetRef);
+    return Result::Continue;
 }
 
 Result AstIdentifier::semaPostNode(Sema& sema) const

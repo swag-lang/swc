@@ -120,7 +120,7 @@ namespace
         uint16_t scopeDepth = 0;
 
         // Walk lexical scopes from innermost to outermost.
-        const SemaScope* scope = &sema.curScope();
+        const SemaScope* scope = sema.lookupScope();
         while (scope)
         {
             if (const SymbolMap* symMap = scope->symMap())
@@ -148,7 +148,7 @@ namespace
                 addSymMap(lookUpCxt, usingSymMap, priority);
             }
 
-            scope = scope->parent();
+            scope = scope->lookupParent();
             ++scopeDepth;
         }
 

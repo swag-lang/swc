@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 AstNodeRef Parser::parseIdentifierType()
 {
     const TokenRef   tokRef = ref();
-    const AstNodeRef idRef  = parseQualifiedIdentifier();
+    const AstNodeRef idRef  = is(TokenId::CompilerUp) ? parseCompilerUp() : parseQualifiedIdentifier();
 
     if (!hasContextFlag(ParserContextFlagsE::InVarDeclType) && is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(idRef);
@@ -39,6 +39,7 @@ AstNodeRef Parser::parseSingleType()
     switch (id())
     {
         case TokenId::Identifier:
+        case TokenId::CompilerUp:
             return parseIdentifierType();
 
         case TokenId::KwdStruct:

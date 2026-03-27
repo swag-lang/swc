@@ -69,8 +69,14 @@ public:
     SemaFrame&                 frame() { return frames_.back(); }
     const SemaFrame&           frame() const { return frames_.back(); }
     std::span<const SemaFrame> frames() const { return frames_; }
+    SemaScope*                 curScopePtr() { return curScope_; }
+    const SemaScope*           curScopePtr() const { return curScope_; }
     SemaScope&                 curScope() { return *(curScope_); }
     const SemaScope&           curScope() const { return *(curScope_); }
+    SemaScope*                 lookupScope() { return frame().lookupScope() ? frame().lookupScope() : curScope_; }
+    const SemaScope*           lookupScope() const { return frame().lookupScope() ? frame().lookupScope() : curScope_; }
+    SemaScope*                 upLookupScope() { return frame().upLookupScope(); }
+    const SemaScope*           upLookupScope() const { return frame().upLookupScope(); }
     AstVisit&                  visit() { return visit_; }
     const AstVisit&            visit() const { return visit_; }
     AstNodeRef                 curNodeRef() const { return visit_.currentNodeRef(); }

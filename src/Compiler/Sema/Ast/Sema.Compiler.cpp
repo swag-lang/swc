@@ -29,6 +29,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isMacroFunction(const SymbolFunction* function)
+    {
+        return function && function->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+    }
+
+    bool isMacroInlineContext(const Sema& sema)
+    {
+        return isMacroFunction(sema.frame().currentInlinePayload() ? sema.frame().currentInlinePayload()->sourceFunction : nullptr);
+    }
+
     bool isDirectFunctionParameterDefault(const Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -978,6 +988,42 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
     if (tok.id == TokenId::CompilerForeignLib || tok.id == TokenId::CompilerInclude)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
 
+    return Result::Continue;
+}
+
+Result AstCompilerMacro::semaPreNode(Sema& sema)
+{
+    if (isMacroInlineContext(sema))
+        return Result::Continue;
+
+    if (isMacroFunction(sema.currentFunction()))
+        return Result::Continue;
+
+    return SemaError::raise(sema, DiagnosticId::sema_err_macro_requires_macro_fn, sema.curNodeRef());
+}
+
+Result AstCompilerMacro::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    if (!isMacroInlineContext(sema))
+        return Result::SkipChildren;
+
+    auto& bodyNode = sema.node(childRef).cast<AstEmbeddedBlock>();
+    bodyNode.addFlag(AstEmbeddedBlockFlagsE::CompilerMacroBody);
+
+    auto* hiddenScope = sema.curScopePtr();
+    auto* callerScope = sema.upLookupScope();
+    if (!callerScope && hiddenScope)
+        callerScope = hiddenScope->lookupParent();
+
+    auto* macroScope = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+    macroScope->setLookupParent(callerScope);
+
+    auto frame = sema.frame();
+    frame.setUpLookupScope(hiddenScope);
+    sema.pushFramePopOnPostChild(frame, childRef);
     return Result::Continue;
 }
 

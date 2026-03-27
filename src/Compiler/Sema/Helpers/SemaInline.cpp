@@ -882,12 +882,15 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->returnTypeRef    = returnTypeRef;
     inlinePayload->aliasIdentifiers = aliasIdentifiers;
     for (const SemaClone::ParamBinding& binding : bindings)
-        inlinePayload->argMappings.push_back({binding.idRef, binding.exprRef});
+        inlinePayload->argMappings.push_back(binding);
 
     auto frame = sema.frame();
+    SemaScope* callerScope = sema.curScopePtr();
     if (returnTypeRef != sema.typeMgr().typeVoid())
         frame.pushBindingType(returnTypeRef);
     frame.setCurrentInlinePayload(inlinePayload);
+    if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro))
+        frame.setUpLookupScope(callerScope);
     sema.pushFramePopOnPostNode(frame, inlineRootRef);
     if (!isMixin)
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);

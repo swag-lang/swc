@@ -231,7 +231,7 @@ namespace
             bindingVars.push_back(symVar);
         for (const TypeRef hintType : frame.bindingTypes())
             bindingTypes.push_back(hintType);
-        for (const SemaScope* scope = &sema.curScope(); scope; scope = scope->parent())
+        for (const SemaScope* scope = sema.lookupScope(); scope; scope = scope->lookupParent())
         {
             for (const auto& binding : scope->autoMemberBindings())
                 autoMemberBindings.push_back(binding);

@@ -140,6 +140,8 @@ namespace SemaRuntime
 
     inline bool isRuntimeArtifactContext(const Sema& sema)
     {
+        if (sema.frame().ignoreRuntimeAccess())
+            return false;
         if (sema.isRunExprContext())
             return false;
         if (sema.isConstExprRequired())

@@ -10,6 +10,8 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
 class SymbolStruct;
+class SymbolImpl;
+class SymbolInterface;
 class TaskContext;
 
 enum class SymbolFunctionFlagsE : uint8_t
@@ -29,6 +31,17 @@ using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 class SymbolFunction : public SymbolMapT<SymbolKind::Function, SymbolFunctionFlagsE>
 {
 public:
+    struct GenericArgKey
+    {
+        TypeRef     typeRef = TypeRef::invalid();
+        ConstantRef cstRef  = ConstantRef::invalid();
+
+        bool operator==(const GenericArgKey& other) const noexcept
+        {
+            return typeRef == other.typeRef && cstRef == other.cstRef;
+        }
+    };
+
     static constexpr auto K = SymbolKind::Function;
 
     explicit SymbolFunction(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
@@ -102,7 +115,33 @@ public:
     void                jit(TaskContext& ctx);
     const MachineCode&  loweredCode() const noexcept { return loweredMicroCode_; }
 
+    bool             isGenericRoot() const noexcept { return genericRoot_; }
+    void             setGenericRoot(bool value) noexcept { genericRoot_ = value; }
+    bool             isGenericInstance() const noexcept { return genericInstance_; }
+    void             setGenericInstance(SymbolFunction* root) noexcept
+    {
+        genericInstance_ = root != nullptr;
+        genericRootSym_  = root;
+    }
+    SymbolFunction*       genericRootSym() noexcept { return genericRootSym_; }
+    const SymbolFunction* genericRootSym() const noexcept { return genericRootSym_; }
+    void                  setGenericDeclContext(SymbolImpl* impl, SymbolInterface* itf) noexcept
+    {
+        genericDeclImpl_      = impl;
+        genericDeclInterface_ = itf;
+    }
+    SymbolImpl*              genericDeclImpl() const noexcept { return genericDeclImpl_; }
+    SymbolInterface*         genericDeclInterface() const noexcept { return genericDeclInterface_; }
+    SymbolFunction*          findGenericInstance(std::span<const GenericArgKey> args) const;
+    void                     addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance);
+
 private:
+    struct GenericInstanceEntry
+    {
+        std::vector<GenericArgKey> args;
+        SymbolFunction*            function = nullptr;
+    };
+
     bool hasLoweredCode() const noexcept;
     bool hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
     bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
@@ -129,6 +168,8 @@ private:
     MachineCode                  loweredMicroCode_;
     mutable std::mutex           callDepsMutex_;
     std::vector<SymbolFunction*> callDependencies_;
+    mutable std::mutex           genericMutex_;
+    std::vector<GenericInstanceEntry> genericInstances_;
     mutable std::mutex           closureAdapterMutex_;
     SymbolFunction*              closureAdapter_ = nullptr;
     std::mutex                   emitMutex_;
@@ -137,6 +178,11 @@ private:
     std::atomic<void*>           jitEntryAddress_     = nullptr;
     std::atomic<bool>            codeGenJobScheduled_ = false;
     bool                         usesGvtd_            = false;
+    bool                         genericRoot_         = false;
+    bool                         genericInstance_     = false;
+    SymbolFunction*              genericRootSym_      = nullptr;
+    SymbolImpl*                  genericDeclImpl_     = nullptr;
+    SymbolInterface*             genericDeclInterface_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

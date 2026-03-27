@@ -9,6 +9,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class SymbolStruct;
 
 namespace SemaHelpers
 {
@@ -48,6 +49,9 @@ namespace SemaHelpers
     void                  handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
     bool                  resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggregateType, IdentifierRef idRef, size_t& outIndex);
     Result                resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMemberAccessExpr& node, bool allowOverloadSet);
+    Result                instantiateGenericFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outInstances);
+    Result                instantiateGenericFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance);
+    Result                instantiateGenericStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance);
 
     template<typename T>
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)

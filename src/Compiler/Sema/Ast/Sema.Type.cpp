@@ -288,7 +288,14 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 Result AstNamedType::semaPostNode(Sema& sema)
 {
     SemaNodeView view = sema.viewNodeTypeSymbol(nodeIdentRef);
-    SWC_ASSERT(view.sym());
+    if (!view.sym())
+    {
+        if (!view.typeRef().isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeIdentRef);
+
+        sema.setType(sema.curNodeRef(), view.typeRef());
+        return Result::Continue;
+    }
 
     // If we matched against the interface implementation block in a struct,
     // then we replace it with the corresponding interface type

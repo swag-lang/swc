@@ -210,6 +210,10 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     for (const Symbol* other : lookUpCxt.symbols())
     {
         SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
+        if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
+            continue;
+        if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
+            continue;
         SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
     }
 

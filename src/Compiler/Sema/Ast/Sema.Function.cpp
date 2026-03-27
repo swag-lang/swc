@@ -125,6 +125,8 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
     sym.setExtraFlags(flags());
     sym.setDeclNodeRef(sema.curNodeRef());
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
+    sym.setGenericRoot(spanGenericParamsRef.isValid());
+    sym.setGenericDeclContext(sema.frame().currentImpl(), sema.frame().currentInterface());
     if (nodeBodyRef.isInvalid())
         sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
 
@@ -142,6 +144,12 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         const SourceView& srcView   = sema.srcView(srcViewRef());
         const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
         return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, SourceCodeRef{srcViewRef(), mtdTokRef});
+    }
+
+    if (sym.isGenericRoot() && !sym.isGenericInstance())
+    {
+        sym.setSemaCompleted(sema.ctx());
+        return Result::SkipChildren;
     }
 
     SemaFrame frame           = sema.frame();
@@ -1314,6 +1322,10 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
                 sym.setReturnTypeRef(sema.viewType(nodeReturnTypeRef).typeRef());
                 setIsTyped = true;
             }
+            else if (childRef == nodeBodyRef)
+            {
+                SWC_RESULT(validateReturnStatementValue(sema, nodeBodyRef, nodeBodyRef, sym.returnTypeRef()));
+            }
         }
         else if (childRef == nodeBodyRef)
         {
@@ -1347,7 +1359,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
         SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));
         SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
-        if (!sym.isEmpty())
+        if (!sym.isEmpty() && !sym.isGenericInstance())
             SWC_RESULT(Match::ghosting(sema, sym));
 
         registerRuntimeFunctionSymbol(sema, sym);
@@ -1378,6 +1390,9 @@ Result AstClosureExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    if (sym.isGenericRoot() && !sym.isGenericInstance())
+        return Result::Continue;
+
     if (sym.isForeign() && !sym.isEmpty())
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
 

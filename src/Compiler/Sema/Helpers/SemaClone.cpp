@@ -197,6 +197,15 @@ namespace
                 return newRef;
             }
 
+            if (binding->exprRef.isInvalid() && binding->typeRef.isValid())
+            {
+                auto [newRef, newNodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
+                newNodePtr->flags()       = node.flags();
+                newNodePtr->setCodeRef(node.codeRef());
+                sema.setType(newRef, binding->typeRef);
+                return newRef;
+            }
+
             const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
             const AstNodeRef              clonedExprRef = SemaClone::cloneAst(sema, binding->exprRef, noBindings);
             if (!binding->typeRef.isValid())
@@ -256,6 +265,26 @@ AstNodeRef AstFunctionBody::semaClone(Sema& sema, const CloneContext& cloneConte
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::FunctionBody>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstFunctionBody>();
+    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstFunctionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::FunctionDecl>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstFunctionDecl>();
+    cloned.spanGenericParamsRef = SpanRef::invalid();
+    cloned.nodeParamsRef        = cloneNodeRef(sema, nodeParamsRef, cloneContextAsInline(cloneContext));
+    cloned.nodeReturnTypeRef    = cloneNodeRef(sema, nodeReturnTypeRef, cloneContextAsInline(cloneContext));
+    cloned.spanConstraintsRef   = SpanRef::invalid();
+    cloned.nodeBodyRef          = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstFunctionParamList::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::FunctionParamList>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstFunctionParamList>();
     cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -840,6 +869,87 @@ AstNodeRef AstMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneC
     return newRef;
 }
 
+AstNodeRef AstQualifiedType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::QualifiedType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstQualifiedType>();
+    cloned.nodeTypeRef      = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstReferenceType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ReferenceType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstReferenceType>();
+    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstMoveRefType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::MoveRefType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstMoveRefType>();
+    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstValuePointerType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ValuePointerType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstValuePointerType>();
+    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstBlockPointerType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::BlockPointerType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstBlockPointerType>();
+    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstSliceType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::SliceType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstSliceType>();
+    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstArrayType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ArrayType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstArrayType>();
+    cloned.spanDimensionsRef = cloneSpan(sema, spanDimensionsRef, cloneContextAsInline(cloneContext));
+    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstNamedType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::NamedType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstNamedType>();
+    cloned.nodeIdentRef     = cloneNodeRef(sema, nodeIdentRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstTypedVariadicType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::TypedVariadicType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstTypedVariadicType>();
+    cloned.nodeTypeRef      = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstCodeType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CodeType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstCodeType>();
+    cloned.nodeTypeRef      = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstQuotedExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::QuotedExpr>(tokRef());
@@ -910,6 +1020,24 @@ AstNodeRef AstStructLiteral::semaClone(Sema& sema, const CloneContext& cloneCont
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::StructLiteral>(tokRef());
     newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::StructDecl>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstStructDecl>();
+    cloned.spanGenericParamsRef = SpanRef::invalid();
+    cloned.spanWhereRef         = SpanRef::invalid();
+    cloned.nodeBodyRef          = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstAggregateBody::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::AggregateBody>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstAggregateBody>();
+    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

@@ -91,6 +91,8 @@ namespace
 Result AstStructDecl::semaPreDecl(Sema& sema) const
 {
     auto& sym = SemaHelpers::registerSymbol<SymbolStruct>(sema, *this, tokNameRef);
+    sym.setDeclNodeRef(sema.curNodeRef());
+    sym.setGenericRoot(spanGenericParamsRef.isValid());
 
     // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()) && sema.typeMgr().isTypeInfoRuntimeStruct(sym.idRef()))
@@ -103,8 +105,14 @@ Result AstStructDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curViewSymbol().sym();
-    return Match::ghosting(sema, sym);
+    const auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    SWC_RESULT(Match::ghosting(sema, sym));
+    if (sym.isGenericRoot() && !sym.isGenericInstance())
+    {
+        sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
+        return Result::SkipChildren;
+    }
+    return Result::Continue;
 }
 
 Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -130,6 +138,8 @@ Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 Result AstStructDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    if (sym.isGenericRoot() && !sym.isGenericInstance())
+        return Result::Continue;
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.

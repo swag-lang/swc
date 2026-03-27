@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
@@ -124,6 +125,99 @@ namespace
         return true;
     }
 
+    void collectQuotedGenericArgs(Sema& sema, const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
+    {
+        outArgs.clear();
+        if (node.nodeSuffixRef.isValid())
+            outArgs.push_back(node.nodeSuffixRef);
+    }
+
+    void collectQuotedGenericArgs(Sema& sema, const AstQuotedListExpr& node, SmallVector<AstNodeRef>& outArgs)
+    {
+        outArgs.clear();
+        sema.ast().appendNodes(outArgs, node.spanChildrenRef);
+    }
+
+    template<typename TQuotedNode>
+    Result semaQuotedGenericCommon(Sema& sema, const TQuotedNode& node)
+    {
+        SmallVector<AstNodeRef> genericArgs;
+        collectQuotedGenericArgs(sema, node, genericArgs);
+
+        SmallVector<Symbol*> baseSymbols;
+        sema.viewNodeSymbolList(node.nodeExprRef).getSymbols(baseSymbols);
+
+        SmallVector<Symbol*> specializedFunctions;
+        SymbolStruct*        specializedStruct = nullptr;
+        bool                 sawFunction       = false;
+        bool                 sawStruct         = false;
+
+        for (Symbol* baseSym : baseSymbols)
+        {
+            if (!baseSym)
+                continue;
+
+            if (baseSym->isFunction())
+            {
+                sawFunction = true;
+                auto& fn    = baseSym->cast<SymbolFunction>();
+
+                SmallVector<Symbol*> instances;
+                SWC_RESULT(SemaHelpers::instantiateGenericFunctionExplicit(sema, fn, genericArgs.span(), instances));
+                for (Symbol* instance : instances)
+                    specializedFunctions.push_back(instance);
+            }
+            else if (baseSym->isStruct())
+            {
+                sawStruct = true;
+                auto& st  = baseSym->cast<SymbolStruct>();
+                if (!st.isGenericRoot())
+                    continue;
+
+                SymbolStruct* instance = nullptr;
+                SWC_RESULT(SemaHelpers::instantiateGenericStructExplicit(sema, st, genericArgs.span(), instance));
+                if (instance)
+                {
+                    if (specializedStruct && specializedStruct != instance)
+                    {
+                        SmallVector<const Symbol*> ambiguous;
+                        ambiguous.push_back(specializedStruct);
+                        ambiguous.push_back(instance);
+                        return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), ambiguous.span());
+                    }
+                    specializedStruct = instance;
+                }
+            }
+        }
+
+        if (!specializedFunctions.empty())
+        {
+            if (specializedFunctions.size() == 1)
+            {
+                sema.setSymbol(sema.curNodeRef(), specializedFunctions.front());
+            }
+            else
+            {
+                sema.setSymbolList(sema.curNodeRef(), specializedFunctions.span());
+            }
+
+            return Result::Continue;
+        }
+
+        if (specializedStruct)
+        {
+            sema.setSymbol(sema.curNodeRef(), specializedStruct);
+            return Result::Continue;
+        }
+
+        if (sawStruct)
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_type, sema.curNodeRef());
+        if (sawFunction)
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_callable, sema.curNodeRef());
+
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_type, sema.curNodeRef());
+    }
+
 }
 
 Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
@@ -165,6 +259,13 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (view.cstRef().isValid())
         return Result::Continue;
 
+    if (sema.curViewType().typeRef().isValid())
+    {
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::NamedType))
+            return Result::Continue;
+    }
+
     const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());
 
     // Parser tags the callee expression when building a call: `foo()`.
@@ -182,6 +283,16 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (const Symbol* sym = sema.curViewSymbol().sym(); sym && requiresExplicitClosureCapture(sema, *sym))
         return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_missing, sema.curNodeRef());
     return Result::Continue;
+}
+
+Result AstQuotedExpr::semaPostNode(Sema& sema) const
+{
+    return semaQuotedGenericCommon(sema, *this);
+}
+
+Result AstQuotedListExpr::semaPostNode(Sema& sema) const
+{
+    return semaQuotedGenericCommon(sema, *this);
 }
 
 SWC_END_NAMESPACE();

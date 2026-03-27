@@ -498,7 +498,7 @@ namespace
             const Attempt& a = *(sa.a);
 
             diag.addNote(DiagnosticId::sema_note_overload_candidate_failed);
-            diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->type(ctx).toName(ctx));
+            diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->isTyped() ? a.fn->type(ctx).toName(ctx) : Utf8{a.fn->name(ctx)});
             fillMatchDiagnostic(sema, diag.last(), diag, *a.fn, a.fail, args, ufcsArg, true);
         }
 
@@ -856,6 +856,50 @@ namespace
 
             Attempt a;
             a.fn = fn;
+
+            if (fn->isGenericRoot())
+            {
+                MatchFailure    fail;
+                Candidate       candidate;
+                SymbolFunction* concreteFn = nullptr;
+
+                SWC_RESULT(SemaHelpers::instantiateGenericFunctionFromCall(sema, *fn, args, AstNodeRef::invalid(), concreteFn));
+                if (concreteFn)
+                {
+                    SWC_RESULT(tryBuildCandidate(sema, *concreteFn, args, AstNodeRef::invalid(), candidate, fail));
+                    if (candidate.viable)
+                    {
+                        a.viable    = true;
+                        a.candidate = std::move(candidate);
+                    }
+                }
+
+                if (!a.viable && ufcsArg.isValid())
+                {
+                    concreteFn = nullptr;
+                    candidate  = {};
+                    fail       = {};
+                    SWC_RESULT(SemaHelpers::instantiateGenericFunctionFromCall(sema, *fn, args, ufcsArg, concreteFn));
+                    if (concreteFn)
+                    {
+                        SWC_RESULT(tryBuildCandidate(sema, *concreteFn, args, ufcsArg, candidate, fail));
+                        if (candidate.viable)
+                        {
+                            a.viable    = true;
+                            a.candidate = std::move(candidate);
+                        }
+                    }
+                }
+
+                if (!a.viable)
+                {
+                    a.fail.kind = MatchFailKind::InvalidArgumentType;
+                    a.fail.hasLocation = false;
+                }
+
+                outAttempts.push_back(std::move(a));
+                continue;
+            }
 
             MatchFailure fail;
             Candidate    candidate;

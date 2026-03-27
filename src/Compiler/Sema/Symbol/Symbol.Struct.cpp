@@ -182,6 +182,12 @@ Result SymbolStruct::registerSpecOps(Sema& sema) const
     return Result::Continue;
 }
 
+void SymbolStruct::addField(SymbolVariable* sym)
+{
+    SWC_ASSERT(sym != nullptr);
+    fields_.push_back(sym);
+}
+
 Result SymbolStruct::computeLayout(TaskContext& ctx)
 {
     sizeInBytes_ = 0;
@@ -252,6 +258,54 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
     }
 
     return Result::Continue;
+}
+
+void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
+{
+    genericInstance_ = root != nullptr;
+    genericRootSym_  = root;
+}
+
+SymbolStruct* SymbolStruct::findGenericInstance(std::span<const GenericArgKey> args) const
+{
+    const std::scoped_lock lock(genericMutex_);
+    for (const auto& entry : genericInstances_)
+    {
+        if (entry.args.size() != args.size())
+            continue;
+
+        bool same = true;
+        for (size_t i = 0; i < args.size(); ++i)
+        {
+            if (!(entry.args[i] == args[i]))
+            {
+                same = false;
+                break;
+            }
+        }
+
+        if (same)
+            return entry.symbol;
+    }
+
+    return nullptr;
+}
+
+void SymbolStruct::addGenericInstance(std::span<const GenericArgKey> args, SymbolStruct* instance)
+{
+    SWC_ASSERT(instance != nullptr);
+
+    const std::scoped_lock lock(genericMutex_);
+    for (const auto& entry : genericInstances_)
+    {
+        if (entry.symbol == instance)
+            return;
+    }
+
+    GenericInstanceEntry entry;
+    entry.symbol = instance;
+    entry.args.assign(args.begin(), args.end());
+    genericInstances_.push_back(std::move(entry));
 }
 
 SWC_END_NAMESPACE();

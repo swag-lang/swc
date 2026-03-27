@@ -516,6 +516,48 @@ Result SymbolFunction::emit(TaskContext& ctx)
     return Result::Continue;
 }
 
+SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericArgKey> args) const
+{
+    const std::scoped_lock lock(genericMutex_);
+    for (const auto& entry : genericInstances_)
+    {
+        if (entry.args.size() != args.size())
+            continue;
+
+        bool same = true;
+        for (size_t i = 0; i < args.size(); ++i)
+        {
+            if (!(entry.args[i] == args[i]))
+            {
+                same = false;
+                break;
+            }
+        }
+
+        if (same)
+            return entry.function;
+    }
+
+    return nullptr;
+}
+
+void SymbolFunction::addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance)
+{
+    SWC_ASSERT(instance != nullptr);
+
+    const std::scoped_lock lock(genericMutex_);
+    for (const auto& entry : genericInstances_)
+    {
+        if (entry.function == instance)
+            return;
+    }
+
+    GenericInstanceEntry entry;
+    entry.function = instance;
+    entry.args.assign(args.begin(), args.end());
+    genericInstances_.push_back(std::move(entry));
+}
+
 bool SymbolFunction::hasLoweredCode() const noexcept
 {
     return !loweredMicroCode_.bytes.empty();

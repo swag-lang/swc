@@ -15,6 +15,8 @@ SWC_BEGIN_NAMESPACE();
 struct CastRequest;
 class SymbolNamespace;
 class SymbolFunction;
+class SymbolImpl;
+class SymbolInterface;
 class MatchContext;
 class IdentifierManager;
 
@@ -213,6 +215,7 @@ public:
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
+    void        prepareGenericInstantiationContext(SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs);
 
 private:
     friend struct SemaNodeView;

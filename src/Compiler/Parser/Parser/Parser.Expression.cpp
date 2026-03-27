@@ -5,6 +5,28 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void markCallCalleeNode(Ast& ast, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        AstNode& calleeNode = ast.node(nodeRef);
+        switch (calleeNode.id())
+        {
+            case AstNodeId::Identifier:
+                calleeNode.cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::CallCallee);
+                break;
+            case AstNodeId::MemberAccessExpr:
+                calleeNode.cast<AstMemberAccessExpr>().addFlag(AstMemberAccessExprFlagsE::CallCallee);
+                break;
+            case AstNodeId::AutoMemberAccessExpr:
+                calleeNode.cast<AstAutoMemberAccessExpr>().addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
+                break;
+            default:
+                break;
+        }
+    }
+
     bool canStartSubType(TokenId id)
     {
         if (Token::isType(id))
@@ -450,6 +472,7 @@ AstNodeRef Parser::parseQuotedIdentifier()
     if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
     {
         const TokenRef tokQuote = consume();
+        markCallCalleeNode(*ast_, idRef);
 
         if (is(TokenId::SymLeftParen))
         {
@@ -602,6 +625,7 @@ AstNodeRef Parser::parsePostFixExpression()
         if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
             const TokenRef tokQuote = consume();
+            markCallCalleeNode(*ast_, nodeRef);
 
             if (is(TokenId::SymLeftParen))
             {

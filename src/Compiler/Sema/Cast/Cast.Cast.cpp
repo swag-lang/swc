@@ -546,6 +546,22 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
+        if (castRequest.isConstantFolding())
+        {
+            const uint64_t valueSize = srcType.sizeOf(sema.ctx());
+            uint64_t       ptr       = 0;
+            if (valueSize)
+            {
+                std::vector<std::byte> valueBytes(valueSize, std::byte{0});
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, asByteSpan(valueBytes), castRequest.constantFoldingSrc(), srcTypeRef));
+                const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(valueBytes)));
+                ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
+            }
+
+            const ConstantValue refCst = ConstantValue::makeValuePointer(sema.ctx(), dstPointeeTypeRef, ptr, dstType.flags());
+            castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), refCst));
+        }
+
         return Result::Continue;
     }
 

@@ -194,6 +194,7 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
     // Throw
     if (consumeIf(TokenId::KwdThrow).isValid())
         flags.add(AstFunctionFlagsE::Throwable);
+    nodePtr->flags() = flags;
 
     // Constraints
     SmallVector<AstNodeRef> whereRefs;

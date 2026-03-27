@@ -7,7 +7,7 @@ struct Counter
 
 impl Counter
 {
-    mtd whereFunction(n: s32)->bool => .count == n
+    mtd const whereFunction(n: s32)->bool => .count == n
 }
 
 #test

@@ -42,6 +42,14 @@ impl A
 
 #test
 {
+    let a = A{}
+    gUfcsTitiLast = 0
+    a.titi(42)
+    @assert(gUfcsTitiLast == 42)
+}
+
+#test
+{
     var a: A
     gUfcsTataSum = 0
     a.tata(2)

@@ -42,6 +42,14 @@ impl A
 
 #test
 {
+    let a = A{}
+    a.titi(42)
+    a.toto(1) // swc-expected-error {{sema_err_cannot_cast_const}}
+    a.tata(2) // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
     var p: *A
     A.toto(p, 1, 2) // swc-expected-error {{sema_err_too_many_arguments}}
 }

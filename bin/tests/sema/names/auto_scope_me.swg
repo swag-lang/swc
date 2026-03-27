@@ -9,7 +9,7 @@ struct A
 
 impl A
 {
-    mtd whereFunction(n: s32)->bool => .count == n
+    mtd const whereFunction(n: s32)->bool => .count == n
 
     mtd foo()
     {
@@ -17,6 +17,13 @@ impl A
         #assert(#typeof(a) == s32)
         let b = .x + .y
     }
+}
+
+#test
+{
+    let value = A{count: 3, x: 1, y: 2}
+    let ok = value.whereFunction(3)
+    #assert(#typeof(ok) == bool)
 }
 
 interface I

@@ -251,11 +251,10 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 #test
 {
     let b: Box's32 = {value: 99}
-    // @bug Generic argument inference from generic struct parameters is not working yet.
-    // @assert(unbox(b) == 99)
+    @assert(unbox(b) == 99)
 
     let b2: Box'string = {value: "unboxed"}
-    // @assert(unbox(b2) == "unboxed")
+    @assert(unbox(b2) == "unboxed")
 }
 
 // --- Box array ---
@@ -275,6 +274,8 @@ func(T) boxValue(box: Box'T)->T => box.value
 #test
 {
     let b: Box's32 = {value: 77}
-    // @bug Generic argument inference from generic struct parameters is not working yet.
-    // @assert(boxValue(b) == 77)
+    @assert(boxValue(b) == 77)
+
+    let s: Box'string = {value: "works"}
+    @assert(boxValue(s) == "works")
 }

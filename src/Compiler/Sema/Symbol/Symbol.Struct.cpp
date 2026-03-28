@@ -325,12 +325,27 @@ SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericArgKey> ar
     return instance;
 }
 
-bool SymbolStruct::beginGenericSema()
+bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, std::vector<GenericArgKey>& outArgs) const
+{
+    const std::scoped_lock lock(genericMutex_);
+    for (const auto& entry : genericInstances_)
+    {
+        if (entry.symbol != &instance)
+            continue;
+
+        outArgs = entry.args;
+        return true;
+    }
+
+    return false;
+}
+
+bool SymbolStruct::beginGenericSema() const
 {
     return genericSema_.begin(*this);
 }
 
-void SymbolStruct::endGenericSema()
+void SymbolStruct::endGenericSema() const
 {
     genericSema_.end();
 }

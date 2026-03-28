@@ -78,8 +78,9 @@ public:
     const SymbolStruct* genericRootSym() const noexcept { return genericRootSym_; }
     SymbolStruct*       findGenericInstance(std::span<const GenericArgKey> args) const;
     SymbolStruct*       addGenericInstance(std::span<const GenericArgKey> args, SymbolStruct* instance);
-    bool                beginGenericSema();
-    void                endGenericSema();
+    bool                tryGetGenericInstanceArgs(const SymbolStruct& instance, std::vector<GenericArgKey>& outArgs) const;
+    bool                beginGenericSema() const;
+    void                endGenericSema() const;
 
 private:
     struct GenericInstanceEntry

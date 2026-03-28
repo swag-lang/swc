@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Compiler/Sema/Generic/SemaGenericTraits.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Generic/SemaGenericTraits.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 
@@ -8,6 +8,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result deduceFromTypePattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, TypeRef rawArgTypeRef);
+
     void appendFunctionParamNodes(Sema& sema, AstNodeRef nodeParamsRef, SmallVector<AstNodeRef>& outParams)
     {
         outParams.clear();
@@ -59,7 +61,7 @@ namespace
 
         if (paramNode->is(AstNodeId::MultiVarDecl))
         {
-            const auto& multiVar = paramNode->cast<AstMultiVarDecl>();
+            const auto&           multiVar = paramNode->cast<AstMultiVarDecl>();
             SmallVector<TokenRef> tokNames;
             sema.ast().appendTokens(tokNames, multiVar.spanNamesRef);
             for (const TokenRef tokNameRef : tokNames)
@@ -127,13 +129,151 @@ namespace
         return true;
     }
 
+    void collectQuotedGenericArgs(const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
+    {
+        outArgs.clear();
+        if (node.nodeSuffixRef.isValid())
+            outArgs.push_back(node.nodeSuffixRef);
+    }
+
+    void collectQuotedGenericArgs(Sema& sema, const AstQuotedListExpr& node, SmallVector<AstNodeRef>& outArgs)
+    {
+        outArgs.clear();
+        sema.ast().appendNodes(outArgs, node.spanChildrenRef);
+    }
+
+    bool tryGetStructPatternGenericArgs(Sema& sema, AstNodeRef identRef, const SymbolStruct*& outGenericRoot, IdentifierRef& outGenericRootIdRef, SmallVector<AstNodeRef>& outGenericArgs)
+    {
+        outGenericRoot      = nullptr;
+        outGenericRootIdRef = IdentifierRef::invalid();
+        outGenericArgs.clear();
+        if (identRef.isInvalid())
+            return false;
+
+        AstNodeRef     exprRef   = AstNodeRef::invalid();
+        const AstNode& identNode = sema.node(identRef);
+        if (const auto* quotedExpr = identNode.safeCast<AstQuotedExpr>())
+        {
+            exprRef = quotedExpr->nodeExprRef;
+            collectQuotedGenericArgs(*quotedExpr, outGenericArgs);
+        }
+        else if (const auto* quotedList = identNode.safeCast<AstQuotedListExpr>())
+        {
+            exprRef = quotedList->nodeExprRef;
+            collectQuotedGenericArgs(sema, *quotedList, outGenericArgs);
+        }
+        else
+        {
+            return false;
+        }
+
+        if (const auto* ident = sema.node(exprRef).safeCast<AstIdentifier>())
+            outGenericRootIdRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+
+        SmallVector<Symbol*> baseSymbols;
+        const SemaNodeView   baseView(sema, exprRef, SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+        baseView.getSymbols(baseSymbols);
+        for (auto* sym : baseSymbols)
+        {
+            if (!sym || !sym->isStruct())
+                continue;
+
+            auto& symStruct = sym->cast<SymbolStruct>();
+            if (!symStruct.isGenericRoot())
+                continue;
+
+            outGenericRoot      = &symStruct;
+            outGenericRootIdRef = symStruct.idRef();
+            break;
+        }
+
+        return outGenericRoot != nullptr || outGenericRootIdRef.isValid();
+    }
+
+    Result deduceFromValuePattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, ConstantRef cstRef, TypeRef typeRef)
+    {
+        if (patternRef.isInvalid() || !cstRef.isValid())
+            return Result::Continue;
+
+        const AstNode& patternNode = sema.node(patternRef);
+        if (const auto* ident = patternNode.safeCast<AstIdentifier>())
+        {
+            const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+            if (!tryBindGenericValueParam(params, resolvedArgs, idRef, cstRef, typeRef))
+                return Result::Error;
+            return Result::Continue;
+        }
+
+        const SemaNodeView patternView = sema.viewNodeTypeConstant(patternRef);
+        if (patternView.cstRef().isValid())
+            return patternView.cstRef() == cstRef ? Result::Continue : Result::Error;
+
+        return Result::Continue;
+    }
+
+    Result deduceFromStructPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, const AstNamedType& namedType, const TypeInfo& argType)
+    {
+        if (!argType.isStruct())
+            return Result::Continue;
+
+        const SymbolStruct& argStruct = argType.payloadSymStruct();
+        if (!argStruct.isGenericInstance())
+            return Result::Continue;
+
+        const SymbolStruct*     patternRoot      = nullptr;
+        IdentifierRef           patternRootIdRef = IdentifierRef::invalid();
+        SmallVector<AstNodeRef> patternArgs;
+        if (!tryGetStructPatternGenericArgs(sema, namedType.nodeIdentRef, patternRoot, patternRootIdRef, patternArgs))
+            return Result::Continue;
+
+        const SymbolStruct* actualRoot = argStruct.genericRootSym();
+        if (!actualRoot)
+            return Result::Continue;
+        if (patternRoot && actualRoot != patternRoot)
+            return Result::Continue;
+        if (!patternRoot && (!patternRootIdRef.isValid() || actualRoot->idRef() != patternRootIdRef))
+            return Result::Continue;
+
+        std::vector<SymbolStruct::GenericArgKey> actualArgs;
+        if (!actualRoot->tryGetGenericInstanceArgs(argStruct, actualArgs))
+            return Result::Continue;
+        if (patternArgs.size() != actualArgs.size())
+            return Result::Continue;
+
+        std::vector trialResolvedArgs(resolvedArgs.begin(), resolvedArgs.end());
+        for (size_t i = 0; i < actualArgs.size(); ++i)
+        {
+            auto result = Result::Continue;
+            if (actualArgs[i].typeRef.isValid())
+                result = deduceFromTypePattern(sema, params, trialResolvedArgs, patternArgs[i], actualArgs[i].typeRef);
+            else if (actualArgs[i].cstRef.isValid())
+                result = deduceFromValuePattern(sema, params, trialResolvedArgs, patternArgs[i], actualArgs[i].cstRef, actualArgs[i].typeRef);
+
+            if (result == Result::Error)
+                return Result::Continue;
+        }
+
+        std::ranges::copy(trialResolvedArgs, resolvedArgs.begin());
+        return Result::Continue;
+    }
+
     Result deduceFromTypePattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, TypeRef rawArgTypeRef)
     {
         if (patternRef.isInvalid() || !rawArgTypeRef.isValid())
             return Result::Continue;
 
         const AstNode& patternNode = sema.node(patternRef);
-        if (const auto* namedType = patternNode.safeCast<AstNamedType>())
+        if (const auto* ident = patternNode.safeCast<AstIdentifier>())
+        {
+            const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+            if (!tryBindGenericTypeParam(params, resolvedArgs, idRef, AstNodeRef::invalid(), rawArgTypeRef))
+                return Result::Error;
+
+            return Result::Continue;
+        }
+
+        const auto* namedType = patternNode.safeCast<AstNamedType>();
+        if (namedType)
         {
             const AstNode& identNode = sema.node(namedType->nodeIdentRef);
             if (const auto* ident = identNode.safeCast<AstIdentifier>())
@@ -141,14 +281,17 @@ namespace
                 const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
                 if (!tryBindGenericTypeParam(params, resolvedArgs, idRef, AstNodeRef::invalid(), rawArgTypeRef))
                     return Result::Error;
-            }
 
-            return Result::Continue;
+                return Result::Continue;
+            }
         }
 
         const TypeRef      argTypeRef = SemaGeneric::unwrapGenericDeductionType(sema.ctx(), rawArgTypeRef);
         const TypeInfo&    argType    = sema.typeMgr().get(argTypeRef);
         const TaskContext& ctx        = sema.ctx();
+
+        if (namedType)
+            return deduceFromStructPattern(sema, params, resolvedArgs, *namedType, argType);
 
         if (const auto* arrayType = patternNode.safeCast<AstArrayType>())
         {

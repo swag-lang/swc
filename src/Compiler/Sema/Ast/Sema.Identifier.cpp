@@ -264,8 +264,12 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (sema.curViewType().typeRef().isValid())
     {
         const AstNodeRef parentRef = sema.visit().parentNodeRef();
-        if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::NamedType))
-            return Result::Continue;
+        if (parentRef.isValid())
+        {
+            const AstNode& parentNode = sema.node(parentRef);
+            if (parentNode.is(AstNodeId::NamedType) || parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
+                return Result::Continue;
+        }
     }
 
     const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());

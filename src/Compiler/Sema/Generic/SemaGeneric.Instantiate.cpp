@@ -169,7 +169,7 @@ namespace SemaGenericInternal
     Result createGenericInstance(Sema& sema, T& root, const std::vector<GenericParamDesc>& params, const std::vector<GenericResolvedArg>& resolvedArgs, T*& outInstance)
     {
         using Traits = GenericRootTraits<T>;
-        using KeyT   = typename Traits::GenericArgKey;
+        using KeyT   = Traits::GenericArgKey;
 
         outInstance = nullptr;
 

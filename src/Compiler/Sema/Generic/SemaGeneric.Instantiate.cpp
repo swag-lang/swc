@@ -16,6 +16,24 @@ namespace
         return child.execResult();
     }
 
+    void completeGenericImplClone(TaskContext& ctx, SymbolImpl& implClone)
+    {
+        implClone.setDeclared(ctx);
+        implClone.setTyped(ctx);
+        implClone.setSemaCompleted(ctx);
+    }
+
+    Result runGenericImplBlockPasses(Sema& sema, AstNodeRef blockRef, SymbolImpl& implClone, const SymbolImpl& sourceImpl, const AttributeList& attrs)
+    {
+        SWC_RESULT(runGenericImplBlockPass(sema, blockRef, implClone, sourceImpl.symInterface(), attrs, true));
+        implClone.setDeclared(sema.ctx());
+
+        SWC_RESULT(runGenericImplBlockPass(sema, blockRef, implClone, sourceImpl.symInterface(), attrs, false));
+        implClone.setTyped(sema.ctx());
+        implClone.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
     AstNodeRef cloneGenericImplBlock(Sema& sema, const AstImpl& implDecl, std::span<const SemaClone::ParamBinding> bindings)
     {
         SmallVector<AstNodeRef> children;
@@ -40,6 +58,57 @@ namespace
         return blockRef;
     }
 
+    Result createGenericImplClone(Sema& sema, SymbolImpl*& outClone, AstNodeRef& outBlockRef, const SymbolImpl& sourceImpl, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        outClone    = nullptr;
+        outBlockRef = AstNodeRef::invalid();
+
+        const auto* implDecl = sourceImpl.decl()->safeCast<AstImpl>();
+        SWC_ASSERT(implDecl != nullptr);
+        if (!implDecl)
+            return Result::Error;
+
+        outBlockRef = cloneGenericImplBlock(sema, *implDecl, bindings);
+        outClone    = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), SemaGeneric::clonedGenericSymbolFlags(sourceImpl));
+        return Result::Continue;
+    }
+
+    Result instantiateGenericStructImpl(Sema& sema, const SymbolImpl& sourceImpl, SymbolStruct& instance, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        SymbolImpl* implClone = nullptr;
+        AstNodeRef  blockRef  = AstNodeRef::invalid();
+        SWC_RESULT(createGenericImplClone(sema, implClone, blockRef, sourceImpl, bindings));
+
+        instance.addImpl(sema, *implClone);
+        if (blockRef.isInvalid())
+        {
+            completeGenericImplClone(sema.ctx(), *implClone);
+            return Result::Continue;
+        }
+
+        return runGenericImplBlockPasses(sema, blockRef, *implClone, sourceImpl, instance.attributes());
+    }
+
+    Result instantiateGenericStructInterface(Sema& sema, const SymbolImpl& sourceImpl, SymbolStruct& instance, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        SymbolImpl* implClone = nullptr;
+        AstNodeRef  blockRef  = AstNodeRef::invalid();
+        SWC_RESULT(createGenericImplClone(sema, implClone, blockRef, sourceImpl, bindings));
+
+        implClone->addExtraFlag(SymbolImplFlagsE::ForInterface);
+        implClone->setSymInterface(sourceImpl.symInterface());
+        implClone->setTypeRef(sourceImpl.typeRef());
+        SWC_RESULT(instance.addInterface(sema, *implClone));
+
+        if (blockRef.isInvalid())
+        {
+            completeGenericImplClone(sema.ctx(), *implClone);
+            return Result::Continue;
+        }
+
+        return runGenericImplBlockPasses(sema, blockRef, *implClone, sourceImpl, instance.attributes());
+    }
+
     Result instantiateGenericStructImpls(Sema& sema, const SymbolStruct& root, SymbolStruct& instance, const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs)
     {
         if (!instance.impls().empty() || !instance.interfaces().empty())
@@ -53,52 +122,19 @@ namespace
         SmallVector<SemaClone::ParamBinding> bindings;
         buildGenericCloneBindings(params, resolvedArgs, bindings);
 
-        const auto instantiateImplGroup = [&](const auto& sourceImpls, const auto& attachImpl) -> Result {
-            for (const auto* sourceImpl : sourceImpls)
-            {
-                if (!sourceImpl)
-                    continue;
+        for (const auto* sourceImpl : rootImpls)
+        {
+            if (!sourceImpl)
+                continue;
+            SWC_RESULT(instantiateGenericStructImpl(sema, *sourceImpl, instance, bindings.span()));
+        }
 
-                const auto* implDecl = sourceImpl->decl()->template safeCast<AstImpl>();
-                SWC_ASSERT(implDecl != nullptr);
-                if (!implDecl)
-                    return Result::Error;
-
-                const AstNodeRef blockRef  = cloneGenericImplBlock(sema, *implDecl, bindings.span());
-                auto*            implClone = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl->decl(), sourceImpl->tokRef(), sourceImpl->idRef(), SemaGeneric::clonedGenericSymbolFlags(*sourceImpl));
-                SWC_RESULT(attachImpl(*implClone, *sourceImpl));
-
-                if (blockRef.isInvalid())
-                {
-                    implClone->setDeclared(sema.ctx());
-                    implClone->setTyped(sema.ctx());
-                    implClone->setSemaCompleted(sema.ctx());
-                    continue;
-                }
-
-                SWC_RESULT(runGenericImplBlockPass(sema, blockRef, *implClone, sourceImpl->symInterface(), instance.attributes(), true));
-                implClone->setDeclared(sema.ctx());
-
-                SWC_RESULT(runGenericImplBlockPass(sema, blockRef, *implClone, sourceImpl->symInterface(), instance.attributes(), false));
-                implClone->setTyped(sema.ctx());
-                implClone->setSemaCompleted(sema.ctx());
-            }
-
-            return Result::Continue;
-        };
-
-        SWC_RESULT(instantiateImplGroup(rootImpls, [&](SymbolImpl& implClone, const SymbolImpl&) -> Result {
-            instance.addImpl(sema, implClone);
-            return Result::Continue;
-        }));
-
-        SWC_RESULT(instantiateImplGroup(rootInterfaces, [&](SymbolImpl& implClone, const SymbolImpl& sourceImpl) -> Result {
-            implClone.addExtraFlag(SymbolImplFlagsE::ForInterface);
-            implClone.setSymInterface(sourceImpl.symInterface());
-            implClone.setTypeRef(sourceImpl.typeRef());
-            SWC_RESULT(instance.addInterface(sema, implClone));
-            return Result::Continue;
-        }));
+        for (const auto* sourceImpl : rootInterfaces)
+        {
+            if (!sourceImpl)
+                continue;
+            SWC_RESULT(instantiateGenericStructInterface(sema, *sourceImpl, instance, bindings.span()));
+        }
 
         return Result::Continue;
     }

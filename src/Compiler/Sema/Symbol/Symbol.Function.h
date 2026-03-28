@@ -172,10 +172,7 @@ private:
     std::vector<SymbolFunction*>      callDependencies_;
     mutable std::mutex                genericMutex_;
     std::vector<GenericInstanceEntry> genericInstances_;
-    mutable std::mutex                genericSemaMutex_;
-    std::condition_variable           genericSemaCv_;
-    bool                              genericSemaRunning_ = false;
-    std::thread::id                   genericSemaOwner_;
+    mutable GenericSemaGate           genericSema_;
     mutable std::mutex                closureAdapterMutex_;
     SymbolFunction*                   closureAdapter_ = nullptr;
     std::mutex                        emitMutex_;

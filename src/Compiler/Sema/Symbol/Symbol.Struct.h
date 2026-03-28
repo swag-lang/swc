@@ -97,10 +97,7 @@ private:
     std::vector<SymbolFunction*>      specOps_;
     mutable std::mutex                genericMutex_;
     std::vector<GenericInstanceEntry> genericInstances_;
-    mutable std::mutex                genericSemaMutex_;
-    std::condition_variable           genericSemaCv_;
-    bool                              genericSemaRunning_ = false;
-    std::thread::id                   genericSemaOwner_;
+    mutable GenericSemaGate           genericSema_;
     SymbolFunction*                   opDrop_     = nullptr;
     SymbolFunction*                   opPostCopy_ = nullptr;
     SymbolFunction*                   opPostMove_ = nullptr;

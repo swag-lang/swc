@@ -327,29 +327,12 @@ SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericArgKey> ar
 
 bool SymbolStruct::beginGenericSema()
 {
-    std::unique_lock lock(genericSemaMutex_);
-    const auto       currentThread = std::this_thread::get_id();
-
-    if (genericSemaRunning_ && genericSemaOwner_ == currentThread)
-        return false;
-
-    while (genericSemaRunning_ && !isSemaCompleted() && !isIgnored())
-        genericSemaCv_.wait(lock);
-
-    if (isSemaCompleted() || isIgnored())
-        return false;
-
-    genericSemaRunning_ = true;
-    genericSemaOwner_   = currentThread;
-    return true;
+    return genericSema_.begin(*this);
 }
 
 void SymbolStruct::endGenericSema()
 {
-    const std::scoped_lock lock(genericSemaMutex_);
-    genericSemaRunning_ = false;
-    genericSemaOwner_   = {};
-    genericSemaCv_.notify_all();
+    genericSema_.end();
 }
 
 SWC_END_NAMESPACE();

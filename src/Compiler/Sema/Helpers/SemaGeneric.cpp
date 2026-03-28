@@ -95,9 +95,9 @@ namespace
             return root.findGenericInstance(keys);
         }
 
-        static void addInstance(SymbolFunction& root, std::span<const GenericArgKey> keys, InstanceSymbol* instance)
+        static InstanceSymbol* addInstance(SymbolFunction& root, std::span<const GenericArgKey> keys, InstanceSymbol* instance)
         {
-            root.addGenericInstance(keys, instance);
+            return root.addGenericInstance(keys, instance);
         }
 
         static InstanceSymbol* createInstance(Sema& sema, SymbolFunction& root, AstNodeRef cloneRef)
@@ -148,9 +148,9 @@ namespace
             return root.findGenericInstance(keys);
         }
 
-        static void addInstance(SymbolStruct& root, std::span<const GenericArgKey> keys, InstanceSymbol* instance)
+        static InstanceSymbol* addInstance(SymbolStruct& root, std::span<const GenericArgKey> keys, InstanceSymbol* instance)
         {
-            root.addGenericInstance(keys, instance);
+            return root.addGenericInstance(keys, instance);
         }
 
         static InstanceSymbol* createInstance(Sema& sema, SymbolStruct& root, AstNodeRef cloneRef)
@@ -762,6 +762,18 @@ namespace
     }
 
     template<typename RootSymbolT>
+    struct GenericSemaGuard
+    {
+        RootSymbolT* instance = nullptr;
+
+        ~GenericSemaGuard()
+        {
+            if (instance)
+                instance->endGenericSema();
+        }
+    };
+
+    template<typename RootSymbolT>
     Result createGenericInstance(Sema& sema, RootSymbolT& root, const std::vector<GenericParamDesc>& params, const std::vector<GenericResolvedArg>& resolvedArgs, RootSymbolT*& outInstance)
     {
         using Traits = GenericRootTraits<RootSymbolT>;
@@ -783,13 +795,22 @@ namespace
             if (cloneRef.isInvalid())
                 return Result::Error;
 
-            outInstance = Traits::createInstance(sema, root, cloneRef);
-            sema.setSymbol(cloneRef, outInstance);
-            Traits::addInstance(root, keys, outInstance);
+            RootSymbolT* created = Traits::createInstance(sema, root, cloneRef);
+            sema.setSymbol(cloneRef, created);
+            outInstance = Traits::addInstance(root, keys, created);
         }
 
         if (!outInstance->isSemaCompleted())
-            SWC_RESULT(Traits::runNode(sema, root, outInstance->declNodeRef()));
+        {
+            if (outInstance->beginGenericSema())
+            {
+                GenericSemaGuard<RootSymbolT> guard{outInstance};
+                SWC_RESULT(Traits::runNode(sema, root, outInstance->declNodeRef()));
+            }
+
+            if (outInstance->isIgnored())
+                return Result::Error;
+        }
 
         return Result::Continue;
     }

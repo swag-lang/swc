@@ -260,6 +260,45 @@ Ref PagedStore::reserveRange(uint32_t size, uint32_t align, bool zeroInit)
     return baseRef;
 }
 
+SpanRef PagedStore::pushSpanContiguousRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count)
+{
+    SWC_ASSERT(elemSize > 0);
+    SWC_ASSERT((elemAlign & (elemAlign - 1)) == 0 && elemAlign <= alignof(std::max_align_t));
+
+    constexpr uint32_t hdrSize = sizeof(SpanHdrRaw);
+    const uint32_t     bytes   = count * elemSize;
+
+    const auto requiredBytes = [&](uint32_t hdrOffset) {
+        const uint32_t dataOffset = Math::alignUpU32(hdrOffset + hdrSize, elemAlign);
+        return dataOffset + bytes - hdrOffset;
+    };
+
+    SWC_ASSERT(requiredBytes(0) <= pageSizeValue_);
+
+    Page*    page     = curPage_ ? curPage_ : newPage();
+    uint32_t pageUsed = page->used.load(std::memory_order_relaxed);
+    if (requiredBytes(pageUsed) > pageSizeValue_ - pageUsed)
+    {
+        page     = newPage();
+        pageUsed = 0;
+    }
+
+    const uint32_t dataOffset = Math::alignUpU32(pageUsed + hdrSize, elemAlign);
+    const uint32_t newUsed    = dataOffset + bytes;
+    SWC_ASSERT(newUsed <= pageSizeValue_);
+
+    const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, pageUsed)};
+    auto*         hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + pageUsed);
+    hdr->total        = count;
+
+    if (count && data)
+        std::memcpy(page->bytes() + dataOffset, data, bytes);
+
+    page->used.store(newUsed, std::memory_order_relaxed);
+    totalBytes_ += newUsed - pageUsed;
+    return hdrRef;
+}
+
 SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count)
 {
     if (count == 0)

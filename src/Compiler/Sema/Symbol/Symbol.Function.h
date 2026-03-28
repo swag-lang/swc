@@ -133,7 +133,9 @@ public:
     SymbolImpl*      genericDeclImpl() const noexcept { return genericDeclImpl_; }
     SymbolInterface* genericDeclInterface() const noexcept { return genericDeclInterface_; }
     SymbolFunction*  findGenericInstance(std::span<const GenericArgKey> args) const;
-    void             addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance);
+    SymbolFunction*  addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance);
+    bool             beginGenericSema();
+    void             endGenericSema();
 
 private:
     struct GenericInstanceEntry
@@ -170,6 +172,10 @@ private:
     std::vector<SymbolFunction*>      callDependencies_;
     mutable std::mutex                genericMutex_;
     std::vector<GenericInstanceEntry> genericInstances_;
+    mutable std::mutex                genericSemaMutex_;
+    std::condition_variable           genericSemaCv_;
+    bool                              genericSemaRunning_ = false;
+    std::thread::id                   genericSemaOwner_;
     mutable std::mutex                closureAdapterMutex_;
     SymbolFunction*                   closureAdapter_ = nullptr;
     std::mutex                        emitMutex_;

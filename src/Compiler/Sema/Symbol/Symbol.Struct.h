@@ -77,7 +77,9 @@ public:
     SymbolStruct*       genericRootSym() noexcept { return genericRootSym_; }
     const SymbolStruct* genericRootSym() const noexcept { return genericRootSym_; }
     SymbolStruct*       findGenericInstance(std::span<const GenericArgKey> args) const;
-    void                addGenericInstance(std::span<const GenericArgKey> args, SymbolStruct* instance);
+    SymbolStruct*       addGenericInstance(std::span<const GenericArgKey> args, SymbolStruct* instance);
+    bool                beginGenericSema();
+    void                endGenericSema();
 
 private:
     struct GenericInstanceEntry
@@ -95,6 +97,10 @@ private:
     std::vector<SymbolFunction*>      specOps_;
     mutable std::mutex                genericMutex_;
     std::vector<GenericInstanceEntry> genericInstances_;
+    mutable std::mutex                genericSemaMutex_;
+    std::condition_variable           genericSemaCv_;
+    bool                              genericSemaRunning_ = false;
+    std::thread::id                   genericSemaOwner_;
     SymbolFunction*                   opDrop_     = nullptr;
     SymbolFunction*                   opPostCopy_ = nullptr;
     SymbolFunction*                   opPostMove_ = nullptr;

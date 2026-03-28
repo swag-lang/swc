@@ -515,7 +515,7 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*>
     const std::unique_lock lock(shard->mutex);
 
     AstNode&  node    = ast().node(nodeRef);
-    const Ref value   = shard->store.pushSpan(symbols).get();
+    const Ref value   = shard->store.pushSpanContiguous(symbols).get();
     uint16_t  newBits = static_cast<uint16_t>((node.payloadBits() & ~(NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK)) |
                                               static_cast<uint16_t>(NodePayloadKind::SymbolList) |
                                               static_cast<uint16_t>(shardIdx << NODE_PAYLOAD_SHARD_SHIFT));
@@ -530,7 +530,7 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbo
     const std::unique_lock lock(shard->mutex);
 
     AstNode&                   node  = ast().node(nodeRef);
-    const Ref                  value = shard->store.pushSpan(symbols).get();
+    const Ref                  value = shard->store.pushSpanContiguous(symbols).get();
     SmallVector<const Symbol*> tmp;
     tmp.reserve(symbols.size());
     for (const Symbol* s : symbols)

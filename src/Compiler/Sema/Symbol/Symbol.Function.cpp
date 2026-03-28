@@ -541,21 +541,65 @@ SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericArgKe
     return nullptr;
 }
 
-void SymbolFunction::addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance)
+SymbolFunction* SymbolFunction::addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance)
 {
     SWC_ASSERT(instance != nullptr);
 
     const std::scoped_lock lock(genericMutex_);
     for (const auto& entry : genericInstances_)
     {
+        if (entry.args.size() == args.size())
+        {
+            bool same = true;
+            for (size_t i = 0; i < args.size(); ++i)
+            {
+                if (entry.args[i] != args[i])
+                {
+                    same = false;
+                    break;
+                }
+            }
+
+            if (same)
+                return entry.function;
+        }
+
         if (entry.function == instance)
-            return;
+            return entry.function;
     }
 
     GenericInstanceEntry entry;
     entry.function = instance;
     entry.args.assign(args.begin(), args.end());
     genericInstances_.push_back(std::move(entry));
+    return instance;
+}
+
+bool SymbolFunction::beginGenericSema()
+{
+    std::unique_lock lock(genericSemaMutex_);
+    const auto       currentThread = std::this_thread::get_id();
+
+    if (genericSemaRunning_ && genericSemaOwner_ == currentThread)
+        return false;
+
+    while (genericSemaRunning_ && !isSemaCompleted() && !isIgnored())
+        genericSemaCv_.wait(lock);
+
+    if (isSemaCompleted() || isIgnored())
+        return false;
+
+    genericSemaRunning_ = true;
+    genericSemaOwner_   = currentThread;
+    return true;
+}
+
+void SymbolFunction::endGenericSema()
+{
+    const std::scoped_lock lock(genericSemaMutex_);
+    genericSemaRunning_ = false;
+    genericSemaOwner_   = {};
+    genericSemaCv_.notify_all();
 }
 
 bool SymbolFunction::hasLoweredCode() const noexcept

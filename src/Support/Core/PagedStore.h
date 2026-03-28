@@ -49,6 +49,7 @@ public:
 
     std::pair<ByteSpan, Ref> pushCopySpan(ByteSpan payload, uint32_t align = alignof(std::byte));
     Ref                      reserveRange(uint32_t size, uint32_t align, bool zeroInit);
+    SpanRef                  pushSpanContiguousRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
     SpanRef                  pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
     SpanView                 spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const;
     Ref                      findRef(const void* ptr) const noexcept;
@@ -120,6 +121,13 @@ public:
     {
         SWC_ASSERT(ref != INVALID_REF);
         return *(ptr<T>(ref));
+    }
+
+    template<class T>
+    SpanRef pushSpanContiguous(const std::span<T>& s)
+    {
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+        return pushSpanContiguousRaw(s.data(), static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), static_cast<uint32_t>(s.size()));
     }
 
     template<class T>

@@ -45,42 +45,38 @@ struct(T, N: s32) FixedStack
     top: s32
 }
 
-// impl FixedStack
-// {
-//     mtd capacity()->s32 => N
-//
-//     mtd push(value: T)
-//     {
-//         .data[.top] = value
-//         .top += 1
-//     }
-//
-//     mtd peek()->T => .data[.top - 1]
-//     mtd size()->s32 => .top
-// }
-//
-// #test
-// {
-//     var stack: FixedStack'(s32, 4) = {top: 0}
-//     @assert(stack.capacity() == 4)
-//     @assert(stack.size() == 0)
-//
-//     stack.push(10)
-//     stack.push(20)
-//     stack.push(30)
-//     @assert(stack.size() == 3)
-//     @assert(stack.peek() == 30)
-// }
-//
-// #test
-// {
-//     var stack: FixedStack'(f64, 2) = {top: 0}
-//     stack.push(1.5)
-//     stack.push(2.5)
-//     @assert(stack.peek() == 2.5)
-//     @assert(stack.capacity() == 2)
-// }
-//
+impl FixedStack
+{
+    mtd capacity()->s32 => N
+    mtd push(value: T)
+    {
+        .data[.top] = value
+        .top += 1
+    }
+    mtd peek()->T => .data[.top - 1]
+    mtd size()->s32 => .top
+}
+#test
+{
+    var stack: FixedStack'(s32, 4) = {top: 0}
+    @assert(stack.capacity() == 4)
+    @assert(stack.size() == 0)
+    stack.push(10)
+    stack.push(20)
+    stack.push(30)
+    @assert(stack.size() == 3)
+    @assert(stack.peek() == 30)
+}
+
+#test
+{
+    var stack: FixedStack'(f64, 2) = {top: 0}
+    stack.push(1.5)
+    stack.push(2.5)
+    @assert(stack.peek() == 2.5)
+    @assert(stack.capacity() == 2)
+}
+
 // // --- Method returning generic struct ---
 //
 // struct(T) Box

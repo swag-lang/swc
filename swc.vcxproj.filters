@@ -1340,9 +1340,6 @@
     <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.h">
       <Filter>src\Compiler\Sema\Generic</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.Internals.h">
-      <Filter>src\Compiler\Sema\Generic</Filter>
-    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>

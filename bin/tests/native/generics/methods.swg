@@ -77,83 +77,72 @@ impl FixedStack
     @assert(stack.capacity() == 2)
 }
 
-// // --- Method returning generic struct ---
-//
-// struct(T) Box
-// {
-//     value: T
-// }
-//
-// impl Container
-// {
-//     mtd toBox()->Box'T
-//     {
-//         return {value: .value}
-//     }
-// }
-//
-// #test
-// {
-//     let c: Container's32 = {value: 42, count: 1}
-//     let b = c.toBox()
-//     @assert(b.value == 42)
-//
-//     let c2: Container'string = {value: "boxed", count: 1}
-//     let b2 = c2.toBox()
-//     @assert(b2.value == "boxed")
-// }
-//
-// // --- Multiple impl blocks on same generic struct ---
-//
-// struct(T) Accumulator
-// {
-//     value: T
-// }
-//
-// impl Accumulator
-// {
-//     mtd get()->T => .value
-// }
-//
-// impl Accumulator
-// {
-//     mtd set(v: T)
-//     {
-//         .value = v
-//     }
-// }
-//
-// #test
-// {
-//     var acc: Accumulator's32 = {value: 0}
-//     @assert(acc.get() == 0)
-//     acc.set(100)
-//     @assert(acc.get() == 100)
-// }
-//
-// // --- Generic struct with method that takes another generic struct ---
-//
-// struct(A, B) Pair
-// {
-//     first: A
-//     second: B
-// }
-//
-// impl Container
-// {
-//     mtd pairWith(other: T)->Pair'(T, T)
-//     {
-//         return {first: .value, second: other}
-//     }
-// }
-//
-// #test
-// {
-//     let c: Container's32 = {value: 5, count: 1}
-//     let p = c.pairWith(10)
-//     @assert(p.first == 5)
-//     @assert(p.second == 10)
-// }
+// --- Method returning generic struct ---
+struct(T) Box
+{
+    value: T
+}
+impl Container
+{
+    mtd const toBox()->Box'T
+    {
+        return {value: .value}
+    }
+}
+#test
+{
+    let c: Container's32 = {value: 42, count: 1}
+    let b = c.toBox()
+    @assert(b.value == 42)
+    let c2: Container'string = {value: "boxed", count: 1}
+    let b2 = c2.toBox()
+    @assert(b2.value == "boxed")
+}
+
+// --- Multiple impl blocks on same generic struct ---
+struct(T) Accumulator
+{
+    value: T
+}
+impl Accumulator
+{
+    mtd get()->T => .value
+}
+impl Accumulator
+{
+    mtd set(v: T)
+    {
+        .value = v
+    }
+}
+#test
+{
+    var acc: Accumulator's32 = {value: 0}
+    @assert(acc.get() == 0)
+    acc.set(100)
+    @assert(acc.get() == 100)
+}
+
+// --- Generic struct with method that takes another generic struct ---
+struct(A, B) Pair
+{
+    first: A
+    second: B
+}
+impl Container
+{
+    mtd const pairWith(other: T)->Pair'(T, T)
+    {
+        return {first: .value, second: other}
+    }
+}
+#test
+{
+    let c: Container's32 = {value: 5, count: 1}
+    let p = c.pairWith(10)
+    @assert(p.first == 5)
+    @assert(p.second == 10)
+}
 
 // --- Non-generic struct with generic method ---
 

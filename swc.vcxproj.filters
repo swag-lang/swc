@@ -73,6 +73,9 @@
     <Filter Include="src\Compiler\Sema\Helpers">
       <UniqueIdentifier>{67CF5BE3-4FF5-8346-7251-8B2C79193503}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Compiler\Sema\Generic">
+      <UniqueIdentifier>{5ADC7585-BEEA-41CF-8CAE-364C01A02C01}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Compiler\Sema\Match">
       <UniqueIdentifier>{BDA1B829-CBD3-39B2-8D05-F4D963362924}</UniqueIdentifier>
     </Filter>
@@ -792,8 +795,14 @@
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Helpers\SemaGeneric.cpp">
-      <Filter>src\Compiler\Sema\Helpers</Filter>
+    <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Deduce.cpp">
+      <Filter>src\Compiler\Sema\Generic</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Instantiate.cpp">
+      <Filter>src\Compiler\Sema\Generic</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Resolve.cpp">
+      <Filter>src\Compiler\Sema\Generic</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
@@ -1328,8 +1337,11 @@
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Helpers\SemaGeneric.h">
-      <Filter>src\Compiler\Sema\Helpers</Filter>
+    <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.h">
+      <Filter>src\Compiler\Sema\Generic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.Internals.h">
+      <Filter>src\Compiler\Sema\Generic</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>

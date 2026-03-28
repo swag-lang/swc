@@ -117,11 +117,10 @@ func(N: s32 = 5, M: s32 = 10) constDefaults()->s32 => N + M
 
 #test
 {
-    // @bug Mixed generic argument inference does not resolve for multi-parameter functions yet.
-    // @assert(makePairFirst(1, 2.0) == 1)
-    // @assert(makePairSecond(1, 2.0) == 2.0)
-    // @assert(makePairFirst(true, "hi") == true)
-    // @assert(makePairSecond(true, "hi") == "hi")
+    @assert(makePairFirst(1, 2.0) == 1)
+    @assert(makePairSecond(1, 2.0) == 2.0)
+    @assert(makePairFirst(true, "hi") == true)
+    @assert(makePairSecond(true, "hi") == "hi")
     @assert(makePairFirst'(u8, u16)(10'u8, 20'u16) == 10'u8)
     @assert(makePairSecond'(u8, u16)(10'u8, 20'u16) == 20'u16)
 }

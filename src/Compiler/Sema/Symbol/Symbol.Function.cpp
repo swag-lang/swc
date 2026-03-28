@@ -575,12 +575,12 @@ SymbolFunction* SymbolFunction::addGenericInstance(std::span<const GenericArgKey
     return instance;
 }
 
-bool SymbolFunction::beginGenericSema()
+bool SymbolFunction::beginGenericSema() const
 {
     return genericSema_.begin(*this);
 }
 
-void SymbolFunction::endGenericSema()
+void SymbolFunction::endGenericSema() const
 {
     genericSema_.end();
 }

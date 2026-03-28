@@ -134,8 +134,8 @@ public:
     SymbolInterface* genericDeclInterface() const noexcept { return genericDeclInterface_; }
     SymbolFunction*  findGenericInstance(std::span<const GenericArgKey> args) const;
     SymbolFunction*  addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance);
-    bool             beginGenericSema();
-    void             endGenericSema();
+    bool             beginGenericSema() const;
+    void             endGenericSema() const;
 
 private:
     struct GenericInstanceEntry

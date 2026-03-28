@@ -672,14 +672,14 @@ namespace
             case TypeInfoKind::AggregateStruct:
             case TypeInfoKind::AggregateArray:
             {
-                TaskContext& ctx    = sema.ctx();
-                uint64_t     offset = 0;
+                TaskContext& semaCtx = sema.ctx();
+                uint64_t     offset  = 0;
 
                 for (const TypeRef elemTypeRef : typeInfo.payloadAggregate().types)
                 {
                     const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
-                    uint32_t        align    = elemType.alignOf(ctx);
-                    const uint64_t  elemSize = elemType.sizeOf(ctx);
+                    uint32_t        align    = elemType.alignOf(semaCtx);
+                    const uint64_t  elemSize = elemType.sizeOf(semaCtx);
                     if (!align)
                         align = 1;
 

@@ -15,7 +15,7 @@ namespace
 
     const SemaClone::CloneContext& cloneContextAsInline(const CloneContext& cloneContext)
     {
-        return static_cast<const SemaClone::CloneContext&>(cloneContext);
+        return static_cast<const SemaClone::CloneContext&>(cloneContext);  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
     }
 
     SemaClone::CloneContext cloneContextWithoutReplacements(const SemaClone::CloneContext& cloneContext)

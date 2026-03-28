@@ -126,8 +126,9 @@ namespace
         return true;
     }
 
-    void collectQuotedGenericArgs(Sema& sema, const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
+    void collectQuotedGenericArgs(const Sema& sema, const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
     {
+        SWC_UNUSED(sema);
         outArgs.clear();
         if (node.nodeSuffixRef.isValid())
             outArgs.push_back(node.nodeSuffixRef);

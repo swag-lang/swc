@@ -303,9 +303,9 @@ namespace
 
         for (const TypeRef elemTypeRef : dstType.payloadAggregate().types)
         {
-            const TypeInfo& elemType  = sema.typeMgr().get(elemTypeRef);
-            uint32_t        align     = elemType.alignOf(ctx);
-            const uint64_t  elemSize  = elemType.sizeOf(ctx);
+            const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
+            uint32_t        align    = elemType.alignOf(ctx);
+            const uint64_t  elemSize = elemType.sizeOf(ctx);
             if (!align)
                 align = 1;
 

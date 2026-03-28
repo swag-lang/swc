@@ -142,26 +142,23 @@ func(N: s32 = 5, M: s32 = 10) constDefaults()->s32 => N + M
     @assert(constDefaults'(1, 2)() == 3)
 }
 
-// @bug Generic functions with local temporaries and loops are not working yet.
-// func(T, N: s32) fillArray(value: T)->[N] T
-// {
-//     var result: [N] T = undefined
-//     for var i = 0; i < N; i += 1 do
-//         result[i] = value
-//     return result
-// }
-//
-// #test
-// {
-//     let arr = fillArray'(s32, 3)(7)
-//     @assert(arr[0] == 7)
-//     @assert(arr[1] == 7)
-//     @assert(arr[2] == 7)
-//
-//     let barr = fillArray'(bool, 2)(true)
-//     @assert(barr[0] == true)
-//     @assert(barr[1] == true)
-// }
+func(T, N: s32) fillArray(value: T)->[N] T
+{
+    var result: [N] T = undefined
+    for var i = 0; i < N; i += 1 do
+        result[i] = value
+    return result
+}
+#test
+{
+    let arr = fillArray'(s32, 3)(7)
+    @assert(arr[0] == 7)
+    @assert(arr[1] == 7)
+    @assert(arr[2] == 7)
+    let barr = fillArray'(bool, 2)(true)
+    @assert(barr[0] == true)
+    @assert(barr[1] == true)
+}
 
 // --- Generic function calling another generic with different type ---
 
@@ -185,23 +182,20 @@ func(T) castAndDouble(value: T)->s32 => toS32(value) * 2
     @assert(first'(f32)(1.5'f32, 2.5'f32) == 1.5'f32)
 }
 
-// @bug Generic functions with local temporaries and loops are not working yet.
-// func(T, N: s32) sumN(values: [N] T)->T
-// {
-//     var total: T = 0
-//     for var i = 0; i < N; i += 1 do
-//         total += values[i]
-//     return total
-// }
-//
-// #test
-// {
-//     let a: [3] s32 = [10, 20, 30]
-//     @assert(sumN(a) == 60)
-//
-//     let b: [4] f64 = [1.0, 2.0, 3.0, 4.0]
-//     @assert(sumN(b) == 10.0)
-//
-//     let c: [2] u16 = [100'u16, 200]
-//     @assert(sumN(c) == 300'u16)
-// }
+// @tofix Generic functions with local temporaries and loops are not working yet.
+func(T, N: s32) sumN(values: [N] T)->T
+{
+    var total: T = 0
+    for var i = 0; i < N; i += 1 do
+        total += values[i]
+    return total
+}
+#test
+{
+    let a: [3] s32 = [10, 20, 30]
+    @assert(sumN(a) == 60)
+    let b: [4] f64 = [1.0, 2.0, 3.0, 4.0]
+    @assert(sumN(b) == 10.0)
+    let c: [2] u16 = [100'u16, 200]
+    @assert(sumN(c) == 300'u16)
+}

@@ -271,7 +271,17 @@ namespace
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView view = codeGen.curViewSymbol();
-    SWC_ASSERT(view.sym());
+    if (!view.sym())
+    {
+        const AstNodeRef parentRef = codeGen.visit().parentNodeRef();
+        if (parentRef.isValid() &&
+            codeGen.node(parentRef).is(AstNodeId::NamedType) &&
+            codeGen.curViewType().typeRef().isValid())
+            return Result::Continue;
+
+        SWC_ASSERT(view.sym());
+    }
+
     codeGenIdentifierFromSymbol(codeGen, *view.sym());
     return Result::Continue;
 }

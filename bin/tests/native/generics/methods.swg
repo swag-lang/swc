@@ -36,15 +36,15 @@ impl Container
     c.setValue("world")
     @assert(c.getValue() == "world")
 }
-//
-// // --- Generic struct with const param and methods ---
-//
-// struct(T, N: s32) FixedStack
-// {
-//     data: [N] T
-//     top: s32
-// }
-//
+
+// --- Generic struct with const param and methods ---
+
+struct(T, N: s32) FixedStack
+{
+    data: [N] T
+    top: s32
+}
+
 // impl FixedStack
 // {
 //     mtd capacity()->s32 => N
@@ -178,36 +178,32 @@ impl Counter
     @assert(Counter.staticIdentity("hi") == "hi")
 }
 
-// @bug Generic struct methods are not working yet.
-// struct(T, N: s32) Grid
-// {
-//     cells: [N * N] T
-// }
-//
-// impl Grid
-// {
-//     mtd at(row: s32, col: s32)->T => .cells[row * N + col]
-//     mtd dimension()->s32 => N
-//     mtd totalCells()->s32 => N * N
-// }
-//
-// #test
-// {
-//     var g: Grid'(s32, 3) = {cells: [1, 2, 3, 4, 5, 6, 7, 8, 9]}
-//     @assert(g.dimension() == 3)
-//     @assert(g.totalCells() == 9)
-//     @assert(g.at(0, 0) == 1)
-//     @assert(g.at(1, 1) == 5)
-//     @assert(g.at(2, 2) == 9)
-//     @assert(g.at(0, 2) == 3)
-//     @assert(g.at(2, 0) == 7)
-// }
-//
-// #test
-// {
-//     var g: Grid'(u8, 2) = {cells: [10'u8, 20, 30, 40]}
-//     @assert(g.dimension() == 2)
-//     @assert(g.totalCells() == 4)
-//     @assert(g.at(0, 0) == 10'u8)
-//     @assert(g.at(1, 1) == 40'u8)
-// }
+struct(T, N: s32) Grid
+{
+    cells: [N * N] T
+}
+impl Grid
+{
+    mtd at(row: s32, col: s32)->T => .cells[row * N + col]
+    mtd dimension()->s32 => N
+    mtd totalCells()->s32 => N * N
+}
+#test
+{
+    var g: Grid'(s32, 3) = {cells: [1, 2, 3, 4, 5, 6, 7, 8, 9]}
+    @assert(g.dimension() == 3)
+    @assert(g.totalCells() == 9)
+    @assert(g.at(0, 0) == 1)
+    @assert(g.at(1, 1) == 5)
+    @assert(g.at(2, 2) == 9)
+    @assert(g.at(0, 2) == 3)
+    @assert(g.at(2, 0) == 7)
+}
+#test
+{
+    var g: Grid'(u8, 2) = {cells: [10'u8, 20, 30, 40]}
+    @assert(g.dimension() == 2)
+    @assert(g.totalCells() == 4)
+    @assert(g.at(0, 0) == 10'u8)
+    @assert(g.at(1, 1) == 40'u8)
+}

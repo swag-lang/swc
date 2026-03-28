@@ -241,6 +241,25 @@ namespace
 
     TypeRef resolvedLiteralStorageTypeRef(CodeGen& codeGen, AstNodeRef nodeRef)
     {
+        if (const CodeGenNodePayload* payload = codeGen.safePayload(nodeRef); payload && payload->runtimeStorageSym != nullptr)
+        {
+            const TypeRef runtimeStorageTypeRef = payload->runtimeStorageSym->typeRef();
+            if (runtimeStorageTypeRef.isValid())
+            {
+                const TypeInfo& runtimeStorageType = codeGen.typeMgr().get(runtimeStorageTypeRef);
+                if (runtimeStorageType.isArray() || runtimeStorageType.isStruct())
+                    return runtimeStorageTypeRef;
+            }
+        }
+
+        const TypeRef storedTypeRef = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Type).typeRef();
+        if (storedTypeRef.isValid())
+        {
+            const TypeInfo& storedType = codeGen.typeMgr().get(storedTypeRef);
+            if (storedType.isArray() || storedType.isStruct())
+                return storedTypeRef;
+        }
+
         const TypeRef currentTypeRef = codeGen.viewType(nodeRef).typeRef();
         if (currentTypeRef.isValid())
         {
@@ -249,7 +268,6 @@ namespace
                 return currentTypeRef;
         }
 
-        const TypeRef storedTypeRef = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Type).typeRef();
         if (storedTypeRef.isValid())
             return storedTypeRef;
         return currentTypeRef;
@@ -261,7 +279,7 @@ namespace
             return ConstantRef::invalid();
 
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (!typeInfo.isStruct() && !typeInfo.isArray())
+        if (!typeInfo.isStruct() && !typeInfo.isArray() && !typeInfo.isAggregateStruct() && !typeInfo.isAggregateArray())
             return ConstantRef::invalid();
 
         const uint64_t storageSize = typeInfo.sizeOf(codeGen.ctx());

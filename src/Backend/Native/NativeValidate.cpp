@@ -219,6 +219,13 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
 namespace
 {
+    uint64_t alignUpTo(const uint64_t value, const uint32_t alignment)
+    {
+        SWC_ASSERT(alignment != 0);
+        const uint64_t align = alignment;
+        return ((value + align - 1) / align) * align;
+    }
+
     bool validateFunctionSymbolRelocation(const NativeBackendBuilder& builder, const SymbolFunction* target)
     {
         if (!target)
@@ -389,6 +396,34 @@ bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
             const auto fieldBytes = ByteSpan{bytes.data() + fieldOffset, static_cast<size_t>(fieldSize)};
             if (!validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(fieldOffset), fieldBytes))
                 return false;
+        }
+
+        return true;
+    }
+
+    if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+    {
+        uint64_t offset = 0;
+        for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
+        {
+            const TypeInfo& fieldType = builder_.ctx().typeMgr().get(fieldTypeRef);
+            uint32_t        align     = fieldType.alignOf(builder_.ctx());
+            const uint64_t  fieldSize = fieldType.sizeOf(builder_.ctx());
+            if (!align)
+                align = 1;
+
+            if (!fieldSize)
+                continue;
+
+            offset = alignUpTo(offset, align);
+            if (offset + fieldSize > bytes.size())
+                return false;
+
+            const auto fieldBytes = ByteSpan{bytes.data() + offset, static_cast<size_t>(fieldSize)};
+            if (!validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(offset), fieldBytes))
+                return false;
+
+            offset += fieldSize;
         }
 
         return true;

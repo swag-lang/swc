@@ -164,14 +164,13 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
     let explicit: DefaultBuffer'(s32, 3) = {values: [1, 2, 3]}
     @assert(explicit.values[2] == 3)
 
-    // @bug Default generic type initialization is not working yet.
-    // let defBox: DefaultBox = {value: 42}
-    // @assert(defBox.value == 42)
-    // #assert(#typeof(defBox.value) == s32)
+    let defBox: DefaultBox = {value: 42}
+    @assert(defBox.value == 42)
+    #assert(#typeof(defBox.value) == s32)
 
-    // let defBoxF: DefaultBox'f64 = {value: 1.5}
-    // @assert(defBoxF.value == 1.5)
-    // #assert(#typeof(defBoxF.value) == f64)
+    let defBoxF: DefaultBox'f64 = {value: 1.5}
+    @assert(defBoxF.value == 1.5)
+    #assert(#typeof(defBoxF.value) == f64)
 }
 
 // --- Multiple type parameters ---

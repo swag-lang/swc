@@ -17,6 +17,13 @@ namespace
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
     Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr);
 
+    uint64_t alignUpTo(const uint64_t value, const uint32_t alignment)
+    {
+        SWC_ASSERT(alignment != 0);
+        const uint64_t align = alignment;
+        return ((value + align - 1) / align) * align;
+    }
+
     Result materializeStaticScalar(ByteSpanRW dstBytes, ByteSpan srcBytes)
     {
         if (!dstBytes.empty())
@@ -294,6 +301,36 @@ namespace
         return Result::Continue;
     }
 
+    Result lowerAggregateTupleToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
+    {
+        TaskContext& ctx    = sema.ctx();
+        uint64_t     offset = 0;
+        size_t       index  = 0;
+
+        for (const TypeRef elemTypeRef : dstType.payloadAggregate().types)
+        {
+            const TypeInfo& elemType  = sema.typeMgr().get(elemTypeRef);
+            uint32_t        align     = elemType.alignOf(ctx);
+            const uint64_t  elemSize  = elemType.sizeOf(ctx);
+            if (!align)
+                align = 1;
+
+            if (!elemSize)
+                continue;
+
+            offset = alignUpTo(offset, align);
+            SWC_ASSERT(offset + elemSize <= dstBytes.size());
+
+            if (index < values.size())
+                SWC_RESULT(lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + offset, static_cast<size_t>(elemSize)}, elemTypeRef, values[index]));
+
+            offset += elemSize;
+            ++index;
+        }
+
+        return Result::Continue;
+    }
+
     Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
     {
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
@@ -351,6 +388,36 @@ namespace
 
             SWC_ASSERT(cst.isAggregateArray());
             return lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, cst.getAggregateArray());
+        }
+
+        if (dstType.isAggregateStruct())
+        {
+            if (cst.isStruct())
+            {
+                const auto bytes = cst.getStruct();
+                SWC_ASSERT(bytes.size() == dstBytes.size());
+                if (!dstBytes.empty())
+                    std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+                return Result::Continue;
+            }
+
+            SWC_ASSERT(cst.isAggregateStruct());
+            return lowerAggregateTupleToBytesInternal(sema, dstBytes, dstType, cst.getAggregateStruct());
+        }
+
+        if (dstType.isAggregateArray())
+        {
+            if (cst.isStruct())
+            {
+                const auto bytes = cst.getStruct();
+                SWC_ASSERT(bytes.size() == dstBytes.size());
+                if (!dstBytes.empty())
+                    std::memcpy(dstBytes.data(), bytes.data(), dstBytes.size());
+                return Result::Continue;
+            }
+
+            SWC_ASSERT(cst.isAggregateArray());
+            return lowerAggregateTupleToBytesInternal(sema, dstBytes, dstType, cst.getAggregateArray());
         }
 
         if (dstType.isBool())
@@ -607,6 +674,39 @@ namespace
 
             case TypeInfoKind::Struct:
                 return materializeStaticStruct(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
+
+            case TypeInfoKind::AggregateStruct:
+            case TypeInfoKind::AggregateArray:
+            {
+                TaskContext& ctx    = sema.ctx();
+                uint64_t     offset = 0;
+
+                for (const TypeRef elemTypeRef : typeInfo.payloadAggregate().types)
+                {
+                    const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
+                    uint32_t        align    = elemType.alignOf(ctx);
+                    const uint64_t  elemSize = elemType.sizeOf(ctx);
+                    if (!align)
+                        align = 1;
+
+                    if (!elemSize)
+                        continue;
+
+                    offset = alignUpTo(offset, align);
+                    if (offset + elemSize > dstBytes.size())
+                        return Result::Error;
+
+                    SWC_RESULT(materializeStaticPayloadInPlace(sema,
+                                                               segment,
+                                                               elemTypeRef,
+                                                               baseOffset + static_cast<uint32_t>(offset),
+                                                               ByteSpanRW{dstBytes.data() + offset, static_cast<size_t>(elemSize)},
+                                                               ByteSpan{srcBytes.data() + offset, static_cast<size_t>(elemSize)}));
+                    offset += elemSize;
+                }
+
+                return Result::Continue;
+            }
 
             case TypeInfoKind::Interface:
                 return materializeStaticInterface(sema, segment, baseOffset, dstBytes, srcBytes);

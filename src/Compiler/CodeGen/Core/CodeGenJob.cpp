@@ -70,14 +70,18 @@ JobResult CodeGenJob::exec()
         return JobResult::Done;
     }
 
-    SmallVector<SymbolFunction*> deps;
-    symbolFunc_->appendCallDependencies(deps);
-
-    // Wait for sema completion on this function and all direct codegen dependencies.
-    ///////////////////////////////////////////
     const Result selfWaitResult = sema().waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
     if (selfWaitResult != Result::Continue)
         return toJobResult(ctx(), selfWaitResult);
+
+    SmallVector<SymbolFunction*> deps;
+    symbolFunc_->appendCallDependencies(deps);
+
+    // Collect dependencies only after sema completion. The call graph can still
+    // grow while semantic analysis is running, and codegen can discover extra
+    // lowering-time helpers later, so we refresh it again below before
+    // declaring codegen completed.
+    ///////////////////////////////////////////
     for (const SymbolFunction* dep : deps)
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
@@ -118,10 +122,27 @@ JobResult CodeGenJob::exec()
             return toJobResult(ctx(), emitResult);
     }
 
-    // Finalize only when dependency codegen is already pre-solved or completed.
+    SmallVector<SymbolFunction*> finalDeps;
+    symbolFunc_->appendCallDependencies(finalDeps);
+
+    // Finalize only when every dependency observed after codegen has reached a
+    // lowered state. This preserves parallel scheduling while ensuring
+    // functions discovered during sema/codegen are also joined.
     ///////////////////////////////////////////
-    for (const SymbolFunction* dep : deps)
+    for (SymbolFunction* dep : finalDeps)
     {
+        const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
+        if (depWaitResult != Result::Continue)
+            return toJobResult(ctx(), depWaitResult);
+
+        if (dep->tryMarkCodeGenJobScheduled())
+        {
+            const AstNodeRef depRoot = dep->declNodeRef();
+            SWC_ASSERT(depRoot.isValid());
+            auto* depJob = heapNew<CodeGenJob>(ctx(), sema(), *dep, depRoot);
+            sema().compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema().compiler().jobClientId());
+        }
+
         if (!dep->isCodeGenPreSolved() && !dep->isCodeGenCompleted())
             return waitCodeGenPreSolved(ctx(), *symbolFunc_, *dep, root_);
     }

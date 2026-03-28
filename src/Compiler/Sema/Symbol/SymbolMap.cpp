@@ -10,10 +10,31 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void prependSymbol(Symbol*& head, Symbol* symbol)
+    bool symbolDeclaredBefore(const Symbol& lhs, const Symbol& rhs)
     {
-        symbol->setNextHomonym(head);
-        head = symbol;
+        if (lhs.srcViewRef() != rhs.srcViewRef())
+            return lhs.srcViewRef() < rhs.srcViewRef();
+        if (lhs.tokRef() != rhs.tokRef())
+            return lhs.tokRef() < rhs.tokRef();
+        return lhs.kind() < rhs.kind();
+    }
+
+    Symbol* insertSymbolOrdered(Symbol*& head, Symbol* symbol)
+    {
+        if (!head || symbolDeclaredBefore(*symbol, *head))
+        {
+            symbol->setNextHomonym(head);
+            head = symbol;
+            return head;
+        }
+
+        Symbol* current = head;
+        while (current->nextHomonym() && !symbolDeclaredBefore(*symbol, *current->nextHomonym()))
+            current = current->nextHomonym();
+
+        symbol->setNextHomonym(current->nextHomonym());
+        current->setNextHomonym(symbol);
+        return head;
     }
 
 #if SWC_HAS_STATS
@@ -120,7 +141,8 @@ Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* s
 #endif
 
     Symbol*& head = shard.map[idRef];
-    prependSymbol(head, symbol);
+    Symbol* insertedHead = insertSymbolOrdered(head, symbol);
+    symbol->setOwnerSymMap(this);
 
 #if SWC_HAS_STATS
     const size_t afterStorage = symbolMapStorageReserved(shard.map);
@@ -129,7 +151,7 @@ Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* s
 
     if (notify)
         ctx.compiler().notifyAlive();
-    return symbol;
+    return insertedHead;
 }
 
 void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
@@ -269,11 +291,11 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     // Sharded fast path.
     if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
+        const bool hadOwner = symbol->ownerSymMap() == this;
         Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
-        if (insertedSym == symbol)
+        if (!hadOwner && symbol->ownerSymMap() == this)
         {
             count_++;
-            symbol->setOwnerSymMap(this);
         }
 
         return insertedSym;
@@ -285,11 +307,11 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
         lk.unlock();
+        const bool hadOwner = symbol->ownerSymMap() == this;
         Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
-        if (insertedSym == symbol)
+        if (!hadOwner && symbol->ownerSymMap() == this)
         {
             count_++;
-            symbol->setOwnerSymMap(this);
         }
 
         return insertedSym;
@@ -303,9 +325,9 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
                 return e->head;
             count_++;
             symbol->setOwnerSymMap(this);
-            prependSymbol(e->head, symbol);
+            Symbol* insertedHead = insertSymbolOrdered(e->head, symbol);
             ctx.compiler().notifyAlive();
-            return symbol;
+            return insertedHead;
         }
 
         if (smallSize_ < SMALL_CAP)
@@ -338,11 +360,11 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
         lk.unlock();
+        const bool hadOwner = symbol->ownerSymMap() == this;
         Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
-        if (insertedSym == symbol)
+        if (!hadOwner && symbol->ownerSymMap() == this)
         {
             count_++;
-            symbol->setOwnerSymMap(this);
         }
 
         return insertedSym;
@@ -360,7 +382,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     const size_t beforeStorage = symbolMapStorageReserved(bigMap_);
 #endif
     Symbol*& head = bigMap_[idRef];
-    prependSymbol(head, symbol);
+    Symbol* insertedHead = insertSymbolOrdered(head, symbol);
 #if SWC_HAS_STATS
     const size_t afterStorage = symbolMapStorageReserved(bigMap_);
     updateSymbolMapStorageStats(beforeStorage, afterStorage);
@@ -368,15 +390,28 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     count_++;
     symbol->setOwnerSymMap(this);
     ctx.compiler().notifyAlive();
-    return symbol;
+    return insertedHead;
 }
 
 Symbol* SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)
 {
     TaskContext& ctx         = sema.ctx();
     Symbol*      insertedSym = addSymbol(ctx, symbol, true);
-    if (symbol->nextHomonym())
-        SemaError::raiseAlreadyDefined(sema, symbol, symbol->nextHomonym());
+    if (!insertedSym)
+        return nullptr;
+
+    if (insertedSym != symbol)
+    {
+        symbol->setIgnored(ctx);
+        SemaError::raiseAlreadyDefined(sema, symbol, insertedSym);
+    }
+    else if (symbol->nextHomonym())
+    {
+        Symbol* duplicateSymbol = symbol->nextHomonym();
+        duplicateSymbol->setIgnored(ctx);
+        SemaError::raiseAlreadyDefined(sema, duplicateSymbol, symbol);
+    }
+
     return insertedSym;
 }
 

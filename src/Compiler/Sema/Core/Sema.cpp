@@ -643,15 +643,28 @@ Result Sema::postDecl(AstNode& node)
 
 Result Sema::preNode(AstNode& node)
 {
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.semaPreNode(*this, node);
+    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
+    const Result         result = info.semaPreNode(*this, node);
+    if (result != Result::Continue)
+        return result;
+
+    const SemaNodeView view = viewSymbol(curNodeRef());
+    if (view.hasSymbol() && view.sym() && view.sym()->isIgnored())
+        return Result::SkipChildren;
+
+    return Result::Continue;
 }
 
 Result Sema::postNode(AstNode& node)
 {
     const AstNodeRef     nodeRef = curNodeRef();
+    const SemaNodeView   view    = viewSymbol(nodeRef);
     const AstNodeIdInfo& info    = Ast::nodeIdInfos(node.id());
-    const Result         result  = info.semaPostNode(*this, node);
+
+    auto result = Result::Continue;
+    if (!(view.hasSymbol() && view.sym() && view.sym()->isIgnored()))
+        result = info.semaPostNode(*this, node);
+
     if (result == Result::Continue)
     {
         processDeferredPopsPostNode(nodeRef);
@@ -671,7 +684,11 @@ void Sema::errorCleanupNode(AstNodeRef nodeRef, AstNode& node)
         return;
 
     Symbol* const sym = view.sym();
-    if (sym != nullptr && !sym->isSemaCompleted())
+    // Only declaration nodes own the lifetime of their attached symbol. Use
+    // sites can also carry resolved symbols (identifiers, calls, etc.), and a
+    // failure while sema-ing those nodes must not invalidate the referenced
+    // declaration in another parallel job.
+    if (sym != nullptr && sym->decl() == &node && !sym->isSemaCompleted())
         sym->setIgnored(ctx());
 }
 

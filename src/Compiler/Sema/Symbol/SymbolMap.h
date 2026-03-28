@@ -54,7 +54,7 @@ private:
 
     static uint32_t shardIndex(IdentifierRef idRef) noexcept { return idRef.get() & (SHARD_COUNT - 1); }
     void            maybeUpgradeToSharded(TaskContext& ctx);
-    static Symbol*  insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
+    Symbol*         insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* symbol, TaskContext& ctx, bool acceptHomonyms, bool notify);
 };
 
 template<SymbolKind K, typename E = void>

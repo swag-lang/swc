@@ -12,6 +12,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool symbolDeclaredBefore(const Symbol& lhs, const Symbol& rhs)
+    {
+        if (lhs.srcViewRef() != rhs.srcViewRef())
+            return lhs.srcViewRef() < rhs.srcViewRef();
+        if (lhs.tokRef() != rhs.tokRef())
+            return lhs.tokRef() < rhs.tokRef();
+        return lhs.kind() < rhs.kind();
+    }
+
     void addSymMap(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchContext::Priority& priority)
     {
         SWC_ASSERT(symMap != nullptr);
@@ -222,6 +231,9 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 
 Result Match::ghosting(Sema& sema, const Symbol& sym)
 {
+    if (sym.isIgnored())
+        return Result::Continue;
+
     MatchContext lookUpCxt;
     lookUpCxt.codeRef = sym.codeRef();
 
@@ -238,7 +250,8 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     if (lookUpCxt.count() == 1)
         return Result::Continue;
 
-    const SymbolMap* symMapOfSym = sym.ownerSymMap();
+    const SymbolMap* symMapOfSym            = sym.ownerSymMap();
+    bool             reportedLaterDuplicate = false;
 
     for (const Symbol* other : lookUpCxt.symbols())
     {
@@ -258,12 +271,27 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
                 continue;
         }
 
+        if (symbolDeclaredBefore(sym, *other))
+        {
+            auto* duplicateSymbol = const_cast<Symbol*>(other);
+            duplicateSymbol->setIgnored(sema.ctx());
+            SemaError::raiseAlreadyDefined(sema, duplicateSymbol, &sym);
+            reportedLaterDuplicate = true;
+            continue;
+        }
+
+        const_cast<Symbol&>(sym).setIgnored(sema.ctx());
         return SemaError::raiseAlreadyDefined(sema, &sym, other);
     }
+
+    if (reportedLaterDuplicate)
+        return Result::Continue;
 
     for (const Symbol* other : lookUpCxt.symbols())
     {
         if (other == &sym)
+            continue;
+        if (other->isIgnored())
             continue;
 
         if (sym.acceptOverloads() && other->acceptOverloads())

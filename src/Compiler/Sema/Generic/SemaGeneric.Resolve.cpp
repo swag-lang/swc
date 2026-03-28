@@ -102,7 +102,6 @@ namespace SemaGeneric
             if (!typeRef.isValid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
 
-            outArg.exprRef = nodeRef;
             outArg.typeRef = typeRef;
             outArg.present = true;
             return Result::Continue;
@@ -110,7 +109,9 @@ namespace SemaGeneric
 
         if (view.typeRef().isValid() && !sema.isValue(nodeRef))
         {
-            outArg.exprRef = nodeRef;
+            // Explicit type arguments must be self-contained for nested generic
+            // instantiations. Keep the resolved type, not the original syntax node,
+            // otherwise an inner clone can accidentally reintroduce outer bindings.
             outArg.typeRef = view.typeRef();
             outArg.present = true;
             return Result::Continue;

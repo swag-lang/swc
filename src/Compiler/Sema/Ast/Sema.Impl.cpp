@@ -9,6 +9,22 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result AstImpl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeIdentRef || childRef == nodeForRef)
+        return Result::Continue;
+
+    const SymbolImpl* symImpl = sema.frame().currentImpl();
+    if (!symImpl || !symImpl->isForStruct())
+        return Result::Continue;
+
+    const SymbolStruct* symStruct = symImpl->symStruct();
+    if (!symStruct || !symStruct->isGenericRoot())
+        return Result::Continue;
+
+    return Result::SkipChildren;
+}
+
 Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIdentRef)

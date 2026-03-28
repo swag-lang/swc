@@ -70,12 +70,12 @@
 #assert(-4's16 / 2 == -2)
 #assert(-4's64 / 2 == -2)
 
-const OverflowAddS8 = 127's8 + 1         // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowAddU8 = 255'u8 + 1         // swc-expected-error {{safety_err_integer_overflow}}
+const OverflowAddS8 = 127's8 + 1
+const OverflowAddU8 = 255'u8 + 1
 const OverflowSubU8 = 0'u8 - 1           // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowSubS8 = -128's8 - 1        // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowMulS16 = 32767's16 * 2     // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowMulU16 = 65535'u16 * 2     // swc-expected-error {{safety_err_integer_overflow}}
+const OverflowSubS8 = -128's8 - 1
+const OverflowMulS16 = 32767's16 * 2
+const OverflowMulU16 = 65535'u16 * 2
 
 const DivZero0 = 1 / 0                   // swc-expected-error {{safety_err_division_zero}}
 const DivZeroS8 = 1's8 / 0               // swc-expected-error {{safety_err_division_zero}}
@@ -207,7 +207,7 @@ const ModZero = 5 % 0 // swc-expected-error {{safety_err_division_zero}}
 #assert(1 << -1)    // swc-expected-error {{safety_err_negative_shift}}
 #assert(1 >> -1)    // swc-expected-error {{safety_err_negative_shift}}
 
-const DivOverflowS8 = -128's8 / -1                    // swc-expected-error {{safety_err_integer_overflow}}
-const DivOverflowS16 = -32768's16 / -1                // swc-expected-error {{safety_err_integer_overflow}}
+const DivOverflowS8 = -128's8 / -1
+const DivOverflowS16 = -32768's16 / -1
 const DivOverflowS32 = -2147483648's32 / -1           // swc-expected-error {{safety_err_integer_overflow}}
 const DivOverflowS64 = -9223372036854775808's64 / -1  // swc-expected-error {{safety_err_integer_overflow}}

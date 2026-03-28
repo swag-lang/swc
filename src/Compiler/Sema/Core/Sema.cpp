@@ -72,9 +72,15 @@ Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass) :
 }
 
 Sema::Sema(TaskContext& ctx, Sema& parent, AstNodeRef root) :
+    Sema(ctx, parent, root, false)
+{
+}
+
+Sema::Sema(TaskContext& ctx, Sema& parent, AstNodeRef root, bool declPass) :
     ctx_(&ctx),
     nodePayloadContext_(parent.nodePayloadContext_),
-    startSymMap_(parent.curScope_ ? (parent.curScope_->isTopLevel() ? SemaFrame::currentSymMap(parent) : parent.curScope_->symMap()) : parent.startSymMap_)
+    startSymMap_(parent.curScope_ ? (parent.curScope_->isTopLevel() ? SemaFrame::currentSymMap(parent) : parent.curScope_->symMap()) : parent.startSymMap_),
+    declPass_(declPass)
 {
     visit_.start(nodePayloadContext_->ast(), root);
     pushFrame(parent.frame());
@@ -555,7 +561,11 @@ void Sema::prepareGenericInstantiationContext(SymbolMap* startSymMap, SymbolImpl
         startSymMap_ = startSymMap;
 
     scopes_.clear();
-    scopes_.emplace_back(std::make_unique<SemaScope>(SemaScopeFlagsE::TopLevel, nullptr));
+    SemaScopeFlags scopeFlags = SemaScopeFlagsE::TopLevel;
+    if (impl)
+        scopeFlags.add(SemaScopeFlagsE::Impl);
+
+    scopes_.emplace_back(std::make_unique<SemaScope>(scopeFlags, nullptr));
     curScope_ = scopes_.back().get();
     curScope_->setSymMap(startSymMap_);
 

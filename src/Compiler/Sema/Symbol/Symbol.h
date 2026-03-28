@@ -212,8 +212,7 @@ public:
         if (running_ && ownerThread_ == currentThread)
             return false;
 
-        cv_.wait(lock, [&]
-        {
+        cv_.wait(lock, [&] {
             return !running_ || symbol.isSemaCompleted() || symbol.isIgnored();
         });
 

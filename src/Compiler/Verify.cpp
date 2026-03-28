@@ -226,16 +226,24 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
 
 void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
 {
-    const std::scoped_lock lk(directivesMutex_);
-
-    for (const VerifyDirective& directive : directives_)
+    std::vector<SourceCodeRange> missingRanges;
     {
-        if (!directive.touched)
+        const std::scoped_lock lk(directivesMutex_);
+        missingRanges.reserve(directives_.size());
+        for (const VerifyDirective& directive : directives_)
         {
-            const Diagnostic diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.fileRef());
-            diag.last().addSpan(directive.myCodeRange, "");
-            diag.report(ctx);
+            if (!directive.touched)
+                missingRanges.push_back(directive.myCodeRange);
         }
+    }
+
+    // Reporting re-enters source-driven verification through Diagnostic::report,
+    // so keep it outside the directives mutex to avoid recursive locking.
+    for (const SourceCodeRange& missingRange : missingRanges)
+    {
+        const Diagnostic diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.fileRef());
+        diag.last().addSpan(missingRange, "");
+        diag.report(ctx);
     }
 }
 
@@ -246,15 +254,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
     auto emitDirective = [](std::vector<VerifyDirective>& directives, const VerifyDirective& directive, std::string_view match) {
         VerifyDirective dir = directive;
         dir.match           = match;
-
-        size_t repeatCount = 1;
-        if (!directive.allowedLines.empty())
-            repeatCount = directive.allowedLines.size();
-        else if (directive.lineMin != 0 && directive.lineMax != 0 && directive.lineMin != directive.lineMax)
-            repeatCount = directive.lineMax - directive.lineMin + 1;
-
-        for (size_t idx = 0; idx < repeatCount; idx++)
-            directives.emplace_back(dir);
+        directives.emplace_back(std::move(dir));
     };
 
     size_t pos = 0;

@@ -15,24 +15,22 @@ namespace
 
     const SemaClone::CloneContext& cloneContextAsInline(const CloneContext& cloneContext)
     {
-        return reinterpret_cast<const SemaClone::CloneContext&>(cloneContext);
+        return static_cast<const SemaClone::CloneContext&>(cloneContext);
     }
 
-    SemaClone::CloneContext cloneContextWithoutReplacements(const CloneContext& cloneContext)
+    SemaClone::CloneContext cloneContextWithoutReplacements(const SemaClone::CloneContext& cloneContext)
     {
-        const auto& inlineContext = cloneContextAsInline(cloneContext);
-        return SemaClone::CloneContext{inlineContext.bindings};
+        return SemaClone::CloneContext{cloneContext.bindings};
     }
 
-    SemaClone::CloneContext cloneContextWithoutBindings(const CloneContext& cloneContext)
+    SemaClone::CloneContext cloneContextWithoutBindings(const SemaClone::CloneContext& cloneContext)
     {
-        const auto& inlineContext = cloneContextAsInline(cloneContext);
-        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, inlineContext.replacements};
+        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements};
     }
 
-    const SemaClone::ParamBinding* findBinding(const CloneContext& cloneContext, IdentifierRef idRef)
+    const SemaClone::ParamBinding* findBinding(const SemaClone::CloneContext& cloneContext, IdentifierRef idRef)
     {
-        for (const SemaClone::ParamBinding& binding : cloneContextAsInline(cloneContext).bindings)
+        for (const SemaClone::ParamBinding& binding : cloneContext.bindings)
         {
             if (binding.idRef == idRef)
                 return &binding;
@@ -41,9 +39,9 @@ namespace
         return nullptr;
     }
 
-    const SemaClone::NodeReplacement* findReplacement(const CloneContext& cloneContext, AstNodeId nodeId)
+    const SemaClone::NodeReplacement* findReplacement(const SemaClone::CloneContext& cloneContext, AstNodeId nodeId)
     {
-        for (const SemaClone::NodeReplacement& replacement : cloneContextAsInline(cloneContext).replacements)
+        for (const SemaClone::NodeReplacement& replacement : cloneContext.replacements)
         {
             if (replacement.nodeId == nodeId)
                 return &replacement;
@@ -76,14 +74,14 @@ namespace
         return newRef;
     }
 
-    AstNodeRef cloneNodeRef(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
+    AstNodeRef cloneNodeRef(Sema& sema, AstNodeRef nodeRef, const SemaClone::CloneContext& cloneContext)
     {
         if (nodeRef.isInvalid())
             return AstNodeRef::invalid();
-        return SemaClone::cloneAst(sema, nodeRef, cloneContextAsInline(cloneContext));
+        return SemaClone::cloneAst(sema, nodeRef, cloneContext);
     }
 
-    AstNodeRef cloneNodeRefWithoutReplacements(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
+    AstNodeRef cloneNodeRefWithoutReplacements(Sema& sema, AstNodeRef nodeRef, const SemaClone::CloneContext& cloneContext)
     {
         if (nodeRef.isInvalid())
             return AstNodeRef::invalid();
@@ -92,7 +90,7 @@ namespace
         return SemaClone::cloneAst(sema, nodeRef, noReplacements);
     }
 
-    AstNodeRef cloneNodeRefWithoutBindings(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
+    AstNodeRef cloneNodeRefWithoutBindings(Sema& sema, AstNodeRef nodeRef, const SemaClone::CloneContext& cloneContext)
     {
         if (nodeRef.isInvalid())
             return AstNodeRef::invalid();
@@ -101,7 +99,7 @@ namespace
         return SemaClone::cloneAst(sema, nodeRef, noBindings);
     }
 
-    AstNodeRef cloneNodeReplacement(Sema& sema, const AstNode& node, const CloneContext& cloneContext)
+    AstNodeRef cloneNodeReplacement(Sema& sema, const AstNode& node, const SemaClone::CloneContext& cloneContext)
     {
         const auto* replacement = findReplacement(cloneContext, node.id());
         if (!replacement)
@@ -149,7 +147,7 @@ namespace
             sema.setType(clonedRef, storedView.typeRef());
     }
 
-    SpanRef cloneSpan(Sema& sema, SpanRef spanRef, const CloneContext& cloneContext)
+    SpanRef cloneSpan(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)
     {
         if (spanRef.isInvalid())
             return SpanRef::invalid();
@@ -163,7 +161,7 @@ namespace
         cloned.reserve(children.size());
         for (const AstNodeRef childRef : children)
         {
-            const AstNodeRef clonedRef = SemaClone::cloneAst(sema, childRef, cloneContextAsInline(cloneContext));
+            const AstNodeRef clonedRef = SemaClone::cloneAst(sema, childRef, cloneContext);
             if (clonedRef.isInvalid())
                 return SpanRef::invalid();
             cloned.push_back(clonedRef);
@@ -172,7 +170,7 @@ namespace
         return sema.ast().pushSpan(cloned.span());
     }
 
-    SpanRef cloneSpanWithoutReplacements(Sema& sema, SpanRef spanRef, const CloneContext& cloneContext)
+    SpanRef cloneSpanWithoutReplacements(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)
     {
         if (spanRef.isInvalid())
             return SpanRef::invalid();
@@ -181,7 +179,7 @@ namespace
         return cloneSpan(sema, spanRef, noReplacements);
     }
 
-    AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const CloneContext& cloneContext)
+    AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const SemaClone::CloneContext& cloneContext)
     {
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
         if (const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef))
@@ -961,7 +959,7 @@ AstNodeRef AstQuotedExpr::semaClone(Sema& sema, const CloneContext& cloneContext
 AstNodeRef AstQuotedListExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::QuotedListExpr>(tokRef());
-    const auto noReplacements = cloneContextWithoutReplacements(cloneContext);
+    const auto noReplacements = cloneContextWithoutReplacements(cloneContextAsInline(cloneContext));
     newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, noReplacements);
     newPtr->spanChildrenRef   = cloneSpan(sema, spanChildrenRef, noReplacements);
     return newRef;

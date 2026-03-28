@@ -1,46 +1,41 @@
 #global fileprivate
 
-// @bug Generic struct methods are not working yet.
-// struct(T) Container
-// {
-//     value: T
-//     count: s32
-// }
-//
-// impl Container
-// {
-//     mtd getValue()->T => .value
-//     mtd getCount()->s32 => .count
-//
-//     mtd setValue(v: T)
-//     {
-//         .value = v
-//     }
-//
-//     mtd isCountEqual(n: s32)->bool => .count == n
-// }
-//
-// #test
-// {
-//     var c: Container's32 = {value: 10, count: 1}
-//     @assert(c.getValue() == 10)
-//     @assert(c.getCount() == 1)
-//     @assert(c.isCountEqual(1) == true)
-//     @assert(c.isCountEqual(2) == false)
-//
-//     c.setValue(20)
-//     @assert(c.getValue() == 20)
-// }
-//
-// #test
-// {
-//     var c: Container'string = {value: "hello", count: 5}
-//     @assert(c.getValue() == "hello")
-//     @assert(c.getCount() == 5)
-//
-//     c.setValue("world")
-//     @assert(c.getValue() == "world")
-// }
+// Regression coverage for generic struct methods.
+struct(T) Container
+{
+    value: T
+    count: s32
+}
+impl Container
+{
+    mtd getValue()->T => .value
+    mtd getCount()->s32 => .count
+    mtd setValue(v: T)
+    {
+        .value = v
+    }
+    mtd isCountEqual(n: s32)->bool => .count == n
+}
+#test
+{
+    var c: Container's32 = {value: 10, count: 1}
+    @assert(c.getValue() == 10)
+    @assert(c.getCount() == 1)
+    @assert(c.isCountEqual(1) == true)
+    @assert(c.isCountEqual(2) == false)
+    c.setValue(20)
+    @assert(c.getValue() == 20)
+}
+
+#test
+{
+    var c: Container'string = {value: "hello", count: 5}
+    @assert(c.getValue() == "hello")
+    @assert(c.getCount() == 5)
+
+    c.setValue("world")
+    @assert(c.getValue() == "world")
+}
 //
 // // --- Generic struct with const param and methods ---
 //

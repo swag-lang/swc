@@ -553,7 +553,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             uint64_t       ptr       = 0;
             if (valueSize)
             {
-                std::vector<std::byte> valueBytes(valueSize, std::byte{0});
+                std::vector valueBytes(valueSize, std::byte{0});
                 SWC_RESULT(ConstantLower::lowerToBytes(sema, asByteSpan(valueBytes), castRequest.constantFoldingSrc(), srcTypeRef));
                 const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(valueBytes)));
                 ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());

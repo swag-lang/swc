@@ -527,7 +527,7 @@ SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericArgKe
         bool same = true;
         for (size_t i = 0; i < args.size(); ++i)
         {
-            if (!(entry.args[i] == args[i]))
+            if (entry.args[i] != args[i])
             {
                 same = false;
                 break;

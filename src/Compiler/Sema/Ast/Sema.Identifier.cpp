@@ -139,8 +139,8 @@ namespace
         sema.ast().appendNodes(outArgs, node.spanChildrenRef);
     }
 
-    template<typename TQuotedNode>
-    Result semaQuotedGenericCommon(Sema& sema, const TQuotedNode& node)
+    template<typename T>
+    Result semaQuotedGenericCommon(Sema& sema, const T& node)
     {
         SmallVector<AstNodeRef> genericArgs;
         collectQuotedGenericArgs(sema, node, genericArgs);

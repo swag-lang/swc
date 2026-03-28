@@ -277,7 +277,7 @@ SymbolStruct* SymbolStruct::findGenericInstance(std::span<const GenericArgKey> a
         bool same = true;
         for (size_t i = 0; i < args.size(); ++i)
         {
-            if (!(entry.args[i] == args[i]))
+            if (entry.args[i] != args[i])
             {
                 same = false;
                 break;

@@ -87,7 +87,7 @@ namespace
             return false;
 
         const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-        if (typeInfo.isIntUnsized() || typeInfo.isFloatUnsized() || typeInfo.isVoid() || typeInfo.isUndefined() || typeInfo.isAnyVariadic())
+        if (typeInfo.isScalarUnsized() || typeInfo.isVoid() || typeInfo.isUndefined() || typeInfo.isAnyVariadic())
             return false;
 
         if (typeInfo.isArray())

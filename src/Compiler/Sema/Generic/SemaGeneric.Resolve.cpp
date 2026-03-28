@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 
@@ -134,7 +134,7 @@ namespace SemaGeneric
         if (outArg.typeRef.isValid())
         {
             const TypeInfo& typeInfo = sema.typeMgr().get(outArg.typeRef);
-            if ((typeInfo.isIntUnsized() || typeInfo.isFloatUnsized()) && outArg.cstRef.isValid())
+            if (typeInfo.isScalarUnsized() && outArg.cstRef.isValid())
             {
                 ConstantRef newCstRef = ConstantRef::invalid();
                 SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeRef, outArg.cstRef, TypeInfo::Sign::Unknown));

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Generic/SemaGenericTraits.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 
 SWC_BEGIN_NAMESPACE();

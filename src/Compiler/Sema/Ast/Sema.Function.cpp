@@ -386,7 +386,7 @@ namespace
             return Result::Continue;
 
         const TypeInfo& typeInfo = sema.typeMgr().get(ioTypeRef);
-        if ((typeInfo.isIntUnsized() || typeInfo.isFloatUnsized()) && sema.viewConstant(exprRef).hasConstant())
+        if (typeInfo.isScalarUnsized() && sema.viewConstant(exprRef).hasConstant())
         {
             const ConstantRef exprCstRef = sema.viewConstant(exprRef).cstRef();
             SWC_ASSERT(exprCstRef.isValid());

@@ -121,6 +121,11 @@ impl Accumulator
     @assert(acc.get() == 0)
     acc.set(100)
     @assert(acc.get() == 100)
+
+    var acc1: Accumulator'bool = {value: false}
+    @assert(acc1.get() == false)
+    acc1.set(true)
+    @assert(acc1.get() == true)
 }
 
 // --- Generic struct with method that takes another generic struct ---

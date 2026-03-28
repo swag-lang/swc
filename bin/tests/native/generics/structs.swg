@@ -228,23 +228,20 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
     @assert(nested.second.second == 4.0)
 }
 
-// @bug Generic functions returning generic structs are not working yet.
-// func(T) makeBox(value: T)->Box'T
-// {
-//     return {value: value}
-// }
-//
-// #test
-// {
-//     let b = makeBox(42)
-//     @assert(b.value == 42)
-//
-//     let b2 = makeBox("hello")
-//     @assert(b2.value == "hello")
-//
-//     let b3 = makeBox(true)
-//     @assert(b3.value == true)
-// }
+func(T) makeBox(value: T)->Box'T
+{
+    return {value: value}
+}
+
+#test
+{
+    let b = makeBox(42)
+    @assert(b.value == 42)
+    let b2 = makeBox("hello")
+    @assert(b2.value == "hello")
+    let b3 = makeBox(true)
+    @assert(b3.value == true)
+}
 
 // --- Unbox generic function ---
 

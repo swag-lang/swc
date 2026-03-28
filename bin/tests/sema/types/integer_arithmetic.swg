@@ -70,12 +70,12 @@
 #assert(-4's16 / 2 == -2)
 #assert(-4's64 / 2 == -2)
 
-const OverflowAddS8 = 127's8 + 1
-const OverflowAddU8 = 255'u8 + 1
-const OverflowSubU8 = 0'u8 - 1           // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowSubS8 = -128's8 - 1
-const OverflowMulS16 = 32767's16 * 2
-const OverflowMulU16 = 65535'u16 * 2
+const OverflowAddS8 = 127's8 + 1's8         // swc-expected-error {{safety_err_integer_overflow}}
+const OverflowAddU8 = 255'u8 + 1'u8         // swc-expected-error {{safety_err_integer_overflow}}
+const OverflowSubU8 = 0'u8 - 1'u8           // swc-expected-error {{safety_err_integer_overflow}}
+const OverflowSubS8 = -128's8 - 1's8        // swc-expected-error {{safety_err_integer_overflow}}
+const OverflowMulS16 = 32767's16 * 2's16    // swc-expected-error {{safety_err_integer_overflow}}
+const OverflowMulU16 = 65535'u16 * 2'u16    // swc-expected-error {{safety_err_integer_overflow}}
 
 const DivZero0 = 1 / 0                   // swc-expected-error {{safety_err_division_zero}}
 const DivZeroS8 = 1's8 / 0               // swc-expected-error {{safety_err_division_zero}}
@@ -88,15 +88,15 @@ const DivZeroU32 = 1'u32 / 0             // swc-expected-error {{safety_err_divi
 const DivZeroU64 = 1'u64 / 0             // swc-expected-error {{safety_err_division_zero}}
 const DivZeroUnsized = 0 / 0             // swc-expected-error {{safety_err_division_zero}}
 
-const InvalidWrapFloat = 127.0 + #wrap 1       // swc-expected-error {{sema_err_modifier_only_integer}}
-const InvalidPromFloat = 127.0 + #prom 1       // swc-expected-error {{sema_err_modifier_only_integer}}
-const InvalidPromWrapFloat = 127.0 + #prom #wrap 1 // swc-expected-error {{sema_err_modifier_only_integer}}
-const InvalidWrapDiv = 1 / #wrap 4             // swc-expected-error {{sema_err_modifier_unsupported}}
-const InvalidBitDiv = 1 / #bit 4               // swc-expected-error {{sema_err_modifier_unsupported}}
-const InvalidWrapInc = 1 ++ #wrap 4            // swc-expected-error {{sema_err_modifier_unsupported}}
-#assert(1 ^ #wrap 0 == 1)       // swc-expected-error {{sema_err_modifier_unsupported}}
-#assert(1 & #wrap 0 == 1)       // swc-expected-error {{sema_err_modifier_unsupported}}
-#assert(1 | #wrap 0 == 1)       // swc-expected-error {{sema_err_modifier_unsupported}}
+const InvalidWrapFloat = 127.0 + #wrap 1            // swc-expected-error {{sema_err_modifier_only_integer}}
+const InvalidPromFloat = 127.0 + #prom 1            // swc-expected-error {{sema_err_modifier_only_integer}}
+const InvalidPromWrapFloat = 127.0 + #prom #wrap 1  // swc-expected-error {{sema_err_modifier_only_integer}}
+const InvalidWrapDiv = 1 / #wrap 4                  // swc-expected-error {{sema_err_modifier_unsupported}}
+const InvalidBitDiv = 1 / #bit 4                    // swc-expected-error {{sema_err_modifier_unsupported}}
+const InvalidWrapInc = 1 ++ #wrap 4                 // swc-expected-error {{sema_err_modifier_unsupported}}
+#assert(1 ^ #wrap 0 == 1)                           // swc-expected-error {{sema_err_modifier_unsupported}}
+#assert(1 & #wrap 0 == 1)                           // swc-expected-error {{sema_err_modifier_unsupported}}
+#assert(1 | #wrap 0 == 1)                           // swc-expected-error {{sema_err_modifier_unsupported}}
 
 #assert(127's8 + #wrap 1 == 128)
 #assert(127's8 + #prom 1 == 128)

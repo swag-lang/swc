@@ -5,6 +5,7 @@
 
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -219,13 +220,6 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
 namespace
 {
-    uint64_t alignUpTo(const uint64_t value, const uint32_t alignment)
-    {
-        SWC_ASSERT(alignment != 0);
-        const uint64_t align = alignment;
-        return ((value + align - 1) / align) * align;
-    }
-
     bool validateFunctionSymbolRelocation(const NativeBackendBuilder& builder, const SymbolFunction* target)
     {
         if (!target)
@@ -415,7 +409,7 @@ bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
             if (!fieldSize)
                 continue;
 
-            offset = alignUpTo(offset, align);
+            offset = Math::alignUpU64(offset, align);
             if (offset + fieldSize > bytes.size())
                 return false;
 

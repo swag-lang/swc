@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -16,13 +17,6 @@ namespace
     Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
     Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr);
-
-    uint64_t alignUpTo(const uint64_t value, const uint32_t alignment)
-    {
-        SWC_ASSERT(alignment != 0);
-        const uint64_t align = alignment;
-        return ((value + align - 1) / align) * align;
-    }
 
     Result materializeStaticScalar(ByteSpanRW dstBytes, ByteSpan srcBytes)
     {
@@ -318,7 +312,7 @@ namespace
             if (!elemSize)
                 continue;
 
-            offset = alignUpTo(offset, align);
+            offset = Math::alignUpU64(offset, align);
             SWC_ASSERT(offset + elemSize <= dstBytes.size());
 
             if (index < values.size())
@@ -692,7 +686,7 @@ namespace
                     if (!elemSize)
                         continue;
 
-                    offset = alignUpTo(offset, align);
+                    offset = Math::alignUpU64(offset, align);
                     if (offset + elemSize > dstBytes.size())
                         return Result::Error;
 

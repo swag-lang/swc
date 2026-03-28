@@ -8,18 +8,12 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint64_t alignUpTo(const uint64_t value, const uint32_t alignment)
-    {
-        SWC_ASSERT(alignment != 0);
-        const uint64_t align = alignment;
-        return ((value + align - 1) / align) * align;
-    }
-
     bool mergeRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, uint32_t candidateShardIndex)
     {
         if (!hasRequiredShard)
@@ -165,7 +159,7 @@ namespace
                 if (!fieldSize)
                     continue;
 
-                offset = alignUpTo(offset, align);
+                offset = Math::alignUpU64(offset, align);
                 if (offset + fieldSize > payload.size())
                     return false;
 

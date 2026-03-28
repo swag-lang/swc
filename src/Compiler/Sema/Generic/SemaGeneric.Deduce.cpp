@@ -8,6 +8,81 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void appendFunctionParamNodes(Sema& sema, AstNodeRef nodeParamsRef, SmallVector<AstNodeRef>& outParams)
+    {
+        outParams.clear();
+        if (nodeParamsRef.isInvalid())
+            return;
+
+        const AstNode& paramsNode = sema.node(nodeParamsRef);
+        if (paramsNode.is(AstNodeId::FunctionParamList))
+        {
+            sema.ast().appendNodes(outParams, paramsNode.cast<AstFunctionParamList>().spanChildrenRef);
+            return;
+        }
+
+        paramsNode.collectChildrenFromAst(outParams, sema.ast());
+    }
+
+    void appendFunctionParamDesc(Sema& sema, AstNodeRef paramRef, std::vector<SemaGeneric::GenericFunctionParamDesc>& outParams)
+    {
+        if (paramRef.isInvalid())
+            return;
+
+        const AstNode* paramNode = &sema.node(paramRef);
+        while (paramNode->is(AstNodeId::AttributeList))
+        {
+            paramRef  = paramNode->cast<AstAttributeList>().nodeBodyRef;
+            paramNode = &sema.node(paramRef);
+        }
+
+        if (paramNode->is(AstNodeId::VarDeclList))
+        {
+            SmallVector<AstNodeRef> vars;
+            sema.ast().appendNodes(vars, paramNode->cast<AstVarDeclList>().spanChildrenRef);
+            for (const AstNodeRef varRef : vars)
+                appendFunctionParamDesc(sema, varRef, outParams);
+            return;
+        }
+
+        if (paramNode->is(AstNodeId::SingleVarDecl))
+        {
+            const auto&                           varDecl = paramNode->cast<AstSingleVarDecl>();
+            SemaGeneric::GenericFunctionParamDesc desc;
+            desc.idRef      = SemaHelpers::resolveIdentifier(sema, {varDecl.srcViewRef(), varDecl.tokNameRef});
+            desc.typeRef    = varDecl.typeOrInitRef();
+            desc.isVariadic = desc.typeRef.isValid() &&
+                              (sema.node(desc.typeRef).is(AstNodeId::VariadicType) || sema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
+            outParams.push_back(desc);
+            return;
+        }
+
+        if (paramNode->is(AstNodeId::MultiVarDecl))
+        {
+            const auto& multiVar = paramNode->cast<AstMultiVarDecl>();
+            SmallVector<TokenRef> tokNames;
+            sema.ast().appendTokens(tokNames, multiVar.spanNamesRef);
+            for (const TokenRef tokNameRef : tokNames)
+            {
+                SemaGeneric::GenericFunctionParamDesc desc;
+                desc.idRef      = SemaHelpers::resolveIdentifier(sema, {multiVar.srcViewRef(), tokNameRef});
+                desc.typeRef    = multiVar.typeOrInitRef();
+                desc.isVariadic = desc.typeRef.isValid() &&
+                                  (sema.node(desc.typeRef).is(AstNodeId::VariadicType) || sema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
+                outParams.push_back(desc);
+            }
+            return;
+        }
+
+        if (paramNode->is(AstNodeId::FunctionParamMe))
+        {
+            SemaGeneric::GenericFunctionParamDesc desc;
+            desc.idRef      = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+            desc.isVariadic = false;
+            outParams.push_back(desc);
+        }
+    }
+
     bool tryBindGenericTypeParam(std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, TypeRef typeRef)
     {
         for (size_t i = 0; i < params.size(); ++i)
@@ -149,43 +224,51 @@ namespace
         return Result::Continue;
     }
 
-    void collectFunctionParamDescs(Sema& sema, const AstFunctionDecl& decl, std::vector<SemaGeneric::GenericFunctionParamDesc>& outParams)
+    void collectFunctionParamDescs(Sema& sema, const SymbolFunction& root, const AstFunctionDecl& decl, std::vector<SemaGeneric::GenericFunctionParamDesc>& outParams)
     {
         outParams.clear();
+        const auto& symbolParams = root.parameters();
+        if (!symbolParams.empty())
+        {
+            outParams.reserve(symbolParams.size());
+            for (const SymbolVariable* symParam : symbolParams)
+            {
+                if (!symParam || !symParam->decl())
+                    continue;
+
+                const AstNode* paramNode = symParam->decl();
+                if (paramNode->is(AstNodeId::SingleVarDecl))
+                {
+                    const auto&                           varDecl = paramNode->cast<AstSingleVarDecl>();
+                    SemaGeneric::GenericFunctionParamDesc desc;
+                    desc.idRef      = symParam->idRef();
+                    desc.typeRef    = varDecl.typeOrInitRef();
+                    desc.isVariadic = desc.typeRef.isValid() &&
+                                      (sema.node(desc.typeRef).is(AstNodeId::VariadicType) || sema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
+                    outParams.push_back(desc);
+                }
+                else if (paramNode->is(AstNodeId::FunctionParamMe))
+                {
+                    SemaGeneric::GenericFunctionParamDesc desc;
+                    desc.idRef      = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+                    desc.isVariadic = false;
+                    outParams.push_back(desc);
+                }
+            }
+
+            if (!outParams.empty())
+                return;
+        }
+
         if (decl.nodeParamsRef.isInvalid())
             return;
 
         SmallVector<AstNodeRef> params;
-        sema.node(decl.nodeParamsRef).collectChildrenFromAst(params, sema.ast());
+        appendFunctionParamNodes(sema, decl.nodeParamsRef, params);
         outParams.reserve(params.size());
 
-        for (AstNodeRef paramRef : params)
-        {
-            const AstNode* paramNode = &sema.node(paramRef);
-            while (paramNode->is(AstNodeId::AttributeList))
-            {
-                paramRef  = paramNode->cast<AstAttributeList>().nodeBodyRef;
-                paramNode = &sema.node(paramRef);
-            }
-
-            if (paramNode->is(AstNodeId::SingleVarDecl))
-            {
-                const auto&                           varDecl = paramNode->cast<AstSingleVarDecl>();
-                SemaGeneric::GenericFunctionParamDesc desc;
-                desc.idRef      = SemaHelpers::resolveIdentifier(sema, {varDecl.srcViewRef(), varDecl.tokNameRef});
-                desc.typeRef    = varDecl.typeOrInitRef();
-                desc.isVariadic = desc.typeRef.isValid() &&
-                                  (sema.node(desc.typeRef).is(AstNodeId::VariadicType) || sema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
-                outParams.push_back(desc);
-            }
-            else if (paramNode->is(AstNodeId::FunctionParamMe))
-            {
-                SemaGeneric::GenericFunctionParamDesc desc;
-                desc.idRef      = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
-                desc.isVariadic = false;
-                outParams.push_back(desc);
-            }
-        }
+        for (const AstNodeRef paramRef : params)
+            appendFunctionParamDesc(sema, paramRef, outParams);
     }
 
     bool buildGenericCallArgMapping(Sema& sema, const std::vector<SemaGeneric::GenericFunctionParamDesc>& params, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool prependUfcsArg, SmallVector<SemaGeneric::GenericCallArgEntry>& outMapping)
@@ -254,7 +337,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         std::vector<GenericFunctionParamDesc> params;
-        collectFunctionParamDescs(sema, *decl, params);
+        collectFunctionParamDescs(sema, root, *decl, params);
 
         SmallVector<GenericCallArgEntry> mapping;
         const bool                       prependUfcsArg = ufcsArg.isValid() && !root.isMethod();

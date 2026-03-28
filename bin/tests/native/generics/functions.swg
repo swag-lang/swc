@@ -76,9 +76,9 @@ func(N: s32 = 5, M: s32 = 10) constDefaults()->s32 => N + M
     @assert(double(5) == 10)
     @assert(double(2.5) == 5.0)
 
-    // @bug Repeated type parameter inference does not resolve for generic calls yet.
-    // @assert(first(1, 2) == 1)
-    // @assert(first("a", "b") == "a")
+    // Regression: grouped generic parameters must still participate in type inference.
+    @assert(first(1, 2) == 1)
+    @assert(first("a", "b") == "a")
 
     @assert(isZero(0) == true)
     @assert(isZero(1) == false)

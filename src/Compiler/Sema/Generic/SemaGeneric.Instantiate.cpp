@@ -332,14 +332,19 @@ namespace
             {
                 GenericSemaGuard<T> guard{outInstance};
                 SWC_RESULT(Traits::runNode(sema, root, outInstance->declNodeRef()));
+
+                if constexpr (std::is_same_v<T, SymbolStruct>)
+                {
+                    // Keep impl cloning under the same generic-instance gate. Otherwise two callers can
+                    // both observe a completed struct instance with no impls yet and clone the same impls
+                    // twice, which later makes methods shadow themselves.
+                    SWC_RESULT(instantiateGenericStructImpls(sema, root, *outInstance, params, resolvedArgs));
+                }
             }
 
             if (outInstance->isIgnored())
                 return Result::Error;
         }
-
-        if constexpr (std::is_same_v<T, SymbolStruct>)
-            SWC_RESULT(instantiateGenericStructImpls(sema, root, *outInstance, params, resolvedArgs));
 
         return Result::Continue;
     }

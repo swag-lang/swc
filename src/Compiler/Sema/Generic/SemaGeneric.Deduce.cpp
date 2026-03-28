@@ -6,16 +6,18 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace SemaGenericInternal
+namespace SG = SemaGeneric;
+
+namespace
 {
-    static bool tryBindGenericTypeParam(std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, TypeRef typeRef)
+    bool tryBindGenericTypeParam(std::span<const SG::GenericParamDesc> params, std::span<SG::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, TypeRef typeRef)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
-            if (params[i].kind != GenericParamKind::Type || params[i].idRef != idRef)
+            if (params[i].kind != SG::GenericParamKind::Type || params[i].idRef != idRef)
                 continue;
 
-            GenericResolvedArg& arg = resolvedArgs[i];
+            SG::GenericResolvedArg& arg = resolvedArgs[i];
             if (!arg.present)
             {
                 arg.present = true;
@@ -30,14 +32,14 @@ namespace SemaGenericInternal
         return true;
     }
 
-    static bool tryBindGenericValueParam(std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, ConstantRef cstRef, TypeRef typeRef)
+    bool tryBindGenericValueParam(std::span<const SG::GenericParamDesc> params, std::span<SG::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, ConstantRef cstRef, TypeRef typeRef)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
-            if (params[i].kind != GenericParamKind::Value || params[i].idRef != idRef)
+            if (params[i].kind != SG::GenericParamKind::Value || params[i].idRef != idRef)
                 continue;
 
-            GenericResolvedArg& arg = resolvedArgs[i];
+            SG::GenericResolvedArg& arg = resolvedArgs[i];
             if (!arg.present)
             {
                 arg.present = true;
@@ -52,7 +54,7 @@ namespace SemaGenericInternal
         return true;
     }
 
-    static Result deduceFromTypePattern(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, TypeRef rawArgTypeRef)
+    Result deduceFromTypePattern(Sema& sema, std::span<const SG::GenericParamDesc> params, std::span<SG::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, TypeRef rawArgTypeRef)
     {
         if (patternRef.isInvalid() || !rawArgTypeRef.isValid())
             return Result::Continue;
@@ -71,7 +73,7 @@ namespace SemaGenericInternal
             return Result::Continue;
         }
 
-        const TypeRef      argTypeRef = unwrapGenericDeductionType(sema.ctx(), rawArgTypeRef);
+        const TypeRef      argTypeRef = SG::unwrapGenericDeductionType(sema.ctx(), rawArgTypeRef);
         const TypeInfo&    argType    = sema.typeMgr().get(argTypeRef);
         const TaskContext& ctx        = sema.ctx();
 
@@ -149,7 +151,7 @@ namespace SemaGenericInternal
         return Result::Continue;
     }
 
-    static void collectFunctionParamDescs(Sema& sema, const AstFunctionDecl& decl, std::vector<GenericFunctionParamDesc>& outParams)
+    void collectFunctionParamDescs(Sema& sema, const AstFunctionDecl& decl, std::vector<SG::GenericFunctionParamDesc>& outParams)
     {
         outParams.clear();
         if (decl.nodeParamsRef.isInvalid())
@@ -170,8 +172,8 @@ namespace SemaGenericInternal
 
             if (paramNode->is(AstNodeId::SingleVarDecl))
             {
-                const auto&              varDecl = paramNode->cast<AstSingleVarDecl>();
-                GenericFunctionParamDesc desc;
+                const auto&                  varDecl = paramNode->cast<AstSingleVarDecl>();
+                SG::GenericFunctionParamDesc desc;
                 desc.idRef      = SemaHelpers::resolveIdentifier(sema, {varDecl.srcViewRef(), varDecl.tokNameRef});
                 desc.typeRef    = varDecl.typeOrInitRef();
                 desc.isVariadic = desc.typeRef.isValid() &&
@@ -180,7 +182,7 @@ namespace SemaGenericInternal
             }
             else if (paramNode->is(AstNodeId::FunctionParamMe))
             {
-                GenericFunctionParamDesc desc;
+                SG::GenericFunctionParamDesc desc;
                 desc.idRef      = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
                 desc.isVariadic = false;
                 outParams.push_back(desc);
@@ -188,7 +190,7 @@ namespace SemaGenericInternal
         }
     }
 
-    static bool buildGenericCallArgMapping(Sema& sema, const std::vector<GenericFunctionParamDesc>& params, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool prependUfcsArg, SmallVector<GenericCallArgEntry>& outMapping)
+    bool buildGenericCallArgMapping(Sema& sema, const std::vector<SG::GenericFunctionParamDesc>& params, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool prependUfcsArg, SmallVector<SG::GenericCallArgEntry>& outMapping)
     {
         outMapping.clear();
 
@@ -243,7 +245,10 @@ namespace SemaGenericInternal
 
         return true;
     }
+}
 
+namespace SemaGeneric
+{
     Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, const std::vector<GenericParamDesc>& genericParams, std::vector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         const auto* decl = GenericRootTraits<SymbolFunction>::decl(root);

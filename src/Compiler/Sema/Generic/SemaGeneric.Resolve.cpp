@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace SemaGenericInternal
+namespace SemaGeneric
 {
     TypeRef unwrapGenericDeductionType(TaskContext& ctx, TypeRef typeRef)
     {

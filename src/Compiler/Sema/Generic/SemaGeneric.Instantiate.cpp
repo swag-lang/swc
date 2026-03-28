@@ -5,7 +5,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace SemaGenericInternal
+namespace SG = SemaGeneric;
+
+namespace
 {
     template<typename T>
     Result evalGenericClonedNode(Sema& sema, const T& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef)
@@ -19,38 +21,38 @@ namespace SemaGenericInternal
         if (outClonedRef.isInvalid())
             return Result::Error;
 
-        return GenericRootTraits<T>::runNode(sema, root, outClonedRef);
+        return SG::GenericRootTraits<T>::runNode(sema, root, outClonedRef);
     }
 
     template<typename T>
-    Result evalGenericDefaultArg(Sema& sema, const T& root, const std::vector<GenericParamDesc>& params, const std::vector<GenericResolvedArg>& resolvedArgs, size_t paramIndex, GenericResolvedArg& outArg)
+    Result evalGenericDefaultArg(Sema& sema, const T& root, const std::vector<SG::GenericParamDesc>& params, const std::vector<SG::GenericResolvedArg>& resolvedArgs, size_t paramIndex, SG::GenericResolvedArg& outArg)
     {
-        outArg                        = {};
-        const GenericParamDesc& param = params[paramIndex];
+        outArg                            = {};
+        const SG::GenericParamDesc& param = params[paramIndex];
         if (param.defaultRef.isInvalid())
             return Result::Continue;
 
         SmallVector<SemaClone::ParamBinding> bindings;
-        collectResolvedGenericBindings(params, resolvedArgs, paramIndex, bindings);
+        SG::collectResolvedGenericBindings(params, resolvedArgs, paramIndex, bindings);
 
         AstNodeRef clonedRef = AstNodeRef::invalid();
         SWC_RESULT(evalGenericClonedNode(sema, root, param.defaultRef, bindings, clonedRef));
         if (clonedRef.isInvalid())
             return Result::Error;
 
-        return resolveExplicitGenericArg(sema, param, clonedRef, outArg);
+        return SG::resolveExplicitGenericArg(sema, param, clonedRef, outArg);
     }
 
     template<typename T>
-    Result resolveGenericValueParamType(Sema& sema, const T& root, const std::vector<GenericParamDesc>& params, const std::vector<GenericResolvedArg>& resolvedArgs, size_t paramIndex, TypeRef& outTypeRef)
+    Result resolveGenericValueParamType(Sema& sema, const T& root, const std::vector<SG::GenericParamDesc>& params, const std::vector<SG::GenericResolvedArg>& resolvedArgs, size_t paramIndex, TypeRef& outTypeRef)
     {
-        outTypeRef                    = TypeRef::invalid();
-        const GenericParamDesc& param = params[paramIndex];
+        outTypeRef                        = TypeRef::invalid();
+        const SG::GenericParamDesc& param = params[paramIndex];
         if (param.explicitType.isInvalid())
             return Result::Continue;
 
         SmallVector<SemaClone::ParamBinding> bindings;
-        collectResolvedGenericBindings(params, resolvedArgs, paramIndex, bindings);
+        SG::collectResolvedGenericBindings(params, resolvedArgs, paramIndex, bindings);
 
         AstNodeRef clonedTypeRef = AstNodeRef::invalid();
         SWC_RESULT(evalGenericClonedNode(sema, root, param.explicitType, bindings, clonedTypeRef));
@@ -62,9 +64,9 @@ namespace SemaGenericInternal
     }
 
     template<typename T>
-    Result finalizeResolvedGenericValue(Sema& sema, const T& root, const std::vector<GenericParamDesc>& params, std::vector<GenericResolvedArg>& resolvedArgs, size_t paramIndex, AstNodeRef errorNodeRef)
+    Result finalizeResolvedGenericValue(Sema& sema, const T& root, const std::vector<SG::GenericParamDesc>& params, std::vector<SG::GenericResolvedArg>& resolvedArgs, size_t paramIndex, AstNodeRef errorNodeRef)
     {
-        GenericResolvedArg& arg = resolvedArgs[paramIndex];
+        SG::GenericResolvedArg& arg = resolvedArgs[paramIndex];
         if (!arg.present)
             return Result::Continue;
 
@@ -98,7 +100,7 @@ namespace SemaGenericInternal
         return Result::Continue;
     }
 
-    static AstNodeRef genericErrorNodeRef(std::span<const AstNodeRef> genericArgNodes, size_t paramIndex, AstNodeRef fallbackNodeRef)
+    AstNodeRef genericErrorNodeRef(std::span<const AstNodeRef> genericArgNodes, size_t paramIndex, AstNodeRef fallbackNodeRef)
     {
         if (genericArgNodes.empty())
             return fallbackNodeRef;
@@ -106,14 +108,14 @@ namespace SemaGenericInternal
     }
 
     template<typename T>
-    Result materializeGenericArgs(Sema& sema, const T& root, const std::vector<GenericParamDesc>& params, std::vector<GenericResolvedArg>& ioResolvedArgs, std::span<const AstNodeRef> genericArgNodes, AstNodeRef fallbackNodeRef)
+    Result materializeGenericArgs(Sema& sema, const T& root, const std::vector<SG::GenericParamDesc>& params, std::vector<SG::GenericResolvedArg>& ioResolvedArgs, std::span<const AstNodeRef> genericArgNodes, AstNodeRef fallbackNodeRef)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
             if (ioResolvedArgs[i].present)
                 continue;
 
-            GenericResolvedArg defaultArg;
+            SG::GenericResolvedArg defaultArg;
             SWC_RESULT(evalGenericDefaultArg(sema, root, params, ioResolvedArgs, i, defaultArg));
             if (!defaultArg.present)
                 return Result::Continue;
@@ -124,7 +126,7 @@ namespace SemaGenericInternal
         {
             if (!ioResolvedArgs[i].present)
                 return Result::Continue;
-            if (params[i].kind == GenericParamKind::Value)
+            if (params[i].kind == SG::GenericParamKind::Value)
                 SWC_RESULT(finalizeResolvedGenericValue(sema, root, params, ioResolvedArgs, i, genericErrorNodeRef(genericArgNodes, i, fallbackNodeRef)));
         }
 
@@ -132,14 +134,14 @@ namespace SemaGenericInternal
     }
 
     template<typename T>
-    static void buildGenericKeys(const std::vector<GenericParamDesc>& params, const std::vector<GenericResolvedArg>& resolvedArgs, std::vector<T>& outKeys)
+    void buildGenericKeys(const std::vector<SG::GenericParamDesc>& params, const std::vector<SG::GenericResolvedArg>& resolvedArgs, std::vector<T>& outKeys)
     {
         outKeys.clear();
         outKeys.reserve(params.size());
         for (size_t i = 0; i < params.size(); ++i)
         {
             T key;
-            if (params[i].kind == GenericParamKind::Type)
+            if (params[i].kind == SG::GenericParamKind::Type)
                 key.typeRef = resolvedArgs[i].typeRef;
             else
                 key.cstRef = resolvedArgs[i].cstRef;
@@ -147,12 +149,12 @@ namespace SemaGenericInternal
         }
     }
 
-    static void buildGenericCloneBindings(const std::vector<GenericParamDesc>& params, const std::vector<GenericResolvedArg>& resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings)
+    void buildGenericCloneBindings(const std::vector<SG::GenericParamDesc>& params, const std::vector<SG::GenericResolvedArg>& resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         outBindings.clear();
         outBindings.reserve(params.size());
         for (size_t i = 0; i < params.size(); ++i)
-            appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
+            SG::appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
     }
 
     template<typename T>
@@ -168,9 +170,9 @@ namespace SemaGenericInternal
     };
 
     template<typename T>
-    Result createGenericInstance(Sema& sema, T& root, const std::vector<GenericParamDesc>& params, const std::vector<GenericResolvedArg>& resolvedArgs, T*& outInstance)
+    Result createGenericInstance(Sema& sema, T& root, const std::vector<SG::GenericParamDesc>& params, const std::vector<SG::GenericResolvedArg>& resolvedArgs, T*& outInstance)
     {
-        using Traits = GenericRootTraits<T>;
+        using Traits = SG::GenericRootTraits<T>;
         using KeyT   = Traits::GenericArgKey;
 
         outInstance = nullptr;
@@ -212,7 +214,7 @@ namespace SemaGenericInternal
     template<typename T>
     Result instantiateGenericExplicit(Sema& sema, T& genericRoot, std::span<const AstNodeRef> genericArgNodes, T*& outInstance)
     {
-        using Traits = GenericRootTraits<T>;
+        using Traits = SG::GenericRootTraits<T>;
 
         outInstance = nullptr;
         if (!Traits::hasGenericParams(genericRoot))
@@ -222,56 +224,59 @@ namespace SemaGenericInternal
         if (!decl)
             return Result::Continue;
 
-        std::vector<GenericParamDesc> params;
-        collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        std::vector<SG::GenericParamDesc> params;
+        SG::collectGenericParams(sema, decl->spanGenericParamsRef, params);
         if (genericArgNodes.size() > params.size())
             return Result::Continue;
 
-        std::vector<GenericResolvedArg> resolvedArgs(params.size());
+        std::vector<SG::GenericResolvedArg> resolvedArgs(params.size());
         for (size_t i = 0; i < genericArgNodes.size(); ++i)
-            SWC_RESULT(resolveExplicitGenericArg(sema, params[i], genericArgNodes[i], resolvedArgs[i]));
+            SWC_RESULT(SG::resolveExplicitGenericArg(sema, params[i], genericArgNodes[i], resolvedArgs[i]));
 
         SWC_RESULT(materializeGenericArgs(sema, genericRoot, params, resolvedArgs, genericArgNodes, sema.curNodeRef()));
-        if (hasMissingGenericArgs(resolvedArgs))
+        if (SG::hasMissingGenericArgs(resolvedArgs))
             return Result::Continue;
 
         return createGenericInstance(sema, genericRoot, params, resolvedArgs, outInstance);
     }
 }
 
-Result SemaGeneric::instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)
+namespace SemaGeneric
 {
-    return SemaGenericInternal::instantiateGenericExplicit(sema, genericRoot, genericArgNodes, outInstance);
-}
+    Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)
+    {
+        return instantiateGenericExplicit(sema, genericRoot, genericArgNodes, outInstance);
+    }
 
-Result SemaGeneric::instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance)
-{
-    outInstance = nullptr;
-    if (!SemaGenericInternal::GenericRootTraits<SymbolFunction>::hasGenericParams(genericRoot))
-        return Result::Continue;
+    Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance)
+    {
+        outInstance = nullptr;
+        if (!GenericRootTraits<SymbolFunction>::hasGenericParams(genericRoot))
+            return Result::Continue;
 
-    const auto* decl = SemaGenericInternal::GenericRootTraits<SymbolFunction>::decl(genericRoot);
-    if (!decl)
-        return Result::Continue;
+        const auto* decl = GenericRootTraits<SymbolFunction>::decl(genericRoot);
+        if (!decl)
+            return Result::Continue;
 
-    std::vector<SemaGenericInternal::GenericParamDesc> params;
-    SemaGenericInternal::collectGenericParams(sema, decl->spanGenericParamsRef, params);
-    if (params.empty())
-        return Result::Continue;
+        std::vector<GenericParamDesc> params;
+        collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        if (params.empty())
+            return Result::Continue;
 
-    std::vector<SemaGenericInternal::GenericResolvedArg> resolvedArgs(params.size());
-    SWC_RESULT(SemaGenericInternal::deduceGenericFunctionArgs(sema, genericRoot, params, resolvedArgs, args, ufcsArg));
+        std::vector<GenericResolvedArg> resolvedArgs(params.size());
+        SWC_RESULT(deduceGenericFunctionArgs(sema, genericRoot, params, resolvedArgs, args, ufcsArg));
 
-    SWC_RESULT(SemaGenericInternal::materializeGenericArgs(sema, genericRoot, params, resolvedArgs, std::span<const AstNodeRef>{}, sema.curNodeRef()));
-    if (SemaGenericInternal::hasMissingGenericArgs(resolvedArgs))
-        return Result::Continue;
+        SWC_RESULT(materializeGenericArgs(sema, genericRoot, params, resolvedArgs, std::span<const AstNodeRef>{}, sema.curNodeRef()));
+        if (hasMissingGenericArgs(resolvedArgs))
+            return Result::Continue;
 
-    return SemaGenericInternal::createGenericInstance(sema, genericRoot, params, resolvedArgs, outInstance);
-}
+        return createGenericInstance(sema, genericRoot, params, resolvedArgs, outInstance);
+    }
 
-Result SemaGeneric::instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance)
-{
-    return SemaGenericInternal::instantiateGenericExplicit(sema, genericRoot, genericArgNodes, outInstance);
+    Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance)
+    {
+        return instantiateGenericExplicit(sema, genericRoot, genericArgNodes, outInstance);
+    }
 }
 
 SWC_END_NAMESPACE();

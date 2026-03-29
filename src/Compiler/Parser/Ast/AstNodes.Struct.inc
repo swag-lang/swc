@@ -321,7 +321,8 @@ struct AstLambdaParam : AstNodeT<AstNodeId::LambdaParam, AstLambdaParamFlagsE>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeDefaultValueRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeDefaultValueRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeDefaultValueRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1029,7 +1030,8 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType, AstFunctionFlagsE>
         AstNode::collectChildren(out, {nodeReturnTypeRef});
     }
 
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

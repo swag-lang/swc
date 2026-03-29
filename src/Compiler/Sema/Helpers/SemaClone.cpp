@@ -752,6 +752,24 @@ AstNodeRef AstClosureArgument::semaClone(Sema& sema, const CloneContext& cloneCo
     return newRef;
 }
 
+AstNodeRef AstLambdaParam::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    auto [newRef, newPtr]       = sema.ast().makeNode<AstNodeId::LambdaParam>(tokRef());
+    newPtr->flags()             = flags();
+    newPtr->nodeTypeRef         = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeDefaultValueRef = cloneNodeRef(sema, nodeDefaultValueRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstLambdaType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::LambdaType>(tokRef());
+    newPtr->flags()           = flags();
+    newPtr->spanParamsRef     = cloneSpan(sema, spanParamsRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeReturnTypeRef = cloneNodeRef(sema, nodeReturnTypeRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstBinaryExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::BinaryExpr>(tokRef());

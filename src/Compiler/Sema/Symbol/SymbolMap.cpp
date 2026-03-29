@@ -140,8 +140,8 @@ Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* s
     const size_t beforeStorage = symbolMapStorageReserved(shard.map);
 #endif
 
-    Symbol*& head = shard.map[idRef];
-    Symbol* insertedHead = insertSymbolOrdered(head, symbol);
+    Symbol*& head         = shard.map[idRef];
+    Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
     symbol->setOwnerSymMap(this);
 
 #if SWC_HAS_STATS
@@ -291,8 +291,8 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     // Sharded fast path.
     if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
-        const bool hadOwner = symbol->ownerSymMap() == this;
-        Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
+        const bool hadOwner    = symbol->ownerSymMap() == this;
+        Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (!hadOwner && symbol->ownerSymMap() == this)
         {
             count_++;
@@ -307,8 +307,8 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
         lk.unlock();
-        const bool hadOwner = symbol->ownerSymMap() == this;
-        Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
+        const bool hadOwner    = symbol->ownerSymMap() == this;
+        Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (!hadOwner && symbol->ownerSymMap() == this)
         {
             count_++;
@@ -360,8 +360,8 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
     if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
         lk.unlock();
-        const bool hadOwner = symbol->ownerSymMap() == this;
-        Symbol* insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
+        const bool hadOwner    = symbol->ownerSymMap() == this;
+        Symbol*    insertedSym = insertIntoShard(shards, idRef, symbol, ctx, acceptHomonyms, true);
         if (!hadOwner && symbol->ownerSymMap() == this)
         {
             count_++;
@@ -381,8 +381,8 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
 #if SWC_HAS_STATS
     const size_t beforeStorage = symbolMapStorageReserved(bigMap_);
 #endif
-    Symbol*& head = bigMap_[idRef];
-    Symbol* insertedHead = insertSymbolOrdered(head, symbol);
+    Symbol*& head         = bigMap_[idRef];
+    Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
 #if SWC_HAS_STATS
     const size_t afterStorage = symbolMapStorageReserved(bigMap_);
     updateSymbolMapStorageStats(beforeStorage, afterStorage);

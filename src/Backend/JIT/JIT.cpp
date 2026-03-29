@@ -57,16 +57,15 @@ namespace
         return symbol->getFullScopedName(ctx);
     }
 
-#ifdef _WIN32
     template<typename T>
     bool tryReadHostValue(const void* ptr, T& outValue)
     {
-        __try
+        SWC_TRY
         {
             std::memcpy(&outValue, ptr, sizeof(T));
             return true;
         }
-        __except (EXCEPTION_EXECUTE_HANDLER)
+        SWC_EXCEPT(SWC_EXCEPTION_EXECUTE_HANDLER)
         {
             return false;
         }
@@ -106,7 +105,6 @@ namespace
                 SWC_UNREACHABLE();
         }
     }
-#endif
 
     bool ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction)
     {

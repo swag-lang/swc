@@ -695,7 +695,7 @@ namespace
         return false;
     }
 
-    Result tryLiftQuotedGenericStructMemberAccess(Sema& sema, AstNodeRef currentRef, AstMemberAccessExpr& node, bool& outHandled)
+    Result tryLiftQuotedGenericStructMemberAccess(Sema& sema, AstNodeRef currentRef, const AstMemberAccessExpr& node, bool& outHandled)
     {
         outHandled                 = false;
         const AstNodeRef parentRef = sema.visit().parentNodeRef();

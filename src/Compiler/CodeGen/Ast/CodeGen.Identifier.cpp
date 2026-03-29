@@ -69,19 +69,22 @@ namespace
 
         const ConstantValue& defaultValue = codeGen.cstMgr().get(defaultValueRef);
 
-        ByteSpan payloadBytes;
         if (defaultValue.isStruct())
-            payloadBytes = defaultValue.getStruct();
+        {
+            SWC_ASSERT(defaultValue.getStruct().size() == localSize);
+        }
         else if (defaultValue.isArray())
-            payloadBytes = defaultValue.getArray();
+        {
+            SWC_ASSERT(defaultValue.getArray().size() == localSize);
+        }
         else
             return false;
 
-        SWC_ASSERT(payloadBytes.size() == localSize);
         const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, symVar.typeRef());
         if (safeDefaultValueRef.isInvalid())
             return false;
 
+        ByteSpan             payloadBytes;
         const ConstantValue& safeDefaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
         if (safeDefaultValue.isStruct())
             payloadBytes = safeDefaultValue.getStruct();

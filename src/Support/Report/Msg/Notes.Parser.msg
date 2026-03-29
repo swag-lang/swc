@@ -1,5 +1,5 @@
-SWC_DIAG_DEF(parser_note_reserved_identifier, Note, "a {{tok-fam}} cannot be used as an identifier")
-SWC_DIAG_DEF(parser_note_other_def, Note, "this is the other definition")
+SWC_DIAG_DEF(parser_note_reserved_identifier, Note, "{a-tok-fam} cannot be used as an identifier")
+SWC_DIAG_DEF(parser_note_other_def, Note, "previous definition is here")
 SWC_DIAG_DEF(parser_note_opening, Note, "opening delimiter")
 SWC_DIAG_DEF(parser_note_gen_param_type, Note, "this expression implies a generic type rather than a typed value")
 

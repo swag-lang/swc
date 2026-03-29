@@ -1,4 +1,4 @@
-SWC_DIAG_DEF(cmd_note_relocation_target_symbol_missing, Note, "the relocation target symbol is missing")
+SWC_DIAG_DEF(cmd_note_relocation_target_symbol_missing, Note, "relocation target symbol is missing")
 SWC_DIAG_DEF(cmd_note_relocation_target_symbol_not_function, Note, "the relocation target symbol '{target}' is not a function")
 SWC_DIAG_DEF(cmd_note_relocation_local_target_unavailable, Note, "local target function '{target}' has no prepared JIT address")
 SWC_DIAG_DEF(cmd_note_relocation_target_not_foreign, Note, "target function '{target}' is not marked as foreign")
@@ -6,5 +6,5 @@ SWC_DIAG_DEF(cmd_note_relocation_foreign_module_missing, Note, "target function 
 SWC_DIAG_DEF(cmd_note_relocation_foreign_function_missing, Note, "target function '{target}' has no foreign function name")
 SWC_DIAG_DEF(cmd_note_relocation_foreign_module_name, Note, "requested foreign module: '{value}'")
 SWC_DIAG_DEF(cmd_note_relocation_foreign_function_name, Note, "requested foreign function: '{target}'")
-SWC_DIAG_DEF(cmd_note_relocation_foreign_lookup_failed, Note, "the host runtime could not resolve that foreign function")
+SWC_DIAG_DEF(cmd_note_relocation_foreign_lookup_failed, Note, "host runtime could not resolve this foreign function")
 SWC_DIAG_DEF(cmd_note_native_tool_output, Note, "tool output:\n{because}")

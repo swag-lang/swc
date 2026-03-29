@@ -816,16 +816,16 @@ AstNodeRef AstRangeExpr::semaClone(Sema& sema, const CloneContext& cloneContext)
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::RangeExpr>(tokRef());
     newPtr->flags()         = flags();
-    newPtr->nodeExprDownRef = SemaClone::cloneAst(sema, nodeExprDownRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeExprUpRef   = SemaClone::cloneAst(sema, nodeExprUpRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeExprDownRef = cloneNodeRef(sema, nodeExprDownRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeExprUpRef   = cloneNodeRef(sema, nodeExprUpRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
 AstNodeRef AstIndexExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::IndexExpr>(tokRef());
-    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeArgRef    = SemaClone::cloneAst(sema, nodeArgRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeExprRef   = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeArgRef    = cloneNodeRef(sema, nodeArgRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

@@ -63,6 +63,29 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
     return addCurrentFunctionLocalVariable(sema, symVar, symVar.typeRef());
 }
 
+void SemaHelpers::ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym)
+{
+    if (!sym || !sema.curScope().isLocal())
+        return;
+
+    for (const Symbol* existing : sema.curScope().symbols())
+    {
+        if (existing == sym)
+            return;
+    }
+
+    sema.curScope().addSymbol(sym);
+}
+
+void SemaHelpers::ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol*> symbols)
+{
+    if (!sema.curScope().isLocal())
+        return;
+
+    for (Symbol* sym : symbols)
+        ensureCurrentLocalScopeSymbol(sema, sym);
+}
+
 bool SemaHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef)
 {
     if (!typeRef.isValid())

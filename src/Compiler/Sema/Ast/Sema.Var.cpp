@@ -828,6 +828,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
             semaPreDecl(sema);
         nodeSymbolsView.recompute(sema, SemaNodeViewPartE::Symbol);
         const std::span<Symbol*> symbols = nodeSymbolsView.symList();
+        SemaHelpers::ensureCurrentLocalScopeSymbols(sema, symbols);
         for (Symbol* sym : symbols)
         {
             sym->registerAttributes(sema);

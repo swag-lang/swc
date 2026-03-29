@@ -1261,6 +1261,11 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
                 frame.pushBindingVar(params[0]);
         }
 
+        // Lookup-scope overrides are expression-local. A fresh function body must
+        // start from its lexical scope or local declarations can miss themselves.
+        frame.setLookupScope(nullptr);
+        frame.setUpLookupScope(nullptr);
+        frame.setIgnoreRuntimeAccess(false);
         frame.pushBindingType(sym.returnTypeRef());
         sema.pushFramePopOnPostNode(frame);
 
@@ -1280,6 +1285,9 @@ Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     SWC_RESULT(prepareFunctionExprSignature(sema, *this, sym));
 
     auto frame = sema.frame();
+    frame.setLookupScope(nullptr);
+    frame.setUpLookupScope(nullptr);
+    frame.setIgnoreRuntimeAccess(false);
     if (sym.returnTypeRef().isValid())
         frame.pushBindingType(sym.returnTypeRef());
     sema.pushFramePopOnPostNode(frame);
@@ -1299,6 +1307,9 @@ Result AstClosureExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     SWC_RESULT(buildClosureCaptureSymbols(sema, *this, sym));
 
     auto frame = sema.frame();
+    frame.setLookupScope(nullptr);
+    frame.setUpLookupScope(nullptr);
+    frame.setIgnoreRuntimeAccess(false);
     if (sym.returnTypeRef().isValid())
         frame.pushBindingType(sym.returnTypeRef());
     sema.pushFramePopOnPostNode(frame);

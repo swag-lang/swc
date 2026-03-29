@@ -46,6 +46,8 @@ namespace SemaHelpers
     Result                intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
     Result                finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children);
     void                  handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
+    void                  ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym);
+    void                  ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol*> symbols);
     bool                  resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggregateType, IdentifierRef idRef, size_t& outIndex);
     Result                resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMemberAccessExpr& node, bool allowOverloadSet);
 
@@ -106,6 +108,7 @@ namespace SemaHelpers
         SemaNodeView view = sema.viewSymbol(curNodeRef);
         SWC_ASSERT(view.hasSymbol());
         Symbol& sym = *view.sym();
+        ensureCurrentLocalScopeSymbol(sema, &sym);
         sym.registerAttributes(sema);
         sym.setDeclared(sema.ctx());
     }

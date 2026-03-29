@@ -269,6 +269,27 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             const AstNode& parentNode = sema.node(parentRef);
             if (parentNode.is(AstNodeId::NamedType) || parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
                 return Result::Continue;
+
+            // Generic specialization can clone a type parameter into a plain identifier and
+            // pre-seed its resolved type (for example in `#sizeof(T)`). Only skip lookup in
+            // compiler intrinsics that accept a type-only operand; declaration identifiers
+            // still need normal symbol binding even if their final type has already been set.
+            if (!sema.curViewSymbol().sym() && !sema.curViewSymbolList().hasSymbolList())
+            {
+                if (const auto* compilerCall = parentNode.safeCast<AstCompilerCallOne>())
+                {
+                    switch (sema.token(compilerCall->codeRef()).id)
+                    {
+                        case TokenId::CompilerTypeOf:
+                        case TokenId::CompilerKindOf:
+                        case TokenId::CompilerSizeOf:
+                        case TokenId::CompilerAlignOf:
+                            return Result::Continue;
+                        default:
+                            break;
+                    }
+                }
+            }
         }
     }
 

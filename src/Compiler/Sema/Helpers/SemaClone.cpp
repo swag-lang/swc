@@ -699,7 +699,7 @@ AstNodeRef AstFunctionExpr::semaClone(Sema& sema, const CloneContext& cloneConte
     auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::FunctionExpr>(tokRef());
     newPtr->flags()           = flags();
     newPtr->spanArgsRef       = cloneSpan(sema, spanArgsRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeReturnTypeRef = nodeReturnTypeRef;
+    newPtr->nodeReturnTypeRef = cloneNodeRef(sema, nodeReturnTypeRef, cloneContextAsInline(cloneContext));
     newPtr->nodeBodyRef       = SemaClone::cloneAst(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -710,7 +710,7 @@ AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContex
     newPtr->flags()            = flags();
     newPtr->nodeCaptureArgsRef = cloneSpan(sema, nodeCaptureArgsRef, cloneContextAsInline(cloneContext));
     newPtr->spanArgsRef        = cloneSpan(sema, spanArgsRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeReturnTypeRef  = nodeReturnTypeRef;
+    newPtr->nodeReturnTypeRef  = cloneNodeRef(sema, nodeReturnTypeRef, cloneContextAsInline(cloneContext));
     newPtr->nodeBodyRef        = SemaClone::cloneAst(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -970,7 +970,7 @@ AstNodeRef AstCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) 
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
     newPtr->flags()       = flags();
     newPtr->modifierFlags = modifierFlags;
-    newPtr->nodeTypeRef   = nodeTypeRef;
+    newPtr->nodeTypeRef   = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -987,7 +987,7 @@ AstNodeRef AstAsCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::AsCastExpr>(tokRef());
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeTypeRef   = nodeTypeRef;
+    newPtr->nodeTypeRef   = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
@@ -995,7 +995,7 @@ AstNodeRef AstIsTypeExpr::semaClone(Sema& sema, const CloneContext& cloneContext
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::IsTypeExpr>(tokRef());
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeTypeRef   = nodeTypeRef;
+    newPtr->nodeTypeRef   = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
@@ -1064,9 +1064,8 @@ AstNodeRef AstCompilerCodeExpr::semaClone(Sema& sema, const CloneContext& cloneC
 
 AstNodeRef AstCompilerTypeExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    SWC_UNUSED(cloneContext);
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::CompilerTypeExpr>(tokRef());
-    newPtr->nodeTypeRef   = nodeTypeRef;
+    newPtr->nodeTypeRef   = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

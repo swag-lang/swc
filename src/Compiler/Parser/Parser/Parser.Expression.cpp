@@ -414,6 +414,50 @@ AstNodeRef Parser::parseIdentifierSuffixValue()
     return parseExpression();
 }
 
+AstNodeRef Parser::parseQuotedSingleSuffixValue()
+{
+    AstNodeRef nodeRef = parsePrimaryExpression();
+    if (nodeRef.isInvalid())
+        return AstNodeRef::invalid();
+
+    while (true)
+    {
+        if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
+        {
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(consume());
+            nodePtr->nodeLeftRef       = nodeRef;
+            nodePtr->nodeRightRef      = parseIdentifier();
+            nodeRef                    = nodeParent;
+            continue;
+        }
+
+        if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        {
+            const TokenRef tokQuote = consume();
+            markCallCalleeNode(*ast_, nodeRef);
+
+            if (is(TokenId::SymLeftParen))
+            {
+                auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
+                nodePtr->nodeExprRef       = nodeRef;
+                nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
+                nodeRef                    = nodeParent;
+                continue;
+            }
+
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
+            nodePtr->nodeExprRef       = nodeRef;
+            nodePtr->nodeSuffixRef     = parseQuotedSingleSuffixValue();
+            nodeRef                    = nodeParent;
+            continue;
+        }
+
+        break;
+    }
+
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseIdentifier()
 {
     switch (id())
@@ -484,7 +528,7 @@ AstNodeRef Parser::parseQuotedIdentifier()
 
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
         nodePtr->nodeExprRef    = idRef;
-        nodePtr->nodeSuffixRef  = parseIdentifierSuffixValue();
+        nodePtr->nodeSuffixRef  = parseQuotedSingleSuffixValue();
         return nodeRef;
     }
 
@@ -638,7 +682,7 @@ AstNodeRef Parser::parsePostFixExpression()
 
             auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
             nodePtr->nodeExprRef       = nodeRef;
-            nodePtr->nodeSuffixRef     = parseIdentifierSuffixValue();
+            nodePtr->nodeSuffixRef     = parseQuotedSingleSuffixValue();
             nodeRef                    = nodeParent;
             continue;
         }

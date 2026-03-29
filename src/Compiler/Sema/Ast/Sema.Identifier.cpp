@@ -314,6 +314,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
 Result AstQuotedExpr::semaPostNode(Sema& sema) const
 {
+    if (sema.hasSubstitute(sema.curNodeRef()))
+        return Result::Continue;
+
     return semaQuotedGenericCommon(sema, *this);
 }
 

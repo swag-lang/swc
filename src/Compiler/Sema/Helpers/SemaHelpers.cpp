@@ -7,6 +7,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
@@ -638,6 +639,132 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
 
 namespace
 {
+    bool hasImmediatePostfixCall(const Sema& sema, const AstMemberAccessExpr& node)
+    {
+        if (node.nodeRightRef.isInvalid())
+            return false;
+
+        const TokenRef tokRightRef = sema.node(node.nodeRightRef).tokRef();
+        if (!tokRightRef.isValid())
+            return false;
+
+        const SourceView& srcView   = sema.srcView(node.srcViewRef());
+        const uint32_t    nextIndex = tokRightRef.get() + 1;
+        if (nextIndex >= srcView.numTokens())
+            return false;
+
+        return srcView.token(TokenRef{nextIndex}).id == TokenId::SymLeftParen;
+    }
+
+    const SymbolStruct* genericStructRootFromQuotedBase(Sema& sema, AstNodeRef exprRef)
+    {
+        SmallVector<Symbol*> symbols;
+        sema.viewNodeTypeSymbol(exprRef).getSymbols(symbols);
+        for (Symbol* sym : symbols)
+        {
+            if (!sym || !sym->isStruct())
+                continue;
+
+            auto& symStruct = sym->cast<SymbolStruct>();
+            if (symStruct.isGenericRoot() && !symStruct.isGenericInstance())
+                return &symStruct;
+        }
+
+        return nullptr;
+    }
+
+    bool canSplitQuotedSuffixArgument(Sema& sema, const SymbolStruct& genericRoot, const SemaNodeView& leftView)
+    {
+        const auto* decl = genericRoot.decl() ? genericRoot.decl()->safeCast<AstStructDecl>() : nullptr;
+        if (!decl || !decl->spanGenericParamsRef.isValid())
+            return false;
+
+        std::vector<SemaGeneric::GenericParamDesc> params;
+        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        if (params.empty())
+            return false;
+
+        switch (params.front().kind)
+        {
+            case SemaGeneric::GenericParamKind::Type:
+                return leftView.typeRef().isValid();
+            case SemaGeneric::GenericParamKind::Value:
+                return leftView.cstRef().isValid();
+        }
+
+        return false;
+    }
+
+    Result tryLiftQuotedGenericStructMemberAccess(Sema& sema, AstNodeRef currentRef, AstMemberAccessExpr& node, bool& outHandled)
+    {
+        outHandled                 = false;
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (parentRef.isInvalid())
+            return Result::Continue;
+
+        AstNode&    parentNode = sema.node(parentRef);
+        const auto* quotedExpr = parentNode.safeCast<AstQuotedExpr>();
+        if (!quotedExpr || quotedExpr->nodeSuffixRef != currentRef)
+            return Result::Continue;
+        if (!hasImmediatePostfixCall(sema, node))
+            return Result::Continue;
+
+        const SymbolStruct* genericRoot = genericStructRootFromQuotedBase(sema, quotedExpr->nodeExprRef);
+        if (!genericRoot)
+            return Result::Continue;
+
+        const SemaNodeView leftView = sema.viewNodeTypeConstant(node.nodeLeftRef);
+        if (!canSplitQuotedSuffixArgument(sema, *genericRoot, leftView))
+            return Result::Continue;
+
+        const auto* identRight = sema.node(node.nodeRightRef).safeCast<AstIdentifier>();
+        if (!identRight)
+            return Result::Continue;
+
+        const IdentifierRef idRef      = SemaHelpers::resolveIdentifier(sema, identRight->codeRef());
+        const TokenRef      tokNameRef = identRight->tokRef();
+
+        const AstNodeRef     genericArgRef = node.nodeLeftRef;
+        SmallVector<Symbol*> specializedFunctions;
+        for (const SymbolImpl* symImpl : genericRoot->impls())
+        {
+            if (!symImpl)
+                continue;
+
+            std::vector<const Symbol*> symbols;
+            symImpl->getAllSymbols(symbols);
+            for (const Symbol* sym : symbols)
+            {
+                if (!sym || !sym->isFunction() || sym->idRef() != idRef)
+                    continue;
+
+                SymbolFunction* instance = nullptr;
+                auto&           fn       = const_cast<SymbolFunction&>(sym->cast<SymbolFunction>());
+                SWC_RESULT(SemaGeneric::instantiateFunctionExplicit(sema, fn, std::span{&genericArgRef, 1}, instance));
+                if (instance)
+                    specializedFunctions.push_back(instance);
+            }
+        }
+
+        if (specializedFunctions.empty())
+            return Result::Continue;
+
+        auto [calleeRef, calleePtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokNameRef);
+
+        // `Type'Arg.member()` is parsed as `Type'(Arg.member)()`. When `member`
+        // resolves to a generic static function of the generic root, reinterpret
+        // that syntax as an explicit specialization of the function itself.
+        if (specializedFunctions.size() == 1)
+            sema.setSymbol(calleeRef, specializedFunctions.front());
+        else
+            sema.setSymbolList(calleeRef, specializedFunctions.span());
+        sema.setSubstitute(parentRef, calleeRef);
+        sema.setSubstitute(currentRef, calleeRef);
+        sema.setIsValue(*calleePtr);
+        outHandled = true;
+        return Result::Continue;
+    }
+
     TypeRef memberRuntimeStorageTypeRef(Sema& sema)
     {
         SmallVector<uint64_t> dims;
@@ -852,6 +979,11 @@ bool SemaHelpers::resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggreg
 
 Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMemberAccessExpr& node, bool allowOverloadSet)
 {
+    bool handled = false;
+    SWC_RESULT(tryLiftQuotedGenericStructMemberAccess(sema, memberRef, node, handled));
+    if (handled)
+        return Result::SkipChildren;
+
     SemaNodeView        nodeLeftView  = sema.viewNodeTypeConstantSymbol(node.nodeLeftRef);
     const SemaNodeView  nodeRightView = sema.viewNode(node.nodeRightRef);
     const TokenRef      tokNameRef    = nodeRightView.node()->tokRef();

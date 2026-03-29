@@ -43,7 +43,7 @@ namespace
 
         SmallVector<AstNodeRef> clonedChildren;
         clonedChildren.reserve(children.size());
-        const SemaClone::CloneContext cloneContext{bindings};
+        const SemaClone::CloneContext cloneContext{bindings, {}, true};
         for (const AstNodeRef childRef : children)
         {
             const AstNodeRef clonedRef = SemaClone::cloneAst(sema, childRef, cloneContext);

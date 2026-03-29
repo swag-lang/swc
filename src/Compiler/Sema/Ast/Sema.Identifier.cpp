@@ -294,7 +294,6 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     }
 
     const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());
-
     // Parser tags the callee expression when building a call: `foo()`.
     const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee);
 

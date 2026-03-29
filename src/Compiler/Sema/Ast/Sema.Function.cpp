@@ -1440,20 +1440,36 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
 
 Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 {
+    if (!sema.enteringState())
+        return Result::Continue;
+
     const SymbolImpl* symImpl = sema.frame().currentImpl();
     if (!symImpl)
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
-    const TypeRef ownerType = symImpl->isForStruct() ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
-    auto&         sym       = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
+    TaskContext&        ctx       = sema.ctx();
+    const TypeRef       ownerType = symImpl->isForStruct() ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
+    const IdentifierRef idRef     = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+    const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
+    auto*               sym       = Symbol::make<SymbolVariable>(ctx, this, tokRef(), idRef, flags);
+    SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
+
+    if (sema.curScope().isLocal())
+        sema.curScope().addSymbol(sym);
+    else
+        symbolMap->addSymbol(ctx, sym, true);
+
+    SemaHelpers::handleSymbolRegistration(sema, symbolMap, sym);
+    sym->registerCompilerIf(sema);
+    sema.setSymbol(sema.curNodeRef(), sym);
 
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
     if (hasFlag(AstFunctionParamMeFlagsE::Const))
         typeFlags.add(TypeInfoFlagsE::Const);
-    sym.setTypeRef(sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags)));
-    sym.setDeclared(sema.ctx());
-    sym.setTyped(sema.ctx());
-    sym.setSemaCompleted(sema.ctx());
+    sym->setTypeRef(sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags)));
+    sym->setDeclared(ctx);
+    sym->setTyped(ctx);
+    sym->setSemaCompleted(ctx);
 
     return Result::Continue;
 }

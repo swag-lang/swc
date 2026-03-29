@@ -171,6 +171,18 @@ AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
             continue;
         }
 
+        if (node.is(AstNodeId::QuotedExpr))
+        {
+            nodeRef = node.cast<AstQuotedExpr>().nodeExprRef;
+            continue;
+        }
+
+        if (node.is(AstNodeId::QuotedListExpr))
+        {
+            nodeRef = node.cast<AstQuotedListExpr>().nodeExprRef;
+            continue;
+        }
+
         break;
     }
 

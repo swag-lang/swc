@@ -25,11 +25,14 @@ namespace SemaClone
     {
         std::span<const ParamBinding>    bindings;
         std::span<const NodeReplacement> replacements;
+        bool                             preserveFunctionGenerics = false;
 
         explicit CloneContext(std::span<const ParamBinding>    inBindings,
-                              std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}) :
+                              std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{},
+                              bool                             inPreserveFunctionGenerics = false) :
             bindings(inBindings),
-            replacements(inReplacements)
+            replacements(inReplacements),
+            preserveFunctionGenerics(inPreserveFunctionGenerics)
         {
         }
     };

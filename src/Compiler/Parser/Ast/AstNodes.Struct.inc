@@ -1196,6 +1196,7 @@ struct AstConstraintExpr : AstNodeT<AstNodeId::ConstraintExpr>
 // -----------------------------------------------------------------------------
 struct AstGenericParamList : AstCompoundT<AstNodeId::GenericParamList>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1208,11 +1209,14 @@ struct AstGenericParamValue : AstGenericParamT<AstNodeId::GenericParamValue>
         AstNode::collectChildren(out, {nodeTypeRef});
         AstGenericParamT::collectChildren(out, ast);
     }
+
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

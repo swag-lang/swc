@@ -20,12 +20,12 @@ namespace
 
     SemaClone::CloneContext cloneContextWithoutReplacements(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{cloneContext.bindings};
+        return SemaClone::CloneContext{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics};
     }
 
     SemaClone::CloneContext cloneContextWithoutBindings(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements};
+        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics};
     }
 
     const SemaClone::ParamBinding* findBinding(const SemaClone::CloneContext& cloneContext, IdentifierRef idRef)
@@ -215,6 +215,27 @@ namespace
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()        = node.flags();
         nodePtr->setCodeRef(node.codeRef());
+
+        const AstNodeRef   sourceRef   = node.nodeRef(sema.ast());
+        const SemaNodeView storedView  = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const bool         carryInline = !storedView.hasSymbol() && (storedView.typeRef().isValid() || storedView.cstRef().isValid());
+        if (carryInline)
+        {
+            // Nested generic cloning can hit identifiers that were already substituted by an
+            // outer specialization pass. Preserve that pre-resolved type/constant payload so
+            // later clones do not resurrect the original generic identifier.
+            if (storedView.typeRef().isValid())
+                sema.setType(nodeRef, storedView.typeRef());
+            if (storedView.cstRef().isValid())
+                sema.setConstant(nodeRef, storedView.cstRef());
+            if (sema.isValueStored(sourceRef))
+                sema.setIsValue(nodeRef);
+            if (sema.isLValueStored(sourceRef))
+                sema.setIsLValue(nodeRef);
+            if (sema.isFoldedTypedConstStored(sourceRef))
+                sema.setFoldedTypedConst(nodeRef);
+        }
+
         return nodeRef;
     }
 }
@@ -271,10 +292,18 @@ AstNodeRef AstFunctionDecl::semaClone(Sema& sema, const CloneContext& cloneConte
 {
     const AstNodeRef newRef     = cloneNodeCopy<AstNodeId::FunctionDecl>(sema, *this);
     auto&            cloned     = sema.node(newRef).cast<AstFunctionDecl>();
-    cloned.spanGenericParamsRef = SpanRef::invalid();
+    if (cloneContextAsInline(cloneContext).preserveFunctionGenerics)
+    {
+        cloned.spanGenericParamsRef = cloneSpan(sema, spanGenericParamsRef, cloneContextAsInline(cloneContext));
+        cloned.spanConstraintsRef   = cloneSpan(sema, spanConstraintsRef, cloneContextAsInline(cloneContext));
+    }
+    else
+    {
+        cloned.spanGenericParamsRef = SpanRef::invalid();
+        cloned.spanConstraintsRef   = SpanRef::invalid();
+    }
     cloned.nodeParamsRef        = cloneNodeRef(sema, nodeParamsRef, cloneContextAsInline(cloneContext));
     cloned.nodeReturnTypeRef    = cloneNodeRef(sema, nodeReturnTypeRef, cloneContextAsInline(cloneContext));
-    cloned.spanConstraintsRef   = SpanRef::invalid();
     cloned.nodeBodyRef          = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -962,6 +991,31 @@ AstNodeRef AstQuotedListExpr::semaClone(Sema& sema, const CloneContext& cloneCon
     const auto noReplacements = cloneContextWithoutReplacements(cloneContextAsInline(cloneContext));
     newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, noReplacements);
     newPtr->spanChildrenRef   = cloneSpan(sema, spanChildrenRef, noReplacements);
+    return newRef;
+}
+
+AstNodeRef AstGenericParamList::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::GenericParamList>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstGenericParamList>();
+    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstGenericParamValue::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::GenericParamValue>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstGenericParamValue>();
+    cloned.nodeTypeRef      = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
+    cloned.nodeAssignRef    = cloneNodeRef(sema, nodeAssignRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstGenericParamType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::GenericParamType>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstGenericParamType>();
+    cloned.nodeAssignRef    = cloneNodeRef(sema, nodeAssignRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

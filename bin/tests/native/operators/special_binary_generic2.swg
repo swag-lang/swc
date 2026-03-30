@@ -362,7 +362,7 @@ impl GenVec3
 }
 
 // Test: GenVec3 + GenVec3 with s32
-/*#test
+#test
 {
     var a: GenVec3's32 = {x: 1, y: 2, z: 3}
     var b: GenVec3's32 = {x: 10, y: 20, z: 30}
@@ -372,10 +372,10 @@ impl GenVec3
     @assert(sum.x == 11)
     @assert(sum.y == 22)
     @assert(sum.z == 33)
-}*/
+}
 
 // Test: GenVec3 - GenVec3 with s64
-/*#test
+#test
 {
     var a: GenVec3's64 = {x: 100, y: 200, z: 300}
     var b: GenVec3's64 = {x: 150, y: 50, z: 300}
@@ -384,10 +384,10 @@ impl GenVec3
     @assert(diff.x == -50)
     @assert(diff.y == 150)
     @assert(diff.z == 0)
-}*/
+}
 
 // Test: GenVec3 * GenVec3 component-wise with u32
-/*#test
+#test
 {
     var a: GenVec3'u32 = {x: 2, y: 3, z: 4}
     var b: GenVec3'u32 = {x: 5, y: 6, z: 7}
@@ -396,10 +396,10 @@ impl GenVec3
     @assert(prod.x == 10)
     @assert(prod.y == 18)
     @assert(prod.z == 28)
-}*/
+}
 
 // Test: GenVec3 / GenVec3 with u64
-/*#test
+#test
 {
     var a: GenVec3'u64 = {x: 100, y: 200, z: 300}
     var b: GenVec3'u64 = {x: 10, y: 20, z: 30}
@@ -408,10 +408,10 @@ impl GenVec3
     @assert(quot.x == 10'u64)
     @assert(quot.y == 10'u64)
     @assert(quot.z == 10'u64)
-}*/
+}
 
 // Test: GenVec3 * scalar with u32
-/*#test
+#test
 {
     var a: GenVec3'u32 = {x: 1, y: 2, z: 3}
     let result = a * 10'u32
@@ -419,10 +419,10 @@ impl GenVec3
     @assert(result.x == 10)
     @assert(result.y == 20)
     @assert(result.z == 30)
-}*/
+}
 
 // Test: GenVec3 + scalar with s32
-/*#test
+#test
 {
     var a: GenVec3's32 = {x: -5, y: 0, z: 5}
     let result = a + 10's32
@@ -430,10 +430,10 @@ impl GenVec3
     @assert(result.x == 5)
     @assert(result.y == 10)
     @assert(result.z == 15)
-}*/
+}
 
 // Test: GenVec3 / scalar with u64
-/*#test
+#test
 {
     var a: GenVec3'u64 = {x: 100, y: 200, z: 300}
     let result = a / 10'u64
@@ -441,10 +441,10 @@ impl GenVec3
     @assert(result.x == 10'u64)
     @assert(result.y == 20'u64)
     @assert(result.z == 30'u64)
-}*/
+}
 
 // Test: chaining GenVec3 operations
-/*#test
+#test
 {
     var a: GenVec3's32 = {x: 1, y: 2, z: 3}
     var b: GenVec3's32 = {x: 4, y: 5, z: 6}
@@ -454,7 +454,7 @@ impl GenVec3
     @assert(result.x == -5)
     @assert(result.y == -3)
     @assert(result.z == -1)
-}*/
+}
 
 // Test: GenVec3 with u8
 /*#test

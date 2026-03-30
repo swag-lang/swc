@@ -125,6 +125,15 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
     sym.setExtraFlags(flags());
     sym.setDeclNodeRef(sema.curNodeRef());
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
+
+    if (sym.ownerSymMap() &&
+        sym.ownerSymMap()->isImpl() &&
+        sym.specOpKind() != SpecOpKind::None &&
+        sym.specOpKind() != SpecOpKind::Invalid)
+    {
+        sym.ownerSymMap()->cast<SymbolImpl>().addFunction(sema.ctx(), &sym);
+    }
+
     sym.setGenericRoot(spanGenericParamsRef.isValid());
     sym.setGenericDeclContext(sema.frame().currentImpl(), sema.frame().currentInterface());
     if (nodeBodyRef.isInvalid())

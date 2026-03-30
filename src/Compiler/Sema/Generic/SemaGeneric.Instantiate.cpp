@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Generic/SemaGenericTraits.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
-
 SWC_BEGIN_NAMESPACE();
 
 namespace
@@ -331,7 +330,9 @@ namespace
             if (outInstance->beginGenericSema())
             {
                 GenericSemaGuard<T> guard{outInstance};
-                SWC_RESULT(Traits::runNode(sema, root, outInstance->declNodeRef()));
+                const Result        runResult = Traits::runNode(sema, root, outInstance->declNodeRef());
+                if (runResult != Result::Continue)
+                    return runResult;
 
                 if constexpr (std::is_same_v<T, SymbolStruct>)
                 {
@@ -339,9 +340,10 @@ namespace
                     // both observe a completed struct instance with no impls yet and clone the same impls
                     // twice, which later makes methods shadow themselves.
                     SWC_RESULT(instantiateGenericStructImpls(sema, root, *outInstance, params, resolvedArgs));
+                    SWC_RESULT(outInstance->registerSpecOps(sema));
+                    outInstance->setSemaCompleted(sema.ctx());
                 }
             }
-
             if (outInstance->isIgnored())
                 return Result::Error;
         }

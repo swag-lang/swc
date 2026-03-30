@@ -64,6 +64,7 @@ class NodePayload
 public:
     NodePayload() = default;
     ~NodePayload();
+    bool hasResolvedCallArguments(AstNodeRef nodeRef) const;
 
 #if SWC_HAS_STATS
     size_t memStorageUsed() const;

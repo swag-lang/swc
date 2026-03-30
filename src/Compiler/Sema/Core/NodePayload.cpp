@@ -32,9 +32,25 @@ namespace
                node.is(AstNodeId::CompilerCallOne);
     }
 
-    TypeRef unwrapFunctionReturnTypeIfCall(const TaskContext& ctx, const AstNode& node, TypeRef typeRef)
+    bool isSyntheticCallLikeNode(const AstNode& node)
     {
-        if (!typeRef.isValid() || !isCallLikeNode(node))
+        return node.is(AstNodeId::UnaryExpr) ||
+               node.is(AstNodeId::BinaryExpr) ||
+               node.is(AstNodeId::AssignStmt) ||
+               node.is(AstNodeId::IndexExpr) ||
+               node.is(AstNodeId::CastExpr) ||
+               node.is(AstNodeId::RelationalExpr);
+    }
+
+    TypeRef unwrapFunctionReturnTypeIfCall(const NodePayload& payloadContext, const TaskContext& ctx, AstNodeRef nodeRef, const AstNode& node, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return typeRef;
+
+        const bool shouldUnwrap =
+            isCallLikeNode(node) ||
+            (isSyntheticCallLikeNode(node) && payloadContext.hasResolvedCallArguments(nodeRef));
+        if (!shouldUnwrap)
             return typeRef;
 
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
@@ -405,7 +421,7 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
     if (value.isValid())
         value.dbgPtr = &ctx.typeMgr().get(value);
 #endif
-    return unwrapFunctionReturnTypeIfCall(ctx, node, value);
+    return unwrapFunctionReturnTypeIfCall(*this, ctx, nodeRef, node, value);
 }
 
 void NodePayload::setType(AstNodeRef nodeRef, TypeRef ref)
@@ -577,6 +593,19 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
     Shard*                 shard = ensureShard(shardIdx);
     const std::unique_lock lock(shard->mutex);
     shard->resolvedCallArgsByNode[nodeRef] = shard->store.pushSpan(args);
+}
+
+bool NodePayload::hasResolvedCallArguments(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
+    if (!shard)
+        return false;
+
+    const std::shared_lock lock(shard->mutex);
+    return shard->resolvedCallArgsByNode.contains(nodeRef);
 }
 
 void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const

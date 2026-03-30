@@ -175,6 +175,8 @@ Result SymbolStruct::registerSpecOps(Sema& sema) const
         {
             if (!symFunc)
                 continue;
+            if (symFunc->isGenericRoot() && !symFunc->isGenericInstance())
+                continue;
             SWC_RESULT(SemaSpecOp::registerSymbol(sema, *symFunc));
         }
     }

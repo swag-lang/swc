@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -168,6 +169,17 @@ namespace
 
 Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    SmallVector<ResolvedCallArgument> resolvedArgs;
+    codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
+
+    const SemaNodeView specialOpView = codeGen.curViewSymbol();
+    if (!resolvedArgs.empty() && specialOpView.sym() && specialOpView.sym()->isFunction())
+    {
+        const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
+        if (calledFn.specOpKind() == SpecOpKind::OpUnary)
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
+
     const Token& tok = codeGen.token(codeRef());
     switch (tok.id)
     {

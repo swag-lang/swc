@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
@@ -370,6 +371,11 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     if (!takesFunctionAddress)
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
     sema.setIsValue(*this);
+
+    bool handledSpecialOp = false;
+    SWC_RESULT(SemaSpecOp::tryResolveUnary(sema, *this, view, handledSpecialOp));
+    if (handledSpecialOp)
+        return Result::Continue;
 
     // Force types
     SWC_RESULT(promote(sema, tok.id, view));

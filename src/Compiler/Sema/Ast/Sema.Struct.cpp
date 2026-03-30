@@ -155,6 +155,9 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
 
+    if (sym.isGenericInstance())
+        return Result::Continue;
+
     sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }

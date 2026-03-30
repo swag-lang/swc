@@ -147,16 +147,18 @@ struct AstCompilerExpression : AstNodeT<AstNodeId::CompilerExpression>
 {
     AstNodeRef nodeExprRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnostic>
 {
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1073,11 +1075,12 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
     AstNodeRef nodeIfBlockRef;
     AstNodeRef nodeElseBlockRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
-    Result semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema) const;
-    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    Result     semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

@@ -4,6 +4,8 @@ SWC_BEGIN_NAMESPACE();
 
 class Sema;
 class SymbolFunction;
+struct AstUnaryExpr;
+struct SemaNodeView;
 
 enum class SpecOpKind : uint8_t
 {
@@ -34,6 +36,7 @@ namespace SemaSpecOp
     SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     Result     validateSymbol(Sema& sema, SymbolFunction& sym);
     Result     registerSymbol(Sema& sema, SymbolFunction& sym);
+    Result     tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled);
 }
 
 SWC_END_NAMESPACE();

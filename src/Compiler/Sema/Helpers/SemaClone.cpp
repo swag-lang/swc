@@ -521,6 +521,24 @@ AstNodeRef AstSwitchCaseStmt::semaClone(Sema& sema, const CloneContext& cloneCon
     return newRef;
 }
 
+AstNodeRef AstCompilerExpression::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerExpression>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstCompilerExpression>();
+    cloned.nodeExprRef      = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstCompilerIf::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerIf>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstCompilerIf>();
+    cloned.nodeConditionRef = cloneNodeRef(sema, nodeConditionRef, cloneContextAsInline(cloneContext));
+    cloned.nodeIfBlockRef   = cloneNodeRef(sema, nodeIfBlockRef, cloneContextAsInline(cloneContext));
+    cloned.nodeElseBlockRef = cloneNodeRef(sema, nodeElseBlockRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstCompilerScope::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerScope>(sema, *this);
@@ -633,6 +651,13 @@ AstNodeRef AstCompilerLiteral::semaClone(Sema& sema, const CloneContext& cloneCo
 {
     SWC_UNUSED(cloneContext);
     return sema.ast().makeNode<AstNodeId::CompilerLiteral>(tokRef()).first;
+}
+
+AstNodeRef AstCompilerDiagnostic::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::CompilerDiagnostic>(tokRef());
+    newPtr->nodeArgRef    = SemaClone::cloneAst(sema, nodeArgRef, cloneContextAsInline(cloneContext));
+    return newRef;
 }
 
 AstNodeRef AstCompilerCallOne::semaClone(Sema& sema, const CloneContext& cloneContext) const

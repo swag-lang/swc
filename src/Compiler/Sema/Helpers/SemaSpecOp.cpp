@@ -1,13 +1,24 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Lexer/LangSpec.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaJIT.h"
+#include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
-
 SWC_BEGIN_NAMESPACE();
 
 namespace
@@ -72,6 +83,190 @@ namespace
         if (type.isReference() || type.isAnyPointer())
             return unwrapAlias(ctx, type.payloadTypeRef());
         return unwrapAlias(ctx, typeRef);
+    }
+
+    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    Result completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        if (auto* ownerFunction = sema.currentFunction(); ownerFunction && typeRef.isValid())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            ownerFunction->addLocalVariable(sema.ctx(), &symVar);
+        }
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    SymbolVariable& registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName)
+    {
+        TaskContext&        ctx         = sema.ctx();
+        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(symVariable);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(symMap != nullptr);
+            symMap->addSymbol(ctx, symVariable, true);
+        }
+
+        return *symVariable;
+    }
+
+    Result attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef)
+    {
+        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+        if (payload && payload->runtimeStorageSym != nullptr)
+            return Result::Continue;
+        if (storageTypeRef.isInvalid())
+            return Result::Continue;
+
+        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+        {
+            ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
+            return Result::Continue;
+        }
+
+        auto& storageSym = registerUniqueRuntimeStorageSymbol(sema, node, "__spec_op_runtime_storage");
+        storageSym.registerAttributes(sema);
+        storageSym.setDeclared(sema.ctx());
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+
+        ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
+        return Result::Continue;
+    }
+
+    TypeRef syntheticCallRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
+    {
+        if (sema.isGlobalScope())
+            return TypeRef::invalid();
+
+        const TypeRef returnTypeRef = calledFn.returnTypeRef();
+        if (!returnTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
+        if (returnType.isVoid())
+            return TypeRef::invalid();
+
+        const CallConv&                        callConv      = CallConv::get(calledFn.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        if (!normalizedRet.isIndirect)
+            return TypeRef::invalid();
+
+        const TypeRef storageTypeRef = returnType.unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (storageTypeRef.isValid())
+            return storageTypeRef;
+
+        return returnTypeRef;
+    }
+
+    AstNodeRef makeSyntheticStringConstantArg(Sema& sema, const SourceCodeRef& codeRef, std::string_view value)
+    {
+        const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::StringLiteral>(codeRef.tokRef);
+        nodePtr->setCodeRef(codeRef);
+
+        const TaskContext&  ctx         = sema.ctx();
+        const ConstantValue constant    = ConstantValue::makeString(ctx, value);
+        const ConstantRef   constantRef = sema.cstMgr().addConstant(ctx, constant);
+        sema.setType(nodeRef, sema.typeMgr().typeString());
+        sema.setConstant(nodeRef, constantRef);
+        sema.setIsValue(*nodePtr);
+        return nodeRef;
+    }
+
+    bool canExplicitlySpecializeSpecOp(Sema& sema, const SymbolFunction& symFunc, std::span<const AstNodeRef> genericArgNodes)
+    {
+        if (!symFunc.isGenericRoot() || genericArgNodes.empty())
+            return false;
+
+        const auto* decl = symFunc.decl() ? symFunc.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!decl || !decl->spanGenericParamsRef.isValid())
+            return false;
+
+        std::vector<SemaGeneric::GenericParamDesc> params;
+        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        if (genericArgNodes.size() > params.size())
+            return false;
+
+        for (size_t i = 0; i < genericArgNodes.size(); ++i)
+        {
+            if (params[i].kind != SemaGeneric::GenericParamKind::Value)
+                return false;
+        }
+
+        return true;
+    }
+
+    Result collectSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
+    {
+        outCandidates.clear();
+
+        for (const SymbolImpl* symImpl : ownerStruct.impls())
+        {
+            if (!symImpl)
+                continue;
+
+            for (SymbolFunction* symFunc : symImpl->specOps())
+            {
+                if (!symFunc || symFunc->idRef() != idRef)
+                    continue;
+
+                if (!canExplicitlySpecializeSpecOp(sema, *symFunc, genericArgNodes))
+                {
+                    outCandidates.push_back(symFunc);
+                    continue;
+                }
+
+                SymbolFunction* specialized = nullptr;
+                SWC_RESULT(SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized));
+                if (specialized)
+                    outCandidates.push_back(specialized);
+            }
+        }
+
+        return Result::Continue;
+    }
+
+    Result resolveSyntheticCall(Sema& sema, const AstNode& node, std::span<Symbol*> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        const SemaNodeView                calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
+        SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs));
+        sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
+
+        auto& calledFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        SemaHelpers::addCurrentFunctionCallDependency(sema, &calledFn);
+
+        SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
+        if (sema.viewConstant(sema.curNodeRef()).hasConstant())
+            return Result::Continue;
+
+        SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
+        SWC_RESULT(attachRuntimeStorageIfNeeded(sema, node, syntheticCallRuntimeStorageTypeRef(sema, calledFn)));
+        return Result::Continue;
     }
 
     Result reportSpecOpError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
@@ -301,6 +496,8 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
     if (isSpecOpInImplFor(sym))
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_in_impl_for, sym);
+    if (sym.isGenericInstance() && sym.genericRootSym() && sym.genericRootSym()->specOpKind() == kind)
+        return Result::Continue;
 
     return validateSpecOpSignature(sema, *ownerStruct, sym, kind);
 }
@@ -377,6 +574,43 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
     if (LangSpec::isOpVisitName(name))
         return SpecOpKind::OpVisit;
     return SpecOpKind::Invalid;
+}
+
+Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled)
+{
+    outHandled = false;
+
+    const Token& tok = sema.token(node.codeRef());
+    if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus, TokenId::SymBang, TokenId::SymTilde}))
+        return Result::Continue;
+
+    if (!operandView.type())
+        return Result::Continue;
+
+    TypeRef unwrappedTypeRef = unwrapAlias(sema.ctx(), operandView.typeRef());
+    if (!unwrappedTypeRef.isValid())
+        unwrappedTypeRef = operandView.typeRef();
+
+    const TypeInfo& operandType = sema.typeMgr().get(unwrappedTypeRef);
+    if (!operandType.isStruct())
+        return Result::Continue;
+
+    const auto& ownerStruct = operandType.payloadSymStruct();
+    SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
+
+    const SourceView&      srcView    = sema.compiler().srcView(node.srcViewRef());
+    const std::string_view opString   = tok.string(srcView);
+    const AstNodeRef       genericArg = makeSyntheticStringConstantArg(sema, node.codeRef(), opString);
+    const IdentifierRef    opUnaryId  = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpUnary);
+    SmallVector<Symbol*>   candidates;
+    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opUnaryId, std::span{&genericArg, 1}, candidates));
+    if (candidates.empty())
+        return Result::Continue;
+
+    SmallVector<AstNodeRef> args;
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef));
+    outHandled = true;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

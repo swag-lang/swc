@@ -8,6 +8,51 @@ namespace
 {
     void buildGenericCloneBindings(const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings);
 
+    template<typename T>
+    void appendEnclosingGenericCloneBindings(Sema& sema, const T& root, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        SWC_UNUSED(sema);
+        SWC_UNUSED(root);
+        SWC_UNUSED(outBindings);
+    }
+
+    void appendEnclosingGenericCloneBindings(Sema& sema, const SymbolFunction& root, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        const SymbolStruct* ownerInstance = root.ownerStruct();
+        if (!ownerInstance || !ownerInstance->isGenericInstance())
+            return;
+
+        const SymbolStruct* ownerRoot = ownerInstance->genericRootSym();
+        if (!ownerRoot)
+            return;
+
+        const auto* structDecl = ownerRoot->decl() ? ownerRoot->decl()->safeCast<AstStructDecl>() : nullptr;
+        if (!structDecl || !structDecl->spanGenericParamsRef.isValid())
+            return;
+
+        std::vector<SemaGeneric::GenericParamDesc> ownerParams;
+        SemaGeneric::collectGenericParams(sema, structDecl->spanGenericParamsRef, ownerParams);
+        if (ownerParams.empty())
+            return;
+
+        std::vector<SymbolStruct::GenericArgKey> ownerArgs;
+        if (!ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, ownerArgs))
+            return;
+        if (ownerArgs.size() != ownerParams.size())
+            return;
+
+        for (size_t i = 0; i < ownerArgs.size(); ++i)
+        {
+            SemaGeneric::GenericResolvedArg resolvedArg;
+            resolvedArg.present = ownerArgs[i].typeRef.isValid() || ownerArgs[i].cstRef.isValid();
+            resolvedArg.typeRef = ownerArgs[i].typeRef;
+            resolvedArg.cstRef  = ownerArgs[i].cstRef;
+            if (resolvedArg.cstRef.isValid() && !resolvedArg.typeRef.isValid())
+                resolvedArg.typeRef = sema.cstMgr().get(resolvedArg.cstRef).typeRef();
+            SemaGeneric::appendResolvedGenericBinding(ownerParams[i], resolvedArg, outBindings);
+        }
+    }
+
     Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, SymbolInterface* itf, const AttributeList& attrs, bool declPass)
     {
         Sema child(sema.ctx(), sema, blockRef, declPass);
@@ -163,6 +208,7 @@ namespace
 
         SmallVector<SemaClone::ParamBinding> bindings;
         SemaGeneric::collectResolvedGenericBindings(params, resolvedArgs, paramIndex, bindings);
+        appendEnclosingGenericCloneBindings(sema, root, bindings);
 
         AstNodeRef clonedRef = AstNodeRef::invalid();
         SWC_RESULT(evalGenericClonedNode(sema, root, param.defaultRef, bindings, clonedRef));
@@ -182,6 +228,7 @@ namespace
 
         SmallVector<SemaClone::ParamBinding> bindings;
         SemaGeneric::collectResolvedGenericBindings(params, resolvedArgs, paramIndex, bindings);
+        appendEnclosingGenericCloneBindings(sema, root, bindings);
 
         AstNodeRef clonedTypeRef = AstNodeRef::invalid();
         SWC_RESULT(evalGenericClonedNode(sema, root, param.explicitType, bindings, clonedTypeRef));
@@ -314,6 +361,7 @@ namespace
         {
             SmallVector<SemaClone::ParamBinding> bindings;
             buildGenericCloneBindings(params, resolvedArgs, bindings);
+            appendEnclosingGenericCloneBindings(sema, root, bindings);
 
             const SemaClone::CloneContext cloneContext{bindings};
             const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, root.declNodeRef(), cloneContext);

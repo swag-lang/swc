@@ -28,7 +28,7 @@ impl GenBinaryPair
         #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
-
+/*
     #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T)->GenBinaryPair'T
     {
@@ -44,22 +44,22 @@ impl GenBinaryPair
             return {x: me.x % scalar, y: me.y % scalar}
         #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
-    }
+    }*/
 }
 
 // Test: generic pair + pair with u32
-/*
+
 #test
 {
     var a: GenBinaryPair'u32 = {x: 10, y: 20}
     var b: GenBinaryPair'u32 = {x: 3, y: 7}
     let sum = a + b
 
-    #assert(#typeof(sum) == GenBinaryPair'u32)
+    /*#assert(#typeof(sum) == GenBinaryPair'u32)
     @assert(sum.x == 13)
-    @assert(sum.y == 27)
+    @assert(sum.y == 27)*/
 }
-
+/*
 // Test: generic pair - pair with s32
 #test
 {

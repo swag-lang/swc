@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Support/Unittest/Unittest.h"
-#include "Main/Global.h"
 
 #if SWC_HAS_UNITTEST
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"

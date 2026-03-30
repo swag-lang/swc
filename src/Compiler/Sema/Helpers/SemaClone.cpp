@@ -223,7 +223,7 @@ namespace
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()        = node.flags();
         nodePtr->setCodeRef(node.codeRef());
-        const bool         carryInline = !storedView.hasSymbol() && (storedView.typeRef().isValid() || storedView.cstRef().isValid());
+        const bool carryInline = !storedView.hasSymbol() && (storedView.typeRef().isValid() || storedView.cstRef().isValid());
         if (carryInline)
         {
             // Nested generic cloning can hit identifiers that were already substituted by an

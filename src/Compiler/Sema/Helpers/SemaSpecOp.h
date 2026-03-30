@@ -4,6 +4,7 @@ SWC_BEGIN_NAMESPACE();
 
 class Sema;
 class SymbolFunction;
+struct AstBinaryExpr;
 struct AstUnaryExpr;
 struct SemaNodeView;
 
@@ -36,6 +37,7 @@ namespace SemaSpecOp
     SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     Result     validateSymbol(Sema& sema, SymbolFunction& sym);
     Result     registerSymbol(Sema& sema, SymbolFunction& sym);
+    Result     tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, bool& outHandled);
     Result     tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled);
 }
 

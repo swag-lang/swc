@@ -581,7 +581,10 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     outHandled = false;
 
     const Token& tok = sema.token(node.codeRef());
-    if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus, TokenId::SymBang, TokenId::SymTilde}))
+    if (!tok.isAny({TokenId::SymPlus,
+                    TokenId::SymMinus,
+                    TokenId::SymBang,
+                    TokenId::SymTilde}))
         return Result::Continue;
 
     if (!operandView.type())
@@ -609,6 +612,59 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
 
     SmallVector<AstNodeRef> args;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef));
+    outHandled = true;
+    return Result::Continue;
+}
+
+Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, bool& outHandled)
+{
+    outHandled = false;
+
+    const Token& tok = sema.token(node.codeRef());
+    if (!tok.isAny({TokenId::SymPlus,
+                    TokenId::SymMinus,
+                    TokenId::SymAsterisk,
+                    TokenId::SymSlash,
+                    TokenId::SymPercent,
+                    TokenId::SymAmpersand,
+                    TokenId::SymPipe,
+                    TokenId::SymCircumflex,
+                    TokenId::SymLowerLower,
+                    TokenId::SymGreaterGreater}))
+        return Result::Continue;
+
+    if (!leftView.type())
+        return Result::Continue;
+
+    TypeRef         unwrappedTypeRef = leftView.typeRef();
+    const TypeInfo& leftValueType    = sema.typeMgr().get(unwrappedTypeRef);
+    if (leftValueType.isReference())
+        unwrappedTypeRef = unwrapAlias(sema.ctx(), leftValueType.payloadTypeRef());
+    else
+        unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
+    if (!unwrappedTypeRef.isValid())
+        unwrappedTypeRef = leftView.typeRef();
+
+    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
+    if (!leftType.isStruct())
+        return Result::Continue;
+
+    const auto& ownerStruct = leftType.payloadSymStruct();
+    SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
+
+    const SourceView&      srcView    = sema.compiler().srcView(node.srcViewRef());
+    const std::string_view opString   = tok.string(srcView);
+    const AstNodeRef       genericArg = makeSyntheticStringConstantArg(sema, node.codeRef(), opString);
+    const IdentifierRef    opBinaryId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinary);
+    SmallVector<Symbol*>   candidates;
+    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opBinaryId, std::span{&genericArg, 1}, candidates));
+    if (candidates.empty())
+        return Result::Continue;
+
+    SmallVector<AstNodeRef> args;
+    args.push_back(node.nodeLeftRef);
+    args.push_back(node.nodeRightRef);
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), AstNodeRef::invalid()));
     outHandled = true;
     return Result::Continue;
 }

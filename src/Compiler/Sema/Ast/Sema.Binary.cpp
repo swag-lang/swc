@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Helpers.h"
@@ -476,6 +477,11 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
 
     const TokenId op = canonicalBinaryToken(sema.token(codeRef()).id);
+
+    bool handledSpecialOp = false;
+    SWC_RESULT(SemaSpecOp::tryResolveBinary(sema, *this, nodeLeftView, handledSpecialOp));
+    if (handledSpecialOp)
+        return Result::Continue;
 
     SWC_RESULT(promote(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(check(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));

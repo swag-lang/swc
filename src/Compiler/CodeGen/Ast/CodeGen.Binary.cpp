@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -430,6 +432,17 @@ namespace
 
 Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    SmallVector<ResolvedCallArgument> resolvedArgs;
+    codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
+
+    const SemaNodeView specialOpView = codeGen.curViewSymbol();
+    if (!resolvedArgs.empty() && specialOpView.sym() && specialOpView.sym()->isFunction())
+    {
+        const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
+        if (calledFn.specOpKind() == SpecOpKind::OpBinary)
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
+
     const TokenId             tokId     = canonicalBinaryToken(codeGen.token(codeRef()).id);
     const BinaryEncodeContext encodeCtx = buildBinaryEncodeContext(codeGen, *this, tokId);
     switch (encodeCtx.encodingKind)

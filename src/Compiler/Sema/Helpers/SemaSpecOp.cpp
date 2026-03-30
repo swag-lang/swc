@@ -263,6 +263,11 @@ namespace
                 if (!symFunc || symFunc->idRef() != idRef)
                     continue;
 
+                // Parallel sema can expose special operator methods before their signature is typed.
+                // Wait for concrete overloads here so operator resolution never ranks half-built methods.
+                if (!symFunc->isGenericRoot())
+                    SWC_RESULT(sema.waitTyped(symFunc, symFunc->codeRef()));
+
                 if (!canExplicitlySpecializeSpecOp(sema, *symFunc, genericArgNodes))
                 {
                     outCandidates.push_back(symFunc);

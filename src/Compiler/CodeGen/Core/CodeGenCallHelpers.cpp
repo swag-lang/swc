@@ -410,6 +410,50 @@ namespace
         argPayload.setIsValue();
     }
 
+    void materializePreparedReferenceArg(CodeGen& codeGen,
+                                         CodeGenNodePayload& argPayload,
+                                         TypeRef             normalizedTypeRef,
+                                         const ResolvedCallArgument& resolvedArg,
+                                         AstNodeRef          argRef)
+    {
+        if (argRef.isInvalid() || normalizedTypeRef.isInvalid())
+            return;
+
+        TaskContext&    ctx            = codeGen.ctx();
+        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isReference())
+            return;
+
+        if (argPayload.isAddress() || !resolvedArg.bindsReferenceToValue)
+            return;
+
+        const SemaNodeView argView = codeGen.viewType(argRef);
+        SWC_ASSERT(argView.type());
+        const TypeRef sourceTypeRef = argPayload.effectiveTypeRef(argView.typeRef());
+        SWC_ASSERT(sourceTypeRef.isValid());
+
+        const CallConv&                        callConv         = CallConv::get(codeGen.function().callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedSource = ABITypeNormalize::normalize(ctx, callConv, sourceTypeRef, ABITypeNormalize::Usage::Argument);
+        if (normalizedSource.isIndirect)
+            return;
+
+        const uint64_t rawSize = ctx.typeMgr().get(sourceTypeRef).sizeOf(ctx);
+        SWC_ASSERT(rawSize == 1 || rawSize == 2 || rawSize == 4 || rawSize == 8);
+
+        const CodeGenNodePayload* storedPayload = codeGen.safePayload(argRef);
+        SWC_ASSERT(storedPayload != nullptr && storedPayload->runtimeStorageSym != nullptr);
+
+        MicroBuilder&  builder      = codeGen.builder();
+        const MicroReg storageReg   = codeGen.runtimeStorageAddressReg(argRef);
+        const auto     storageBits  = CodeGenTypeHelpers::bitsFromStorageSize(rawSize);
+        builder.emitLoadMemReg(storageReg, 0, argPayload.reg, storageBits);
+
+        // Reference parameters expect the pointee address itself as the ABI value.
+        argPayload.reg     = storageReg;
+        argPayload.typeRef = normalizedTypeRef;
+        argPayload.setIsValue();
+    }
+
     void fillPreparedDirectArgType(ABICall::PreparedArg&       outPreparedArg,
                                    CodeGen&                    codeGen,
                                    const CallConv&             callConv,
@@ -513,6 +557,7 @@ namespace
         ABICall::PreparedArg preparedArg;
         if (normalizedTypeRef.isValid())
         {
+            materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
         }

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -20,6 +21,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)
     {
         if (rawArgRef.isInvalid() || valueNodeRef.isInvalid())
@@ -1279,6 +1291,86 @@ namespace
         return !sourceType.isPointerOrReference();
     }
 
+    TypeRef referenceBindingStorageTypeRef(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid() || paramTypeRef.isInvalid())
+            return TypeRef::invalid();
+
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        if (!paramType.isReference())
+            return TypeRef::invalid();
+
+        const AstNodeRef sourceRef     = resolveResolvedArgSourceRef(sema, argRef);
+        const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
+        if (!sourceTypeRef.isValid())
+            return paramType.payloadTypeRef();
+
+        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (unwrappedSourceTypeRef.isValid())
+            return unwrappedSourceTypeRef;
+
+        return sourceTypeRef;
+    }
+
+    Result completeReferenceBindingRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        if (SymbolFunction* ownerFunction = sema.currentFunction(); ownerFunction && typeRef.isValid())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            ownerFunction->addLocalVariable(sema.ctx(), &symVar);
+        }
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    Result attachReferenceBindingRuntimeStorageIfNeeded(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid() || sema.isGlobalScope())
+            return Result::Continue;
+
+        const TypeRef storageTypeRef = referenceBindingStorageTypeRef(sema, paramTypeRef, argRef);
+        if (storageTypeRef.isInvalid())
+            return Result::Continue;
+
+        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(argRef);
+        if (payload && payload->runtimeStorageSym != nullptr)
+            return Result::Continue;
+
+        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+        {
+            ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = boundStorage;
+            return Result::Continue;
+        }
+
+        TaskContext&        ctx         = sema.ctx();
+        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, "__call_arg_ref_storage");
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &sema.node(argRef), sema.node(argRef).tokRef(), idRef, flags);
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(symVariable);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(symMap != nullptr);
+            symMap->addSymbol(ctx, symVariable, true);
+        }
+
+        symVariable->registerAttributes(sema);
+        symVariable->setDeclared(sema.ctx());
+        SWC_RESULT(Match::ghosting(sema, *symVariable));
+        SWC_RESULT(completeReferenceBindingRuntimeStorageSymbol(sema, *symVariable, storageTypeRef));
+        ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = symVariable;
+        return Result::Continue;
+    }
+
     Result buildResolvedCallArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         outResolvedArgs.clear();
@@ -1347,6 +1439,9 @@ namespace
                 .passKind              = passKind,
                 .bindsReferenceToValue = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
             };
+
+            if (resolvedArg.bindsReferenceToValue)
+                SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
 
             if (hasUntypedVariadic && i == variadicParamIdx)
                 SWC_RESULT(assignUntypedVariadicTypeInfo(sema, resolvedArg));

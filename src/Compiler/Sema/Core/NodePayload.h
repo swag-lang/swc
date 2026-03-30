@@ -116,6 +116,7 @@ protected:
     void                     setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                     setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols);
 
+    void  copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef);
     void  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
     void  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     bool  hasCodeGenPayload(AstNodeRef nodeRef) const;

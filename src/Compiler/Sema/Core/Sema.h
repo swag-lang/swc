@@ -197,6 +197,7 @@ public:
     void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
     void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayloadKindRef(nodeDst, node(srcRef)); }
     void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayload(nodeDst, node(srcRef)); }
+    void copyResolvedCallArguments(AstNodeRef dstRef, AstNodeRef srcRef) { nodePayloadContext().copyResolvedCallArguments(dstRef, srcRef); }
 
     void       pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
     void       pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());

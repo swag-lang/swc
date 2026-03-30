@@ -32,16 +32,6 @@ namespace
                node.is(AstNodeId::CompilerCallOne);
     }
 
-    bool isSyntheticCallLikeNode(const AstNode& node)
-    {
-        return node.is(AstNodeId::UnaryExpr) ||
-               node.is(AstNodeId::BinaryExpr) ||
-               node.is(AstNodeId::AssignStmt) ||
-               node.is(AstNodeId::IndexExpr) ||
-               node.is(AstNodeId::CastExpr) ||
-               node.is(AstNodeId::RelationalExpr);
-    }
-
     TypeRef unwrapFunctionReturnTypeIfCall(const NodePayload& payloadContext, const TaskContext& ctx, AstNodeRef nodeRef, const AstNode& node, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -49,7 +39,7 @@ namespace
 
         const bool shouldUnwrap =
             isCallLikeNode(node) ||
-            (isSyntheticCallLikeNode(node) && payloadContext.hasResolvedCallArguments(nodeRef));
+            payloadContext.hasResolvedCallArguments(nodeRef);
         if (!shouldUnwrap)
             return typeRef;
 
@@ -566,6 +556,16 @@ void NodePayload::setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> sym
 void NodePayload::setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols)
 {
     setSymbolListImpl(nodeRef, symbols);
+}
+
+void NodePayload::copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef)
+{
+    if (dstNodeRef.isInvalid() || srcNodeRef.isInvalid() || dstNodeRef == srcNodeRef)
+        return;
+
+    SmallVector<ResolvedCallArgument> args;
+    appendResolvedCallArguments(srcNodeRef, args);
+    setResolvedCallArguments(dstNodeRef, args.span());
 }
 
 void NodePayload::updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols)

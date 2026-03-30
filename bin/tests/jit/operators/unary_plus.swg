@@ -18,7 +18,10 @@
 
 #test
 {
-    func unaryPlusBad(a: s32)->s32 { return +a } // swc-expected-error {{sema_err_negate_unsigned}}
+    func unaryPlusS32(a: s32)->s32 { return +a }
+    const V = #run unaryPlusS32(-42)
+    #assert(#typeof(V) == s32)
+    #assert(V == -42)
 }
 
 #test

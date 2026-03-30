@@ -28,7 +28,7 @@ namespace
             if (foldStatus != Math::FoldStatus::Ok)
                 return Result::Error;
 
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), TypeInfo::Sign::Unsigned));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
             return Result::Continue;
         }
 
@@ -175,16 +175,9 @@ namespace
 
     Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
-        if (view.type()->isFloat() || view.type()->isIntUnsigned() || view.type()->isIntUnsized())
+        SWC_UNUSED(expr);
+        if (view.type()->isFloat() || view.type()->isInt())
             return Result::Continue;
-
-        if (view.type()->isIntSigned())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
 
         return reportInvalidType(sema, expr, view);
     }

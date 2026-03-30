@@ -1,5 +1,4 @@
 #global fileprivate
-#global skip
 
 // ============================================================================
 // Generic single-value box with +, -, ~ unary ops

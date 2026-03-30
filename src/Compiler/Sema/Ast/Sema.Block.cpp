@@ -124,7 +124,9 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
 
 Result AstParenExpr::semaPostNode(Sema& sema)
 {
-    sema.inheritPayload(*this, nodeExprRef);
+    const AstNodeRef resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
+    sema.inheritPayload(*this, resolvedExprRef);
+    sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
     return Result::Continue;
 }
 

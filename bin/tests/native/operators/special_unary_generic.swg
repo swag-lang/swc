@@ -12,7 +12,7 @@ struct(T) IntUnaryBox
 
 impl IntUnaryBox
 {
-    func(op: string) opUnary(me)->IntUnaryBox'T
+    func(op: string) opUnary(const me)->IntUnaryBox'T
     {
         #if op == "+" do
             return {value: +me.value}
@@ -36,7 +36,7 @@ struct(T) BoolUnaryBox
 
 impl BoolUnaryBox
 {
-    func(op: string) opUnary(me)->BoolUnaryBox'T
+    func(op: string) opUnary(const me)->BoolUnaryBox'T
     {
         #if op == "!" do
             return {value: !me.value}
@@ -58,7 +58,7 @@ struct(T) IntUnaryVec3
 
 impl IntUnaryVec3
 {
-    func(op: string) opUnary(me)->IntUnaryVec3'T
+    func(op: string) opUnary(const me)->IntUnaryVec3'T
     {
         #if op == "+" do
             return {x: +me.x, y: +me.y, z: +me.z}

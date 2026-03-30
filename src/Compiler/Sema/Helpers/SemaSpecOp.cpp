@@ -46,7 +46,7 @@ namespace
             case SpecOpKind::OpBinary:
                 return "func(op: string) opBinary(const me, other: <native type>) -> <struct> or func(op: string) opBinary(const me, other: const &<type>) -> <struct>";
             case SpecOpKind::OpUnary:
-                return "func(op: string) opUnary(me) -> <struct>";
+                return "func(op: string) opUnary(const me) -> <struct>";
             case SpecOpKind::OpAssign:
                 return "func(op: string) opAssign(me, value: <type>) -> void";
             case SpecOpKind::OpAffect:
@@ -430,7 +430,7 @@ namespace
                 break;
 
             case SpecOpKind::OpUnary:
-                if (!requireExactParams(1) || !requireReturnStruct())
+                if (!requireExactParams(1) || !requireFirstConst() || !requireReturnStruct())
                     return reportSpecOpError(sema, sym, kind);
                 break;
 

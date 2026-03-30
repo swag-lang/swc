@@ -47,7 +47,7 @@ struct(T) AutoScopeUnaryBox
 
 impl AutoScopeUnaryBox
 {
-    func(op: string) opUnary(me)->AutoScopeUnaryBox'T
+    func(op: string) opUnary(const me)->AutoScopeUnaryBox'T
     {
         #if op == "~" do
             return {value: ~.value}

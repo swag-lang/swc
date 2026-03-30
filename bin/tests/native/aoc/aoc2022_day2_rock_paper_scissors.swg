@@ -371,8 +371,8 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
     return result
 }
 
-const SampleResult: ScoreSummary = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
-const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
+const SampleResult: ScoreSummary = #run solveWithLanguageFeatures(SampleInput)
+const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInput)
 
 #assert(#sizeof(Shape) == 1)
 #assert(#sizeof(Outcome) == 1)

@@ -1076,6 +1076,22 @@ namespace
         }
     }
 
+    SymbolVariable* resolveBodyBindingReceiver(const Sema& sema, const SymbolFunction& sym)
+    {
+        const auto& params = sym.parameters();
+        if (params.empty())
+            return nullptr;
+
+        SymbolVariable* receiver = params[0];
+        if (!receiver)
+            return nullptr;
+
+        if (receiver->idRef() != sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            return nullptr;
+
+        return receiver;
+    }
+
     Result setupIntrinsicGetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
         if (sema.isNativeBuild())
@@ -1263,12 +1279,8 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         }
 
         auto frame = sema.frame();
-        if (sym.isMethod())
-        {
-            const auto& params = sym.parameters();
-            if (!params.empty() && params[0]->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
-                frame.pushBindingVar(params[0]);
-        }
+        if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
+            frame.pushBindingVar(receiver);
 
         // Lookup-scope overrides are expression-local. A fresh function body must
         // start from its lexical scope or local declarations can miss themselves.

@@ -181,7 +181,15 @@ namespace
 
     AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const SemaClone::CloneContext& cloneContext)
     {
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
+        const AstNodeRef   sourceRef  = node.nodeRef(sema.ast());
+        const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+
+        IdentifierRef idRef = IdentifierRef::invalid();
+        if (storedView.sym())
+            idRef = storedView.sym()->idRef();
+        if (!idRef.isValid())
+            idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
+
         if (const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef))
         {
             if (binding->cstRef.isValid())
@@ -215,9 +223,6 @@ namespace
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()        = node.flags();
         nodePtr->setCodeRef(node.codeRef());
-
-        const AstNodeRef   sourceRef   = node.nodeRef(sema.ast());
-        const SemaNodeView storedView  = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         const bool         carryInline = !storedView.hasSymbol() && (storedView.typeRef().isValid() || storedView.cstRef().isValid());
         if (carryInline)
         {

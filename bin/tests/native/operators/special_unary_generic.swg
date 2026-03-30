@@ -14,7 +14,7 @@ impl IntUnaryBox
         #elif op == "-" do
             return {value: -me.value}
         #elif op == "~" do
-            return {value: ~me.value}
+            return {value: ~.value}
         #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }

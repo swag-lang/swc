@@ -59,6 +59,7 @@ public:
     void                                      copyTo(ByteSpanRW dst) const;
     void                                      copyToPreserveOffsets(ByteSpanRW dst) const;
     void                                      restoreFromPreserveOffsets(ByteSpan src) const;
+    std::vector<DataSegmentRelocation>        copyRelocations() const;
     const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
 #if SWC_HAS_STATS
     size_t memStorageReserved() const;

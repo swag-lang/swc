@@ -436,7 +436,7 @@ namespace
         if (!visited.insert(visitKey).second)
             return Result::Continue;
 
-        const auto& relocations = segment.relocations();
+        const auto relocations = segment.copyRelocations();
         for (const DataSegmentRelocation& relocation : relocations)
         {
             if (relocation.offset < allocation.offset)

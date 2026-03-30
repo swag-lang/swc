@@ -170,6 +170,12 @@ void DataSegment::restoreFromPreserveOffsets(ByteSpan src) const
     }
 }
 
+std::vector<DataSegmentRelocation> DataSegment::copyRelocations() const
+{
+    const std::shared_lock lock(mutex_);
+    return relocations_;
+}
+
 std::pair<uint32_t, std::byte*> DataSegment::reserveBytes(uint32_t size, uint32_t align, bool zeroInit)
 {
     if (!size)

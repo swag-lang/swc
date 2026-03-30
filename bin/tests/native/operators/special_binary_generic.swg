@@ -107,7 +107,7 @@ struct(T) GenBinaryPair
 impl GenBinaryPair
 {
     #[Swag.Overload]
-    func(op: string) opBinary(me, other: GenBinaryPair'T)->GenBinaryPair'T
+    func(op: string) opBinary(const me, other: const &GenBinaryPair'T)->GenBinaryPair'T
     {
         #if op == "+" do
             return {x: me.x + other.x, y: me.y + other.y}
@@ -124,7 +124,7 @@ impl GenBinaryPair
     }
 
     #[Swag.Overload]
-    func(op: string) opBinary(me, scalar: T)->GenBinaryPair'T
+    func(op: string) opBinary(const me, scalar: const &T)->GenBinaryPair'T
     {
         #if op == "+" do
             return {x: me.x + scalar, y: me.y + scalar}
@@ -306,7 +306,7 @@ struct(T) GenBitwisePair
 
 impl GenBitwisePair
 {
-    func(op: string) opBinary(me, other: GenBitwisePair'T)->GenBitwisePair'T
+    func(op: string) opBinary(const me, other: const &GenBitwisePair'T)->GenBitwisePair'T
     {
         #if op == "&" do
             return {x: me.x & other.x, y: me.y & other.y}
@@ -424,7 +424,7 @@ struct(T) GenVec3
 impl GenVec3
 {
     #[Swag.Overload]
-    func(op: string) opBinary(me, other: GenVec3'T)->GenVec3'T
+    func(op: string) opBinary(const me, other: const &GenVec3'T)->GenVec3'T
     {
         #if op == "+" do
             return {x: me.x + other.x, y: me.y + other.y, z: me.z + other.z}
@@ -439,7 +439,7 @@ impl GenVec3
     }
 
     #[Swag.Overload]
-    func(op: string) opBinary(me, scalar: T)->GenVec3'T
+    func(op: string) opBinary(const me, scalar: const &T)->GenVec3'T
     {
         #if op == "+" do
             return {x: me.x + scalar, y: me.y + scalar, z: me.z + scalar}

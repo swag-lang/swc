@@ -26,7 +26,7 @@ impl NumericArray
         return true
     }
 
-    mtd(op: string) const opBinary(other: NumericArray)->NumericArray
+    mtd(op: string) const opBinary(other: const &NumericArray)->NumericArray
     {
         var result: retval
         for i in NumericArray.N

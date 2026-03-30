@@ -112,7 +112,7 @@ impl Vector4
     // Binary operators for vector-vector operations (+, -, *, /).
     // Performs component-wise operations between two vectors and returns the result.
     #[Swag.Overload, Swag.Inline]
-    mtd(op: string) const opBinary(other: Vector4)->Vector4
+    mtd(op: string) const opBinary(other: const &Vector4)->Vector4
     {
         #if op == "+" do
             return Vector4{.x + other.x, .y + other.y, .z + other.z, .w + other.w}

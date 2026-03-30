@@ -44,7 +44,7 @@ namespace
             case SpecOpKind::OpCmp:
                 return "func opCmp(me, value: <type>) -> s32";
             case SpecOpKind::OpBinary:
-                return "func(op: string) opBinary(me, other: <type>) -> <struct>";
+                return "func(op: string) opBinary(const me, other: <native type>) -> <struct> or func(op: string) opBinary(const me, other: const &<type>) -> <struct>";
             case SpecOpKind::OpUnary:
                 return "func(op: string) opUnary(me) -> <struct>";
             case SpecOpKind::OpAssign:
@@ -83,6 +83,35 @@ namespace
         if (type.isReference() || type.isAnyPointer())
             return unwrapAlias(ctx, type.payloadTypeRef());
         return unwrapAlias(ctx, typeRef);
+    }
+
+    bool isOpBinaryFirstParamConst(TaskContext& ctx, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        return type.isReference() && type.isConst();
+    }
+
+    bool isOpBinarySecondParamSafe(TaskContext& ctx, const SymbolFunction& sym, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        if (type.isReference() || type.isPointerLike())
+            return type.isConst();
+
+        if (sym.isGenericRoot())
+            return false;
+
+        if (!type.isStruct() && !type.isArray() && !type.isAggregate())
+            return true;
+
+        const CallConv&                        callConv   = CallConv::get(sym.callConvKind());
+        const ABITypeNormalize::NormalizedType normalized = ABITypeNormalize::normalize(ctx, callConv, typeRef, ABITypeNormalize::Usage::Argument);
+        return !normalized.isIndirect;
     }
 
     CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
@@ -305,6 +334,10 @@ namespace
             return params.size() == count;
         };
 
+        auto requireFirstConst = [&]() -> bool {
+            return isOpBinaryFirstParamConst(ctx, params[0]->typeRef());
+        };
+
         auto requireMinParams = [&](size_t count) -> bool {
             return params.size() >= count;
         };
@@ -347,6 +380,12 @@ namespace
             return &type.payloadSymStruct() != &owner;
         };
 
+        auto requireSecondNoSideEffect = [&]() -> bool {
+            if (params.size() < 2)
+                return false;
+            return isOpBinarySecondParamSafe(ctx, sym, params[1]->typeRef());
+        };
+
         switch (kind)
         {
             case SpecOpKind::None:
@@ -386,7 +425,7 @@ namespace
                 break;
 
             case SpecOpKind::OpBinary:
-                if (!requireExactParams(2) || !requireReturnStruct())
+                if (!requireExactParams(2) || !requireFirstConst() || !requireSecondNoSideEffect() || !requireReturnStruct())
                     return reportSpecOpError(sema, sym, kind);
                 break;
 

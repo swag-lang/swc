@@ -40,8 +40,8 @@ impl SpecB
     mtd opCast() -> s32 { return 0; }
     mtd opEquals(value: s32) -> bool { return true; }
     mtd opCmp(value: s32) -> s32 { return 0; }
-    mtd opBinary(other: SpecB) -> SpecB { return {}; }
-    mtd opUnary() -> SpecB { return {}; }
+    mtd(op: string) const opBinary(other: SpecB) -> SpecB { return {}; }
+    mtd(op: string) opUnary() -> SpecB { return {}; }
     mtd opAssign(value: s32) {}
     mtd opAffect(value: s32) {}
     mtd opAffectLiteral(value: s32) {}

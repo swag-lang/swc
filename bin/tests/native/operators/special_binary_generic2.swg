@@ -457,7 +457,7 @@ impl GenVec3
 }
 
 // Test: GenVec3 with u8
-/*#test
+#test
 {
     var a: GenVec3'u8 = {x: 10, y: 20, z: 30}
     var b: GenVec3'u8 = {x: 1, y: 2, z: 3}
@@ -471,10 +471,10 @@ impl GenVec3
     @assert(diff.x == 9)
     @assert(diff.y == 18)
     @assert(diff.z == 27)
-}*/
+}
 
 // Test: GenVec3 - scalar with s64
-/*#test
+#test
 {
     var a: GenVec3's64 = {x: 0, y: 0, z: 0}
     let result = a - 42's64
@@ -483,4 +483,3 @@ impl GenVec3
     @assert(result.y == -42)
     @assert(result.z == -42)
 }
-*/

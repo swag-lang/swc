@@ -148,7 +148,9 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
 
 Result AstNamedArgument::semaPostNode(Sema& sema)
 {
-    sema.inheritPayload(*this, sema.viewZero(nodeArgRef).nodeRef());
+    const AstNodeRef resolvedArgRef = sema.viewZero(nodeArgRef).nodeRef();
+    sema.inheritPayload(*this, resolvedArgRef);
+    sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedArgRef);
     return Result::Continue;
 }
 

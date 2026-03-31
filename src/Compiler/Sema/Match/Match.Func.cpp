@@ -220,6 +220,17 @@ namespace
         return ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
     }
 
+    bool allowsImplicitAddressBinding(const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef ufcsArg)
+    {
+        if (ufcsArg.isValid() && paramIndex == 0)
+            return true;
+
+        // Binary special operators conceptually consume two operands. Keep the right operand
+        // addressable as well so invalid-but-diagnosed signatures like `other: &T` still
+        // behave consistently with operator syntax while remaining reported to the user.
+        return fn.specOpKind() == SpecOpKind::OpBinary && paramIndex == 1;
+    }
+
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
     {
         VariadicInfo vi;
@@ -755,7 +766,7 @@ namespace
                 return Result::Continue;
             }
 
-            const bool isUfcsArgument = ufcsArg.isValid() && i == 0;
+            const bool isUfcsArgument = allowsImplicitAddressBinding(fn, i, ufcsArg);
             auto       r              = ConvRank::Bad;
             SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument));
             if (r == ConvRank::Bad)
@@ -1072,8 +1083,8 @@ namespace
 
             const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            CastFlags        flags = CastFlagsE::Zero;
-            if (appliedUfcsArg.isValid() && i == 0)
+            CastFlags flags = CastFlagsE::Zero;
+            if (allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
                 flags.add(CastFlagsE::UfcsArgument);
             SWC_RESULT(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());

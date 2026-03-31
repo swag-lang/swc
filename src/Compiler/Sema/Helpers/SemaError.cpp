@@ -15,6 +15,8 @@ namespace
     {
         if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
             return;
+        if (id == DiagnosticId::sema_err_spec_op_signature)
+            return;
 
         if (auto* currentFn = sema.currentFunction())
             currentFn->setIgnored(sema.ctx());

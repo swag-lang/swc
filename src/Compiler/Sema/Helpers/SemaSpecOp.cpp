@@ -23,6 +23,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result validateSpecOpSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind);
+
     std::string_view specOpSignatureHint(SpecOpKind kind)
     {
         switch (kind)
@@ -359,10 +361,22 @@ namespace
                     continue;
                 }
 
+                // When specializing overloaded operators, a failed specialization (e.g. an #error
+                // directive for an unsupported operation) means this overload does not handle the
+                // requested operator.  Suppress diagnostics and skip the candidate instead of
+                // aborting the entire resolution.
                 SymbolFunction* specialized = nullptr;
-                SWC_RESULT(SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized));
+                const bool      savedSilent = sema.ctx().silentDiagnostic();
+                sema.ctx().setSilentDiagnostic(true);
+                const Result specResult = SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized);
+                sema.ctx().setSilentDiagnostic(savedSilent);
+                if (specResult != Result::Continue)
+                    continue;
                 if (specialized)
+                {
+                    SWC_RESULT(validateSpecOpSignature(sema, ownerStruct, *specialized, specialized->specOpKind()));
                     outCandidates.push_back(specialized);
+                }
             }
         }
 
@@ -393,7 +407,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_spec_op_signature, sym);
         diag.addArgument(Diagnostic::ARG_BECAUSE, specOpSignatureHint(kind));
         diag.report(sema.ctx());
-        return Result::Error;
+        return Result::Continue;
     }
 
     Result validateSpecOpSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind)
@@ -677,7 +691,12 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     if (!operandView.type())
         return Result::Continue;
 
-    TypeRef unwrappedTypeRef = unwrapAlias(sema.ctx(), operandView.typeRef());
+    TypeRef         unwrappedTypeRef = operandView.typeRef();
+    const TypeInfo& operandValueType = sema.typeMgr().get(unwrappedTypeRef);
+    if (operandValueType.isReference())
+        unwrappedTypeRef = unwrapAlias(sema.ctx(), operandValueType.payloadTypeRef());
+    else
+        unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
     if (!unwrappedTypeRef.isValid())
         unwrappedTypeRef = operandView.typeRef();
 
@@ -749,9 +768,8 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
         return Result::Continue;
 
     SmallVector<AstNodeRef> args;
-    args.push_back(node.nodeLeftRef);
     args.push_back(node.nodeRightRef);
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), AstNodeRef::invalid()));
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeLeftRef));
     outHandled = true;
     return Result::Continue;
 }

@@ -198,27 +198,11 @@ namespace
 
     Result checkTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
-        if (view.sym() && view.sym()->isLetVariable())
-        {
-            const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_constant, node.codeRef());
-            const SourceCodeRange codeRange = sema.node(view.nodeRef()).codeRangeWithChildren(sema.ctx(), sema.ast());
-            diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        if (view.cstRef().isValid())
-        {
-            const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_constant, node.codeRef());
-            const SourceCodeRange codeRange = sema.node(view.nodeRef()).codeRangeWithChildren(sema.ctx(), sema.ast());
-            diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
+        SWC_ASSERT(view.node() != nullptr);
         if (!sema.isLValue(*view.node()))
         {
-            const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_not_lvalue, node.codeRef());
+            const DiagnosticId    diagId    = view.cstRef().isValid() ? DiagnosticId::sema_err_take_address_constant : DiagnosticId::sema_err_take_address_not_lvalue;
+            const auto            diag      = SemaError::report(sema, diagId, node.codeRef());
             const SourceCodeRange codeRange = sema.node(view.nodeRef()).codeRangeWithChildren(sema.ctx(), sema.ast());
             diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
             diag.report(sema.ctx());
@@ -241,7 +225,9 @@ namespace
         }
 
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (view.type()->isConst())
+        if (view.type()->isConst() ||
+            (view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant())) ||
+            (view.node() && sema.isLValue(*view.node()) && view.cstRef().isValid()))
             flags.add(TypeInfoFlagsE::Const);
 
         bool blockPointer = false;

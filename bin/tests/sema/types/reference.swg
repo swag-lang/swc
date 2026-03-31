@@ -35,3 +35,25 @@ func tata(a: const &A) {}
     var c: const &A = &a
     var d: const &A = a
 }
+
+struct ConstAddrValue
+{
+    x: s32
+}
+
+struct ConstAddrHolder
+{
+    value: ConstAddrValue
+}
+
+func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
+
+#test
+{
+    let holder: ConstAddrHolder = {value: {x: 123}}
+    var valueRef: const &ConstAddrValue = &holder.value
+    let result = readConstAddr(&holder.value)
+
+    #assert(#typeof(valueRef) == const &ConstAddrValue)
+    #assert(#typeof(result) == s32)
+}

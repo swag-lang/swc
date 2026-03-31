@@ -96,5 +96,26 @@ func tata(a: const &A) { gRefTataCalls += 1 }
     @assert(gRefTataCalls == 1)
 }
 
+struct ConstAddrValue
+{
+    x: s32
+}
+
+struct ConstAddrHolder
+{
+    value: ConstAddrValue
+}
+
+func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
+
+#test
+{
+    let holder: ConstAddrHolder = {value: {x: 123}}
+    var valueRef: const &ConstAddrValue = &holder.value
+
+    @assert(valueRef.x == 123)
+    @assert(readConstAddr(&holder.value) == 123)
+}
+
 
 

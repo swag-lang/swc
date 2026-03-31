@@ -72,5 +72,6 @@ struct F
 #test
 {
     let a = 1
-    var p = &a // swc-expected-error {{sema_err_take_address_constant}}
+    var p = &a
+    #assert(#typeof(p) == const *s32)
 }

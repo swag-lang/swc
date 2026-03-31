@@ -82,7 +82,6 @@ namespace
             !state.waiterSymbol)
             return;
 
-        msg += "\nCompiler context:\n";
         appendContextField(msg, "Phase", std::string_view(state.kindName()));
 
         if (state.codeGenFunction)

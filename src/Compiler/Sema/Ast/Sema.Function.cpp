@@ -194,7 +194,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
 
-    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto&       sym      = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     const auto* declImpl = functionDeclImplContext(sema, &sym);
     const auto* declItf  = functionDeclInterfaceContext(sema, &sym);
     if (sym.isMethod() && !declImpl && !declItf)

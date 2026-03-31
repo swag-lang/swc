@@ -13,7 +13,7 @@ struct(T) GenBinaryPair
 impl GenBinaryPair
 {
     #[Swag.Overload]
-    mtd(op: string)  opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
+    mtd(op: string) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
     {
         #if op == "+" do
             return {x: .x + other.x, y: .y + other.y}

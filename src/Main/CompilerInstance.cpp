@@ -148,7 +148,8 @@ namespace
     void runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str)
     {
         SWC_ASSERT(owner != nullptr);
-        std::print("{}", std::string_view(str.ptr, str.length));
+        const TaskContext ctx(*const_cast<CompilerInstance*>(owner));
+        Logger::print(ctx, std::string_view(str.ptr, str.length));
     }
 }
 

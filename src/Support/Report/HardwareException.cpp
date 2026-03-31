@@ -154,7 +154,7 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
 {
     const Logger::ScopedLock loggerLock(ctx.global().logger());
     const Utf8               msg = format(&ctx, title, platformExceptionPointers, extraInfo);
-    ctx.global().logger().ensureTransientLineSeparated(ctx);
+    ctx.global().logger().ensureTransientLineSeparated(ctx, true);
     Logger::print(ctx, msg);
 }
 

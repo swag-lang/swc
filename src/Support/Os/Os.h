@@ -41,6 +41,7 @@ namespace Os
     {
         std::string*                          capturedOutput = nullptr;
         bool                                  forwardOutput  = true;
+        const TaskContext*                    logCtx         = nullptr;
         std::function<bool(std::string_view)> outputLineFilter;
     };
 

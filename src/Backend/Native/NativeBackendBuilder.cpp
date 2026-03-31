@@ -11,6 +11,7 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -259,13 +260,6 @@ namespace
         if (!firstFile)
             return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
 
-        TimedActionLog::ScopedStage stage(builder.ctx(), {
-                                                             .key    = "micro",
-                                                             .label  = "Micro",
-                                                             .verb   = "optimizing instruction flow",
-                                                             .detail = std::format("{} funcs", Utf8Helper::toNiceBigNumber(builder.functionInfos.size())),
-                                                         });
-
         Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);
         JobManager& jobMgr = builder.ctx().global().jobMgr();
         for (const auto& info : builder.functionInfos)
@@ -404,6 +398,16 @@ Result NativeBackendBuilder::prepare()
     sortAndUnique(regularGlobals, [&](const SymbolVariable& symbol) { return makeVariableSortKey(*this, symbol); });
     appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
 
+    std::optional<TimedActionLog::ScopedStage> microStage;
+    if (ctx_.global().logger().tryClaimUniqueStage("micro"))
+    {
+        microStage.emplace(ctx_, TimedActionLog::StageSpec{
+                                     .key   = "micro",
+                                     .label = "Micro",
+                                     .verb  = "optimizing instruction flow",
+                                 });
+    }
+
     while (true)
     {
         appendCodeGenDependencies(*this, functions);
@@ -488,9 +492,12 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
                                                 .detail = artifactPath.filename().string(),
                                             });
 
-    uint32_t       exitCode    = 0;
-    const fs::path artifactDir = artifactPath.parent_path();
-    const auto     result      = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? buildDir : artifactDir);
+    uint32_t              exitCode    = 0;
+    const fs::path        artifactDir = artifactPath.parent_path();
+    const Os::ProcessRunOptions options{
+        .logCtx = &ctx_,
+    };
+    const auto result = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? buildDir : artifactDir, &options);
     switch (result)
     {
         case Os::ProcessRunResult::Ok:

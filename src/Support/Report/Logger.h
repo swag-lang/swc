@@ -8,6 +8,9 @@ class TaskContext;
 class Logger
 {
 public:
+    Logger();
+    ~Logger();
+
     class ScopedStageMute
     {
     public:
@@ -52,12 +55,15 @@ public:
         Logger* logger_ = nullptr;
     };
 
-    void   lock() { mutexAccess_.lock(); }
-    void   unlock() { mutexAccess_.unlock(); }
+    void   lock();
+    void   unlock();
     void   startTransientLine() { transientLineActive_ = true; }
     void   finishTransientLine() { transientLineActive_ = false; }
-    void   resetStageSequence() { stageSequence_ = 0; }
+    void   resetStageSequence();
     size_t nextStageSequence() { return ++stageSequence_; }
+    bool   tryClaimUniqueStage(std::string_view key);
+    size_t beginAnimatedStage(std::array<Utf8, 4> lines, std::array<Utf8, 4> glyphs);
+    void   endAnimatedStage(const TaskContext& ctx, size_t stageId, std::string_view finalLine);
     void   pushStageMute() { stageMuteDepth_++; }
     void   popStageMute()
     {
@@ -65,7 +71,7 @@ public:
         stageMuteDepth_--;
     }
     bool stageOutputMuted() const { return stageMuteDepth_ != 0; }
-    void ensureTransientLineSeparated(const TaskContext& ctx);
+    void ensureTransientLineSeparated(const TaskContext& ctx, bool blankLine = false);
 
     static void print(const TaskContext& ctx, std::string_view message);
     static void printDim(const TaskContext& ctx, std::string_view message);
@@ -76,10 +82,34 @@ public:
     static void printAction(const TaskContext& ctx, std::string_view left, std::string_view right);
 
 private:
-    std::mutex mutexAccess_;
-    bool       transientLineActive_ = false;
-    size_t     stageSequence_       = 0;
-    size_t     stageMuteDepth_      = 0;
+    struct AnimatedStage
+    {
+        size_t              id         = 0;
+        std::array<Utf8, 4> lines      = {};
+        std::array<Utf8, 4> glyphs     = {};
+        size_t              frameIndex = 0;
+    };
+
+    void animateLoop();
+    void clearAnimatedStagesNoLock();
+    void renderAnimatedStagesNoLock();
+    void setCursorVisibleNoLock(bool visible);
+    void updateAnimatedStageGlyphsNoLock();
+    void removeAnimatedStageNoLock(size_t stageId);
+
+    std::recursive_mutex      mutexAccess_;
+    std::vector<AnimatedStage> animatedStages_;
+    std::thread               animator_;
+    std::atomic<bool>         stopAnimator_            = false;
+    bool                      transientLineActive_     = false;
+    bool                      activeStagesWereVisible_ = false;
+    bool                      cursorHidden_            = false;
+    std::vector<Utf8>         uniqueStageKeys_;
+    size_t                    renderedStageCount_      = 0;
+    size_t                    outputBlockDepth_        = 0;
+    size_t                    stageSequence_           = 0;
+    size_t                    stageMuteDepth_          = 0;
+    size_t                    nextAnimatedStageId_     = 0;
 };
 
 SWC_END_NAMESPACE();

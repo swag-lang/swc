@@ -2,12 +2,13 @@
 #include "Backend/Native/NativeLinker.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeLinkerCoff.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void replayToolOutput(const std::string_view output, const std::function<bool(std::string_view)>& lineFilter)
+    void replayToolOutput(const TaskContext* ctx, const std::string_view output, const std::function<bool(std::string_view)>& lineFilter)
     {
         if (output.empty())
             return;
@@ -30,8 +31,13 @@ namespace
 
             if (!lineFilter || lineFilter(line))
             {
-                (void) std::fwrite(lineWithEnding.data(), sizeof(char), lineWithEnding.size(), stdout);
-                (void) std::fflush(stdout);
+                if (ctx)
+                    Logger::print(*ctx, lineWithEnding);
+                else
+                {
+                    (void) std::fwrite(lineWithEnding.data(), sizeof(char), lineWithEnding.size(), stdout);
+                    (void) std::fflush(stdout);
+                }
             }
 
             lineStart = lineEnd;
@@ -82,6 +88,7 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
         runOptions = *options;
     runOptions.capturedOutput = &toolOutput;
     runOptions.forwardOutput  = false;
+    runOptions.logCtx         = &builder_.ctx();
 
     const auto result = Os::runProcess(exitCode, exePath, args, builder_.buildDir, &runOptions);
     switch (result)
@@ -111,7 +118,7 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
         return Result::Error;
     }
 
-    replayToolOutput(toolOutput, runOptions.outputLineFilter);
+    replayToolOutput(&builder_.ctx(), toolOutput, runOptions.outputLineFilter);
     if (!fs::exists(builder_.artifactPath))
         return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.artifactPath));
     if (builder_.compiler().buildCfg().backend.debugInfo &&

@@ -140,6 +140,12 @@ namespace
         if (!shouldForwardProcessOutputLine(options, line))
             return;
 
+        if (options && options->logCtx)
+        {
+            Logger::print(*options->logCtx, lineWithEnding);
+            return;
+        }
+
         (void) std::fwrite(lineWithEnding.data(), sizeof(char), lineWithEnding.size(), stdout);
         (void) std::fflush(stdout);
     }

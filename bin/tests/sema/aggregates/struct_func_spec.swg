@@ -42,12 +42,12 @@ impl SpecB
     mtd opCmp(value: s32) -> s32 { return 0; }
     mtd(op: string) const opBinary(other: SpecB) -> SpecB { return {}; }
     mtd(op: string) const opUnary() -> SpecB { return {}; }
-    mtd opAssign(value: s32) {}
+    mtd(op: string) opAssign(value: s32) {}
     mtd opAffect(value: s32) {}
-    mtd opAffectLiteral(value: s32) {}
+    mtd(suffix: string) opAffectLiteral(value: s32) {}
     mtd opSlice(low: u64, up: u64) -> string { return ""; }
     mtd opIndex(index: s32) -> s32 { return 0; }
-    mtd opIndexAssign(index: s32, value: s32) {}
+    mtd(op: string) opIndexAssign(index: s32, value: s32) {}
     mtd opIndexAffect(index: s32, value: s32) {}
     //mtd opVisit(stmt: #code) {}
 }

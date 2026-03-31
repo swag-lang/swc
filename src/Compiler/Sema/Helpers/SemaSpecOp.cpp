@@ -28,41 +28,41 @@ namespace
         switch (kind)
         {
             case SpecOpKind::OpDrop:
-                return "func opDrop(me) -> void";
+                return "mtd opDrop() -> void";
             case SpecOpKind::OpPostCopy:
-                return "func opPostCopy(me) -> void";
+                return "mtd opPostCopy() -> void";
             case SpecOpKind::OpPostMove:
-                return "func opPostMove(me) -> void";
+                return "mtd opPostMove() -> void";
             case SpecOpKind::OpCount:
-                return "func opCount(me) -> u64";
+                return "mtd opCount() -> u64";
             case SpecOpKind::OpData:
-                return "func opData(me) -> *<type>";
+                return "mtd opData() -> *<type>";
             case SpecOpKind::OpCast:
-                return "func opCast(me) -> <type>";
+                return "mtd opCast() -> <type>";
             case SpecOpKind::OpEquals:
-                return "func opEquals(me, value: <type>) -> bool";
+                return "mtd opEquals(value: <type>) -> bool";
             case SpecOpKind::OpCmp:
-                return "func opCmp(me, value: <type>) -> s32";
+                return "mtd opCmp(value: <type>) -> s32";
             case SpecOpKind::OpBinary:
-                return "func(op: string) opBinary(const me, other: <native type>) -> <struct> or func(op: string) opBinary(const me, other: const &<type>) -> <struct>";
+                return "mtd(op: string) const opBinary(other: <type>) -> <struct>";
             case SpecOpKind::OpUnary:
-                return "func(op: string) opUnary(const me) -> <struct>";
+                return "mtd(op: string) const opUnary() -> <struct>";
             case SpecOpKind::OpAssign:
-                return "func(op: string) opAssign(me, value: <type>) -> void";
+                return "mtd(op: string) opAssign(value: <type>) -> void";
             case SpecOpKind::OpAffect:
-                return "func opAffect(me, value: <type>) -> void";
+                return "mtd opAffect(value: <type>) -> void";
             case SpecOpKind::OpAffectLiteral:
-                return "func(suffix: string) opAffectLiteral(me, value: <type>) -> void";
+                return "mtd(suffix: string) opAffectLiteral(value: <type>) -> void";
             case SpecOpKind::OpSlice:
-                return "func opSlice(me, low: u64, up: u64) -> <string or slice>";
+                return "mtd opSlice(low: u64, up: u64) -> <string or slice>";
             case SpecOpKind::OpIndex:
-                return "func opIndex(me, index: <type>) -> <type>";
+                return "mtd opIndex(index: <type>) -> <type>";
             case SpecOpKind::OpIndexAssign:
-                return "func(op: string) opIndexAssign(me, index: <type>, value: <type>) -> void";
+                return "mtd(op: string) opIndexAssign(index: <type>, value: <type>) -> void";
             case SpecOpKind::OpIndexAffect:
-                return "func(op: string) opIndexAffect(me, index: <type>, value: <type>) -> void";
+                return "mtd opIndexAffect(index: <type>, value: <type>) -> void";
             case SpecOpKind::OpVisit:
-                return "func(ptr: bool, back: bool) opVisit(me, stmt: #code) -> void";
+                return "mtd(ptr: bool, back: bool) opVisit(stmt: #code) -> void";
             case SpecOpKind::None:
             case SpecOpKind::Invalid:
             default:
@@ -123,6 +123,80 @@ namespace
         const CallConv&                        callConv   = CallConv::get(sym.callConvKind());
         const ABITypeNormalize::NormalizedType normalized = ABITypeNormalize::normalize(ctx, callConv, typeRef, ABITypeNormalize::Usage::Argument);
         return !normalized.isIndirect;
+    }
+
+    std::span<const TokenId> expectedSpecOpGenericValueTypes(SpecOpKind kind)
+    {
+        static constexpr TokenId K_STRING[] = {TokenId::TypeString};
+        static constexpr TokenId K_BOOL2[]  = {TokenId::TypeBool, TokenId::TypeBool};
+
+        switch (kind)
+        {
+            case SpecOpKind::OpBinary:
+            case SpecOpKind::OpUnary:
+            case SpecOpKind::OpAssign:
+            case SpecOpKind::OpAffectLiteral:
+            case SpecOpKind::OpIndexAssign:
+                return K_STRING;
+
+            case SpecOpKind::OpVisit:
+                return K_BOOL2;
+
+            default:
+                return {};
+        }
+    }
+
+    const AstFunctionDecl* specOpDeclForGenericSignature(const SymbolFunction& sym)
+    {
+        const SymbolFunction* root = &sym;
+        if (sym.isGenericInstance() && sym.genericRootSym())
+            root = sym.genericRootSym();
+
+        return root->decl() ? root->decl()->safeCast<AstFunctionDecl>() : nullptr;
+    }
+
+    bool hasSpecOpGenericValueType(Sema& sema, AstNodeRef typeRef, TokenId expectedType)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const AstNode& typeNode = sema.node(typeRef);
+        if (typeNode.isNot(AstNodeId::BuiltinType))
+            return false;
+
+        return sema.token(typeNode.codeRef()).id == expectedType;
+    }
+
+    bool hasSpecOpGenericSignature(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
+    {
+        const auto                                 expected = expectedSpecOpGenericValueTypes(kind);
+        const auto*                                decl     = specOpDeclForGenericSignature(sym);
+        std::vector<SemaGeneric::GenericParamDesc> params;
+
+        if (!decl)
+            return expected.empty();
+
+        if (!decl->spanGenericParamsRef.isValid())
+            return expected.empty();
+
+        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        if (expected.empty())
+            return false;
+        if (params.size() != expected.size())
+            return false;
+
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            if (params[i].kind != SemaGeneric::GenericParamKind::Value)
+                return false;
+            if (params[i].defaultRef.isValid())
+                return false;
+            if (!hasSpecOpGenericValueType(sema, params[i].explicitType, expected[i]))
+                return false;
+        }
+
+        return true;
     }
 
     CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
@@ -328,6 +402,9 @@ namespace
         const TypeManager& typeMgr = sema.typeMgr();
         const auto&        params  = sym.parameters();
 
+        if (!hasSpecOpGenericSignature(sema, sym, kind))
+            return reportSpecOpError(sema, sym, kind);
+
         if (params.empty())
             return reportSpecOpError(sema, sym, kind);
 
@@ -338,16 +415,16 @@ namespace
         if (returnTypeRef.isInvalid())
             return reportSpecOpError(sema, sym, kind);
 
-        const TypeInfo& returnType = typeMgr.get(returnTypeRef);
-        const bool    receiverIsConst  = isConstSpecOpReceiver(ctx, owner, params[0]->typeRef());
-        const bool    returnIsVoid     = returnType.isVoid();
-        const bool    returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
-        const bool    returnIsPointer  = returnType.isAnyPointer();
-        const bool    returnIsNotVoid  = !returnIsVoid;
-        const bool    returnIsStrSlice = returnType.isString() || returnType.isSlice();
-        const TypeRef u64TypeRef       = unwrapAlias(ctx, typeMgr.typeU64());
-        const TypeRef boolTypeRef      = unwrapAlias(ctx, typeMgr.typeBool());
-        const TypeRef s32TypeRef       = unwrapAlias(ctx, typeMgr.typeS32());
+        const TypeInfo& returnType       = typeMgr.get(returnTypeRef);
+        const bool      receiverIsConst  = isConstSpecOpReceiver(ctx, owner, params[0]->typeRef());
+        const bool      returnIsVoid     = returnType.isVoid();
+        const bool      returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
+        const bool      returnIsPointer  = returnType.isAnyPointer();
+        const bool      returnIsNotVoid  = !returnIsVoid;
+        const bool      returnIsStrSlice = returnType.isString() || returnType.isSlice();
+        const TypeRef   u64TypeRef       = unwrapAlias(ctx, typeMgr.typeU64());
+        const TypeRef   boolTypeRef      = unwrapAlias(ctx, typeMgr.typeBool());
+        const TypeRef   s32TypeRef       = unwrapAlias(ctx, typeMgr.typeS32());
 
         switch (kind)
         {
@@ -502,6 +579,13 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
     if (isSpecOpInImplFor(sym))
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_in_impl_for, sym);
+    if (sym.isGenericRoot() && !sym.isGenericInstance())
+    {
+        if (!hasSpecOpGenericSignature(sema, sym, kind))
+            return reportSpecOpError(sema, sym, kind);
+        return Result::Continue;
+    }
+
     return validateSpecOpSignature(sema, *ownerStruct, sym, kind);
 }
 

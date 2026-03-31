@@ -8,7 +8,7 @@ struct MissingConstUnaryMe
 impl MissingConstUnaryMe
 {
     #[Swag.Overload]
-    mtd opUnary()->MissingConstUnaryMe { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: string) opUnary()->MissingConstUnaryMe { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 struct(T) GenericMissingConstUnaryMe
@@ -20,6 +20,13 @@ impl GenericMissingConstUnaryMe
 {
     #[Swag.Overload]
     mtd(op: string) opUnary()->GenericMissingConstUnaryMe'T { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
+}
+
+#test
+{
+    var value = MissingConstUnaryMe{value: 1}
+    let result = -value
+    #assert(#typeof(result) == MissingConstUnaryMe)
 }
 
 #test

@@ -15,13 +15,13 @@ struct RuntimeBinaryBox
 impl RuntimeBinaryBox
 {
     #[Swag.Overload, Swag.NoInline]
-    mtd const opBinary(other: const &RuntimeBinaryBox)->RuntimeBinaryBox
+    mtd(op: string) const opBinary(other: const &RuntimeBinaryBox)->RuntimeBinaryBox
     {
         return {a: .a + other.a, b: .b + other.b, c: .c + other.c, d: .d + other.d}
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd const opBinary(value: u64)->RuntimeBinaryBox
+    mtd(op: string) const opBinary(value: u64)->RuntimeBinaryBox
     {
         return {a: .a << value, b: .b << value, c: .c << value, d: .d << value}
     }

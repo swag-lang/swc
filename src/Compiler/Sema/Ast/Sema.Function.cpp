@@ -27,6 +27,53 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
+    {
+        if (auto* symImpl = sema.frame().currentImpl())
+            return symImpl;
+
+        if (symFunc)
+        {
+            if (const SymbolMap* ownerSymMap = symFunc->ownerSymMap(); ownerSymMap && ownerSymMap->isImpl())
+                return &ownerSymMap->cast<SymbolImpl>();
+        }
+
+        SymbolMap* symMap = sema.curSymMap();
+        if (symMap && symMap->isImpl())
+            return &symMap->cast<SymbolImpl>();
+
+        return nullptr;
+    }
+
+    const SymbolInterface* functionDeclInterfaceContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
+    {
+        if (auto* symItf = sema.frame().currentInterface())
+            return symItf;
+
+        if (symFunc)
+        {
+            if (const SymbolMap* ownerSymMap = symFunc->ownerSymMap(); ownerSymMap)
+            {
+                if (ownerSymMap->isInterface())
+                    return &ownerSymMap->cast<SymbolInterface>();
+                if (ownerSymMap->isImpl())
+                    return ownerSymMap->cast<SymbolImpl>().symInterface();
+            }
+        }
+
+        SymbolMap* symMap = sema.curSymMap();
+        if (!symMap)
+            return nullptr;
+
+        if (symMap->isInterface())
+            return &symMap->cast<SymbolInterface>();
+
+        if (symMap->isImpl())
+            return symMap->cast<SymbolImpl>().symInterface();
+
+        return nullptr;
+    }
+
     bool inlineReturnTargetsCaller(const SemaInlinePayload* inlinePayload)
     {
         return inlinePayload &&
@@ -135,7 +182,7 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
     }
 
     sym.setGenericRoot(spanGenericParamsRef.isValid());
-    sym.setGenericDeclContext(sema.frame().currentImpl(), sema.frame().currentInterface());
+    sym.setGenericDeclContext(const_cast<SymbolImpl*>(functionDeclImplContext(sema, &sym)), const_cast<SymbolInterface*>(functionDeclInterfaceContext(sema, &sym)));
     if (nodeBodyRef.isInvalid())
         sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
 
@@ -148,21 +195,28 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         SemaHelpers::declareSymbol(sema, *this);
 
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-    if (sym.isMethod() && !sema.frame().currentImpl() && !sema.frame().currentInterface())
+    const auto* declImpl = functionDeclImplContext(sema, &sym);
+    const auto* declItf  = functionDeclInterfaceContext(sema, &sym);
+    if (sym.isMethod() && !declImpl && !declItf)
     {
         const SourceView& srcView   = sema.srcView(srcViewRef());
         const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
         return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, SourceCodeRef{srcViewRef(), mtdTokRef});
     }
 
+    sym.setGenericDeclContext(const_cast<SymbolImpl*>(declImpl), const_cast<SymbolInterface*>(declItf));
+
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
+        SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
         sym.setSemaCompleted(sema.ctx());
         return Result::SkipChildren;
     }
 
     SemaFrame frame           = sema.frame();
     frame.currentAttributes() = sym.attributes();
+    frame.setCurrentImpl(const_cast<SymbolImpl*>(declImpl));
+    frame.setCurrentInterface(const_cast<SymbolInterface*>(declItf));
     frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;

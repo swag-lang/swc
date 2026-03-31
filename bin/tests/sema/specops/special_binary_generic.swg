@@ -8,13 +8,13 @@ struct BinaryIntBox
 impl BinaryIntBox
 {
     #[Swag.Overload]
-    mtd const opBinary(other: const &BinaryIntBox)->BinaryIntBox
+    mtd(op: string) const opBinary(other: const &BinaryIntBox)->BinaryIntBox
     {
         return {value: .value + other.value}
     }
 
     #[Swag.Overload]
-    mtd const opBinary(other: u32)->BinaryIntBox
+    mtd(op: string) const opBinary(other: u32)->BinaryIntBox
     {
         return {value: .value << other}
     }
@@ -28,7 +28,7 @@ struct MissingConstMe
 impl MissingConstMe
 {
     #[Swag.Overload]
-    mtd opBinary(other: MissingConstMe)->MissingConstMe { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: string) opBinary(other: MissingConstMe)->MissingConstMe { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 struct MutatingOtherRef
@@ -39,7 +39,7 @@ struct MutatingOtherRef
 impl MutatingOtherRef
 {
     #[Swag.Overload]
-    mtd const opBinary(other: &MutatingOtherRef)->MutatingOtherRef { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: string) const opBinary(other: &MutatingOtherRef)->MutatingOtherRef { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 struct MutatingOtherPtr
@@ -50,7 +50,7 @@ struct MutatingOtherPtr
 impl MutatingOtherPtr
 {
     #[Swag.Overload]
-    mtd const opBinary(other: *MutatingOtherPtr)->MutatingOtherPtr { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: string) const opBinary(other: *MutatingOtherPtr)->MutatingOtherPtr { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 struct(T) GenericMissingConstMe
@@ -73,10 +73,10 @@ struct IndirectOtherByValue
 impl IndirectOtherByValue
 {
     #[Swag.Overload]
-    mtd const opBinary(other: IndirectOtherByValue)->IndirectOtherByValue { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: string) const opBinary(other: IndirectOtherByValue)->IndirectOtherByValue { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
 
     #[Swag.Overload]
-    mtd const opBinary(other: const &IndirectOtherByValue)->IndirectOtherByValue
+    mtd(op: string) const opBinary(other: const &IndirectOtherByValue)->IndirectOtherByValue
     {
         return {a: .a + other.a, b: .b + other.b}
     }
@@ -103,8 +103,40 @@ impl IndirectOtherByValue
 
 #test
 {
+    var lhs = MissingConstMe{value: 1}
+    var rhs = MissingConstMe{value: 2}
+    let result = lhs + rhs
+    #assert(#typeof(result) == MissingConstMe)
+}
+
+#test
+{
+    var lhs = MutatingOtherRef{value: 1}
+    var rhs = MutatingOtherRef{value: 2}
+    let result = lhs + rhs
+    #assert(#typeof(result) == MutatingOtherRef)
+}
+
+#test
+{
+    var lhs = MutatingOtherPtr{value: 1}
+    var rhs = MutatingOtherPtr{value: 2}
+    let result = lhs + rhs
+    #assert(#typeof(result) == MutatingOtherPtr)
+}
+
+#test
+{
     var lhs: GenericMissingConstMe'u32 = {value: 1}
     var rhs: GenericMissingConstMe'u32 = {value: 2}
     let result = lhs + rhs
     #assert(#typeof(result) == GenericMissingConstMe'u32)
+}
+
+#test
+{
+    var lhs = IndirectOtherByValue{a: 1, b: 2}
+    var rhs = IndirectOtherByValue{a: 3, b: 4}
+    let result = lhs + rhs
+    #assert(#typeof(result) == IndirectOtherByValue)
 }

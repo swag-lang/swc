@@ -564,6 +564,7 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteSp
 
 Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std::span<const MicroRelocation> relocations, const SymbolFunction* ownerFunction)
 {
+    const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(!executableMemory.empty());
     const ByteSpanRW writableCode = asByteSpan(static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size());
     return patchRelocations(ctx, ownerFunction, writableCode, relocations);
@@ -571,7 +572,8 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 
 Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 {
-    const auto globals = ctx.compiler().nativeGlobalVariablesSnapshot();
+    const TaskScopedContext scopedContext(ctx);
+    const auto              globals = ctx.compiler().nativeGlobalVariablesSnapshot();
     for (const SymbolVariable* symVar : globals)
     {
         if (!symVar)
@@ -621,6 +623,7 @@ void JIT::finalize(JITMemory& executableMemory)
 
 Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo, const SymbolFunction* ownerFunction)
 {
+    const TaskScopedContext scopedContext(ctx);
     prepare(ctx, outExecutableMemory, linearCode, unwindInfo);
     SWC_RESULT(patch(ctx, outExecutableMemory, relocations, ownerFunction));
     finalize(outExecutableMemory);
@@ -629,6 +632,7 @@ Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan line
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)
 {
+    const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(targetFn != nullptr);
 
     constexpr auto                         callConvKind = CallConvKind::Host;
@@ -968,6 +972,7 @@ namespace
 
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)
 {
+    TaskContext* const savedContext = TaskContext::setCurrent(&ctx);
     SWC_ASSERT(invoker != nullptr);
     ctx.compiler().initPerThreadRuntimeContextForJit();
 
@@ -997,6 +1002,7 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
     if (outErrorKind)
         *outErrorKind = hasException ? callError : JITCallErrorKind::None;
 
+    TaskContext::setCurrent(savedContext);
     return hasException ? Result::Error : Result::Continue;
 }
 

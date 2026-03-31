@@ -14,7 +14,8 @@ Result JITExecManager::executeItem(const Item& item)
     TaskContext&                ctx = *item.ownerCtx;
     const SymbolFunction* const fn  = item.request.function;
 
-    const TaskScopedState scopedState(ctx);
+    const TaskScopedContext scopedContext(ctx);
+    const TaskScopedState   scopedState(ctx);
     ctx.state().setRunJit(fn, item.request.nodeRef, item.request.codeRef);
 
     SWC_RESULT(JIT::patchGlobalFunctionVariables(ctx));

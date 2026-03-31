@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -295,6 +296,22 @@ Result AstNamedType::semaPostNode(Sema& sema)
 
         sema.setType(sema.curNodeRef(), view.typeRef());
         return Result::Continue;
+    }
+
+    // Auto-deduce generic arguments for bare generic root structs from enclosing context
+    if (view.sym()->isStruct())
+    {
+        auto& st = view.sym()->cast<SymbolStruct>();
+        if (st.isGenericRoot())
+        {
+            SymbolStruct* instance = nullptr;
+            SWC_RESULT(SemaGeneric::deduceStructFromContext(sema, st, instance));
+            if (instance)
+            {
+                sema.setSymbol(nodeIdentRef, instance);
+                view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+            }
+        }
     }
 
     // If we matched against the interface implementation block in a struct,

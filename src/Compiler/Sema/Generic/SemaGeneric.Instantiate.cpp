@@ -465,6 +465,109 @@ namespace SemaGeneric
     {
         return instantiateGenericExplicit(sema, genericRoot, genericArgNodes, outInstance);
     }
+
+    Result deduceStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance)
+    {
+        outInstance = nullptr;
+
+        if (!GenericRootTraits<SymbolStruct>::hasGenericParams(genericRoot))
+            return Result::Continue;
+
+        // Find enclosing generic struct instance from impl context
+        const SymbolStruct* enclosingInstance = nullptr;
+        for (size_t i = sema.frames().size(); i > 0; --i)
+        {
+            const auto* impl = sema.frames()[i - 1].currentImpl();
+            if (impl && impl->isForStruct())
+            {
+                const auto* st = impl->symStruct();
+                if (st && st->isGenericInstance())
+                {
+                    enclosingInstance = st;
+                    break;
+                }
+            }
+        }
+
+        if (!enclosingInstance)
+            return Result::Continue;
+
+        const SymbolStruct* enclosingRoot = enclosingInstance->genericRootSym();
+        if (!enclosingRoot)
+            return Result::Continue;
+
+        // Collect enclosing root's generic params and instance args
+        const auto* enclosingDecl = GenericRootTraits<SymbolStruct>::decl(*enclosingRoot);
+        if (!enclosingDecl || !enclosingDecl->spanGenericParamsRef.isValid())
+            return Result::Continue;
+
+        std::vector<GenericParamDesc> enclosingParams;
+        collectGenericParams(sema, enclosingDecl->spanGenericParamsRef, enclosingParams);
+
+        std::vector<SymbolStruct::GenericArgKey> enclosingArgs;
+        if (!enclosingRoot->tryGetGenericInstanceArgs(*enclosingInstance, enclosingArgs))
+            return Result::Continue;
+        if (enclosingArgs.size() != enclosingParams.size())
+            return Result::Continue;
+
+        // Collect target struct's generic params
+        const auto* targetDecl = GenericRootTraits<SymbolStruct>::decl(genericRoot);
+        if (!targetDecl)
+            return Result::Continue;
+
+        std::vector<GenericParamDesc> targetParams;
+        collectGenericParams(sema, targetDecl->spanGenericParamsRef, targetParams);
+
+        // If the current function has generic type params that conflict with target params, skip deduction
+        if (const auto* func = sema.currentFunction())
+        {
+            const auto* funcDecl = func->decl() ? func->decl()->safeCast<AstFunctionDecl>() : nullptr;
+            if (funcDecl && funcDecl->spanGenericParamsRef.isValid())
+            {
+                std::vector<GenericParamDesc> funcParams;
+                collectGenericParams(sema, funcDecl->spanGenericParamsRef, funcParams);
+                for (const auto& fp : funcParams)
+                {
+                    if (fp.kind != GenericParamKind::Type)
+                        continue;
+                    for (const auto& tp : targetParams)
+                    {
+                        if (tp.kind == GenericParamKind::Type && tp.idRef == fp.idRef)
+                            return Result::Continue;
+                    }
+                }
+            }
+        }
+
+        // Match target params against enclosing params by name
+        std::vector<GenericResolvedArg> resolvedArgs(targetParams.size());
+        for (size_t i = 0; i < targetParams.size(); ++i)
+        {
+            bool found = false;
+            for (size_t j = 0; j < enclosingParams.size(); ++j)
+            {
+                if (targetParams[i].idRef == enclosingParams[j].idRef &&
+                    targetParams[i].kind == enclosingParams[j].kind)
+                {
+                    resolvedArgs[i].present = true;
+                    resolvedArgs[i].typeRef = enclosingArgs[j].typeRef;
+                    resolvedArgs[i].cstRef  = enclosingArgs[j].cstRef;
+                    found                   = true;
+                    break;
+                }
+            }
+
+            if (!found)
+                return Result::Continue;
+        }
+
+        // Materialize defaults and create instance
+        SWC_RESULT(materializeGenericArgs(sema, genericRoot, targetParams, resolvedArgs, std::span<const AstNodeRef>{}, sema.curNodeRef()));
+        if (hasMissingGenericArgs(resolvedArgs))
+            return Result::Continue;
+
+        return createGenericInstance(sema, genericRoot, targetParams, resolvedArgs, outInstance);
+    }
 }
 
 SWC_END_NAMESPACE();

@@ -404,7 +404,11 @@ namespace
 
     Result reportSpecOpError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_spec_op_signature, sym);
+        const auto& codeRef = sym.codeRef();
+        Diagnostic  diag    = Diagnostic::get(DiagnosticId::sema_err_spec_op_signature, sema.ast().srcView().fileRef());
+        diag.last().addSpan(sema.srcView(codeRef.srcViewRef).tokenCodeRange(sema.ctx(), codeRef.tokRef), "", DiagnosticSeverity::Error);
+        SemaError::setReportArguments(sema, diag, codeRef);
+        SemaError::setReportArguments(sema, diag, &sym);
         diag.addArgument(Diagnostic::ARG_BECAUSE, specOpSignatureHint(kind));
         diag.report(sema.ctx());
         return Result::Continue;

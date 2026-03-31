@@ -410,11 +410,11 @@ namespace
         argPayload.setIsValue();
     }
 
-    void materializePreparedReferenceArg(CodeGen& codeGen,
-                                         CodeGenNodePayload& argPayload,
-                                         TypeRef             normalizedTypeRef,
+    void materializePreparedReferenceArg(CodeGen&                    codeGen,
+                                         CodeGenNodePayload&         argPayload,
+                                         TypeRef                     normalizedTypeRef,
                                          const ResolvedCallArgument& resolvedArg,
-                                         AstNodeRef          argRef)
+                                         AstNodeRef                  argRef)
     {
         if (argRef.isInvalid() || normalizedTypeRef.isInvalid())
             return;
@@ -443,9 +443,9 @@ namespace
         const CodeGenNodePayload* storedPayload = codeGen.safePayload(argRef);
         SWC_ASSERT(storedPayload != nullptr && storedPayload->runtimeStorageSym != nullptr);
 
-        MicroBuilder&  builder      = codeGen.builder();
-        const MicroReg storageReg   = codeGen.runtimeStorageAddressReg(argRef);
-        const auto     storageBits  = CodeGenTypeHelpers::bitsFromStorageSize(rawSize);
+        MicroBuilder&  builder     = codeGen.builder();
+        const MicroReg storageReg  = codeGen.runtimeStorageAddressReg(argRef);
+        const auto     storageBits = CodeGenTypeHelpers::bitsFromStorageSize(rawSize);
         builder.emitLoadMemReg(storageReg, 0, argPayload.reg, storageBits);
 
         // Reference parameters expect the pointee address itself as the ABI value.

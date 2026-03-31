@@ -13,18 +13,18 @@ struct(T) GenBinaryPair
 impl GenBinaryPair
 {
     #[Swag.Overload]
-    func(op: string) opBinary(const me, other: const &GenBinaryPair'T)->GenBinaryPair'T
+    mtd(op: string) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
     {
         #if op == "+" do
-            return {x: me.x + other.x, y: me.y + other.y}
+            return {x: .x + other.x, y: .y + other.y}
         #elif op == "-" do
-            return {x: me.x - other.x, y: me.y - other.y}
+            return {x: .x - other.x, y: .y - other.y}
         #elif op == "*" do
-            return {x: me.x * other.x, y: me.y * other.y}
+            return {x: .x * other.x, y: .y * other.y}
         #elif op == "/" do
-            return {x: me.x / other.x, y: me.y / other.y}
+            return {x: .x / other.x, y: .y / other.y}
         #elif op == "%" do
-            return {x: me.x % other.x, y: me.y % other.y}
+            return {x: .x % other.x, y: .y % other.y}
         #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }

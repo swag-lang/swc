@@ -85,16 +85,27 @@ namespace
         return unwrapAlias(ctx, typeRef);
     }
 
-    bool isOpBinaryFirstParamConst(TaskContext& ctx, TypeRef typeRef)
+    bool isSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
     {
         if (!typeRef.isValid())
             return false;
 
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
-        return type.isReference() && type.isConst();
+        if (!type.isReference())
+            return false;
+
+        return unwrapAlias(ctx, type.payloadTypeRef()) == unwrapAlias(ctx, owner.typeRef());
     }
 
-    bool isOpBinarySecondParamSafe(TaskContext& ctx, const SymbolFunction& sym, TypeRef typeRef)
+    bool isConstSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
+    {
+        if (!isSpecOpReceiver(ctx, owner, typeRef))
+            return false;
+
+        return ctx.typeMgr().get(typeRef).isConst();
+    }
+
+    bool isOpBinarySecondParamImmutable(TaskContext& ctx, const SymbolFunction& sym, TypeRef typeRef)
     {
         if (!typeRef.isValid())
             return false;
@@ -320,13 +331,7 @@ namespace
         if (params.empty())
             return reportSpecOpError(sema, sym, kind);
 
-        const TypeInfo& firstType = typeMgr.get(params[0]->typeRef());
-        if (!firstType.isReference())
-            return reportSpecOpError(sema, sym, kind);
-
-        const TypeRef ownerTypeRef = unwrapAlias(ctx, owner.typeRef());
-        const TypeRef firstPointee = unwrapAlias(ctx, firstType.payloadTypeRef());
-        if (firstPointee != ownerTypeRef)
+        if (!isSpecOpReceiver(ctx, owner, params[0]->typeRef()))
             return reportSpecOpError(sema, sym, kind);
 
         const TypeRef returnTypeRef = unwrapAlias(ctx, sym.returnTypeRef());
@@ -334,62 +339,15 @@ namespace
             return reportSpecOpError(sema, sym, kind);
 
         const TypeInfo& returnType = typeMgr.get(returnTypeRef);
-
-        auto requireExactParams = [&](size_t count) -> bool {
-            return params.size() == count;
-        };
-
-        auto requireFirstConst = [&]() -> bool {
-            return isOpBinaryFirstParamConst(ctx, params[0]->typeRef());
-        };
-
-        auto requireMinParams = [&](size_t count) -> bool {
-            return params.size() >= count;
-        };
-
-        auto requireReturnVoid = [&]() -> bool {
-            return returnType.isVoid();
-        };
-
-        auto requireReturnNotVoid = [&]() -> bool {
-            return !returnType.isVoid();
-        };
-
-        auto requireReturnType = [&](TypeRef typeRef) -> bool {
-            return unwrapAlias(ctx, typeRef) == returnTypeRef;
-        };
-
-        auto requireReturnStruct = [&]() -> bool {
-            return returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
-        };
-
-        auto requireReturnPointer = [&]() -> bool {
-            return returnType.isAnyPointer();
-        };
-
-        auto requireReturnStringOrSlice = [&]() -> bool {
-            return returnType.isString() || returnType.isSlice();
-        };
-
-        auto requireU64Param = [&](size_t index) -> bool {
-            return unwrapAlias(ctx, params[index]->typeRef()) == unwrapAlias(ctx, typeMgr.typeU64());
-        };
-
-        auto requireSecondNotStruct = [&]() -> bool {
-            if (params.size() < 2)
-                return false;
-            const TypeRef   underlying = unwrapPointerOrRef(ctx, params[1]->typeRef());
-            const TypeInfo& type       = typeMgr.get(underlying);
-            if (!type.isStruct())
-                return true;
-            return &type.payloadSymStruct() != &owner;
-        };
-
-        auto requireSecondNoSideEffect = [&]() -> bool {
-            if (params.size() < 2)
-                return false;
-            return isOpBinarySecondParamSafe(ctx, sym, params[1]->typeRef());
-        };
+        const bool    receiverIsConst  = isConstSpecOpReceiver(ctx, owner, params[0]->typeRef());
+        const bool    returnIsVoid     = returnType.isVoid();
+        const bool    returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
+        const bool    returnIsPointer  = returnType.isAnyPointer();
+        const bool    returnIsNotVoid  = !returnIsVoid;
+        const bool    returnIsStrSlice = returnType.isString() || returnType.isSlice();
+        const TypeRef u64TypeRef       = unwrapAlias(ctx, typeMgr.typeU64());
+        const TypeRef boolTypeRef      = unwrapAlias(ctx, typeMgr.typeBool());
+        const TypeRef s32TypeRef       = unwrapAlias(ctx, typeMgr.typeS32());
 
         switch (kind)
         {
@@ -400,78 +358,82 @@ namespace
             case SpecOpKind::OpDrop:
             case SpecOpKind::OpPostCopy:
             case SpecOpKind::OpPostMove:
-                if (!requireExactParams(1) || !requireReturnVoid())
+                if (params.size() != 1 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpCount:
-                if (!requireExactParams(1) || !requireReturnType(typeMgr.typeU64()))
+                if (params.size() != 1 || returnTypeRef != u64TypeRef)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpData:
-                if (!requireExactParams(1) || !requireReturnPointer())
+                if (params.size() != 1 || !returnIsPointer)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpCast:
-                if (!requireExactParams(1) || !requireReturnNotVoid())
+                if (params.size() != 1 || !returnIsNotVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpEquals:
-                if (!requireExactParams(2) || !requireReturnType(typeMgr.typeBool()))
+                if (params.size() != 2 || returnTypeRef != boolTypeRef)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpCmp:
-                if (!requireExactParams(2) || !requireReturnType(typeMgr.typeS32()))
+                if (params.size() != 2 || returnTypeRef != s32TypeRef)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpBinary:
-                if (!requireExactParams(2) || !requireFirstConst() || !requireSecondNoSideEffect() || !requireReturnStruct())
+                if (params.size() != 2 || !receiverIsConst || !isOpBinarySecondParamImmutable(ctx, sym, params[1]->typeRef()) || !returnIsStruct)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpUnary:
-                if (!requireExactParams(1) || !requireFirstConst() || !requireReturnStruct())
+                if (params.size() != 1 || !receiverIsConst || !returnIsStruct)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpAssign:
-                if (!requireExactParams(2) || !requireReturnVoid())
+                if (params.size() != 2 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpAffect:
-                if (!requireExactParams(2) || !requireReturnVoid() || !requireSecondNotStruct())
-                    return reportSpecOpError(sema, sym, kind);
-                break;
-
             case SpecOpKind::OpAffectLiteral:
-                if (!requireExactParams(2) || !requireReturnVoid() || !requireSecondNotStruct())
+            {
+                if (params.size() != 2 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
+
+                const TypeRef   underlying = unwrapPointerOrRef(ctx, params[1]->typeRef());
+                const TypeInfo& type       = typeMgr.get(underlying);
+                if (type.isStruct() && &type.payloadSymStruct() == &owner)
+                    return reportSpecOpError(sema, sym, kind);
+
                 break;
+            }
 
             case SpecOpKind::OpSlice:
-                if (!requireExactParams(3) || !requireReturnStringOrSlice() || !requireU64Param(1) || !requireU64Param(2))
+                if (params.size() != 3 || !returnIsStrSlice || unwrapAlias(ctx, params[1]->typeRef()) != u64TypeRef || unwrapAlias(ctx, params[2]->typeRef()) != u64TypeRef)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpIndex:
-                if (!requireMinParams(2) || !requireReturnNotVoid())
+                if (params.size() < 2 || !returnIsNotVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpIndexAssign:
             case SpecOpKind::OpIndexAffect:
-                if (!requireMinParams(3) || !requireReturnVoid())
+                if (params.size() < 3 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpVisit:
-                if (!requireExactParams(2) || !requireReturnVoid())
+                if (params.size() != 2 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
         }

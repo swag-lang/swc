@@ -42,6 +42,17 @@ impl MutatingOtherRef
     mtd const opBinary(other: &MutatingOtherRef)->MutatingOtherRef { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
+struct MutatingOtherPtr
+{
+    value: u64
+}
+
+impl MutatingOtherPtr
+{
+    #[Swag.Overload]
+    mtd const opBinary(other: *MutatingOtherPtr)->MutatingOtherPtr { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
+}
+
 struct IndirectOtherByValue
 {
     a: u64

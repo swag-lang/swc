@@ -88,8 +88,8 @@ impl Vec2
 
 struct(T) AABB
 {
-    lo: Vec2'T
-    hi: Vec2'T
+    lo: Vec2
+    hi: Vec2
 }
 
 impl AABB
@@ -159,9 +159,9 @@ impl AABB
 
 struct(T) Particle
 {
-    pos: Vec2'T
-    vel: Vec2'T
-    acc: Vec2'T
+    pos: Vec2
+    vel: Vec2
+    acc: Vec2
     mass: T
 }
 
@@ -210,8 +210,8 @@ impl Particle
 
 struct(T) Spring
 {
-    a:        Particle'T
-    b:        Particle'T
+    a:        Particle
+    b:        Particle
     stiffness: T
     restLen:   T
 }

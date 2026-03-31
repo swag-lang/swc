@@ -15,10 +15,11 @@ struct(T) Vec2
     y: T
 }
 
+// Field types also benefit from deduction: Vec2 deduced as Vec2'T
 struct(T) Rect
 {
-    min: Vec2'T
-    max: Vec2'T
+    min: Vec2
+    max: Vec2
 }
 
 struct(T) Wrapper

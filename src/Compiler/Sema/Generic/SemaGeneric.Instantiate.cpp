@@ -474,7 +474,7 @@ namespace SemaGeneric
         if (!GenericRootTraits<SymbolStruct>::hasGenericParams(genericRoot))
             return Result::Continue;
 
-        // Find enclosing generic struct instance from impl context
+        // Find enclosing generic struct instance from impl context or struct declaration scope
         const SymbolStruct* enclosingInstance = nullptr;
         for (size_t i = sema.frames().size(); i > 0; --i)
         {
@@ -486,6 +486,24 @@ namespace SemaGeneric
                 {
                     enclosingInstance = st;
                     break;
+                }
+            }
+        }
+
+        // Also check scope chain for struct declaration context (field types during generic instantiation)
+        if (!enclosingInstance)
+        {
+            for (const SemaScope* scope = sema.curScopePtr(); scope; scope = scope->parent())
+            {
+                const auto* symMap = scope->symMap();
+                if (symMap && symMap->isStruct())
+                {
+                    const auto& st = symMap->cast<SymbolStruct>();
+                    if (st.isGenericInstance())
+                    {
+                        enclosingInstance = &st;
+                        break;
+                    }
                 }
             }
         }

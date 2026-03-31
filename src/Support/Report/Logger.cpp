@@ -3,6 +3,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
@@ -77,10 +78,13 @@ bool Logger::tryClaimUniqueStage(const std::string_view key)
     return true;
 }
 
-size_t Logger::beginAnimatedStage(std::array<Utf8, 4> lines, std::array<Utf8, 4> glyphs)
+size_t Logger::beginAnimatedStage(std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> lines, std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> glyphs)
 {
     const ScopedLock lock(*this);
     const size_t     stageId = ++nextAnimatedStageId_;
+    if (!Os::stdoutSupportsAnimation())
+        return stageId;
+
     animatedStages_.push_back({
         .id    = stageId,
         .lines = std::move(lines),
@@ -139,66 +143,70 @@ void Logger::printDim(const TaskContext& ctx, std::string_view message)
 void Logger::printStdErr(const LogColor color, const std::string_view message, const bool resetColor)
 {
     const std::scoped_lock lock(stdErrMutex());
+    const bool             useAnsi = Os::stderrSupportsAnsi();
 
-    switch (color)
+    if (useAnsi)
     {
-        case LogColor::Reset:
-            (void) std::fputs("\x1b[0m", stderr);
-            break;
-        case LogColor::Bold:
-            (void) std::fputs("\x1b[1m", stderr);
-            break;
-        case LogColor::Dim:
-            (void) std::fputs("\x1b[2m", stderr);
-            break;
-        case LogColor::Red:
-            (void) std::fputs("\x1b[31m", stderr);
-            break;
-        case LogColor::Green:
-            (void) std::fputs("\x1b[32m", stderr);
-            break;
-        case LogColor::Yellow:
-            (void) std::fputs("\x1b[33m", stderr);
-            break;
-        case LogColor::Blue:
-            (void) std::fputs("\x1b[34m", stderr);
-            break;
-        case LogColor::Magenta:
-            (void) std::fputs("\x1b[35m", stderr);
-            break;
-        case LogColor::Cyan:
-            (void) std::fputs("\x1b[36m", stderr);
-            break;
-        case LogColor::White:
-            (void) std::fputs("\x1b[37m", stderr);
-            break;
-        case LogColor::BrightRed:
-            (void) std::fputs("\x1b[91m", stderr);
-            break;
-        case LogColor::BrightGreen:
-            (void) std::fputs("\x1b[92m", stderr);
-            break;
-        case LogColor::BrightYellow:
-            (void) std::fputs("\x1b[93m", stderr);
-            break;
-        case LogColor::BrightBlue:
-            (void) std::fputs("\x1b[94m", stderr);
-            break;
-        case LogColor::BrightMagenta:
-            (void) std::fputs("\x1b[95m", stderr);
-            break;
-        case LogColor::BrightCyan:
-            (void) std::fputs("\x1b[96m", stderr);
-            break;
-        case LogColor::Gray:
-            (void) std::fputs("\x1b[90m", stderr);
-            break;
-        default:
-            break;
+        switch (color)
+        {
+            case LogColor::Reset:
+                (void) std::fputs("\x1b[0m", stderr);
+                break;
+            case LogColor::Bold:
+                (void) std::fputs("\x1b[1m", stderr);
+                break;
+            case LogColor::Dim:
+                (void) std::fputs("\x1b[2m", stderr);
+                break;
+            case LogColor::Red:
+                (void) std::fputs("\x1b[31m", stderr);
+                break;
+            case LogColor::Green:
+                (void) std::fputs("\x1b[32m", stderr);
+                break;
+            case LogColor::Yellow:
+                (void) std::fputs("\x1b[33m", stderr);
+                break;
+            case LogColor::Blue:
+                (void) std::fputs("\x1b[34m", stderr);
+                break;
+            case LogColor::Magenta:
+                (void) std::fputs("\x1b[35m", stderr);
+                break;
+            case LogColor::Cyan:
+                (void) std::fputs("\x1b[36m", stderr);
+                break;
+            case LogColor::White:
+                (void) std::fputs("\x1b[37m", stderr);
+                break;
+            case LogColor::BrightRed:
+                (void) std::fputs("\x1b[91m", stderr);
+                break;
+            case LogColor::BrightGreen:
+                (void) std::fputs("\x1b[92m", stderr);
+                break;
+            case LogColor::BrightYellow:
+                (void) std::fputs("\x1b[93m", stderr);
+                break;
+            case LogColor::BrightBlue:
+                (void) std::fputs("\x1b[94m", stderr);
+                break;
+            case LogColor::BrightMagenta:
+                (void) std::fputs("\x1b[95m", stderr);
+                break;
+            case LogColor::BrightCyan:
+                (void) std::fputs("\x1b[96m", stderr);
+                break;
+            case LogColor::Gray:
+                (void) std::fputs("\x1b[90m", stderr);
+                break;
+            default:
+                break;
+        }
     }
 
     (void) std::fwrite(message.data(), sizeof(char), message.size(), stderr);
-    if (resetColor)
+    if (resetColor && useAnsi)
         (void) std::fputs("\x1b[0m", stderr);
 
     (void) std::fflush(stderr);
@@ -306,9 +314,10 @@ void Logger::animateLoop()
     }
 }
 
-void Logger::clearAnimatedStagesNoLock()
+void Logger::clearAnimatedStagesNoLock(const bool restoreCursor)
 {
-    setCursorVisibleNoLock(true);
+    if (restoreCursor)
+        setCursorVisibleNoLock(true);
 
     if (renderedStageCount_ == 0)
         return;
@@ -322,12 +331,15 @@ void Logger::clearAnimatedStagesNoLock()
 
 void Logger::renderAnimatedStagesNoLock()
 {
-    if (outputBlockDepth_ != 0)
+    if (outputBlockDepth_ != 0 || !Os::stdoutSupportsAnimation())
         return;
 
-    clearAnimatedStagesNoLock();
+    clearAnimatedStagesNoLock(false);
     if (animatedStages_.empty())
+    {
+        setCursorVisibleNoLock(true);
         return;
+    }
 
     setCursorVisibleNoLock(false);
     for (const AnimatedStage& stage : animatedStages_)
@@ -339,6 +351,12 @@ void Logger::renderAnimatedStagesNoLock()
 
 void Logger::setCursorVisibleNoLock(const bool visible)
 {
+    if (!Os::stdoutSupportsAnimation())
+    {
+        cursorHidden_ = false;
+        return;
+    }
+
     if (visible)
     {
         if (!cursorHidden_)
@@ -358,22 +376,20 @@ void Logger::setCursorVisibleNoLock(const bool visible)
 
 void Logger::updateAnimatedStageGlyphsNoLock()
 {
-    if (outputBlockDepth_ != 0 || renderedStageCount_ == 0 || renderedStageCount_ != animatedStages_.size())
+    if (outputBlockDepth_ != 0 || renderedStageCount_ == 0 || renderedStageCount_ != animatedStages_.size() || !Os::stdoutSupportsAnimation())
         return;
 
     setCursorVisibleNoLock(false);
-    std::cout << "\x1b[s";
+    std::cout << "\x1b[" << renderedStageCount_ << "A";
     for (size_t i = 0; i < animatedStages_.size(); ++i)
     {
-        const size_t linesUp = animatedStages_.size() - i;
-        std::cout << "\x1b[u";
-        if (linesUp)
-            std::cout << "\x1b[" << linesUp << "A";
         std::cout << "\x1b[3G";
         std::cout << animatedStages_[i].glyphs[animatedStages_[i].frameIndex];
+        if (i + 1 < animatedStages_.size())
+            std::cout << "\r\x1b[1B";
     }
 
-    std::cout << "\x1b[u" << std::flush;
+    std::cout << "\r\x1b[1B" << std::flush;
 }
 
 void Logger::removeAnimatedStageNoLock(const size_t stageId)

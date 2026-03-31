@@ -16,7 +16,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr size_t ACTION_LABEL_WIDTH = 8;
-    constexpr size_t STAGE_FRAME_COUNT  = 4;
+    constexpr size_t STAGE_FRAME_COUNT  = Logger::ANIMATED_STAGE_FRAME_COUNT;
 
     Utf8 buildCfgBackendKindName(const Runtime::BuildCfgBackendKind value)
     {
@@ -183,19 +183,19 @@ namespace
         return line;
     }
 
-    Utf8 formatStageActiveGlyph(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence, const size_t frameIndex)
-    {
-        Utf8 glyph = colorize(ctx, stageColor(spec.key), stageStartGlyph(ctx, sequence, frameIndex));
-        glyph += resetColor(ctx);
-        return glyph;
-    }
-
     std::array<Utf8, STAGE_FRAME_COUNT> formatStageActiveFrames(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence)
     {
         std::array<Utf8, STAGE_FRAME_COUNT> result;
         for (size_t i = 0; i < result.size(); ++i)
             result[i] = formatStageActiveFrame(ctx, spec, sequence, i);
         return result;
+    }
+
+    Utf8 formatStageActiveGlyph(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence, const size_t frameIndex)
+    {
+        Utf8 glyph = colorize(ctx, stageColor(spec.key), stageStartGlyph(ctx, sequence, frameIndex));
+        glyph += resetColor(ctx);
+        return glyph;
     }
 
     std::array<Utf8, STAGE_FRAME_COUNT> formatStageActiveGlyphs(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence)

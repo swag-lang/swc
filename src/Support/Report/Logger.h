@@ -8,6 +8,8 @@ class TaskContext;
 class Logger
 {
 public:
+    static constexpr size_t ANIMATED_STAGE_FRAME_COUNT = 4;
+
     Logger();
     ~Logger();
 
@@ -62,7 +64,7 @@ public:
     void   resetStageSequence();
     size_t nextStageSequence() { return ++stageSequence_; }
     bool   tryClaimUniqueStage(std::string_view key);
-    size_t beginAnimatedStage(std::array<Utf8, 4> lines, std::array<Utf8, 4> glyphs);
+    size_t beginAnimatedStage(std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> lines, std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> glyphs);
     void   endAnimatedStage(const TaskContext& ctx, size_t stageId, std::string_view finalLine);
     void   pushStageMute() { stageMuteDepth_++; }
     void   popStageMute()
@@ -84,14 +86,14 @@ public:
 private:
     struct AnimatedStage
     {
-        size_t              id         = 0;
-        std::array<Utf8, 4> lines      = {};
-        std::array<Utf8, 4> glyphs     = {};
-        size_t              frameIndex = 0;
+        size_t                                       id         = 0;
+        std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> lines      = {};
+        std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> glyphs     = {};
+        size_t                                       frameIndex = 0;
     };
 
     void animateLoop();
-    void clearAnimatedStagesNoLock();
+    void clearAnimatedStagesNoLock(bool restoreCursor = true);
     void renderAnimatedStagesNoLock();
     void setCursorVisibleNoLock(bool visible);
     void updateAnimatedStageGlyphsNoLock();

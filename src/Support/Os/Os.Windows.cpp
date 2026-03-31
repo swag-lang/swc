@@ -19,6 +19,66 @@ namespace
 {
     constexpr uint32_t K_OS_FIELD_WIDTH = 24;
 
+    struct TerminalSupportState
+    {
+        std::once_flag once;
+        bool           stdoutSupportsAnsi      = false;
+        bool           stdoutSupportsAnimation = false;
+        bool           stderrSupportsAnsi      = false;
+    };
+
+    TerminalSupportState& terminalSupportState()
+    {
+        static TerminalSupportState state;
+        return state;
+    }
+
+    bool tryEnableAnsiOnHandle(const DWORD stdHandleId, bool* outIsConsole = nullptr)
+    {
+        if (outIsConsole)
+            *outIsConsole = false;
+
+        const HANDLE handle = GetStdHandle(stdHandleId);
+        if (!handle || handle == INVALID_HANDLE_VALUE)
+            return false;
+
+        DWORD mode = 0;
+        if (!GetConsoleMode(handle, &mode))
+            return false;
+
+        if (outIsConsole)
+            *outIsConsole = true;
+
+        if (mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+            return true;
+
+        const DWORD desiredMode = mode | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        return SetConsoleMode(handle, desiredMode) == TRUE;
+    }
+
+    void initializeTerminalSupport()
+    {
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+
+        auto& state = terminalSupportState();
+
+        bool stdoutIsConsole      = false;
+        state.stdoutSupportsAnsi  = tryEnableAnsiOnHandle(STD_OUTPUT_HANDLE, &stdoutIsConsole);
+        state.stderrSupportsAnsi  = tryEnableAnsiOnHandle(STD_ERROR_HANDLE);
+
+        // Cursor-driven animations only behave correctly on an interactive console.
+        state.stdoutSupportsAnimation = stdoutIsConsole && state.stdoutSupportsAnsi;
+    }
+
+    void ensureTerminalSupportInitialized()
+    {
+        auto& state = terminalSupportState();
+        std::call_once(state.once, [] {
+            initializeTerminalSupport();
+        });
+    }
+
     void appendOsField(Utf8& outMsg, const std::string_view label, const std::string_view value, const uint32_t leftPadding = 0)
     {
         for (uint32_t i = 0; i < leftPadding; ++i)
@@ -559,18 +619,25 @@ namespace Os
 
     void initialize()
     {
-        SetConsoleCP(CP_UTF8);
-        SetConsoleOutputCP(CP_UTF8);
-        const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (hOut != INVALID_HANDLE_VALUE)
-        {
-            DWORD mode = 0;
-            if (GetConsoleMode(hOut, &mode))
-            {
-                mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-                SetConsoleMode(hOut, mode);
-            }
-        }
+        ensureTerminalSupportInitialized();
+    }
+
+    bool stdoutSupportsAnsi()
+    {
+        ensureTerminalSupportInitialized();
+        return terminalSupportState().stdoutSupportsAnsi;
+    }
+
+    bool stderrSupportsAnsi()
+    {
+        ensureTerminalSupportInitialized();
+        return terminalSupportState().stderrSupportsAnsi;
+    }
+
+    bool stdoutSupportsAnimation()
+    {
+        ensureTerminalSupportInitialized();
+        return terminalSupportState().stdoutSupportsAnimation;
     }
 
     void panicBox(const std::string_view expr)

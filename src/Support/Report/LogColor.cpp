@@ -2,6 +2,7 @@
 
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -13,7 +14,7 @@ Utf8 LogColorHelper::colorToAnsi(uint32_t r, uint32_t g, uint32_t b)
 
 Utf8 LogColorHelper::toAnsi(const TaskContext& ctx, LogColor c)
 {
-    if (!ctx.cmdLine().logColor)
+    if (!ctx.cmdLine().logColor || !Os::stdoutSupportsAnsi())
         return "";
 
     using enum LogColor;

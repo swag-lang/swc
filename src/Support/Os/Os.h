@@ -46,6 +46,9 @@ namespace Os
     };
 
     void initialize();
+    bool stdoutSupportsAnsi();
+    bool stderrSupportsAnsi();
+    bool stdoutSupportsAnimation();
 
     void panicBox(std::string_view expr);
     Utf8 systemError();

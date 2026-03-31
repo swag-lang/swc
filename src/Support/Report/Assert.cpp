@@ -85,9 +85,9 @@ namespace
         appendContextField(msg, "Phase", std::string_view(state.kindName()));
 
         if (state.codeGenFunction)
-            appendContextField(msg, "Codegen function", (*state.codeGenFunction).getFullScopedName(ctx));
+            appendContextField(msg, "Codegen function", state.codeGenFunction->getFullScopedName(ctx));
         if (state.runJitFunction)
-            appendContextField(msg, "JIT function", (*state.runJitFunction).getFullScopedName(ctx));
+            appendContextField(msg, "JIT function", state.runJitFunction->getFullScopedName(ctx));
         if (state.waiterSymbol)
             appendContextField(msg, "Current symbol", state.waiterSymbol->getFullScopedName(ctx));
         if (state.symbol)

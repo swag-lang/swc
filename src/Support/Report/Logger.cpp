@@ -86,8 +86,8 @@ size_t Logger::beginAnimatedStage(std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> l
         return stageId;
 
     animatedStages_.push_back({
-        .id    = stageId,
-        .lines = std::move(lines),
+        .id     = stageId,
+        .lines  = std::move(lines),
         .glyphs = std::move(glyphs),
     });
     return stageId;

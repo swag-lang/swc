@@ -219,8 +219,8 @@ namespace
 
     Utf8 formatStageEnd(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs)
     {
-        const Utf8 bullet   = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
-        const Utf8 duration = Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
+        const Utf8 bullet          = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
+        const Utf8 duration        = Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
         const auto outcomeLogColor = stageOutcomeColor(spec, outcome);
 
         Utf8 line;
@@ -422,10 +422,10 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     else if (!snapshot.numWarnings)
         parts.emplace_back("clean");
 
-    const Utf8 summaryText = joinParts(ctx, parts, LogColor::White);
-    const bool  hasErrors   = snapshot.numErrors != 0;
-    const auto  summaryColor = hasErrors ? LogColor::BrightRed : LogColor::BrightGreen;
-    const auto  summaryOutcome = hasErrors ? StageOutcome::Error : StageOutcome::Success;
+    const Utf8 summaryText    = joinParts(ctx, parts, LogColor::White);
+    const bool hasErrors      = snapshot.numErrors != 0;
+    const auto summaryColor   = hasErrors ? LogColor::BrightRed : LogColor::BrightGreen;
+    const auto summaryOutcome = hasErrors ? StageOutcome::Error : StageOutcome::Success;
 
     Utf8 line;
     line += "  ";

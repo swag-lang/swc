@@ -1083,7 +1083,7 @@ namespace
 
             const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            CastFlags flags = CastFlagsE::Zero;
+            CastFlags        flags = CastFlagsE::Zero;
             if (allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
                 flags.add(CastFlagsE::UfcsArgument);
             SWC_RESULT(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));

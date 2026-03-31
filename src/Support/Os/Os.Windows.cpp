@@ -63,9 +63,9 @@ namespace
 
         auto& state = terminalSupportState();
 
-        bool stdoutIsConsole      = false;
-        state.stdoutSupportsAnsi  = tryEnableAnsiOnHandle(STD_OUTPUT_HANDLE, &stdoutIsConsole);
-        state.stderrSupportsAnsi  = tryEnableAnsiOnHandle(STD_ERROR_HANDLE);
+        bool stdoutIsConsole     = false;
+        state.stdoutSupportsAnsi = tryEnableAnsiOnHandle(STD_OUTPUT_HANDLE, &stdoutIsConsole);
+        state.stderrSupportsAnsi = tryEnableAnsiOnHandle(STD_ERROR_HANDLE);
 
         // Cursor-driven animations only behave correctly on an interactive console.
         state.stdoutSupportsAnimation = stdoutIsConsole && state.stdoutSupportsAnsi;

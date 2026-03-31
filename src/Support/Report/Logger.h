@@ -99,19 +99,19 @@ private:
     void updateAnimatedStageGlyphsNoLock();
     void removeAnimatedStageNoLock(size_t stageId);
 
-    std::recursive_mutex      mutexAccess_;
+    std::recursive_mutex       mutexAccess_;
     std::vector<AnimatedStage> animatedStages_;
-    std::thread               animator_;
-    std::atomic<bool>         stopAnimator_            = false;
-    bool                      transientLineActive_     = false;
-    bool                      activeStagesWereVisible_ = false;
-    bool                      cursorHidden_            = false;
-    std::vector<Utf8>         uniqueStageKeys_;
-    size_t                    renderedStageCount_      = 0;
-    size_t                    outputBlockDepth_        = 0;
-    size_t                    stageSequence_           = 0;
-    size_t                    stageMuteDepth_          = 0;
-    size_t                    nextAnimatedStageId_     = 0;
+    std::thread                animator_;
+    std::atomic<bool>          stopAnimator_            = false;
+    bool                       transientLineActive_     = false;
+    bool                       activeStagesWereVisible_ = false;
+    bool                       cursorHidden_            = false;
+    std::vector<Utf8>          uniqueStageKeys_;
+    size_t                     renderedStageCount_  = 0;
+    size_t                     outputBlockDepth_    = 0;
+    size_t                     stageSequence_       = 0;
+    size_t                     stageMuteDepth_      = 0;
+    size_t                     nextAnimatedStageId_ = 0;
 };
 
 SWC_END_NAMESPACE();

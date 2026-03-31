@@ -492,8 +492,8 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
                                                 .detail = artifactPath.filename().string(),
                                             });
 
-    uint32_t              exitCode    = 0;
-    const fs::path        artifactDir = artifactPath.parent_path();
+    uint32_t                    exitCode    = 0;
+    const fs::path              artifactDir = artifactPath.parent_path();
     const Os::ProcessRunOptions options{
         .logCtx = &ctx_,
     };

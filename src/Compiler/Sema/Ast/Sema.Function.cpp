@@ -29,7 +29,7 @@ namespace
 {
     const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
-        if (auto* symImpl = sema.frame().currentImpl())
+        if (const auto* symImpl = sema.frame().currentImpl())
             return symImpl;
 
         if (symFunc)
@@ -47,7 +47,7 @@ namespace
 
     const SymbolInterface* functionDeclInterfaceContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
-        if (auto* symItf = sema.frame().currentInterface())
+        if (const auto* symItf = sema.frame().currentInterface())
             return symItf;
 
         if (symFunc)

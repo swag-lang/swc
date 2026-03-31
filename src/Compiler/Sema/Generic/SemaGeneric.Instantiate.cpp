@@ -1,12 +1,21 @@
 #include "pch.h"
+#include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Generic/SemaGenericTraits.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void buildGenericCloneBindings(const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings);
+    void buildGenericCloneBindings(const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        outBindings.clear();
+        outBindings.reserve(params.size());
+        for (size_t i = 0; i < params.size(); ++i)
+            SemaGeneric::appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
+    }
 
     template<typename T>
     void appendEnclosingGenericCloneBindings(Sema& sema, const T& root, SmallVector<SemaClone::ParamBinding>& outBindings)
@@ -323,14 +332,6 @@ namespace
                 key.cstRef = resolvedArgs[i].cstRef;
             outKeys.push_back(key);
         }
-    }
-
-    void buildGenericCloneBindings(const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings)
-    {
-        outBindings.clear();
-        outBindings.reserve(params.size());
-        for (size_t i = 0; i < params.size(); ++i)
-            SemaGeneric::appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
     }
 
     template<typename T>

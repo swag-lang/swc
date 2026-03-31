@@ -16,5 +16,6 @@
     <LocalDebuggerCommandArguments>sema --verify -d ../bin/tests/sema --num-cores 0 --runtime --devmode</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>.\tools</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommandArgumentsHistory>sema --verify -d ../bin/tests/sema --num-cores 0 --runtime --devmode|</LocalDebuggerCommandArgumentsHistory>
   </PropertyGroup>
 </Project>

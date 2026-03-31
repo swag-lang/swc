@@ -9,15 +9,15 @@
 
 SWC_BEGIN_NAMESPACE();
 
-struct HelpOptionEntry
-{
-    const ArgInfo*  arg = nullptr;
-    Utf8            displayName;
-    HelpOptionGroup group = HelpOptionGroup::Other;
-};
-
 namespace
 {
+    struct HelpOptionEntry
+    {
+        const ArgInfo*  arg = nullptr;
+        Utf8            displayName;
+        HelpOptionGroup group = HelpOptionGroup::Other;
+    };
+
     Utf8 formatPathValue(const fs::path& value)
     {
         if (value.empty())

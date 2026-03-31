@@ -1,5 +1,4 @@
 #pragma once
-#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 

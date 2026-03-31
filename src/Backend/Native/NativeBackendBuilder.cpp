@@ -8,7 +8,6 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/Logger.h"

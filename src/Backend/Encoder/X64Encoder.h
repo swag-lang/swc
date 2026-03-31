@@ -22,7 +22,7 @@ public:
     std::string formatRegisterName(MicroReg reg) const override;
     MicroReg    stackPointerReg() const override { return MicroReg::intReg(4); }
 
-private:
+protected:
     uint64_t currentOffset() const override { return store_.size(); }
     void     updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const override;
     bool     queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;

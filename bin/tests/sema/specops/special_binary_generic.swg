@@ -53,6 +53,17 @@ impl MutatingOtherPtr
     mtd const opBinary(other: *MutatingOtherPtr)->MutatingOtherPtr { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
+struct(T) GenericMissingConstMe
+{
+    value: T
+}
+
+impl GenericMissingConstMe
+{
+    #[Swag.Overload]
+    mtd(op: string) opBinary(other: const &GenericMissingConstMe'T)->GenericMissingConstMe'T { return {}; } // swc-expected-error {{sema_err_spec_op_signature}}
+}
+
 struct IndirectOtherByValue
 {
     a: u64
@@ -88,4 +99,12 @@ impl IndirectOtherByValue
 
     #assert(#typeof(shift) == BinaryIntBox)
     #assert(#typeof(shift.value) == u32)
+}
+
+#test
+{
+    var lhs: GenericMissingConstMe'u32 = {value: 1}
+    var rhs: GenericMissingConstMe'u32 = {value: 2}
+    let result = lhs + rhs
+    #assert(#typeof(result) == GenericMissingConstMe'u32)
 }

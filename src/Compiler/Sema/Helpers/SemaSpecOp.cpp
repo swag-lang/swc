@@ -502,9 +502,6 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
     if (isSpecOpInImplFor(sym))
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_in_impl_for, sym);
-    if (sym.isGenericInstance() && sym.genericRootSym() && sym.genericRootSym()->specOpKind() == kind)
-        return Result::Continue;
-
     return validateSpecOpSignature(sema, *ownerStruct, sym, kind);
 }
 

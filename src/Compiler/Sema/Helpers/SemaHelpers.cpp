@@ -707,6 +707,20 @@ namespace
         return false;
     }
 
+    Result substituteQuotedGenericMemberCall(Sema& sema, AstNodeRef parentRef, AstNodeRef currentRef, TokenRef tokNameRef, std::span<const Symbol*> symbols, bool& outHandled)
+    {
+        if (symbols.empty())
+            return Result::Continue;
+
+        auto [calleeRef, calleePtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokNameRef);
+        SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, calleeRef, true, symbols));
+        sema.setSubstitute(parentRef, calleeRef);
+        sema.setSubstitute(currentRef, calleeRef);
+        sema.setIsValue(*calleePtr);
+        outHandled = true;
+        return Result::Continue;
+    }
+
     Result tryLiftQuotedGenericStructMemberAccess(Sema& sema, AstNodeRef currentRef, const AstMemberAccessExpr& node, bool& outHandled)
     {
         outHandled                 = false;
@@ -735,9 +749,10 @@ namespace
 
         const IdentifierRef idRef      = SemaHelpers::resolveIdentifier(sema, identRight->codeRef());
         const TokenRef      tokNameRef = identRight->tokRef();
+        const auto          memberCode = SourceCodeRef{node.srcViewRef(), tokNameRef};
 
-        const AstNodeRef     genericArgRef = node.nodeLeftRef;
-        SmallVector<Symbol*> specializedFunctions;
+        const AstNodeRef           genericArgRef = node.nodeLeftRef;
+        SmallVector<const Symbol*> specializedFunctions;
         for (const SymbolImpl* symImpl : genericRoot->impls())
         {
             if (!symImpl)
@@ -758,23 +773,34 @@ namespace
             }
         }
 
-        if (specializedFunctions.empty())
-            return Result::Continue;
-
-        auto [calleeRef, calleePtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokNameRef);
-
         // `Type'Arg.member()` is parsed as `Type'(Arg.member)()`. When `member`
         // resolves to a generic static function of the generic root, reinterpret
         // that syntax as an explicit specialization of the function itself.
-        if (specializedFunctions.size() == 1)
-            sema.setSymbol(calleeRef, specializedFunctions.front());
-        else
-            sema.setSymbolList(calleeRef, specializedFunctions.span());
-        sema.setSubstitute(parentRef, calleeRef);
-        sema.setSubstitute(currentRef, calleeRef);
-        sema.setIsValue(*calleePtr);
-        outHandled = true;
-        return Result::Continue;
+        if (!specializedFunctions.empty())
+            return substituteQuotedGenericMemberCall(sema, parentRef, currentRef, tokNameRef, specializedFunctions.span(), outHandled);
+
+        // For a concrete generic struct specialization, reinterpret the suffix
+        // as member lookup on the specialized struct instead of on the suffix argument.
+        SymbolStruct* specializedStruct = nullptr;
+        auto&         genericRootRef    = const_cast<SymbolStruct&>(*genericRoot);
+        SWC_RESULT(SemaGeneric::instantiateStructExplicit(sema, genericRootRef, std::span{&genericArgRef, 1}, specializedStruct));
+        if (!specializedStruct)
+            return Result::Continue;
+
+        MatchContext lookUpCxt;
+        lookUpCxt.codeRef       = memberCode;
+        lookUpCxt.noWaitOnEmpty = true;
+        lookUpCxt.symMapHint    = specializedStruct;
+        SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        if (lookUpCxt.empty())
+            return Result::Continue;
+
+        SmallVector<const Symbol*> specializedMembers;
+        specializedMembers.reserve(lookUpCxt.count());
+        for (const Symbol* sym : lookUpCxt.symbols())
+            specializedMembers.push_back(sym);
+
+        return substituteQuotedGenericMemberCall(sema, parentRef, currentRef, tokNameRef, specializedMembers.span(), outHandled);
     }
 
     TypeRef memberRuntimeStorageTypeRef(Sema& sema)

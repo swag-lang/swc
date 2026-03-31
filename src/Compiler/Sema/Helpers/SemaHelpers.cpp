@@ -1032,6 +1032,22 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     if (nodeLeftView.sym() && nodeLeftView.sym()->isNamespace())
         return memberNamespace(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
+    // Auto-deduce generic arguments for bare generic root structs in expression context
+    if (nodeLeftView.sym() && nodeLeftView.sym()->isStruct() && !nodeLeftView.type())
+    {
+        auto& st = nodeLeftView.sym()->cast<SymbolStruct>();
+        if (st.isGenericRoot())
+        {
+            SymbolStruct* instance = nullptr;
+            SWC_RESULT(SemaGeneric::deduceStructFromContext(sema, st, instance));
+            if (instance)
+            {
+                sema.setSymbol(node.nodeLeftRef, instance);
+                nodeLeftView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+            }
+        }
+    }
+
     SWC_ASSERT(nodeLeftView.type());
 
     // Enum

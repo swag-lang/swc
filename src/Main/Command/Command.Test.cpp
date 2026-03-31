@@ -7,7 +7,9 @@
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -337,6 +339,8 @@ namespace
             .compiler = &compiler,
             .snapshot = snapshotDataSegments(compiler),
         };
+
+        const Logger::ScopedAnimationPause animPause(compiler.global().logger());
 
         for (const SymbolFunction* function : initFunctions)
         {

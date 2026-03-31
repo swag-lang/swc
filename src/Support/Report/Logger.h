@@ -57,8 +57,32 @@ public:
         Logger* logger_ = nullptr;
     };
 
+    class ScopedAnimationPause
+    {
+    public:
+        explicit ScopedAnimationPause(Logger& logger) :
+            logger_(&logger)
+        {
+            logger_->pauseAnimation();
+        }
+
+        ~ScopedAnimationPause()
+        {
+            if (logger_)
+                logger_->resumeAnimation();
+        }
+
+        ScopedAnimationPause(const ScopedAnimationPause&)            = delete;
+        ScopedAnimationPause& operator=(const ScopedAnimationPause&) = delete;
+
+    private:
+        Logger* logger_ = nullptr;
+    };
+
     void   lock();
     void   unlock();
+    void   pauseAnimation();
+    void   resumeAnimation();
     void   startTransientLine() { transientLineActive_ = true; }
     void   finishTransientLine() { transientLineActive_ = false; }
     void   resetStageSequence();

@@ -58,6 +58,28 @@ void Logger::unlock()
     mutexAccess_.unlock();
 }
 
+void Logger::pauseAnimation()
+{
+    const std::scoped_lock lock(mutexAccess_);
+    if (outputBlockDepth_++ == 0)
+    {
+        activeStagesWereVisible_ = renderedStageCount_ != 0;
+        clearAnimatedStagesNoLock();
+    }
+}
+
+void Logger::resumeAnimation()
+{
+    const std::scoped_lock lock(mutexAccess_);
+    SWC_ASSERT(outputBlockDepth_ != 0);
+    outputBlockDepth_--;
+    if (outputBlockDepth_ == 0)
+    {
+        renderAnimatedStagesNoLock();
+        activeStagesWereVisible_ = false;
+    }
+}
+
 void Logger::resetStageSequence()
 {
     const ScopedLock lock(*this);

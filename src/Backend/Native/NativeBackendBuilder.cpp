@@ -496,6 +496,8 @@ Result NativeBackendBuilder::runGeneratedArtifact() const
     const Os::ProcessRunOptions options{
         .logCtx = &ctx_,
     };
+
+    const Logger::ScopedAnimationPause animPause(ctx_.global().logger());
     const auto result = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? buildDir : artifactDir, &options);
     switch (result)
     {

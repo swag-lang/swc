@@ -131,7 +131,7 @@ SWC_DIAG_DEF(sema_err_tok_outside_impl, Error, "'{tok}' is used outside an imple
 SWC_DIAG_DEF(sema_err_spec_op_outside_impl, Error, "special function '{tok}' must be declared in an implementation block for a struct")
 SWC_DIAG_DEF(sema_err_spec_op_in_impl_for, Error, "special function '{tok}' cannot be declared in an interface implementation block")
 SWC_DIAG_DEF(sema_err_spec_op_unknown, Error, "unknown special function '{tok}'; {because}")
-SWC_DIAG_DEF(sema_err_spec_op_signature, Error, "invalid signature for special function '{tok}'; expected {because}")
+SWC_DIAG_DEF(sema_err_spec_op_signature, Error, "invalid signature for special function '{tok}'; expected: '{because}'")
 SWC_DIAG_DEF(sema_err_break_outside_breakable, Error, "'break' is used outside a loop, scope, or switch statement")
 SWC_DIAG_DEF(sema_err_continue_outside_breakable, Error, "'continue' is used outside a loop or scope statement")
 SWC_DIAG_DEF(sema_err_continue_not_in_loop, Error, "'continue' cannot be used inside a switch case")

@@ -271,25 +271,8 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
 SymbolStruct* SymbolStruct::findGenericInstance(std::span<const GenericInstanceKey> args) const
 {
     const std::scoped_lock lock(genericMutex_);
-    for (const auto& entry : genericInstances_)
-    {
-        if (entry.args.size() != args.size())
-            continue;
-
-        bool same = true;
-        for (size_t i = 0; i < args.size(); ++i)
-        {
-            if (entry.args[i] != args[i])
-            {
-                same = false;
-                break;
-            }
-        }
-
-        if (same)
-            return entry.symbol;
-    }
-
+    if (auto* symbol = GenericInstanceStorage::find(genericInstances_, args))
+        return symbol->safeCast<SymbolStruct>();
     return nullptr;
 }
 
@@ -298,48 +281,15 @@ SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericInstanceKe
     SWC_ASSERT(instance != nullptr);
 
     const std::scoped_lock lock(genericMutex_);
-    for (const auto& entry : genericInstances_)
-    {
-        if (entry.args.size() == args.size())
-        {
-            bool same = true;
-            for (size_t i = 0; i < args.size(); ++i)
-            {
-                if (entry.args[i] != args[i])
-                {
-                    same = false;
-                    break;
-                }
-            }
-
-            if (same)
-                return entry.symbol;
-        }
-
-        if (entry.symbol == instance)
-            return entry.symbol;
-    }
-
-    GenericInstanceEntry entry;
-    entry.symbol = instance;
-    entry.args.assign(args.begin(), args.end());
-    genericInstances_.push_back(std::move(entry));
-    return instance;
+    if (auto* symbol = GenericInstanceStorage::add(genericInstances_, args, instance))
+        return symbol->safeCast<SymbolStruct>();
+    return nullptr;
 }
 
 bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const
 {
     const std::scoped_lock lock(genericMutex_);
-    for (const auto& entry : genericInstances_)
-    {
-        if (entry.symbol != &instance)
-            continue;
-
-        outArgs = entry.args;
-        return true;
-    }
-
-    return false;
+    return GenericInstanceStorage::tryGetArgs(genericInstances_, instance, outArgs);
 }
 
 bool SymbolStruct::beginGenericSema() const

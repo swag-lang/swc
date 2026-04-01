@@ -416,6 +416,7 @@
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Index.h" />
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Loop.h" />
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Switch.h" />
+        <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceEntry.h" />
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceKey.h" />
         <ClInclude Include="src\Compiler\Sema\Generic\GenericSemaGate.h" />
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>

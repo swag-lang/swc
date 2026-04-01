@@ -3,7 +3,7 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Generic/GenericInstanceKey.h"
+#include "Compiler/Sema/Generic/GenericInstanceEntry.h"
 #include "Compiler/Sema/Generic/GenericSemaGate.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -129,12 +129,6 @@ public:
     void             endGenericSema() const;
 
 private:
-    struct GenericInstanceEntry
-    {
-        SmallVector<GenericInstanceKey> args;
-        SymbolFunction*                 function = nullptr;
-    };
-
     bool hasLoweredCode() const noexcept;
     bool hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
     bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }

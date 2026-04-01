@@ -1337,6 +1337,9 @@
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceEntry.h">
+      <Filter>src\Compiler\Sema\Generic</Filter>
+    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceKey.h">
       <Filter>src\Compiler\Sema\Generic</Filter>
     </ClInclude>

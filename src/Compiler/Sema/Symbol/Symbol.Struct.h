@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Sema/Generic/GenericInstanceKey.h"
+#include "Compiler/Sema/Generic/GenericInstanceEntry.h"
 #include "Compiler/Sema/Generic/GenericSemaGate.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -74,12 +74,6 @@ public:
     void                endGenericSema() const;
 
 private:
-    struct GenericInstanceEntry
-    {
-        SmallVector<GenericInstanceKey> args;
-        SymbolStruct*                   symbol = nullptr;
-    };
-
     std::vector<SymbolVariable*>      fields_;
     mutable std::shared_mutex         mutexImpls_;
     std::vector<SymbolImpl*>          impls_;

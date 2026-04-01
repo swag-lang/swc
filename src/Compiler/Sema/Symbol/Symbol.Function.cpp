@@ -519,25 +519,8 @@ Result SymbolFunction::emit(TaskContext& ctx)
 SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericInstanceKey> args) const
 {
     const std::scoped_lock lock(genericMutex_);
-    for (const auto& entry : genericInstances_)
-    {
-        if (entry.args.size() != args.size())
-            continue;
-
-        bool same = true;
-        for (size_t i = 0; i < args.size(); ++i)
-        {
-            if (entry.args[i] != args[i])
-            {
-                same = false;
-                break;
-            }
-        }
-
-        if (same)
-            return entry.function;
-    }
-
+    if (auto* symbol = GenericInstanceStorage::find(genericInstances_, args))
+        return symbol->safeCast<SymbolFunction>();
     return nullptr;
 }
 
@@ -546,33 +529,9 @@ SymbolFunction* SymbolFunction::addGenericInstance(std::span<const GenericInstan
     SWC_ASSERT(instance != nullptr);
 
     const std::scoped_lock lock(genericMutex_);
-    for (const auto& entry : genericInstances_)
-    {
-        if (entry.args.size() == args.size())
-        {
-            bool same = true;
-            for (size_t i = 0; i < args.size(); ++i)
-            {
-                if (entry.args[i] != args[i])
-                {
-                    same = false;
-                    break;
-                }
-            }
-
-            if (same)
-                return entry.function;
-        }
-
-        if (entry.function == instance)
-            return entry.function;
-    }
-
-    GenericInstanceEntry entry;
-    entry.function = instance;
-    entry.args.assign(args.begin(), args.end());
-    genericInstances_.push_back(std::move(entry));
-    return instance;
+    if (auto* symbol = GenericInstanceStorage::add(genericInstances_, args, instance))
+        return symbol->safeCast<SymbolFunction>();
+    return nullptr;
 }
 
 bool SymbolFunction::beginGenericSema() const

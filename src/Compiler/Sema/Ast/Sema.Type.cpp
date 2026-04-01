@@ -305,7 +305,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
         if (st.isGenericRoot())
         {
             SymbolStruct* instance = nullptr;
-            SWC_RESULT(SemaGeneric::deduceStructFromContext(sema, st, instance));
+            SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, st, instance));
             if (instance)
             {
                 sema.setSymbol(nodeIdentRef, instance);

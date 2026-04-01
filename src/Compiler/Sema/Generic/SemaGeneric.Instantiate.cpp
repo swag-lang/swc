@@ -635,7 +635,7 @@ namespace SemaGeneric
         return Result::Continue;
     }
 
-    Result deduceStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance)
+    Result instantiateStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance)
     {
         outInstance = nullptr;
 

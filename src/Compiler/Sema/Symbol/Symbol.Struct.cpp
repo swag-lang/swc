@@ -268,7 +268,7 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
     genericRootSym_  = root;
 }
 
-SymbolStruct* SymbolStruct::findGenericInstance(std::span<const GenericArgKey> args) const
+SymbolStruct* SymbolStruct::findGenericInstance(std::span<const GenericInstanceKey> args) const
 {
     const std::scoped_lock lock(genericMutex_);
     for (const auto& entry : genericInstances_)
@@ -293,7 +293,7 @@ SymbolStruct* SymbolStruct::findGenericInstance(std::span<const GenericArgKey> a
     return nullptr;
 }
 
-SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericArgKey> args, SymbolStruct* instance)
+SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericInstanceKey> args, SymbolStruct* instance)
 {
     SWC_ASSERT(instance != nullptr);
 
@@ -327,7 +327,7 @@ SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericArgKey> ar
     return instance;
 }
 
-bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericArgKey>& outArgs) const
+bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const
 {
     const std::scoped_lock lock(genericMutex_);
     for (const auto& entry : genericInstances_)

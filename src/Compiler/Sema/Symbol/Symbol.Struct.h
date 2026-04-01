@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Sema/Generic/GenericInstanceKey.h"
 #include "Compiler/Sema/Generic/GenericSemaGate.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -21,17 +22,6 @@ using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 class SymbolStruct : public SymbolMapT<SymbolKind::Struct, SymbolStructFlagsE>
 {
 public:
-    struct GenericArgKey
-    {
-        TypeRef     typeRef = TypeRef::invalid();
-        ConstantRef cstRef  = ConstantRef::invalid();
-
-        bool operator==(const GenericArgKey& other) const noexcept
-        {
-            return typeRef == other.typeRef && cstRef == other.cstRef;
-        }
-    };
-
     static constexpr auto K = SymbolKind::Struct;
 
     explicit SymbolStruct(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
@@ -77,17 +67,17 @@ public:
     void                setGenericInstance(SymbolStruct* root) noexcept;
     SymbolStruct*       genericRootSym() noexcept { return genericRootSym_; }
     const SymbolStruct* genericRootSym() const noexcept { return genericRootSym_; }
-    SymbolStruct*       findGenericInstance(std::span<const GenericArgKey> args) const;
-    SymbolStruct*       addGenericInstance(std::span<const GenericArgKey> args, SymbolStruct* instance);
-    bool                tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericArgKey>& outArgs) const;
+    SymbolStruct*       findGenericInstance(std::span<const GenericInstanceKey> args) const;
+    SymbolStruct*       addGenericInstance(std::span<const GenericInstanceKey> args, SymbolStruct* instance);
+    bool                tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
     bool                beginGenericSema() const;
     void                endGenericSema() const;
 
 private:
     struct GenericInstanceEntry
     {
-        SmallVector<GenericArgKey> args;
-        SymbolStruct*              symbol = nullptr;
+        SmallVector<GenericInstanceKey> args;
+        SymbolStruct*                   symbol = nullptr;
     };
 
     std::vector<SymbolVariable*>      fields_;

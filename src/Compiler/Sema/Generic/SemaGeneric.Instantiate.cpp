@@ -100,7 +100,7 @@ namespace
         if (ownerParams.empty())
             return;
 
-        SmallVector<SymbolStruct::GenericArgKey> ownerArgs;
+        SmallVector<GenericInstanceKey> ownerArgs;
         if (!ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, ownerArgs))
             return;
         if (ownerArgs.size() != ownerParams.size())
@@ -375,12 +375,6 @@ namespace
         return Result::Continue;
     }
 
-    struct GenericInstanceKey
-    {
-        TypeRef     typeRef = TypeRef::invalid();
-        ConstantRef cstRef  = ConstantRef::invalid();
-    };
-
     void buildGenericKeys(std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, SmallVector<GenericInstanceKey>& outKeys)
     {
         outKeys.clear();
@@ -396,54 +390,18 @@ namespace
         }
     }
 
-    Symbol* findGenericInstance(const SymbolFunction& root, std::span<const GenericInstanceKey> keys)
-    {
-        SmallVector<SymbolFunction::GenericArgKey> typedKeys;
-        typedKeys.reserve(keys.size());
-        for (const auto& key : keys)
-            typedKeys.push_back({key.typeRef, key.cstRef});
-        return root.findGenericInstance(typedKeys.span());
-    }
-
-    Symbol* findGenericInstance(const SymbolStruct& root, std::span<const GenericInstanceKey> keys)
-    {
-        SmallVector<SymbolStruct::GenericArgKey> typedKeys;
-        typedKeys.reserve(keys.size());
-        for (const auto& key : keys)
-            typedKeys.push_back({key.typeRef, key.cstRef});
-        return root.findGenericInstance(typedKeys.span());
-    }
-
     Symbol* findGenericInstance(const Symbol& root, std::span<const GenericInstanceKey> keys)
     {
         if (const auto* function = root.safeCast<SymbolFunction>())
-            return findGenericInstance(*function, keys);
-        return findGenericInstance(root.cast<SymbolStruct>(), keys);
-    }
-
-    Symbol* addGenericInstance(SymbolFunction& root, std::span<const GenericInstanceKey> keys, SymbolFunction* instance)
-    {
-        SmallVector<SymbolFunction::GenericArgKey> typedKeys;
-        typedKeys.reserve(keys.size());
-        for (const auto& key : keys)
-            typedKeys.push_back({key.typeRef, key.cstRef});
-        return root.addGenericInstance(typedKeys.span(), instance);
-    }
-
-    Symbol* addGenericInstance(SymbolStruct& root, std::span<const GenericInstanceKey> keys, SymbolStruct* instance)
-    {
-        SmallVector<SymbolStruct::GenericArgKey> typedKeys;
-        typedKeys.reserve(keys.size());
-        for (const auto& key : keys)
-            typedKeys.push_back({key.typeRef, key.cstRef});
-        return root.addGenericInstance(typedKeys.span(), instance);
+            return function->findGenericInstance(keys);
+        return root.cast<SymbolStruct>().findGenericInstance(keys);
     }
 
     Symbol* addGenericInstance(Symbol& root, std::span<const GenericInstanceKey> keys, Symbol* instance)
     {
         if (auto* function = root.safeCast<SymbolFunction>())
-            return addGenericInstance(*function, keys, &instance->cast<SymbolFunction>());
-        return addGenericInstance(root.cast<SymbolStruct>(), keys, &instance->cast<SymbolStruct>());
+            return function->addGenericInstance(keys, &instance->cast<SymbolFunction>());
+        return root.cast<SymbolStruct>().addGenericInstance(keys, &instance->cast<SymbolStruct>());
     }
 
     Symbol* createGenericInstanceSymbol(Sema& sema, Symbol& root, AstNodeRef cloneRef)
@@ -688,7 +646,7 @@ namespace SemaGeneric
         SmallVector<GenericParamDesc> enclosingParams;
         collectGenericParams(sema, enclosingDecl->spanGenericParamsRef, enclosingParams);
 
-        SmallVector<SymbolStruct::GenericArgKey> enclosingArgs;
+        SmallVector<GenericInstanceKey> enclosingArgs;
         if (!enclosingRoot->tryGetGenericInstanceArgs(*enclosingInstance, enclosingArgs))
             return Result::Continue;
         if (enclosingArgs.size() != enclosingParams.size())

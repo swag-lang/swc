@@ -3,6 +3,7 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Generic/GenericInstanceKey.h"
 #include "Compiler/Sema/Generic/GenericSemaGate.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -32,17 +33,6 @@ using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 class SymbolFunction : public SymbolMapT<SymbolKind::Function, SymbolFunctionFlagsE>
 {
 public:
-    struct GenericArgKey
-    {
-        TypeRef     typeRef = TypeRef::invalid();
-        ConstantRef cstRef  = ConstantRef::invalid();
-
-        bool operator==(const GenericArgKey& other) const noexcept
-        {
-            return typeRef == other.typeRef && cstRef == other.cstRef;
-        }
-    };
-
     static constexpr auto K = SymbolKind::Function;
 
     explicit SymbolFunction(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
@@ -133,16 +123,16 @@ public:
     }
     SymbolImpl*      genericDeclImpl() const noexcept { return genericDeclImpl_; }
     SymbolInterface* genericDeclInterface() const noexcept { return genericDeclInterface_; }
-    SymbolFunction*  findGenericInstance(std::span<const GenericArgKey> args) const;
-    SymbolFunction*  addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance);
+    SymbolFunction*  findGenericInstance(std::span<const GenericInstanceKey> args) const;
+    SymbolFunction*  addGenericInstance(std::span<const GenericInstanceKey> args, SymbolFunction* instance);
     bool             beginGenericSema() const;
     void             endGenericSema() const;
 
 private:
     struct GenericInstanceEntry
     {
-        SmallVector<GenericArgKey> args;
-        SymbolFunction*            function = nullptr;
+        SmallVector<GenericInstanceKey> args;
+        SymbolFunction*                 function = nullptr;
     };
 
     bool hasLoweredCode() const noexcept;

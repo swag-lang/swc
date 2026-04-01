@@ -24,7 +24,6 @@ namespace SemaGeneric
     struct GenericRootTraits<SymbolFunction>
     {
         using DeclType       = AstFunctionDecl;
-        using GenericArgKey  = SymbolFunction::GenericArgKey;
         using InstanceSymbol = SymbolFunction;
 
         static const DeclType* decl(const SymbolFunction& root)
@@ -45,12 +44,12 @@ namespace SemaGeneric
             return child.execResult();
         }
 
-        static InstanceSymbol* findInstance(const SymbolFunction& root, std::span<const GenericArgKey> keys)
+        static InstanceSymbol* findInstance(const SymbolFunction& root, std::span<const GenericInstanceKey> keys)
         {
             return root.findGenericInstance(keys);
         }
 
-        static InstanceSymbol* addInstance(SymbolFunction& root, std::span<const GenericArgKey> keys, InstanceSymbol* instance)
+        static InstanceSymbol* addInstance(SymbolFunction& root, std::span<const GenericInstanceKey> keys, InstanceSymbol* instance)
         {
             return root.addGenericInstance(keys, instance);
         }
@@ -77,7 +76,6 @@ namespace SemaGeneric
     struct GenericRootTraits<SymbolStruct>
     {
         using DeclType       = AstStructDecl;
-        using GenericArgKey  = SymbolStruct::GenericArgKey;
         using InstanceSymbol = SymbolStruct;
 
         static const DeclType* decl(const SymbolStruct& root)
@@ -98,12 +96,12 @@ namespace SemaGeneric
             return child.execResult();
         }
 
-        static InstanceSymbol* findInstance(const SymbolStruct& root, std::span<const GenericArgKey> keys)
+        static InstanceSymbol* findInstance(const SymbolStruct& root, std::span<const GenericInstanceKey> keys)
         {
             return root.findGenericInstance(keys);
         }
 
-        static InstanceSymbol* addInstance(SymbolStruct& root, std::span<const GenericArgKey> keys, InstanceSymbol* instance)
+        static InstanceSymbol* addInstance(SymbolStruct& root, std::span<const GenericInstanceKey> keys, InstanceSymbol* instance)
         {
             return root.addGenericInstance(keys, instance);
         }

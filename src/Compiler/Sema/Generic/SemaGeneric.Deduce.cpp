@@ -235,7 +235,7 @@ namespace
         if (!patternRoot && (!patternRootIdRef.isValid() || actualRoot->idRef() != patternRootIdRef))
             return Result::Continue;
 
-        SmallVector<SymbolStruct::GenericArgKey> actualArgs;
+        SmallVector<GenericInstanceKey> actualArgs;
         if (!actualRoot->tryGetGenericInstanceArgs(argStruct, actualArgs))
             return Result::Continue;
         if (patternArgs.size() != actualArgs.size())

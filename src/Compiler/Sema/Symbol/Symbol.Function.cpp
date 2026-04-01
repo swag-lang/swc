@@ -516,7 +516,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
     return Result::Continue;
 }
 
-SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericArgKey> args) const
+SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericInstanceKey> args) const
 {
     const std::scoped_lock lock(genericMutex_);
     for (const auto& entry : genericInstances_)
@@ -541,7 +541,7 @@ SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericArgKe
     return nullptr;
 }
 
-SymbolFunction* SymbolFunction::addGenericInstance(std::span<const GenericArgKey> args, SymbolFunction* instance)
+SymbolFunction* SymbolFunction::addGenericInstance(std::span<const GenericInstanceKey> args, SymbolFunction* instance)
 {
     SWC_ASSERT(instance != nullptr);
 

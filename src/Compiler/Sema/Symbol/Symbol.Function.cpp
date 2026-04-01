@@ -516,22 +516,6 @@ Result SymbolFunction::emit(TaskContext& ctx)
     return Result::Continue;
 }
 
-SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericInstanceKey> args) const
-{
-    if (auto* symbol = genericInstances_.find(args))
-        return symbol->safeCast<SymbolFunction>();
-    return nullptr;
-}
-
-SymbolFunction* SymbolFunction::addGenericInstance(std::span<const GenericInstanceKey> args, SymbolFunction* instance)
-{
-    SWC_ASSERT(instance != nullptr);
-
-    if (auto* symbol = genericInstances_.add(args, instance))
-        return symbol->safeCast<SymbolFunction>();
-    return nullptr;
-}
-
 bool SymbolFunction::beginGenericSema() const
 {
     return genericSema_.begin(*this);

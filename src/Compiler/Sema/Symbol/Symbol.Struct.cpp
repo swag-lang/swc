@@ -268,22 +268,6 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
     genericRootSym_  = root;
 }
 
-SymbolStruct* SymbolStruct::findGenericInstance(std::span<const GenericInstanceKey> args) const
-{
-    if (auto* symbol = genericInstances_.find(args))
-        return symbol->safeCast<SymbolStruct>();
-    return nullptr;
-}
-
-SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericInstanceKey> args, SymbolStruct* instance)
-{
-    SWC_ASSERT(instance != nullptr);
-
-    if (auto* symbol = genericInstances_.add(args, instance))
-        return symbol->safeCast<SymbolStruct>();
-    return nullptr;
-}
-
 bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const
 {
     return genericInstances_.tryGetArgs(instance, outArgs);

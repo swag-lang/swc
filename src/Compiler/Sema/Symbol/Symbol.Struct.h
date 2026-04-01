@@ -61,39 +61,39 @@ public:
     const SymbolFunction*        opPostCopy() const { return opPostCopy_; }
     const SymbolFunction*        opPostMove() const { return opPostMove_; }
 
-    bool                isGenericRoot() const noexcept { return genericRoot_; }
-    void                setGenericRoot(bool value) noexcept { genericRoot_ = value; }
-    bool                isGenericInstance() const noexcept { return genericInstance_; }
-    void                setGenericInstance(SymbolStruct* root) noexcept;
-    SymbolStruct*       genericRootSym() noexcept { return genericRootSym_; }
-    const SymbolStruct* genericRootSym() const noexcept { return genericRootSym_; }
-    SymbolStruct*       findGenericInstance(std::span<const GenericInstanceKey> args) const;
-    SymbolStruct*       addGenericInstance(std::span<const GenericInstanceKey> args, SymbolStruct* instance);
-    bool                tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
-    bool                beginGenericSema() const;
-    void                endGenericSema() const;
+    bool                    isGenericRoot() const noexcept { return genericRoot_; }
+    void                    setGenericRoot(bool value) noexcept { genericRoot_ = value; }
+    bool                    isGenericInstance() const noexcept { return genericInstance_; }
+    void                    setGenericInstance(SymbolStruct* root) noexcept;
+    SymbolStruct*           genericRootSym() noexcept { return genericRootSym_; }
+    const SymbolStruct*     genericRootSym() const noexcept { return genericRootSym_; }
+    bool                          tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
+    GenericInstanceStorage&       genericInstanceStorage() noexcept { return genericInstances_; }
+    const GenericInstanceStorage& genericInstanceStorage() const noexcept { return genericInstances_; }
+    bool                          beginGenericSema() const;
+    void                          endGenericSema() const;
 
 private:
-    std::vector<SymbolVariable*>      fields_;
-    mutable std::shared_mutex         mutexImpls_;
-    std::vector<SymbolImpl*>          impls_;
-    mutable std::shared_mutex         mutexInterfaces_;
-    std::vector<SymbolImpl*>          interfaces_;
-    mutable std::shared_mutex         mutexSpecOps_;
-    std::vector<SymbolFunction*>      specOps_;
-    GenericInstanceStorage            genericInstances_;
-    mutable GenericSemaGate           genericSema_;
-    SymbolFunction*                   opDrop_     = nullptr;
-    SymbolFunction*                   opPostCopy_ = nullptr;
-    SymbolFunction*                   opPostMove_ = nullptr;
-    std::once_flag                    defaultStructOnce_;
-    ConstantRef                       defaultStructCst_ = ConstantRef::invalid();
-    uint64_t                          sizeInBytes_      = 0;
-    uint32_t                          alignment_        = 0;
-    AstNodeRef                        declNodeRef_      = AstNodeRef::invalid();
-    bool                              genericRoot_      = false;
-    bool                              genericInstance_  = false;
-    SymbolStruct*                     genericRootSym_   = nullptr;
+    std::vector<SymbolVariable*> fields_;
+    mutable std::shared_mutex    mutexImpls_;
+    std::vector<SymbolImpl*>     impls_;
+    mutable std::shared_mutex    mutexInterfaces_;
+    std::vector<SymbolImpl*>     interfaces_;
+    mutable std::shared_mutex    mutexSpecOps_;
+    std::vector<SymbolFunction*> specOps_;
+    GenericInstanceStorage       genericInstances_;
+    mutable GenericSemaGate      genericSema_;
+    SymbolFunction*              opDrop_     = nullptr;
+    SymbolFunction*              opPostCopy_ = nullptr;
+    SymbolFunction*              opPostMove_ = nullptr;
+    std::once_flag               defaultStructOnce_;
+    ConstantRef                  defaultStructCst_ = ConstantRef::invalid();
+    uint64_t                     sizeInBytes_      = 0;
+    uint32_t                     alignment_        = 0;
+    AstNodeRef                   declNodeRef_      = AstNodeRef::invalid();
+    bool                         genericRoot_      = false;
+    bool                         genericInstance_  = false;
+    SymbolStruct*                genericRootSym_   = nullptr;
 };
 
 SWC_END_NAMESPACE();

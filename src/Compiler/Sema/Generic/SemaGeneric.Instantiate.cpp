@@ -390,20 +390,6 @@ namespace
         }
     }
 
-    Symbol* findGenericInstance(const Symbol& root, std::span<const GenericInstanceKey> keys)
-    {
-        if (const auto* function = root.safeCast<SymbolFunction>())
-            return function->findGenericInstance(keys);
-        return root.cast<SymbolStruct>().findGenericInstance(keys);
-    }
-
-    Symbol* addGenericInstance(Symbol& root, std::span<const GenericInstanceKey> keys, Symbol* instance)
-    {
-        if (auto* function = root.safeCast<SymbolFunction>())
-            return function->addGenericInstance(keys, &instance->cast<SymbolFunction>());
-        return root.cast<SymbolStruct>().addGenericInstance(keys, &instance->cast<SymbolStruct>());
-    }
-
     Symbol* createGenericInstanceSymbol(Sema& sema, Symbol& root, AstNodeRef cloneRef)
     {
         if (auto* function = root.safeCast<SymbolFunction>())
@@ -435,6 +421,28 @@ namespace
         instance->setDeclNodeRef(cloneRef);
         instance->setGenericInstance(&st);
         return instance;
+    }
+
+    Symbol* findOrCreateGenericInstance(Sema& sema, Symbol& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs)
+    {
+        SmallVector<GenericInstanceKey> keys;
+        buildGenericKeys(params, resolvedArgs, keys);
+
+        GenericInstanceStorage& storage = root.isFunction() ? root.cast<SymbolFunction>().genericInstanceStorage() : root.cast<SymbolStruct>().genericInstanceStorage();
+
+        std::unique_lock lk(storage.getMutex());
+        if (auto* instance = storage.findNoLock(keys.span()))
+            return instance;
+
+        SmallVector<SemaClone::ParamBinding> bindings;
+        buildGenericCloneBindings(params, resolvedArgs, bindings);
+        appendEnclosingGenericCloneBindings(sema, root, bindings);
+
+        const SemaClone::CloneContext cloneContext{bindings};
+        const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, genericDeclNodeRef(root), cloneContext);
+        Symbol*                       created  = createGenericInstanceSymbol(sema, root, cloneRef);
+        sema.setSymbol(cloneRef, created);
+        return storage.addNoLock(keys.span(), created);
     }
 
     bool beginGenericSema(const Symbol& instance)
@@ -482,24 +490,7 @@ namespace
     Result createGenericInstance(Sema& sema, Symbol& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, Symbol*& outInstance)
     {
         outInstance = nullptr;
-
-        SmallVector<GenericInstanceKey> keys;
-        buildGenericKeys(params, resolvedArgs, keys);
-
-        outInstance = findGenericInstance(root, keys);
-        if (!outInstance)
-        {
-            SmallVector<SemaClone::ParamBinding> bindings;
-            buildGenericCloneBindings(params, resolvedArgs, bindings);
-            appendEnclosingGenericCloneBindings(sema, root, bindings);
-
-            const SemaClone::CloneContext cloneContext{bindings};
-            const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, genericDeclNodeRef(root), cloneContext);
-            Symbol*                       created  = createGenericInstanceSymbol(sema, root, cloneRef);
-            sema.setSymbol(cloneRef, created);
-            outInstance = addGenericInstance(root, keys.span(), created);
-        }
-
+        outInstance = findOrCreateGenericInstance(sema, root, params, resolvedArgs);
         if (!outInstance->isSemaCompleted())
         {
             if (beginGenericSema(*outInstance))

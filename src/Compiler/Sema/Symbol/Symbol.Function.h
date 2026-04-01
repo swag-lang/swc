@@ -81,30 +81,32 @@ public:
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
     void     setInterfaceMethodSlot(uint32_t slot) noexcept { interfaceMethodSlot_ = slot; }
 
-    SpecOpKind          specOpKind() const noexcept { return specOpKind_; }
-    void                setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
-    CallConvKind        callConvKind() const noexcept { return callConvKind_; }
-    void                setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
-    MicroBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
-    const MicroBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
-    AstNodeRef          declNodeRef() const noexcept { return declNodeRef_; }
-    void                setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
-    uint32_t            debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
-    void                setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
-    MicroReg            debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
-    void                setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
-    bool                tryMarkCodeGenJobScheduled() noexcept;
-    void                addCallDependency(SymbolFunction* sym);
-    void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    void                appendJitOrder(SmallVector<SymbolFunction*>& out) const;
-    void*               jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
-    void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    void                resetJitState() noexcept;
-    Result              emit(TaskContext& ctx);
-    Result              ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
-    static bool         jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
-    void                jit(TaskContext& ctx);
-    const MachineCode&  loweredCode() const noexcept { return loweredMicroCode_; }
+    SpecOpKind              specOpKind() const noexcept { return specOpKind_; }
+    void                    setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    CallConvKind            callConvKind() const noexcept { return callConvKind_; }
+    void                    setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
+    MicroBuilder&           microInstrBuilder(TaskContext& ctx) noexcept;
+    const MicroBuilder&     microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    AstNodeRef              declNodeRef() const noexcept { return declNodeRef_; }
+    void                    setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    uint32_t                debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
+    void                    setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
+    MicroReg                debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
+    void                    setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
+    bool                    tryMarkCodeGenJobScheduled() noexcept;
+    void                    addCallDependency(SymbolFunction* sym);
+    void                    appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
+    void*                   jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
+    void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    void                    resetJitState() noexcept;
+    Result                  emit(TaskContext& ctx);
+    Result                        ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
+    GenericInstanceStorage&       genericInstanceStorage() noexcept { return genericInstances_; }
+    const GenericInstanceStorage& genericInstanceStorage() const noexcept { return genericInstances_; }
+    static bool                   jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
+    void                          jit(TaskContext& ctx);
+    const MachineCode&            loweredCode() const noexcept { return loweredMicroCode_; }
 
     bool isGenericRoot() const noexcept { return genericRoot_; }
     void setGenericRoot(bool value) noexcept { genericRoot_ = value; }
@@ -123,8 +125,6 @@ public:
     }
     SymbolImpl*      genericDeclImpl() const noexcept { return genericDeclImpl_; }
     SymbolInterface* genericDeclInterface() const noexcept { return genericDeclInterface_; }
-    SymbolFunction*  findGenericInstance(std::span<const GenericInstanceKey> args) const;
-    SymbolFunction*  addGenericInstance(std::span<const GenericInstanceKey> args, SymbolFunction* instance);
     bool             beginGenericSema() const;
     void             endGenericSema() const;
 
@@ -151,25 +151,25 @@ private:
     uint32_t                     debugStackFrameSize_ = 0;
     MicroReg                     debugStackBaseReg_   = MicroReg::invalid();
 
-    MicroBuilder                      microInstrBuilder_;
-    MachineCode                       loweredMicroCode_;
-    mutable std::mutex                callDepsMutex_;
-    std::vector<SymbolFunction*>      callDependencies_;
-    GenericInstanceStorage            genericInstances_;
-    mutable GenericSemaGate           genericSema_;
-    mutable std::mutex                closureAdapterMutex_;
-    SymbolFunction*                   closureAdapter_ = nullptr;
-    std::mutex                        emitMutex_;
-    JITMemory                         jitExecMemory_;
-    std::atomic<void*>                jitPreparedAddress_   = nullptr;
-    std::atomic<void*>                jitEntryAddress_      = nullptr;
-    std::atomic<bool>                 codeGenJobScheduled_  = false;
-    bool                              usesGvtd_             = false;
-    bool                              genericRoot_          = false;
-    bool                              genericInstance_      = false;
-    SymbolFunction*                   genericRootSym_       = nullptr;
-    SymbolImpl*                       genericDeclImpl_      = nullptr;
-    SymbolInterface*                  genericDeclInterface_ = nullptr;
+    MicroBuilder                 microInstrBuilder_;
+    MachineCode                  loweredMicroCode_;
+    mutable std::mutex           callDepsMutex_;
+    std::vector<SymbolFunction*> callDependencies_;
+    GenericInstanceStorage       genericInstances_;
+    mutable GenericSemaGate      genericSema_;
+    mutable std::mutex           closureAdapterMutex_;
+    SymbolFunction*              closureAdapter_ = nullptr;
+    std::mutex                   emitMutex_;
+    JITMemory                    jitExecMemory_;
+    std::atomic<void*>           jitPreparedAddress_   = nullptr;
+    std::atomic<void*>           jitEntryAddress_      = nullptr;
+    std::atomic<bool>            codeGenJobScheduled_  = false;
+    bool                         usesGvtd_             = false;
+    bool                         genericRoot_          = false;
+    bool                         genericInstance_      = false;
+    SymbolFunction*              genericRootSym_       = nullptr;
+    SymbolImpl*                  genericDeclImpl_      = nullptr;
+    SymbolInterface*             genericDeclInterface_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

@@ -30,32 +30,13 @@ public:
     Symbol* find(std::span<const GenericInstanceKey> args) const
     {
         const std::scoped_lock lock(genericMutex_);
-        for (const auto& entry : genericInstances_)
-        {
-            if (sameArgs(entry.args.span(), args))
-                return entry.symbol;
-        }
-
-        return nullptr;
+        return findNoLock(args);
     }
 
     Symbol* add(std::span<const GenericInstanceKey> args, Symbol* instance)
     {
         const std::scoped_lock lock(genericMutex_);
-        if (auto* existing = findNoLock(args))
-            return existing;
-
-        for (const auto& entry : genericInstances_)
-        {
-            if (entry.symbol == instance)
-                return entry.symbol;
-        }
-
-        GenericInstanceEntry entry;
-        entry.symbol = instance;
-        entry.args.assign(args.begin(), args.end());
-        genericInstances_.push_back(std::move(entry));
-        return instance;
+        return addNoLock(args, instance);
     }
 
     bool tryGetArgs(const Symbol& instance, SmallVector<GenericInstanceKey>& outArgs) const
@@ -73,6 +54,37 @@ public:
         return false;
     }
 
+    std::mutex& getMutex() const noexcept { return genericMutex_; }
+
+    Symbol* findNoLock(std::span<const GenericInstanceKey> args) const
+    {
+        for (const auto& entry : genericInstances_)
+        {
+            if (sameArgs(entry.args.span(), args))
+                return entry.symbol;
+        }
+
+        return nullptr;
+    }
+
+    Symbol* addNoLock(std::span<const GenericInstanceKey> args, Symbol* instance)
+    {
+        if (auto* existing = findNoLock(args))
+            return existing;
+
+        for (const auto& entry : genericInstances_)
+        {
+            if (entry.symbol == instance)
+                return entry.symbol;
+        }
+
+        GenericInstanceEntry entry;
+        entry.symbol = instance;
+        entry.args.assign(args.begin(), args.end());
+        genericInstances_.push_back(std::move(entry));
+        return instance;
+    }
+
 private:
     static bool sameArgs(std::span<const GenericInstanceKey> lhs, std::span<const GenericInstanceKey> rhs) noexcept
     {
@@ -86,17 +98,6 @@ private:
         }
 
         return true;
-    }
-
-    Symbol* findNoLock(std::span<const GenericInstanceKey> args) const
-    {
-        for (const auto& entry : genericInstances_)
-        {
-            if (sameArgs(entry.args.span(), args))
-                return entry.symbol;
-        }
-
-        return nullptr;
     }
 
     mutable std::mutex                genericMutex_;

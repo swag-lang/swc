@@ -46,12 +46,16 @@ namespace SemaGeneric
 
         static InstanceSymbol* findInstance(const SymbolFunction& root, std::span<const GenericInstanceKey> keys)
         {
-            return root.findGenericInstance(keys);
+            if (auto* symbol = root.genericInstanceStorage().find(keys))
+                return symbol->safeCast<InstanceSymbol>();
+            return nullptr;
         }
 
         static InstanceSymbol* addInstance(SymbolFunction& root, std::span<const GenericInstanceKey> keys, InstanceSymbol* instance)
         {
-            return root.addGenericInstance(keys, instance);
+            if (auto* symbol = root.genericInstanceStorage().add(keys, instance))
+                return symbol->safeCast<InstanceSymbol>();
+            return nullptr;
         }
 
         static InstanceSymbol* createInstance(Sema& sema, SymbolFunction& root, AstNodeRef cloneRef)
@@ -98,12 +102,16 @@ namespace SemaGeneric
 
         static InstanceSymbol* findInstance(const SymbolStruct& root, std::span<const GenericInstanceKey> keys)
         {
-            return root.findGenericInstance(keys);
+            if (auto* symbol = root.genericInstanceStorage().find(keys))
+                return symbol->safeCast<InstanceSymbol>();
+            return nullptr;
         }
 
         static InstanceSymbol* addInstance(SymbolStruct& root, std::span<const GenericInstanceKey> keys, InstanceSymbol* instance)
         {
-            return root.addGenericInstance(keys, instance);
+            if (auto* symbol = root.genericInstanceStorage().add(keys, instance))
+                return symbol->safeCast<InstanceSymbol>();
+            return nullptr;
         }
 
         static InstanceSymbol* createInstance(Sema& sema, SymbolStruct& root, AstNodeRef cloneRef)

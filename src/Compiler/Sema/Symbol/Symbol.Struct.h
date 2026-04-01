@@ -1,6 +1,5 @@
 #pragma once
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
-#include "Compiler/Sema/Generic/GenericSemaGate.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
@@ -70,30 +69,36 @@ public:
     bool                          tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
     GenericInstanceStorage&       genericInstanceStorage() noexcept { return genericInstances_; }
     const GenericInstanceStorage& genericInstanceStorage() const noexcept { return genericInstances_; }
-    bool                          beginGenericSema() const;
-    void                          endGenericSema() const;
+    void                          setGenericCompletionOwner(const TaskContext& ctx) noexcept;
+    bool                          isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
+    bool                          tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
+    void                          finishGenericCompletion() const noexcept;
+    bool                          isGenericNodeCompleted() const noexcept;
+    void                          setGenericNodeCompleted() const noexcept;
 
 private:
-    std::vector<SymbolVariable*> fields_;
-    mutable std::shared_mutex    mutexImpls_;
-    std::vector<SymbolImpl*>     impls_;
-    mutable std::shared_mutex    mutexInterfaces_;
-    std::vector<SymbolImpl*>     interfaces_;
-    mutable std::shared_mutex    mutexSpecOps_;
-    std::vector<SymbolFunction*> specOps_;
-    GenericInstanceStorage       genericInstances_;
-    mutable GenericSemaGate      genericSema_;
-    SymbolFunction*              opDrop_     = nullptr;
-    SymbolFunction*              opPostCopy_ = nullptr;
-    SymbolFunction*              opPostMove_ = nullptr;
-    std::once_flag               defaultStructOnce_;
-    ConstantRef                  defaultStructCst_ = ConstantRef::invalid();
-    uint64_t                     sizeInBytes_      = 0;
-    uint32_t                     alignment_        = 0;
-    AstNodeRef                   declNodeRef_      = AstNodeRef::invalid();
-    bool                         genericRoot_      = false;
-    bool                         genericInstance_  = false;
-    SymbolStruct*                genericRootSym_   = nullptr;
+    std::vector<SymbolVariable*>    fields_;
+    mutable std::shared_mutex       mutexImpls_;
+    std::vector<SymbolImpl*>        impls_;
+    mutable std::shared_mutex       mutexInterfaces_;
+    std::vector<SymbolImpl*>        interfaces_;
+    mutable std::shared_mutex       mutexSpecOps_;
+    std::vector<SymbolFunction*>    specOps_;
+    GenericInstanceStorage          genericInstances_;
+    std::atomic<const TaskContext*> genericCompletionOwner_ = nullptr;
+    mutable std::atomic<uint32_t>   genericCompletionDepth_ = 0;
+    mutable std::atomic<bool>       genericNodeCompleted_   = false;
+    SymbolFunction*                 opDrop_                 = nullptr;
+    SymbolFunction*                 opPostCopy_             = nullptr;
+    SymbolFunction*                 opPostMove_             = nullptr;
+    std::once_flag                  defaultStructOnce_;
+    ConstantRef                     defaultStructCst_ = ConstantRef::invalid();
+    uint64_t                        sizeInBytes_      = 0;
+    uint32_t                        alignment_        = 0;
+    AstNodeRef                      declNodeRef_      = AstNodeRef::invalid();
+    bool                            genericRoot_      = false;
+    bool                            genericInstance_  = false;
+    SymbolStruct*                   genericRootSym_   = nullptr;
 };
 
 SWC_END_NAMESPACE();

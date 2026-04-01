@@ -4,7 +4,6 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
-#include "Compiler/Sema/Generic/GenericSemaGate.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
@@ -125,8 +124,12 @@ public:
     }
     SymbolImpl*      genericDeclImpl() const noexcept { return genericDeclImpl_; }
     SymbolInterface* genericDeclInterface() const noexcept { return genericDeclInterface_; }
-    bool             beginGenericSema() const;
-    void             endGenericSema() const;
+    void             setGenericCompletionOwner(const TaskContext& ctx) noexcept;
+    bool             isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
+    bool             tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
+    void             finishGenericCompletion() const noexcept;
+    bool             isGenericNodeCompleted() const noexcept;
+    void             setGenericNodeCompleted() const noexcept;
 
 private:
     bool hasLoweredCode() const noexcept;
@@ -151,25 +154,27 @@ private:
     uint32_t                     debugStackFrameSize_ = 0;
     MicroReg                     debugStackBaseReg_   = MicroReg::invalid();
 
-    MicroBuilder                 microInstrBuilder_;
-    MachineCode                  loweredMicroCode_;
-    mutable std::mutex           callDepsMutex_;
-    std::vector<SymbolFunction*> callDependencies_;
-    GenericInstanceStorage       genericInstances_;
-    mutable GenericSemaGate      genericSema_;
-    mutable std::mutex           closureAdapterMutex_;
-    SymbolFunction*              closureAdapter_ = nullptr;
-    std::mutex                   emitMutex_;
-    JITMemory                    jitExecMemory_;
-    std::atomic<void*>           jitPreparedAddress_   = nullptr;
-    std::atomic<void*>           jitEntryAddress_      = nullptr;
-    std::atomic<bool>            codeGenJobScheduled_  = false;
-    bool                         usesGvtd_             = false;
-    bool                         genericRoot_          = false;
-    bool                         genericInstance_      = false;
-    SymbolFunction*              genericRootSym_       = nullptr;
-    SymbolImpl*                  genericDeclImpl_      = nullptr;
-    SymbolInterface*             genericDeclInterface_ = nullptr;
+    MicroBuilder                    microInstrBuilder_;
+    MachineCode                     loweredMicroCode_;
+    mutable std::mutex              callDepsMutex_;
+    std::vector<SymbolFunction*>    callDependencies_;
+    GenericInstanceStorage          genericInstances_;
+    std::atomic<const TaskContext*> genericCompletionOwner_ = nullptr;
+    mutable std::atomic<uint32_t>   genericCompletionDepth_ = 0;
+    mutable std::atomic<bool>       genericNodeCompleted_   = false;
+    mutable std::mutex              closureAdapterMutex_;
+    SymbolFunction*                 closureAdapter_ = nullptr;
+    std::mutex                      emitMutex_;
+    JITMemory                       jitExecMemory_;
+    std::atomic<void*>              jitPreparedAddress_   = nullptr;
+    std::atomic<void*>              jitEntryAddress_      = nullptr;
+    std::atomic<bool>               codeGenJobScheduled_  = false;
+    bool                            usesGvtd_             = false;
+    bool                            genericRoot_          = false;
+    bool                            genericInstance_      = false;
+    SymbolFunction*                 genericRootSym_       = nullptr;
+    SymbolImpl*                     genericDeclImpl_      = nullptr;
+    SymbolInterface*                genericDeclInterface_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

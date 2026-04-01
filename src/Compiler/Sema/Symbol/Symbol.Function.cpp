@@ -516,14 +516,45 @@ Result SymbolFunction::emit(TaskContext& ctx)
     return Result::Continue;
 }
 
-bool SymbolFunction::beginGenericSema() const
+void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) noexcept
 {
-    return genericSema_.begin(*this);
+    const TaskContext* expected = nullptr;
+    const bool         done     = genericCompletionOwner_.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
+    SWC_ASSERT(done || expected == &ctx);
 }
 
-void SymbolFunction::endGenericSema() const
+bool SymbolFunction::isGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    genericSema_.end();
+    return genericCompletionOwner_.load(std::memory_order_acquire) == &ctx;
+}
+
+bool SymbolFunction::tryStartGenericCompletion(const TaskContext& ctx) const noexcept
+{
+    SWC_ASSERT(isGenericCompletionOwner(ctx));
+    const auto previousDepth = genericCompletionDepth_.fetch_add(1, std::memory_order_acq_rel);
+    if (previousDepth != 0)
+    {
+        genericCompletionDepth_.fetch_sub(1, std::memory_order_acq_rel);
+        return false;
+    }
+
+    return true;
+}
+
+void SymbolFunction::finishGenericCompletion() const noexcept
+{
+    const auto previousDepth = genericCompletionDepth_.fetch_sub(1, std::memory_order_acq_rel);
+    SWC_ASSERT(previousDepth != 0);
+}
+
+bool SymbolFunction::isGenericNodeCompleted() const noexcept
+{
+    return genericNodeCompleted_.load(std::memory_order_acquire);
+}
+
+void SymbolFunction::setGenericNodeCompleted() const noexcept
+{
+    genericNodeCompleted_.store(true, std::memory_order_release);
 }
 
 bool SymbolFunction::hasLoweredCode() const noexcept

@@ -138,17 +138,6 @@ namespace
         implClone.setSemaCompleted(ctx);
     }
 
-    Result runGenericImplBlockPasses(Sema& sema, AstNodeRef blockRef, SymbolImpl& implClone, const SymbolImpl& sourceImpl, const AttributeList& attrs)
-    {
-        SWC_RESULT(runGenericImplBlockPass(sema, blockRef, implClone, sourceImpl.symInterface(), attrs, true));
-        implClone.setDeclared(sema.ctx());
-
-        SWC_RESULT(runGenericImplBlockPass(sema, blockRef, implClone, sourceImpl.symInterface(), attrs, false));
-        implClone.setTyped(sema.ctx());
-        implClone.setSemaCompleted(sema.ctx());
-        return Result::Continue;
-    }
-
     AstNodeRef cloneGenericImplBlock(Sema& sema, const AstImpl& implDecl, std::span<const SemaClone::ParamBinding> bindings)
     {
         SmallVector<AstNodeRef> children;
@@ -185,50 +174,86 @@ namespace
 
         outBlockRef = cloneGenericImplBlock(sema, *implDecl, bindings);
         outClone    = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), clonedGenericSymbolFlags(sourceImpl));
+        outClone->setGenericBlockRef(outBlockRef);
+        return Result::Continue;
+    }
+
+    SymbolImpl* findGenericImplClone(std::span<SymbolImpl* const> impls, const SymbolImpl& sourceImpl)
+    {
+        for (SymbolImpl* implClone : impls)
+        {
+            if (!implClone || implClone->isIgnored() || implClone->decl() != sourceImpl.decl())
+                continue;
+            return implClone;
+        }
+
+        return nullptr;
+    }
+
+    Result runGenericImplClonePasses(Sema& sema, SymbolImpl& implClone, const SymbolImpl& sourceImpl, const AttributeList& attrs)
+    {
+        const AstNodeRef blockRef = implClone.genericBlockRef();
+        if (blockRef.isInvalid())
+        {
+            completeGenericImplClone(sema.ctx(), implClone);
+            return Result::Continue;
+        }
+
+        if (!implClone.isDeclared())
+        {
+            SWC_RESULT(runGenericImplBlockPass(sema, blockRef, implClone, sourceImpl.symInterface(), attrs, true));
+            implClone.setDeclared(sema.ctx());
+        }
+
+        if (!implClone.isTyped() || !implClone.isSemaCompleted())
+        {
+            SWC_RESULT(runGenericImplBlockPass(sema, blockRef, implClone, sourceImpl.symInterface(), attrs, false));
+            implClone.setTyped(sema.ctx());
+            implClone.setSemaCompleted(sema.ctx());
+        }
+
         return Result::Continue;
     }
 
     Result instantiateGenericStructImpl(Sema& sema, const SymbolImpl& sourceImpl, SymbolStruct& instance, std::span<const SemaClone::ParamBinding> bindings)
     {
-        SymbolImpl* implClone = nullptr;
-        AstNodeRef  blockRef  = AstNodeRef::invalid();
-        SWC_RESULT(createGenericImplClone(sema, implClone, blockRef, sourceImpl, bindings));
-
-        instance.addImpl(sema, *implClone);
-        if (blockRef.isInvalid())
+        SymbolImpl* implClone = findGenericImplClone(instance.impls(), sourceImpl);
+        bool        created   = false;
+        if (!implClone)
         {
-            completeGenericImplClone(sema.ctx(), *implClone);
-            return Result::Continue;
+            AstNodeRef blockRef = AstNodeRef::invalid();
+            SWC_RESULT(createGenericImplClone(sema, implClone, blockRef, sourceImpl, bindings));
+            instance.addImpl(sema, *implClone);
+            created = true;
         }
 
-        return runGenericImplBlockPasses(sema, blockRef, *implClone, sourceImpl, instance.attributes());
+        const Result result = runGenericImplClonePasses(sema, *implClone, sourceImpl, instance.attributes());
+        if (result != Result::Continue && created && !implClone->isSemaCompleted())
+            implClone->setIgnored(sema.ctx());
+        return result;
     }
 
     Result instantiateGenericStructInterface(Sema& sema, const SymbolImpl& sourceImpl, SymbolStruct& instance, std::span<const SemaClone::ParamBinding> bindings)
     {
-        SymbolImpl* implClone = nullptr;
-        AstNodeRef  blockRef  = AstNodeRef::invalid();
-        SWC_RESULT(createGenericImplClone(sema, implClone, blockRef, sourceImpl, bindings));
-
-        implClone->addExtraFlag(SymbolImplFlagsE::ForInterface);
-        implClone->setSymInterface(sourceImpl.symInterface());
-        implClone->setTypeRef(sourceImpl.typeRef());
-        SWC_RESULT(instance.addInterface(sema, *implClone));
-
-        if (blockRef.isInvalid())
+        SymbolImpl* implClone = findGenericImplClone(instance.interfaces(), sourceImpl);
+        if (!implClone)
         {
-            completeGenericImplClone(sema.ctx(), *implClone);
+            AstNodeRef blockRef = AstNodeRef::invalid();
+            SWC_RESULT(createGenericImplClone(sema, implClone, blockRef, sourceImpl, bindings));
+            implClone->setSymStruct(&instance);
+            implClone->addExtraFlag(SymbolImplFlagsE::ForInterface);
+            implClone->setSymInterface(sourceImpl.symInterface());
+            implClone->setTypeRef(sourceImpl.typeRef());
+            SWC_RESULT(runGenericImplClonePasses(sema, *implClone, sourceImpl, instance.attributes()));
+            SWC_RESULT(instance.addInterface(sema, *implClone));
             return Result::Continue;
         }
 
-        return runGenericImplBlockPasses(sema, blockRef, *implClone, sourceImpl, instance.attributes());
+        return runGenericImplClonePasses(sema, *implClone, sourceImpl, instance.attributes());
     }
 
     Result instantiateGenericStructImpls(Sema& sema, const SymbolStruct& root, SymbolStruct& instance, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs)
     {
-        if (!instance.impls().empty() || !instance.interfaces().empty())
-            return Result::Continue;
-
         const auto rootImpls      = root.impls();
         const auto rootInterfaces = root.interfaces();
         if (rootImpls.empty() && rootInterfaces.empty())
@@ -423,6 +448,51 @@ namespace
         return instance;
     }
 
+    void setGenericCompletionOwner(Symbol& instance, const TaskContext& ctx)
+    {
+        if (auto* function = instance.safeCast<SymbolFunction>())
+            function->setGenericCompletionOwner(ctx);
+        else
+            instance.cast<SymbolStruct>().setGenericCompletionOwner(ctx);
+    }
+
+    bool isGenericCompletionOwner(const Symbol& instance, const TaskContext& ctx)
+    {
+        if (const auto* function = instance.safeCast<SymbolFunction>())
+            return function->isGenericCompletionOwner(ctx);
+        return instance.cast<SymbolStruct>().isGenericCompletionOwner(ctx);
+    }
+
+    bool tryStartGenericCompletion(const Symbol& instance, const TaskContext& ctx)
+    {
+        if (const auto* function = instance.safeCast<SymbolFunction>())
+            return function->tryStartGenericCompletion(ctx);
+        return instance.cast<SymbolStruct>().tryStartGenericCompletion(ctx);
+    }
+
+    void finishGenericCompletion(const Symbol& instance)
+    {
+        if (const auto* function = instance.safeCast<SymbolFunction>())
+            function->finishGenericCompletion();
+        else
+            instance.cast<SymbolStruct>().finishGenericCompletion();
+    }
+
+    bool isGenericNodeCompleted(const Symbol& instance)
+    {
+        if (const auto* function = instance.safeCast<SymbolFunction>())
+            return function->isGenericNodeCompleted();
+        return instance.cast<SymbolStruct>().isGenericNodeCompleted();
+    }
+
+    void setGenericNodeCompleted(const Symbol& instance)
+    {
+        if (const auto* function = instance.safeCast<SymbolFunction>())
+            function->setGenericNodeCompleted();
+        else
+            instance.cast<SymbolStruct>().setGenericNodeCompleted();
+    }
+
     Symbol* findOrCreateGenericInstance(Sema& sema, Symbol& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs)
     {
         SmallVector<GenericInstanceKey> keys;
@@ -441,40 +511,21 @@ namespace
         const SemaClone::CloneContext cloneContext{bindings};
         const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, genericDeclNodeRef(root), cloneContext);
         Symbol*                       created  = createGenericInstanceSymbol(sema, root, cloneRef);
+        setGenericCompletionOwner(*created, sema.ctx());
         sema.setSymbol(cloneRef, created);
         return storage.addNoLock(keys.span(), created);
     }
-
-    bool beginGenericSema(const Symbol& instance)
-    {
-        if (const auto* function = instance.safeCast<SymbolFunction>())
-            return function->beginGenericSema();
-        return instance.cast<SymbolStruct>().beginGenericSema();
-    }
-
-    void endGenericSema(const Symbol& instance)
-    {
-        if (const auto* function = instance.safeCast<SymbolFunction>())
-            function->endGenericSema();
-        else
-            instance.cast<SymbolStruct>().endGenericSema();
-    }
-
-    struct GenericSemaGuard
-    {
-        Symbol* instance = nullptr;
-
-        ~GenericSemaGuard()
-        {
-            if (instance)
-                endGenericSema(*instance);
-        }
-    };
 
     Result finalizeGenericInstance(Sema& sema, const Symbol& root, Symbol& instance, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs)
     {
         if (!instance.isStruct())
             return Result::Continue;
+
+        // Generic instances must observe the same impl-registration barrier as regular structs.
+        // Otherwise the creator job can snapshot an incomplete root impl list and complete the
+        // instance before later `impl` jobs have attached everything to the generic root.
+        if (sema.compiler().pendingImplRegistrations() != 0)
+            return sema.waitImplRegistrations(root.idRef(), root.codeRef());
 
         // Keep impl cloning under the same generic-instance gate. Otherwise two callers can
         // both observe a completed struct instance with no impls yet and clone the same impls
@@ -492,11 +543,33 @@ namespace
         outInstance = findOrCreateGenericInstance(sema, root, params, resolvedArgs);
         if (!outInstance->isSemaCompleted())
         {
-            if (beginGenericSema(*outInstance))
+            if (!isGenericCompletionOwner(*outInstance, sema.ctx()))
+                return sema.waitSemaCompleted(outInstance, SourceCodeRef::invalid());
+
+            if (outInstance->isIgnored())
+                return Result::Error;
+
+            // The creator job keeps ownership across pauses, but nested requests for the same
+            // instance inside that job must still bail out to avoid recursing on in-flight work.
+            if (!tryStartGenericCompletion(*outInstance, sema.ctx()))
+                return Result::Continue;
+
+            auto result = Result::Continue;
+            if (!isGenericNodeCompleted(*outInstance))
             {
-                GenericSemaGuard guard{outInstance};
-                SWC_RESULT(runGenericNode(sema, root, genericDeclNodeRef(*outInstance)));
-                SWC_RESULT(finalizeGenericInstance(sema, root, *outInstance, params, resolvedArgs));
+                result = runGenericNode(sema, root, genericDeclNodeRef(*outInstance));
+                if (result == Result::Continue)
+                    setGenericNodeCompleted(*outInstance);
+            }
+
+            if (result == Result::Continue)
+                result = finalizeGenericInstance(sema, root, *outInstance, params, resolvedArgs);
+            finishGenericCompletion(*outInstance);
+            if (result != Result::Continue)
+            {
+                if (result == Result::Error && !outInstance->isIgnored() && !outInstance->isSemaCompleted())
+                    outInstance->setIgnored(sema.ctx());
+                return result;
             }
 
             if (outInstance->isIgnored())

@@ -37,7 +37,11 @@ namespace
         {
             const auto& structSym = symMap->cast<SymbolStruct>();
             for (const SymbolImpl* impl : structSym.impls())
+            {
+                if (!impl || impl->isIgnored())
+                    continue;
                 addSymMap(lookUpCxt, impl, priority);
+            }
         }
         else if (symMap->isEnum())
         {

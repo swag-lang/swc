@@ -342,7 +342,7 @@ namespace
 
         for (const SymbolImpl* symImpl : ownerStruct.impls())
         {
-            if (!symImpl)
+            if (!symImpl || symImpl->isIgnored())
                 continue;
 
             for (SymbolFunction* symFunc : symImpl->specOps())
@@ -370,10 +370,13 @@ namespace
                 sema.ctx().setSilentDiagnostic(true);
                 const Result specResult = SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized);
                 sema.ctx().setSilentDiagnostic(savedSilent);
+                if (specResult == Result::Pause)
+                    return Result::Pause;
                 if (specResult != Result::Continue)
                     continue;
                 if (specialized)
                 {
+                    SWC_RESULT(sema.waitSemaCompleted(specialized, specialized->codeRef()));
                     SWC_RESULT(validateSpecOpSignature(sema, ownerStruct, *specialized, specialized->specOpKind()));
                     outCandidates.push_back(specialized);
                 }
@@ -619,9 +622,12 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
     if (!ownerStruct)
         return Result::Continue;
 
+    const auto here = ownerStruct->getSpecOp(sym.idRef());
+    if (std::ranges::find(here, &sym) != here.end())
+        return Result::Continue;
+
     if (!allowsSpecOpOverload(kind))
     {
-        const auto here = ownerStruct->getSpecOp(sym.idRef());
         if (!here.empty())
             return SemaError::raiseAlreadyDefined(sema, &sym, here.front());
     }

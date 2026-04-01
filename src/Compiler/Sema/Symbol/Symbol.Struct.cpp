@@ -169,7 +169,7 @@ Result SymbolStruct::registerSpecOps(Sema& sema) const
 {
     for (const SymbolImpl* symImpl : impls())
     {
-        if (!symImpl)
+        if (symImpl->isIgnored())
             continue;
         for (SymbolFunction* symFunc : symImpl->specOps())
         {
@@ -239,6 +239,8 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
 Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 {
     const std::unique_lock lk(mutexSpecOps_);
+    if (std::ranges::find(specOps_, &symFunc) != specOps_.end())
+        return Result::Continue;
     specOps_.push_back(&symFunc);
 
     switch (kind)
@@ -273,14 +275,45 @@ bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, Small
     return genericInstances_.tryGetArgs(instance, outArgs);
 }
 
-bool SymbolStruct::beginGenericSema() const
+void SymbolStruct::setGenericCompletionOwner(const TaskContext& ctx) noexcept
 {
-    return genericSema_.begin(*this);
+    const TaskContext* expected = nullptr;
+    const bool         done     = genericCompletionOwner_.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
+    SWC_ASSERT(done || expected == &ctx);
 }
 
-void SymbolStruct::endGenericSema() const
+bool SymbolStruct::isGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    genericSema_.end();
+    return genericCompletionOwner_.load(std::memory_order_acquire) == &ctx;
+}
+
+bool SymbolStruct::tryStartGenericCompletion(const TaskContext& ctx) const noexcept
+{
+    SWC_ASSERT(isGenericCompletionOwner(ctx));
+    const auto previousDepth = genericCompletionDepth_.fetch_add(1, std::memory_order_acq_rel);
+    if (previousDepth != 0)
+    {
+        genericCompletionDepth_.fetch_sub(1, std::memory_order_acq_rel);
+        return false;
+    }
+
+    return true;
+}
+
+void SymbolStruct::finishGenericCompletion() const noexcept
+{
+    const auto previousDepth = genericCompletionDepth_.fetch_sub(1, std::memory_order_acq_rel);
+    SWC_ASSERT(previousDepth != 0);
+}
+
+bool SymbolStruct::isGenericNodeCompleted() const noexcept
+{
+    return genericNodeCompleted_.load(std::memory_order_acquire);
+}
+
+void SymbolStruct::setGenericNodeCompleted() const noexcept
+{
+    genericNodeCompleted_.store(true, std::memory_order_release);
 }
 
 SWC_END_NAMESPACE();

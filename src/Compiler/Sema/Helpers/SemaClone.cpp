@@ -254,15 +254,12 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
         return clonedRef;
 
     clonedRef = Ast::nodeIdInfos(node.id()).semaClone(sema, node, cloneContext);
-    if (clonedRef.isValid())
+    if (!clonedRef.isValid())
     {
-        copyCallableClonePayload(sema, nodeRef, clonedRef);
-        copyImplicitCastType(sema, node, nodeRef, clonedRef);
-        return clonedRef;
+        clonedRef = cloneShallowNode(sema, node);
+        SWC_ASSERT(clonedRef.isValid());
     }
 
-    clonedRef = cloneShallowNode(sema, node);
-    SWC_ASSERT(clonedRef.isValid());
     copyCallableClonePayload(sema, nodeRef, clonedRef);
     copyImplicitCastType(sema, node, nodeRef, clonedRef);
     return clonedRef;

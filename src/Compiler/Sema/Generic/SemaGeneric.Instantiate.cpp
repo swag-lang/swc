@@ -486,7 +486,7 @@ namespace
         SmallVector<GenericInstanceKey> keys;
         buildGenericKeys(params, resolvedArgs, keys);
 
-        outInstance = findGenericInstance(root, keys.span());
+        outInstance = findGenericInstance(root, keys);
         if (!outInstance)
         {
             SmallVector<SemaClone::ParamBinding> bindings;

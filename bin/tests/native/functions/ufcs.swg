@@ -57,3 +57,40 @@ impl A
     @assert(gUfcsTataSum == 5)
 }
 
+enum Direction
+{
+    North
+    East
+    South
+    West
+}
+
+impl enum Direction
+{
+    func opposite(me)->Direction
+    {
+        using Direction
+        switch me
+        {
+        case North: return South
+        case South: return North
+        case East:  return West
+        case West:  return East
+        }
+    }
+
+    mtd isVertical()->bool
+    {
+        using Direction
+        return me == North or me == South
+    }
+}
+
+#test
+{
+    var dir = Direction.North
+    @assert(dir.opposite() == Direction.South)
+    @assert(dir.isVertical())
+    @assert(!Direction.East.isVertical())
+}
+

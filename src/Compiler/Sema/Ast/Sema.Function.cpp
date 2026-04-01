@@ -1109,25 +1109,57 @@ namespace
         return Result::Continue;
     }
 
+    TypeRef implOwnerTypeRef(const SymbolImpl& symImpl)
+    {
+        if (symImpl.isForStruct())
+            return symImpl.symStruct()->typeRef();
+        if (symImpl.isForEnum())
+            return symImpl.symEnum()->typeRef();
+
+        return TypeRef::invalid();
+    }
+
+    TypeRef implReceiverTypeRef(Sema& sema, const SymbolImpl& symImpl, bool isConstReceiver)
+    {
+        const TypeRef ownerType = implOwnerTypeRef(symImpl);
+        if (!ownerType.isValid())
+            return TypeRef::invalid();
+
+        if (symImpl.isForEnum())
+        {
+            if (!isConstReceiver)
+                return ownerType;
+
+            TypeInfo typeInfo = sema.typeMgr().get(ownerType);
+            typeInfo.addFlag(TypeInfoFlagsE::Const);
+            return sema.typeMgr().addType(typeInfo);
+        }
+
+        TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
+        if (isConstReceiver)
+            typeFlags.add(TypeInfoFlagsE::Const);
+        return sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags));
+    }
+
     void addMeParameter(Sema& sema, SymbolFunction& sym)
     {
-        if (sema.frame().currentImpl() && sema.frame().currentImpl()->isForStruct())
-        {
-            const SymbolImpl& symImpl   = sema.frame().currentImpl()->asSymMap()->cast<SymbolImpl>();
-            const TypeRef     ownerType = symImpl.symStruct()->typeRef();
-            TaskContext&      ctx       = sema.ctx();
-            auto*             symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
-            TypeInfoFlags     typeFlags = TypeInfoFlagsE::Zero;
-            if (sym.hasExtraFlag(SymbolFunctionFlagsE::Const))
-                typeFlags.add(TypeInfoFlagsE::Const);
-            symMe->setTypeRef(sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags)));
-            symMe->addExtraFlag(SymbolVariableFlagsE::Parameter);
+        const SymbolImpl* symImpl = sema.frame().currentImpl();
+        if (!symImpl)
+            return;
 
-            sym.addParameter(symMe);
-            sym.addSymbol(ctx, symMe, true);
-            symMe->setDeclared(ctx);
-            symMe->setTyped(ctx);
-        }
+        const TypeRef receiverTypeRef = implReceiverTypeRef(sema, *symImpl, sym.hasExtraFlag(SymbolFunctionFlagsE::Const));
+        if (!receiverTypeRef.isValid())
+            return;
+
+        TaskContext&  ctx   = sema.ctx();
+        auto*         symMe = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
+        symMe->setTypeRef(receiverTypeRef);
+        symMe->addExtraFlag(SymbolVariableFlagsE::Parameter);
+
+        sym.addParameter(symMe);
+        sym.addSymbol(ctx, symMe, true);
+        symMe->setDeclared(ctx);
+        symMe->setTyped(ctx);
     }
 
     SymbolVariable* resolveBodyBindingReceiver(const Sema& sema, const SymbolFunction& sym)
@@ -1523,11 +1555,12 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
     TaskContext&        ctx       = sema.ctx();
-    const TypeRef       ownerType = symImpl->isForStruct() ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
+    const TypeRef       ownerType = implOwnerTypeRef(*symImpl);
     const IdentifierRef idRef     = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
     const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
     auto*               sym       = Symbol::make<SymbolVariable>(ctx, this, tokRef(), idRef, flags);
     SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
+    SWC_ASSERT(ownerType.isValid());
 
     if (sema.curScope().isLocal())
         sema.curScope().addSymbol(sym);
@@ -1538,10 +1571,7 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     sym->registerCompilerIf(sema);
     sema.setSymbol(sema.curNodeRef(), sym);
 
-    TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
-    if (hasFlag(AstFunctionParamMeFlagsE::Const))
-        typeFlags.add(TypeInfoFlagsE::Const);
-    sym->setTypeRef(sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags)));
+    sym->setTypeRef(implReceiverTypeRef(sema, *symImpl, hasFlag(AstFunctionParamMeFlagsE::Const)));
     sym->setDeclared(ctx);
     sym->setTyped(ctx);
     sym->setSemaCompleted(ctx);

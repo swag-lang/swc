@@ -21,7 +21,7 @@
         <RootNamespace>swc</RootNamespace>
         <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
     </PropertyGroup>
-    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
     <PropertyGroup>
         <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     </PropertyGroup>
@@ -46,21 +46,21 @@
         <WholeProgramOptimization>true</WholeProgramOptimization>
         <CharacterSet>Unicode</CharacterSet>
     </PropertyGroup>
-    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
     <ImportGroup Label="ExtensionSettings">
     </ImportGroup>
     <ImportGroup Label="Shared">
     </ImportGroup>
     <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
     <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'" Label="PropertySheets">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
     <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="PropertySheets">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
-    <PropertyGroup Label="UserMacros" />
+    <PropertyGroup Label="UserMacros"/>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>
         <OutDir>bin/</OutDir>
@@ -149,177 +149,177 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Backend\Unittest\UnittestHelpers.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.BranchFolding.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.ControlFlowSimplification.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.DebugInfo.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.EncodeX64.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.NativeArtifact.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.PrologEpilogSanitize.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.StackAdjustNormalize.cpp" />
-        <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp" />
-        <ClCompile Include="src\Support\Thread\Job.cpp" />
-        <ClCompile Include="src\Support\Unittest\Unittest.cpp" />
-        <ClCompile Include="src\Backend\JIT\JIT.cpp" />
-        <ClCompile Include="src\Backend\JIT\JITExecManager.cpp" />
-        <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp" />
-        <ClCompile Include="src\Backend\JIT\JITMemory.cpp" />
-        <ClCompile Include="src\Backend\Debug\DebugInfo.cpp" />
-        <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeRDataCollector.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeValidate.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeLinker.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeLinkerCoff.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeObjJob.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp" />
-        <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp" />
-        <ClCompile Include="src\Backend\\ABI\CallConv.cpp" />
-        <ClCompile Include="src\Backend\\Encoder\Encoder.cpp" />
-        <ClCompile Include="src\Backend\\ABI\ABICall.cpp" />
-        <ClCompile Include="src\Backend\\ABI\ABITypeNormalize.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroStorage.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroControlFlowGraph.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroReg.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MachineCode.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.BranchFolding.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Helpers.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Rewrite.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Track.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.State.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Forward.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Helpers.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Liveness.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Forward.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Helpers.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Promote.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Addressing.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Cleanup.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Common.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Copy.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Immediate.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Emit.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.cpp" />
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp" />
-        <ClCompile Include="src\Backend\\Micro\MicroPassManager.cpp" />
-        <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp" />
-        <ClCompile Include="src\Backend\\Encoder\X64Unwind.cpp" />
-        <ClCompile Include="src\Backend\\Encoder\X64Unwind.Windows.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.For.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Foreach.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.If.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Loop.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Switch.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Assign.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Conditional.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Identifier.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Index.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Logical.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Relational.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp" />
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp" />
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp" />
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp" />
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp" />
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaPurity.cpp" />
-        <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp" />
-        <ClCompile Include="src\Support\Core\DenseBits.cpp" />
-        <ClCompile Include="src\Support\Core\DataSegment.cpp" />
-        <ClCompile Include="src\Support\Core\PagedStore.cpp" />
-        <ClCompile Include="src\Support\Core\Utf8.cpp" />
-        <ClCompile Include="src\Support\Core\Utf8Helper.cpp" />
-        <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp" />
-        <ClCompile Include="src\Compiler\Lexer\Lexer.cpp" />
-        <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp" />
-        <ClCompile Include="src\Compiler\Lexer\SourceView.cpp" />
-        <ClCompile Include="src\Support\Report\SyntaxColor.cpp" />
-        <ClCompile Include="src\Compiler\Lexer\Token.cpp" />
-        <ClCompile Include="src\main.cpp" />
-        <ClCompile Include="src\Main\Command\Command.Info.cpp" />
-        <ClCompile Include="src\Main\Command\Command.Sema.cpp" />
-        <ClCompile Include="src\Main\Command\Command.Syntax.cpp" />
-        <ClCompile Include="src\Main\Command\Command.Test.cpp" />
-        <ClCompile Include="src\Main\Command\Command.Build.cpp" />
-        <ClCompile Include="src\Main\Command\CommandLineParser.cpp" />
-        <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp" />
-        <ClCompile Include="src\Main\FileSystem.cpp" />
-        <ClCompile Include="src\Main\Global.cpp" />
-        <ClCompile Include="src\Main\CompilerInstance.cpp" />
-        <ClCompile Include="src\Main\ExternalModuleManager.cpp" />
-        <ClCompile Include="src\Main\Stats.cpp" />
-        <ClCompile Include="src\Main\TakeContext.cpp" />
-        <ClCompile Include="src\Main\TaskState.cpp" />
-        <ClCompile Include="src\Support\Math\ApFloat.cpp" />
-        <ClCompile Include="src\Support\Math\ApInt.cpp" />
-        <ClCompile Include="src\Support\Math\ApsInt.cpp" />
-        <ClCompile Include="src\Support\Math\Fold.cpp" />
-        <ClCompile Include="src\Support\Math\Hash.cpp" />
-        <ClCompile Include="src\Support\Math\Helpers.cpp" />
-        <ClCompile Include="src\Support\Memory\Allocator.cpp" />
-        <ClCompile Include="src\Support\Memory\Arena.cpp" />
-        <ClCompile Include="src\Support\Memory\Heap.cpp" />
+        <ClCompile Include="src\Backend\Unittest\UnittestHelpers.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.BranchFolding.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.ControlFlowSimplification.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.DebugInfo.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.EncodeX64.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.NativeArtifact.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.PrologEpilogSanitize.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.StackAdjustNormalize.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp"/>
+        <ClCompile Include="src\Support\Thread\Job.cpp"/>
+        <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JITExecManager.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JITMemory.cpp"/>
+        <ClCompile Include="src\Backend\Debug\DebugInfo.cpp"/>
+        <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeRDataCollector.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeLinker.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeLinkerCoff.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeObjJob.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp"/>
+        <ClCompile Include="src\Backend\\ABI\CallConv.cpp"/>
+        <ClCompile Include="src\Backend\\Encoder\Encoder.cpp"/>
+        <ClCompile Include="src\Backend\\ABI\ABICall.cpp"/>
+        <ClCompile Include="src\Backend\\ABI\ABITypeNormalize.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroStorage.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroControlFlowGraph.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroReg.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MachineCode.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.BranchFolding.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Helpers.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Rewrite.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Track.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.State.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Forward.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Helpers.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Liveness.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Forward.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Helpers.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Promote.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Addressing.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Cleanup.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Common.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Copy.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Immediate.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Emit.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroPassManager.cpp"/>
+        <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp"/>
+        <ClCompile Include="src\Backend\\Encoder\X64Unwind.cpp"/>
+        <ClCompile Include="src\Backend\\Encoder\X64Unwind.Windows.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.For.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Foreach.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.If.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Loop.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Switch.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Assign.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Conditional.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Identifier.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Index.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Logical.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Relational.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaPurity.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp"/>
+        <ClCompile Include="src\Support\Core\DenseBits.cpp"/>
+        <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
+        <ClCompile Include="src\Support\Core\PagedStore.cpp"/>
+        <ClCompile Include="src\Support\Core\Utf8.cpp"/>
+        <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\Lexer.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\SourceView.cpp"/>
+        <ClCompile Include="src\Support\Report\SyntaxColor.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
+        <ClCompile Include="src\main.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Info.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Sema.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Syntax.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Test.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Build.cpp"/>
+        <ClCompile Include="src\Main\Command\CommandLineParser.cpp"/>
+        <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp"/>
+        <ClCompile Include="src\Main\FileSystem.cpp"/>
+        <ClCompile Include="src\Main\Global.cpp"/>
+        <ClCompile Include="src\Main\CompilerInstance.cpp"/>
+        <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
+        <ClCompile Include="src\Main\Stats.cpp"/>
+        <ClCompile Include="src\Main\TakeContext.cpp"/>
+        <ClCompile Include="src\Main\TaskState.cpp"/>
+        <ClCompile Include="src\Support\Math\ApFloat.cpp"/>
+        <ClCompile Include="src\Support\Math\ApInt.cpp"/>
+        <ClCompile Include="src\Support\Math\ApsInt.cpp"/>
+        <ClCompile Include="src\Support\Math\Fold.cpp"/>
+        <ClCompile Include="src\Support\Math\Hash.cpp"/>
+        <ClCompile Include="src\Support\Math\Helpers.cpp"/>
+        <ClCompile Include="src\Support\Memory\Allocator.cpp"/>
+        <ClCompile Include="src\Support\Memory\Arena.cpp"/>
+        <ClCompile Include="src\Support\Memory\Heap.cpp"/>
         <ClCompile Include="src\Support\Memory\Mimalloc.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
-        <ClCompile Include="src\Support\Os\Os.Windows.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Ast\AstVisit.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Aggregate.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Call.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compiler.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compound.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Enum.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Expression.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Func.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Literal.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Stmt.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Type.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Var.cpp" />
-        <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp" />
+        <ClCompile Include="src\Support\Os\Os.Windows.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Ast\AstVisit.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Aggregate.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Call.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compiler.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compound.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Enum.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Expression.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Func.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Literal.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Stmt.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Type.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Var.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">Create</PrecompiledHeader>
@@ -413,12 +413,11 @@
         <ClInclude Include="src\Backend\Micro\MicroDenseRegIndex.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
-        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Index.h" />
-        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Loop.h" />
-        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Switch.h" />
-        <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceEntry.h" />
-        <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceKey.h" />
-        <ClInclude Include="src\Compiler\Sema\Generic\GenericSemaGate.h" />
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Index.h"/>
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Loop.h"/>
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Switch.h"/>
+        <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceStorage.h"/>
+        <ClInclude Include="src\Compiler\Sema\Generic\GenericSemaGate.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>
         <ClInclude Include="src\Support\Report\ScopedTimedAction.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>

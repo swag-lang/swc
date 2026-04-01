@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Sema/Generic/GenericInstanceEntry.h"
+#include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Generic/GenericSemaGate.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"

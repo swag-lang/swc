@@ -1,12 +1,20 @@
 #pragma once
-#include "Compiler/Sema/Generic/GenericInstanceKey.h"
 #include "Support/Core/SmallVector.h"
-#include <span>
-#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
 class Symbol;
+
+struct GenericInstanceKey
+{
+    TypeRef     typeRef = TypeRef::invalid();
+    ConstantRef cstRef  = ConstantRef::invalid();
+
+    bool operator==(const GenericInstanceKey& other) const noexcept
+    {
+        return typeRef == other.typeRef && cstRef == other.cstRef;
+    }
+};
 
 struct GenericInstanceEntry
 {

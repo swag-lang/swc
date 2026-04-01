@@ -155,8 +155,7 @@ private:
     MachineCode                       loweredMicroCode_;
     mutable std::mutex                callDepsMutex_;
     std::vector<SymbolFunction*>      callDependencies_;
-    mutable std::mutex                genericMutex_;
-    std::vector<GenericInstanceEntry> genericInstances_;
+    GenericInstanceStorage            genericInstances_;
     mutable GenericSemaGate           genericSema_;
     mutable std::mutex                closureAdapterMutex_;
     SymbolFunction*                   closureAdapter_ = nullptr;

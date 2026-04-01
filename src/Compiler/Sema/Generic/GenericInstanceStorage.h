@@ -1,5 +1,7 @@
 #pragma once
 #include "Support/Core/SmallVector.h"
+#include <mutex>
+#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,9 +24,57 @@ struct GenericInstanceEntry
     Symbol*                         symbol = nullptr;
 };
 
-namespace GenericInstanceStorage
+class GenericInstanceStorage
 {
-    inline bool sameArgs(std::span<const GenericInstanceKey> lhs, std::span<const GenericInstanceKey> rhs) noexcept
+public:
+    Symbol* find(std::span<const GenericInstanceKey> args) const
+    {
+        const std::scoped_lock lock(genericMutex_);
+        for (const auto& entry : genericInstances_)
+        {
+            if (sameArgs(entry.args.span(), args))
+                return entry.symbol;
+        }
+
+        return nullptr;
+    }
+
+    Symbol* add(std::span<const GenericInstanceKey> args, Symbol* instance)
+    {
+        const std::scoped_lock lock(genericMutex_);
+        if (auto* existing = findNoLock(args))
+            return existing;
+
+        for (const auto& entry : genericInstances_)
+        {
+            if (entry.symbol == instance)
+                return entry.symbol;
+        }
+
+        GenericInstanceEntry entry;
+        entry.symbol = instance;
+        entry.args.assign(args.begin(), args.end());
+        genericInstances_.push_back(std::move(entry));
+        return instance;
+    }
+
+    bool tryGetArgs(const Symbol& instance, SmallVector<GenericInstanceKey>& outArgs) const
+    {
+        const std::scoped_lock lock(genericMutex_);
+        for (const auto& entry : genericInstances_)
+        {
+            if (entry.symbol != &instance)
+                continue;
+
+            outArgs = entry.args;
+            return true;
+        }
+
+        return false;
+    }
+
+private:
+    static bool sameArgs(std::span<const GenericInstanceKey> lhs, std::span<const GenericInstanceKey> rhs) noexcept
     {
         if (lhs.size() != rhs.size())
             return false;
@@ -38,9 +88,9 @@ namespace GenericInstanceStorage
         return true;
     }
 
-    inline Symbol* find(std::span<const GenericInstanceEntry> entries, std::span<const GenericInstanceKey> args)
+    Symbol* findNoLock(std::span<const GenericInstanceKey> args) const
     {
-        for (const auto& entry : entries)
+        for (const auto& entry : genericInstances_)
         {
             if (sameArgs(entry.args.span(), args))
                 return entry.symbol;
@@ -49,37 +99,8 @@ namespace GenericInstanceStorage
         return nullptr;
     }
 
-    inline Symbol* add(std::vector<GenericInstanceEntry>& entries, std::span<const GenericInstanceKey> args, Symbol* instance)
-    {
-        if (auto* existing = find(entries, args))
-            return existing;
-
-        for (const auto& entry : entries)
-        {
-            if (entry.symbol == instance)
-                return entry.symbol;
-        }
-
-        GenericInstanceEntry entry;
-        entry.symbol = instance;
-        entry.args.assign(args.begin(), args.end());
-        entries.push_back(std::move(entry));
-        return instance;
-    }
-
-    inline bool tryGetArgs(std::span<const GenericInstanceEntry> entries, const Symbol& instance, SmallVector<GenericInstanceKey>& outArgs)
-    {
-        for (const auto& entry : entries)
-        {
-            if (entry.symbol != &instance)
-                continue;
-
-            outArgs = entry.args;
-            return true;
-        }
-
-        return false;
-    }
-}
+    mutable std::mutex                genericMutex_;
+    std::vector<GenericInstanceEntry> genericInstances_;
+};
 
 SWC_END_NAMESPACE();

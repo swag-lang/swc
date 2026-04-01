@@ -270,8 +270,7 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
 
 SymbolStruct* SymbolStruct::findGenericInstance(std::span<const GenericInstanceKey> args) const
 {
-    const std::scoped_lock lock(genericMutex_);
-    if (auto* symbol = GenericInstanceStorage::find(genericInstances_, args))
+    if (auto* symbol = genericInstances_.find(args))
         return symbol->safeCast<SymbolStruct>();
     return nullptr;
 }
@@ -280,16 +279,14 @@ SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericInstanceKe
 {
     SWC_ASSERT(instance != nullptr);
 
-    const std::scoped_lock lock(genericMutex_);
-    if (auto* symbol = GenericInstanceStorage::add(genericInstances_, args, instance))
+    if (auto* symbol = genericInstances_.add(args, instance))
         return symbol->safeCast<SymbolStruct>();
     return nullptr;
 }
 
 bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const
 {
-    const std::scoped_lock lock(genericMutex_);
-    return GenericInstanceStorage::tryGetArgs(genericInstances_, instance, outArgs);
+    return genericInstances_.tryGetArgs(instance, outArgs);
 }
 
 bool SymbolStruct::beginGenericSema() const

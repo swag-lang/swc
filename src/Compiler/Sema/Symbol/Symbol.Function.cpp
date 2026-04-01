@@ -518,8 +518,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
 
 SymbolFunction* SymbolFunction::findGenericInstance(std::span<const GenericInstanceKey> args) const
 {
-    const std::scoped_lock lock(genericMutex_);
-    if (auto* symbol = GenericInstanceStorage::find(genericInstances_, args))
+    if (auto* symbol = genericInstances_.find(args))
         return symbol->safeCast<SymbolFunction>();
     return nullptr;
 }
@@ -528,8 +527,7 @@ SymbolFunction* SymbolFunction::addGenericInstance(std::span<const GenericInstan
 {
     SWC_ASSERT(instance != nullptr);
 
-    const std::scoped_lock lock(genericMutex_);
-    if (auto* symbol = GenericInstanceStorage::add(genericInstances_, args, instance))
+    if (auto* symbol = genericInstances_.add(args, instance))
         return symbol->safeCast<SymbolFunction>();
     return nullptr;
 }

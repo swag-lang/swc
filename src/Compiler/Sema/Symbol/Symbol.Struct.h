@@ -81,8 +81,7 @@ private:
     std::vector<SymbolImpl*>          interfaces_;
     mutable std::shared_mutex         mutexSpecOps_;
     std::vector<SymbolFunction*>      specOps_;
-    mutable std::mutex                genericMutex_;
-    std::vector<GenericInstanceEntry> genericInstances_;
+    GenericInstanceStorage            genericInstances_;
     mutable GenericSemaGate           genericSema_;
     SymbolFunction*                   opDrop_     = nullptr;
     SymbolFunction*                   opPostCopy_ = nullptr;

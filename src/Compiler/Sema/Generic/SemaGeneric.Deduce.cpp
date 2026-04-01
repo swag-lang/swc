@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"

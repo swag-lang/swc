@@ -61,12 +61,12 @@ public:
     const SymbolFunction*        opPostCopy() const { return opPostCopy_; }
     const SymbolFunction*        opPostMove() const { return opPostMove_; }
 
-    bool                    isGenericRoot() const noexcept { return genericRoot_; }
-    void                    setGenericRoot(bool value) noexcept { genericRoot_ = value; }
-    bool                    isGenericInstance() const noexcept { return genericInstance_; }
-    void                    setGenericInstance(SymbolStruct* root) noexcept;
-    SymbolStruct*           genericRootSym() noexcept { return genericRootSym_; }
-    const SymbolStruct*     genericRootSym() const noexcept { return genericRootSym_; }
+    bool                          isGenericRoot() const noexcept { return genericRoot_; }
+    void                          setGenericRoot(bool value) noexcept { genericRoot_ = value; }
+    bool                          isGenericInstance() const noexcept { return genericInstance_; }
+    void                          setGenericInstance(SymbolStruct* root) noexcept;
+    SymbolStruct*                 genericRootSym() noexcept { return genericRootSym_; }
+    const SymbolStruct*           genericRootSym() const noexcept { return genericRootSym_; }
     bool                          tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
     GenericInstanceStorage&       genericInstanceStorage() noexcept { return genericInstances_; }
     const GenericInstanceStorage& genericInstanceStorage() const noexcept { return genericInstances_; }

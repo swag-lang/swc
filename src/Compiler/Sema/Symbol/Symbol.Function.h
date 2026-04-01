@@ -81,26 +81,26 @@ public:
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
     void     setInterfaceMethodSlot(uint32_t slot) noexcept { interfaceMethodSlot_ = slot; }
 
-    SpecOpKind              specOpKind() const noexcept { return specOpKind_; }
-    void                    setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
-    CallConvKind            callConvKind() const noexcept { return callConvKind_; }
-    void                    setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
-    MicroBuilder&           microInstrBuilder(TaskContext& ctx) noexcept;
-    const MicroBuilder&     microInstrBuilder() const noexcept { return microInstrBuilder_; }
-    AstNodeRef              declNodeRef() const noexcept { return declNodeRef_; }
-    void                    setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
-    uint32_t                debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
-    void                    setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
-    MicroReg                debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
-    void                    setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
-    bool                    tryMarkCodeGenJobScheduled() noexcept;
-    void                    addCallDependency(SymbolFunction* sym);
-    void                    appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
-    void*                   jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
-    void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    void                    resetJitState() noexcept;
-    Result                  emit(TaskContext& ctx);
+    SpecOpKind                    specOpKind() const noexcept { return specOpKind_; }
+    void                          setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    CallConvKind                  callConvKind() const noexcept { return callConvKind_; }
+    void                          setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
+    MicroBuilder&                 microInstrBuilder(TaskContext& ctx) noexcept;
+    const MicroBuilder&           microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    AstNodeRef                    declNodeRef() const noexcept { return declNodeRef_; }
+    void                          setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    uint32_t                      debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
+    void                          setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
+    MicroReg                      debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
+    void                          setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
+    bool                          tryMarkCodeGenJobScheduled() noexcept;
+    void                          addCallDependency(SymbolFunction* sym);
+    void                          appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    void                          appendJitOrder(SmallVector<SymbolFunction*>& out) const;
+    void*                         jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
+    void*                         jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    void                          resetJitState() noexcept;
+    Result                        emit(TaskContext& ctx);
     Result                        ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
     GenericInstanceStorage&       genericInstanceStorage() noexcept { return genericInstances_; }
     const GenericInstanceStorage& genericInstanceStorage() const noexcept { return genericInstances_; }

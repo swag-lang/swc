@@ -1151,8 +1151,8 @@ namespace
         if (!receiverTypeRef.isValid())
             return;
 
-        TaskContext&  ctx   = sema.ctx();
-        auto*         symMe = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
+        TaskContext& ctx   = sema.ctx();
+        auto*        symMe = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
         symMe->setTypeRef(receiverTypeRef);
         symMe->addExtraFlag(SymbolVariableFlagsE::Parameter);
 

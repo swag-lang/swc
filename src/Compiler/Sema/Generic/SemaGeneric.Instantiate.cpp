@@ -1,8 +1,8 @@
 #include "pch.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 
@@ -537,10 +537,7 @@ namespace
 
             const SemaClone::CloneContext cloneContext{bindings};
             const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, genericDeclNodeRef(root), cloneContext);
-            if (cloneRef.isInvalid())
-                return Result::Error;
-
-            Symbol* created = createGenericInstanceSymbol(sema, root, cloneRef);
+            Symbol*                       created  = createGenericInstanceSymbol(sema, root, cloneRef);
             sema.setSymbol(cloneRef, created);
             outInstance = addGenericInstance(root, keys, created);
         }

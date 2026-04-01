@@ -489,18 +489,16 @@ namespace
 
     Result createGenericInstance(Sema& sema, Symbol& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, Symbol*& outInstance)
     {
-        outInstance = nullptr;
         outInstance = findOrCreateGenericInstance(sema, root, params, resolvedArgs);
         if (!outInstance->isSemaCompleted())
         {
             if (beginGenericSema(*outInstance))
             {
                 GenericSemaGuard guard{outInstance};
-                const Result     runResult = runGenericNode(sema, root, genericDeclNodeRef(*outInstance));
-                if (runResult != Result::Continue)
-                    return runResult;
+                SWC_RESULT(runGenericNode(sema, root, genericDeclNodeRef(*outInstance)));
                 SWC_RESULT(finalizeGenericInstance(sema, root, *outInstance, params, resolvedArgs));
             }
+
             if (outInstance->isIgnored())
                 return Result::Error;
         }

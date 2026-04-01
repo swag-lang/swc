@@ -22,7 +22,7 @@ namespace SemaGeneric
         return typeRef;
     }
 
-    void collectGenericParams(Sema& sema, SpanRef spanRef, std::vector<GenericParamDesc>& outParams)
+    void collectGenericParams(Sema& sema, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
     {
         outParams.clear();
         if (spanRef.isInvalid())
@@ -80,7 +80,7 @@ namespace SemaGeneric
         outBindings.push_back(binding);
     }
 
-    void collectResolvedGenericBindings(const std::vector<GenericParamDesc>& params, const std::vector<GenericResolvedArg>& resolvedArgs, size_t count, SmallVector<SemaClone::ParamBinding>& outBindings)
+    void collectResolvedGenericBindings(std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, size_t count, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         outBindings.clear();
         const size_t n = std::min(count, params.size());
@@ -158,7 +158,7 @@ namespace SemaGeneric
         return normalizeGenericConstantArg(sema, nodeRef, outArg);
     }
 
-    bool hasMissingGenericArgs(const std::vector<GenericResolvedArg>& resolvedArgs)
+    bool hasMissingGenericArgs(std::span<const GenericResolvedArg> resolvedArgs)
     {
         for (const auto& arg : resolvedArgs)
         {

@@ -327,7 +327,7 @@ SymbolStruct* SymbolStruct::addGenericInstance(std::span<const GenericArgKey> ar
     return instance;
 }
 
-bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, std::vector<GenericArgKey>& outArgs) const
+bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericArgKey>& outArgs) const
 {
     const std::scoped_lock lock(genericMutex_);
     for (const auto& entry : genericInstances_)

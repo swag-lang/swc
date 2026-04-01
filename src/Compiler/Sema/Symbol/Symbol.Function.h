@@ -141,7 +141,7 @@ public:
 private:
     struct GenericInstanceEntry
     {
-        std::vector<GenericArgKey> args;
+        SmallVector<GenericArgKey> args;
         SymbolFunction*            function = nullptr;
     };
 

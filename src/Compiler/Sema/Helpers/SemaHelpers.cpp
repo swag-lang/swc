@@ -691,7 +691,7 @@ namespace
         if (!decl || !decl->spanGenericParamsRef.isValid())
             return false;
 
-        std::vector<SemaGeneric::GenericParamDesc> params;
+        SmallVector<SemaGeneric::GenericParamDesc> params;
         SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
         if (params.empty())
             return false;

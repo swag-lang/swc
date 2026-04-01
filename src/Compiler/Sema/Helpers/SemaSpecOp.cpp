@@ -174,7 +174,7 @@ namespace
     {
         const auto                                 expected = expectedSpecOpGenericValueTypes(kind);
         const auto*                                decl     = specOpDeclForGenericSignature(sym);
-        std::vector<SemaGeneric::GenericParamDesc> params;
+        SmallVector<SemaGeneric::GenericParamDesc> params;
 
         if (!decl)
             return expected.empty();
@@ -322,7 +322,7 @@ namespace
         if (!decl || !decl->spanGenericParamsRef.isValid())
             return false;
 
-        std::vector<SemaGeneric::GenericParamDesc> params;
+        SmallVector<SemaGeneric::GenericParamDesc> params;
         SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
         if (genericArgNodes.size() > params.size())
             return false;

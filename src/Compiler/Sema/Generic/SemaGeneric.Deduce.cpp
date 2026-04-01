@@ -27,7 +27,7 @@ namespace
         paramsNode.collectChildrenFromAst(outParams, sema.ast());
     }
 
-    void appendFunctionParamDesc(Sema& sema, AstNodeRef paramRef, std::vector<SemaGeneric::GenericFunctionParamDesc>& outParams)
+    void appendFunctionParamDesc(Sema& sema, AstNodeRef paramRef, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outParams)
     {
         if (paramRef.isInvalid())
             return;
@@ -235,20 +235,21 @@ namespace
         if (!patternRoot && (!patternRootIdRef.isValid() || actualRoot->idRef() != patternRootIdRef))
             return Result::Continue;
 
-        std::vector<SymbolStruct::GenericArgKey> actualArgs;
+        SmallVector<SymbolStruct::GenericArgKey> actualArgs;
         if (!actualRoot->tryGetGenericInstanceArgs(argStruct, actualArgs))
             return Result::Continue;
         if (patternArgs.size() != actualArgs.size())
             return Result::Continue;
 
-        std::vector trialResolvedArgs(resolvedArgs.begin(), resolvedArgs.end());
+        SmallVector<SemaGeneric::GenericResolvedArg> trialResolvedArgs;
+        trialResolvedArgs.assign(resolvedArgs.begin(), resolvedArgs.end());
         for (size_t i = 0; i < actualArgs.size(); ++i)
         {
             auto result = Result::Continue;
             if (actualArgs[i].typeRef.isValid())
-                result = deduceFromTypePattern(sema, params, trialResolvedArgs, patternArgs[i], actualArgs[i].typeRef);
+                result = deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternArgs[i], actualArgs[i].typeRef);
             else if (actualArgs[i].cstRef.isValid())
-                result = deduceFromValuePattern(sema, params, trialResolvedArgs, patternArgs[i], actualArgs[i].cstRef, actualArgs[i].typeRef);
+                result = deduceFromValuePattern(sema, params, trialResolvedArgs.span(), patternArgs[i], actualArgs[i].cstRef, actualArgs[i].typeRef);
 
             if (result == Result::Error)
                 return Result::Continue;
@@ -368,7 +369,7 @@ namespace
         return Result::Continue;
     }
 
-    void collectFunctionParamDescs(Sema& sema, const SymbolFunction& root, const AstFunctionDecl& decl, std::vector<SemaGeneric::GenericFunctionParamDesc>& outParams)
+    void collectFunctionParamDescs(Sema& sema, const SymbolFunction& root, const AstFunctionDecl& decl, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outParams)
     {
         outParams.clear();
         const auto& symbolParams = root.parameters();
@@ -415,7 +416,7 @@ namespace
             appendFunctionParamDesc(sema, paramRef, outParams);
     }
 
-    bool buildGenericCallArgMapping(Sema& sema, const std::vector<SemaGeneric::GenericFunctionParamDesc>& params, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool prependUfcsArg, SmallVector<SemaGeneric::GenericCallArgEntry>& outMapping)
+    bool buildGenericCallArgMapping(Sema& sema, std::span<const SemaGeneric::GenericFunctionParamDesc> params, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool prependUfcsArg, SmallVector<SemaGeneric::GenericCallArgEntry>& outMapping)
     {
         outMapping.clear();
 
@@ -474,18 +475,18 @@ namespace
 
 namespace SemaGeneric
 {
-    Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, const std::vector<GenericParamDesc>& genericParams, std::vector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, SmallVector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         const auto* decl = root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
         if (!decl)
             return Result::Continue;
 
-        std::vector<GenericFunctionParamDesc> params;
+        SmallVector<GenericFunctionParamDesc> params;
         collectFunctionParamDescs(sema, root, *decl, params);
 
         SmallVector<GenericCallArgEntry> mapping;
         const bool                       prependUfcsArg = ufcsArg.isValid() && !root.isMethod();
-        if (!buildGenericCallArgMapping(sema, params, args, ufcsArg, prependUfcsArg, mapping))
+        if (!buildGenericCallArgMapping(sema, params.span(), args, ufcsArg, prependUfcsArg, mapping))
             return Result::Continue;
 
         for (uint32_t i = 0; i < mapping.size(); ++i)
@@ -515,7 +516,7 @@ namespace SemaGeneric
                 }
             }
 
-            if (deduceFromTypePattern(sema, genericParams, ioResolvedArgs, params[i].typeRef, argTypeRef) == Result::Error)
+            if (deduceFromTypePattern(sema, genericParams, ioResolvedArgs.span(), params[i].typeRef, argTypeRef) == Result::Error)
                 return Result::Continue;
         }
 

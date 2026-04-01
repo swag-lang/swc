@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Generic/SemaGenericTraits.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -475,7 +476,7 @@ namespace SemaGeneric
 {
     Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, const std::vector<GenericParamDesc>& genericParams, std::vector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
-        const auto* decl = GenericRootTraits<SymbolFunction>::decl(root);
+        const auto* decl = root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
         if (!decl)
             return Result::Continue;
 

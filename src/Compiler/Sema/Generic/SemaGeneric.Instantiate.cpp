@@ -2,8 +2,9 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Generic/SemaGenericTraits.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -17,15 +18,70 @@ namespace
             SemaGeneric::appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
     }
 
-    template<typename T>
-    void appendEnclosingGenericCloneBindings(Sema& sema, const T& root, SmallVector<SemaClone::ParamBinding>& outBindings)
+    SymbolFlags clonedGenericSymbolFlags(const Symbol& root)
     {
-        SWC_UNUSED(sema);
-        SWC_UNUSED(root);
-        SWC_UNUSED(outBindings);
+        SymbolFlags flags = SymbolFlagsE::Zero;
+        if (root.isPublic())
+            flags.add(SymbolFlagsE::Public);
+        return flags;
     }
 
-    void appendEnclosingGenericCloneBindings(Sema& sema, const SymbolFunction& root, SmallVector<SemaClone::ParamBinding>& outBindings)
+    const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
+    {
+        return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
+    }
+
+    const AstStructDecl* genericStructDecl(const SymbolStruct& root)
+    {
+        return root.decl() ? root.decl()->safeCast<AstStructDecl>() : nullptr;
+    }
+
+    SpanRef genericParamSpan(const Symbol& root)
+    {
+        SWC_ASSERT(root.isFunction() || root.isStruct());
+        if (const auto* function = root.safeCast<SymbolFunction>())
+        {
+            const auto* decl = genericFunctionDecl(*function);
+            return decl ? decl->spanGenericParamsRef : SpanRef::invalid();
+        }
+
+        const auto* decl = genericStructDecl(root.cast<SymbolStruct>());
+        return decl ? decl->spanGenericParamsRef : SpanRef::invalid();
+    }
+
+    bool hasGenericParams(const Symbol& root)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+        {
+            const auto* decl = genericFunctionDecl(*function);
+            return !function->isGenericInstance() && decl && decl->spanGenericParamsRef.isValid();
+        }
+
+        const auto& st   = root.cast<SymbolStruct>();
+        const auto* decl = genericStructDecl(st);
+        return !st.isGenericInstance() && decl && decl->spanGenericParamsRef.isValid();
+    }
+
+    AstNodeRef genericDeclNodeRef(const Symbol& root)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            return function->declNodeRef();
+        return root.cast<SymbolStruct>().declNodeRef();
+    }
+
+    Result runGenericNode(Sema& sema, const Symbol& root, AstNodeRef nodeRef)
+    {
+        SWC_ASSERT(root.isFunction() || root.isStruct());
+
+        Sema child(sema.ctx(), sema, nodeRef);
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            child.prepareGenericInstantiationContext(const_cast<SymbolMap*>(function->ownerSymMap()), function->genericDeclImpl(), function->genericDeclInterface(), function->attributes());
+        else
+            child.prepareGenericInstantiationContext(const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
+        return child.execResult();
+    }
+
+    void appendEnclosingFunctionGenericCloneBindings(Sema& sema, const SymbolFunction& root, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         const SymbolStruct* ownerInstance = root.ownerStruct();
         if (!ownerInstance || !ownerInstance->isGenericInstance())
@@ -60,6 +116,12 @@ namespace
                 resolvedArg.typeRef = sema.cstMgr().get(resolvedArg.cstRef).typeRef();
             SemaGeneric::appendResolvedGenericBinding(ownerParams[i], resolvedArg, outBindings);
         }
+    }
+
+    void appendEnclosingGenericCloneBindings(Sema& sema, const Symbol& root, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            appendEnclosingFunctionGenericCloneBindings(sema, *function, outBindings);
     }
 
     Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, SymbolInterface* itf, const AttributeList& attrs, bool declPass)
@@ -122,7 +184,7 @@ namespace
             return Result::Error;
 
         outBlockRef = cloneGenericImplBlock(sema, *implDecl, bindings);
-        outClone    = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), SemaGeneric::clonedGenericSymbolFlags(sourceImpl));
+        outClone    = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), clonedGenericSymbolFlags(sourceImpl));
         return Result::Continue;
     }
 
@@ -192,8 +254,7 @@ namespace
         return Result::Continue;
     }
 
-    template<typename T>
-    Result evalGenericClonedNode(Sema& sema, const T& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef)
+    Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef)
     {
         outClonedRef = AstNodeRef::invalid();
         if (sourceRef.isInvalid())
@@ -204,11 +265,10 @@ namespace
         if (outClonedRef.isInvalid())
             return Result::Error;
 
-        return SemaGeneric::GenericRootTraits<T>::runNode(sema, root, outClonedRef);
+        return runGenericNode(sema, root, outClonedRef);
     }
 
-    template<typename T>
-    Result evalGenericDefaultArg(Sema& sema, const T& root, const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, size_t paramIndex, SemaGeneric::GenericResolvedArg& outArg)
+    Result evalGenericDefaultArg(Sema& sema, const Symbol& root, const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, size_t paramIndex, SemaGeneric::GenericResolvedArg& outArg)
     {
         outArg                                     = {};
         const SemaGeneric::GenericParamDesc& param = params[paramIndex];
@@ -227,8 +287,7 @@ namespace
         return SemaGeneric::resolveExplicitGenericArg(sema, param, clonedRef, outArg);
     }
 
-    template<typename T>
-    Result resolveGenericValueParamType(Sema& sema, const T& root, const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, size_t paramIndex, TypeRef& outTypeRef)
+    Result resolveGenericValueParamType(Sema& sema, const Symbol& root, const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, size_t paramIndex, TypeRef& outTypeRef)
     {
         outTypeRef                                 = TypeRef::invalid();
         const SemaGeneric::GenericParamDesc& param = params[paramIndex];
@@ -248,8 +307,7 @@ namespace
         return Result::Continue;
     }
 
-    template<typename T>
-    Result finalizeResolvedGenericValue(Sema& sema, const T& root, const std::vector<SemaGeneric::GenericParamDesc>& params, std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, size_t paramIndex, AstNodeRef errorNodeRef)
+    Result finalizeResolvedGenericValue(Sema& sema, const Symbol& root, const std::vector<SemaGeneric::GenericParamDesc>& params, std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, size_t paramIndex, AstNodeRef errorNodeRef)
     {
         SemaGeneric::GenericResolvedArg& arg = resolvedArgs[paramIndex];
         if (!arg.present)
@@ -292,8 +350,7 @@ namespace
         return genericArgNodes[std::min(paramIndex, genericArgNodes.size() - 1)];
     }
 
-    template<typename T>
-    Result materializeGenericArgs(Sema& sema, const T& root, const std::vector<SemaGeneric::GenericParamDesc>& params, std::vector<SemaGeneric::GenericResolvedArg>& ioResolvedArgs, std::span<const AstNodeRef> genericArgNodes, AstNodeRef fallbackNodeRef)
+    Result materializeGenericArgs(Sema& sema, const Symbol& root, const std::vector<SemaGeneric::GenericParamDesc>& params, std::vector<SemaGeneric::GenericResolvedArg>& ioResolvedArgs, std::span<const AstNodeRef> genericArgNodes, AstNodeRef fallbackNodeRef)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -318,14 +375,19 @@ namespace
         return Result::Continue;
     }
 
-    template<typename T>
-    void buildGenericKeys(const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, std::vector<T>& outKeys)
+    struct GenericInstanceKey
+    {
+        TypeRef     typeRef = TypeRef::invalid();
+        ConstantRef cstRef  = ConstantRef::invalid();
+    };
+
+    void buildGenericKeys(const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, std::vector<GenericInstanceKey>& outKeys)
     {
         outKeys.clear();
         outKeys.reserve(params.size());
         for (size_t i = 0; i < params.size(); ++i)
         {
-            T key;
+            GenericInstanceKey key;
             if (params[i].kind == SemaGeneric::GenericParamKind::Type)
                 key.typeRef = resolvedArgs[i].typeRef;
             else
@@ -334,30 +396,139 @@ namespace
         }
     }
 
-    template<typename T>
+    Symbol* findGenericInstance(const SymbolFunction& root, std::span<const GenericInstanceKey> keys)
+    {
+        std::vector<SymbolFunction::GenericArgKey> typedKeys;
+        typedKeys.reserve(keys.size());
+        for (const auto& key : keys)
+            typedKeys.push_back({key.typeRef, key.cstRef});
+        return root.findGenericInstance(typedKeys);
+    }
+
+    Symbol* findGenericInstance(const SymbolStruct& root, std::span<const GenericInstanceKey> keys)
+    {
+        std::vector<SymbolStruct::GenericArgKey> typedKeys;
+        typedKeys.reserve(keys.size());
+        for (const auto& key : keys)
+            typedKeys.push_back({key.typeRef, key.cstRef});
+        return root.findGenericInstance(typedKeys);
+    }
+
+    Symbol* findGenericInstance(const Symbol& root, std::span<const GenericInstanceKey> keys)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            return findGenericInstance(*function, keys);
+        return findGenericInstance(root.cast<SymbolStruct>(), keys);
+    }
+
+    Symbol* addGenericInstance(SymbolFunction& root, std::span<const GenericInstanceKey> keys, SymbolFunction* instance)
+    {
+        std::vector<SymbolFunction::GenericArgKey> typedKeys;
+        typedKeys.reserve(keys.size());
+        for (const auto& key : keys)
+            typedKeys.push_back({key.typeRef, key.cstRef});
+        return root.addGenericInstance(typedKeys, instance);
+    }
+
+    Symbol* addGenericInstance(SymbolStruct& root, std::span<const GenericInstanceKey> keys, SymbolStruct* instance)
+    {
+        std::vector<SymbolStruct::GenericArgKey> typedKeys;
+        typedKeys.reserve(keys.size());
+        for (const auto& key : keys)
+            typedKeys.push_back({key.typeRef, key.cstRef});
+        return root.addGenericInstance(typedKeys, instance);
+    }
+
+    Symbol* addGenericInstance(Symbol& root, std::span<const GenericInstanceKey> keys, Symbol* instance)
+    {
+        if (auto* function = root.safeCast<SymbolFunction>())
+            return addGenericInstance(*function, keys, &instance->cast<SymbolFunction>());
+        return addGenericInstance(root.cast<SymbolStruct>(), keys, &instance->cast<SymbolStruct>());
+    }
+
+    Symbol* createGenericInstanceSymbol(Sema& sema, Symbol& root, AstNodeRef cloneRef)
+    {
+        if (auto* function = root.safeCast<SymbolFunction>())
+        {
+            auto& cloneDecl                = sema.node(cloneRef).cast<AstFunctionDecl>();
+            cloneDecl.spanGenericParamsRef = SpanRef::invalid();
+
+            auto* instance         = Symbol::make<SymbolFunction>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, function->idRef(), clonedGenericSymbolFlags(root));
+            instance->extraFlags() = function->extraFlags();
+            instance->setAttributes(function->attributes());
+            instance->setRtAttributeFlags(function->rtAttributeFlags());
+            instance->setSpecOpKind(function->specOpKind());
+            instance->setCallConvKind(function->callConvKind());
+            instance->setDeclNodeRef(cloneRef);
+            instance->setOwnerSymMap(function->ownerSymMap());
+            instance->setGenericInstance(function);
+            return instance;
+        }
+
+        auto& cloneDecl                = sema.node(cloneRef).cast<AstStructDecl>();
+        cloneDecl.spanGenericParamsRef = SpanRef::invalid();
+        cloneDecl.spanWhereRef         = SpanRef::invalid();
+
+        auto& st               = root.cast<SymbolStruct>();
+        auto* instance         = Symbol::make<SymbolStruct>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
+        instance->extraFlags() = st.extraFlags();
+        instance->setAttributes(st.attributes());
+        instance->setOwnerSymMap(st.ownerSymMap());
+        instance->setDeclNodeRef(cloneRef);
+        instance->setGenericInstance(&st);
+        return instance;
+    }
+
+    bool beginGenericSema(const Symbol& instance)
+    {
+        if (const auto* function = instance.safeCast<SymbolFunction>())
+            return function->beginGenericSema();
+        return instance.cast<SymbolStruct>().beginGenericSema();
+    }
+
+    void endGenericSema(const Symbol& instance)
+    {
+        if (const auto* function = instance.safeCast<SymbolFunction>())
+            function->endGenericSema();
+        else
+            instance.cast<SymbolStruct>().endGenericSema();
+    }
+
     struct GenericSemaGuard
     {
-        T* instance = nullptr;
+        Symbol* instance = nullptr;
 
         ~GenericSemaGuard()
         {
             if (instance)
-                instance->endGenericSema();
+                endGenericSema(*instance);
         }
     };
 
-    template<typename T>
-    Result createGenericInstance(Sema& sema, T& root, const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, T*& outInstance)
+    Result finalizeGenericInstance(Sema& sema, const Symbol& root, Symbol& instance, const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs)
     {
-        using Traits = SemaGeneric::GenericRootTraits<T>;
-        using KeyT   = Traits::GenericArgKey;
+        if (!instance.isStruct())
+            return Result::Continue;
 
+        // Keep impl cloning under the same generic-instance gate. Otherwise two callers can
+        // both observe a completed struct instance with no impls yet and clone the same impls
+        // twice, which later makes methods shadow themselves.
+        auto& rootStruct     = root.cast<SymbolStruct>();
+        auto& instanceStruct = instance.cast<SymbolStruct>();
+        SWC_RESULT(instantiateGenericStructImpls(sema, rootStruct, instanceStruct, params, resolvedArgs));
+        SWC_RESULT(instanceStruct.registerSpecOps(sema));
+        instanceStruct.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    Result createGenericInstance(Sema& sema, Symbol& root, const std::vector<SemaGeneric::GenericParamDesc>& params, const std::vector<SemaGeneric::GenericResolvedArg>& resolvedArgs, Symbol*& outInstance)
+    {
         outInstance = nullptr;
 
-        std::vector<KeyT> keys;
+        std::vector<GenericInstanceKey> keys;
         buildGenericKeys(params, resolvedArgs, keys);
 
-        outInstance = Traits::findInstance(root, keys);
+        outInstance = findGenericInstance(root, keys);
         if (!outInstance)
         {
             SmallVector<SemaClone::ParamBinding> bindings;
@@ -365,33 +536,24 @@ namespace
             appendEnclosingGenericCloneBindings(sema, root, bindings);
 
             const SemaClone::CloneContext cloneContext{bindings};
-            const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, root.declNodeRef(), cloneContext);
+            const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, genericDeclNodeRef(root), cloneContext);
             if (cloneRef.isInvalid())
                 return Result::Error;
 
-            T* created = Traits::createInstance(sema, root, cloneRef);
+            Symbol* created = createGenericInstanceSymbol(sema, root, cloneRef);
             sema.setSymbol(cloneRef, created);
-            outInstance = Traits::addInstance(root, keys, created);
+            outInstance = addGenericInstance(root, keys, created);
         }
 
         if (!outInstance->isSemaCompleted())
         {
-            if (outInstance->beginGenericSema())
+            if (beginGenericSema(*outInstance))
             {
-                GenericSemaGuard<T> guard{outInstance};
-                const Result        runResult = Traits::runNode(sema, root, outInstance->declNodeRef());
+                GenericSemaGuard guard{outInstance};
+                const Result     runResult = runGenericNode(sema, root, genericDeclNodeRef(*outInstance));
                 if (runResult != Result::Continue)
                     return runResult;
-
-                if constexpr (std::is_same_v<T, SymbolStruct>)
-                {
-                    // Keep impl cloning under the same generic-instance gate. Otherwise two callers can
-                    // both observe a completed struct instance with no impls yet and clone the same impls
-                    // twice, which later makes methods shadow themselves.
-                    SWC_RESULT(instantiateGenericStructImpls(sema, root, *outInstance, params, resolvedArgs));
-                    SWC_RESULT(outInstance->registerSpecOps(sema));
-                    outInstance->setSemaCompleted(sema.ctx());
-                }
+                SWC_RESULT(finalizeGenericInstance(sema, root, *outInstance, params, resolvedArgs));
             }
             if (outInstance->isIgnored())
                 return Result::Error;
@@ -400,21 +562,18 @@ namespace
         return Result::Continue;
     }
 
-    template<typename T>
-    Result instantiateGenericExplicit(Sema& sema, T& genericRoot, std::span<const AstNodeRef> genericArgNodes, T*& outInstance)
+    Result instantiateGenericExplicit(Sema& sema, Symbol& genericRoot, std::span<const AstNodeRef> genericArgNodes, Symbol*& outInstance)
     {
-        using Traits = SemaGeneric::GenericRootTraits<T>;
-
         outInstance = nullptr;
-        if (!Traits::hasGenericParams(genericRoot))
+        if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
-        const auto* decl = Traits::decl(genericRoot);
-        if (!decl)
+        const SpanRef spanRef = genericParamSpan(genericRoot);
+        if (!spanRef.isValid())
             return Result::Continue;
 
         std::vector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        SemaGeneric::collectGenericParams(sema, spanRef, params);
         if (genericArgNodes.size() > params.size())
             return Result::Continue;
 
@@ -434,16 +593,19 @@ namespace SemaGeneric
 {
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)
     {
-        return instantiateGenericExplicit(sema, genericRoot, genericArgNodes, outInstance);
+        Symbol* instance = nullptr;
+        SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
+        outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
+        return Result::Continue;
     }
 
     Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance)
     {
         outInstance = nullptr;
-        if (!GenericRootTraits<SymbolFunction>::hasGenericParams(genericRoot))
+        if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
-        const auto* decl = GenericRootTraits<SymbolFunction>::decl(genericRoot);
+        const auto* decl = genericFunctionDecl(genericRoot);
         if (!decl)
             return Result::Continue;
 
@@ -459,19 +621,25 @@ namespace SemaGeneric
         if (hasMissingGenericArgs(resolvedArgs))
             return Result::Continue;
 
-        return createGenericInstance(sema, genericRoot, params, resolvedArgs, outInstance);
+        Symbol* instance = nullptr;
+        SWC_RESULT(createGenericInstance(sema, genericRoot, params, resolvedArgs, instance));
+        outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
+        return Result::Continue;
     }
 
     Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance)
     {
-        return instantiateGenericExplicit(sema, genericRoot, genericArgNodes, outInstance);
+        Symbol* instance = nullptr;
+        SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
+        outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
+        return Result::Continue;
     }
 
     Result deduceStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance)
     {
         outInstance = nullptr;
 
-        if (!GenericRootTraits<SymbolStruct>::hasGenericParams(genericRoot))
+        if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
         // Find enclosing generic struct instance from impl context or struct declaration scope
@@ -516,7 +684,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         // Collect enclosing root's generic params and instance args
-        const auto* enclosingDecl = GenericRootTraits<SymbolStruct>::decl(*enclosingRoot);
+        const auto* enclosingDecl = genericStructDecl(*enclosingRoot);
         if (!enclosingDecl || !enclosingDecl->spanGenericParamsRef.isValid())
             return Result::Continue;
 
@@ -530,7 +698,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         // Collect target struct's generic params
-        const auto* targetDecl = GenericRootTraits<SymbolStruct>::decl(genericRoot);
+        const auto* targetDecl = genericStructDecl(genericRoot);
         if (!targetDecl)
             return Result::Continue;
 
@@ -585,7 +753,10 @@ namespace SemaGeneric
         if (hasMissingGenericArgs(resolvedArgs))
             return Result::Continue;
 
-        return createGenericInstance(sema, genericRoot, targetParams, resolvedArgs, outInstance);
+        Symbol* instance = nullptr;
+        SWC_RESULT(createGenericInstance(sema, genericRoot, targetParams, resolvedArgs, instance));
+        outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
+        return Result::Continue;
     }
 }
 

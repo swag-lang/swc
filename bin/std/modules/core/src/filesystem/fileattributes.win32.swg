@@ -3,7 +3,7 @@
 #global namespace File
 using Win32
 
-impl enum FileAttributes
+impl FileAttributes
 {
     fileprivate func fromDWORD(attributes: DWORD)->FileAttributes
     {

@@ -8,16 +8,6 @@ AstNodeRef Parser::parseImpl()
     const TokenRef tokImpl = ref();
     consume();
 
-    // Enum
-    if (consumeIf(TokenId::KwdEnum).isValid())
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>(tokImpl);
-        nodePtr->addFlag(AstImplFlagsE::Enum);
-        nodePtr->nodeIdentRef    = parseQualifiedIdentifier();
-        nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
-        return nodeRef;
-    }
-
     // Name
     const AstNodeRef nodeIdent = parseQualifiedIdentifier();
     if (nodeIdent.isInvalid())

@@ -46,13 +46,7 @@ struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock, AstEmbeddedBloc
 };
 
 // -----------------------------------------------------------------------------
-enum class AstImplFlagsE : AstNode::ParserFlags
-{
-    Zero = 0,
-    Enum = 1 << 0,
-};
-
-struct AstImpl : AstCompoundT<AstNodeId::Impl, AstImplFlagsE>
+struct AstImpl : AstCompoundT<AstNodeId::Impl>
 {
     AstNodeRef nodeIdentRef;
     AstNodeRef nodeForRef;

@@ -20,4 +20,4 @@ impl GenericSample
     mtd(var U, const N: s32) tagged(other: U)->s32 => N
 }
 
-impl enum A.B. { } // swc-expected-error {{parser_err_expected_token_fam}}
+impl A.B. { } // swc-expected-error {{parser_err_expected_token_fam}}

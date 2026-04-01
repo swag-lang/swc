@@ -143,7 +143,7 @@ public enum Argb: u32
     Zero                 = 0x00000000
 }
 
-public impl enum Argb
+public impl Argb
 {
     // Get the Argb value that matches 'name'
     func fromName(name: string)->Argb

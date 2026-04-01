@@ -10,7 +10,7 @@ enum PixelFormat: u8
     RGBA8
 }
 
-impl enum PixelFormat
+impl PixelFormat
 {
     // Returns the bpp (bits per pixel) of the given pixel format
     #[ConstExpr]

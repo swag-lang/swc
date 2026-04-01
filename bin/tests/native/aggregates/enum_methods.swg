@@ -1,6 +1,6 @@
 #global fileprivate
 
-// Enum with impl enum: associated functions and enum patterns.
+// Enum with impl: associated functions and enum patterns.
 
 enum Direction
 {
@@ -10,7 +10,7 @@ enum Direction
     West
 }
 
-impl enum Direction
+impl Direction
 {
     func opposite(val: Direction)->Direction
     {
@@ -80,7 +80,7 @@ enum Priority
     High   = 10
 }
 
-impl enum Priority
+impl Priority
 {
     func isUrgent(val: Priority)->bool => val == Priority.High
     func isLow(val: Priority)->bool => val == Priority.Low

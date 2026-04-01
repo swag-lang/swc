@@ -62,7 +62,7 @@ enum Direction
     West
 }
 
-impl enum Direction
+impl Direction
 {
     func opposite(me)->Direction
     {

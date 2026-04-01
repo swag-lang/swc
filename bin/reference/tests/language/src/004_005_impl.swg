@@ -15,12 +15,12 @@ enum RGB
 }
 
 /**
-# Defining Enum Methods with `impl enum`
+# Defining Enum Methods with `impl`
 
-The `impl enum` block defines methods that operate on enum values.
+The `impl` block defines methods that operate on enum values.
 This helps group functionality logically with the type it belongs to.
 */
-impl enum RGB
+impl RGB
 {
     // Check if the current color is Red
     func isRed(me) => me == R

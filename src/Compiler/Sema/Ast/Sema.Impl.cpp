@@ -55,17 +55,14 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     {
         const SemaNodeView identView = sema.viewSymbol(nodeIdentRef);
         Symbol&            sym       = *(identView.sym());
-        if (hasFlag(AstImplFlagsE::Enum))
+        if (nodeForRef.isInvalid())
         {
-            if (!sym.isEnum())
-                return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_enum, nodeIdentRef);
-            sym.cast<SymbolEnum>().addImpl(sema, symImpl);
-        }
-        else if (nodeForRef.isInvalid())
-        {
-            if (!sym.isStruct())
+            if (sym.isStruct())
+                sym.cast<SymbolStruct>().addImpl(sema, symImpl);
+            else if (sym.isEnum())
+                sym.cast<SymbolEnum>().addImpl(sema, symImpl);
+            else
                 return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeIdentRef);
-            sym.cast<SymbolStruct>().addImpl(sema, symImpl);
         }
         else
         {

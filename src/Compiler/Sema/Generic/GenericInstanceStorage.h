@@ -1,7 +1,5 @@
 #pragma once
 #include "Support/Core/SmallVector.h"
-#include <mutex>
-#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 

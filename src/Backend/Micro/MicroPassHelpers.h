@@ -2,7 +2,6 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Support/Core/Result.h"
 #include "Support/Math/Fold.h"
-#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 

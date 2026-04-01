@@ -57,4 +57,11 @@ const IdentifierManager& TaskContext::idMgr() const
     return compiler().idMgr();
 }
 
+TaskContext* TaskContext::setCurrent(TaskContext* ctx) noexcept
+{
+    TaskContext* const previous = current_;
+    current_                    = ctx;
+    return previous;
+}
+
 SWC_END_NAMESPACE();

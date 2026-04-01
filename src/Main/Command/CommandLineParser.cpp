@@ -638,7 +638,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
 
     addArg(HelpOptionGroup::Input, "all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
     addArg(HelpOptionGroup::Input, "all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
-    addArg(HelpOptionGroup::Input, "all", "--path-filter", "-pf", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to input paths.");
+    addArg(HelpOptionGroup::Input, "all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to input paths.");
     addArg(HelpOptionGroup::Input, "all", "--module", "-m", CommandLineType::Path, &cmdLine_->modulePath, nullptr, "Specify a module path to compile.");
     addArg(HelpOptionGroup::Input, "all", "--runtime", "-rt", CommandLineType::Bool, &cmdLine_->runtime, nullptr, "Include runtime files in the input set.");
 
@@ -680,7 +680,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Development, "all", "--dev-mode", "-dm", CommandLineType::Bool, &CompilerInstance::dbgDevMode, nullptr, "Open a message box when an error is reported.");
 #if SWC_DEV_MODE
     addArg(HelpOptionGroup::Development, "all", "--randomize", "-rz", CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize single-threaded job scheduling. Forces --num-cores=1.");
-    addArg(HelpOptionGroup::Development, "all", "--random-seed", "-rs", CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set the seed for --randomize. Forces --randomize and --num-cores=1.");
+    addArg(HelpOptionGroup::Development, "all", "--seed", "-rs", CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set the seed for --randomize. Forces --randomize and --num-cores=1.");
 #endif
 }
 

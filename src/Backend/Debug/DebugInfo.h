@@ -1,7 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include <memory>
 
 SWC_BEGIN_NAMESPACE();
 

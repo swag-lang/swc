@@ -211,12 +211,13 @@ void Diagnostic::report(TaskContext& ctx) const
     const Utf8        msg     = eng.build();
     bool              dismiss = false;
 
-    if (!ctx.compiler().tryRegisterReportedDiagnostic(msg))
+    if (ctx.hasCompiler() && !ctx.compiler().tryRegisterReportedDiagnostic(msg))
         return;
 
     // Check that diagnostic was not awaited
     if (fileOwner_.isValid())
     {
+        SWC_ASSERT(ctx.hasCompiler());
         const SourceFile& file = ctx.compiler().file(fileOwner_);
         dismiss                = file.unitTest().verifyExpected(ctx, *this);
     }

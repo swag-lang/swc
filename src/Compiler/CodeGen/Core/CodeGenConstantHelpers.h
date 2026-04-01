@@ -1,7 +1,6 @@
 #pragma once
 #include "Support/Core/ByteSpan.h"
 #include "Support/Core/RefTypes.h"
-#include <cstdint>
 
 SWC_BEGIN_NAMESPACE();
 

@@ -22,6 +22,7 @@ public:
 
     const Global&           global() const { return *(global_); }
     const CommandLine&      cmdLine() const { return *(cmdLine_); }
+    bool                    hasCompiler() const { return compilerInstance_ != nullptr; }
     CompilerInstance&       compiler() { return *(compilerInstance_); }
     const CompilerInstance& compiler() const { return *(compilerInstance_); }
 
@@ -43,12 +44,7 @@ public:
     bool                hasError() const { return hasError_; }
     bool                hasWarning() const { return hasWarning_; }
     static TaskContext* current() noexcept { return current_; }
-    static TaskContext* setCurrent(TaskContext* ctx) noexcept
-    {
-        TaskContext* const previous = current_;
-        current_                    = ctx;
-        return previous;
-    }
+    static TaskContext* setCurrent(TaskContext* ctx) noexcept;
 
 private:
     friend class TaskScopedContext;
@@ -66,7 +62,9 @@ private:
 class TaskScopedState final
 {
 public:
-    TaskScopedState() = delete;
+    TaskScopedState()                                  = delete;
+    TaskScopedState(const TaskScopedState&)            = delete;
+    TaskScopedState& operator=(const TaskScopedState&) = delete;
 
     explicit TaskScopedState(TaskContext& ctx) :
         ctx_(&ctx),
@@ -79,9 +77,6 @@ public:
         if (ctx_)
             ctx_->state() = saved_;
     }
-
-    TaskScopedState(const TaskScopedState&)            = delete;
-    TaskScopedState& operator=(const TaskScopedState&) = delete;
 
     TaskScopedState(TaskScopedState&& other) noexcept :
         ctx_(other.ctx_),
@@ -112,7 +107,9 @@ private:
 class TaskScopedContext final
 {
 public:
-    TaskScopedContext() = delete;
+    TaskScopedContext()                                    = delete;
+    TaskScopedContext(const TaskScopedContext&)            = delete;
+    TaskScopedContext& operator=(const TaskScopedContext&) = delete;
 
     explicit TaskScopedContext(const TaskContext& ctx) :
         saved_(TaskContext::setCurrent(const_cast<TaskContext*>(&ctx)))
@@ -123,9 +120,6 @@ public:
     {
         TaskContext::setCurrent(saved_);
     }
-
-    TaskScopedContext(const TaskScopedContext&)            = delete;
-    TaskScopedContext& operator=(const TaskScopedContext&) = delete;
 
     TaskScopedContext(TaskScopedContext&& other) noexcept :
         saved_(other.saved_)

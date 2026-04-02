@@ -117,25 +117,23 @@ private:
     };
 
     void animateLoop();
-    void clearAnimatedStagesNoLock(bool restoreCursor = true);
+    void clearAnimatedStagesNoLock();
     void renderAnimatedStagesNoLock();
-    void setCursorVisibleNoLock(bool visible);
-    void updateAnimatedStageGlyphsNoLock();
+    void updateAnimatedStageGlyphsNoLock() const;
     void removeAnimatedStageNoLock(size_t stageId);
 
     std::recursive_mutex       mutexAccess_;
     std::vector<AnimatedStage> animatedStages_;
     std::thread                animator_;
+    std::vector<Utf8>          uniqueStageKeys_;
     std::atomic<bool>          stopAnimator_            = false;
     bool                       transientLineActive_     = false;
     bool                       activeStagesWereVisible_ = false;
-    bool                       cursorHidden_            = false;
-    std::vector<Utf8>          uniqueStageKeys_;
-    size_t                     renderedStageCount_  = 0;
-    size_t                     outputBlockDepth_    = 0;
-    size_t                     stageSequence_       = 0;
-    size_t                     stageMuteDepth_      = 0;
-    size_t                     nextAnimatedStageId_ = 0;
+    size_t                     renderedStageCount_      = 0;
+    size_t                     outputBlockDepth_        = 0;
+    size_t                     stageSequence_           = 0;
+    size_t                     stageMuteDepth_          = 0;
+    size_t                     nextAnimatedStageId_     = 0;
 };
 
 SWC_END_NAMESPACE();

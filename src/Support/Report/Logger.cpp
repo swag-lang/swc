@@ -30,9 +30,6 @@ Logger::~Logger()
     stopAnimator_.store(true, std::memory_order_release);
     if (animator_.joinable())
         animator_.join();
-
-    const std::scoped_lock lock(mutexAccess_);
-    setCursorVisibleNoLock(true);
 }
 
 void Logger::lock()
@@ -336,11 +333,8 @@ void Logger::animateLoop()
     }
 }
 
-void Logger::clearAnimatedStagesNoLock(const bool restoreCursor)
+void Logger::clearAnimatedStagesNoLock()
 {
-    if (restoreCursor)
-        setCursorVisibleNoLock(true);
-
     if (renderedStageCount_ == 0)
         return;
 
@@ -356,14 +350,10 @@ void Logger::renderAnimatedStagesNoLock()
     if (outputBlockDepth_ != 0 || !Os::stdoutSupportsAnimation())
         return;
 
-    clearAnimatedStagesNoLock(false);
+    clearAnimatedStagesNoLock();
     if (animatedStages_.empty())
-    {
-        setCursorVisibleNoLock(true);
         return;
-    }
 
-    setCursorVisibleNoLock(false);
     for (const AnimatedStage& stage : animatedStages_)
         std::cout << stage.lines[stage.frameIndex] << "\n";
 
@@ -371,37 +361,11 @@ void Logger::renderAnimatedStagesNoLock()
     renderedStageCount_ = animatedStages_.size();
 }
 
-void Logger::setCursorVisibleNoLock(const bool visible)
-{
-    if (!Os::stdoutSupportsAnimation())
-    {
-        cursorHidden_ = false;
-        return;
-    }
-
-    if (visible)
-    {
-        if (!cursorHidden_)
-            return;
-
-        std::cout << "\x1b[?25h";
-        cursorHidden_ = false;
-        return;
-    }
-
-    if (cursorHidden_)
-        return;
-
-    std::cout << "\x1b[?25l";
-    cursorHidden_ = true;
-}
-
-void Logger::updateAnimatedStageGlyphsNoLock()
+void Logger::updateAnimatedStageGlyphsNoLock() const
 {
     if (outputBlockDepth_ != 0 || renderedStageCount_ == 0 || renderedStageCount_ != animatedStages_.size() || !Os::stdoutSupportsAnimation())
         return;
 
-    setCursorVisibleNoLock(false);
     std::cout << "\x1b[" << renderedStageCount_ << "A";
     for (size_t i = 0; i < animatedStages_.size(); ++i)
     {

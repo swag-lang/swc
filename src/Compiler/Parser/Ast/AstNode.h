@@ -10,6 +10,7 @@ class Sema;
 class CodeGen;
 class Ast;
 class SourceFile;
+class SourceView;
 class TaskContext;
 class ConstantValue;
 struct SourceCodeRange;
@@ -247,6 +248,7 @@ struct AstNode
     const Ast*           sourceAst(const TaskContext& ctx) const;
     SourceCodeRange      codeRange(const TaskContext& ctx) const;
     SourceCodeRange      codeRangeWithChildren(const TaskContext& ctx, const Ast& ast) const;
+    SourceCodeRange      codeRangeWithChildren(const TaskContext& ctx, const Ast& ast, const SourceView& view) const;
     const SourceCodeRef& codeRef() const { return codeRef_; }
     void                 setCodeRef(const SourceCodeRef& codeRef) { codeRef_ = codeRef; }
     SourceViewRef        srcViewRef() const { return codeRef_.srcViewRef; }

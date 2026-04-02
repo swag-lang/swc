@@ -126,7 +126,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     const uint32_t slotCount    = static_cast<uint32_t>(methods.size()) + 1;
     const TypeRef  tableTypeRef = interfaceMethodTableTypeRef(ctx, slotCount);
 
-    SmallVector<SymbolFunction*> implMethods;
+    SmallVector<const SymbolFunction*> implMethods;
     implMethods.reserve(methods.size());
     for (const SymbolFunction* interfaceMethod : methods)
     {
@@ -136,7 +136,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         if (!implMethod)
             return Result::Error;
         SWC_RESULT(sema.waitSemaCompleted(implMethod, implMethod->codeRef()));
-        implMethods.push_back(const_cast<SymbolFunction*>(implMethod));
+        implMethods.push_back(implMethod);
     }
 
     const std::scoped_lock lk(interfaceMethodTableMutex_);
@@ -149,7 +149,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     DataSegment& segment                   = sema.cstMgr().shardDataSegment(shardIndex);
     const auto [tableOffset, tableStorage] = segment.reserveSpan<void*>(slotCount);
     SWC_ASSERT(tableStorage != nullptr);
-    tableStorage[0] = const_cast<void*>(reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
+    tableStorage[0] = reinterpret_cast<void*>(typeInfoCst.getValuePointer());
     segment.addRelocation(tableOffset, typeInfoOffset);
 
     for (uint32_t i = 0; i < implMethods.size(); ++i)

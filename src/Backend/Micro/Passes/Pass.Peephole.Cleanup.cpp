@@ -1180,7 +1180,7 @@ namespace
         const uint64_t slotOffset = ops[3].valueU64;
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
         {
-            auto&              scanInst = const_cast<MicroInstr&>(*scanIt);
+            MicroInstr&        scanInst = *scanIt;
             MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
             if (scanInst.op == MicroInstrOpcode::Label)
             {

@@ -354,7 +354,7 @@ Result NativeArtifactBuilder::prepareDataSections() const
                 {
                     record.symbolName = targetFunction->resolveForeignFunctionName(builder_->ctx());
                 }
-                else if (const auto it = builder_->functionBySymbol.find(const_cast<SymbolFunction*>(targetFunction)); it != builder_->functionBySymbol.end())
+                else if (const auto it = builder_->functionBySymbol.find(targetFunction); it != builder_->functionBySymbol.end())
                 {
                     record.symbolName = it->second->symbolName;
                 }
@@ -391,7 +391,7 @@ Result NativeArtifactBuilder::prepareDataSections() const
             {
                 record.symbolName = targetFunction->resolveForeignFunctionName(builder_->ctx());
             }
-            else if (const auto it = builder_->functionBySymbol.find(const_cast<SymbolFunction*>(targetFunction)); it != builder_->functionBySymbol.end())
+            else if (const auto it = builder_->functionBySymbol.find(targetFunction); it != builder_->functionBySymbol.end())
             {
                 record.symbolName = it->second->symbolName;
             }

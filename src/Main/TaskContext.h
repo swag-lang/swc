@@ -43,8 +43,8 @@ public:
     void                setHasWarning() { hasWarning_ = true; }
     bool                hasError() const { return hasError_; }
     bool                hasWarning() const { return hasWarning_; }
-    static TaskContext* current() noexcept { return current_; }
-    static TaskContext* setCurrent(TaskContext* ctx) noexcept;
+    static const TaskContext* current() noexcept { return current_; }
+    static const TaskContext* setCurrent(const TaskContext* ctx) noexcept;
 
 private:
     friend class TaskScopedContext;
@@ -56,7 +56,7 @@ private:
     bool                                    hasError_         = false;
     bool                                    hasWarning_       = false;
     TaskState                               state_;
-    inline static thread_local TaskContext* current_ = nullptr;
+    inline static thread_local const TaskContext* current_ = nullptr;
 };
 
 class TaskScopedState final
@@ -112,7 +112,7 @@ public:
     TaskScopedContext& operator=(const TaskScopedContext&) = delete;
 
     explicit TaskScopedContext(const TaskContext& ctx) :
-        saved_(TaskContext::setCurrent(const_cast<TaskContext*>(&ctx)))
+        saved_(TaskContext::setCurrent(&ctx))
     {
     }
 
@@ -139,7 +139,7 @@ public:
     }
 
 private:
-    TaskContext* saved_ = nullptr;
+    const TaskContext* saved_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

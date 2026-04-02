@@ -386,7 +386,7 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
         {
             const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
             SWC_ASSERT(target != nullptr);
-            const auto it = builder_.functionBySymbol.find(const_cast<SymbolFunction*>(target));
+            const auto it = builder_.functionBySymbol.find(target);
             if (it != builder_.functionBySymbol.end())
             {
                 record.symbolName = it->second->symbolName;

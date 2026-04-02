@@ -428,7 +428,7 @@ namespace
 JobResult JobManager::executeJob(const Job& job)
 {
     JobResult          res;
-    TaskContext* const savedContext = TaskContext::setCurrent(const_cast<TaskContext*>(&job.ctx()));
+    const TaskContext* const savedContext = TaskContext::setCurrent(&job.ctx());
 
     SWC_TRY
     {

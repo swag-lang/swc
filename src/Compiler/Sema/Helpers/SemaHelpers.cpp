@@ -302,7 +302,7 @@ AstNodeRef SemaHelpers::uniqSyntaxScopeNodeRef(Sema& sema)
 
 SemaInlinePayload* SemaHelpers::mixinInlinePayloadForUniq(Sema& sema)
 {
-    auto* inlinePayload = const_cast<SemaInlinePayload*>(sema.frame().currentInlinePayload());
+    auto* inlinePayload = sema.frame().currentInlinePayload();
     if (!inlinePayload || !inlinePayload->sourceFunction)
         return nullptr;
     if (!inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))

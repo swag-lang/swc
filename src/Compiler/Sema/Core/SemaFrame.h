@@ -70,8 +70,9 @@ public:
     bool                     hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
     void                     addContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.add(flag); }
     void                     removeContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.remove(flag); }
+    SemaInlinePayload*       currentInlinePayload() { return inlinePayload_; }
     const SemaInlinePayload* currentInlinePayload() const { return inlinePayload_; }
-    void                     setCurrentInlinePayload(const SemaInlinePayload* payload) { inlinePayload_ = payload; }
+    void                     setCurrentInlinePayload(SemaInlinePayload* payload) { inlinePayload_ = payload; }
     SemaScope*               lookupScope() const { return lookupScope_; }
     void                     setLookupScope(SemaScope* scope) { lookupScope_ = scope; }
     SemaScope*               upLookupScope() const { return upLookupScope_; }
@@ -114,7 +115,7 @@ private:
     SymbolInterface*              interface_           = nullptr;
     SymbolFunction*               function_            = nullptr;
     SemaFrameContextFlags         contextFlags_        = SemaFrameContextFlagsE::Zero;
-    const SemaInlinePayload*      inlinePayload_       = nullptr;
+    SemaInlinePayload*            inlinePayload_       = nullptr;
     SemaScope*                    lookupScope_         = nullptr;
     SemaScope*                    upLookupScope_       = nullptr;
     bool                          ignoreRuntimeAccess_ = false;

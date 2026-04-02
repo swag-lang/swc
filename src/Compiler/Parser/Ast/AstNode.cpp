@@ -74,10 +74,17 @@ SourceCodeRange AstNode::codeRange(const TaskContext& ctx) const
 
 SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast& ast) const
 {
+    return codeRangeWithChildren(ctx, ast, ctx.compiler().srcView(codeRef_.srcViewRef));
+}
+
+SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast& ast, const SourceView& view) const
+{
     SourceCodeRange codeRange{};
 
     const SourceViewRef baseViewRef = codeRef_.srcViewRef;
-    const SourceView&   view        = ctx.compiler().srcView(baseViewRef);
+    SWC_ASSERT(view.ref() == baseViewRef);
+    if (view.ref() != baseViewRef)
+        return codeRange;
     if (codeRef_.tokRef.isInvalid() || view.tokens().empty())
         return codeRange;
 

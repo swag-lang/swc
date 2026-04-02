@@ -114,14 +114,14 @@ namespace
         if (!typeInfo.isStruct())
             return false;
 
-        const SymbolFunction* opDrop = typeInfo.payloadSymStruct().opDrop();
+        SymbolFunction* opDrop = typeInfo.payloadSymStruct().opDrop();
         if (!opDrop)
             return false;
 
         const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
 
-        outOpDrop = const_cast<SymbolFunction*>(opDrop);
+        outOpDrop = opDrop;
         outSizeOf = static_cast<uint32_t>(sizeOf);
         outCount  = 1;
         return true;
@@ -137,7 +137,7 @@ namespace
 
             if (symbol->isVariable())
             {
-                auto* symVar = const_cast<SymbolVariable*>(symbol->safeCast<SymbolVariable>());
+                const auto* symVar = symbol->safeCast<SymbolVariable>();
                 SWC_ASSERT(symVar != nullptr);
                 if (!symVar->hasGlobalStorage())
                     continue;

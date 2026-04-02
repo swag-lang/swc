@@ -100,10 +100,10 @@ public:
     Result prepare();
     Result writeObject(uint32_t objIndex);
 
-    Result reportError(DiagnosticId id) const;
+    Result reportError(DiagnosticId id);
 
     template<typename T1>
-    Result reportError(DiagnosticId id, std::string_view name1, T1&& value1) const
+    Result reportError(DiagnosticId id, std::string_view name1, T1&& value1)
     {
         Diagnostic diag = Diagnostic::get(id);
         diag.addArgument(name1, std::forward<T1>(value1));
@@ -111,7 +111,7 @@ public:
     }
 
     template<typename T1, typename T2>
-    Result reportError(DiagnosticId id, std::string_view name1, T1&& value1, std::string_view name2, T2&& value2) const
+    Result reportError(DiagnosticId id, std::string_view name1, T1&& value1, std::string_view name2, T2&& value2)
     {
         Diagnostic diag = Diagnostic::get(id);
         diag.addArgument(name1, std::forward<T1>(value1));
@@ -126,7 +126,7 @@ public:
     std::vector<SymbolFunction*>                                                         mainFunctions;
     std::vector<SymbolVariable*>                                                         regularGlobals;
     std::vector<NativeFunctionInfo>                                                      functionInfos;
-    std::unordered_map<SymbolFunction*, const NativeFunctionInfo*>                       functionBySymbol;
+    std::unordered_map<const SymbolFunction*, const NativeFunctionInfo*>                 functionBySymbol;
     std::unique_ptr<NativeStartupInfo>                                                   startup;
     NativeSectionData                                                                    mergedRData;
     NativeSectionData                                                                    mergedData;
@@ -139,10 +139,10 @@ public:
     std::atomic<bool>                                                                    objWriteFailed = false;
 
 private:
-    Result reportError(const Diagnostic& diag) const;
-    Result validateTarget() const;
+    Result reportError(const Diagnostic& diag);
+    Result validateTarget();
     Result writeObjects();
-    Result runGeneratedArtifact() const;
+    Result runGeneratedArtifact();
 
     TaskContext       ctx_;
     CompilerInstance& compiler_;

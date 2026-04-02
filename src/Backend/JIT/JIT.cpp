@@ -451,14 +451,14 @@ namespace
             }
 
             SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
-            SymbolFunction* const targetFunction = relocation.targetSymbol;
+            const SymbolFunction* const targetFunction = relocation.targetSymbol;
             SWC_ASSERT(targetFunction != nullptr);
             if (!targetFunction)
                 return Result::Error;
 
             MicroRelocation reloc;
             reloc.kind         = targetFunction->isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
-            reloc.targetSymbol = targetFunction;
+            reloc.targetSymbol = const_cast<SymbolFunction*>(targetFunction);
 
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
@@ -848,10 +848,15 @@ namespace
         const SymbolFunction* matchedFn    = nullptr;
         uint64_t              matchedEntry = 0;
         const MachineCode*    matchedCode  = nullptr;
-        auto                  functions    = ctx.compiler().jitPreparedFunctionsSnapshot();
+        const auto            preparedFunctions = ctx.compiler().jitPreparedFunctionsSnapshot();
+        std::vector<const SymbolFunction*> functions;
+        functions.reserve(preparedFunctions.size() + (ctx.state().runJitFunction ? 1u : 0u));
 
         if (const SymbolFunction* const currentFn = ctx.state().runJitFunction)
-            functions.insert(functions.begin(), const_cast<SymbolFunction*>(currentFn));
+            functions.push_back(currentFn);
+
+        for (const SymbolFunction* function : preparedFunctions)
+            functions.push_back(function);
 
         for (const SymbolFunction* function : functions)
         {
@@ -972,7 +977,7 @@ namespace
 
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)
 {
-    TaskContext* const savedContext = TaskContext::setCurrent(&ctx);
+    const TaskContext* const savedContext = TaskContext::setCurrent(&ctx);
     SWC_ASSERT(invoker != nullptr);
     ctx.compiler().initPerThreadRuntimeContextForJit();
 

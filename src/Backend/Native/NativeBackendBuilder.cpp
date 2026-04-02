@@ -427,18 +427,18 @@ Result NativeBackendBuilder::writeObject(const uint32_t objIndex)
     return objectWriter->writeObjectFile(objectDescriptions[objIndex]);
 }
 
-Result NativeBackendBuilder::reportError(DiagnosticId id) const
+Result NativeBackendBuilder::reportError(DiagnosticId id)
 {
     return reportError(Diagnostic::get(id));
 }
 
-Result NativeBackendBuilder::reportError(const Diagnostic& diag) const
+Result NativeBackendBuilder::reportError(const Diagnostic& diag)
 {
-    diag.report(const_cast<TaskContext&>(ctx_));
+    diag.report(ctx_);
     return Result::Error;
 }
 
-Result NativeBackendBuilder::validateTarget() const
+Result NativeBackendBuilder::validateTarget()
 {
     const CommandLine& commandLine = ctx_.cmdLine();
     if (commandLine.targetOs != Runtime::TargetOs::Windows)
@@ -482,7 +482,7 @@ Result NativeBackendBuilder::writeObjects()
     return objWriteFailed.load(std::memory_order_acquire) ? Result::Error : Result::Continue;
 }
 
-Result NativeBackendBuilder::runGeneratedArtifact() const
+Result NativeBackendBuilder::runGeneratedArtifact()
 {
     TimedActionLog::ScopedStage stage(ctx_, {
                                                 .key    = "run",

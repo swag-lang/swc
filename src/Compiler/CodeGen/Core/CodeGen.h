@@ -61,10 +61,10 @@ struct CodeGenNodePayload
 
 struct CodeGenGvtdEntry
 {
-    SymbolVariable* variable = nullptr;
-    SymbolFunction* opDrop   = nullptr;
-    uint32_t        sizeOf   = 0;
-    uint32_t        count    = 0;
+    const SymbolVariable* variable = nullptr;
+    SymbolFunction*       opDrop   = nullptr;
+    uint32_t              sizeOf   = 0;
+    uint32_t              count    = 0;
 };
 
 struct ScopedDebugNoStep final

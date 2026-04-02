@@ -69,8 +69,8 @@ namespace
         if (!decl)
             return file->hasError();
 
-        const TaskContext     ctx(const_cast<CompilerInstance&>(compiler));
-        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, file->ast());
+        const TaskContext     ctx(compiler.global(), compiler.cmdLine());
+        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, file->ast(), file->ast().srcView());
         if (!startRange.srcView || !startRange.len)
             return file->hasError();
 
@@ -79,9 +79,9 @@ namespace
 
     bool shouldSkipFunctionForTests(const CompilerInstance& compiler, const SymbolFunction& root)
     {
-        SmallVector<SymbolFunction*>              stack;
+        SmallVector<const SymbolFunction*>        stack;
         std::unordered_set<const SymbolFunction*> visited;
-        stack.push_back(const_cast<SymbolFunction*>(&root));
+        stack.push_back(&root);
 
         while (!stack.empty())
         {

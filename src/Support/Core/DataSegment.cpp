@@ -66,7 +66,7 @@ void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
     });
 }
 
-void DataSegment::addFunctionRelocation(uint32_t offset, SymbolFunction* targetSymbol)
+void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol)
 {
     const std::unique_lock lock(mutex_);
     relocations_.push_back({

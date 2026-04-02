@@ -128,7 +128,7 @@ void NativeValidate::validateRelocations(const SymbolFunction& owner, const Mach
             {
                 const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
                 SWC_ASSERT(target != nullptr);
-                SWC_ASSERT(builder_.functionBySymbol.contains(const_cast<SymbolFunction*>(target)));
+                SWC_ASSERT(builder_.functionBySymbol.contains(target));
                 break;
             }
 
@@ -228,7 +228,7 @@ namespace
         if (target->isForeign())
             return true;
 
-        return builder.functionBySymbol.contains(const_cast<SymbolFunction*>(target));
+        return builder.functionBySymbol.contains(target);
     }
 }
 

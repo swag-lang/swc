@@ -243,14 +243,13 @@ namespace
 
 struct SymbolFunction::GenericData
 {
-    // Generic instance state is rare enough that it should not bloat every function symbol.
-    GenericInstanceStorage          genericInstances;
-    std::atomic<const TaskContext*> genericCompletionOwner = nullptr;
-    mutable std::atomic<uint32_t>   genericCompletionDepth = 0;
-    mutable std::atomic<bool>       genericNodeCompleted   = false;
-    SymbolFunction*                 genericRootSym         = nullptr;
-    SymbolImpl*                     genericDeclImpl        = nullptr;
-    SymbolInterface*                genericDeclInterface   = nullptr;
+    GenericInstanceStorage          instances;
+    std::atomic<const TaskContext*> completionOwner = nullptr;
+    mutable std::atomic<uint32_t>   completionDepth = 0;
+    mutable std::atomic<bool>       nodeCompleted   = false;
+    SymbolFunction*                 rootSym         = nullptr;
+    SymbolImpl*                     declImpl        = nullptr;
+    SymbolInterface*                declInterface   = nullptr;
 };
 
 RtAttributeFlags SymbolFunction::rtAttributeFlags() const
@@ -551,7 +550,7 @@ SymbolFunction::GenericData& SymbolFunction::ensureGenericData(TaskContext& ctx)
 
 GenericInstanceStorage& SymbolFunction::genericInstanceStorage(TaskContext& ctx) noexcept
 {
-    return ensureGenericData(ctx).genericInstances;
+    return ensureGenericData(ctx).instances;
 }
 
 void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
@@ -588,14 +587,14 @@ void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) noexcept
 {
     auto&              data     = ensureGenericData(const_cast<TaskContext&>(ctx));
     const TaskContext* expected = nullptr;
-    const bool         done     = data.genericCompletionOwner.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
+    const bool         done     = data.completionOwner.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
     SWC_ASSERT(done || expected == &ctx);
 }
 
 bool SymbolFunction::isGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
     const auto* data = genericData();
-    return data && data->genericCompletionOwner.load(std::memory_order_acquire) == &ctx;
+    return data && data->completionOwner.load(std::memory_order_acquire) == &ctx;
 }
 
 bool SymbolFunction::tryStartGenericCompletion(const TaskContext& ctx) const noexcept
@@ -603,10 +602,10 @@ bool SymbolFunction::tryStartGenericCompletion(const TaskContext& ctx) const noe
     SWC_ASSERT(isGenericCompletionOwner(ctx));
     const auto* data = genericData();
     SWC_ASSERT(data != nullptr);
-    const auto previousDepth = data->genericCompletionDepth.fetch_add(1, std::memory_order_acq_rel);
+    const auto previousDepth = data->completionDepth.fetch_add(1, std::memory_order_acq_rel);
     if (previousDepth != 0)
     {
-        data->genericCompletionDepth.fetch_sub(1, std::memory_order_acq_rel);
+        data->completionDepth.fetch_sub(1, std::memory_order_acq_rel);
         return false;
     }
 
@@ -617,21 +616,21 @@ void SymbolFunction::finishGenericCompletion() const noexcept
 {
     const auto* data = genericData();
     SWC_ASSERT(data != nullptr);
-    const auto previousDepth = data->genericCompletionDepth.fetch_sub(1, std::memory_order_acq_rel);
+    const auto previousDepth = data->completionDepth.fetch_sub(1, std::memory_order_acq_rel);
     SWC_ASSERT(previousDepth != 0);
 }
 
 bool SymbolFunction::isGenericNodeCompleted() const noexcept
 {
     const auto* data = genericData();
-    return data && data->genericNodeCompleted.load(std::memory_order_acquire);
+    return data && data->nodeCompleted.load(std::memory_order_acquire);
 }
 
 void SymbolFunction::setGenericNodeCompleted() const noexcept
 {
     const auto* data = genericData();
     SWC_ASSERT(data != nullptr);
-    data->genericNodeCompleted.store(true, std::memory_order_release);
+    data->nodeCompleted.store(true, std::memory_order_release);
 }
 
 bool SymbolFunction::hasLoweredCode() const noexcept
@@ -745,27 +744,27 @@ void SymbolFunction::setGenericInstance(TaskContext& ctx, SymbolFunction* root) 
     if (root)
     {
         addExtraFlag(SymbolFunctionFlagsE::GenericInstance);
-        ensureGenericData(ctx).genericRootSym = root;
+        ensureGenericData(ctx).rootSym = root;
     }
     else
     {
         removeExtraFlag(SymbolFunctionFlagsE::GenericInstance);
         if (auto* data = genericData())
-            data->genericRootSym = nullptr;
+            data->rootSym = nullptr;
     }
 }
 
 SymbolFunction* SymbolFunction::genericRootSym() noexcept
 {
-    if (auto* data = genericData())
-        return data->genericRootSym;
+    if (const auto* data = genericData())
+        return data->rootSym;
     return nullptr;
 }
 
 const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
 {
     if (const auto* data = genericData())
-        return data->genericRootSym;
+        return data->rootSym;
     return nullptr;
 }
 
@@ -774,22 +773,22 @@ void SymbolFunction::setGenericDeclContext(TaskContext& ctx, SymbolImpl* impl, S
     if (!impl && !itf && !genericData())
         return;
 
-    auto& data                = ensureGenericData(ctx);
-    data.genericDeclImpl      = impl;
-    data.genericDeclInterface = itf;
+    auto& data         = ensureGenericData(ctx);
+    data.declImpl      = impl;
+    data.declInterface = itf;
 }
 
 SymbolImpl* SymbolFunction::genericDeclImpl() const noexcept
 {
     if (const auto* data = genericData())
-        return data->genericDeclImpl;
+        return data->declImpl;
     return nullptr;
 }
 
 SymbolInterface* SymbolFunction::genericDeclInterface() const noexcept
 {
     if (const auto* data = genericData())
-        return data->genericDeclInterface;
+        return data->declInterface;
     return nullptr;
 }
 

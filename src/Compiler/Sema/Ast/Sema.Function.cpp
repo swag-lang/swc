@@ -29,14 +29,14 @@ namespace
 {
     const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
-        if (const auto* symImpl = sema.frame().currentImpl())
-            return symImpl;
-
         if (symFunc)
         {
             if (const SymbolMap* ownerSymMap = symFunc->ownerSymMap(); ownerSymMap && ownerSymMap->isImpl())
                 return &ownerSymMap->cast<SymbolImpl>();
         }
+
+        if (const auto* symImpl = sema.frame().currentImpl())
+            return symImpl;
 
         SymbolMap* symMap = sema.curSymMap();
         if (symMap && symMap->isImpl())
@@ -47,9 +47,6 @@ namespace
 
     const SymbolInterface* functionDeclInterfaceContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
-        if (const auto* symItf = sema.frame().currentInterface())
-            return symItf;
-
         if (symFunc)
         {
             if (const SymbolMap* ownerSymMap = symFunc->ownerSymMap(); ownerSymMap)
@@ -60,6 +57,9 @@ namespace
                     return ownerSymMap->cast<SymbolImpl>().symInterface();
             }
         }
+
+        if (const auto* symItf = sema.frame().currentInterface())
+            return symItf;
 
         SymbolMap* symMap = sema.curSymMap();
         if (!symMap)

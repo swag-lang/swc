@@ -241,45 +241,6 @@ namespace
         return Result::Continue;
     }
 
-    const SymbolFunction* declContextRoot(const SymbolFunction& function)
-    {
-        if (const auto* root = function.genericRootSym())
-            return root;
-        return &function;
-    }
-
-    SymbolImpl* resolveDeclImplContext(const SymbolFunction& function)
-    {
-        const SymbolMap* symMap = declContextRoot(function)->ownerSymMap();
-        while (symMap)
-        {
-            if (symMap->isImpl())
-                return &const_cast<SymbolMap*>(symMap)->cast<SymbolImpl>();
-            symMap = symMap->ownerSymMap();
-        }
-
-        return nullptr;
-    }
-
-    SymbolInterface* resolveDeclInterfaceContext(const SymbolFunction& function)
-    {
-        const SymbolMap* symMap = declContextRoot(function)->ownerSymMap();
-        while (symMap)
-        {
-            if (symMap->isInterface())
-                return &const_cast<SymbolMap*>(symMap)->cast<SymbolInterface>();
-
-            if (symMap->isImpl())
-            {
-                if (SymbolInterface* itf = symMap->cast<SymbolImpl>().symInterface())
-                    return itf;
-            }
-
-            symMap = symMap->ownerSymMap();
-        }
-
-        return nullptr;
-    }
 }
 
 struct SymbolFunction::GenericData
@@ -809,12 +770,37 @@ const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
 
 SymbolImpl* SymbolFunction::declImplContext() const noexcept
 {
-    return resolveDeclImplContext(*this);
+    const SymbolFunction* const root   = genericRootSym();
+    const SymbolMap*            symMap = (root ? root : this)->ownerSymMap();
+    while (symMap)
+    {
+        if (symMap->isImpl())
+            return &const_cast<SymbolMap*>(symMap)->cast<SymbolImpl>();
+        symMap = symMap->ownerSymMap();
+    }
+
+    return nullptr;
 }
 
 SymbolInterface* SymbolFunction::declInterfaceContext() const noexcept
 {
-    return resolveDeclInterfaceContext(*this);
+    const SymbolFunction* const root   = genericRootSym();
+    const SymbolMap*            symMap = (root ? root : this)->ownerSymMap();
+    while (symMap)
+    {
+        if (symMap->isInterface())
+            return &const_cast<SymbolMap*>(symMap)->cast<SymbolInterface>();
+
+        if (symMap->isImpl())
+        {
+            if (SymbolInterface* itf = symMap->cast<SymbolImpl>().symInterface())
+                return itf;
+        }
+
+        symMap = symMap->ownerSymMap();
+    }
+
+    return nullptr;
 }
 
 bool SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions)

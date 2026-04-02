@@ -15,17 +15,20 @@ class SymbolImpl;
 class SymbolInterface;
 class TaskContext;
 
-enum class SymbolFunctionFlagsE : uint8_t
+enum class SymbolFunctionFlagsE : uint16_t
 {
-    Zero      = 0,
-    Closure   = 1 << 0,
-    Method    = 1 << 1,
-    Throwable = 1 << 2,
-    Const     = 1 << 3,
-    Empty     = 1 << 4,
-    Attribute = 1 << 5,
-    Pure      = 1 << 6,
-    Variadic  = 1 << 7,
+    Zero            = 0,
+    Closure         = 1 << 0,
+    Method          = 1 << 1,
+    Throwable       = 1 << 2,
+    Const           = 1 << 3,
+    Empty           = 1 << 4,
+    Attribute       = 1 << 5,
+    Pure            = 1 << 6,
+    Variadic        = 1 << 7,
+    UsesGvtd        = 1 << 8,
+    GenericRoot     = 1 << 9,
+    GenericInstance = 1 << 10,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
@@ -54,6 +57,7 @@ public:
     bool                                sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
     bool                                sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
+    SymbolFunctionFlags                 semanticFlags() const noexcept { return extraFlags().mask(K_SEMANTIC_FLAGS); }
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
 
@@ -73,8 +77,8 @@ public:
     std::string_view foreignLinkModuleName() const { return attributes().foreignLinkModuleName; }
     Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
 
-    bool usesGvtd() const noexcept { return usesGvtd_; }
-    void setUsesGvtd() noexcept { usesGvtd_ = true; }
+    bool usesGvtd() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::UsesGvtd); }
+    void setUsesGvtd() noexcept { addExtraFlag(SymbolFunctionFlagsE::UsesGvtd); }
 
     bool     hasInterfaceMethodSlot() const noexcept { return interfaceMethodSlot_ != K_INVALID_INTERFACE_METHOD_SLOT; }
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
@@ -107,9 +111,15 @@ public:
     void                          jit(TaskContext& ctx);
     const MachineCode&            loweredCode() const noexcept { return loweredMicroCode_; }
 
-    bool                  isGenericRoot() const noexcept { return genericRoot_; }
-    void                  setGenericRoot(bool value) noexcept { genericRoot_ = value; }
-    bool                  isGenericInstance() const noexcept { return genericInstance_; }
+    bool                  isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
+    void                  setGenericRoot(bool value) noexcept
+    {
+        if (value)
+            addExtraFlag(SymbolFunctionFlagsE::GenericRoot);
+        else
+            removeExtraFlag(SymbolFunctionFlagsE::GenericRoot);
+    }
+    bool                  isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
     void                  setGenericInstance(SymbolFunction* root) noexcept;
     SymbolFunction*       genericRootSym() noexcept { return genericRootSym_; }
     const SymbolFunction* genericRootSym() const noexcept { return genericRootSym_; }
@@ -124,6 +134,10 @@ public:
     void                  setGenericNodeCompleted() const noexcept;
 
 private:
+    static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure | SymbolFunctionFlagsE::Method | SymbolFunctionFlagsE::Throwable |
+                                                            SymbolFunctionFlagsE::Const | SymbolFunctionFlagsE::Empty | SymbolFunctionFlagsE::Attribute |
+                                                            SymbolFunctionFlagsE::Pure | SymbolFunctionFlagsE::Variadic;
+
     bool hasLoweredCode() const noexcept;
     bool hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
     bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
@@ -161,9 +175,6 @@ private:
     std::atomic<void*>              jitPreparedAddress_   = nullptr;
     std::atomic<void*>              jitEntryAddress_      = nullptr;
     std::atomic<bool>               codeGenJobScheduled_  = false;
-    bool                            usesGvtd_             = false;
-    bool                            genericRoot_          = false;
-    bool                            genericInstance_      = false;
     SymbolFunction*                 genericRootSym_       = nullptr;
     SymbolImpl*                     genericDeclImpl_      = nullptr;
     SymbolInterface*                genericDeclInterface_ = nullptr;

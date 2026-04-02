@@ -423,7 +423,7 @@ namespace
             cloneDecl.spanGenericParamsRef = SpanRef::invalid();
 
             auto* instance         = Symbol::make<SymbolFunction>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, function->idRef(), clonedGenericSymbolFlags(root));
-            instance->extraFlags() = function->extraFlags();
+            instance->extraFlags() = function->semanticFlags();
             instance->setAttributes(sema.ctx(), function->attributes());
             instance->setRtAttributeFlags(function->rtAttributeFlags());
             instance->setSpecOpKind(function->specOpKind());

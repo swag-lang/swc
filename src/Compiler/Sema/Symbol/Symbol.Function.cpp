@@ -657,8 +657,11 @@ void SymbolFunction::jit(TaskContext& ctx)
 
 void SymbolFunction::setGenericInstance(SymbolFunction* root) noexcept
 {
-    genericInstance_ = root != nullptr;
-    genericRootSym_  = root;
+    if (root)
+        addExtraFlag(SymbolFunctionFlagsE::GenericInstance);
+    else
+        removeExtraFlag(SymbolFunctionFlagsE::GenericInstance);
+    genericRootSym_ = root;
 }
 
 void SymbolFunction::setGenericDeclContext(SymbolImpl* impl, SymbolInterface* itf) noexcept
@@ -786,7 +789,7 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
         return false;
     if (!sameTypeSignature(otherFunc))
         return false;
-    if (extraFlags() != otherFunc.extraFlags())
+    if (semanticFlags() != otherFunc.semanticFlags())
         return false;
     if (rtAttributeFlags() != otherFunc.rtAttributeFlags())
         return false;

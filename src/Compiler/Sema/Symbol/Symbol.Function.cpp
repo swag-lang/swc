@@ -655,6 +655,14 @@ void SymbolFunction::jit(TaskContext& ctx)
     }
 }
 
+void SymbolFunction::setGenericRoot(bool value) noexcept
+{
+    if (value)
+        addExtraFlag(SymbolFunctionFlagsE::GenericRoot);
+    else
+        removeExtraFlag(SymbolFunctionFlagsE::GenericRoot);
+}
+
 void SymbolFunction::setGenericInstance(SymbolFunction* root) noexcept
 {
     if (root)

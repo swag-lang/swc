@@ -112,13 +112,7 @@ public:
     const MachineCode&            loweredCode() const noexcept { return loweredMicroCode_; }
 
     bool                  isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
-    void                  setGenericRoot(bool value) noexcept
-    {
-        if (value)
-            addExtraFlag(SymbolFunctionFlagsE::GenericRoot);
-        else
-            removeExtraFlag(SymbolFunctionFlagsE::GenericRoot);
-    }
+    void                  setGenericRoot(bool value) noexcept;
     bool                  isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
     void                  setGenericInstance(SymbolFunction* root) noexcept;
     SymbolFunction*       genericRootSym() noexcept { return genericRootSym_; }
@@ -134,9 +128,14 @@ public:
     void                  setGenericNodeCompleted() const noexcept;
 
 private:
-    static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure | SymbolFunctionFlagsE::Method | SymbolFunctionFlagsE::Throwable |
-                                                            SymbolFunctionFlagsE::Const | SymbolFunctionFlagsE::Empty | SymbolFunctionFlagsE::Attribute |
-                                                            SymbolFunctionFlagsE::Pure | SymbolFunctionFlagsE::Variadic;
+    static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure |
+                                                            SymbolFunctionFlagsE::Method |
+                                                            SymbolFunctionFlagsE::Throwable |
+                                                            SymbolFunctionFlagsE::Const |
+                                                            SymbolFunctionFlagsE::Empty |
+                                                            SymbolFunctionFlagsE::Attribute |
+                                                            SymbolFunctionFlagsE::Pure |
+                                                            SymbolFunctionFlagsE::Variadic;
 
     bool hasLoweredCode() const noexcept;
     bool hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }

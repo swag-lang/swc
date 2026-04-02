@@ -56,12 +56,12 @@ public:
 
     SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;
     Result                       registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind);
-    SymbolFunction*             opDrop() { return opDrop_; }
-    const SymbolFunction*       opDrop() const { return opDrop_; }
-    SymbolFunction*             opPostCopy() { return opPostCopy_; }
-    const SymbolFunction*       opPostCopy() const { return opPostCopy_; }
-    SymbolFunction*             opPostMove() { return opPostMove_; }
-    const SymbolFunction*       opPostMove() const { return opPostMove_; }
+    SymbolFunction*              opDrop() { return opDrop_; }
+    const SymbolFunction*        opDrop() const { return opDrop_; }
+    SymbolFunction*              opPostCopy() { return opPostCopy_; }
+    const SymbolFunction*        opPostCopy() const { return opPostCopy_; }
+    SymbolFunction*              opPostMove() { return opPostMove_; }
+    const SymbolFunction*        opPostMove() const { return opPostMove_; }
 
     bool                          isGenericRoot() const noexcept { return genericRoot_; }
     void                          setGenericRoot(bool value) noexcept { genericRoot_ = value; }

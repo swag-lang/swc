@@ -300,7 +300,6 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     auto& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
     sym.addExtraFlag(SymbolFunctionFlagsE::Attribute);
 
-    // Predefined attributes
     if (sym.inSwagNamespace(sema.ctx()))
     {
         const RtAttributeFlags attrFlag = predefinedRtAttributeFlag(sema, sym.idRef());

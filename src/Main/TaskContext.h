@@ -37,25 +37,25 @@ public:
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
 
-    bool                silentDiagnostic() const { return silentDiagnostic_; }
-    void                setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
-    void                setHasError() { hasError_ = true; }
-    void                setHasWarning() { hasWarning_ = true; }
-    bool                hasError() const { return hasError_; }
-    bool                hasWarning() const { return hasWarning_; }
+    bool                      silentDiagnostic() const { return silentDiagnostic_; }
+    void                      setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
+    void                      setHasError() { hasError_ = true; }
+    void                      setHasWarning() { hasWarning_ = true; }
+    bool                      hasError() const { return hasError_; }
+    bool                      hasWarning() const { return hasWarning_; }
     static const TaskContext* current() noexcept { return current_; }
     static const TaskContext* setCurrent(const TaskContext* ctx) noexcept;
 
 private:
     friend class TaskScopedContext;
 
-    const Global*                           global_           = nullptr;
-    const CommandLine*                      cmdLine_          = nullptr;
-    CompilerInstance*                       compilerInstance_ = nullptr;
-    bool                                    silentDiagnostic_ = false;
-    bool                                    hasError_         = false;
-    bool                                    hasWarning_       = false;
-    TaskState                               state_;
+    const Global*                                 global_           = nullptr;
+    const CommandLine*                            cmdLine_          = nullptr;
+    CompilerInstance*                             compilerInstance_ = nullptr;
+    bool                                          silentDiagnostic_ = false;
+    bool                                          hasError_         = false;
+    bool                                          hasWarning_       = false;
+    TaskState                                     state_;
     inline static thread_local const TaskContext* current_ = nullptr;
 };
 

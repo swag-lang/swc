@@ -430,7 +430,7 @@ namespace
             instance->setCallConvKind(function->callConvKind());
             instance->setDeclNodeRef(cloneRef);
             instance->setOwnerSymMap(function->ownerSymMap());
-            instance->setGenericInstance(function);
+            instance->setGenericInstance(sema.ctx(), function);
             return instance;
         }
 
@@ -498,7 +498,7 @@ namespace
         SmallVector<GenericInstanceKey> keys;
         buildGenericKeys(params, resolvedArgs, keys);
 
-        GenericInstanceStorage& storage = root.isFunction() ? root.cast<SymbolFunction>().genericInstanceStorage() : root.cast<SymbolStruct>().genericInstanceStorage();
+        GenericInstanceStorage& storage = root.isFunction() ? root.cast<SymbolFunction>().genericInstanceStorage(sema.ctx()) : root.cast<SymbolStruct>().genericInstanceStorage();
 
         std::unique_lock lk(storage.getMutex());
         if (auto* instance = storage.findNoLock(keys.span()))

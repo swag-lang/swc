@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Memory/Heap.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -240,6 +241,47 @@ namespace
     }
 }
 
+struct SymbolFunction::GenericData
+{
+    // Generic instance state is rare enough that it should not bloat every function symbol.
+    GenericInstanceStorage          genericInstances;
+    std::atomic<const TaskContext*> genericCompletionOwner = nullptr;
+    mutable std::atomic<uint32_t>   genericCompletionDepth = 0;
+    mutable std::atomic<bool>       genericNodeCompleted   = false;
+    SymbolFunction*                 genericRootSym         = nullptr;
+    SymbolImpl*                     genericDeclImpl        = nullptr;
+    SymbolInterface*                genericDeclInterface   = nullptr;
+};
+
+RtAttributeFlags SymbolFunction::rtAttributeFlags() const
+{
+    if (rtAttributeBitIndex_ == K_INVALID_RT_ATTRIBUTE_BIT_INDEX)
+        return RtAttributeFlagsE::Zero;
+
+    return RtAttributeFlags{static_cast<RtAttributeFlagsE>(1ull << rtAttributeBitIndex_)};
+}
+
+void SymbolFunction::setRtAttributeFlags(const RtAttributeFlags attr)
+{
+    if (attr == RtAttributeFlagsE::Zero)
+    {
+        rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
+        return;
+    }
+
+    uint64_t bits = attr.get();
+    SWC_ASSERT(bits != 0 && (bits & (bits - 1)) == 0);
+
+    uint8_t bitIndex = 0;
+    while ((bits & 1ull) == 0)
+    {
+        bits >>= 1;
+        bitIndex++;
+    }
+
+    rtAttributeBitIndex_ = bitIndex;
+}
+
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
 {
     Utf8 out;
@@ -445,10 +487,10 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
         SWC_ASSERT(size > 0);
         SWC_ASSERT(alignment > 0);
 
-        localStackOffset_ = Math::alignUpU64(localStackOffset_, alignment);
-        SWC_ASSERT(localStackOffset_ <= std::numeric_limits<uint32_t>::max());
-        local->setOffset(static_cast<uint32_t>(localStackOffset_));
-        localStackOffset_ += size;
+        localStackOffset_ = Math::alignUpU32(localStackOffset_, alignment);
+        local->setOffset(localStackOffset_);
+        SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max() - localStackOffset_);
+        localStackOffset_ += static_cast<uint32_t>(size);
         numComputedLocals_++;
     }
 }
@@ -461,8 +503,7 @@ MicroBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept
 
 bool SymbolFunction::tryMarkCodeGenJobScheduled() noexcept
 {
-    bool expected = false;
-    return codeGenJobScheduled_.compare_exchange_strong(expected, true, std::memory_order_acq_rel);
+    return flags_.tryAdd(SymbolFlagsE::CodeGenJobScheduled);
 }
 
 void SymbolFunction::addCallDependency(SymbolFunction* sym)
@@ -472,7 +513,7 @@ void SymbolFunction::addCallDependency(SymbolFunction* sym)
     if (sym->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         return;
 
-    const std::scoped_lock lock(callDepsMutex_);
+    const std::scoped_lock lock(metadataMutex_);
     if (std::ranges::find(callDependencies_, sym) != callDependencies_.end())
         return;
     callDependencies_.push_back(sym);
@@ -480,10 +521,37 @@ void SymbolFunction::addCallDependency(SymbolFunction* sym)
 
 void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) const
 {
-    const std::scoped_lock lock(callDepsMutex_);
+    const std::scoped_lock lock(metadataMutex_);
     out.reserve(out.size() + callDependencies_.size());
     for (SymbolFunction* dep : callDependencies_)
         out.push_back(dep);
+}
+
+SymbolFunction::GenericData* SymbolFunction::genericData() const noexcept
+{
+    return genericData_.load(std::memory_order_acquire);
+}
+
+SymbolFunction::GenericData& SymbolFunction::ensureGenericData(TaskContext& ctx) noexcept
+{
+    if (auto* data = genericData())
+        return *data;
+
+    auto* newData  = heapNew<GenericData>();
+    auto* expected = static_cast<GenericData*>(nullptr);
+    if (!genericData_.compare_exchange_strong(expected, newData, std::memory_order_acq_rel, std::memory_order_acquire))
+    {
+        heapDelete(newData);
+        return *expected;
+    }
+
+    SWC_UNUSED(ctx);
+    return *newData;
+}
+
+GenericInstanceStorage& SymbolFunction::genericInstanceStorage(TaskContext& ctx) noexcept
+{
+    return ensureGenericData(ctx).genericInstances;
 }
 
 void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
@@ -518,23 +586,27 @@ Result SymbolFunction::emit(TaskContext& ctx)
 
 void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) noexcept
 {
+    auto&              data     = ensureGenericData(const_cast<TaskContext&>(ctx));
     const TaskContext* expected = nullptr;
-    const bool         done     = genericCompletionOwner_.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
+    const bool         done     = data.genericCompletionOwner.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
     SWC_ASSERT(done || expected == &ctx);
 }
 
 bool SymbolFunction::isGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    return genericCompletionOwner_.load(std::memory_order_acquire) == &ctx;
+    const auto* data = genericData();
+    return data && data->genericCompletionOwner.load(std::memory_order_acquire) == &ctx;
 }
 
 bool SymbolFunction::tryStartGenericCompletion(const TaskContext& ctx) const noexcept
 {
     SWC_ASSERT(isGenericCompletionOwner(ctx));
-    const auto previousDepth = genericCompletionDepth_.fetch_add(1, std::memory_order_acq_rel);
+    const auto* data = genericData();
+    SWC_ASSERT(data != nullptr);
+    const auto previousDepth = data->genericCompletionDepth.fetch_add(1, std::memory_order_acq_rel);
     if (previousDepth != 0)
     {
-        genericCompletionDepth_.fetch_sub(1, std::memory_order_acq_rel);
+        data->genericCompletionDepth.fetch_sub(1, std::memory_order_acq_rel);
         return false;
     }
 
@@ -543,18 +615,23 @@ bool SymbolFunction::tryStartGenericCompletion(const TaskContext& ctx) const noe
 
 void SymbolFunction::finishGenericCompletion() const noexcept
 {
-    const auto previousDepth = genericCompletionDepth_.fetch_sub(1, std::memory_order_acq_rel);
+    const auto* data = genericData();
+    SWC_ASSERT(data != nullptr);
+    const auto previousDepth = data->genericCompletionDepth.fetch_sub(1, std::memory_order_acq_rel);
     SWC_ASSERT(previousDepth != 0);
 }
 
 bool SymbolFunction::isGenericNodeCompleted() const noexcept
 {
-    return genericNodeCompleted_.load(std::memory_order_acquire);
+    const auto* data = genericData();
+    return data && data->genericNodeCompleted.load(std::memory_order_acquire);
 }
 
 void SymbolFunction::setGenericNodeCompleted() const noexcept
 {
-    genericNodeCompleted_.store(true, std::memory_order_release);
+    const auto* data = genericData();
+    SWC_ASSERT(data != nullptr);
+    data->genericNodeCompleted.store(true, std::memory_order_release);
 }
 
 bool SymbolFunction::hasLoweredCode() const noexcept
@@ -576,7 +653,7 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
     if (!isClosure())
         return Result::Error;
 
-    const std::scoped_lock lock(closureAdapterMutex_);
+    const std::scoped_lock lock(metadataMutex_);
     if (closureAdapter_ != nullptr)
     {
         outAdapter = closureAdapter_;
@@ -663,19 +740,57 @@ void SymbolFunction::setGenericRoot(bool value) noexcept
         removeExtraFlag(SymbolFunctionFlagsE::GenericRoot);
 }
 
-void SymbolFunction::setGenericInstance(SymbolFunction* root) noexcept
+void SymbolFunction::setGenericInstance(TaskContext& ctx, SymbolFunction* root) noexcept
 {
     if (root)
+    {
         addExtraFlag(SymbolFunctionFlagsE::GenericInstance);
+        ensureGenericData(ctx).genericRootSym = root;
+    }
     else
+    {
         removeExtraFlag(SymbolFunctionFlagsE::GenericInstance);
-    genericRootSym_ = root;
+        if (auto* data = genericData())
+            data->genericRootSym = nullptr;
+    }
 }
 
-void SymbolFunction::setGenericDeclContext(SymbolImpl* impl, SymbolInterface* itf) noexcept
+SymbolFunction* SymbolFunction::genericRootSym() noexcept
 {
-    genericDeclImpl_      = impl;
-    genericDeclInterface_ = itf;
+    if (auto* data = genericData())
+        return data->genericRootSym;
+    return nullptr;
+}
+
+const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
+{
+    if (const auto* data = genericData())
+        return data->genericRootSym;
+    return nullptr;
+}
+
+void SymbolFunction::setGenericDeclContext(TaskContext& ctx, SymbolImpl* impl, SymbolInterface* itf) noexcept
+{
+    if (!impl && !itf && !genericData())
+        return;
+
+    auto& data                = ensureGenericData(ctx);
+    data.genericDeclImpl      = impl;
+    data.genericDeclInterface = itf;
+}
+
+SymbolImpl* SymbolFunction::genericDeclImpl() const noexcept
+{
+    if (const auto* data = genericData())
+        return data->genericDeclImpl;
+    return nullptr;
+}
+
+SymbolInterface* SymbolFunction::genericDeclInterface() const noexcept
+{
+    if (const auto* data = genericData())
+        return data->genericDeclInterface;
+    return nullptr;
 }
 
 bool SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions)

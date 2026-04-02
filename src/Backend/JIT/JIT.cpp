@@ -844,11 +844,11 @@ namespace
         if (!context)
             return {};
 
-        const uint64_t        rip          = context->Rip;
-        const SymbolFunction* matchedFn    = nullptr;
-        uint64_t              matchedEntry = 0;
-        const MachineCode*    matchedCode  = nullptr;
-        const auto            preparedFunctions = ctx.compiler().jitPreparedFunctionsSnapshot();
+        const uint64_t                     rip               = context->Rip;
+        const SymbolFunction*              matchedFn         = nullptr;
+        uint64_t                           matchedEntry      = 0;
+        const MachineCode*                 matchedCode       = nullptr;
+        const auto                         preparedFunctions = ctx.compiler().jitPreparedFunctionsSnapshot();
         std::vector<const SymbolFunction*> functions;
         functions.reserve(preparedFunctions.size() + (ctx.state().runJitFunction ? 1u : 0u));
 

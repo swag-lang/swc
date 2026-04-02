@@ -216,6 +216,12 @@ struct AtomicEnumFlags
         flags.fetch_or(static_cast<U>(fl), mo);
     }
 
+    bool tryAdd(T fl, std::memory_order mo = std::memory_order_acq_rel) noexcept
+    {
+        const U mask = static_cast<U>(fl);
+        return (flags.fetch_or(mask, mo) & mask) == 0;
+    }
+
     void remove(EnumFlags<T> fl, std::memory_order mo = std::memory_order_acq_rel) noexcept
     {
         flags.fetch_and(static_cast<U>(~fl.flags), mo);

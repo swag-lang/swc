@@ -182,7 +182,6 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
     }
 
     sym.setGenericRoot(spanGenericParamsRef.isValid());
-    sym.setGenericDeclContext(const_cast<SymbolImpl*>(functionDeclImplContext(sema, &sym)), const_cast<SymbolInterface*>(functionDeclInterfaceContext(sema, &sym)));
     if (nodeBodyRef.isInvalid())
         sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
 
@@ -204,7 +203,8 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, SourceCodeRef{srcViewRef(), mtdTokRef});
     }
 
-    sym.setGenericDeclContext(const_cast<SymbolImpl*>(declImpl), const_cast<SymbolInterface*>(declItf));
+    if (declImpl || declItf || sym.isGenericRoot() || sym.isGenericInstance())
+        sym.setGenericDeclContext(sema.ctx(), const_cast<SymbolImpl*>(declImpl), const_cast<SymbolInterface*>(declItf));
 
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {

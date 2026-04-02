@@ -44,8 +44,8 @@ public:
 
     TypeRef                             returnTypeRef() const { return returnType_; }
     void                                setReturnTypeRef(TypeRef typeRef) { returnType_ = typeRef; }
-    RtAttributeFlags                    rtAttributeFlags() const { return rtAttributeFlags_; }
-    void                                setRtAttributeFlags(RtAttributeFlags attr) { rtAttributeFlags_ = attr; }
+    RtAttributeFlags                    rtAttributeFlags() const;
+    void                                setRtAttributeFlags(RtAttributeFlags attr);
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
@@ -84,42 +84,41 @@ public:
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
     void     setInterfaceMethodSlot(uint32_t slot) noexcept { interfaceMethodSlot_ = slot; }
 
-    SpecOpKind                    specOpKind() const noexcept { return specOpKind_; }
-    void                          setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
-    CallConvKind                  callConvKind() const noexcept { return callConvKind_; }
-    void                          setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
-    MicroBuilder&                 microInstrBuilder(TaskContext& ctx) noexcept;
-    const MicroBuilder&           microInstrBuilder() const noexcept { return microInstrBuilder_; }
-    AstNodeRef                    declNodeRef() const noexcept { return declNodeRef_; }
-    void                          setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
-    uint32_t                      debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
-    void                          setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
-    MicroReg                      debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
-    void                          setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
-    bool                          tryMarkCodeGenJobScheduled() noexcept;
-    void                          addCallDependency(SymbolFunction* sym);
-    void                          appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    void                          appendJitOrder(SmallVector<SymbolFunction*>& out) const;
-    void*                         jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
-    void*                         jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    void                          resetJitState() noexcept;
-    Result                        emit(TaskContext& ctx);
-    Result                        ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
-    GenericInstanceStorage&       genericInstanceStorage() noexcept { return genericInstances_; }
-    const GenericInstanceStorage& genericInstanceStorage() const noexcept { return genericInstances_; }
-    static bool                   jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
-    void                          jit(TaskContext& ctx);
-    const MachineCode&            loweredCode() const noexcept { return loweredMicroCode_; }
+    SpecOpKind              specOpKind() const noexcept { return specOpKind_; }
+    void                    setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    CallConvKind            callConvKind() const noexcept { return callConvKind_; }
+    void                    setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
+    MicroBuilder&           microInstrBuilder(TaskContext& ctx) noexcept;
+    const MicroBuilder&     microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    AstNodeRef              declNodeRef() const noexcept { return declNodeRef_; }
+    void                    setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    uint32_t                debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
+    void                    setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
+    MicroReg                debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
+    void                    setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
+    bool                    tryMarkCodeGenJobScheduled() noexcept;
+    void                    addCallDependency(SymbolFunction* sym);
+    void                    appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
+    void*                   jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
+    void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    void                    resetJitState() noexcept;
+    Result                  emit(TaskContext& ctx);
+    Result                  ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
+    GenericInstanceStorage& genericInstanceStorage(TaskContext& ctx) noexcept;
+    static bool             jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
+    void                    jit(TaskContext& ctx);
+    const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
 
     bool                  isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
     void                  setGenericRoot(bool value) noexcept;
     bool                  isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
-    void                  setGenericInstance(SymbolFunction* root) noexcept;
-    SymbolFunction*       genericRootSym() noexcept { return genericRootSym_; }
-    const SymbolFunction* genericRootSym() const noexcept { return genericRootSym_; }
-    void                  setGenericDeclContext(SymbolImpl* impl, SymbolInterface* itf) noexcept;
-    SymbolImpl*           genericDeclImpl() const noexcept { return genericDeclImpl_; }
-    SymbolInterface*      genericDeclInterface() const noexcept { return genericDeclInterface_; }
+    void                  setGenericInstance(TaskContext& ctx, SymbolFunction* root) noexcept;
+    SymbolFunction*       genericRootSym() noexcept;
+    const SymbolFunction* genericRootSym() const noexcept;
+    void                  setGenericDeclContext(TaskContext& ctx, SymbolImpl* impl, SymbolInterface* itf) noexcept;
+    SymbolImpl*           genericDeclImpl() const noexcept;
+    SymbolInterface*      genericDeclInterface() const noexcept;
     void                  setGenericCompletionOwner(const TaskContext& ctx) noexcept;
     bool                  isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
     bool                  tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
@@ -128,6 +127,8 @@ public:
     void                  setGenericNodeCompleted() const noexcept;
 
 private:
+    struct GenericData;
+
     static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure |
                                                             SymbolFunctionFlagsE::Method |
                                                             SymbolFunctionFlagsE::Throwable |
@@ -137,21 +138,25 @@ private:
                                                             SymbolFunctionFlagsE::Pure |
                                                             SymbolFunctionFlagsE::Variadic;
 
-    bool hasLoweredCode() const noexcept;
-    bool hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
-    bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
-    bool jitPrepare(TaskContext& ctx);
-    void jitPatch(TaskContext& ctx);
-    void jitFinalize(TaskContext& ctx);
+    bool         hasLoweredCode() const noexcept;
+    bool         hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
+    bool         hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
+    GenericData& ensureGenericData(TaskContext& ctx) noexcept;
+    GenericData* genericData() const noexcept;
+    bool         jitPrepare(TaskContext& ctx);
+    void         jitPatch(TaskContext& ctx);
+    void         jitFinalize(TaskContext& ctx);
 
-    static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
+    static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT  = 0xFFFFFFFFu;
+    static constexpr uint8_t  K_INVALID_RT_ATTRIBUTE_BIT_INDEX = 0xFFu;
 
     std::vector<SymbolVariable*> parameters_;
     std::vector<SymbolVariable*> localVariables_;
-    size_t                       numComputedLocals_   = 0;
-    uint64_t                     localStackOffset_    = 0;
-    RtAttributeFlags             rtAttributeFlags_    = RtAttributeFlagsE::Zero;
+    std::vector<SymbolFunction*> callDependencies_;
+    uint32_t                     numComputedLocals_   = 0;
+    uint32_t                     localStackOffset_    = 0;
     TypeRef                      returnType_          = TypeRef::invalid();
+    uint8_t                      rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
     CallConvKind                 callConvKind_        = CallConvKind::Host;
     AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
@@ -159,24 +164,15 @@ private:
     uint32_t                     debugStackFrameSize_ = 0;
     MicroReg                     debugStackBaseReg_   = MicroReg::invalid();
 
-    MicroBuilder                    microInstrBuilder_;
-    MachineCode                     loweredMicroCode_;
-    mutable std::mutex              callDepsMutex_;
-    std::vector<SymbolFunction*>    callDependencies_;
-    GenericInstanceStorage          genericInstances_;
-    std::atomic<const TaskContext*> genericCompletionOwner_ = nullptr;
-    mutable std::atomic<uint32_t>   genericCompletionDepth_ = 0;
-    mutable std::atomic<bool>       genericNodeCompleted_   = false;
-    mutable std::mutex              closureAdapterMutex_;
-    SymbolFunction*                 closureAdapter_ = nullptr;
-    std::mutex                      emitMutex_;
-    JITMemory                       jitExecMemory_;
-    std::atomic<void*>              jitPreparedAddress_   = nullptr;
-    std::atomic<void*>              jitEntryAddress_      = nullptr;
-    std::atomic<bool>               codeGenJobScheduled_  = false;
-    SymbolFunction*                 genericRootSym_       = nullptr;
-    SymbolImpl*                     genericDeclImpl_      = nullptr;
-    SymbolInterface*                genericDeclInterface_ = nullptr;
+    MicroBuilder                      microInstrBuilder_;
+    MachineCode                       loweredMicroCode_;
+    mutable std::mutex                metadataMutex_;
+    SymbolFunction*                   closureAdapter_ = nullptr;
+    std::mutex                        emitMutex_;
+    JITMemory                         jitExecMemory_;
+    std::atomic<void*>                jitPreparedAddress_ = nullptr;
+    std::atomic<void*>                jitEntryAddress_    = nullptr;
+    mutable std::atomic<GenericData*> genericData_        = nullptr;
 };
 
 SWC_END_NAMESPACE();

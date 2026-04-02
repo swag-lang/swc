@@ -184,7 +184,7 @@ JobRecord* JobManager::popReadyLocked()
 #if SWC_DEV_MODE
             uint32_t pickIndex = 0;
             if (singleThreaded_ && cmdLine_->randomize)
-                pickIndex = static_cast<uint32_t>(rand()) % q.size(); // NOLINT(concurrency-mt-unsafe)
+                pickIndex = static_cast<uint32_t>(std::rand()) % q.size(); // NOLINT(concurrency-mt-unsafe)
             JobRecord* rec = q[pickIndex];
             q.erase(q.begin() + pickIndex);
 #else
@@ -221,7 +221,7 @@ JobRecord* JobManager::popReadyForClientLocked(JobClientId client)
 
             if (!matches.empty())
             {
-                const uint32_t pickIndex = matches[rand() % matches.size()]; // NOLINT(concurrency-mt-unsafe)
+                const uint32_t pickIndex = matches[std::rand() % matches.size()]; // NOLINT(concurrency-mt-unsafe)
                 JobRecord*     rec       = q[pickIndex];
                 q.erase(q.begin() + pickIndex);
                 readyCount_.fetch_sub(1, std::memory_order_acq_rel);

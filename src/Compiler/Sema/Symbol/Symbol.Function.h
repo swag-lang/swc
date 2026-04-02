@@ -107,29 +107,21 @@ public:
     void                          jit(TaskContext& ctx);
     const MachineCode&            loweredCode() const noexcept { return loweredMicroCode_; }
 
-    bool isGenericRoot() const noexcept { return genericRoot_; }
-    void setGenericRoot(bool value) noexcept { genericRoot_ = value; }
-    bool isGenericInstance() const noexcept { return genericInstance_; }
-    void setGenericInstance(SymbolFunction* root) noexcept
-    {
-        genericInstance_ = root != nullptr;
-        genericRootSym_  = root;
-    }
+    bool                  isGenericRoot() const noexcept { return genericRoot_; }
+    void                  setGenericRoot(bool value) noexcept { genericRoot_ = value; }
+    bool                  isGenericInstance() const noexcept { return genericInstance_; }
+    void                  setGenericInstance(SymbolFunction* root) noexcept;
     SymbolFunction*       genericRootSym() noexcept { return genericRootSym_; }
     const SymbolFunction* genericRootSym() const noexcept { return genericRootSym_; }
-    void                  setGenericDeclContext(SymbolImpl* impl, SymbolInterface* itf) noexcept
-    {
-        genericDeclImpl_      = impl;
-        genericDeclInterface_ = itf;
-    }
-    SymbolImpl*      genericDeclImpl() const noexcept { return genericDeclImpl_; }
-    SymbolInterface* genericDeclInterface() const noexcept { return genericDeclInterface_; }
-    void             setGenericCompletionOwner(const TaskContext& ctx) noexcept;
-    bool             isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
-    bool             tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
-    void             finishGenericCompletion() const noexcept;
-    bool             isGenericNodeCompleted() const noexcept;
-    void             setGenericNodeCompleted() const noexcept;
+    void                  setGenericDeclContext(SymbolImpl* impl, SymbolInterface* itf) noexcept;
+    SymbolImpl*           genericDeclImpl() const noexcept { return genericDeclImpl_; }
+    SymbolInterface*      genericDeclInterface() const noexcept { return genericDeclInterface_; }
+    void                  setGenericCompletionOwner(const TaskContext& ctx) noexcept;
+    bool                  isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
+    bool                  tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
+    void                  finishGenericCompletion() const noexcept;
+    bool                  isGenericNodeCompleted() const noexcept;
+    void                  setGenericNodeCompleted() const noexcept;
 
 private:
     bool hasLoweredCode() const noexcept;

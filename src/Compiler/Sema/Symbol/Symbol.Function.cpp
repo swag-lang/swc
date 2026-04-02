@@ -655,6 +655,18 @@ void SymbolFunction::jit(TaskContext& ctx)
     }
 }
 
+void SymbolFunction::setGenericInstance(SymbolFunction* root) noexcept
+{
+    genericInstance_ = root != nullptr;
+    genericRootSym_  = root;
+}
+
+void SymbolFunction::setGenericDeclContext(SymbolImpl* impl, SymbolInterface* itf) noexcept
+{
+    genericDeclImpl_      = impl;
+    genericDeclInterface_ = itf;
+}
+
 bool SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions)
 {
     if (ctx.state().jitEmissionError)

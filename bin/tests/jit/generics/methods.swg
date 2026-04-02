@@ -33,6 +33,11 @@ struct(A, B, C, Left: s32, Right: s32) IndexedTriple
     total: s32
 }
 
+struct(T) LocalWrap
+{
+    value: T
+}
+
 impl Sample
 {
     func(var U) pairWith(const me, other: U)->Pair'(T, U)
@@ -53,6 +58,19 @@ impl Sample
     func(var U, var V, const Left: s32, const Right: s32) makeIndexedTriple(const me, other: U, tail: V)->IndexedTriple'(T, U, V, Left, Right)
     {
         return {first: me.values[Left], second: other, third: tail, total: Left + Right}
+    }
+}
+
+impl LocalWrap
+{
+    mtd const cloneThroughHelper()->LocalWrap
+    {
+        func(var U) make(value: U)->LocalWrap
+        {
+            return {value: cast(T) value}
+        }
+
+        return make(.value)
     }
 }
 
@@ -86,4 +104,13 @@ impl Sample
     @assert(mixed.second == 7'u16)
     @assert(mixed.third == "done")
     @assert(mixed.total == 2)
+}
+
+#test
+{
+    let wrapped: LocalWrap's32 = {value: 7}
+    let clone = wrapped.cloneThroughHelper()
+
+    #assert(#typeof(clone) == LocalWrap's32)
+    @assert(clone.value == 7)
 }

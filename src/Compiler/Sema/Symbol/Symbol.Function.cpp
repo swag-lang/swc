@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Hash.h"
@@ -239,6 +240,46 @@ namespace
         adapter.tryMarkCodeGenJobScheduled();
         return Result::Continue;
     }
+
+    const SymbolFunction* declContextRoot(const SymbolFunction& function)
+    {
+        if (const auto* root = function.genericRootSym())
+            return root;
+        return &function;
+    }
+
+    SymbolImpl* resolveDeclImplContext(const SymbolFunction& function)
+    {
+        const SymbolMap* symMap = declContextRoot(function)->ownerSymMap();
+        while (symMap)
+        {
+            if (symMap->isImpl())
+                return &const_cast<SymbolMap*>(symMap)->cast<SymbolImpl>();
+            symMap = symMap->ownerSymMap();
+        }
+
+        return nullptr;
+    }
+
+    SymbolInterface* resolveDeclInterfaceContext(const SymbolFunction& function)
+    {
+        const SymbolMap* symMap = declContextRoot(function)->ownerSymMap();
+        while (symMap)
+        {
+            if (symMap->isInterface())
+                return &const_cast<SymbolMap*>(symMap)->cast<SymbolInterface>();
+
+            if (symMap->isImpl())
+            {
+                if (SymbolInterface* itf = symMap->cast<SymbolImpl>().symInterface())
+                    return itf;
+            }
+
+            symMap = symMap->ownerSymMap();
+        }
+
+        return nullptr;
+    }
 }
 
 struct SymbolFunction::GenericData
@@ -248,8 +289,6 @@ struct SymbolFunction::GenericData
     mutable std::atomic<uint32_t>   completionDepth = 0;
     mutable std::atomic<bool>       nodeCompleted   = false;
     SymbolFunction*                 rootSym         = nullptr;
-    SymbolImpl*                     declImpl        = nullptr;
-    SymbolInterface*                declInterface   = nullptr;
 };
 
 RtAttributeFlags SymbolFunction::rtAttributeFlags() const
@@ -768,28 +807,14 @@ const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
     return nullptr;
 }
 
-void SymbolFunction::setGenericDeclContext(TaskContext& ctx, SymbolImpl* impl, SymbolInterface* itf) noexcept
+SymbolImpl* SymbolFunction::declImplContext() const noexcept
 {
-    if (!impl && !itf && !genericData())
-        return;
-
-    auto& data         = ensureGenericData(ctx);
-    data.declImpl      = impl;
-    data.declInterface = itf;
+    return resolveDeclImplContext(*this);
 }
 
-SymbolImpl* SymbolFunction::genericDeclImpl() const noexcept
+SymbolInterface* SymbolFunction::declInterfaceContext() const noexcept
 {
-    if (const auto* data = genericData())
-        return data->declImpl;
-    return nullptr;
-}
-
-SymbolInterface* SymbolFunction::genericDeclInterface() const noexcept
-{
-    if (const auto* data = genericData())
-        return data->declInterface;
-    return nullptr;
+    return resolveDeclInterfaceContext(*this);
 }
 
 bool SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions)

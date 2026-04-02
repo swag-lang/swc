@@ -4,12 +4,71 @@
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const SymbolFunction* declContextRoot(const SymbolFunction& function)
+    {
+        if (const auto* root = function.genericRootSym())
+            return root;
+        return &function;
+    }
+
+    SymbolMap* functionDeclStartSymMap(const SymbolFunction& function)
+    {
+        return const_cast<SymbolMap*>(declContextRoot(function)->ownerSymMap());
+    }
+
+    SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction& function)
+    {
+        if (SymbolImpl* symImpl = function.declImplContext())
+            return symImpl;
+
+        if (SymbolImpl* symImpl = sema.frame().currentImpl())
+            return symImpl;
+
+        for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
+        {
+            if (symMap->isImpl())
+                return &symMap->cast<SymbolImpl>();
+        }
+
+        return nullptr;
+    }
+
+    SymbolInterface* functionDeclInterfaceContext(Sema& sema, const SymbolFunction& function)
+    {
+        if (SymbolInterface* symItf = function.declInterfaceContext())
+            return symItf;
+
+        if (SymbolInterface* symItf = sema.frame().currentInterface())
+            return symItf;
+
+        if (SymbolImpl* symImpl = sema.frame().currentImpl())
+        {
+            if (SymbolInterface* symItf = symImpl->symInterface())
+                return symItf;
+        }
+
+        for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
+        {
+            if (symMap->isInterface())
+                return &symMap->cast<SymbolInterface>();
+
+            if (symMap->isImpl())
+            {
+                if (SymbolInterface* symItf = symMap->cast<SymbolImpl>().symInterface())
+                    return symItf;
+            }
+        }
+
+        return nullptr;
+    }
+
     void buildGenericCloneBindings(std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         outBindings.clear();
@@ -75,7 +134,13 @@ namespace
 
         Sema child(sema.ctx(), sema, nodeRef);
         if (const auto* function = root.safeCast<SymbolFunction>())
-            SemaGeneric::prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(function->ownerSymMap()), function->genericDeclImpl(), function->genericDeclInterface(), function->attributes());
+        {
+            SemaGeneric::prepareGenericInstantiationContext(child,
+                                                            functionDeclStartSymMap(*function),
+                                                            functionDeclImplContext(sema, *function),
+                                                            functionDeclInterfaceContext(sema, *function),
+                                                            function->attributes());
+        }
         else
             SemaGeneric::prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
         return child.execResult();

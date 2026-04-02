@@ -116,9 +116,8 @@ public:
     void                  setGenericInstance(TaskContext& ctx, SymbolFunction* root) noexcept;
     SymbolFunction*       genericRootSym() noexcept;
     const SymbolFunction* genericRootSym() const noexcept;
-    void                  setGenericDeclContext(TaskContext& ctx, SymbolImpl* impl, SymbolInterface* itf) noexcept;
-    SymbolImpl*           genericDeclImpl() const noexcept;
-    SymbolInterface*      genericDeclInterface() const noexcept;
+    SymbolImpl*           declImplContext() const noexcept;
+    SymbolInterface*      declInterfaceContext() const noexcept;
     void                  setGenericCompletionOwner(const TaskContext& ctx) noexcept;
     bool                  isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
     bool                  tryStartGenericCompletion(const TaskContext& ctx) const noexcept;

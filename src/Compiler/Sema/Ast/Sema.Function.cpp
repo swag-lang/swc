@@ -31,16 +31,18 @@ namespace
     {
         if (symFunc)
         {
-            if (const SymbolMap* ownerSymMap = symFunc->ownerSymMap(); ownerSymMap && ownerSymMap->isImpl())
-                return &ownerSymMap->cast<SymbolImpl>();
+            if (const auto* symImpl = symFunc->declImplContext())
+                return symImpl;
         }
 
         if (const auto* symImpl = sema.frame().currentImpl())
             return symImpl;
 
-        SymbolMap* symMap = sema.curSymMap();
-        if (symMap && symMap->isImpl())
-            return &symMap->cast<SymbolImpl>();
+        for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
+        {
+            if (symMap->isImpl())
+                return &symMap->cast<SymbolImpl>();
+        }
 
         return nullptr;
     }
@@ -49,27 +51,30 @@ namespace
     {
         if (symFunc)
         {
-            if (const SymbolMap* ownerSymMap = symFunc->ownerSymMap(); ownerSymMap)
-            {
-                if (ownerSymMap->isInterface())
-                    return &ownerSymMap->cast<SymbolInterface>();
-                if (ownerSymMap->isImpl())
-                    return ownerSymMap->cast<SymbolImpl>().symInterface();
-            }
+            if (const auto* symItf = symFunc->declInterfaceContext())
+                return symItf;
         }
 
         if (const auto* symItf = sema.frame().currentInterface())
             return symItf;
 
-        SymbolMap* symMap = sema.curSymMap();
-        if (!symMap)
-            return nullptr;
+        if (const auto* symImpl = sema.frame().currentImpl())
+        {
+            if (const auto* symItf = symImpl->symInterface())
+                return symItf;
+        }
 
-        if (symMap->isInterface())
-            return &symMap->cast<SymbolInterface>();
+        for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
+        {
+            if (symMap->isInterface())
+                return &symMap->cast<SymbolInterface>();
 
-        if (symMap->isImpl())
-            return symMap->cast<SymbolImpl>().symInterface();
+            if (symMap->isImpl())
+            {
+                if (const auto* symItf = symMap->cast<SymbolImpl>().symInterface())
+                    return symItf;
+            }
+        }
 
         return nullptr;
     }
@@ -202,9 +207,6 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
         return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, SourceCodeRef{srcViewRef(), mtdTokRef});
     }
-
-    if (declImpl || declItf || sym.isGenericRoot() || sym.isGenericInstance())
-        sym.setGenericDeclContext(sema.ctx(), const_cast<SymbolImpl*>(declImpl), const_cast<SymbolInterface*>(declItf));
 
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {

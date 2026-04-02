@@ -424,7 +424,7 @@ namespace
 
             auto* instance         = Symbol::make<SymbolFunction>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, function->idRef(), clonedGenericSymbolFlags(root));
             instance->extraFlags() = function->extraFlags();
-            instance->setAttributes(function->attributes());
+            instance->setAttributes(sema.ctx(), function->attributes());
             instance->setRtAttributeFlags(function->rtAttributeFlags());
             instance->setSpecOpKind(function->specOpKind());
             instance->setCallConvKind(function->callConvKind());
@@ -441,7 +441,7 @@ namespace
         auto& st               = root.cast<SymbolStruct>();
         auto* instance         = Symbol::make<SymbolStruct>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
         instance->extraFlags() = st.extraFlags();
-        instance->setAttributes(st.attributes());
+        instance->setAttributes(sema.ctx(), st.attributes());
         instance->setOwnerSymMap(st.ownerSymMap());
         instance->setDeclNodeRef(cloneRef);
         instance->setGenericInstance(&st);

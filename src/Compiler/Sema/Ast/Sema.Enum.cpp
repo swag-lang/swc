@@ -30,7 +30,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
         if (sym.inSwagNamespace(sema.ctx()))
         {
             if (sym.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::AttributeUsage))
-                sym.attributes().addRtFlag(RtAttributeFlagsE::EnumFlags);
+                sym.ensureAttributes(sema.ctx()).addRtFlag(RtAttributeFlagsE::EnumFlags);
         }
     }
 

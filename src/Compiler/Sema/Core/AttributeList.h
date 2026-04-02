@@ -58,6 +58,19 @@ struct AttributeList
     Utf8                            foreignFunctionName;
     Utf8                            foreignLinkModuleName;
 
+    bool empty() const
+    {
+        return attributes.empty() &&
+               rtFlags.none() &&
+               printMicroPassOptions.empty() &&
+               printAstStageOptions.empty() &&
+               !backendOptimize.has_value() &&
+               !hasForeign &&
+               foreignModuleName.empty() &&
+               foreignFunctionName.empty() &&
+               foreignLinkModuleName.empty();
+    }
+
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
 

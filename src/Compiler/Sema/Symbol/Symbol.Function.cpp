@@ -598,7 +598,7 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
         adapter->addExtraFlag(SymbolFunctionFlagsE::Const);
     if (hasVariadicParam())
         adapter->addExtraFlag(SymbolFunctionFlagsE::Variadic);
-    adapter->setAttributes(attributes());
+    adapter->setAttributes(ctx, attributes());
     adapter->setRtAttributeFlags(rtAttributeFlags());
 
     for (const SymbolVariable* param : parameters_)

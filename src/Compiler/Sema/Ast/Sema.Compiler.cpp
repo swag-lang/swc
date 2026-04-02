@@ -1206,7 +1206,7 @@ namespace
             symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
             symFn->setDeclNodeRef(nodeRef);
             symFn->setReturnTypeRef(returnTypeRef);
-            symFn->setAttributes(sema.frame().currentAttributes());
+            symFn->setAttributes(ctx, sema.frame().currentAttributes());
             symFn->setDeclared(ctx);
             sema.setSymbol(nodeRef, symFn);
         }

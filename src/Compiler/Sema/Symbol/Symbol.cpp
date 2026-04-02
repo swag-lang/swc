@@ -9,6 +9,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    const AttributeList g_EmptyAttributes;
+}
+
 SourceCodeRange Symbol::codeRange(TaskContext& ctx) const noexcept
 {
     const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
@@ -156,6 +161,34 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
     ctx.compiler().notifyAlive();
 }
 
+const AttributeList& Symbol::attributes() const
+{
+    if (attributes_ != nullptr)
+        return *attributes_;
+    return g_EmptyAttributes;
+}
+
+AttributeList& Symbol::ensureAttributes(TaskContext& ctx)
+{
+    if (attributes_ == nullptr)
+        attributes_ = ctx.compiler().allocate<AttributeList>();
+    return *attributes_;
+}
+
+void Symbol::setAttributes(TaskContext& ctx, const AttributeList& attrs)
+{
+    if (attrs.empty())
+    {
+        attributes_ = nullptr;
+        return;
+    }
+
+    if (attributes_ == nullptr)
+        attributes_ = ctx.compiler().allocate<AttributeList>();
+
+    *attributes_ = attrs;
+}
+
 void Symbol::registerCompilerIf(Sema& sema)
 {
     if (SemaCompilerIf* compilerIf = sema.frame().currentCompilerIf())
@@ -164,7 +197,7 @@ void Symbol::registerCompilerIf(Sema& sema)
 
 void Symbol::registerAttributes(Sema& sema)
 {
-    setAttributes(sema.frame().currentAttributes());
+    setAttributes(sema.ctx(), sema.frame().currentAttributes());
 }
 
 bool Symbol::isType() const

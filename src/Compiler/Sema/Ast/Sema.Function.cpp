@@ -1149,12 +1149,22 @@ namespace
         if (!symImpl)
             return;
 
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        if (!sym.parameters().empty())
+        {
+            const SymbolVariable* firstParam = sym.parameters().front();
+            if (firstParam && firstParam->idRef() == meId)
+            {
+                return;
+            }
+        }
+
         const TypeRef receiverTypeRef = implReceiverTypeRef(sema, *symImpl, sym.hasExtraFlag(SymbolFunctionFlagsE::Const));
         if (!receiverTypeRef.isValid())
             return;
 
         TaskContext& ctx   = sema.ctx();
-        auto*        symMe = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
+        auto*        symMe = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), meId, SymbolFlagsE::Zero);
         symMe->setTypeRef(receiverTypeRef);
         symMe->addExtraFlag(SymbolVariableFlagsE::Parameter);
 
@@ -1550,6 +1560,12 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
 Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 {
     if (!sema.enteringState())
+        return Result::Continue;
+
+    // Generic specialization can pause and restart while walking the signature.
+    // Reuse the receiver symbol already attached to this node instead of
+    // registering a second `me` parameter on resume.
+    if (sema.curViewSymbol().sym())
         return Result::Continue;
 
     const SymbolImpl* symImpl = sema.frame().currentImpl();

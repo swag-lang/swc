@@ -75,9 +75,9 @@ namespace
 
         Sema child(sema.ctx(), sema, nodeRef);
         if (const auto* function = root.safeCast<SymbolFunction>())
-            child.prepareGenericInstantiationContext(const_cast<SymbolMap*>(function->ownerSymMap()), function->genericDeclImpl(), function->genericDeclInterface(), function->attributes());
+            SemaGeneric::prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(function->ownerSymMap()), function->genericDeclImpl(), function->genericDeclInterface(), function->attributes());
         else
-            child.prepareGenericInstantiationContext(const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
+            SemaGeneric::prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
         return child.execResult();
     }
 
@@ -127,7 +127,7 @@ namespace
     Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, SymbolInterface* itf, const AttributeList& attrs, bool declPass)
     {
         Sema child(sema.ctx(), sema, blockRef, declPass);
-        child.prepareGenericInstantiationContext(impl.asSymMap(), &impl, itf, attrs);
+        SemaGeneric::prepareGenericInstantiationContext(child, impl.asSymMap(), &impl, itf, attrs);
         return child.execResult();
     }
 

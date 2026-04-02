@@ -555,27 +555,6 @@ Result Sema::waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& cod
     return Result::Pause;
 }
 
-void Sema::prepareGenericInstantiationContext(SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs)
-{
-    if (startSymMap)
-        startSymMap_ = startSymMap;
-
-    scopes_.clear();
-    SemaScopeFlags scopeFlags = SemaScopeFlagsE::TopLevel;
-    if (impl)
-        scopeFlags.add(SemaScopeFlagsE::Impl);
-
-    scopes_.emplace_back(std::make_unique<SemaScope>(scopeFlags, nullptr));
-    curScope_ = scopes_.back().get();
-    curScope_->setSymMap(startSymMap_);
-
-    frames_.clear();
-    pushFrame({});
-    frame().setCurrentImpl(impl);
-    frame().setCurrentInterface(itf);
-    frame().currentAttributes() = attrs;
-}
-
 Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
     if (!type || type->isCompleted(ctx()))

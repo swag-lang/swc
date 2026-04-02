@@ -19,6 +19,12 @@ class SymbolImpl;
 class SymbolInterface;
 class MatchContext;
 class IdentifierManager;
+class Sema;
+
+namespace SemaGeneric
+{
+    void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs);
+}
 
 class Sema
 {
@@ -217,10 +223,10 @@ public:
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
-    void        prepareGenericInstantiationContext(SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs);
 
 private:
     friend struct SemaNodeView;
+    friend void   SemaGeneric::prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs);
 
     AstNodeRef               resolvedNodeRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
     TypeRef                  typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }

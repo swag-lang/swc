@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 
@@ -8,6 +9,27 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
+    void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs)
+    {
+        if (startSymMap)
+            sema.startSymMap_ = startSymMap;
+
+        sema.scopes_.clear();
+        SemaScopeFlags scopeFlags = SemaScopeFlagsE::TopLevel;
+        if (impl)
+            scopeFlags.add(SemaScopeFlagsE::Impl);
+
+        sema.scopes_.emplace_back(std::make_unique<SemaScope>(scopeFlags, nullptr));
+        sema.curScope_ = sema.scopes_.back().get();
+        sema.curScope_->setSymMap(sema.startSymMap_);
+
+        sema.frames_.clear();
+        sema.pushFrame({});
+        sema.frame().setCurrentImpl(impl);
+        sema.frame().setCurrentInterface(itf);
+        sema.frame().currentAttributes() = attrs;
+    }
+
     TypeRef unwrapGenericDeductionType(TaskContext& ctx, TypeRef typeRef)
     {
         while (typeRef.isValid())

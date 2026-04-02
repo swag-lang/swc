@@ -4,6 +4,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class SymbolMap;
+
 namespace SemaGeneric
 {
     enum class GenericParamKind : uint8_t
@@ -42,6 +44,7 @@ namespace SemaGeneric
     };
 
     TypeRef unwrapGenericDeductionType(TaskContext& ctx, TypeRef typeRef);
+    void    prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs);
 
     void collectGenericParams(Sema& sema, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams);
     void appendResolvedGenericBinding(const GenericParamDesc& param, const GenericResolvedArg& arg, SmallVector<SemaClone::ParamBinding>& outBindings);

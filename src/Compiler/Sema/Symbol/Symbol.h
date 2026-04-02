@@ -48,7 +48,8 @@ enum class SymbolFlagsE : uint8_t
     CodeGenCompleted = 1 << 6,
 };
 
-using SymbolFlags = AtomicEnumFlags<SymbolFlagsE>;
+using SymbolFlags             = AtomicEnumFlags<SymbolFlagsE>;
+using SymbolExtraFlagsStorage = uint16_t;
 
 class Symbol
 {
@@ -93,7 +94,7 @@ public:
     bool isIgnored() const noexcept { return flags_.has(SymbolFlagsE::Ignored); }
     void setIgnored(TaskContext& ctx) noexcept;
 
-    uint8_t extraFlags() const noexcept { return extraFlags_; }
+    SymbolExtraFlagsStorage extraFlags() const noexcept { return extraFlags_.load(std::memory_order_relaxed); }
 
     const AttributeList& attributes() const { return attributes_; }
     AttributeList&       attributes() { return attributes_; }
@@ -182,30 +183,29 @@ public:
         Stats::get().numSymbols.fetch_add(1);
         Stats::get().memSymbols.fetch_add(sizeof(T), std::memory_order_relaxed);
 #endif
-
         return ctx.compiler().allocate<T>(decl, tokRef, idRef, flags);
     }
 
 protected:
-    Symbol*              nextHomonym_ = nullptr;
-    SymbolMap*           ownerSymMap_ = nullptr;
-    const AstNode*       decl_        = nullptr;
-    AttributeList        attributes_;
-    IdentifierRef        idRef_      = IdentifierRef::invalid();
-    TypeRef              typeRef_    = TypeRef::invalid();
-    TokenRef             tokRef_     = TokenRef::invalid();
-    SymbolKind           kind_       = SymbolKind::Invalid;
-    SymbolFlags          flags_      = SymbolFlagsE::Zero;
-    std::atomic<uint8_t> extraFlags_ = 0;
+    AttributeList                        attributes_;
+    Symbol*                              nextHomonym_ = nullptr;
+    SymbolMap*                           ownerSymMap_ = nullptr;
+    const AstNode*                       decl_        = nullptr;
+    IdentifierRef                        idRef_       = IdentifierRef::invalid();
+    TypeRef                              typeRef_     = TypeRef::invalid();
+    TokenRef                             tokRef_      = TokenRef::invalid();
+    SymbolKind                           kind_        = SymbolKind::Invalid;
+    SymbolFlags                          flags_       = SymbolFlagsE::Zero;
+    std::atomic<SymbolExtraFlagsStorage> extraFlags_  = 0;
 };
 
 template<typename BASE, SymbolKind K, typename E = void>
 struct SymbolExtraFlagsT : BASE
 {
     using FlagsE    = E;
-    using FlagsType = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+    using FlagsType = std::conditional_t<std::is_void_v<E>, SymbolExtraFlagsStorage, EnumFlags<E>>;
 
-    static_assert(sizeof(FlagsType) == sizeof(uint8_t), "Extra flags storage expects one-byte flag wrappers");
+    static_assert(sizeof(FlagsType) <= sizeof(SymbolExtraFlagsStorage), "Extra flags storage expects flag wrappers to fit in the storage");
 
     explicit SymbolExtraFlagsT(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         BASE(decl, tokRef, K, idRef, flags)
@@ -214,18 +214,12 @@ struct SymbolExtraFlagsT : BASE
 
     FlagsType& extraFlags()
     {
-        if constexpr (!std::is_void_v<E>)
-            return *reinterpret_cast<FlagsType*>(&this->extraFlags_);
-        else
-            return this->extraFlags_;
+        return *reinterpret_cast<FlagsType*>(&this->extraFlags_);
     }
 
     const FlagsType& extraFlags() const
     {
-        if constexpr (!std::is_void_v<E>)
-            return *reinterpret_cast<const FlagsType*>(&this->extraFlags_);
-        else
-            return this->extraFlags_;
+        return *reinterpret_cast<const FlagsType*>(&this->extraFlags_);
     }
 
     template<typename T = E>

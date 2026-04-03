@@ -1,6 +1,7 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.Peephole.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/Passes/Pass.Peephole.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -61,6 +62,19 @@ bool MicroPeepholePass::isRuleApplicableToOpcode(const Rule& rule, const MicroIn
                    opcode == MicroInstrOpcode::OpUnaryMem ||
                    opcode == MicroInstrOpcode::OpBinaryMemReg ||
                    opcode == MicroInstrOpcode::OpBinaryMemImm;
+        case RuleTarget::CmpRegImm:
+            return opcode == MicroInstrOpcode::CmpRegImm;
+        case RuleTarget::CmpAny:
+            return opcode == MicroInstrOpcode::CmpRegImm ||
+                   opcode == MicroInstrOpcode::CmpRegReg ||
+                   opcode == MicroInstrOpcode::CmpMemImm ||
+                   opcode == MicroInstrOpcode::CmpMemReg;
+        case RuleTarget::SetCondReg:
+            return opcode == MicroInstrOpcode::SetCondReg;
+        case RuleTarget::ClearReg:
+            return opcode == MicroInstrOpcode::ClearReg;
+        case RuleTarget::Push:
+            return opcode == MicroInstrOpcode::Push;
         default:
             return false;
     }
@@ -136,12 +150,36 @@ MicroStorage::Iterator MicroPeepholePass::computeResumeIterator(const MicroStora
     return view.begin();
 }
 
+bool MicroPeepholePass::isStackSlotDefinitelyRead(const uint64_t offset, const uint32_t size) const
+{
+    for (const auto& [readOffset, readSize] : stackReadRanges_)
+    {
+        if (MicroPassHelpers::rangesOverlap(offset, size, readOffset, readSize))
+            return true;
+    }
+
+    return false;
+}
+
+bool MicroPeepholePass::hasCallAfterInstruction(const MicroInstrRef instRef) const
+{
+    if (!hasAnyCall_)
+        return false;
+
+    const uint32_t idx = instRef.get();
+    if (idx >= instrSeqNum_.size())
+        return false;
+
+    return instrSeqNum_[idx] < lastCallSeqNum_;
+}
+
 Result MicroPeepholePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
 
     initRunState(context);
+    precomputeStackSlotInfo();
 
     const MicroStorage::View view  = storage_->view();
     const auto               endIt = view.end();

@@ -1404,8 +1404,17 @@ namespace
         if (!slotSize)
             return false;
 
-        const uint64_t slotOffset           = ops[offsetIndex].valueU64;
-        const bool     equivalentStackBases = pass.hasEquivalentStackBases();
+        const uint64_t slotOffset = ops[offsetIndex].valueU64;
+
+        // Fast path: if any pre-computed read overlaps this slot, the store is needed
+        if (pass.isStackSlotDefinitelyRead(slotOffset, slotSize))
+            return false;
+
+        // Fast path: if there's a call after this instruction, the store cannot be proven dead
+        if (pass.hasCallAfterInstruction(instRef))
+            return false;
+
+        const bool equivalentStackBases = pass.hasEquivalentStackBases();
 
         if (MicroInstrInfo::definesCpuFlags(*inst))
         {
@@ -1562,28 +1571,13 @@ namespace
         const MicroInstrRef      instRef = cursor.instRef;
         const MicroInstr&        inst    = *(cursor.inst);
         const MicroInstrOperand* ops     = cursor.ops;
-        if (inst.op != MicroInstrOpcode::CmpRegImm &&
-            inst.op != MicroInstrOpcode::CmpRegReg &&
-            inst.op != MicroInstrOpcode::CmpMemImm &&
-            inst.op != MicroInstrOpcode::CmpMemReg)
-            return false;
         if (!ops)
             return false;
 
-        const MicroStorage::View view        = context.instructions->view();
-        auto                     it          = view.begin();
-        MicroInstrRef            previousRef = MicroInstrRef::invalid();
-        for (; it != view.end(); ++it)
-        {
-            if (it.current == instRef)
-                break;
-            previousRef = it.current;
-        }
+        if (!pass.areFlagsDeadAfterInstruction(cursor.curIt, cursor.endIt))
+            return false;
 
-        if (it == view.end())
-            return false;
-        if (!pass.areFlagsDeadAfterInstruction(it, view.end()))
-            return false;
+        const MicroInstrRef previousRef = context.instructions->findPreviousInstructionRef(instRef);
 
         const bool     compareUsesRegisterLhs = inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpRegReg;
         const MicroReg compareLhsReg          = compareUsesRegisterLhs ? ops[0].reg : MicroReg{};
@@ -1926,6 +1920,74 @@ namespace
 
 }
 
+void MicroPeepholePass::precomputeStackSlotInfo()
+{
+    SWC_ASSERT(storage_ != nullptr);
+    SWC_ASSERT(operands_ != nullptr);
+    SWC_ASSERT(context_ != nullptr);
+
+    stackReadRanges_.clear();
+    instrSeqNum_.clear();
+    lastCallSeqNum_ = 0;
+    hasAnyCall_     = false;
+
+    const auto view  = storage_->view();
+    const auto endIt = view.end();
+
+    uint32_t seqNum = 0;
+    for (auto it = view.begin(); it != endIt; ++it, ++seqNum)
+    {
+        const uint32_t idx = it.current.get();
+        if (idx >= instrSeqNum_.size())
+            instrSeqNum_.resize(idx + 1, UINT32_MAX);
+        instrSeqNum_[idx] = seqNum;
+
+        const MicroInstr&        inst = *it;
+        const MicroInstrOperand* ops  = inst.ops(*operands_);
+
+        // Track call positions
+        const MicroInstrDef& instrInfo = MicroInstr::info(inst.op);
+        if (instrInfo.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        {
+            lastCallSeqNum_ = seqNum;
+            hasAnyCall_     = true;
+        }
+
+        if (!ops)
+            continue;
+
+        // Collect stack read/address-taken ranges
+        if (!isMemoryReadInstruction(inst) && !isAddressOnlyInstruction(inst))
+            continue;
+
+        uint8_t baseIndex   = 0;
+        uint8_t offsetIndex = 0;
+        if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, inst))
+            continue;
+
+        if (!isStackPointerRegister(*context_, ops[baseIndex].reg))
+            continue;
+
+        if (ops[offsetIndex].hasWideImmediateValue())
+            continue;
+
+        uint32_t size = 0;
+        if (isAddressOnlyInstruction(inst))
+        {
+            size = K_STACK_ADDRESS_ESCAPE_WINDOW_BYTES;
+        }
+        else
+        {
+            auto opBits = MicroOpBits::Zero;
+            if (MicroPassHelpers::getMemAccessOpBits(opBits, inst, ops))
+                size = getNumBytes(opBits);
+        }
+
+        if (size > 0)
+            stackReadRanges_.push_back({ops[offsetIndex].valueU64, size});
+    }
+}
+
 void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
 {
     // Rule: remove_overwritten_store_to_same_slot
@@ -1961,32 +2023,32 @@ void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
     // Rule: remove_dead_compare_instruction
     // Purpose: remove compare operations whose flags are never consumed.
     // Example: cmp r11, 0; mov rax, 11; ret -> mov rax, 11; ret
-    outRules.emplace_back(RuleTarget::AnyInstruction, removeDeadCompareInstruction);
+    outRules.emplace_back(RuleTarget::CmpAny, removeDeadCompareInstruction);
 
     // Rule: fold_setcond_compare_setcond_chain
     // Purpose: collapse bool rematerialization chain into one setcc.
     // Example: setne r9; cmp r9, 0; sete r10 -> sete r10
-    outRules.emplace_back(RuleTarget::AnyInstruction, foldSetCondCompareSetCondChain);
+    outRules.emplace_back(RuleTarget::CmpRegImm, foldSetCondCompareSetCondChain);
 
     // Rule: fold_setcond_compare_zero_into_direct_jump
     // Purpose: consume bool materialization compare in front of conditional jump.
     // Example: setcc r11; cmp r11, 0; je L0 -> setcc r11; j!cc L0
-    outRules.emplace_back(RuleTarget::AnyInstruction, foldSetCondCompareZeroIntoDirectJump);
+    outRules.emplace_back(RuleTarget::CmpRegImm, foldSetCondCompareZeroIntoDirectJump);
 
     // Rule: fold_bool_and_chain_into_direct_jumps
     // Purpose: replace materialized bool-and chains with direct conditional branches.
     // Example: cmp/setcc/.../and/cmp/jz L0 -> cmp/jcc L0; cmp/jcc L0
-    outRules.emplace_back(RuleTarget::AnyInstruction, foldBoolAndChainIntoDirectJumps);
+    outRules.emplace_back(RuleTarget::CmpRegImm, foldBoolAndChainIntoDirectJumps);
 
     // Rule: fold_setcond_zeroext_copy
     // Purpose: route setcc and zero-extend directly to final destination register.
     // Example: setcc r10; zero_extend r10; mov rax, r10 -> setcc rax; zero_extend rax
-    outRules.emplace_back(RuleTarget::AnyInstruction, foldSetCondZeroExtCopy);
+    outRules.emplace_back(RuleTarget::SetCondReg, foldSetCondZeroExtCopy);
 
     // Rule: fold_clearreg_into_next_mem_store_zero
     // Purpose: store zero immediate directly to memory instead of through a cleared temp register.
     // Example: xor rdx, rdx; mov [rsp], rdx -> mov [rsp], 0
-    outRules.emplace_back(RuleTarget::AnyInstruction, foldClearRegIntoNextMemStoreZero);
+    outRules.emplace_back(RuleTarget::ClearReg, foldClearRegIntoNextMemStoreZero);
 
     // Rule: remove_redundant_stack_save_restore_around_immediate_shift
     // Purpose: remove save/restore pairs that became unnecessary after shift-count folding.
@@ -1996,12 +2058,12 @@ void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
     // Rule: remove_redundant_clear_before_convert_float_to_int
     // Purpose: remove clears of a destination register that is fully overwritten by cvtf2i.
     // Example: xor r10, r10; cvtf2i r10, xmm0 -> cvtf2i r10, xmm0
-    outRules.emplace_back(RuleTarget::AnyInstruction, removeRedundantClearBeforeConvertFloatToInt);
+    outRules.emplace_back(RuleTarget::ClearReg, removeRedundantClearBeforeConvertFloatToInt);
 
     // Rule: remove_adjacent_push_pop_same_register
     // Purpose: remove adjacent push/pop pairs that save and restore the same non-stack register.
     // Example: push rbp; pop rbp -> <removed>
-    outRules.emplace_back(RuleTarget::AnyInstruction, removeAdjacentPushPopSameRegister);
+    outRules.emplace_back(RuleTarget::Push, removeAdjacentPushPopSameRegister);
 
     // Rule: remove_no_op_instruction
     // Purpose: remove encoder-level no-op instructions.

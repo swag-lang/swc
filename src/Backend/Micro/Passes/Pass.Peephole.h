@@ -32,6 +32,11 @@ public:
         LoadMemImm,
         LoadMemReg,
         StackWriteCandidate,
+        CmpRegImm,
+        CmpAny,
+        SetCondReg,
+        ClearReg,
+        Push,
     };
 
     using RuleApplyMutableFn = bool (*)(MicroPeepholePass& pass, const Cursor& cursor);
@@ -79,6 +84,15 @@ public:
     bool isRegUnusedAfterInstruction(MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg reg) const;
     bool areFlagsDeadAfterInstruction(MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt) const;
 
+    struct StackSlotRange
+    {
+        uint64_t offset;
+        uint32_t size;
+    };
+
+    bool isStackSlotDefinitelyRead(uint64_t offset, uint32_t size) const;
+    bool hasCallAfterInstruction(MicroInstrRef instRef) const;
+
 private:
     struct RuleDispatch
     {
@@ -98,11 +112,18 @@ private:
     static void                appendCopyRules(RuleList& outRules);
     static void                appendCleanupRules(RuleList& outRules);
 
+    void precomputeStackSlotInfo();
+
     MicroPassContext*    context_                      = nullptr;
     MicroStorage*        storage_                      = nullptr;
     MicroOperandStorage* operands_                     = nullptr;
     mutable bool         equivalentStackBasesComputed_ = false;
     mutable bool         equivalentStackBasesValue_    = false;
+
+    std::vector<StackSlotRange> stackReadRanges_;
+    std::vector<uint32_t>       instrSeqNum_;
+    uint32_t                    lastCallSeqNum_ = 0;
+    bool                        hasAnyCall_     = false;
 };
 
 SWC_END_NAMESPACE();

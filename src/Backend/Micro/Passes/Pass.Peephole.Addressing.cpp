@@ -1719,7 +1719,7 @@ void MicroPeepholePass::appendAddressingRules(RuleList& outRules)
 
     outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemIntoNextBinaryRegMem);
     outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemBinaryStoreBackIntoMemOp);
-    outRules.emplace_back(RuleTarget::AnyInstruction, foldLoadRegMemBinaryStoreBackIntoMemOpTail);
+    outRules.emplace_back(RuleTarget::LoadMemReg, foldLoadRegMemBinaryStoreBackIntoMemOpTail);
 
     // Rule: fold_loadaddramc_into_next_memory_access
     // Purpose: consume temporary AMC address register by folding next memory access into AMC form.

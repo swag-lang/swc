@@ -196,17 +196,8 @@ namespace
         line += "  ";
         line += colorize(ctx, outcomeLogColor, stageOutcomeGlyph(ctx, outcome));
         line += "  ";
-        appendStageText(line, ctx, spec);
+        line += colorize(ctx, outcomeLogColor, std::format("{:<{}}", spec.label, ACTION_LABEL_WIDTH));
         line += " ";
-        line += colorize(ctx, LogColor::Gray, bullet);
-        line += " ";
-        if (outcome == TimedActionLog::StageOutcome::Error)
-        {
-            line += colorize(ctx, outcomeLogColor, "aborted");
-            line += " ";
-            line += colorize(ctx, LogColor::Gray, bullet);
-            line += " ";
-        }
         line += colorize(ctx, LogColor::White, duration);
         line += resetColor(ctx);
         return line;

@@ -229,6 +229,7 @@ void Diagnostic::report(TaskContext& ctx) const
             if (!dismiss)
                 Stats::get().numErrors.fetch_add(1);
             ctx.setHasError();
+            ctx.compiler().notifyAlive();
             if (fileOwner_.isValid())
             {
                 SourceFile& file = ctx.compiler().file(fileOwner_);
@@ -241,6 +242,7 @@ void Diagnostic::report(TaskContext& ctx) const
             if (!dismiss)
                 Stats::get().numWarnings.fetch_add(1);
             ctx.setHasWarning();
+            ctx.compiler().notifyAlive();
             if (fileOwner_.isValid())
             {
                 SourceFile& file = ctx.compiler().file(fileOwner_);

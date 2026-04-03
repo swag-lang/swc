@@ -132,9 +132,12 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     {
         SWC_ASSERT(interfaceMethod != nullptr);
         const SymbolFunction* implMethod = resolveInterfaceMethodTarget(*interfaceMethod);
-        SWC_ASSERT(implMethod != nullptr);
         if (!implMethod)
+        {
+            // A broken impl method can be ignored after an earlier semantic error.
+            // In that case the interface table is incomplete and must fail quietly.
             return Result::Error;
+        }
         SWC_RESULT(sema.waitSemaCompleted(implMethod, implMethod->codeRef()));
         implMethods.push_back(implMethod);
     }

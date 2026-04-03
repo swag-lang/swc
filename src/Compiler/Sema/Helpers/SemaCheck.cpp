@@ -10,6 +10,15 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool isIgnoredValuePoison(Sema& sema, AstNodeRef nodeRef)
+    {
+        const SemaNodeView symbolView = sema.viewSymbol(nodeRef);
+        return symbolView.hasSymbol() && symbolView.sym() && symbolView.sym()->isIgnored();
+    }
+}
+
 Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
 {
     // Compute unsupported = mods & ~allowed
@@ -57,6 +66,8 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
 {
     if (sema.isValue(nodeRef))
         return Result::Continue;
+    if (isIgnoredValuePoison(sema, nodeRef))
+        return Result::Error;
     return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
 }
 
@@ -64,6 +75,8 @@ Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& view)
 {
     if (sema.isValue(view.nodeRef()))
         return Result::Continue;
+    if (isIgnoredValuePoison(sema, view.nodeRef()))
+        return Result::Error;
     if (view.typeRef().isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, view.nodeRef());
 
@@ -77,6 +90,8 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& view)
 {
     if (sema.isValue(view.nodeRef()))
         return Result::Continue;
+    if (isIgnoredValuePoison(sema, view.nodeRef()))
+        return Result::Error;
     if (view.typeRef().isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, view.nodeRef());
 

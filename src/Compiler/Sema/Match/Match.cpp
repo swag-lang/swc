@@ -204,7 +204,12 @@ namespace
         for (const auto& local : lookUpCxt.localSymbols)
         {
             if (local.symbol->idRef() == idRef)
-                lookUpCxt.addSymbol(local.symbol, local.priority);
+            {
+                if (local.symbol->isIgnored())
+                    lookUpCxt.addIgnoredSymbol(local.priority);
+                else
+                    lookUpCxt.addSymbol(local.symbol, local.priority);
+            }
         }
     }
 }
@@ -215,6 +220,8 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     lookup(lookUpCxt, idRef);
     if (lookUpCxt.empty())
     {
+        if (lookUpCxt.blockedByIgnored())
+            return Result::Error;
         if (lookUpCxt.noWaitOnEmpty)
             return Result::Continue;
         return sema.waitIdentifier(idRef, lookUpCxt.codeRef);

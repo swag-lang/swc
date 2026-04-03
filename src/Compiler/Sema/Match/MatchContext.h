@@ -40,6 +40,7 @@ public:
     void resetCandidates();
     void beginSymMapLookup(const Priority& priority);
     void addSymbol(const Symbol* symbol, const Priority& priority);
+    void addIgnoredSymbol(const Priority& priority);
 
     struct LocalSymbol
     {
@@ -54,12 +55,19 @@ public:
         addSymbol(symbol, currentPriority_);
     }
 
+    void addIgnoredSymbol()
+    {
+        SWC_ASSERT(hasCurrentPriority_);
+        addIgnoredSymbol(currentPriority_);
+    }
+
     SmallVector<const Symbol*>&       symbols() { return symbols_; }
     const SmallVector<const Symbol*>& symbols() const { return symbols_; }
 
     bool          empty() const { return symbols_.empty(); }
     size_t        count() const { return symbols_.size(); }
     const Symbol* first() const { return symbols_.front(); }
+    bool          blockedByIgnored() const { return symbols_.empty() && hasIgnoredBestPriority_; }
 
     SmallVector<const SymbolMap*> symMaps;
     SmallVector<Priority>         symMapPriorities;
@@ -67,11 +75,13 @@ public:
 private:
     SmallVector<const Symbol*> symbols_;
 
-    bool     hasBestPriority_ = false;
-    Priority bestPriority_    = {};
+    Priority bestPriority_        = {};
+    Priority ignoredBestPriority_ = {};
+    Priority currentPriority_     = {};
 
-    bool     hasCurrentPriority_ = false;
-    Priority currentPriority_    = {};
+    bool hasBestPriority_        = false;
+    bool hasIgnoredBestPriority_ = false;
+    bool hasCurrentPriority_     = false;
 };
 
 SWC_END_NAMESPACE();

@@ -26,8 +26,10 @@ void MatchContext::clear()
 void MatchContext::resetCandidates()
 {
     symbols_.clear();
-    hasBestPriority_ = false;
-    bestPriority_    = Priority{};
+    hasBestPriority_        = false;
+    bestPriority_           = Priority{};
+    hasIgnoredBestPriority_ = false;
+    ignoredBestPriority_    = Priority{};
 }
 
 void MatchContext::beginSymMapLookup(const Priority& priority)
@@ -38,6 +40,16 @@ void MatchContext::beginSymMapLookup(const Priority& priority)
 
 void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
 {
+    if (hasIgnoredBestPriority_)
+    {
+        const int cmpIgnored = Priority::compare(priority, ignoredBestPriority_);
+        if (cmpIgnored > 0)
+        {
+            // An ignored declaration from a better-priority scope shadows this symbol.
+            return;
+        }
+    }
+
     if (!hasBestPriority_)
     {
         hasBestPriority_ = true;
@@ -71,6 +83,15 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
             return;
 
     symbols_.push_back(symbol);
+}
+
+void MatchContext::addIgnoredSymbol(const Priority& priority)
+{
+    if (!hasIgnoredBestPriority_ || Priority::compare(priority, ignoredBestPriority_) < 0)
+    {
+        hasIgnoredBestPriority_ = true;
+        ignoredBestPriority_    = priority;
+    }
 }
 
 SWC_END_NAMESPACE();

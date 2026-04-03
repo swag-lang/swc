@@ -25,6 +25,13 @@ namespace
         wait.waiterSymbol = &waiterSymbol;
         return JobResult::Sleep;
     }
+
+    JobResult abortCodeGen(TaskContext& ctx, SymbolFunction& symbolFunc, Result result)
+    {
+        if (result == Result::Error)
+            symbolFunc.setIgnored(ctx);
+        return Job::toJobResult(ctx, result);
+    }
 }
 
 CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) :
@@ -72,7 +79,7 @@ JobResult CodeGenJob::exec()
 
     const Result selfWaitResult = sema().waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
     if (selfWaitResult != Result::Continue)
-        return toJobResult(ctx(), selfWaitResult);
+        return abortCodeGen(ctx(), *symbolFunc_, selfWaitResult);
 
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
@@ -86,7 +93,9 @@ JobResult CodeGenJob::exec()
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)
-            return toJobResult(ctx(), depWaitResult);
+            return abortCodeGen(ctx(), *symbolFunc_, depWaitResult);
+        if (dep->isIgnored())
+            return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
     }
 
     // Schedule codegen jobs for dependencies that are not scheduled yet.
@@ -111,7 +120,7 @@ JobResult CodeGenJob::exec()
 #endif
         const Result codeGenResult = codeGen_->exec(*symbolFunc_, root_);
         if (codeGenResult != Result::Continue)
-            return toJobResult(ctx(), codeGenResult);
+            return abortCodeGen(ctx(), *symbolFunc_, codeGenResult);
 
         symbolFunc_->setCodeGenPreSolved(ctx());
 
@@ -119,7 +128,7 @@ JobResult CodeGenJob::exec()
         ///////////////////////////////////////////
         const Result emitResult = symbolFunc_->emit(ctx());
         if (emitResult != Result::Continue)
-            return toJobResult(ctx(), emitResult);
+            return abortCodeGen(ctx(), *symbolFunc_, emitResult);
     }
 
     SmallVector<SymbolFunction*> finalDeps;
@@ -133,7 +142,9 @@ JobResult CodeGenJob::exec()
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)
-            return toJobResult(ctx(), depWaitResult);
+            return abortCodeGen(ctx(), *symbolFunc_, depWaitResult);
+        if (dep->isIgnored())
+            return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
 
         if (dep->tryMarkCodeGenJobScheduled())
         {

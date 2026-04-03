@@ -106,17 +106,51 @@ namespace
         }
     }
 
-    bool ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction)
+    AstNodeRef fallbackWaitNodeRef(const TaskContext& ctx, const SymbolFunction* ownerFunction)
+    {
+        if (ctx.state().nodeRef.isValid())
+            return ctx.state().nodeRef;
+        if (ownerFunction)
+            return ownerFunction->declNodeRef();
+        return AstNodeRef::invalid();
+    }
+
+    SourceCodeRef fallbackWaitCodeRef(const TaskContext& ctx, const SymbolFunction* ownerFunction)
+    {
+        if (ctx.state().codeRef.isValid())
+            return ctx.state().codeRef;
+        if (ownerFunction)
+            return ownerFunction->codeRef();
+        return SourceCodeRef::invalid();
+    }
+
+    void setWaitCodeGenCompleted(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
+    {
+        if (!ownerFunction)
+            return;
+
+        TaskState& wait   = ctx.state();
+        wait.kind         = TaskStateKind::SemaWaitSymCodeGenCompleted;
+        wait.nodeRef      = fallbackWaitNodeRef(ctx, ownerFunction);
+        wait.codeRef      = fallbackWaitCodeRef(ctx, ownerFunction);
+        wait.symbol       = &targetFunction;
+        wait.waiterSymbol = ownerFunction;
+    }
+
+    Result ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
     {
         if (targetFunction.jitPatchAddress())
-            return true;
+            return Result::Continue;
 
         if (targetFunction.loweredCode().bytes.empty())
         {
+            if (targetFunction.isIgnored())
+                return Result::Error;
+
             const SourceView& targetSrcView = ctx.compiler().srcView(targetFunction.srcViewRef());
             const FileRef     fileRef       = targetSrcView.fileRef();
             if (!fileRef.isValid())
-                return false;
+                return Result::Error;
 
             SourceFile& targetFile = ctx.compiler().file(fileRef);
             Sema        baseSema(ctx, targetFile.nodePayloadContext(), false);
@@ -124,21 +158,19 @@ namespace
             {
                 const AstNodeRef declRoot = targetFunction.declNodeRef();
                 if (declRoot.isInvalid())
-                    return false;
+                    return Result::Error;
 
                 auto* job = heapNew<CodeGenJob>(ctx, baseSema, targetFunction, declRoot);
                 ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
             }
 
-            Sema::waitDone(ctx, ctx.compiler().jobClientId());
-            if (Stats::hasError())
-                return false;
-            if (targetFunction.loweredCode().bytes.empty())
-                return false;
+            // Let the owning job sleep and resume once codegen publishes progress.
+            setWaitCodeGenCompleted(ctx, ownerFunction, targetFunction);
+            return Result::Pause;
         }
 
-        targetFunction.jit(ctx);
-        return targetFunction.jitPatchAddress() != nullptr;
+        SWC_RESULT(targetFunction.jit(ctx));
+        return targetFunction.jitPatchAddress() ? Result::Continue : Result::Error;
     }
 
     ABICall::Arg packArgValue(const ABITypeNormalize::NormalizedType& argType, const void* valuePtr)
@@ -190,24 +222,24 @@ namespace
         }
     }
 
-    bool resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure)
+    Result resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure)
     {
         outTargetAddress = reloc.targetAddress;
         if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
         {
             outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
-            return true;
+            return Result::Continue;
         }
 
         if (outTargetAddress != 0)
-            return true;
+            return Result::Continue;
 
         Symbol* const targetSymbol = reloc.targetSymbol;
         if (!targetSymbol)
         {
             if (outFailure)
                 outFailure->kind = RelocationResolveFailureKind::TargetSymbolMissing;
-            return false;
+            return Result::Error;
         }
 
         if (!targetSymbol->isFunction())
@@ -218,16 +250,17 @@ namespace
                 outFailure->targetSymbol = targetSymbol;
             }
 
-            return false;
+            return Result::Error;
         }
 
         auto& targetFunction = targetSymbol->cast<SymbolFunction>();
         void* entryAddress   = targetFunction.jitPatchAddress();
-        if (!entryAddress && ensureLocalFunctionTargetPrepared(ctx, targetFunction))
-            entryAddress = targetFunction.jitPatchAddress();
-        if (!entryAddress && !targetFunction.loweredCode().bytes.empty())
+        if (!entryAddress)
         {
-            targetFunction.jit(ctx);
+            const Result prepareResult = ensureLocalFunctionTargetPrepared(ctx, targetFunction, ownerFunction);
+            if (prepareResult != Result::Continue)
+                return prepareResult;
+
             entryAddress = targetFunction.jitPatchAddress();
         }
 
@@ -239,11 +272,11 @@ namespace
                 outFailure->targetSymbol = targetSymbol;
             }
 
-            return false;
+            return Result::Error;
         }
 
         outTargetAddress = reinterpret_cast<uint64_t>(entryAddress);
-        return outTargetAddress != 0;
+        return outTargetAddress != 0 ? Result::Continue : Result::Error;
     }
 
     bool resolveForeignFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure)
@@ -332,31 +365,31 @@ namespace
         return outTargetAddress != 0;
     }
 
-    bool resolveRelocationTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure)
+    Result resolveRelocationTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure)
     {
         switch (reloc.kind)
         {
             case MicroRelocation::Kind::ConstantAddress:
                 outTargetAddress = reloc.targetAddress;
-                return true;
+                return Result::Continue;
 
             case MicroRelocation::Kind::LocalFunctionAddress:
-                return resolveLocalFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, outFailure);
+                return resolveLocalFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, ownerFunction, outFailure);
 
             case MicroRelocation::Kind::ForeignFunctionAddress:
-                return resolveForeignFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, outFailure);
+                return resolveForeignFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, outFailure) ? Result::Continue : Result::Error;
 
             case MicroRelocation::Kind::CompilerAddress:
                 outTargetAddress = reinterpret_cast<uint64_t>(ctx.compiler().dataSegmentAddress(DataSegmentKind::Compiler, static_cast<uint32_t>(reloc.targetAddress)));
-                return true;
+                return Result::Continue;
 
             case MicroRelocation::Kind::GlobalZeroAddress:
                 outTargetAddress = reinterpret_cast<uint64_t>(ctx.compiler().dataSegmentAddress(DataSegmentKind::GlobalZero, static_cast<uint32_t>(reloc.targetAddress)));
-                return true;
+                return Result::Continue;
 
             case MicroRelocation::Kind::GlobalInitAddress:
                 outTargetAddress = reinterpret_cast<uint64_t>(ctx.compiler().dataSegmentAddress(DataSegmentKind::GlobalInit, static_cast<uint32_t>(reloc.targetAddress)));
-                return true;
+                return Result::Continue;
 
             default:
                 SWC_UNREACHABLE();
@@ -423,6 +456,7 @@ namespace
     }
 
     Result patchConstantFunctionRelocationsRec(TaskContext&                  ctx,
+                                               const SymbolFunction*         ownerFunction,
                                                uint32_t                      shardIndex,
                                                uint32_t                      sourceOffset,
                                                std::unordered_set<uint64_t>& visited)
@@ -446,7 +480,7 @@ namespace
 
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
-                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, shardIndex, relocation.targetOffset, visited));
+                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, ownerFunction, shardIndex, relocation.targetOffset, visited));
                 continue;
             }
 
@@ -462,8 +496,10 @@ namespace
 
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
-            const bool               hasTargetAddress = targetFunction->isForeign() ? resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure);
-            if (!hasTargetAddress)
+            const Result             resolveResult = targetFunction->isForeign() ? (resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) ? Result::Continue : Result::Error) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, ownerFunction, &failure);
+            if (resolveResult == Result::Pause)
+                return Result::Pause;
+            if (resolveResult != Result::Continue)
             {
                 const DiagnosticId diagId = targetFunction->isForeign() ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
                 Diagnostic         diag   = Diagnostic::get(diagId);
@@ -481,7 +517,7 @@ namespace
         return Result::Continue;
     }
 
-    Result patchConstantFunctionRelocations(TaskContext& ctx, const void* ptr)
+    Result patchConstantFunctionRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, const void* ptr)
     {
         if (!ptr)
             return Result::Continue;
@@ -492,7 +528,7 @@ namespace
             return Result::Continue;
 
         std::unordered_set<uint64_t> visited;
-        return patchConstantFunctionRelocationsRec(ctx, shardIndex, sourceRef, visited);
+        return patchConstantFunctionRelocationsRec(ctx, ownerFunction, shardIndex, sourceRef, visited);
     }
 
     Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
@@ -508,8 +544,10 @@ namespace
         {
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
-            const bool               hasTargetAddress = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr, &failure);
-            if (!hasTargetAddress)
+            const Result             resolveResult = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr, ownerFunction, &failure);
+            if (resolveResult == Result::Pause)
+                return Result::Pause;
+            if (resolveResult != Result::Continue)
             {
                 if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
                     continue;
@@ -526,7 +564,7 @@ namespace
             }
 
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
-                SWC_RESULT(patchConstantFunctionRelocations(ctx, reinterpret_cast<const void*>(targetAddress)));
+                SWC_RESULT(patchConstantFunctionRelocations(ctx, ownerFunction, reinterpret_cast<const void*>(targetAddress)));
 
             patchAbsolute64(writableCode, reloc, targetAddress);
         }
@@ -596,8 +634,10 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 
         uint64_t                 targetAddress = 0;
         RelocationResolveFailure failure;
-        const bool               hasTargetAddress = targetFunction->isForeign() ? resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure);
-        if (!hasTargetAddress)
+        const Result             resolveResult = targetFunction->isForeign() ? (resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) ? Result::Continue : Result::Error) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, nullptr, &failure);
+        if (resolveResult == Result::Pause)
+            return Result::Pause;
+        if (resolveResult != Result::Continue)
         {
             const DiagnosticId diagId = targetFunction->isForeign() ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
             Diagnostic         diag   = Diagnostic::get(diagId);

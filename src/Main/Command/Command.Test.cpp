@@ -2,6 +2,7 @@
 #include "Main/Command/Command.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
@@ -24,6 +25,21 @@ namespace
     bool hasErrors(const uint64_t errorsBefore)
     {
         return Stats::getNumErrors() != errorsBefore;
+    }
+
+    template<typename FUNC>
+    Result runAfterPauses(TaskContext& ctx, const FUNC& func)
+    {
+        while (true)
+        {
+            const Result result = func();
+            if (result != Result::Pause)
+                return result;
+
+            Sema::waitDone(ctx, ctx.compiler().jobClientId());
+            if (Stats::hasError())
+                return Result::Error;
+        }
     }
 
     bool shouldRunNativeTests(const CommandLine& cmdLine)
@@ -293,7 +309,9 @@ namespace
         request.nodeRef      = function.declNodeRef();
         request.codeRef      = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
         request.runImmediate = true;
-        return ctx.compiler().jitExecMgr().submit(ctx, request) == Result::Continue &&
+        return runAfterPauses(ctx, [&] {
+                   return ctx.compiler().jitExecMgr().submit(ctx, request);
+               }) == Result::Continue &&
                !Stats::hasError();
     }
 
@@ -330,7 +348,9 @@ namespace
         if (initFunctions.empty() && preMainFunctions.empty() && testFunctions.empty())
             return true;
 
-        if (!SymbolFunction::jitBatch(ctx, allFunctions))
+        if (runAfterPauses(ctx, [&] {
+                return SymbolFunction::jitBatch(ctx, allFunctions);
+            }) != Result::Continue)
             return false;
 
         DataSegmentRestoreGuard restoreGuard = {

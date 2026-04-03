@@ -889,6 +889,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (compiler.consumeChanged())
         {
+            compiler.jitExecMgr().wakeWaiting();
             jobMgr.wakeAll(clientId);
             continue;
         }

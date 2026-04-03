@@ -31,7 +31,8 @@ Result JITExecManager::executeItem(const Item& item)
         callResult         = JIT::call(ctx, fn->jitEntryAddress(), item.request.hasArg0 ? &item.request.arg0 : nullptr, &callErrorKind);
     }
 
-    if (item.request.onCompleted)
+    if (callResult != Result::Pause &&
+        item.request.onCompleted)
         item.request.onCompleted(callResult);
 
     return callResult;
@@ -72,7 +73,9 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
         }
 
         Item& item = *slot;
-        if (item.status == Status::Pending || item.status == Status::Running)
+        if (item.status == Status::Pending ||
+            item.status == Status::Running ||
+            item.status == Status::Waiting)
         {
             SWC_ASSERT(item.request.nodeRef == nodeRef);
             SWC_ASSERT(item.request.function == function);
@@ -109,7 +112,7 @@ JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& 
 
 bool JITExecManager::executePendingMainThread()
 {
-    bool doneSomething = false;
+    bool processedAny = false;
 
     while (true)
     {
@@ -132,14 +135,39 @@ bool JITExecManager::executePendingMainThread()
 
         {
             const std::scoped_lock lock(mutex_);
-            itemToRun->result = result;
-            itemToRun->status = Status::Completed;
+            if (result == Result::Pause)
+            {
+                // Retry only after the compiler reports fresh progress.
+                itemToRun->status = Status::Waiting;
+            }
+            else
+            {
+                itemToRun->result = result;
+                itemToRun->status = Status::Completed;
+            }
         }
 
-        doneSomething = true;
+        processedAny = true;
     }
 
-    return doneSomething;
+    return processedAny;
+}
+
+bool JITExecManager::wakeWaiting()
+{
+    bool woken = false;
+
+    const std::scoped_lock lock(mutex_);
+    for (auto& item : items_ | std::views::values)
+    {
+        if (!item || item->status != Status::Waiting)
+            continue;
+
+        item->status = Status::Pending;
+        woken        = true;
+    }
+
+    return woken;
 }
 
 SWC_END_NAMESPACE();

@@ -695,13 +695,13 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
     return Result::Continue;
 }
 
-void SymbolFunction::jit(TaskContext& ctx)
+Result SymbolFunction::jit(TaskContext& ctx)
 {
     if (ctx.state().jitEmissionError)
-        return;
+        return Result::Error;
 
     if (hasJitEntryAddress())
-        return;
+        return Result::Continue;
 
     SmallVector<SymbolFunction*> jitOrder;
     appendDepOrder(jitOrder, *this);
@@ -711,7 +711,7 @@ void SymbolFunction::jit(TaskContext& ctx)
     for (SymbolFunction* function : jitOrder)
     {
         if (ctx.state().jitEmissionError)
-            return;
+            return Result::Error;
         if (function->jitPrepare(ctx))
             preparedFunctions.push_back(function);
     }
@@ -719,16 +719,18 @@ void SymbolFunction::jit(TaskContext& ctx)
     for (SymbolFunction* function : preparedFunctions)
     {
         if (ctx.state().jitEmissionError)
-            return;
-        function->jitPatch(ctx);
+            return Result::Error;
+        SWC_RESULT(function->jitPatch(ctx));
     }
 
     for (SymbolFunction* function : preparedFunctions)
     {
         if (ctx.state().jitEmissionError)
-            return;
+            return Result::Error;
         function->jitFinalize(ctx);
     }
+
+    return Result::Continue;
 }
 
 void SymbolFunction::setGenericRoot(bool value) noexcept
@@ -803,17 +805,17 @@ SymbolInterface* SymbolFunction::declInterfaceContext() const noexcept
     return nullptr;
 }
 
-bool SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions)
+Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions)
 {
     if (ctx.state().jitEmissionError)
-        return false;
+        return Result::Error;
 
     SmallVector<SymbolFunction*> preparedFunctions;
     preparedFunctions.reserve(functions.size());
     for (SymbolFunction* function : functions)
     {
         if (ctx.state().jitEmissionError)
-            return false;
+            return Result::Error;
         if (!function)
             continue;
         if (function->jitPrepare(ctx))
@@ -823,18 +825,18 @@ bool SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* 
     for (SymbolFunction* function : preparedFunctions)
     {
         if (ctx.state().jitEmissionError)
-            return false;
-        function->jitPatch(ctx);
+            return Result::Error;
+        SWC_RESULT(function->jitPatch(ctx));
     }
 
     for (SymbolFunction* function : preparedFunctions)
     {
         if (ctx.state().jitEmissionError)
-            return false;
+            return Result::Error;
         function->jitFinalize(ctx);
     }
 
-    return !ctx.state().jitEmissionError;
+    return ctx.state().jitEmissionError ? Result::Error : Result::Continue;
 }
 
 bool SymbolFunction::jitPrepare(TaskContext& ctx)
@@ -867,16 +869,16 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
     return true;
 }
 
-void SymbolFunction::jitPatch(TaskContext& ctx)
+Result SymbolFunction::jitPatch(TaskContext& ctx)
 {
     const std::scoped_lock lock(emitMutex_);
     if (ctx.state().jitEmissionError)
-        return;
+        return Result::Error;
 
     if (hasJitEntryAddress())
-        return;
+        return Result::Continue;
     if (!hasJitPreparedAddress())
-        return;
+        return Result::Continue;
 
     auto relocations = loweredMicroCode_.codeRelocations;
     for (MicroRelocation& relocation : relocations)
@@ -891,8 +893,10 @@ void SymbolFunction::jitPatch(TaskContext& ctx)
         relocation.targetAddress = MicroRelocation::K_SELF_ADDRESS;
     }
 
-    if (JIT::patch(ctx, jitExecMemory_, relocations, this) != Result::Continue)
+    const Result patchResult = JIT::patch(ctx, jitExecMemory_, relocations, this);
+    if (patchResult == Result::Error)
         ctx.state().jitEmissionError = true;
+    return patchResult;
 }
 
 void SymbolFunction::jitFinalize(TaskContext& ctx)

@@ -40,12 +40,14 @@ public:
     Result     submit(TaskContext& ctx, const Request& request);
     Completion consumeCompletion(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     bool       executePendingMainThread();
+    bool       wakeWaiting();
 
 private:
     enum class Status : uint8_t
     {
         Pending,
         Running,
+        Waiting,
         Completed,
     };
 

@@ -106,8 +106,8 @@ public:
     Result                  emit(TaskContext& ctx);
     Result                  ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
     GenericInstanceStorage& genericInstanceStorage(TaskContext& ctx) noexcept;
-    static bool             jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
-    void                    jit(TaskContext& ctx);
+    static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
+    Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
 
     bool                  isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
@@ -143,7 +143,7 @@ private:
     GenericData& ensureGenericData(TaskContext& ctx) noexcept;
     GenericData* genericData() const noexcept;
     bool         jitPrepare(TaskContext& ctx);
-    void         jitPatch(TaskContext& ctx);
+    Result       jitPatch(TaskContext& ctx);
     void         jitFinalize(TaskContext& ctx);
 
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT  = 0xFFFFFFFFu;

@@ -287,8 +287,7 @@ namespace
         if (ctx.state().jitEmissionError)
             return raiseJitEmitFailed();
 
-        if (!SymbolFunction::jitBatch(ctx, stableJitOrder))
-            return raiseJitEmitFailed();
+        SWC_RESULT(SymbolFunction::jitBatch(ctx, stableJitOrder));
 
         if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
             return raiseJitEmitFailed();

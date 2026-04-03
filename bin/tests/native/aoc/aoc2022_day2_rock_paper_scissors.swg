@@ -79,13 +79,13 @@ func decodeOpponent(token: u8)->Shape
 {
     switch token
     {
-    case 'A''u8:
+    case 'A':
         return Shape.Rock
 
-    case 'B''u8:
+    case 'B':
         return Shape.Paper
 
-    case 'C''u8:
+    case 'C':
         return Shape.Scissors
     }
 
@@ -97,13 +97,13 @@ func decodePartOneShape(token: u8)->Shape
 {
     switch token
     {
-    case 'X''u8:
+    case 'X':
         return Shape.Rock
 
-    case 'Y''u8:
+    case 'Y':
         return Shape.Paper
 
-    case 'Z''u8:
+    case 'Z':
         return Shape.Scissors
     }
 
@@ -136,10 +136,10 @@ func roundOutcome(mine: Shape, opponent: Shape)->Outcome
 
     switch mine
     {
-    case Shape.Rock:
+    case Rock:
         return opponent == Shape.Scissors ? Outcome.Win : Outcome.Lose
 
-    case Shape.Paper:
+    case .Paper:
         return opponent == Shape.Rock ? Outcome.Win : Outcome.Lose
 
     case Shape.Scissors:

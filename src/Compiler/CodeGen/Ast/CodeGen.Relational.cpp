@@ -5,6 +5,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -310,6 +311,74 @@ namespace
         }
     }
 
+    Result emitSpecialEqualsNotEqual(CodeGen& codeGen)
+    {
+        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+
+        const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
+        MicroBuilder&             builder       = codeGen.builder();
+        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitSetCondReg(resultPayload.reg, MicroCond::Equal);
+        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        return Result::Continue;
+    }
+
+    Result emitSpecialCmpBool(CodeGen& codeGen, TokenId tokId)
+    {
+        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+
+        auto cond = MicroCond::Equal;
+        switch (tokId)
+        {
+            case TokenId::SymLess:
+                cond = MicroCond::Less;
+                break;
+            case TokenId::SymLessEqual:
+                cond = MicroCond::LessOrEqual;
+                break;
+            case TokenId::SymGreater:
+                cond = MicroCond::Greater;
+                break;
+            case TokenId::SymGreaterEqual:
+                cond = MicroCond::GreaterOrEqual;
+                break;
+            default:
+                SWC_UNREACHABLE();
+        }
+
+        const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
+        MicroBuilder&             builder       = codeGen.builder();
+        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(resultPayload.reg, cond);
+        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        return Result::Continue;
+    }
+
+    Result emitSpecialRelational(CodeGen& codeGen, TokenId tokId, const SymbolFunction& calledFn)
+    {
+        switch (calledFn.specOpKind())
+        {
+            case SpecOpKind::OpEquals:
+                if (tokId == TokenId::SymEqualEqual)
+                    return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+                if (tokId == TokenId::SymBangEqual)
+                    return emitSpecialEqualsNotEqual(codeGen);
+                break;
+
+            case SpecOpKind::OpCmp:
+                if (tokId == TokenId::SymLessEqualGreater)
+                    return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+                if (tokId == TokenId::SymLess || tokId == TokenId::SymLessEqual || tokId == TokenId::SymGreater || tokId == TokenId::SymGreaterEqual)
+                    return emitSpecialCmpBool(codeGen, tokId);
+                break;
+
+            default:
+                break;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
     Result emitRelationalBool(CodeGen& codeGen, const AstRelationalExpr& node, TokenId tokId)
     {
         const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
@@ -403,6 +472,15 @@ namespace
 Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const Token& tok = codeGen.token(codeRef());
+    if (const auto* relationalPayload = codeGen.sema().semaPayload<RelationalSpecOpPayload>(codeGen.curNodeRef());
+        relationalPayload && relationalPayload->calledFn != nullptr)
+    {
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), relationalPayload->calledFn);
+        const auto& calledFn = *relationalPayload->calledFn;
+        if (calledFn.specOpKind() == SpecOpKind::OpEquals || calledFn.specOpKind() == SpecOpKind::OpCmp)
+            return emitSpecialRelational(codeGen, tok.id, calledFn);
+    }
+
     switch (tok.id)
     {
         case TokenId::SymEqualEqual:

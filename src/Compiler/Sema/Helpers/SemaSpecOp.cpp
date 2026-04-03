@@ -784,4 +784,122 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
     return Result::Continue;
 }
 
+Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled)
+{
+    outHandled = false;
+
+    const Token& tok = sema.token(node.codeRef());
+    IdentifierRef opIdRef = IdentifierRef::invalid();
+    switch (tok.id)
+    {
+        case TokenId::SymEqualEqual:
+        case TokenId::SymBangEqual:
+            opIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals);
+            break;
+
+        case TokenId::SymLess:
+        case TokenId::SymLessEqual:
+        case TokenId::SymGreater:
+        case TokenId::SymGreaterEqual:
+        case TokenId::SymLessEqualGreater:
+            opIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCmp);
+            break;
+
+        default:
+            return Result::Continue;
+    }
+
+    if (!leftView.type())
+        return Result::Continue;
+
+    TypeRef         unwrappedTypeRef = leftView.typeRef();
+    const TypeInfo& leftValueType    = sema.typeMgr().get(unwrappedTypeRef);
+    if (leftValueType.isReference())
+        unwrappedTypeRef = unwrapAlias(sema.ctx(), leftValueType.payloadTypeRef());
+    else
+        unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
+    if (!unwrappedTypeRef.isValid())
+        unwrappedTypeRef = leftView.typeRef();
+
+    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
+    if (!leftType.isStruct())
+        return Result::Continue;
+
+    const auto& ownerStruct = leftType.payloadSymStruct();
+    SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
+
+    SmallVector<Symbol*> candidates;
+    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opIdRef, std::span<const AstNodeRef>{}, candidates));
+    if (candidates.empty())
+        return Result::Continue;
+
+    SmallVector<AstNodeRef> args;
+    args.push_back(node.nodeRightRef);
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeLeftRef));
+
+    auto* relationalPayload = sema.semaPayload<RelationalSpecOpPayload>(sema.curNodeRef());
+    if (!relationalPayload)
+    {
+        relationalPayload = sema.compiler().allocate<RelationalSpecOpPayload>();
+        sema.setSemaPayload(sema.curNodeRef(), relationalPayload);
+    }
+
+    if (const SemaNodeView symView = sema.curViewSymbol(); symView.sym() && symView.sym()->isFunction())
+        relationalPayload->calledFn = &symView.sym()->cast<SymbolFunction>();
+
+    switch (tok.id)
+    {
+        case TokenId::SymEqualEqual:
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+            break;
+
+        case TokenId::SymBangEqual:
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+            if (const SemaNodeView resultView = sema.curViewConstant(); resultView.cstRef().isValid())
+                sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstNegBool(resultView.cstRef()));
+            break;
+
+        case TokenId::SymLess:
+        case TokenId::SymLessEqual:
+        case TokenId::SymGreater:
+        case TokenId::SymGreaterEqual:
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+            if (const SemaNodeView resultView = sema.curViewConstant(); resultView.cstRef().isValid())
+            {
+                const int ordering = sema.cstMgr().get(resultView.cstRef()).getInt().compare(ApsInt::makeSigned32(0));
+                bool      cmpRes   = false;
+                switch (tok.id)
+                {
+                    case TokenId::SymLess:
+                        cmpRes = ordering < 0;
+                        break;
+                    case TokenId::SymLessEqual:
+                        cmpRes = ordering <= 0;
+                        break;
+                    case TokenId::SymGreater:
+                        cmpRes = ordering > 0;
+                        break;
+                    case TokenId::SymGreaterEqual:
+                        cmpRes = ordering >= 0;
+                        break;
+                    default:
+                        SWC_UNREACHABLE();
+                }
+
+                sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(cmpRes));
+            }
+            break;
+
+        case TokenId::SymLessEqualGreater:
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeS32());
+            break;
+
+        default:
+            break;
+    }
+
+    outHandled = true;
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Report/Diagnostic.h"
@@ -453,6 +454,11 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValueOrType(sema, nodeLeftView));
     SWC_RESULT(SemaCheck::isValueOrType(sema, nodeRightView));
     sema.setIsValue(*this);
+
+    bool handledSpecialOp = false;
+    SWC_RESULT(SemaSpecOp::tryResolveRelational(sema, *this, nodeLeftView, handledSpecialOp));
+    if (handledSpecialOp)
+        return Result::Continue;
 
     // Force types
     SWC_RESULT(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));

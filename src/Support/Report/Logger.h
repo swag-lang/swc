@@ -55,12 +55,12 @@ public:
         Logger* logger_ = nullptr;
     };
 
-    void   lock();
-    void   unlock();
-    void   resetStageClaims();
-    bool   claimStageOnce(std::string_view key);
-    void   pushStageMute() { stageMuteDepth_++; }
-    void   popStageMute()
+    void lock();
+    void unlock();
+    void resetStageClaims();
+    bool claimStageOnce(std::string_view key);
+    void pushStageMute() { stageMuteDepth_++; }
+    void popStageMute()
     {
         SWC_ASSERT(stageMuteDepth_ != 0);
         stageMuteDepth_--;

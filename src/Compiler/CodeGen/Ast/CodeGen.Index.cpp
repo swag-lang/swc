@@ -281,7 +281,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     if (payloadBase && payloadBase->kind == IndexSpecOpPayloadKind::Read)
     {
         const auto* specOpPayload = static_cast<const IndexSpecOpSemaPayload*>(static_cast<const void*>(payloadBase));
-        calledFn = specOpPayload->calledFn;
+        calledFn                  = specOpPayload->calledFn;
     }
     else if (const SemaNodeView symView = codeGen.curViewSymbol(); symView.sym() && symView.sym()->isFunction())
     {

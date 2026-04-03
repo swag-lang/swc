@@ -134,7 +134,7 @@ namespace
 
             if (outerMember.nodeLeftRef.isValid() && sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
             {
-                const auto&        innerMember   = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
+                const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
                 if ((outerLeftView.sym() && outerLeftView.sym()->isImpl()) ||
                     (outerLeftView.type() && outerLeftView.type()->isInterface()))
                 {

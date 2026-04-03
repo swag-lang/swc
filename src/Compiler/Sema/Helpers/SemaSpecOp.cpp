@@ -5,10 +5,10 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
-#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -374,10 +374,8 @@ namespace
             return Result::Continue;
 
         const bool          isSimpleAssign = tokId == TokenId::SymEqual;
-        const IdentifierRef opId           = isSimpleAssign ?
-                                                 sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect) :
-                                                 sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAssign);
-        AstNodeRef genericArg = AstNodeRef::invalid();
+        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAssign);
+        AstNodeRef          genericArg     = AstNodeRef::invalid();
         if (!isSimpleAssign)
         {
             const std::string_view opString = assignGenericOpString(tokId);
@@ -419,10 +417,8 @@ namespace
             return Result::Continue;
 
         const bool          isSimpleAssign = tokId == TokenId::SymEqual;
-        const IdentifierRef opId           = isSimpleAssign ?
-                                                 sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAffect) :
-                                                 sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAssign);
-        AstNodeRef genericArg = AstNodeRef::invalid();
+        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAffect) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAssign);
+        AstNodeRef          genericArg     = AstNodeRef::invalid();
         if (!isSimpleAssign)
         {
             const std::string_view opString = assignGenericOpString(tokId);
@@ -508,13 +504,13 @@ namespace
         return Result::Continue;
     }
 
-    Result resolveSyntheticCall(Sema& sema,
-                                const AstNode& node,
-                                std::span<Symbol*> candidates,
+    Result resolveSyntheticCall(Sema&                 sema,
+                                const AstNode&        node,
+                                std::span<Symbol*>    candidates,
                                 std::span<AstNodeRef> args,
-                                AstNodeRef ufcsArg,
-                                bool allowNoMatch = false,
-                                bool* outMatched  = nullptr)
+                                AstNodeRef            ufcsArg,
+                                bool                  allowNoMatch = false,
+                                bool*                 outMatched   = nullptr)
     {
         if (outMatched)
             *outMatched = false;
@@ -906,7 +902,7 @@ Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const S
         const auto& assignNode = sema.node(parentRef).cast<AstAssignStmt>();
         if (assignNode.nodeLeftRef == sema.curNodeRef())
         {
-            const Token& tok = sema.token(assignNode.codeRef());
+            const Token&         tok = sema.token(assignNode.codeRef());
             SmallVector<Symbol*> candidates;
             SWC_RESULT(collectIndexAssignSpecOpCandidates(sema, *ownerStruct, assignNode.codeRef(), tok.id, candidates));
             if (!candidates.empty())
@@ -954,13 +950,13 @@ Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const S
     SWC_ASSERT(symView.sym() && symView.sym()->isFunction());
     auto& calledFn = symView.sym()->cast<SymbolFunction>();
 
-    const TypeRef   returnTypeRef = calledFn.returnTypeRef();
-    const TypeInfo& returnType    = sema.typeMgr().get(returnTypeRef);
+    const TypeRef    returnTypeRef = calledFn.returnTypeRef();
+    const TypeInfo&  returnType    = sema.typeMgr().get(returnTypeRef);
     const AstNodeRef resultNodeRef = sema.viewZero(sema.curNodeRef()).nodeRef();
 
     if (!sema.viewConstant(sema.curNodeRef()).hasConstant())
     {
-        auto* payload = sema.compiler().allocate<IndexSpecOpSemaPayload>();
+        auto* payload     = sema.compiler().allocate<IndexSpecOpSemaPayload>();
         payload->calledFn = &calledFn;
         sema.setSemaPayload(sema.curNodeRef(), payload);
 
@@ -1006,7 +1002,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     if (sema.node(indexNode.nodeArgRef).is(AstNodeId::RangeExpr))
         return Result::Continue;
 
-    const SemaNodeView indexedView = sema.viewType(indexNode.nodeExprRef);
+    const SemaNodeView  indexedView = sema.viewType(indexNode.nodeExprRef);
     const SymbolStruct* ownerStruct = structSpecOpOwner(sema, indexedView);
     if (!ownerStruct)
         return Result::Continue;
@@ -1140,7 +1136,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
 {
     outHandled = false;
 
-    const Token& tok = sema.token(node.codeRef());
+    const Token&  tok     = sema.token(node.codeRef());
     IdentifierRef opIdRef = IdentifierRef::invalid();
     switch (tok.id)
     {

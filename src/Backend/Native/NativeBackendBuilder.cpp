@@ -497,7 +497,7 @@ Result NativeBackendBuilder::runGeneratedArtifact()
         .logCtx = &ctx_,
     };
 
-    const auto                         result = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? buildDir : artifactDir, &options);
+    const auto result = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? buildDir : artifactDir, &options);
     switch (result)
     {
         case Os::ProcessRunResult::Ok:

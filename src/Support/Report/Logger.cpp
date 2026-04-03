@@ -1,11 +1,10 @@
 #include "pch.h"
-
+#include "Support/Report/Logger.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
-#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -139,25 +138,12 @@ void Logger::printStdErr(const LogColor color, const std::string_view message, c
     (void) std::fflush(stderr);
 }
 
-void Logger::printHeaderDot(const TaskContext& ctx,
-                            LogColor           headerColor,
-                            std::string_view   header,
-                            LogColor           msgColor,
-                            std::string_view   message,
-                            std::string_view   dot,
-                            size_t             messageColumn)
+void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot, size_t messageColumn)
 {
     printHeaderDot(ctx, headerColor, header, msgColor, message, LogColor::Gray, dot, messageColumn);
 }
 
-void Logger::printHeaderDot(const TaskContext& ctx,
-                            LogColor           headerColor,
-                            std::string_view   header,
-                            LogColor           msgColor,
-                            std::string_view   message,
-                            LogColor           dotColor,
-                            std::string_view   dot,
-                            size_t             messageColumn)
+void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, LogColor dotColor, std::string_view dot, size_t messageColumn)
 {
     if (ctx.cmdLine().silent)
         return;
@@ -175,18 +161,13 @@ void Logger::printHeaderDot(const TaskContext& ctx,
     std::cout << "\n";
 }
 
-void Logger::printHeaderCentered(const TaskContext& ctx,
-                                 LogColor           headerColor,
-                                 std::string_view   header,
-                                 LogColor           msgColor,
-                                 std::string_view   message,
-                                 size_t             centerColumn)
+void Logger::printHeaderCentered(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, size_t centerColumn)
 {
     if (ctx.cmdLine().silent)
         return;
 
     const ScopedLock lock(ctx.global().logger());
-    size_t size = header.size();
+    size_t           size = header.size();
     while (size < centerColumn)
     {
         std::cout << " ";

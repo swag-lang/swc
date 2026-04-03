@@ -386,11 +386,37 @@ namespace
         return Result::Continue;
     }
 
-    Result resolveSyntheticCall(Sema& sema, const AstNode& node, std::span<Symbol*> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result resolveSyntheticCall(Sema& sema,
+                                const AstNode& node,
+                                std::span<Symbol*> candidates,
+                                std::span<AstNodeRef> args,
+                                AstNodeRef ufcsArg,
+                                bool allowNoMatch = false,
+                                bool* outMatched  = nullptr)
     {
+        if (outMatched)
+            *outMatched = false;
+
         SmallVector<ResolvedCallArgument> resolvedArgs;
         const SemaNodeView                calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
-        SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs));
+        if (allowNoMatch)
+        {
+            const bool savedSilent = sema.ctx().silentDiagnostic();
+            sema.ctx().setSilentDiagnostic(true);
+            const Result matchResult = Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs);
+            sema.ctx().setSilentDiagnostic(savedSilent);
+            if (matchResult == Result::Pause)
+                return Result::Pause;
+            if (matchResult != Result::Continue)
+                return Result::Continue;
+        }
+        else
+        {
+            SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs));
+        }
+
+        if (outMatched)
+            *outMatched = true;
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
 
         auto& calledFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
@@ -685,6 +711,62 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
     if (LangSpec::isOpVisitName(name))
         return SpecOpKind::OpVisit;
     return SpecOpKind::Invalid;
+}
+
+Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled)
+{
+    outHandled = false;
+
+    const Token& tok = sema.token(node.codeRef());
+    if (tok.id != TokenId::SymEqual)
+        return Result::Continue;
+
+    if (!leftView.type())
+        return Result::Continue;
+
+    TypeRef         unwrappedTypeRef = leftView.typeRef();
+    const TypeInfo& leftValueType    = sema.typeMgr().get(unwrappedTypeRef);
+    if (leftValueType.isReference())
+        unwrappedTypeRef = unwrapAlias(sema.ctx(), leftValueType.payloadTypeRef());
+    else
+        unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
+    if (!unwrappedTypeRef.isValid())
+        unwrappedTypeRef = leftView.typeRef();
+
+    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
+    if (!leftType.isStruct())
+        return Result::Continue;
+
+    const auto& ownerStruct = leftType.payloadSymStruct();
+    SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
+
+    const IdentifierRef  opAffectId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect);
+    SmallVector<Symbol*> candidates;
+    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opAffectId, std::span<const AstNodeRef>{}, candidates));
+    if (candidates.empty())
+        return Result::Continue;
+
+    SmallVector<AstNodeRef> args;
+    args.push_back(node.nodeRightRef);
+
+    bool matched = false;
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeLeftRef, true, &matched));
+    if (!matched)
+        return Result::Continue;
+
+    auto* assignPayload = sema.semaPayload<AssignSpecOpPayload>(sema.curNodeRef());
+    if (!assignPayload)
+    {
+        assignPayload = sema.compiler().allocate<AssignSpecOpPayload>();
+        sema.setSemaPayload(sema.curNodeRef(), assignPayload);
+    }
+
+    if (const SemaNodeView symView = sema.curViewSymbol(); symView.sym() && symView.sym()->isFunction())
+        assignPayload->calledFn = &symView.sym()->cast<SymbolFunction>();
+
+    sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
+    outHandled = true;
+    return Result::Continue;
 }
 
 Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled)

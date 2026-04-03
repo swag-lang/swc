@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -249,6 +250,10 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     }
 
     SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
+    bool handled = false;
+    SWC_RESULT(SemaSpecOp::tryResolveAssign(sema, *this, nodeLeftView, handled));
+    if (handled)
+        return Result::Continue;
     SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
 
     applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);

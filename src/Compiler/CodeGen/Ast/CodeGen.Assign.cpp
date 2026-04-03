@@ -1,10 +1,13 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -545,6 +548,14 @@ namespace
 
 Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
 {
+    if (const auto* assignPayload = codeGen.sema().semaPayload<AssignSpecOpPayload>(codeGen.curNodeRef());
+        assignPayload && assignPayload->calledFn != nullptr)
+    {
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), assignPayload->calledFn);
+        if (assignPayload->calledFn->specOpKind() == SpecOpKind::OpAffect)
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
+
     const Token&       tok          = codeGen.token(codeRef());
     CodeGenNodePayload rightPayload = codeGen.payload(nodeRightRef);
     const SemaNodeView rightView    = codeGen.viewType(nodeRightRef);

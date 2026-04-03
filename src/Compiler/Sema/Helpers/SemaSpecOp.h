@@ -4,10 +4,16 @@ SWC_BEGIN_NAMESPACE();
 
 class Sema;
 class SymbolFunction;
+struct AstAssignStmt;
 struct AstBinaryExpr;
 struct AstRelationalExpr;
 struct AstUnaryExpr;
 struct SemaNodeView;
+
+struct AssignSpecOpPayload
+{
+    SymbolFunction* calledFn = nullptr;
+};
 
 struct RelationalSpecOpPayload
 {
@@ -43,6 +49,7 @@ namespace SemaSpecOp
     SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     Result     validateSymbol(Sema& sema, SymbolFunction& sym);
     Result     registerSymbol(Sema& sema, SymbolFunction& sym);
+    Result     tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);
     Result     tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, bool& outHandled);
     Result     tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled);
     Result     tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled);

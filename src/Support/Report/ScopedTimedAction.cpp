@@ -110,7 +110,13 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Utf8 colorize(const TaskContext& ctx, LogColor color, std::string_view text);
+    Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text)
+    {
+        Utf8 result;
+        result += LogColorHelper::toAnsi(ctx, color);
+        result += text;
+        return result;
+    }
 
     Utf8 joinParts(const TaskContext& ctx, const std::vector<Utf8>& parts, const LogColor partColor)
     {
@@ -133,14 +139,6 @@ namespace
             first = false;
         }
 
-        return result;
-    }
-
-    Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text)
-    {
-        Utf8 result;
-        result += LogColorHelper::toAnsi(ctx, color);
-        result += text;
         return result;
     }
 
@@ -242,10 +240,7 @@ Utf8 TimedActionLog::formatStageStartLine(const TaskContext& ctx, const StageSpe
     return line;
 }
 
-Utf8 TimedActionLog::formatStageEndLine(const TaskContext& ctx,
-                                        const StageSpec&   spec,
-                                        const StageOutcome outcome,
-                                        const uint64_t     durationNs)
+Utf8 TimedActionLog::formatStageEndLine(const TaskContext& ctx, const StageSpec& spec, const StageOutcome outcome, const uint64_t durationNs)
 {
     Utf8 line = formatStageEnd(ctx, spec, outcome, durationNs);
     line += "\n";

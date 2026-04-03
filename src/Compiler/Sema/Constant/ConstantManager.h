@@ -41,7 +41,7 @@ public:
         mutable std::shared_mutex                                         mutex;
     };
 
-    static constexpr uint32_t SHARD_BITS  = 3;
+    static constexpr uint32_t SHARD_BITS  = 4;
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
     static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;

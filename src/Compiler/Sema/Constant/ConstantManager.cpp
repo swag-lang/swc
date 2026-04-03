@@ -180,18 +180,21 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
             return addCstOther(*this, shard, shardIndex, ctx, value);
         return addCstStruct(*this, shard, shardIndex, ctx, value);
     }
+    
     if (value.isArray())
     {
         if (value.isPayloadBorrowed())
             return addCstOther(*this, shard, shardIndex, ctx, value);
         return addCstArray(*this, shard, shardIndex, ctx, value);
     }
+    
     if (value.isSlice())
     {
         if (value.isPayloadBorrowed())
             return addCstOther(*this, shard, shardIndex, ctx, value);
         return addCstSlice(*this, shard, shardIndex, ctx, value);
     }
+    
     if (value.isString())
         return addCstString(*this, shard, shardIndex, ctx, value);
 

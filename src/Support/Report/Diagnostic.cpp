@@ -273,11 +273,7 @@ void Diagnostic::report(TaskContext& ctx) const
     // Log diagnostic
     if (!dismiss)
     {
-        {
-            const Logger::ScopedLock loggerLock(ctx.global().logger());
-            ctx.global().logger().ensureTransientLineSeparated(ctx, true);
-            Logger::print(ctx, msg);
-        }
+        Logger::print(ctx, msg);
 
         if (CompilerInstance::dbgDevMode && !orgDismissed)
             Os::panicBox("[DevMode] ERROR raised!");

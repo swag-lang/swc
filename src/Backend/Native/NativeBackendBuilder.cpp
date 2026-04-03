@@ -398,7 +398,7 @@ Result NativeBackendBuilder::prepare()
     appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
 
     std::optional<TimedActionLog::ScopedStage> microStage;
-    if (ctx_.global().logger().tryClaimUniqueStage("micro"))
+    if (ctx_.global().logger().claimStageOnce("micro"))
     {
         microStage.emplace(ctx_, TimedActionLog::StageSpec{
                                      .key   = "micro",

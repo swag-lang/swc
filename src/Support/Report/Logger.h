@@ -57,8 +57,8 @@ public:
 
     void   lock();
     void   unlock();
-    void   resetStageSequence();
-    bool   tryClaimUniqueStage(std::string_view key);
+    void   resetStageClaims();
+    bool   claimStageOnce(std::string_view key);
     void   pushStageMute() { stageMuteDepth_++; }
     void   popStageMute()
     {
@@ -66,7 +66,6 @@ public:
         stageMuteDepth_--;
     }
     bool stageOutputMuted() const { return stageMuteDepth_ != 0; }
-    void ensureTransientLineSeparated(const TaskContext& ctx, bool blankLine = false);
 
     static void print(const TaskContext& ctx, std::string_view message);
     static void printDim(const TaskContext& ctx, std::string_view message);
@@ -78,7 +77,7 @@ public:
 
 private:
     std::recursive_mutex mutexAccess_;
-    std::vector<Utf8>    uniqueStageKeys_;
+    std::vector<Utf8>    claimedStageKeys_;
     size_t               stageMuteDepth_ = 0;
 };
 

@@ -63,7 +63,6 @@ namespace TimedActionLog
 
     Utf8 formatSummaryLine(const TaskContext& ctx, const StatsSnapshot& snapshot);
     void printSummary(const TaskContext& ctx);
-    void printStep(const TaskContext& ctx, std::string_view action, std::string_view detail = {});
 }
 
 SWC_END_NAMESPACE();

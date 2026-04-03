@@ -241,11 +241,7 @@ void CompilerInstance::decPendingImplRegistrations()
 void CompilerInstance::logBefore()
 {
     const TaskContext ctx(*this);
-    {
-        const Logger::ScopedLock loggerLock(ctx.global().logger());
-        ctx.global().logger().resetStageSequence();
-    }
-
+    ctx.global().logger().resetStageClaims();
     TimedActionLog::printSessionFlags(ctx);
 }
 

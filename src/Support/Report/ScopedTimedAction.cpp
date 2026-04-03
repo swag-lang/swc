@@ -188,7 +188,6 @@ namespace
 
     Utf8 formatStageEnd(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs)
     {
-        const Utf8 bullet          = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
         const Utf8 duration        = Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
         const auto outcomeLogColor = stageOutcomeColor(spec, outcome);
 
@@ -208,7 +207,6 @@ namespace
         if (ctx.cmdLine().silent)
             return;
 
-        ctx.global().logger().ensureTransientLineSeparated(ctx);
         std::cout << line;
         std::cout << std::flush;
     }
@@ -406,12 +404,6 @@ void TimedActionLog::printSummary(const TaskContext& ctx)
     const StatsSnapshot      snapshot = StatsSnapshot::capture();
     const Logger::ScopedLock loggerLock(ctx.global().logger());
     printLineLocked(ctx, formatSummaryLine(ctx, snapshot));
-}
-
-void TimedActionLog::printStep(const TaskContext& ctx, const std::string_view action, const std::string_view detail)
-{
-    const ScopedStage stage(ctx, StageSpec{.key = Utf8Helper::toLowerSnake(action), .label = action, .verb = "processing", .detail = detail});
-    SWC_UNUSED(stage);
 }
 
 SWC_END_NAMESPACE();

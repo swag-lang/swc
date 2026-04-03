@@ -28,31 +28,23 @@ void Logger::unlock()
     mutexAccess_.unlock();
 }
 
-void Logger::resetStageSequence()
+void Logger::resetStageClaims()
 {
     const ScopedLock lock(*this);
-    uniqueStageKeys_.clear();
+    claimedStageKeys_.clear();
 }
 
-bool Logger::tryClaimUniqueStage(const std::string_view key)
+bool Logger::claimStageOnce(const std::string_view key)
 {
     const ScopedLock lock(*this);
-    for (const Utf8& existingKey : uniqueStageKeys_)
+    for (const Utf8& existingKey : claimedStageKeys_)
     {
         if (existingKey == key)
             return false;
     }
 
-    uniqueStageKeys_.emplace_back(key);
+    claimedStageKeys_.emplace_back(key);
     return true;
-}
-
-void Logger::ensureTransientLineSeparated(const TaskContext& ctx, const bool blankLine)
-{
-    if (ctx.cmdLine().silent)
-        return;
-
-    (void) blankLine;
 }
 
 void Logger::print(const TaskContext& ctx, std::string_view message)
@@ -171,7 +163,6 @@ void Logger::printHeaderDot(const TaskContext& ctx,
         return;
 
     const ScopedLock lock(ctx.global().logger());
-    ctx.global().logger().ensureTransientLineSeparated(ctx);
     std::cout << LogColorHelper::toAnsi(ctx, headerColor);
     std::cout << header;
     std::cout << LogColorHelper::toAnsi(ctx, dotColor);
@@ -195,7 +186,6 @@ void Logger::printHeaderCentered(const TaskContext& ctx,
         return;
 
     const ScopedLock lock(ctx.global().logger());
-    ctx.global().logger().ensureTransientLineSeparated(ctx);
     size_t size = header.size();
     while (size < centerColumn)
     {

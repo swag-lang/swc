@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -387,6 +388,28 @@ namespace
         if (genericArg.isValid())
             return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
         return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
+    }
+
+    void splitMutableReceiverCandidates(Sema& sema, std::span<Symbol*> inCandidates, SmallVector<Symbol*>& outMutableCandidates, SmallVector<Symbol*>& outConstCandidates)
+    {
+        outMutableCandidates.clear();
+        outConstCandidates.clear();
+
+        for (Symbol* sym : inCandidates)
+        {
+            auto* const symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr;
+            if (!symFunc || symFunc->parameters().empty())
+            {
+                outConstCandidates.push_back(sym);
+                continue;
+            }
+
+            const SymbolVariable* const receiver = symFunc->parameters().front();
+            if (receiver && !sema.typeMgr().get(receiver->typeRef()).isConst())
+                outMutableCandidates.push_back(sym);
+            else
+                outConstCandidates.push_back(sym);
+        }
     }
 
     Result collectIndexAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, SmallVector<Symbol*>& outCandidates)
@@ -906,9 +929,60 @@ Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const S
     args.push_back(node.nodeArgRef);
 
     bool matched = false;
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, true, &matched));
+    if (!indexedView.type()->isConst())
+    {
+        SmallVector<Symbol*> mutableCandidates;
+        SmallVector<Symbol*> constCandidates;
+        splitMutableReceiverCandidates(sema, candidates.span(), mutableCandidates, constCandidates);
+
+        if (!mutableCandidates.empty())
+        {
+            SWC_RESULT(resolveSyntheticCall(sema, node, mutableCandidates.span(), args.span(), node.nodeExprRef, true, &matched));
+            if (matched)
+                candidates = std::move(mutableCandidates);
+            else if (!constCandidates.empty())
+                candidates = std::move(constCandidates);
+        }
+    }
+
+    if (!matched)
+        SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, true, &matched));
     if (!matched)
         return Result::Continue;
+
+    const auto symView = sema.curViewSymbol();
+    SWC_ASSERT(symView.sym() && symView.sym()->isFunction());
+    auto& calledFn = symView.sym()->cast<SymbolFunction>();
+
+    const TypeRef   returnTypeRef = calledFn.returnTypeRef();
+    const TypeInfo& returnType    = sema.typeMgr().get(returnTypeRef);
+    const AstNodeRef resultNodeRef = sema.viewZero(sema.curNodeRef()).nodeRef();
+
+    if (!sema.viewConstant(sema.curNodeRef()).hasConstant())
+    {
+        auto* payload = sema.compiler().allocate<IndexSpecOpSemaPayload>();
+        payload->calledFn = &calledFn;
+        sema.setSemaPayload(sema.curNodeRef(), payload);
+
+        if (returnType.isReference())
+        {
+            sema.setType(sema.curNodeRef(), returnType.payloadTypeRef());
+            sema.setType(resultNodeRef, returnType.payloadTypeRef());
+            sema.setIsValue(sema.curNodeRef());
+            sema.setIsValue(resultNodeRef);
+            sema.setIsLValue(sema.curNodeRef());
+            sema.setIsLValue(resultNodeRef);
+        }
+        else
+        {
+            sema.setType(sema.curNodeRef(), returnTypeRef);
+            sema.setType(resultNodeRef, returnTypeRef);
+            sema.setIsValue(sema.curNodeRef());
+            sema.setIsValue(resultNodeRef);
+            sema.unsetIsLValue(sema.curNodeRef());
+            sema.unsetIsLValue(resultNodeRef);
+        }
+    }
 
     outHandled = true;
     return Result::Continue;

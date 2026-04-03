@@ -407,6 +407,8 @@ namespace
 
             if (typeInfo.isAny() || typeInfo.isInterface())
                 return true;
+            if (typeInfo.isReference())
+                return true;
 
             if (typeInfo.isArray())
                 return self(self, typeInfo.payloadArrayElemTypeRef());

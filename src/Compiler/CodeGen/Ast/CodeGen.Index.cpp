@@ -273,18 +273,47 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     if (codeGen.node(nodeArgRef).is(AstNodeId::RangeExpr))
         return emitSliceValue(codeGen, *this);
 
-    if (codeGen.sema().semaPayload<DeferredIndexAssignSpecOpPayload>(codeGen.curNodeRef()))
+    const auto* payloadBase = codeGen.sema().semaPayload<IndexSpecOpPayloadBase>(codeGen.curNodeRef());
+    if (payloadBase && payloadBase->kind == IndexSpecOpPayloadKind::DeferredAssign)
         return Result::Continue;
 
-    SmallVector<ResolvedCallArgument> resolvedArgs;
-    codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
-
-    const SemaNodeView specialOpView = codeGen.curViewSymbol();
-    if (!resolvedArgs.empty() && specialOpView.sym() && specialOpView.sym()->isFunction())
+    SymbolFunction* calledFn = nullptr;
+    if (payloadBase && payloadBase->kind == IndexSpecOpPayloadKind::Read)
     {
-        const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
-        if (calledFn.specOpKind() == SpecOpKind::OpIndex)
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        const auto* specOpPayload = static_cast<const IndexSpecOpSemaPayload*>(static_cast<const void*>(payloadBase));
+        calledFn = specOpPayload->calledFn;
+    }
+    else if (const SemaNodeView symView = codeGen.curViewSymbol(); symView.sym() && symView.sym()->isFunction())
+    {
+        calledFn = &symView.sym()->cast<SymbolFunction>();
+    }
+    else if (const SemaNodeView storedSymView(codeGen.sema(), codeGen.curNodeRef(), SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+             storedSymView.sym() && storedSymView.sym()->isFunction())
+    {
+        calledFn = &storedSymView.sym()->cast<SymbolFunction>();
+    }
+
+    if (calledFn != nullptr)
+    {
+        const TypeRef semanticTypeRef = codeGen.curViewType().typeRef();
+        const bool    wasLValue       = codeGen.sema().isLValue(codeGen.curNodeRef());
+
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), calledFn);
+        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+        codeGen.sema().setType(codeGen.curNodeRef(), semanticTypeRef);
+        if (wasLValue)
+            codeGen.sema().setIsLValue(codeGen.curNodeRef());
+        else
+            codeGen.sema().unsetIsLValue(codeGen.curNodeRef());
+
+        const TypeInfo& returnType = codeGen.typeMgr().get(calledFn->returnTypeRef());
+        if (returnType.isReference())
+        {
+            const CodeGenNodePayload& callPayload = codeGen.payload(codeGen.curNodeRef());
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), callPayload.reg, semanticTypeRef);
+        }
+
+        return Result::Continue;
     }
 
     const CodeGenNodePayload& indexedPayload = codeGen.payload(nodeExprRef);

@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Sema/Ast/Sema.Index.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -21,8 +22,12 @@ struct RelationalSpecOpPayload
     SymbolFunction* calledFn = nullptr;
 };
 
-struct DeferredIndexAssignSpecOpPayload
+struct DeferredIndexAssignSpecOpPayload : IndexSpecOpPayloadBase
 {
+    DeferredIndexAssignSpecOpPayload()
+    {
+        kind = IndexSpecOpPayloadKind::DeferredAssign;
+    }
 };
 
 enum class SpecOpKind : uint8_t

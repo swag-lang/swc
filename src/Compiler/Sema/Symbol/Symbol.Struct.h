@@ -13,8 +13,10 @@ class Sema;
 
 enum class SymbolStructFlagsE : uint8_t
 {
-    Zero     = 0,
-    TypeInfo = 1 << 0,
+    Zero            = 0,
+    TypeInfo        = 1 << 0,
+    GenericRoot     = 1 << 1,
+    GenericInstance = 1 << 2,
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 
@@ -63,15 +65,15 @@ public:
     SymbolFunction*              opPostMove() { return opPostMove_; }
     const SymbolFunction*        opPostMove() const { return opPostMove_; }
 
-    bool                          isGenericRoot() const noexcept { return genericRoot_; }
-    void                          setGenericRoot(bool value) noexcept { genericRoot_ = value; }
-    bool                          isGenericInstance() const noexcept { return genericInstance_; }
+    bool                          isGenericRoot() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericRoot); }
+    void                          setGenericRoot(bool value) noexcept;
+    bool                          isGenericInstance() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericInstance); }
     void                          setGenericInstance(SymbolStruct* root) noexcept;
-    SymbolStruct*                 genericRootSym() noexcept { return genericRootSym_; }
-    const SymbolStruct*           genericRootSym() const noexcept { return genericRootSym_; }
+    SymbolStruct*                 genericRootSym() noexcept;
+    const SymbolStruct*           genericRootSym() const noexcept;
     bool                          tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
-    GenericInstanceStorage&       genericInstanceStorage() noexcept { return genericInstances_; }
-    const GenericInstanceStorage& genericInstanceStorage() const noexcept { return genericInstances_; }
+    GenericInstanceStorage&       genericInstanceStorage() noexcept;
+    const GenericInstanceStorage& genericInstanceStorage() const noexcept;
     void                          setGenericCompletionOwner(const TaskContext& ctx) noexcept;
     bool                          isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
     bool                          tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
@@ -80,28 +82,27 @@ public:
     void                          setGenericNodeCompleted() const noexcept;
 
 private:
-    std::vector<SymbolVariable*>    fields_;
-    mutable std::shared_mutex       mutexImpls_;
-    std::vector<SymbolImpl*>        impls_;
-    mutable std::shared_mutex       mutexInterfaces_;
-    std::vector<SymbolImpl*>        interfaces_;
-    mutable std::shared_mutex       mutexSpecOps_;
-    std::vector<SymbolFunction*>    specOps_;
-    GenericInstanceStorage          genericInstances_;
-    std::atomic<const TaskContext*> genericCompletionOwner_ = nullptr;
-    mutable std::atomic<uint32_t>   genericCompletionDepth_ = 0;
-    mutable std::atomic<bool>       genericNodeCompleted_   = false;
-    SymbolFunction*                 opDrop_                 = nullptr;
-    SymbolFunction*                 opPostCopy_             = nullptr;
-    SymbolFunction*                 opPostMove_             = nullptr;
-    std::once_flag                  defaultStructOnce_;
-    ConstantRef                     defaultStructCst_ = ConstantRef::invalid();
-    uint64_t                        sizeInBytes_      = 0;
-    uint32_t                        alignment_        = 0;
-    AstNodeRef                      declNodeRef_      = AstNodeRef::invalid();
-    bool                            genericRoot_      = false;
-    bool                            genericInstance_  = false;
-    SymbolStruct*                   genericRootSym_   = nullptr;
+    struct GenericData;
+
+    GenericData& ensureGenericData() noexcept;
+    GenericData* genericData() const noexcept;
+
+    std::vector<SymbolVariable*>      fields_;
+    mutable std::shared_mutex         mutexImpls_;
+    std::vector<SymbolImpl*>          impls_;
+    mutable std::shared_mutex         mutexInterfaces_;
+    std::vector<SymbolImpl*>          interfaces_;
+    mutable std::shared_mutex         mutexSpecOps_;
+    std::vector<SymbolFunction*>      specOps_;
+    std::once_flag                    defaultStructOnce_;
+    SymbolFunction*                   opDrop_           = nullptr;
+    SymbolFunction*                   opPostCopy_       = nullptr;
+    SymbolFunction*                   opPostMove_       = nullptr;
+    mutable std::atomic<GenericData*> genericData_      = nullptr;
+    uint64_t                          sizeInBytes_      = 0;
+    ConstantRef                       defaultStructCst_ = ConstantRef::invalid();
+    uint32_t                          alignment_        = 0;
+    AstNodeRef                        declNodeRef_      = AstNodeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

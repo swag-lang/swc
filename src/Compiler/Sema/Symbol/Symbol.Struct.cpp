@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Memory/Heap.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -96,7 +97,18 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 
 namespace
 {
+    constexpr uint32_t K_GENERIC_COMPLETION_DEPTH_MASK = 0x7FFFFFFFu;
+    constexpr uint32_t K_GENERIC_NODE_COMPLETED_MASK   = 1u << 31;
 }
+
+struct SymbolStruct::GenericData
+{
+    // Keep generic-only state off the main symbol so non-generic structs stay compact.
+    GenericInstanceStorage          instances;
+    std::atomic<const TaskContext*> completionOwner = nullptr;
+    mutable std::atomic<uint32_t>   completionState = 0;
+    SymbolStruct*                   rootSym         = nullptr;
+};
 
 const SymbolImpl* SymbolStruct::findInterfaceImpl(IdentifierRef interfaceIdRef) const
 {
@@ -264,36 +276,107 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
     return Result::Continue;
 }
 
+void SymbolStruct::setGenericRoot(bool value) noexcept
+{
+    if (value)
+        addExtraFlag(SymbolStructFlagsE::GenericRoot);
+    else
+        removeExtraFlag(SymbolStructFlagsE::GenericRoot);
+}
+
 void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
 {
-    genericInstance_ = root != nullptr;
-    genericRootSym_  = root;
+    if (root)
+    {
+        addExtraFlag(SymbolStructFlagsE::GenericInstance);
+        ensureGenericData().rootSym = root;
+    }
+    else
+    {
+        removeExtraFlag(SymbolStructFlagsE::GenericInstance);
+        if (auto* data = genericData())
+            data->rootSym = nullptr;
+    }
+}
+
+SymbolStruct* SymbolStruct::genericRootSym() noexcept
+{
+    if (auto* data = genericData())
+        return data->rootSym;
+    return nullptr;
+}
+
+const SymbolStruct* SymbolStruct::genericRootSym() const noexcept
+{
+    if (const auto* data = genericData())
+        return data->rootSym;
+    return nullptr;
+}
+
+SymbolStruct::GenericData* SymbolStruct::genericData() const noexcept
+{
+    return genericData_.load(std::memory_order_acquire);
+}
+
+SymbolStruct::GenericData& SymbolStruct::ensureGenericData() noexcept
+{
+    if (auto* data = genericData())
+        return *data;
+
+    auto* newData  = heapNew<GenericData>();
+    auto* expected = static_cast<GenericData*>(nullptr);
+    if (!genericData_.compare_exchange_strong(expected, newData, std::memory_order_acq_rel, std::memory_order_acquire))
+    {
+        heapDelete(newData);
+        return *expected;
+    }
+
+    return *newData;
+}
+
+GenericInstanceStorage& SymbolStruct::genericInstanceStorage() noexcept
+{
+    return ensureGenericData().instances;
+}
+
+const GenericInstanceStorage& SymbolStruct::genericInstanceStorage() const noexcept
+{
+    const auto* data = genericData();
+    SWC_ASSERT(data != nullptr);
+    return data->instances;
 }
 
 bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const
 {
-    return genericInstances_.tryGetArgs(instance, outArgs);
+    if (const auto* data = genericData())
+        return data->instances.tryGetArgs(instance, outArgs);
+    return false;
 }
 
 void SymbolStruct::setGenericCompletionOwner(const TaskContext& ctx) noexcept
 {
+    auto&              data     = ensureGenericData();
     const TaskContext* expected = nullptr;
-    const bool         done     = genericCompletionOwner_.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
+    const bool         done     = data.completionOwner.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
     SWC_ASSERT(done || expected == &ctx);
 }
 
 bool SymbolStruct::isGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    return genericCompletionOwner_.load(std::memory_order_acquire) == &ctx;
+    const auto* data = genericData();
+    return data && data->completionOwner.load(std::memory_order_acquire) == &ctx;
 }
 
 bool SymbolStruct::tryStartGenericCompletion(const TaskContext& ctx) const noexcept
 {
     SWC_ASSERT(isGenericCompletionOwner(ctx));
-    const auto previousDepth = genericCompletionDepth_.fetch_add(1, std::memory_order_acq_rel);
-    if (previousDepth != 0)
+    const auto* data = genericData();
+    SWC_ASSERT(data != nullptr);
+    const auto previousState = data->completionState.fetch_add(1, std::memory_order_acq_rel);
+    SWC_ASSERT((previousState & K_GENERIC_COMPLETION_DEPTH_MASK) != K_GENERIC_COMPLETION_DEPTH_MASK);
+    if ((previousState & K_GENERIC_COMPLETION_DEPTH_MASK) != 0)
     {
-        genericCompletionDepth_.fetch_sub(1, std::memory_order_acq_rel);
+        data->completionState.fetch_sub(1, std::memory_order_acq_rel);
         return false;
     }
 
@@ -302,18 +385,23 @@ bool SymbolStruct::tryStartGenericCompletion(const TaskContext& ctx) const noexc
 
 void SymbolStruct::finishGenericCompletion() const noexcept
 {
-    const auto previousDepth = genericCompletionDepth_.fetch_sub(1, std::memory_order_acq_rel);
-    SWC_ASSERT(previousDepth != 0);
+    const auto* data = genericData();
+    SWC_ASSERT(data != nullptr);
+    const auto previousState = data->completionState.fetch_sub(1, std::memory_order_acq_rel);
+    SWC_ASSERT((previousState & K_GENERIC_COMPLETION_DEPTH_MASK) != 0);
 }
 
 bool SymbolStruct::isGenericNodeCompleted() const noexcept
 {
-    return genericNodeCompleted_.load(std::memory_order_acquire);
+    const auto* data = genericData();
+    return data && (data->completionState.load(std::memory_order_acquire) & K_GENERIC_NODE_COMPLETED_MASK) != 0;
 }
 
 void SymbolStruct::setGenericNodeCompleted() const noexcept
 {
-    genericNodeCompleted_.store(true, std::memory_order_release);
+    const auto* data = genericData();
+    SWC_ASSERT(data != nullptr);
+    data->completionState.fetch_or(K_GENERIC_NODE_COMPLETED_MASK, std::memory_order_acq_rel);
 }
 
 SWC_END_NAMESPACE();

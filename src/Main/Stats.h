@@ -65,14 +65,14 @@ struct Stats
         return get().numErrors.load(std::memory_order_relaxed);
     }
 
-    static void setNumErrors(size_t value)
+    static bool hasError()
     {
-        get().numErrors.store(value, std::memory_order_relaxed);
+        return get().numErrors.load(std::memory_order_relaxed) > 0;
     }
 
-    static void addNumErrors(size_t value = 1)
+    static void addError()
     {
-        get().numErrors.fetch_add(value, std::memory_order_relaxed);
+        get().numErrors.fetch_add(1, std::memory_order_relaxed);
     }
 
     static void setMax(const std::atomic<size_t>& valCur, std::atomic<size_t>& valMax)

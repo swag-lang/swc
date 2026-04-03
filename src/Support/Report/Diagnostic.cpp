@@ -227,7 +227,7 @@ void Diagnostic::report(TaskContext& ctx) const
     {
         case DiagnosticSeverity::Error:
             if (!dismiss)
-                Stats::addNumErrors();
+                Stats::addError();
             ctx.setHasError();
             ctx.compiler().notifyAlive();
             if (fileOwner_.isValid())

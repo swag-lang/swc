@@ -142,7 +142,7 @@ namespace
 
     void verifyExpectedMarkers(TaskContext& ctx)
     {
-        if (Stats::getNumErrors() != 0)
+        if (Stats::hasError())
             return;
 
         for (SourceFile* file : ctx.compiler().files())
@@ -165,7 +165,7 @@ namespace
         if (builder.run() != Result::Continue)
             return false;
 
-        return Stats::getNumErrors() == 0;
+        return !Stats::hasError();
     }
 
     bool runNativeBackends(CompilerInstance& compiler)
@@ -182,7 +182,7 @@ namespace
                                                    .detail = "source-driven expectations",
                                                });
         verifyExpectedMarkers(ctx);
-        return Stats::getNumErrors() == 0;
+        return !Stats::hasError();
     }
 
     template<typename T>
@@ -294,7 +294,7 @@ namespace
         request.codeRef      = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
         request.runImmediate = true;
         return ctx.compiler().jitExecMgr().submit(ctx, request) == Result::Continue &&
-               Stats::getNumErrors() == 0;
+               !Stats::hasError();
     }
 
     bool runJitTests(CompilerInstance& compiler)
@@ -375,7 +375,7 @@ namespace
                                                    .detail = "source-driven expectations",
                                                });
         verifyExpectedMarkers(ctx);
-        return Stats::getNumErrors() == 0;
+        return !Stats::hasError();
     }
 
     void runNativeTestCommand(CompilerInstance& compiler)

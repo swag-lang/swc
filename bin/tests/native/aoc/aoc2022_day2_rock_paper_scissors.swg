@@ -160,7 +160,7 @@ func chooseShape(opponent: Shape, desired: Outcome)->Shape
     case Rock:
         return desired == Outcome.Win ? Shape.Paper : Shape.Scissors
 
-    case Shape.Paper:
+    case .Paper:
         return desired == Outcome.Win ? Shape.Scissors : Shape.Rock
 
     case Shape.Scissors:

@@ -278,7 +278,7 @@ namespace
         }
 
         Sema::waitDone(builder.ctx(), builder.compiler().jobClientId());
-        if (Stats::getNumErrors() != 0)
+        if (Stats::hasError())
             return Result::Error;
 
         for (const auto& info : builder.functionInfos)

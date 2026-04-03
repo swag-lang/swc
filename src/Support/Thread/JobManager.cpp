@@ -419,7 +419,7 @@ namespace
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
         HardwareException::log(job.ctx(), "hardware exception during job execution", args);
-        Stats::addNumErrors();
+        Stats::addError();
         Os::panicBox("hardware exception raised!");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }

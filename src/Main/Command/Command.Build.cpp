@@ -22,7 +22,7 @@ namespace
         if (builder.run() != Result::Continue)
             return false;
 
-        return Stats::getNumErrors() == 0;
+        return !Stats::hasError();
     }
 
     void runNativeCommand(CompilerInstance& compiler, const bool runArtifact)

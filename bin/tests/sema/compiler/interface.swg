@@ -13,5 +13,5 @@
 #test
 {
     let c = @compiler
-    c.compileString(1) // swc-expected-error {{sema_err_too_many_arguments}}
+    c.compileString(1) // swc-expected-error {{sema_err_cannot_cast}}
 }

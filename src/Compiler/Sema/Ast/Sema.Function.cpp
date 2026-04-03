@@ -128,9 +128,12 @@ namespace
         const auto& outerMember = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();
         if (sema.isValue(outerMember.nodeLeftRef))
         {
+            const SemaNodeView outerLeftView = sema.viewNodeTypeSymbol(outerMember.nodeLeftRef);
+            if (outerLeftView.type() && outerLeftView.type()->isInterface())
+                return AstNodeRef::invalid();
+
             if (outerMember.nodeLeftRef.isValid() && sema.node(outerMember.nodeLeftRef).is(AstNodeId::MemberAccessExpr))
             {
-                const SemaNodeView outerLeftView = sema.viewNodeTypeSymbol(outerMember.nodeLeftRef);
                 const auto&        innerMember   = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
                 if ((outerLeftView.sym() && outerLeftView.sym()->isImpl()) ||
                     (outerLeftView.type() && outerLeftView.type()->isInterface()))

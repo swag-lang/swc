@@ -62,7 +62,19 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 
 Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
 {
-    Diagnostic     diag   = Diagnostic::get(id, ast_->srcView().fileRef());
+    Diagnostic diag = Diagnostic::get(id, ast_->srcView().fileRef());
+    if (!nodeRef.isValid())
+    {
+        const TokenRef tknRef = ref();
+        setReportArguments(diag, tknRef);
+        diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
+
+        if (tknRef == lastErrorToken_)
+            diag.setSilent(true);
+        lastErrorToken_ = tknRef;
+        return diag;
+    }
+
     const AstNode& node   = ast_->node(nodeRef);
     const TokenRef tknRef = node.tokRef();
     setReportArguments(diag, tknRef);

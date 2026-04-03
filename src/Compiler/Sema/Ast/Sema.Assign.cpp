@@ -249,8 +249,12 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         return assignMulti(sema, tok, assignList, modifierFlags, nodeRightView);
     }
 
-    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
     bool handled = false;
+    SWC_RESULT(SemaSpecOp::tryResolveIndexAssign(sema, *this, handled));
+    if (handled)
+        return Result::Continue;
+
+    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
     SWC_RESULT(SemaSpecOp::tryResolveAssign(sema, *this, nodeLeftView, handled));
     if (handled)
         return Result::Continue;

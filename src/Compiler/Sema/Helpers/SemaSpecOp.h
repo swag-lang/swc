@@ -6,6 +6,7 @@ class Sema;
 class SymbolFunction;
 struct AstAssignStmt;
 struct AstBinaryExpr;
+struct AstIndexExpr;
 struct AstRelationalExpr;
 struct AstUnaryExpr;
 struct SemaNodeView;
@@ -18,6 +19,10 @@ struct AssignSpecOpPayload
 struct RelationalSpecOpPayload
 {
     SymbolFunction* calledFn = nullptr;
+};
+
+struct DeferredIndexAssignSpecOpPayload
+{
 };
 
 enum class SpecOpKind : uint8_t
@@ -49,6 +54,8 @@ namespace SemaSpecOp
     SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     Result     validateSymbol(Sema& sema, SymbolFunction& sym);
     Result     registerSymbol(Sema& sema, SymbolFunction& sym);
+    Result     tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
+    Result     tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
     Result     tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);
     Result     tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, bool& outHandled);
     Result     tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled);

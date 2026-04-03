@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -246,6 +247,11 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     if (sema.node(nodeArgRef).is(AstNodeId::RangeExpr))
         return semaSliceIndex(sema, *this, nodeExprView);
+
+    bool handled = false;
+    SWC_RESULT(SemaSpecOp::tryResolveIndex(sema, *this, nodeExprView, handled));
+    if (handled)
+        return Result::Continue;
 
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;

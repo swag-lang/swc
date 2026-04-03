@@ -2,10 +2,13 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -269,6 +272,20 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     if (codeGen.node(nodeArgRef).is(AstNodeId::RangeExpr))
         return emitSliceValue(codeGen, *this);
+
+    if (codeGen.sema().semaPayload<DeferredIndexAssignSpecOpPayload>(codeGen.curNodeRef()))
+        return Result::Continue;
+
+    SmallVector<ResolvedCallArgument> resolvedArgs;
+    codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
+
+    const SemaNodeView specialOpView = codeGen.curViewSymbol();
+    if (!resolvedArgs.empty() && specialOpView.sym() && specialOpView.sym()->isFunction())
+    {
+        const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
+        if (calledFn.specOpKind() == SpecOpKind::OpIndex)
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
 
     const CodeGenNodePayload& indexedPayload = codeGen.payload(nodeExprRef);
     const SemaNodeView        indexedView    = codeGen.viewType(nodeExprRef);

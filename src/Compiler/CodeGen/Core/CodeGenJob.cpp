@@ -5,8 +5,8 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
-#if SWC_HAS_STATS
 #include "Main/Stats.h"
+#if SWC_HAS_STATS
 #include "Support/Core/Timer.h"
 #endif
 #include "Support/Memory/Heap.h"
@@ -68,6 +68,8 @@ JobResult CodeGenJob::exec()
 {
     SWC_ASSERT(symbolFunc_);
     ctx().state().reset();
+    if (Stats::hasError())
+        return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
     if (symbolFunc_->isCodeGenCompleted())
         return JobResult::Done;
     if (symbolFunc_->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbolFunc_->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))

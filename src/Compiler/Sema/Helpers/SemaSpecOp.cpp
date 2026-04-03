@@ -313,6 +313,14 @@ namespace
         return nodeRef;
     }
 
+    std::string_view assignGenericOpString(TokenId tokId)
+    {
+        if (tokId == TokenId::SymEqual)
+            return {};
+
+        return Token::toName(tokId);
+    }
+
     bool canExplicitlySpecializeSpecOp(Sema& sema, const SymbolFunction& symFunc, std::span<const AstNodeRef> genericArgNodes)
     {
         if (!symFunc.isGenericRoot() || genericArgNodes.empty())
@@ -718,7 +726,17 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     outHandled = false;
 
     const Token& tok = sema.token(node.codeRef());
-    if (tok.id != TokenId::SymEqual)
+    if (!tok.isAny({TokenId::SymEqual,
+                    TokenId::SymPlusEqual,
+                    TokenId::SymMinusEqual,
+                    TokenId::SymAsteriskEqual,
+                    TokenId::SymSlashEqual,
+                    TokenId::SymAmpersandEqual,
+                    TokenId::SymPipeEqual,
+                    TokenId::SymCircumflexEqual,
+                    TokenId::SymPercentEqual,
+                    TokenId::SymLowerLowerEqual,
+                    TokenId::SymGreaterGreaterEqual}))
         return Result::Continue;
 
     if (!leftView.type())
@@ -740,9 +758,23 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     const auto& ownerStruct = leftType.payloadSymStruct();
     SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
 
-    const IdentifierRef  opAffectId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect);
+    const bool         isSimpleAssign = tok.id == TokenId::SymEqual;
+    const IdentifierRef opId = isSimpleAssign ?
+                                   sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect) :
+                                   sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAssign);
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opAffectId, std::span<const AstNodeRef>{}, candidates));
+    AstNodeRef          genericArg = AstNodeRef::invalid();
+    if (!isSimpleAssign)
+    {
+        const std::string_view opString = assignGenericOpString(tok.id);
+        SWC_ASSERT(!opString.empty());
+        genericArg = makeSyntheticStringConstantArg(sema, node.codeRef(), opString);
+    }
+
+    if (genericArg.isValid())
+        SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, candidates));
+    else
+        SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, candidates));
     if (candidates.empty())
         return Result::Continue;
 

@@ -552,7 +552,7 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
         assignPayload && assignPayload->calledFn != nullptr)
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), assignPayload->calledFn);
-        if (assignPayload->calledFn->specOpKind() == SpecOpKind::OpAffect)
+        if (assignPayload->calledFn->specOpKind() == SpecOpKind::OpAffect || assignPayload->calledFn->specOpKind() == SpecOpKind::OpAssign)
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
     }
 

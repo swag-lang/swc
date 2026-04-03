@@ -278,7 +278,7 @@ namespace
         }
 
         Sema::waitDone(builder.ctx(), builder.compiler().jobClientId());
-        if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
+        if (Stats::getNumErrors() != 0)
             return Result::Error;
 
         for (const auto& info : builder.functionInfos)

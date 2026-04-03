@@ -118,7 +118,7 @@ namespace Command
 
         jobMgr.waitAll(compiler.jobClientId());
 
-        if (Stats::get().numErrors.load() == 0)
+        if (Stats::getNumErrors() == 0)
         {
             for (SourceFile* f : compiler.files())
             {

@@ -131,7 +131,7 @@ namespace
             }
 
             Sema::waitDone(ctx, ctx.compiler().jobClientId());
-            if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
+            if (Stats::getNumErrors() != 0)
                 return false;
             if (targetFunction.loweredCode().bytes.empty())
                 return false;
@@ -970,7 +970,7 @@ namespace
 
         const Utf8 extraInfo = formatJitCrashContext(ctx, platformExceptionPointers);
         HardwareException::log(ctx, "fatal error: hardware exception during jit call!", platformExceptionPointers, extraInfo);
-        Stats::get().numErrors.fetch_add(1);
+        Stats::addNumErrors();
         Os::exit(ExitCode::HardwareException);
     }
 }

@@ -60,6 +60,21 @@ struct Stats
         return stats;
     }
 
+    static size_t getNumErrors()
+    {
+        return get().numErrors.load(std::memory_order_relaxed);
+    }
+
+    static void setNumErrors(size_t value)
+    {
+        get().numErrors.store(value, std::memory_order_relaxed);
+    }
+
+    static void addNumErrors(size_t value = 1)
+    {
+        get().numErrors.fetch_add(value, std::memory_order_relaxed);
+    }
+
     static void setMax(const std::atomic<size_t>& valCur, std::atomic<size_t>& valMax)
     {
         const size_t current = valCur.load(std::memory_order_relaxed);

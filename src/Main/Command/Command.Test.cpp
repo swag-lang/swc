@@ -23,7 +23,7 @@ namespace
 
     bool hasErrors(const uint64_t errorsBefore)
     {
-        return Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore;
+        return Stats::getNumErrors() != errorsBefore;
     }
 
     bool shouldRunNativeTests(const CommandLine& cmdLine)
@@ -142,7 +142,7 @@ namespace
 
     void verifyExpectedMarkers(TaskContext& ctx)
     {
-        if (Stats::get().numErrors.load(std::memory_order_relaxed) != 0)
+        if (Stats::getNumErrors() != 0)
             return;
 
         for (SourceFile* file : ctx.compiler().files())
@@ -165,7 +165,7 @@ namespace
         if (builder.run() != Result::Continue)
             return false;
 
-        return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
+        return Stats::getNumErrors() == 0;
     }
 
     bool runNativeBackends(CompilerInstance& compiler)
@@ -182,7 +182,7 @@ namespace
                                                    .detail = "source-driven expectations",
                                                });
         verifyExpectedMarkers(ctx);
-        return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
+        return Stats::getNumErrors() == 0;
     }
 
     template<typename T>
@@ -294,7 +294,7 @@ namespace
         request.codeRef      = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
         request.runImmediate = true;
         return ctx.compiler().jitExecMgr().submit(ctx, request) == Result::Continue &&
-               Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
+               Stats::getNumErrors() == 0;
     }
 
     bool runJitTests(CompilerInstance& compiler)
@@ -375,14 +375,14 @@ namespace
                                                    .detail = "source-driven expectations",
                                                });
         verifyExpectedMarkers(ctx);
-        return Stats::get().numErrors.load(std::memory_order_relaxed) == 0;
+        return Stats::getNumErrors() == 0;
     }
 
     void runNativeTestCommand(CompilerInstance& compiler)
     {
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
-        const uint64_t errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+        const uint64_t errorsBefore = Stats::getNumErrors();
         Command::sema(compiler);
         if (hasErrors(errorsBefore))
             return;

@@ -870,15 +870,15 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+    const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
     Command::sema(compiler);
-    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+    if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
     SWC_RESULT(nativeBuilder.prepare());
-    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+    if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
     const auto& nativeTests = compiler.nativeTestFunctions();
@@ -936,15 +936,15 @@ SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t   errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+    const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
     Command::sema(compiler);
-    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+    if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
     SWC_RESULT(nativeBuilder.prepare());
-    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+    if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
     TaskContext           compilerCtx(compiler);

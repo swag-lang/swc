@@ -593,7 +593,7 @@ ExitCode CompilerInstance::run()
     processCommand();
     logAfter();
     logStats();
-    return Stats::get().numErrors.load() > 0 ? ExitCode::CompileError : ExitCode::Success;
+    return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
 SourceView& CompilerInstance::addSourceView()

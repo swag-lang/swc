@@ -48,8 +48,6 @@ namespace
             SymbolFunction* const function = current.function;
             if (!function)
                 continue;
-            if (function->isIgnored())
-                continue;
 
             const auto foundState = visitStates.find(function);
             if (current.expanded)
@@ -66,6 +64,13 @@ namespace
             {
                 if (foundState->second == DepVisitState::Done)
                     continue;
+                continue;
+            }
+
+            if (function->isIgnored())
+            {
+                visitStates[function] = DepVisitState::Done;
+                outJitOrder.push_back(function);
                 continue;
             }
 
@@ -712,6 +717,11 @@ Result SymbolFunction::jit(TaskContext& ctx)
     {
         if (ctx.state().jitEmissionError)
             return Result::Error;
+        if (function->isIgnored())
+        {
+            ctx.state().jitEmissionError = true;
+            return Result::Error;
+        }
         if (function->jitPrepare(ctx))
             preparedFunctions.push_back(function);
     }
@@ -818,6 +828,11 @@ Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction
             return Result::Error;
         if (!function)
             continue;
+        if (function->isIgnored())
+        {
+            ctx.state().jitEmissionError = true;
+            return Result::Error;
+        }
         if (function->jitPrepare(ctx))
             preparedFunctions.push_back(function);
     }

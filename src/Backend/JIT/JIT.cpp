@@ -142,7 +142,7 @@ namespace
         if (targetFunction.jitPatchAddress())
             return Result::Continue;
 
-        if (targetFunction.loweredCode().bytes.empty())
+        if (!targetFunction.isCodeGenCompleted())
         {
             if (targetFunction.isIgnored())
                 return Result::Error;
@@ -164,10 +164,14 @@ namespace
                 ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
             }
 
-            // Let the owning job sleep and resume once codegen publishes progress.
+            // Re-check only after codegen reaches a completed state. Pre-solved
+            // progress is too early because dependencies can still expand.
             setWaitCodeGenCompleted(ctx, ownerFunction, targetFunction);
             return Result::Pause;
         }
+
+        if (targetFunction.loweredCode().bytes.empty())
+            return Result::Error;
 
         SWC_RESULT(targetFunction.jit(ctx));
         return targetFunction.jitPatchAddress() ? Result::Continue : Result::Error;
@@ -259,7 +263,14 @@ namespace
         {
             const Result prepareResult = ensureLocalFunctionTargetPrepared(ctx, targetFunction, ownerFunction);
             if (prepareResult != Result::Continue)
+            {
+                if (prepareResult == Result::Error && outFailure)
+                {
+                    outFailure->kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
+                    outFailure->targetSymbol = targetSymbol;
+                }
                 return prepareResult;
+            }
 
             entryAddress = targetFunction.jitPatchAddress();
         }

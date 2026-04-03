@@ -25,14 +25,6 @@ Utf8 LogSymbolHelper::toString(const TaskContext& ctx, LogSymbol symbol)
             return ascii ? "*" : "\xE2\x9C\x93";
         case LogSymbol::Warning:
             return ascii ? "!" : "\xE2\x9A\xA0";
-        case LogSymbol::StartFrameA:
-            return ascii ? "|" : "\xE2\x97\x90";
-        case LogSymbol::StartFrameB:
-            return ascii ? "/" : "\xE2\x97\x93";
-        case LogSymbol::StartFrameC:
-            return ascii ? "-" : "\xE2\x97\x91";
-        case LogSymbol::StartFrameD:
-            return ascii ? "\\" : "\xE2\x97\x92";
         case LogSymbol::Error:
             return ascii ? "x" : "\xE2\x9C\x96";
         case LogSymbol::Cross:

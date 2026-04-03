@@ -16,7 +16,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr size_t ACTION_LABEL_WIDTH = 8;
-    constexpr size_t STAGE_FRAME_COUNT  = Logger::ANIMATED_STAGE_FRAME_COUNT;
 
     Utf8 buildCfgBackendKindName(const Runtime::BuildCfgBackendKind value)
     {
@@ -91,16 +90,9 @@ namespace
         return outcomeColor(outcome);
     }
 
-    Utf8 stageStartGlyph(const TaskContext& ctx, const size_t sequence, const size_t frameIndex)
+    Utf8 stageStartGlyph(const TaskContext& ctx)
     {
-        static constexpr LogSymbol START_FRAMES[] = {
-            LogSymbol::StartFrameA,
-            LogSymbol::StartFrameB,
-            LogSymbol::StartFrameC,
-            LogSymbol::StartFrameD,
-        };
-
-        return LogSymbolHelper::toString(ctx, START_FRAMES[(sequence - 1 + frameIndex) % std::size(START_FRAMES)]);
+        return LogSymbolHelper::toString(ctx, LogSymbol::DotCenter);
     }
 
     Utf8 stageOutcomeGlyph(const TaskContext& ctx, const TimedActionLog::StageOutcome outcome)
@@ -172,38 +164,15 @@ namespace
         }
     }
 
-    Utf8 formatStageActiveFrame(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence, const size_t frameIndex)
+    Utf8 formatStageStart(const TaskContext& ctx, const TimedActionLog::StageSpec& spec)
     {
         Utf8 line;
         line += "  ";
-        line += colorize(ctx, stageColor(spec.key), stageStartGlyph(ctx, sequence, frameIndex));
+        line += colorize(ctx, stageColor(spec.key), stageStartGlyph(ctx));
         line += "  ";
         appendStageText(line, ctx, spec);
         line += resetColor(ctx);
         return line;
-    }
-
-    std::array<Utf8, STAGE_FRAME_COUNT> formatStageActiveFrames(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence)
-    {
-        std::array<Utf8, STAGE_FRAME_COUNT> result;
-        for (size_t i = 0; i < result.size(); ++i)
-            result[i] = formatStageActiveFrame(ctx, spec, sequence, i);
-        return result;
-    }
-
-    Utf8 formatStageActiveGlyph(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence, const size_t frameIndex)
-    {
-        Utf8 glyph = colorize(ctx, stageColor(spec.key), stageStartGlyph(ctx, sequence, frameIndex));
-        glyph += resetColor(ctx);
-        return glyph;
-    }
-
-    std::array<Utf8, STAGE_FRAME_COUNT> formatStageActiveGlyphs(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const size_t sequence)
-    {
-        std::array<Utf8, STAGE_FRAME_COUNT> result;
-        for (size_t i = 0; i < result.size(); ++i)
-            result[i] = formatStageActiveGlyph(ctx, spec, sequence, i);
-        return result;
     }
 
     Utf8 formatCompletedStageLine(const TaskContext& ctx, const TimedActionLog::StageSpec& spec)
@@ -249,7 +218,7 @@ namespace
             return;
 
         ctx.global().logger().ensureTransientLineSeparated(ctx);
-        Logger::print(ctx, line);
+        std::cout << line;
         std::cout << std::flush;
     }
 
@@ -277,9 +246,9 @@ TimedActionLog::StatsSnapshot TimedActionLog::StatsSnapshot::capture()
     return result;
 }
 
-Utf8 TimedActionLog::formatStageStartLine(const TaskContext& ctx, const StageSpec& spec, const size_t sequence)
+Utf8 TimedActionLog::formatStageStartLine(const TaskContext& ctx, const StageSpec& spec)
 {
-    Utf8 line = formatStageActiveFrame(ctx, spec, sequence, 0);
+    Utf8 line = formatStageStart(ctx, spec);
     line += "\n";
     return line;
 }
@@ -366,8 +335,7 @@ TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, StageSpec spec)
     }
 
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
-    sequence_ = ctx_->global().logger().nextStageSequence();
-    stageId_  = ctx_->global().logger().beginAnimatedStage(formatStageActiveFrames(*ctx_, spec_, sequence_), formatStageActiveGlyphs(*ctx_, spec_, sequence_));
+    printLineLocked(*ctx_, formatStageStartLine(*ctx_, spec_));
 }
 
 TimedActionLog::ScopedStage::~ScopedStage()
@@ -387,7 +355,7 @@ TimedActionLog::ScopedStage::~ScopedStage()
         outcome = mergeOutcome(outcome, forcedOutcome_.value());
 
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
-    ctx_->global().logger().endAnimatedStage(*ctx_, stageId_, formatStageEndLine(*ctx_, spec_, outcome, durationNs));
+    printLineLocked(*ctx_, formatStageEndLine(*ctx_, spec_, outcome, durationNs));
 }
 
 void TimedActionLog::ScopedStage::markOutcome(const StageOutcome outcome)

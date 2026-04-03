@@ -497,7 +497,6 @@ Result NativeBackendBuilder::runGeneratedArtifact()
         .logCtx = &ctx_,
     };
 
-    const Logger::ScopedAnimationPause animPause(ctx_.global().logger());
     const auto                         result = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? buildDir : artifactDir, &options);
     switch (result)
     {
@@ -512,9 +511,7 @@ Result NativeBackendBuilder::runGeneratedArtifact()
     }
 
     if (exitCode != 0)
-    {
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, exitCode);
-    }
     return Result::Continue;
 }
 

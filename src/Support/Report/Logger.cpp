@@ -11,8 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr auto ANIMATION_INTERVAL = std::chrono::milliseconds(120);
-
     std::mutex& stdErrMutex()
     {
         static std::mutex mutex;
@@ -20,67 +18,19 @@ namespace
     }
 }
 
-Logger::Logger()
-{
-    animator_ = std::thread([this] { animateLoop(); });
-}
-
-Logger::~Logger()
-{
-    stopAnimator_.store(true, std::memory_order_release);
-    if (animator_.joinable())
-        animator_.join();
-}
-
 void Logger::lock()
 {
     mutexAccess_.lock();
-    if (outputBlockDepth_++ == 0)
-    {
-        activeStagesWereVisible_ = renderedStageCount_ != 0;
-        clearAnimatedStagesNoLock();
-    }
 }
 
 void Logger::unlock()
 {
-    SWC_ASSERT(outputBlockDepth_ != 0);
-    outputBlockDepth_--;
-    if (outputBlockDepth_ == 0)
-    {
-        renderAnimatedStagesNoLock();
-        activeStagesWereVisible_ = false;
-    }
-
     mutexAccess_.unlock();
-}
-
-void Logger::pauseAnimation()
-{
-    const std::scoped_lock lock(mutexAccess_);
-    if (outputBlockDepth_++ == 0)
-    {
-        activeStagesWereVisible_ = renderedStageCount_ != 0;
-        clearAnimatedStagesNoLock();
-    }
-}
-
-void Logger::resumeAnimation()
-{
-    const std::scoped_lock lock(mutexAccess_);
-    SWC_ASSERT(outputBlockDepth_ != 0);
-    outputBlockDepth_--;
-    if (outputBlockDepth_ == 0)
-    {
-        renderAnimatedStagesNoLock();
-        activeStagesWereVisible_ = false;
-    }
 }
 
 void Logger::resetStageSequence()
 {
     const ScopedLock lock(*this);
-    stageSequence_ = 0;
     uniqueStageKeys_.clear();
 }
 
@@ -97,46 +47,12 @@ bool Logger::tryClaimUniqueStage(const std::string_view key)
     return true;
 }
 
-size_t Logger::beginAnimatedStage(std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> lines, std::array<Utf8, ANIMATED_STAGE_FRAME_COUNT> glyphs)
-{
-    const ScopedLock lock(*this);
-    const size_t     stageId = ++nextAnimatedStageId_;
-    if (!Os::stdoutSupportsAnimation())
-        return stageId;
-
-    animatedStages_.push_back({
-        .id     = stageId,
-        .lines  = std::move(lines),
-        .glyphs = std::move(glyphs),
-    });
-    return stageId;
-}
-
-void Logger::endAnimatedStage(const TaskContext& ctx, const size_t stageId, const std::string_view finalLine)
-{
-    if (ctx.cmdLine().silent)
-        return;
-
-    const ScopedLock lock(*this);
-    removeAnimatedStageNoLock(stageId);
-    std::cout << finalLine;
-    if (finalLine.empty() || finalLine.back() != '\n')
-        std::cout << "\n";
-    std::cout << std::flush;
-}
-
 void Logger::ensureTransientLineSeparated(const TaskContext& ctx, const bool blankLine)
 {
     if (ctx.cmdLine().silent)
         return;
 
-    const ScopedLock lock(*this);
-
-    if (transientLineActive_)
-        std::cout << "\n";
-    if (blankLine && activeStagesWereVisible_)
-        std::cout << "\n";
-    transientLineActive_ = false;
+    (void) blankLine;
 }
 
 void Logger::print(const TaskContext& ctx, std::string_view message)
@@ -305,84 +221,6 @@ void Logger::printAction(const TaskContext& ctx, std::string_view left, std::str
         rightColor = LogColor::Magenta;
 
     printHeaderCentered(ctx, LogColor::Green, left, rightColor, right);
-}
-
-void Logger::animateLoop()
-{
-    while (!stopAnimator_.load(std::memory_order_acquire))
-    {
-        std::this_thread::sleep_for(ANIMATION_INTERVAL);
-        if (stopAnimator_.load(std::memory_order_acquire))
-            return;
-
-        if (!mutexAccess_.try_lock())
-            continue;
-
-        if (outputBlockDepth_ == 0 && !animatedStages_.empty())
-        {
-            for (AnimatedStage& stage : animatedStages_)
-                stage.frameIndex = (stage.frameIndex + 1) % stage.lines.size();
-
-            if (renderedStageCount_ == animatedStages_.size())
-                updateAnimatedStageGlyphsNoLock();
-            else
-                renderAnimatedStagesNoLock();
-        }
-
-        mutexAccess_.unlock();
-    }
-}
-
-void Logger::clearAnimatedStagesNoLock()
-{
-    if (renderedStageCount_ == 0)
-        return;
-
-    for (size_t i = 0; i < renderedStageCount_; ++i)
-        std::cout << "\x1b[1A\r\x1b[2K";
-
-    std::cout << std::flush;
-    renderedStageCount_ = 0;
-}
-
-void Logger::renderAnimatedStagesNoLock()
-{
-    if (outputBlockDepth_ != 0 || !Os::stdoutSupportsAnimation())
-        return;
-
-    clearAnimatedStagesNoLock();
-    if (animatedStages_.empty())
-        return;
-
-    for (const AnimatedStage& stage : animatedStages_)
-        std::cout << stage.lines[stage.frameIndex] << "\n";
-
-    std::cout << std::flush;
-    renderedStageCount_ = animatedStages_.size();
-}
-
-void Logger::updateAnimatedStageGlyphsNoLock() const
-{
-    if (outputBlockDepth_ != 0 || renderedStageCount_ == 0 || renderedStageCount_ != animatedStages_.size() || !Os::stdoutSupportsAnimation())
-        return;
-
-    std::cout << "\x1b[" << renderedStageCount_ << "A";
-    for (size_t i = 0; i < animatedStages_.size(); ++i)
-    {
-        std::cout << "\x1b[3G";
-        std::cout << animatedStages_[i].glyphs[animatedStages_[i].frameIndex];
-        if (i + 1 < animatedStages_.size())
-            std::cout << "\r\x1b[1B";
-    }
-
-    std::cout << "\r\x1b[1B" << std::flush;
-}
-
-void Logger::removeAnimatedStageNoLock(const size_t stageId)
-{
-    std::erase_if(animatedStages_, [&](const AnimatedStage& stage) {
-        return stage.id == stageId;
-    });
 }
 
 SWC_END_NAMESPACE();

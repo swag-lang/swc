@@ -34,7 +34,7 @@ namespace TimedActionLog
         Utf8 detail;
     };
 
-    Utf8 formatStageStartLine(const TaskContext& ctx, const StageSpec& spec, size_t sequence);
+    Utf8 formatStageStartLine(const TaskContext& ctx, const StageSpec& spec);
     Utf8 formatStageEndLine(const TaskContext& ctx, const StageSpec& spec, StageOutcome outcome, uint64_t durationNs);
     void printBuildConfiguration(const TaskContext& ctx);
     void printSessionFlags(const TaskContext& ctx);
@@ -58,8 +58,6 @@ namespace TimedActionLog
         Clock::time_point           startTick_{};
         size_t                      startErrors_   = 0;
         size_t                      startWarnings_ = 0;
-        size_t                      stageId_       = 0;
-        size_t                      sequence_      = 0;
         std::optional<StageOutcome> forcedOutcome_;
     };
 

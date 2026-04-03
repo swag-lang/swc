@@ -15,9 +15,22 @@ bool MicroPeepholePass::Rule::apply(MicroPeepholePass& pass, const Cursor& curso
 
 void MicroPeepholePass::initRunState(MicroPassContext& context)
 {
-    context_  = &context;
-    storage_  = context.instructions;
-    operands_ = context.operands;
+    context_                      = &context;
+    storage_                      = context.instructions;
+    operands_                     = context.operands;
+    equivalentStackBasesComputed_ = false;
+    equivalentStackBasesValue_    = false;
+}
+
+bool MicroPeepholePass::hasEquivalentStackBases() const
+{
+    if (!equivalentStackBasesComputed_)
+    {
+        equivalentStackBasesValue_    = computeEquivalentStackBases(*context_);
+        equivalentStackBasesComputed_ = true;
+    }
+
+    return equivalentStackBasesValue_;
 }
 
 bool MicroPeepholePass::isRuleApplicableToOpcode(const Rule& rule, const MicroInstrOpcode opcode)
@@ -40,6 +53,14 @@ bool MicroPeepholePass::isRuleApplicableToOpcode(const Rule& rule, const MicroIn
             return opcode == MicroInstrOpcode::LoadAddrAmcRegMem;
         case RuleTarget::LoadMemImm:
             return opcode == MicroInstrOpcode::LoadMemImm;
+        case RuleTarget::LoadMemReg:
+            return opcode == MicroInstrOpcode::LoadMemReg;
+        case RuleTarget::StackWriteCandidate:
+            return opcode == MicroInstrOpcode::LoadMemReg ||
+                   opcode == MicroInstrOpcode::LoadMemImm ||
+                   opcode == MicroInstrOpcode::OpUnaryMem ||
+                   opcode == MicroInstrOpcode::OpBinaryMemReg ||
+                   opcode == MicroInstrOpcode::OpBinaryMemImm;
         default:
             return false;
     }
@@ -144,6 +165,7 @@ Result MicroPeepholePass::run(MicroPassContext& context)
         cursor.instRef = instRef;
         cursor.inst    = &inst;
         cursor.ops     = ops;
+        cursor.curIt   = it;
         cursor.nextIt  = nextIt;
         cursor.endIt   = endIt;
 

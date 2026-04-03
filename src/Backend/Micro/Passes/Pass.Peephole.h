@@ -15,6 +15,7 @@ public:
         MicroInstrRef            instRef;
         MicroInstr*              inst;
         const MicroInstrOperand* ops;
+        MicroStorage::Iterator   curIt;
         MicroStorage::Iterator   nextIt;
         MicroStorage::Iterator   endIt;
     };
@@ -29,6 +30,8 @@ public:
         LoadAddrRegMem,
         LoadAddrAmcRegMem,
         LoadMemImm,
+        LoadMemReg,
+        StackWriteCandidate,
     };
 
     using RuleApplyMutableFn = bool (*)(MicroPeepholePass& pass, const Cursor& cursor);
@@ -68,6 +71,9 @@ public:
         return *context_;
     }
 
+    bool        hasEquivalentStackBases() const;
+    static bool computeEquivalentStackBases(const MicroPassContext& context);
+
     bool isCopyDeadAfterInstruction(MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg reg) const;
     bool isTempDeadForAddressFold(MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg reg) const;
     bool isRegUnusedAfterInstruction(MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg reg) const;
@@ -92,9 +98,11 @@ private:
     static void                appendCopyRules(RuleList& outRules);
     static void                appendCleanupRules(RuleList& outRules);
 
-    MicroPassContext*    context_  = nullptr;
-    MicroStorage*        storage_  = nullptr;
-    MicroOperandStorage* operands_ = nullptr;
+    MicroPassContext*    context_                      = nullptr;
+    MicroStorage*        storage_                      = nullptr;
+    MicroOperandStorage* operands_                     = nullptr;
+    mutable bool         equivalentStackBasesComputed_ = false;
+    mutable bool         equivalentStackBasesValue_    = false;
 };
 
 SWC_END_NAMESPACE();

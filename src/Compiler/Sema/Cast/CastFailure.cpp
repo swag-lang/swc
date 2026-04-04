@@ -26,6 +26,18 @@ bool CastFailure::hasArgument(std::string_view name) const
     return false;
 }
 
+void CastFailure::mergeArguments(const DiagnosticArguments& other)
+{
+    for (const auto& arg : other)
+    {
+        std::visit(
+            [&](const auto& value) {
+                addArgument(arg.name, value);
+            },
+            arg.val);
+    }
+}
+
 void CastFailure::applyArguments(Diagnostic& diag) const
 {
     if (srcTypeRef.isValid())

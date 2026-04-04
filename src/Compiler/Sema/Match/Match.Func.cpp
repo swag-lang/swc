@@ -396,6 +396,14 @@ namespace
         diagElement.addArgument(Diagnostic::ARG_WHAT, std::format("has type '{}', expected '{}'", srcTypeName, dstTypeName));
     }
 
+    DiagnosticArguments makeCallCastErrorArguments(const SymbolFunction& fn, uint32_t callArgIndex, const TaskContext& ctx)
+    {
+        DiagnosticArguments arguments;
+        arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INDEX, callArgIndex + 1});
+        arguments.push_back(DiagnosticArgument{Diagnostic::ARG_SYM, Utf8{fn.name(ctx)}});
+        return arguments;
+    }
+
     Result errorNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
     {
         const Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef());
@@ -1116,7 +1124,8 @@ namespace
             CastFlags        flags = CastFlagsE::Zero;
             if (allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
                 flags.add(CastFlagsE::UfcsArgument);
-            SWC_RESULT(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));
+            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, mapping.paramArgs[i].callArgIndex, sema.ctx());
+            SWC_RESULT(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags, &errorArguments));
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
         }
 
@@ -1142,13 +1151,15 @@ namespace
         if (fixedVariadicArg.argRef.isValid())
         {
             SemaNodeView argView(sema, fixedVariadicArg.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
+            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, fixedVariadicArg.callArgIndex, sema.ctx());
+            SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
         }
 
         for (const CallArgEntry& entry : mapping.variadicArgs)
         {
             SemaNodeView argView(sema, entry.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
+            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
+            SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
         }
 
         return Result::Continue;

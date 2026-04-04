@@ -34,6 +34,7 @@ struct CastFailure
     }
 
     bool hasArgument(std::string_view name) const;
+    void mergeArguments(const DiagnosticArguments& other);
     void applyArguments(Diagnostic& diag) const;
     void applyArguments(DiagnosticElement& element) const;
 };

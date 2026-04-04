@@ -1217,7 +1217,7 @@ TypeRef Cast::castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTyp
     return castAllowedBothWays(sema, castRequest, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
+Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, const DiagnosticArguments* errorArguments)
 {
     CastKind      effectiveKind  = castKind;
     CastFlags     effectiveFlags = castFlags;
@@ -1294,15 +1294,18 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             castRequest.failure.noteId = DiagnosticId::sema_note_cast_explicit;
     }
 
+    if (errorArguments)
+        castRequest.failure.mergeArguments(*errorArguments);
+
     return emitCastFailure(sema, castRequest.failure);
 }
 
-Result Cast::castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
+Result Cast::castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, const DiagnosticArguments* errorArguments)
 {
     if (view.typeRef() == dstTypeRef)
         return Result::Continue;
 
-    return cast(sema, view, dstTypeRef, castKind, castFlags);
+    return cast(sema, view, dstTypeRef, castKind, castFlags, errorArguments);
 }
 
 Result Cast::castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, CastKind castKind)

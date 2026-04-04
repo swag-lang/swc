@@ -23,7 +23,7 @@ namespace
 {
     bool shouldAbortWait(const Symbol* symbol = nullptr)
     {
-        return Stats::hasError() || (symbol != nullptr && symbol->isIgnored());
+        return symbol != nullptr && symbol->isIgnored();
     }
 
     void cleanupPendingImplRegistrations(Sema& sema, AstNodeRef nodeRef)

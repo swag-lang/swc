@@ -16,6 +16,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef fallbackCastFailureNodeRef(Sema& sema, const CastFailure& failure)
+    {
+        if (failure.nodeRef.isValid())
+            return failure.nodeRef;
+
+        const AstNodeRef stateNodeRef = sema.ctx().state().nodeRef;
+        if (stateNodeRef.isValid())
+            return stateNodeRef;
+
+        return sema.curNodeRef();
+    }
+
     CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
     {
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
@@ -140,13 +152,25 @@ namespace
 
 Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
+    // Some callers propagate a pre-existing semantic error through the cast layer without
+    // populating a cast-specific diagnostic. In that case, preserve the original failure.
+    if (f.diagId == DiagnosticId::None)
+        return Result::Error;
+
     Diagnostic diag;
     if (f.codeRef.isValid())
         diag = SemaError::report(sema, f.diagId, f.codeRef);
     else
     {
-        SWC_ASSERT(f.nodeRef.isValid());
-        diag = SemaError::report(sema, f.diagId, f.nodeRef);
+        const AstNodeRef errorNodeRef = fallbackCastFailureNodeRef(sema, f);
+        if (errorNodeRef.isValid())
+            diag = SemaError::report(sema, f.diagId, errorNodeRef);
+        else
+        {
+            const SourceCodeRef stateCodeRef = sema.ctx().state().codeRef;
+            SWC_ASSERT(stateCodeRef.isValid());
+            diag = SemaError::report(sema, f.diagId, stateCodeRef);
+        }
     }
     f.applyArguments(diag);
     diag.addNote(f.noteId);

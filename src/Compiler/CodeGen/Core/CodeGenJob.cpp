@@ -68,7 +68,7 @@ JobResult CodeGenJob::exec()
 {
     SWC_ASSERT(symbolFunc_);
     ctx().state().reset();
-    if (Stats::hasError())
+    if (symbolFunc_->isIgnored())
         return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
     if (symbolFunc_->isCodeGenCompleted())
         return JobResult::Done;

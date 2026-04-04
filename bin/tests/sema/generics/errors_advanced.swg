@@ -2,6 +2,7 @@
 
 func(T) identity(value: T)->T => value
 func(N: s32) constVal()->s32 => N
+func(N: u8) tinyArrayLen(values: [N] s32)->u8 => N
 func(T, N: s32) arrayLen(values: [N] T)->s32 => N
 
 struct(T) Box
@@ -51,4 +52,11 @@ struct(T, N: s32) Buffer
 #test
 {
     arrayLen'(10, 2)([1, 2]) // swc-expected-error {{sema_err_not_type}}
+}
+
+// Deduction must report a regular cast failure instead of asserting when the const arg overflows.
+#test
+{
+    var values: [256] s32
+    tinyArrayLen(values) // swc-expected-error {{sema_err_literal_overflow}}
 }

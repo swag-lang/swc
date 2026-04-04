@@ -25,12 +25,12 @@ namespace
         return const_cast<SymbolMap*>(declContextRoot(function)->ownerSymMap());
     }
 
-    SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction& function)
+    const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction& function)
     {
-        if (SymbolImpl* symImpl = function.declImplContext())
+        if (const SymbolImpl* symImpl = function.declImplContext())
             return symImpl;
 
-        if (SymbolImpl* symImpl = sema.frame().currentImpl())
+        if (const SymbolImpl* symImpl = sema.frame().currentImpl())
             return symImpl;
 
         for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
@@ -42,17 +42,17 @@ namespace
         return nullptr;
     }
 
-    SymbolInterface* functionDeclInterfaceContext(Sema& sema, const SymbolFunction& function)
+    const SymbolInterface* functionDeclInterfaceContext(Sema& sema, const SymbolFunction& function)
     {
-        if (SymbolInterface* symItf = function.declInterfaceContext())
+        if (const SymbolInterface* symItf = function.declInterfaceContext())
             return symItf;
 
-        if (SymbolInterface* symItf = sema.frame().currentInterface())
+        if (const SymbolInterface* symItf = sema.frame().currentInterface())
             return symItf;
 
         if (const SymbolImpl* symImpl = sema.frame().currentImpl())
         {
-            if (SymbolInterface* symItf = symImpl->symInterface())
+            if (const SymbolInterface* symItf = symImpl->symInterface())
                 return symItf;
         }
 
@@ -63,7 +63,7 @@ namespace
 
             if (symMap->isImpl())
             {
-                if (SymbolInterface* symItf = symMap->cast<SymbolImpl>().symInterface())
+                if (const SymbolInterface* symItf = symMap->cast<SymbolImpl>().symInterface())
                     return symItf;
             }
         }
@@ -191,7 +191,7 @@ namespace
             appendEnclosingFunctionGenericCloneBindings(sema, *function, outBindings);
     }
 
-    Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, SymbolInterface* itf, const AttributeList& attrs, bool declPass)
+    Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, const SymbolInterface* itf, const AttributeList& attrs, bool declPass)
     {
         Sema child(sema.ctx(), sema, blockRef, declPass);
         SemaGeneric::prepareGenericInstantiationContext(child, impl.asSymMap(), &impl, itf, attrs);
@@ -517,7 +517,7 @@ namespace
 
     void setGenericCompletionOwner(Symbol& instance, const TaskContext& ctx)
     {
-        if (auto* function = instance.safeCast<SymbolFunction>())
+        if (const auto* function = instance.safeCast<SymbolFunction>())
             function->setGenericCompletionOwner(ctx);
         else
             instance.cast<SymbolStruct>().setGenericCompletionOwner(ctx);

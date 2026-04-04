@@ -590,7 +590,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
 
 void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    auto&              data     = ensureGenericData(const_cast<TaskContext&>(ctx));
+    auto&              data     = ensureGenericData(ctx);
     const TaskContext* expected = nullptr;
     const bool         done     = data.completionOwner.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
     SWC_ASSERT(done || expected == &ctx);
@@ -780,28 +780,28 @@ const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
     return nullptr;
 }
 
-SymbolImpl* SymbolFunction::declImplContext() const noexcept
+const SymbolImpl* SymbolFunction::declImplContext() const noexcept
 {
     const SymbolFunction* const root   = genericRootSym();
     const SymbolMap*            symMap = (root ? root : this)->ownerSymMap();
     while (symMap)
     {
         if (symMap->isImpl())
-            return &const_cast<SymbolMap*>(symMap)->cast<SymbolImpl>();
+            return &symMap->cast<SymbolImpl>();
         symMap = symMap->ownerSymMap();
     }
 
     return nullptr;
 }
 
-SymbolInterface* SymbolFunction::declInterfaceContext() const noexcept
+const SymbolInterface* SymbolFunction::declInterfaceContext() const noexcept
 {
     const SymbolFunction* const root   = genericRootSym();
     const SymbolMap*            symMap = (root ? root : this)->ownerSymMap();
     while (symMap)
     {
         if (symMap->isInterface())
-            return &const_cast<SymbolMap*>(symMap)->cast<SymbolInterface>();
+            return &symMap->cast<SymbolInterface>();
 
         if (symMap->isImpl())
         {

@@ -220,8 +220,8 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
     SemaFrame frame           = sema.frame();
     frame.currentAttributes() = sym.attributes();
-    frame.setCurrentImpl(const_cast<SymbolImpl*>(declImpl));
-    frame.setCurrentInterface(const_cast<SymbolInterface*>(declItf));
+    frame.setCurrentImpl(declImpl);
+    frame.setCurrentInterface(declItf);
     frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;

@@ -60,10 +60,10 @@ public:
 
     SemaCompilerIf*          currentCompilerIf() const { return compilerIf_; }
     void                     setCurrentCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
-    SymbolImpl*              currentImpl() const { return impl_; }
-    void                     setCurrentImpl(SymbolImpl* impl) { impl_ = impl; }
-    SymbolInterface*         currentInterface() const { return interface_; }
-    void                     setCurrentInterface(SymbolInterface* itf) { interface_ = itf; }
+    const SymbolImpl*        currentImpl() const { return impl_; }
+    void                     setCurrentImpl(const SymbolImpl* impl) { impl_ = impl; }
+    const SymbolInterface*   currentInterface() const { return interface_; }
+    void                     setCurrentInterface(const SymbolInterface* itf) { interface_ = itf; }
     SymbolFunction*          currentFunction() const { return function_; }
     void                     setCurrentFunction(SymbolFunction* func) { function_ = func; }
     SemaFrameContextFlags    contextFlags() const { return contextFlags_; }
@@ -111,8 +111,8 @@ private:
     AttributeList                 attributes_;
     SmallVector8<IdentifierRef>   nsPath_;
     SemaCompilerIf*               compilerIf_          = nullptr;
-    SymbolImpl*                   impl_                = nullptr;
-    SymbolInterface*              interface_           = nullptr;
+    const SymbolImpl*             impl_                = nullptr;
+    const SymbolInterface*        interface_           = nullptr;
     SymbolFunction*               function_            = nullptr;
     SemaFrameContextFlags         contextFlags_        = SemaFrameContextFlagsE::Zero;
     SemaInlinePayload*            inlinePayload_       = nullptr;

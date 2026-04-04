@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
-    void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs)
+    void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs)
     {
         if (startSymMap)
             sema.startSymMap_ = startSymMap;

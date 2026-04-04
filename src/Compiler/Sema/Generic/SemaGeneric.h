@@ -46,7 +46,7 @@ namespace SemaGeneric
     };
 
     TypeRef unwrapGenericDeductionType(TaskContext& ctx, TypeRef typeRef);
-    void    prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, SymbolImpl* impl, SymbolInterface* itf, const AttributeList& attrs);
+    void    prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs);
 
     void collectGenericParams(Sema& sema, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams);
     void appendResolvedGenericBinding(const GenericParamDesc& param, const GenericResolvedArg& arg, SmallVector<SemaClone::ParamBinding>& outBindings);

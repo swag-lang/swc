@@ -406,6 +406,8 @@ namespace
         switch (fail.kind)
         {
             case MatchFailKind::TooManyArguments:
+                if (!isNote)
+                    diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
                 if (isNote)
                     diagElement.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_many_arguments));
                 diagElement.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);
@@ -413,6 +415,8 @@ namespace
                 break;
 
             case MatchFailKind::TooFewArguments:
+                if (!isNote)
+                    diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
                 if (isNote)
                     diagElement.addArgument(Diagnostic::ARG_WHAT, Diagnostic::diagIdMessage(DiagnosticId::sema_note_too_few_arguments));
                 diagElement.addArgument(Diagnostic::ARG_COUNT, fail.expectedCount);

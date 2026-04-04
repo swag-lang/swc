@@ -4,6 +4,11 @@ func A() {}
 func B(x: s32) {}
 func C(x: s32, y: s32) {}
 func D(x, y: s32 = 0) {}
+struct Point
+{
+    x: s32
+    y: s32
+}
 
 func D0(me) {}  // swc-expected-error {{sema_err_tok_outside_impl}}
 mtd E() {}      // swc-expected-error {{sema_err_method_outside_impl}}
@@ -54,6 +59,13 @@ namespace NS {}
 #test
 {
     F5(1, 2, 3) // swc-expected-error {{sema_err_too_many_arguments}}
+}
+
+func TakePoint(p: Point) {}
+
+#test
+{
+    TakePoint({x: 1, x: 2, y: 3}) // swc-expected-error {{sema_err_struct_cast_duplicate_field}}
 }
 
 func F0() {}

@@ -72,6 +72,7 @@ private:
 
     std::string_view resolveMessageTemplate(DiagnosticId id, const DiagnosticElement* el) const;
     uint32_t         countReplacedArgs(std::string_view msg, const DiagnosticElement* el) const;
+    static uint32_t  countMessagePlaceholders(std::string_view msg);
     Utf8             buildMessage(const Utf8& msg, const DiagnosticElement* el = nullptr) const;
     Utf8             argumentToString(const DiagnosticArgument& arg) const;
     void             expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;

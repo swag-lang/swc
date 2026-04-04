@@ -752,32 +752,48 @@ uint32_t DiagnosticBuilder::countReplacedArgs(std::string_view msg, const Diagno
     return count;
 }
 
+uint32_t DiagnosticBuilder::countMessagePlaceholders(std::string_view msg)
+{
+    SmallVector<std::string_view> placeholders;
+
+    for (size_t i = 0; i < msg.size(); ++i)
+    {
+        if (msg[i] != '{')
+            continue;
+
+        const size_t end = msg.find('}', i + 1);
+        if (end == std::string_view::npos)
+            break;
+
+        const std::string_view placeholder = msg.substr(i, end - i + 1);
+        if (std::ranges::find(placeholders, placeholder) == placeholders.end())
+            placeholders.push_back(placeholder);
+        i = end;
+    }
+
+    return static_cast<uint32_t>(placeholders.size());
+}
+
 std::string_view DiagnosticBuilder::resolveMessageTemplate(DiagnosticId id, const DiagnosticElement* el) const
 {
     const std::span<const std::string_view> msgs = Diagnostic::diagIdMessages(id);
     SWC_ASSERT(!msgs.empty());
 
-    uint32_t bestCount = countReplacedArgs(msgs[0], el);
-    size_t   bestIndex = 0;
-    bool     ambiguous = false;
+    uint32_t bestCount   = countReplacedArgs(msgs[0], el);
+    uint32_t bestMissing = countMessagePlaceholders(msgs[0]) - bestCount;
+    size_t   bestIndex   = 0;
 
     for (size_t i = 1; i < msgs.size(); ++i)
     {
-        const uint32_t count = countReplacedArgs(msgs[i], el);
-        if (count > bestCount)
+        const uint32_t count   = countReplacedArgs(msgs[i], el);
+        const uint32_t missing = countMessagePlaceholders(msgs[i]) - count;
+        if (count > bestCount || (count == bestCount && missing < bestMissing))
         {
-            bestCount = count;
-            bestIndex = i;
-            ambiguous = false;
-        }
-        else if (count == bestCount && count > 0)
-        {
-            ambiguous = true;
+            bestCount   = count;
+            bestMissing = missing;
+            bestIndex   = i;
         }
     }
-
-    if (msgs.size() > 1 && ambiguous)
-        SWC_ASSERT(false && "Ambiguous diagnostic message selection");
 
     return msgs[bestIndex];
 }

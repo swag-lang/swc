@@ -149,9 +149,6 @@ namespace
         const auto& srcNames  = aggregate.names;
         const auto& dstFields = args.dstType->payloadSymStruct().fields();
 
-        if (srcTypes.size() > dstFields.size())
-            return failStructFieldCount(args, srcTypes.size(), dstFields.size());
-
         SWC_ASSERT(srcNames.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
         std::vector dstUsed(dstFields.size(), false);

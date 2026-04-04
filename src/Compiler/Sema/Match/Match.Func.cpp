@@ -375,10 +375,16 @@ namespace
         return cf.noteId;
     }
 
-    void setCallArgumentTypeMismatchArgs(DiagnosticElement& diagElement, const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
+    void setCallArgumentFailureArgs(DiagnosticElement& diagElement, const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
     {
         if (fail.kind != MatchFailKind::InvalidArgumentType)
             return;
+        if (fail.castFailure.diagId == DiagnosticId::None)
+            return;
+
+        diagElement.addArgument(Diagnostic::ARG_INDEX, fail.argIndex + 1);
+        diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
+
         if (fail.castFailure.diagId != DiagnosticId::sema_err_cannot_cast)
             return;
         if (fail.castFailure.srcTypeRef.isInvalid() || fail.castFailure.dstTypeRef.isInvalid())
@@ -387,8 +393,6 @@ namespace
         const Utf8 srcTypeName = ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx);
         const Utf8 dstTypeName = ctx.typeMgr().get(fail.castFailure.dstTypeRef).toName(ctx);
 
-        diagElement.addArgument(Diagnostic::ARG_INDEX, fail.argIndex + 1);
-        diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
         diagElement.addArgument(Diagnostic::ARG_WHAT, std::format("has type '{}', expected '{}'", srcTypeName, dstTypeName));
     }
 
@@ -432,7 +436,7 @@ namespace
                     if (const DiagnosticId nid = addCastFailureArgs(diagElement, fail.castFailure); nid != DiagnosticId::None)
                         diag.addNote(nid);
                     if (!isNote)
-                        setCallArgumentTypeMismatchArgs(diagElement, fn, fail, ctx);
+                        setCallArgumentFailureArgs(diagElement, fn, fail, ctx);
                 }
                 else
                 {

@@ -52,6 +52,8 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
     {
         if (!nodeArgs.empty())
         {
+            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
+                break;
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
             if (is(TokenId::SymRightParen))
@@ -79,7 +81,7 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
         diag.report(*ctx_);
     }
 
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
 
     const TokenId tokId = tokRef.isValid() ? ast_->srcView().token(tokRef).id : TokenId::Invalid;
     if (tokId == TokenId::IntrinsicCountOf)
@@ -121,6 +123,8 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
     {
         if (!nodeArgs.empty())
         {
+            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
+                break;
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
             if (is(TokenId::SymRightParen))
@@ -161,7 +165,7 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
         }
     }
 
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     return nodeRef;
 }

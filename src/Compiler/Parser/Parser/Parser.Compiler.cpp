@@ -48,6 +48,8 @@ AstNodeRef Parser::parseCompilerTypeOf()
     {
         if (!nodeArgs.empty())
         {
+            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
+                break;
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
             if (is(TokenId::SymRightParen))
@@ -76,7 +78,7 @@ AstNodeRef Parser::parseCompilerTypeOf()
     }
 
     nodePtr->nodeArgRef = nodeArgs.empty() ? AstNodeRef::invalid() : nodeArgs[0];
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
     return nodeRef;
 }
 
@@ -101,6 +103,8 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
     {
         if (!nodeArgs.empty())
         {
+            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
+                break;
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
             if (is(TokenId::SymRightParen))
@@ -126,7 +130,7 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
     }
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
     return nodeRef;
 }
 
@@ -148,6 +152,8 @@ AstNodeRef Parser::parseCompilerCallOne()
     {
         if (!nodeArgs.empty())
         {
+            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
+                break;
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymRightParen});
             if (is(TokenId::SymRightParen))
@@ -173,7 +179,7 @@ AstNodeRef Parser::parseCompilerCallOne()
     }
 
     nodePtr->nodeArgRef = nodeArgs.empty() ? AstNodeRef::invalid() : nodeArgs[0];
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
     return nodeRef;
 }
 

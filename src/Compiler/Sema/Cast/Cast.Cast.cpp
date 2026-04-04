@@ -164,6 +164,8 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
     if (!(sb == db || !sb))
     {
         const Result res = castRequest.fail(DiagnosticId::sema_err_bit_cast_size, orgSrcTypeRef, dstTypeRef);
+        castRequest.failure.addArgument(Diagnostic::ARG_LEFT, sb);
+        castRequest.failure.addArgument(Diagnostic::ARG_RIGHT, db);
         if (isEnum)
             setEnumUnderlyingCastNote(castRequest, orgSrcTypeRef, srcTypeRef);
 

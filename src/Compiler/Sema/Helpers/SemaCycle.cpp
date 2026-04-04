@@ -39,7 +39,7 @@ namespace
         return nullptr;
     }
 
-    Utf8 stalledDependencyName(TaskContext& ctx, Sema& sema, const TaskState& state)
+    Utf8 stalledDependencyName(const TaskContext& ctx, Sema& sema, const TaskState& state)
     {
         if (state.symbol)
             return state.symbol->name(ctx);

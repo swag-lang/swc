@@ -97,6 +97,12 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
     if (lowest.isValid())
     {
         diag.addNote(DiagnosticId::sema_note_not_constant);
+        const SemaNodeView lowestView{sema, lowest, SemaNodeViewPartE::Symbol};
+        if (lowestView.hasSymbol())
+        {
+            diag.last().addArgument(Diagnostic::ARG_SYM, lowestView.sym()->name(sema.ctx()));
+            diag.last().addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(lowestView.sym()->toFamily()));
+        }
         addSpan(sema, diag.last(), lowest);
     }
 

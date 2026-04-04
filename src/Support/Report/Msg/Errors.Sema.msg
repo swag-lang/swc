@@ -118,6 +118,7 @@ SWC_DIAG_DEF(sema_err_too_many_aliases, Error, "too many call-site aliases: expe
 SWC_DIAG_DEF(sema_err_alias_hole, Error, "macro or mixin alias '#alias{value}' is invalid because '#alias{count}' is missing")
 SWC_DIAG_DEF(sema_err_struct_circular_reference, Error, "field '{value}' cannot have type '{sym}' because struct '{sym}' would contain itself by value")
 SWC_DIAG_DEF(sema_err_struct_circular_reference, Error, "struct definition has a circular reference")
+SWC_DIAG_DEF(sema_err_cyclic_dependency, Error, "cyclic dependency detected for symbol '{sym}': {what}")
 SWC_DIAG_DEF(sema_err_cyclic_dependency, Error, "cyclic dependency detected for symbol '{sym}'")
 SWC_DIAG_DEF(sema_err_variadic_not_last, Error, "variadic parameter is not last")
 SWC_DIAG_DEF(sema_err_variadic_not_last, Error, "variadic parameter '{sym}' must be last, but it is followed by parameter '{value}'")

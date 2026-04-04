@@ -12,6 +12,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Utf8 cyclePathString(TaskContext& ctx, std::span<const Symbol* const> cycle)
+    {
+        Utf8 result;
+        if (cycle.empty())
+            return result;
+
+        result += cycle.front()->name(ctx);
+        for (size_t i = 1; i < cycle.size(); i++)
+        {
+            result += " -> ";
+            result += cycle[i]->name(ctx);
+        }
+
+        result += " -> ";
+        result += cycle.front()->name(ctx);
+        return result;
+    }
+
     Sema* jobSema(Job* job)
     {
         if (auto* semaJob = job->safeCast<SemaJob>())
@@ -85,6 +103,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
 
     auto diag = SemaError::report(*sema, DiagnosticId::sema_err_cyclic_dependency, firstSym->codeRef());
     diag.addArgument(Diagnostic::ARG_SYM, firstSym->name(*ctx_));
+    diag.addArgument(Diagnostic::ARG_WHAT, cyclePathString(*ctx_, cycle));
 
     for (size_t i = 0; i < cycle.size(); i++)
     {
@@ -98,6 +117,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
             continue;
 
         diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
+        diag.last().addArgument(Diagnostic::ARG_TOK, next->name(*ctx_));
         const SourceCodeRange codeRange = edgeSema->node(itEdge->second.nodeRef).codeRangeWithChildren(edgeSema->ctx(), edgeSema->ast());
         diag.last().addSpan(codeRange, next->name(*ctx_), DiagnosticSeverity::Note);
     }

@@ -10,7 +10,7 @@ SWC_DIAG_DEF(sema_note_switch_missing_enum_value, Note, "missing enum value '{va
 SWC_DIAG_DEF(sema_note_other_implementation, Note, "previous implementation is here")
 SWC_DIAG_DEF(sema_note_could_be, Note, "could be {a-sym-fam} '{sym}'")
 SWC_DIAG_DEF(sema_note_could_be, Note, "could be")
-SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "depends on this symbol")
+SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "depends on '{tok}' here")
 SWC_DIAG_DEF(sema_note_strict_alias, Note, "'#[Swag.Strict]' can only be applied to a type alias")
 SWC_DIAG_DEF(sema_note_overload_candidate_failed, Note, "candidate '{sym}' is not viable: {what}")
 SWC_DIAG_DEF(sema_note_too_many_arguments, Note, "too many arguments")

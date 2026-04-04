@@ -404,6 +404,11 @@ namespace
         return arguments;
     }
 
+    void attachCallCastFailureArgs(CastFailure& failure, const SymbolFunction& fn, uint32_t callArgIndex, const TaskContext& ctx)
+    {
+        failure.mergeArguments(makeCallCastErrorArguments(fn, callArgIndex, ctx));
+    }
+
     Result errorNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
     {
         const Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef());
@@ -800,6 +805,7 @@ namespace
                     cf.srcTypeRef = argTy;
                     cf.dstTypeRef = paramTy;
                 }
+                attachCallCastFailureArgs(cf, fn, mapping.paramArgs[i].callArgIndex, ctx);
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
@@ -815,6 +821,7 @@ namespace
                     cf.srcTypeRef = argTy;
                     cf.dstTypeRef = paramTy;
                 }
+                attachCallCastFailureArgs(cf, fn, mapping.paramArgs[i].callArgIndex, ctx);
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
@@ -850,6 +857,7 @@ namespace
                             cf.dstTypeRef = variadicTy;
                         }
                         // paramIndex points at the variadic parameter
+                        attachCallCastFailureArgs(cf, fn, entry.callArgIndex, ctx);
                         failBadType(outFail, entry.callArgIndex, startVariadic, cf);
                         return Result::Continue;
                     }

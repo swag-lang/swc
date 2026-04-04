@@ -80,6 +80,8 @@ func TakeSingleString(v: SingleString) {}
 func TakeRequiredPoint(v: RequiredPoint) {}
 func TakeArray2(v: [2] s32) {}
 func TakeMatrix2(v: [2, 2] s32) {}
+func TakeArrayU32(v: [2] u32) {}
+func TakeByteU8(v: u8) {}
 
 #test
 {
@@ -106,6 +108,34 @@ func TakeMatrix2(v: [2, 2] s32) {}
 #test
 {
     TakeMatrix2([[1, 2], [3, 4, 5]]) // swc-expected-error {{sema_err_array_cast_too_many_values}}
+}
+
+#test
+{
+    const values: [4] s32 = [1, 2, 3, 4]
+    TakeMatrix2(values) // swc-expected-error {{sema_err_array_cast_num_dims}}
+}
+
+#test
+{
+    var values: [2] s32 = [1, 2]
+    TakeArrayU32(values) // swc-expected-error {{sema_err_array_cast_requires_const_folding}}
+}
+
+#test
+{
+    const values: [2] s32 = [1, 2]
+    TakeArrayU32(values) // swc-expected-error {{sema_err_array_cast_expected_aggregate_constant}}
+}
+
+#test
+{
+    TakeByteU8(300) // swc-expected-error {{sema_err_literal_overflow}}
+}
+
+#test
+{
+    TakeByteU8(-1) // swc-expected-error {{sema_err_signed_unsigned}}
 }
 
 func F0() {}

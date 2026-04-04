@@ -19,6 +19,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result raiseNumberTooBig(Sema& sema, const SourceCodeRef& codeRef, std::string_view value)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_number_too_big, codeRef);
+        diag.addArgument(Diagnostic::ARG_VALUE, value);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     uint32_t stringDelimiterSize(TokenId id)
     {
         switch (id)
@@ -422,7 +430,8 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 {
     const TaskContext& ctx = sema.ctx();
     const Token&       tok = sema.token(codeRef());
-    auto               str = tok.string(sema.compiler().srcView(srcViewRef()));
+    const auto         tokStr = tok.string(sema.compiler().srcView(srcViewRef()));
+    auto               str    = tokStr;
 
     SWC_ASSERT(str.size() > 2);
     SWC_ASSERT(str[0] == '0' && (str[1] == 'b' || str[1] == 'B'));
@@ -440,7 +449,7 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
         bool over = false;
         value.logicalShiftLeft(1, over);
         if (over)
-            return SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
+            return raiseNumberTooBig(sema, codeRef(), tokStr);
 
         value.bitwiseOr((c == '1') ? 1 : 0);
     }
@@ -456,7 +465,8 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
 {
     const TaskContext& ctx = sema.ctx();
     const Token&       tok = sema.token(codeRef());
-    auto               str = tok.string(sema.compiler().srcView(srcViewRef()));
+    const auto         tokStr = tok.string(sema.compiler().srcView(srcViewRef()));
+    auto               str    = tokStr;
 
     SWC_ASSERT(str.size() > 2);
     SWC_ASSERT(str[0] == '0' && (str[1] == 'x' || str[1] == 'X'));
@@ -475,7 +485,7 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
         value.logicalShiftLeft(4, over); // multiply by 16
         if (over)
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
+            raiseNumberTooBig(sema, codeRef(), tokStr);
             return Result::Error;
         }
 
@@ -521,7 +531,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
         value.mul(10, over);
         if (over)
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
+            raiseNumberTooBig(sema, codeRef(), str);
             return Result::Error;
         }
 
@@ -529,7 +539,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
         value.add(digit, over);
         if (over)
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
+            raiseNumberTooBig(sema, codeRef(), str);
             return Result::Error;
         }
     }
@@ -576,14 +586,14 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
                 intValue.mul(10, over);
                 if (over)
                 {
-                    SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
+                    raiseNumberTooBig(sema, codeRef(), str);
                     return Result::Error;
                 }
 
                 intValue.add(digit, over);
                 if (over)
                 {
-                    SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
+                    raiseNumberTooBig(sema, codeRef(), str);
                     return Result::Error;
                 }
 
@@ -601,7 +611,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
                 }
                 else
                 {
-                    SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
+                    raiseNumberTooBig(sema, codeRef(), str);
                     return Result::Error;
                 }
             }
@@ -650,7 +660,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     {
         if (totalExp10 < (std::numeric_limits<int64_t>::min)() + static_cast<int64_t>(fracDigits))
         {
-            SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
+            raiseNumberTooBig(sema, codeRef(), str);
             return Result::Error;
         }
 

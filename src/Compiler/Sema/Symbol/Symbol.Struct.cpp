@@ -307,7 +307,7 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
 
 SymbolStruct* SymbolStruct::genericRootSym() noexcept
 {
-    if (auto* data = genericData())
+    if (const auto* data = genericData())
         return data->rootSym;
     return nullptr;
 }
@@ -324,7 +324,7 @@ SymbolStruct::GenericData* SymbolStruct::genericData() const noexcept
     return genericData_.load(std::memory_order_acquire);
 }
 
-SymbolStruct::GenericData& SymbolStruct::ensureGenericData() noexcept
+SymbolStruct::GenericData& SymbolStruct::ensureGenericData() const noexcept
 {
     if (auto* data = genericData())
         return *data;

@@ -561,7 +561,7 @@ namespace
         return nextNextIt != endIt && nextNextIt->op == MicroInstrOpcode::Ret;
     }
 
-    bool scanInstructionForStackSlotAccess(const MicroPassContext& context, MicroStorage::Iterator it, const MicroStorage::Iterator& endIt, const MicroInstr& scanInst, const MicroInstrOperand* scanOps, const MicroReg slotBaseReg, const uint64_t slotOffset, const uint32_t slotSize, const bool equivalentStackBases, const bool afterExcludedInstruction)
+    bool scanInstructionForStackSlotAccess(const MicroPassContext& context, const MicroStorage::Iterator& it, const MicroStorage::Iterator& endIt, const MicroInstr& scanInst, const MicroInstrOperand* scanOps, const MicroReg slotBaseReg, const uint64_t slotOffset, const uint32_t slotSize, const bool equivalentStackBases, const bool afterExcludedInstruction)
     {
         if (!isAddressOnlyInstruction(scanInst) && !isMemoryReadInstruction(scanInst) && !isMemoryWriteInstruction(scanInst))
             return false;

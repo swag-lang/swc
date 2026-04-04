@@ -158,7 +158,7 @@ bool JITExecManager::wakeWaiting()
     bool woken = false;
 
     const std::scoped_lock lock(mutex_);
-    for (auto& item : items_ | std::views::values)
+    for (const auto& item : items_ | std::views::values)
     {
         if (!item || item->status != Status::Waiting)
             continue;

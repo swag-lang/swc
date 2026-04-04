@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const AttributeList g_EmptyAttributes;
+    const AttributeList EMPTY_ATTRIBUTES;
 }
 
 SourceCodeRange Symbol::codeRange(TaskContext& ctx) const noexcept
@@ -165,7 +165,7 @@ const AttributeList& Symbol::attributes() const
 {
     if (attributes_ != nullptr)
         return *attributes_;
-    return g_EmptyAttributes;
+    return EMPTY_ATTRIBUTES;
 }
 
 AttributeList& Symbol::ensureAttributes(TaskContext& ctx)

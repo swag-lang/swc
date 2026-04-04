@@ -247,7 +247,7 @@ namespace
         return Result::Continue;
     }
 
-    Result deduceFromStructPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, const AstNamedType& namedType, const TypeInfo& argType, CastFailure* outFailure)
+    Result deduceFromStructPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, const AstNamedType& namedType, const TypeInfo& argType, const CastFailure* outFailure)
     {
         if (!argType.isStruct())
             return Result::Continue;

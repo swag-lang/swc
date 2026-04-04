@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Utf8 cyclePathString(TaskContext& ctx, std::span<const Symbol* const> cycle)
+    Utf8 cyclePathString(const TaskContext& ctx, std::span<const Symbol* const> cycle)
     {
         Utf8 result;
         if (cycle.empty())

@@ -21,27 +21,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// ============================================================================
-// JIT-assisted semantic execution helpers
-// ============================================================================
-//
-// This file handles three semantic JIT use-cases:
-// 1) runExpr: execute expression code and materialize a folded constant.
-// 2) tryRunConstCall: fold constexpr-like calls through JIT.
-// 3) runStatement: execute statements for side effects.
-//
-// For runExpr/tryRunConstCall we use the same deferred lifecycle:
-// - build a JITNodePayload (arguments + return storage),
-// - register per-node pending state in sema payload,
-// - submit to JITExecManager,
-// - consume completion and apply result to AST node constant payload.
-//
-// Pending state is attached to the node through NodePayload external storage
-// (not through global/static state), which is stable across payload rewrites.
-//
 namespace
 {
-    Result reportJitEvaluationFailure(Sema& sema, SymbolFunction& symFn)
+    Result reportJitEvaluationFailure(Sema& sema, const SymbolFunction& symFn)
     {
         TaskContext& ctx = sema.ctx();
         if (!ctx.hasError())

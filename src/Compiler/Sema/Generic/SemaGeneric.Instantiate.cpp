@@ -50,7 +50,7 @@ namespace
         if (SymbolInterface* symItf = sema.frame().currentInterface())
             return symItf;
 
-        if (SymbolImpl* symImpl = sema.frame().currentImpl())
+        if (const SymbolImpl* symImpl = sema.frame().currentImpl())
         {
             if (SymbolInterface* symItf = symImpl->symInterface())
                 return symItf;

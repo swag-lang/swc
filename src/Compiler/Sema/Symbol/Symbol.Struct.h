@@ -84,7 +84,7 @@ public:
 private:
     struct GenericData;
 
-    GenericData& ensureGenericData() noexcept;
+    GenericData& ensureGenericData() const noexcept;
     GenericData* genericData() const noexcept;
 
     std::vector<SymbolVariable*>      fields_;

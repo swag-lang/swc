@@ -890,10 +890,10 @@ namespace
         const SemaNodeView view     = sema.viewSymbol(childRef);
         if (!view.sym())
         {
-            auto          diag    = SemaError::report(sema, DiagnosticId::sema_err_invalid_location, childRef);
-            const TypeRef typeRef = sema.viewType(childRef).typeRef();
-            if (typeRef.isValid())
-                diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+            auto          diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_location, childRef);
+            const TypeRef ref  = sema.viewType(childRef).typeRef();
+            if (ref.isValid())
+                diag.addArgument(Diagnostic::ARG_TYPE, ref);
             diag.report(sema.ctx());
             return Result::Error;
         }

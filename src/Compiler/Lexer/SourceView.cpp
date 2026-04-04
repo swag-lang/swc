@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Compiler/Lexer/SourceView.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
@@ -113,8 +113,7 @@ void SourceView::codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runt
 
     const uint32_t startLine = clampLine(location.lineStart);
     uint32_t       endLine   = clampLine(location.lineEnd);
-    if (endLine < startLine)
-        endLine = startLine;
+    endLine                  = std::max(endLine, startLine);
 
     const auto [startLineOffset, startLineEndOffset] = lineBounds(startLine);
     const auto [endLineOffset, endLineEndOffset]     = lineBounds(endLine);

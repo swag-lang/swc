@@ -105,7 +105,7 @@ public:
     void                    resetJitState() noexcept;
     Result                  emit(TaskContext& ctx);
     Result                  ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
-    GenericInstanceStorage& genericInstanceStorage(TaskContext& ctx) noexcept;
+    GenericInstanceStorage& genericInstanceStorage(const TaskContext& ctx) const noexcept;
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
@@ -113,12 +113,12 @@ public:
     bool                  isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
     void                  setGenericRoot(bool value) noexcept;
     bool                  isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
-    void                  setGenericInstance(TaskContext& ctx, SymbolFunction* root) noexcept;
+    void                  setGenericInstance(const TaskContext& ctx, SymbolFunction* root) noexcept;
     SymbolFunction*       genericRootSym() noexcept;
     const SymbolFunction* genericRootSym() const noexcept;
     SymbolImpl*           declImplContext() const noexcept;
     SymbolInterface*      declInterfaceContext() const noexcept;
-    void                  setGenericCompletionOwner(const TaskContext& ctx) noexcept;
+    void                  setGenericCompletionOwner(const TaskContext& ctx) const noexcept;
     bool                  isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
     bool                  tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
     void                  finishGenericCompletion() const noexcept;
@@ -140,7 +140,7 @@ private:
     bool         hasLoweredCode() const noexcept;
     bool         hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
     bool         hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
-    GenericData& ensureGenericData(TaskContext& ctx) noexcept;
+    GenericData& ensureGenericData(const TaskContext& ctx) const noexcept;
     GenericData* genericData() const noexcept;
     bool         jitPrepare(TaskContext& ctx);
     Result       jitPatch(TaskContext& ctx);

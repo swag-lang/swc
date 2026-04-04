@@ -536,7 +536,7 @@ SymbolFunction::GenericData* SymbolFunction::genericData() const noexcept
     return genericData_.load(std::memory_order_acquire);
 }
 
-SymbolFunction::GenericData& SymbolFunction::ensureGenericData(TaskContext& ctx) noexcept
+SymbolFunction::GenericData& SymbolFunction::ensureGenericData(const TaskContext& ctx) const noexcept
 {
     if (auto* data = genericData())
         return *data;
@@ -553,7 +553,7 @@ SymbolFunction::GenericData& SymbolFunction::ensureGenericData(TaskContext& ctx)
     return *newData;
 }
 
-GenericInstanceStorage& SymbolFunction::genericInstanceStorage(TaskContext& ctx) noexcept
+GenericInstanceStorage& SymbolFunction::genericInstanceStorage(const TaskContext& ctx) const noexcept
 {
     return ensureGenericData(ctx).instances;
 }
@@ -588,7 +588,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
     return Result::Continue;
 }
 
-void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) noexcept
+void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
     auto&              data     = ensureGenericData(const_cast<TaskContext&>(ctx));
     const TaskContext* expected = nullptr;
@@ -751,7 +751,7 @@ void SymbolFunction::setGenericRoot(bool value) noexcept
         removeExtraFlag(SymbolFunctionFlagsE::GenericRoot);
 }
 
-void SymbolFunction::setGenericInstance(TaskContext& ctx, SymbolFunction* root) noexcept
+void SymbolFunction::setGenericInstance(const TaskContext& ctx, SymbolFunction* root) noexcept
 {
     if (root)
     {

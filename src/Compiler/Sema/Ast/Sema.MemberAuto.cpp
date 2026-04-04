@@ -342,7 +342,7 @@ namespace
 
     Result raiseCannotComputeAutoScopeMember(Sema& sema, AstNodeRef autoMemberRef, IdentifierRef idRef)
     {
-        auto diag = reportCannotComputeAutoScopeMember(sema, autoMemberRef, idRef);
+        const auto diag = reportCannotComputeAutoScopeMember(sema, autoMemberRef, idRef);
         diag.report(sema.ctx());
         return Result::Error;
     }

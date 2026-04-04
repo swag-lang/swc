@@ -22,16 +22,16 @@ struct Update
 impl Update
 {
     #[Swag.Overload]
-    mtd opIndex(index: s32) -> &s32
+    mtd opIndex(index: u32) -> &s32
     {
-        @assert(index >= 0 and cast(u32) index < .count)
+        @assert(index < .count)
         return &.pages[index]
     }
 
     #[Swag.Overload]
-    mtd const opIndex(index: s32) -> const &s32
+    mtd const opIndex(index: u32) -> const &s32
     {
-        @assert(index >= 0 and cast(u32) index < .count)
+        @assert(index < .count)
         return &.pages[index]
     }
 
@@ -136,7 +136,7 @@ func copyUpdate(result: &Update, source: const &Update)
     for source.count
     {
         let index = cast(u32) @index
-        writePage(&result.pages[index], source[cast(s32) index])
+        writePage(&result.pages[index], source[index])
     }
 }
 
@@ -147,7 +147,7 @@ func findPageIndex(result: &u32, update: const &Update, page: s32)->bool
     for update.count
     {
         let index = cast(u32) @index
-        if update[cast(s32) index] == page
+        if update[index] == page
         {
             result = index
             return true
@@ -189,7 +189,7 @@ func isOrderedUpdate(scenario: const &PrintQueueScenario, update: const &Update)
 
 func hasIncomingRule(scenario: const &PrintQueueScenario, source: const &Update, used: [MaxUpdatePages] bool, candidateIndex: u32)->bool
 {
-    let candidatePage = source[cast(s32) candidateIndex]
+    let candidatePage = source[candidateIndex]
 
     for source.count
     {
@@ -197,7 +197,7 @@ func hasIncomingRule(scenario: const &PrintQueueScenario, source: const &Update,
         if used[otherIndex] or otherIndex == candidateIndex do
             continue
 
-        let otherPage = source[cast(s32) otherIndex]
+        let otherPage = source[otherIndex]
         if hasRule(scenario, otherPage, candidatePage) do
             return true
     }
@@ -217,15 +217,14 @@ func repairUpdate(result: &Update, scenario: const &PrintQueueScenario, source: 
     {
         var found = false
 
-        for source.count
+        for candidateIndex in source.count
         {
-            let candidateIndex = cast(u32) @index
             if used[candidateIndex] do
                 continue
             if hasIncomingRule(scenario, source, used, candidateIndex) do
                 continue
 
-            writePage(&result.pages[writeIndex], source[cast(s32) candidateIndex])
+            writePage(&result.pages[writeIndex], source[candidateIndex])
             used[candidateIndex] = true
             writeIndex += 1'u32
             found = true
@@ -243,7 +242,7 @@ func sameUpdate(lhs, rhs: const &Update)->bool
 
     for lhs.count
     {
-        let index = cast(s32) @index
+        let index = cast(u32) @index
         if lhs[index] != rhs[index] do
             return false
     }

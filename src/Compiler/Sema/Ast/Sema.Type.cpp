@@ -428,7 +428,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
 {
     const SemaNodeView view = sema.viewTypeSymbol(nodeExprRef);
     if (!view.type() && !view.sym())
-        return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alias, nodeExprRef);
+        return Result::Error;
 
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolAlias>();
 

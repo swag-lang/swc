@@ -12,7 +12,7 @@ SWC_DIAG_DEF(lex_err_invalid_bin_digit, Error, "invalid binary digit: '{tok}'; o
 SWC_DIAG_DEF(lex_err_invalid_escape, Error, "invalid escape sequence: '{tok}'; unknown or unsupported escape")
 SWC_DIAG_DEF(lex_err_empty_char, Error, "empty character literal; expected a single character")
 SWC_DIAG_DEF(lex_err_unclosed_char, Error, "unclosed character literal; missing closing quote")
-SWC_DIAG_DEF(lex_err_invalid_hex_digit, Error, "invalid hexadecimal digit: '{tok}'; valid digits are 0–9 and A–F")
+SWC_DIAG_DEF(lex_err_invalid_hex_digit, Error, "invalid hexadecimal digit: '{tok}'; valid digits are 0-9 and A-F")
 SWC_DIAG_DEF(lex_err_incomplete_hex_escape, Error, "incomplete hexadecimal escape sequence: '{tok}'; expected {value} hex digits")
 SWC_DIAG_DEF(lex_err_empty_hex_escape, Error, "empty hexadecimal escape sequence: '{tok}'; expected at least one hex digit")
 SWC_DIAG_DEF(lex_err_too_many_char_char, Error, "too many characters in character literal; only one is allowed")

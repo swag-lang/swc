@@ -652,11 +652,22 @@ namespace
             }
         }
 
+        const SymbolMap* fieldOwnerSymMap = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
+        const bool       directSelfStructField = explicitTypeRef.isValid() &&
+                                          explicitType &&
+                                          explicitType->isStruct() &&
+                                          fieldOwnerSymMap &&
+                                          fieldOwnerSymMap->isStruct() &&
+                                          &explicitType->payloadSymStruct() == &fieldOwnerSymMap->cast<SymbolStruct>();
+
         ConstantRef implicitStructCstRef = ConstantRef::invalid();
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
-            SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
-            implicitStructCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
+            if (!directSelfStructField)
+            {
+                SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
+                implicitStructCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
+            }
         }
         const bool hasImplicitStructInit = implicitStructCstRef.isValid();
 

@@ -41,6 +41,19 @@ SWC_BEGIN_NAMESPACE();
 //
 namespace
 {
+    Result reportJitEvaluationFailure(Sema& sema, SymbolFunction& symFn)
+    {
+        TaskContext& ctx = sema.ctx();
+        if (!ctx.hasError())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, symFn.codeRef());
+            diag.addArgument(Diagnostic::ARG_BECAUSE, std::format("failed to evaluate '{}' at compile time", symFn.name(ctx)));
+            diag.report(ctx);
+        }
+
+        return Result::Error;
+    }
+
     // ----------------------------------------------------------------------------
     // Data model for one pending JIT evaluation
     // ----------------------------------------------------------------------------
@@ -209,15 +222,7 @@ namespace
         }
         SWC_RESULT(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
         if (ctx.state().jitEmissionError)
-        {
-            if (!ctx.hasError())
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_jit_emit_failed, symFn.codeRef());
-                SemaError::setReportArguments(sema, diag, &symFn);
-                diag.report(ctx);
-            }
-            return Result::Error;
-        }
+            return reportJitEvaluationFailure(sema, symFn);
 
         // Dependency-closure loop: keep scheduling CodeGen for newly discovered
         // dependencies until the set stabilises. We capture the last stable
@@ -269,28 +274,18 @@ namespace
             knownFunctionCount = knownFunctions.size();
         }
 
-        const auto raiseJitEmitFailed = [&]() -> Result {
-            if (!ctx.hasError())
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_jit_emit_failed, symFn.codeRef());
-                SemaError::setReportArguments(sema, diag, &symFn);
-                diag.report(ctx);
-            }
-            return Result::Error;
-        };
-
         for (SymbolFunction* function : stableJitOrder)
         {
             SWC_RESULT(function->emit(ctx));
         }
 
         if (ctx.state().jitEmissionError)
-            return raiseJitEmitFailed();
+            return reportJitEvaluationFailure(sema, symFn);
 
         SWC_RESULT(SymbolFunction::jitBatch(ctx, stableJitOrder));
 
         if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
-            return raiseJitEmitFailed();
+            return reportJitEvaluationFailure(sema, symFn);
 
         return Result::Continue;
     }

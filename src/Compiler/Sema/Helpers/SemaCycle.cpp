@@ -20,6 +20,31 @@ namespace
             return &codeGenJob->sema();
         return nullptr;
     }
+
+    Utf8 stalledDependencyName(TaskContext& ctx, Sema& sema, const TaskState& state)
+    {
+        if (state.symbol)
+            return state.symbol->name(ctx);
+
+        if (state.idRef.isValid())
+            return Utf8{sema.idMgr().get(state.idRef).name};
+
+        if (state.nodeRef.isValid())
+        {
+            const SemaNodeView typeView = sema.viewType(state.nodeRef);
+            if (typeView.typeRef().isValid())
+                return sema.typeMgr().get(typeView.typeRef()).toName(ctx);
+        }
+
+        return "<dependency>";
+    }
+
+    void reportStalledDependency(Sema& sema, TaskContext& ctx, const TaskState& state)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cyclic_dependency, state.codeRef);
+        diag.addArgument(Diagnostic::ARG_SYM, stalledDependencyName(ctx, sema, state));
+        diag.report(ctx);
+    }
 }
 
 void SemaCycle::addNodeIfNeeded(const Symbol* sym)
@@ -166,11 +191,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
             case TaskStateKind::SemaWaitImplRegistrations:
             {
-                // This is a per-struct barrier wait. If it reaches cycle detection,
-                // something prevents impl registrations for that struct from completing.
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_impl_registration, state.codeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
-                diag.report(ctx);
+                reportStalledDependency(*sema, ctx, state);
                 break;
             }
 
@@ -179,9 +200,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_declared, state.codeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                diag.report(ctx);
+                reportStalledDependency(*sema, ctx, state);
                 break;
             }
 
@@ -190,9 +209,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_typed, state.codeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                diag.report(ctx);
+                reportStalledDependency(*sema, ctx, state);
                 break;
             }
 
@@ -201,9 +218,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_sema_completed, state.codeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                diag.report(ctx);
+                reportStalledDependency(*sema, ctx, state);
                 break;
             }
 
@@ -212,9 +227,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_codegen_presolved, state.codeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                diag.report(ctx);
+                reportStalledDependency(*sema, ctx, state);
                 break;
             }
 
@@ -223,34 +236,15 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_codegen_completed, state.codeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                diag.report(ctx);
+                reportStalledDependency(*sema, ctx, state);
                 break;
             }
 
             case TaskStateKind::SemaWaitTypeCompleted:
             {
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_type_completed, state.codeRef);
-                if (state.symbol)
-                {
-                    if (!reportedSymbols.insert(state.symbol).second)
-                        break;
-                    diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
-                }
-                else
-                {
-                    Utf8 typeName = "<type>";
-                    if (state.nodeRef.isValid())
-                    {
-                        const SemaNodeView typeView = sema->viewType(state.nodeRef);
-                        if (typeView.typeRef().isValid())
-                            typeName = sema->typeMgr().get(typeView.typeRef()).toName(ctx);
-                    }
-
-                    diag.addArgument(Diagnostic::ARG_SYM, typeName);
-                }
-                diag.report(ctx);
+                if (state.symbol && !reportedSymbols.insert(state.symbol).second)
+                    break;
+                reportStalledDependency(*sema, ctx, state);
                 break;
             }
 

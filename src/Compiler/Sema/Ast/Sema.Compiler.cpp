@@ -809,7 +809,11 @@ namespace
             return Result::Continue;
         }
 
-        return SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, childRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_failed_nameof, childRef);
+        if (view.typeRef().isValid())
+            diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallOne& node)
@@ -885,7 +889,14 @@ namespace
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView view     = sema.viewSymbol(childRef);
         if (!view.sym())
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_location, childRef);
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_location, childRef);
+            const TypeRef typeRef = sema.viewType(childRef).typeRef();
+            if (typeRef.isValid())
+                diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
 
         const SourceCodeRange codeRange = view.sym()->codeRange(sema.ctx());
         sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, codeRange, view.sym()->safeCast<SymbolFunction>()));

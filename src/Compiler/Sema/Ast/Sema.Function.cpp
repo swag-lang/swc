@@ -540,7 +540,13 @@ namespace
         if (exprRef.isValid())
         {
             if (returnType.isVoid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, exprRef);
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_in_void, exprRef);
+                if (const auto* currentFn = sema.currentFunction())
+                    diag.addArgument(Diagnostic::ARG_SYM, currentFn->name(sema.ctx()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
 
             SemaNodeView view = sema.viewNodeTypeConstant(exprRef);
             SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));

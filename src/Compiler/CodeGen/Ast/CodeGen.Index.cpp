@@ -7,7 +7,6 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -16,6 +15,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef unwrapAliasTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return typeRef;
+
+        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
     MicroReg copyAddressBaseReg(CodeGen& codeGen, const MicroReg baseReg)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -26,14 +37,50 @@ namespace
         return copyReg;
     }
 
+    void normalizeIndexReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
+    {
+        const TypeRef normalizedTypeRef = unwrapAliasTypeRef(codeGen, ioTypeRef);
+        if (!normalizedTypeRef.isValid())
+            return;
+
+        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isReference())
+        {
+            ioTypeRef = normalizedTypeRef;
+            return;
+        }
+
+        const TypeRef payloadTypeRef = normalizedType.payloadTypeRef();
+        if (!codeGen.typeMgr().get(payloadTypeRef).isInt())
+            return;
+
+        ioTypeRef         = payloadTypeRef;
+        ioPayload.typeRef = payloadTypeRef;
+        if (ioPayload.isValue())
+        {
+            ioPayload.setIsAddress();
+            return;
+        }
+
+        const MicroReg referenceSlotReg = ioPayload.reg;
+        ioPayload.reg                   = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
+        ioPayload.setIsAddress();
+    }
+
     MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits)
     {
-        const CodeGenNodePayload& indexPayload = codeGen.payload(indexRef);
-        const SemaNodeView        indexView    = codeGen.viewType(indexRef);
+        const CodeGenNodePayload& rawIndexPayload = codeGen.payload(indexRef);
+        const SemaNodeView        indexView       = codeGen.viewType(indexRef);
         SWC_ASSERT(indexView.type());
 
-        outIndexBits           = CodeGenTypeHelpers::copyBits(*indexView.type());
-        const bool indexSigned = indexView.type()->isIntSigned();
+        CodeGenNodePayload indexPayload = rawIndexPayload;
+        TypeRef            indexTypeRef = indexPayload.effectiveTypeRef(indexView.typeRef());
+        normalizeIndexReferenceOperand(codeGen, indexPayload, indexTypeRef);
+
+        const TypeInfo& indexType = codeGen.typeMgr().get(indexTypeRef);
+        outIndexBits           = CodeGenTypeHelpers::copyBits(indexType);
+        const bool indexSigned = indexType.isIntSigned();
 
         if (outIndexBits == MicroOpBits::B64 && indexPayload.isValue())
             return indexPayload.reg;

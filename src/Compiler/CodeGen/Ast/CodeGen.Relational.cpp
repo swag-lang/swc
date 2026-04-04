@@ -20,6 +20,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef unwrapAliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return typeRef;
+
+        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
     bool hasPreparedRuntimeStringCompare(CodeGen& codeGen)
     {
         const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
@@ -28,9 +40,53 @@ namespace
 
     bool isStringCompareType(CodeGen& codeGen, TypeRef typeRef)
     {
-        const TypeRef   unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
+        const TypeRef   unwrappedTypeRef = unwrapAliasEnumTypeRef(codeGen, typeRef);
         const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
         return typeInfo.isString();
+    }
+
+    bool shouldReadScalarReference(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeRef normalizedTypeRef = unwrapAliasEnumTypeRef(codeGen, typeRef);
+        if (!normalizedTypeRef.isValid())
+            return false;
+
+        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isReference())
+            return false;
+
+        return codeGen.typeMgr().get(normalizedType.payloadTypeRef()).isScalarNumeric();
+    }
+
+    void normalizeScalarReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
+    {
+        const TypeRef normalizedTypeRef = unwrapAliasEnumTypeRef(codeGen, ioTypeRef);
+        if (!normalizedTypeRef.isValid())
+            return;
+
+        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isReference())
+        {
+            ioTypeRef = normalizedTypeRef;
+            return;
+        }
+
+        const TypeRef payloadTypeRef = normalizedType.payloadTypeRef();
+        if (!codeGen.typeMgr().get(payloadTypeRef).isScalarNumeric())
+            return;
+
+        ioTypeRef = payloadTypeRef;
+        ioPayload.typeRef = payloadTypeRef;
+        if (ioPayload.isValue())
+        {
+            ioPayload.setIsAddress();
+            return;
+        }
+
+        const MicroReg referenceSlotReg = ioPayload.reg;
+        ioPayload.reg                   = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
+        ioPayload.setIsAddress();
     }
 
     void appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
@@ -47,11 +103,23 @@ namespace
         outArgs.push_back(preparedArg);
     }
 
-    TypeRef resolveCompareTypeRef(CodeGen& codeGen, const SemaNodeView& leftView, const SemaNodeView& rightView)
+    TypeRef resolveCompareTypeRef(CodeGen& codeGen, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
-        if (leftView.type()->isScalarNumeric() && rightView.type()->isScalarNumeric())
+        if (shouldReadScalarReference(codeGen, leftTypeRef))
+            leftTypeRef = codeGen.typeMgr().get(unwrapAliasEnumTypeRef(codeGen, leftTypeRef)).payloadTypeRef();
+        else
+            leftTypeRef = unwrapAliasEnumTypeRef(codeGen, leftTypeRef);
+
+        if (shouldReadScalarReference(codeGen, rightTypeRef))
+            rightTypeRef = codeGen.typeMgr().get(unwrapAliasEnumTypeRef(codeGen, rightTypeRef)).payloadTypeRef();
+        else
+            rightTypeRef = unwrapAliasEnumTypeRef(codeGen, rightTypeRef);
+
+        const TypeInfo& leftType  = codeGen.typeMgr().get(leftTypeRef);
+        const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);
+        if (leftType.isScalarNumeric() && rightType.isScalarNumeric())
         {
-            const TypeRef promotedTypeRef = codeGen.typeMgr().promote(leftView.typeRef(), rightView.typeRef(), false);
+            const TypeRef promotedTypeRef = codeGen.typeMgr().promote(leftTypeRef, rightTypeRef, false);
             if (!promotedTypeRef.isValid())
                 return promotedTypeRef;
 
@@ -70,7 +138,7 @@ namespace
             return promotedTypeRef;
         }
 
-        return leftView.typeRef();
+        return leftTypeRef;
     }
 
     void loadCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
@@ -387,10 +455,14 @@ namespace
 
         const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
-        const TypeRef             leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        TypeRef                   leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        TypeRef                   rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        CodeGenNodePayload        leftOperandPayload  = leftPayload;
+        CodeGenNodePayload        rightOperandPayload = rightPayload;
+        normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
+        normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
-        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
+        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             isStringCompareType(codeGen, compareTypeRef) &&
             hasPreparedRuntimeStringCompare(codeGen))
@@ -404,8 +476,8 @@ namespace
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;
-        materializeCompareOperand(leftReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
-        materializeCompareOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
+        materializeCompareOperand(leftReg, codeGen, leftOperandPayload, leftOperandTypeRef, compareTypeRef);
+        materializeCompareOperand(rightReg, codeGen, rightOperandPayload, rightOperandTypeRef, compareTypeRef);
         widenCompareRegsIfNeeded(leftReg, rightReg, codeGen, compareType, opBits);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
@@ -426,17 +498,21 @@ namespace
 
         const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
-        const TypeRef             leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        TypeRef                   leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        TypeRef                   rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        CodeGenNodePayload        leftOperandPayload  = leftPayload;
+        CodeGenNodePayload        rightOperandPayload = rightPayload;
+        normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
+        normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
-        const TypeRef   compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
+        const TypeRef   compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
         const TypeInfo& compareType    = codeGen.typeMgr().get(compareTypeRef);
         MicroOpBits     opBits         = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;
-        materializeCompareOperand(leftReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
-        materializeCompareOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
+        materializeCompareOperand(leftReg, codeGen, leftOperandPayload, leftOperandTypeRef, compareTypeRef);
+        materializeCompareOperand(rightReg, codeGen, rightOperandPayload, rightOperandTypeRef, compareTypeRef);
         widenCompareRegsIfNeeded(leftReg, rightReg, codeGen, compareType, opBits);
 
         MicroBuilder& builder = codeGen.builder();

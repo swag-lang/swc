@@ -75,6 +75,27 @@ struct Vec2
     @assert(p1.y == 400)
 }
 
+#test
+{
+    func nextDigit(bytes: const [..] u8, index: &u64)->u8
+    {
+        if index < @countof(bytes)
+        {
+            let value = bytes[index]
+            index += 1
+            return value
+        }
+
+        return 0'u8
+    }
+
+    let bytes = cast(const [..] u8) "42"
+    var index: u64
+    @assert(nextDigit(bytes, &index) == '4''u8)
+    @assert(nextDigit(bytes, &index) == '2''u8)
+    @assert(index == 2'u64)
+}
+
 struct A {}
 var gRefTitiCalls: s32
 var gRefTataCalls: s32

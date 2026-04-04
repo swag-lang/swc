@@ -24,7 +24,15 @@ namespace
 
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
-        if (!nodeArgView.type()->isInt())
+        TypeRef indexTypeRef = nodeArgView.typeRef();
+        if (const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias); aliasTypeRef.isValid())
+            indexTypeRef = aliasTypeRef;
+
+        const TypeInfo* indexType = &sema.typeMgr().get(indexTypeRef);
+        if (indexType->isReference())
+            indexType = &sema.typeMgr().get(indexType->payloadTypeRef());
+
+        if (!indexType->isInt())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_not_int, nodeArgRef);
             diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef());
@@ -40,7 +48,7 @@ namespace
                 return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, nodeArgRef);
             }
 
-            if (nodeArgView.type()->isIntSigned() && idxInt.isNegative())
+            if (indexType->isIntSigned() && idxInt.isNegative())
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_negative, nodeArgRef);
                 diag.addArgument(Diagnostic::ARG_VALUE, constIndex);

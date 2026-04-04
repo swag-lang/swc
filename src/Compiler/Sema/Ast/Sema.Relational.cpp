@@ -99,6 +99,32 @@ namespace
         return typeRef;
     }
 
+    bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef normalizedTypeRef = unwrapAliasEnumTypeRef(sema, typeRef);
+        if (!normalizedTypeRef.isValid())
+            return false;
+
+        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isReference())
+            return false;
+
+        return sema.typeMgr().get(normalizedType.payloadTypeRef()).isScalarNumeric();
+    }
+
+    SemaNodeView scalarReadView(Sema& sema, const SemaNodeView& view)
+    {
+        if (!shouldReadScalarReference(sema, view.typeRef()))
+            return view;
+
+        SemaNodeView result         = view;
+        const TypeRef normalizedRef = unwrapAliasEnumTypeRef(sema, view.typeRef());
+        const TypeRef payloadTypeRef = sema.typeMgr().get(normalizedRef).payloadTypeRef();
+        result.typeRef()            = payloadTypeRef;
+        result.type()               = &sema.typeMgr().get(payloadTypeRef);
+        return result;
+    }
+
     bool isStringCompareOperands(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (!nodeLeftView.type() || !nodeRightView.type())
@@ -348,9 +374,11 @@ namespace
 
     Result checkCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.type()->isScalarNumeric() && nodeRightView.type()->isScalarNumeric())
+        const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
+        const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+        if (compareLeftView.type()->isScalarNumeric() && compareRightView.type()->isScalarNumeric())
             return Result::Continue;
-        if (nodeLeftView.type()->isAnyPointer() && nodeRightView.type()->isAnyPointer())
+        if (compareLeftView.type()->isAnyPointer() && compareRightView.type()->isAnyPointer())
             return Result::Continue;
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
@@ -396,7 +424,16 @@ namespace
     {
         SWC_UNUSED(node);
 
-        SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
+        const bool orderedCompare = op == TokenId::SymLess ||
+                                    op == TokenId::SymLessEqual ||
+                                    op == TokenId::SymGreater ||
+                                    op == TokenId::SymGreaterEqual ||
+                                    op == TokenId::SymLessEqualGreater;
+        const bool readScalarReference = orderedCompare &&
+                                         (shouldReadScalarReference(sema, nodeLeftView.typeRef()) ||
+                                          shouldReadScalarReference(sema, nodeRightView.typeRef()));
+        if (!readScalarReference)
+            SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
 
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {

@@ -114,6 +114,7 @@ namespace Command
             return;
 
         // Parser
+        const uint64_t errorsBefore = Stats::getNumErrors();
         for (SourceFile* f : compiler.files())
         {
             auto* job = heapNew<ParserJob>(ctx, f);
@@ -121,6 +122,8 @@ namespace Command
         }
 
         jobMgr.waitAll(clientId);
+        if (Stats::getNumErrors() != errorsBefore)
+            return;
 
         // Filter files
         std::vector<SourceFile*> files;

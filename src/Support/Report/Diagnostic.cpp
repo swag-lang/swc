@@ -66,6 +66,26 @@ namespace
         endRange.fromOffset(ctx, *codeRange.srcView, codeRange.offset + codeRange.len - 1, 1);
         return endRange.line;
     }
+
+    bool isFrontEndError(const Diagnostic& diagnostic)
+    {
+        if (diagnostic.elements().empty())
+            return false;
+
+        const std::string_view idName = diagnostic.elements().front()->idName();
+        return idName.starts_with("lex_err_") || idName.starts_with("parser_err_");
+    }
+
+    bool shouldReportExpectedFrontEndError(const TaskContext& ctx, const Diagnostic& diagnostic)
+    {
+        const CommandLine& cmdLine = ctx.cmdLine();
+        if (!cmdLine.isTestCommand())
+            return false;
+        if (cmdLine.lexOnly || cmdLine.syntaxOnly || cmdLine.semaOnly)
+            return false;
+
+        return isFrontEndError(diagnostic);
+    }
 }
 
 Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& codeRef)
@@ -222,7 +242,10 @@ void Diagnostic::report(TaskContext& ctx) const
         dismiss                = file.unitTest().verifyExpected(ctx, *this);
     }
 
-    // Count only errors and warnings not dismissed during tests
+    if (dismiss && shouldReportExpectedFrontEndError(ctx, *this))
+        dismiss = false;
+
+    // Count only diagnostics that are not suppressed by source-driven expectations.
     switch (elements_.front()->severity())
     {
         case DiagnosticSeverity::Error:

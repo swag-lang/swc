@@ -169,7 +169,13 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
 
         // A struct is referencing itself
         if (type.isStruct() && &type.payloadSymStruct() == this)
-            return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, typeNodeRef);
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_struct_circular_reference, typeNodeRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, symVar.name(sema.ctx()));
+            diag.addArgument(Diagnostic::ARG_SYM, name(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
 
         SWC_RESULT(sema.waitSemaCompleted(&type, typeNodeRef));
     }

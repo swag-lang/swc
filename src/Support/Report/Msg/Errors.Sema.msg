@@ -5,6 +5,7 @@ SWC_DIAG_DEF(sema_err_invalid_type, Error, "type mismatch; expected '{requested-
 SWC_DIAG_DEF(sema_err_invalid_range_type, Error, "type mismatch; expected integer or float, found '{type}'")
 SWC_DIAG_DEF(sema_err_expected_type_fam, Error, "type mismatch; expected {a-requested-type-fam} type, found '{type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "cannot cast from '{type}' to '{requested-type}'")
+SWC_DIAG_DEF(sema_err_cannot_cast, Error, "argument {index} for call to '{sym}' {what}")
 SWC_DIAG_DEF(sema_err_struct_cast_field_count, Error, "cannot cast from '{type}' to '{requested-type}'; field count mismatch: source has {count}, destination has {value}")
 SWC_DIAG_DEF(sema_err_struct_cast_field_type, Error, "cannot cast from '{type}' to '{requested-type}'; field '{value}' has an incompatible type")
 SWC_DIAG_DEF(sema_err_struct_cast_duplicate_field, Error, "field '{value}' is specified more than once")

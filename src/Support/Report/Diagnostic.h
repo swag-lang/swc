@@ -45,6 +45,7 @@ public:
     constexpr static std::string_view ARG_OPT_TYPE             = "{opt-type}";
     constexpr static std::string_view ARG_LEFT                 = "{left}";
     constexpr static std::string_view ARG_RIGHT                = "{right}";
+    constexpr static std::string_view ARG_INDEX                = "{index}";
     constexpr static std::string_view ARG_COUNT                = "{count}";
     constexpr static std::string_view ARG_WHAT                 = "{what}";
     constexpr static std::string_view ARG_SYM                  = "{sym}";

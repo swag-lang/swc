@@ -156,7 +156,12 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         if (!tokNames.empty())
         {
             if (tokNames.size() > 2)
-                return SemaError::raise(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{srcViewRef(), tokNames[2]});
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{srcViewRef(), tokNames[2]});
+                diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(tokNames.size()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
 
             const SemaNodeView exprView     = sema.viewType(nodeExprRef);
             TypeRef            valueTypeRef = TypeRef::invalid();

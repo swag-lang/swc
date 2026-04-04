@@ -787,12 +787,25 @@ std::string_view DiagnosticBuilder::resolveMessageTemplate(DiagnosticId id, cons
     {
         const uint32_t count   = countReplacedArgs(msgs[i], el);
         const uint32_t missing = countMessagePlaceholders(msgs[i]) - count;
-        if (count > bestCount || (count == bestCount && missing < bestMissing))
+
+        // Prefer templates that can be rendered completely. Otherwise unrelated
+        // arguments (for example '{sym}' from the source expression) can make a
+        // call-specific alternate win even when '{index}' is missing.
+        if (bestMissing == 0)
         {
-            bestCount   = count;
-            bestMissing = missing;
-            bestIndex   = i;
+            if (missing != 0)
+                continue;
+            if (count <= bestCount)
+                continue;
         }
+        else if (missing != 0 && (count < bestCount || (count == bestCount && missing >= bestMissing)))
+        {
+            continue;
+        }
+
+        bestCount   = count;
+        bestMissing = missing;
+        bestIndex   = i;
     }
 
     return msgs[bestIndex];

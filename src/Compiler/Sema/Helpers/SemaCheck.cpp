@@ -116,8 +116,9 @@ Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
 
 Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute)
 {
-    bool hasName    = false;
-    bool hasDefault = false;
+    bool                  hasName             = false;
+    bool                  hasDefault          = false;
+    const SymbolVariable* previousDefaultParm = nullptr;
     for (size_t i = 0; i < parameters.size(); i++)
     {
         const SymbolVariable& param = *(parameters[i]);
@@ -154,13 +155,28 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
 
         // Variadic must be last
         if (type.isAnyVariadic() && i != parameters.size() - 1)
-            return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param);
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_variadic_not_last, param);
+            if (param.idRef().isValid() && parameters[i + 1]->idRef().isValid())
+                diag.addArgument(Diagnostic::ARG_VALUE, parameters[i + 1]->name(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
 
         // A parameter without a default follows a parameter with a default value
         if (param.hasExtraFlag(SymbolVariableFlagsE::Initialized))
+        {
             hasDefault = true;
+            previousDefaultParm = &param;
+        }
         else if (hasDefault)
-            return SemaError::raise(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param);
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param);
+            if (param.idRef().isValid() && previousDefaultParm && previousDefaultParm->idRef().isValid())
+                diag.addArgument(Diagnostic::ARG_VALUE, previousDefaultParm->name(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
 
         // If a parameter has a name, then what follows should have a name
         if (param.idRef().isValid())

@@ -19,6 +19,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
@@ -800,6 +801,27 @@ namespace
         return {value.ptr, static_cast<size_t>(value.length)};
     }
 
+    std::string_view extractAssertConditionText(const SourceCodeRange& range)
+    {
+        if (!range.srcView || !range.len)
+            return {};
+
+        const std::string_view text = Utf8Helper::trim(range.srcView->codeView(range.offset, range.len));
+        if (!text.starts_with("@assert"))
+            return {};
+
+        const size_t openParen = text.find('(');
+        if (openParen == std::string_view::npos || openParen + 1 >= text.size())
+            return {};
+
+        std::string_view condition = text.substr(openParen + 1);
+        const size_t     closeParen = condition.rfind(')');
+        if (closeParen != std::string_view::npos)
+            condition = condition.substr(0, closeParen);
+
+        return Utf8Helper::trim(condition);
+    }
+
     void decodeCompilerDiagnosticException(const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)
     {
         Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
@@ -880,6 +902,13 @@ namespace
             diag.last().addSpan(range, "", severity);
 
         Utf8 diagMessage = message;
+        if (diagMessage.empty() && kind == RuntimeExceptionKind::Assert)
+        {
+            const std::string_view assertCondition = extractAssertConditionText(range);
+            if (!assertCondition.empty())
+                diagMessage = Utf8(assertCondition);
+        }
+
         if (!diagMessage.empty())
             diag.addArgument(Diagnostic::ARG_BECAUSE, diagMessage);
 

@@ -97,31 +97,53 @@ void SourceView::codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runt
     SWC_ASSERT(!stringView_.empty());
     SWC_ASSERT(!lines_.empty());
 
-    uint32_t line = location.lineStart;
-    if (!line)
-        line = 1;
-    if (line > lines_.size())
-        line = static_cast<uint32_t>(lines_.size());
+    auto clampLine = [this](uint32_t line) -> uint32_t
+    {
+        if (!line)
+            return 1;
+        return std::min(line, static_cast<uint32_t>(lines_.size()));
+    };
 
-    const uint32_t lineStartOffset = lines_[line - 1];
-    uint32_t       lineEndOffset   = static_cast<uint32_t>(stringView_.size());
-    if (line < lines_.size())
-        lineEndOffset = lines_[line];
+    auto lineBounds = [this](uint32_t line) -> std::pair<uint32_t, uint32_t>
+    {
+        const uint32_t start = lines_[line - 1];
+        uint32_t       end   = static_cast<uint32_t>(stringView_.size());
+        if (line < lines_.size())
+            end = lines_[line];
+        return {start, std::max(start, end)};
+    };
 
-    if (lineEndOffset <= lineStartOffset)
-        lineEndOffset = lineStartOffset + 1;
+    const uint32_t startLine = clampLine(location.lineStart);
+    uint32_t       endLine   = clampLine(location.lineEnd);
+    if (endLine < startLine)
+        endLine = startLine;
 
-    uint32_t column = location.colStart;
-    if (!column)
-        column = 1;
+    const auto [startLineOffset, startLineEndOffset] = lineBounds(startLine);
+    const auto [endLineOffset, endLineEndOffset]     = lineBounds(endLine);
 
-    const uint32_t maxColumnOffset = lineEndOffset - lineStartOffset - 1;
-    const uint32_t columnOffset    = std::min(column - 1, maxColumnOffset);
-    uint32_t       offset          = lineStartOffset + columnOffset;
+    uint32_t startColumn = location.colStart;
+    if (!startColumn)
+        startColumn = 1;
+
+    uint32_t endColumn = location.colEnd;
+    if (!endColumn)
+        endColumn = startColumn + 1;
+
+    const uint32_t maxStartColumnOffset = startLineEndOffset > startLineOffset ? startLineEndOffset - startLineOffset - 1 : 0;
+    const uint32_t startColumnOffset    = std::min(startColumn - 1, maxStartColumnOffset);
+    uint32_t       offset               = startLineOffset + startColumnOffset;
+
+    const uint32_t maxEndColumnOffset = endLineEndOffset - endLineOffset;
+    uint32_t       endOffset          = endLineOffset + std::min(endColumn - 1, maxEndColumnOffset);
+    if (endOffset <= offset)
+        endOffset = std::min<uint32_t>(offset + 1, static_cast<uint32_t>(stringView_.size()));
+
     if (offset >= stringView_.size())
         offset = static_cast<uint32_t>(stringView_.size() - 1);
+    if (endOffset > stringView_.size())
+        endOffset = static_cast<uint32_t>(stringView_.size());
 
-    outCodeRange.fromOffset(ctx, *this, offset, 1);
+    outCodeRange.fromOffset(ctx, *this, offset, std::max(1u, endOffset - offset));
     SWC_ASSERT(outCodeRange.srcView != nullptr);
     SWC_ASSERT(outCodeRange.len != 0);
 }

@@ -26,6 +26,8 @@ namespace
     Result failStructFieldCount(const CastStructArgs& args, size_t srcCount, size_t dstCount)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_count, args.srcTypeRef, args.dstTypeRef);
+        if (args.srcType->isAggregateStruct())
+            args.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
         args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(srcCount));
         args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(dstCount));
         return res;
@@ -38,7 +40,10 @@ namespace
 
     Result failStructMissingFieldNoDefault(const CastStructArgs& ctx, std::string_view fieldName)
     {
-        return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
+        const Result res = ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
+        if (ctx.srcType->isAggregateStruct())
+            ctx.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
+        return res;
     }
 
     AstNodeRef aggregateFieldNodeRef(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount)
@@ -75,6 +80,8 @@ namespace
         if (fieldRef.isValid())
             args.castRequest->errorCodeRef = fieldRef;
         const Result res               = args.castRequest->fail(id, args.srcTypeRef, args.dstTypeRef, value);
+        if (id == DiagnosticId::sema_err_unnamed_parameter && args.srcType->isAggregateStruct())
+            args.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
         args.castRequest->errorCodeRef = previous;
         return res;
     }

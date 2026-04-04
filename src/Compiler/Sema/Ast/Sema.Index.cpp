@@ -48,6 +48,7 @@ namespace
                 return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, nodeArgRef);
             }
 
+            constIndex = idxInt.asI64();
             if (indexType->isIntSigned() && idxInt.isNegative())
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_negative, nodeArgRef);
@@ -57,7 +58,6 @@ namespace
             }
 
             hasConstIndex = true;
-            constIndex    = idxInt.asI64();
         }
 
         return Result::Continue;

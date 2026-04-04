@@ -132,6 +132,8 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::sp
     for (const auto* other : symbols)
     {
         diag.addNote(DiagnosticId::sema_note_could_be);
+        diag.last().addArgument(Diagnostic::ARG_SYM, other->name(ctx));
+        diag.last().addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(other->toFamily()));
         diag.last().addSpan(other->codeRange(ctx));
     }
 

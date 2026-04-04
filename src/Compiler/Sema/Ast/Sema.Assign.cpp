@@ -14,6 +14,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void markAssignmentTargetAddressableStorage(const SemaNodeView& leftView)
+    {
+        if (!leftView.sym() || !leftView.sym()->isVariable() || !leftView.type() || leftView.type()->isReference())
+            return;
+
+        auto& symVar = leftView.sym()->cast<SymbolVariable>();
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+            symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+            symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+    }
+
     TypeRef assignmentTargetTypeRef(const SemaNodeView& leftView)
     {
         if (leftView.type() && leftView.type()->isReference())
@@ -150,6 +161,7 @@ namespace
 
             const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
             SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
+            markAssignmentTargetAddressableStorage(leftView);
 
             CastRequest castRequest(CastKind::Assignment);
             castRequest.errorNodeRef    = leftRef;
@@ -187,6 +199,7 @@ namespace
 
             const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
             SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
+            markAssignmentTargetAddressableStorage(leftView);
 
             if (tok.id != TokenId::SymEqual)
             {
@@ -255,6 +268,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
+    markAssignmentTargetAddressableStorage(nodeLeftView);
     SWC_RESULT(SemaSpecOp::tryResolveAssign(sema, *this, nodeLeftView, handled));
     if (handled)
         return Result::Continue;

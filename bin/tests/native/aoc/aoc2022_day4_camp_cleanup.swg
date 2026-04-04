@@ -25,7 +25,12 @@ func solve(b: const [..] u8)->[2] u32
     var i: u64
     while i < @countof(b)
     {
-        if b[i] < '0''u8 or b[i] > '9''u8 { i += 1; continue }
+        if b[i] < '0''u8 or b[i] > '9''u8
+        {
+            i += 1
+            continue
+        }
+
         let a = num(b, &i), b2 = num(b, &i), c = num(b, &i), d = num(b, &i)
         if (a <= c and b2 >= d) or (c <= a and d >= b2) do r[0] += 1
         if a <= d and c <= b2 do r[1] += 1

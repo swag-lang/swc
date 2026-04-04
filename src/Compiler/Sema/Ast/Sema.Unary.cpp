@@ -224,6 +224,14 @@ namespace
             return Result::Continue;
         }
 
+        if (view.sym() && view.sym()->isVariable() && view.type() && !view.type()->isReference())
+        {
+            auto& symVar = view.sym()->cast<SymbolVariable>();
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+                symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+        }
+
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
         if (view.type()->isConst() ||
             (view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant())) ||

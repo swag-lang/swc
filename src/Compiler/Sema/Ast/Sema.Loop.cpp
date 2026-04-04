@@ -248,6 +248,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
             SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexTypeRef, sema.curNodeRef(), *this));
             symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             symVar.setTypeRef(indexTypeRef);
+            SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, indexTypeRef));
             symVar.setTyped(sema.ctx());
             symVar.setSemaCompleted(sema.ctx());
         }

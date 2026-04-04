@@ -167,11 +167,36 @@ namespace
 
     void emitLoopVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar, MicroReg valueReg)
     {
+        const TypeInfo&          typeInfo      = codeGen.typeMgr().get(symVar.typeRef());
+        const MicroOpBits        opBits        = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
+        if (codeGen.localStackBaseReg().isValid() &&
+            symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
+            symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+        {
+            const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(symVar, false);
+            codeGen.builder().emitLoadMemReg(storagePayload.reg, 0, valueReg, opBits);
+            codeGen.setVariablePayload(symVar, storagePayload);
+            return;
+        }
+
         CodeGenNodePayload symbolPayload;
         symbolPayload.typeRef = symVar.typeRef();
         symbolPayload.setIsValue();
         symbolPayload.reg = valueReg;
         codeGen.setVariablePayload(symVar, symbolPayload);
+    }
+
+    void emitLoopVariableReg(CodeGen& codeGen, const SymbolVariable& symVar, MicroReg valueReg)
+    {
+        if (!codeGen.localStackBaseReg().isValid() ||
+            !symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) ||
+            !symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            return;
+
+        const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(symVar, false);
+        const TypeInfo&          typeInfo      = codeGen.typeMgr().get(symVar.typeRef());
+        const MicroOpBits        opBits        = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
+        codeGen.builder().emitLoadRegMem(valueReg, storagePayload.reg, 0, opBits);
     }
 
     Result emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)
@@ -416,6 +441,8 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         SWC_RESULT(emitForInit(codeGen, *this, *loopState));
         MicroBuilder& builder = codeGen.builder();
         builder.placeLabel(loopState->loopLabel);
+        if (loopState->indexSym != nullptr)
+            emitLoopVariablePayload(codeGen, *loopState->indexSym, loopState->indexReg);
         return Result::Continue;
     }
 
@@ -444,6 +471,8 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         builder.setCurrentDebugNoStep(false);
 
         builder.placeLabel(loopState->continueLabel);
+        if (loopState->indexSym != nullptr)
+            emitLoopVariableReg(codeGen, *loopState->indexSym, loopState->indexReg);
         if (loopState->reverse)
         {
             builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);

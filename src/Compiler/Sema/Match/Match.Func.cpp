@@ -299,6 +299,7 @@ namespace
             cf.diagId = diagId;
             if (idRef.isValid())
                 cf.valueStr = Utf8{sema.idMgr().get(idRef).name};
+            cf.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
             const uint32_t callArgIndex = callArgIndexFromUserIndex(userArgIndex, ufcsArg);
             failBadType(outFail, callArgIndex, callArgIndex, cf);
         };
@@ -529,6 +530,8 @@ namespace
         std::ranges::sort(sorted, SortedAttemptByRankDesc{});
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef());
+        if (!attempts.empty())
+            diag.last().addArgument(Diagnostic::ARG_SYM, attempts.front().fn->name(ctx));
 
         // One note per overload attempt describing why it failed (and where when possible).
         int count = 0;

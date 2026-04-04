@@ -164,6 +164,7 @@ SWC_DIAG_DEF(sema_err_too_many_arguments, Error, "too many arguments for call to
 SWC_DIAG_DEF(sema_err_too_few_arguments, Error, "too few arguments; expected {count}, found {value}")
 SWC_DIAG_DEF(sema_err_too_few_arguments, Error, "too few arguments for call to '{sym}'; expected {count}, found {value}")
 SWC_DIAG_DEF(sema_err_not_callable, Error, "expression is not callable; expected a function or lambda")
+SWC_DIAG_DEF(sema_err_not_callable, Error, "expression of type '{type}' is not callable; expected a function or lambda")
 SWC_DIAG_DEF(sema_err_bad_function_match, Error, "no matching call for '{sym}'")
 SWC_DIAG_DEF(sema_err_no_overload_match, Error, "no matching overload found for the given arguments")
 SWC_DIAG_DEF(sema_err_intrinsic_invalid_argument, Error, "invalid constant argument for intrinsic '{sym}'")

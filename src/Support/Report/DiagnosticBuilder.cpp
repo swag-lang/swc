@@ -770,7 +770,7 @@ std::string_view DiagnosticBuilder::resolveMessageTemplate(DiagnosticId id, cons
             bestIndex = i;
             ambiguous = false;
         }
-        else if (count == bestCount)
+        else if (count == bestCount && count > 0)
         {
             ambiguous = true;
         }

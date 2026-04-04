@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -644,6 +646,13 @@ namespace
         return Result::Continue;
     }
 
+    void setGenericParamNotDeducedFailure(Sema& sema, const SemaGeneric::GenericParamDesc& param, CastFailure& outFailure)
+    {
+        outFailure        = {};
+        outFailure.diagId = DiagnosticId::sema_err_generic_parameter_not_deduced;
+        outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(param.idRef).name});
+    }
+
     Result instantiateGenericExplicit(Sema& sema, Symbol& genericRoot, std::span<const AstNodeRef> genericArgNodes, Symbol*& outInstance)
     {
         outInstance = nullptr;
@@ -681,9 +690,13 @@ namespace SemaGeneric
         return Result::Continue;
     }
 
-    Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance)
+    Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance, CastFailure* outFailure, uint32_t* outFailureArgIndex)
     {
         outInstance = nullptr;
+        if (outFailure)
+            *outFailure = {};
+        if (outFailureArgIndex)
+            *outFailureArgIndex = UINT32_MAX;
         if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
@@ -697,11 +710,26 @@ namespace SemaGeneric
             return Result::Continue;
 
         SmallVector<GenericResolvedArg> resolvedArgs(params.size());
-        SWC_RESULT(deduceGenericFunctionArgs(sema, genericRoot, params.span(), resolvedArgs, args, ufcsArg));
+        SWC_RESULT(deduceGenericFunctionArgs(sema, genericRoot, params.span(), resolvedArgs, args, ufcsArg, outFailure, outFailureArgIndex));
+        if (outFailure && outFailure->diagId != DiagnosticId::None)
+            return Result::Continue;
 
         SWC_RESULT(materializeGenericArgs(sema, genericRoot, params.span(), resolvedArgs.span(), std::span<const AstNodeRef>{}, sema.curNodeRef()));
         if (hasMissingGenericArgs(resolvedArgs.span()))
+        {
+            if (outFailure)
+            {
+                for (size_t i = 0; i < resolvedArgs.size(); ++i)
+                {
+                    if (!resolvedArgs[i].present)
+                    {
+                        setGenericParamNotDeducedFailure(sema, params[i], *outFailure);
+                        break;
+                    }
+                }
+            }
             return Result::Continue;
+        }
 
         Symbol* instance = nullptr;
         SWC_RESULT(createGenericInstance(sema, genericRoot, params.span(), resolvedArgs.span(), instance));

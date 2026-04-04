@@ -97,6 +97,22 @@ namespace
         return Result::Error;
     }
 
+    Result reportConstRefType(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_const_ref_type, codeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result reportRefMissingInit(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_ref_missing_init, codeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     bool isRetValTypeNode(const Sema& sema, AstNodeRef nodeTypeRef)
     {
         return nodeTypeRef.isValid() && sema.node(nodeTypeRef).is(AstNodeId::RetValType);
@@ -581,7 +597,7 @@ namespace
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
             if (!isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isReference())
-                return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+                return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, explicitTypeRef);
 
             isExplicitUndefinedInit = true;
         }
@@ -622,7 +638,7 @@ namespace
         const TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
         if (isConst && isRefType)
-            return SemaError::raise(sema, DiagnosticId::sema_err_const_ref_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+            return reportConstRefType(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 
         if (finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isCodeBlock())
         {
@@ -692,7 +708,7 @@ namespace
         if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructInit)
             return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+            return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 
         storeLetConstants(symbols, isLet, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
         storeGlobalVariableConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);

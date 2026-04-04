@@ -150,6 +150,7 @@ namespace
         uint32_t      expectedCount = 0; // for too many/few
         uint32_t      providedCount = 0; // for too many/few
         bool          hasLocation   = false;
+        bool          active        = false;
     };
 
     struct Candidate
@@ -194,6 +195,12 @@ namespace
         SmallVector<CallArgEntry> paramArgs;
         SmallVector<CallArgEntry> variadicArgs;
         bool                      hasNamed = false;
+    };
+
+    struct GenericRootCallParam
+    {
+        bool hasDefault = false;
+        bool isVariadic = false;
     };
 
     AstNodeRef getCallArg(uint32_t callArgIndex, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
@@ -252,6 +259,7 @@ namespace
         f.argIndex      = expected; // first extra
         f.paramIndex    = expected;
         f.hasLocation   = true;
+        f.active        = true;
     }
 
     void failTooFew(MatchFailure& f, uint32_t expectedMin, uint32_t provided, uint32_t missingParamIndex)
@@ -262,15 +270,17 @@ namespace
         f.argIndex      = provided; // first missing
         f.paramIndex    = missingParamIndex;
         f.hasLocation   = false;
+        f.active        = true;
     }
 
-    void failBadType(MatchFailure& f, uint32_t argIndex, uint32_t paramIndex, const CastFailure& cf)
+    void failBadType(MatchFailure& f, uint32_t argIndex, uint32_t paramIndex, const CastFailure& cf, bool hasLocation = true)
     {
         f.kind        = MatchFailKind::InvalidArgumentType;
         f.argIndex    = argIndex;
         f.paramIndex  = paramIndex;
         f.castFailure = cf;
-        f.hasLocation = true;
+        f.hasLocation = hasLocation;
+        f.active      = true;
     }
 
     bool buildCallArgMapping(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CallArgMapping& outMapping, MatchFailure& outFail)
@@ -727,6 +737,166 @@ namespace
         return required;
     }
 
+    void appendGenericRootCallParams(Sema& sema, AstNodeRef paramRef, SmallVector<GenericRootCallParam>& outParams)
+    {
+        if (paramRef.isInvalid())
+            return;
+
+        const AstNode* paramNode = &sema.node(paramRef);
+        while (paramNode->is(AstNodeId::AttributeList))
+        {
+            paramRef  = paramNode->cast<AstAttributeList>().nodeBodyRef;
+            paramNode = &sema.node(paramRef);
+        }
+
+        if (paramNode->is(AstNodeId::VarDeclList))
+        {
+            SmallVector<AstNodeRef> vars;
+            sema.ast().appendNodes(vars, paramNode->cast<AstVarDeclList>().spanChildrenRef);
+            for (const AstNodeRef varRef : vars)
+                appendGenericRootCallParams(sema, varRef, outParams);
+            return;
+        }
+
+        if (const auto* varDecl = paramNode->safeCast<AstSingleVarDecl>())
+        {
+            const AstNodeRef typeRef = varDecl->typeOrInitRef();
+            outParams.push_back({
+                .hasDefault = varDecl->nodeInitRef.isValid(),
+                .isVariadic = typeRef.isValid() && (sema.node(typeRef).is(AstNodeId::VariadicType) || sema.node(typeRef).is(AstNodeId::TypedVariadicType)),
+            });
+            return;
+        }
+
+        if (const auto* multiVar = paramNode->safeCast<AstMultiVarDecl>())
+        {
+            SmallVector<TokenRef> tokNames;
+            sema.ast().appendTokens(tokNames, multiVar->spanNamesRef);
+            const AstNodeRef typeRef    = multiVar->typeOrInitRef();
+            const bool       hasDefault = multiVar->nodeInitRef.isValid();
+            const bool       isVariadic = typeRef.isValid() && (sema.node(typeRef).is(AstNodeId::VariadicType) || sema.node(typeRef).is(AstNodeId::TypedVariadicType));
+            for ([[maybe_unused]] const TokenRef tokNameRef : tokNames)
+                outParams.push_back({.hasDefault = hasDefault, .isVariadic = isVariadic});
+            return;
+        }
+
+        if (paramNode->is(AstNodeId::FunctionParamMe))
+            outParams.push_back({});
+    }
+
+    uint32_t minRequiredGenericRootArgs(std::span<const GenericRootCallParam> params)
+    {
+        const uint32_t n   = static_cast<uint32_t>(params.size());
+        const uint32_t end = !params.empty() && params.back().isVariadic ? (n - 1) : n;
+
+        uint32_t required = 0;
+        for (uint32_t i = 0; i < end; ++i)
+        {
+            if (params[i].hasDefault)
+                break;
+            ++required;
+        }
+
+        return required;
+    }
+
+    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail);
+
+    Result precheckGenericCallShape(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, MatchFailure& outFail)
+    {
+        outFail = {};
+
+        if (fn.parameters().empty())
+        {
+            const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
+            if (!decl || decl->nodeParamsRef.isInvalid())
+                return Result::Continue;
+
+            SmallVector<AstNodeRef> paramNodes;
+            const AstNode&          paramsNode = sema.node(decl->nodeParamsRef);
+            if (paramsNode.is(AstNodeId::FunctionParamList))
+                sema.ast().appendNodes(paramNodes, paramsNode.cast<AstFunctionParamList>().spanChildrenRef);
+            else
+                paramsNode.collectChildrenFromAst(paramNodes, sema.ast());
+
+            SmallVector<GenericRootCallParam> params;
+            for (const AstNodeRef paramRef : paramNodes)
+                appendGenericRootCallParams(sema, paramRef, params);
+
+            const uint32_t numParams = static_cast<uint32_t>(params.size());
+            const uint32_t numArgs   = countCallArgs(args, ufcsArg);
+            const bool     variadic  = !params.empty() && params.back().isVariadic;
+
+            if (!variadic && numArgs > numParams)
+            {
+                failTooMany(outFail, numParams, numArgs);
+                return Result::Continue;
+            }
+
+            const uint32_t minExpected = minRequiredGenericRootArgs(params);
+            if (numArgs < minExpected)
+            {
+                failTooFew(outFail, minExpected, numArgs, numArgs);
+                return Result::Continue;
+            }
+
+            return Result::Continue;
+        }
+
+        CallArgMapping mapping;
+        if (!buildCallArgMapping(sema, fn, args, ufcsArg, mapping, outFail))
+            return Result::Continue;
+
+        const auto&       params    = fn.parameters();
+        const auto        numParams = static_cast<uint32_t>(params.size());
+        const uint32_t    numArgs   = countCallArgs(args, ufcsArg);
+        const VariadicInfo vi       = getVariadicInfo(sema, fn);
+
+        if (!vi.any() && !mapping.variadicArgs.empty())
+        {
+            failTooMany(outFail, numParams, numArgs);
+            return Result::Continue;
+        }
+
+        const uint32_t numCommon = (vi.any() && numParams > 0) ? (numParams - 1) : numParams;
+        for (uint32_t i = 0; i < numCommon; ++i)
+        {
+            if (mapping.paramArgs[i].argRef.isValid())
+                continue;
+            if (params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
+                continue;
+
+            const uint32_t minExpected = minRequiredArgs(fn, vi.any());
+            failTooFew(outFail, minExpected, numArgs, i);
+            return Result::Continue;
+        }
+
+        return Result::Continue;
+    }
+
+    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
+    {
+        outCandidate = {};
+        outFail      = {};
+
+        SWC_RESULT(precheckGenericCallShape(sema, fn, args, ufcsArg, outFail));
+        if (outFail.active)
+            return Result::Continue;
+
+        SymbolFunction* concreteFn          = nullptr;
+        CastFailure     genericFailure      = {};
+        uint32_t        genericFailureIndex = UINT32_MAX;
+        SWC_RESULT(SemaGeneric::instantiateFunctionFromCall(sema, fn, args, ufcsArg, concreteFn, &genericFailure, &genericFailureIndex));
+        if (!concreteFn)
+        {
+            if (genericFailure.diagId != DiagnosticId::None)
+                failBadType(outFail, genericFailureIndex == UINT32_MAX ? 0 : genericFailureIndex, 0, genericFailure, genericFailureIndex != UINT32_MAX);
+            return Result::Continue;
+        }
+
+        return tryBuildCandidate(sema, *concreteFn, args, ufcsArg, outCandidate, outFail);
+    }
+
     // Try to build a candidate; if it fails, fill out why + where.
     // Evaluate a single function symbol against the provided arguments to see if it's a valid match.
     // It determines conversion ranks, UFCS usage, and handles variadic arguments.
@@ -929,14 +1099,20 @@ namespace
 
             if (fn->isGenericRoot())
             {
-                MatchFailure    fail;
-                Candidate       candidate;
-                SymbolFunction* concreteFn = nullptr;
-
-                SWC_RESULT(SemaGeneric::instantiateFunctionFromCall(sema, *fn, args, AstNodeRef::invalid(), concreteFn));
-                if (concreteFn)
+                MatchFailure fail;
+                Candidate    candidate;
+                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail));
+                if (candidate.viable)
                 {
-                    SWC_RESULT(tryBuildCandidate(sema, *concreteFn, args, AstNodeRef::invalid(), candidate, fail));
+                    a.viable    = true;
+                    a.candidate = std::move(candidate);
+                }
+
+                if (!a.viable && ufcsArg.isValid())
+                {
+                    candidate  = {};
+                    fail       = {};
+                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, candidate, fail));
                     if (candidate.viable)
                     {
                         a.viable    = true;
@@ -944,28 +1120,8 @@ namespace
                     }
                 }
 
-                if (!a.viable && ufcsArg.isValid())
-                {
-                    concreteFn = nullptr;
-                    candidate  = {};
-                    fail       = {};
-                    SWC_RESULT(SemaGeneric::instantiateFunctionFromCall(sema, *fn, args, ufcsArg, concreteFn));
-                    if (concreteFn)
-                    {
-                        SWC_RESULT(tryBuildCandidate(sema, *concreteFn, args, ufcsArg, candidate, fail));
-                        if (candidate.viable)
-                        {
-                            a.viable    = true;
-                            a.candidate = std::move(candidate);
-                        }
-                    }
-                }
-
                 if (!a.viable)
-                {
-                    a.fail.kind        = MatchFailKind::InvalidArgumentType;
-                    a.fail.hasLocation = false;
-                }
+                    a.fail = fail;
 
                 outAttempts.push_back(std::move(a));
                 continue;

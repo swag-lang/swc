@@ -195,14 +195,16 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
     {
         if (leftView.sym()->isLetVariable())
         {
-            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, nodeRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, nodeRef);
+            SemaError::setReportArguments(sema, diag, leftView.sym());
             diag.report(sema.ctx());
             return Result::Error;
         }
 
         if (leftView.sym()->isConstant())
         {
-            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, nodeRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, nodeRef);
+            SemaError::setReportArguments(sema, diag, leftView.sym());
             diag.report(sema.ctx());
             return Result::Error;
         }

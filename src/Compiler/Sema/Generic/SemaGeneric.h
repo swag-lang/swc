@@ -5,6 +5,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolMap;
+struct CastFailure;
 
 namespace SemaGeneric
 {
@@ -40,7 +41,8 @@ namespace SemaGeneric
 
     struct GenericCallArgEntry
     {
-        AstNodeRef argRef = AstNodeRef::invalid();
+        AstNodeRef argRef       = AstNodeRef::invalid();
+        uint32_t   callArgIndex = 0;
     };
 
     TypeRef unwrapGenericDeductionType(TaskContext& ctx, TypeRef typeRef);
@@ -56,9 +58,9 @@ namespace SemaGeneric
 
     bool hasMissingGenericArgs(std::span<const GenericResolvedArg> resolvedArgs);
 
-    Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, SmallVector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg);
+    Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, SmallVector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CastFailure* outFailure = nullptr, uint32_t* outFailureArgIndex = nullptr);
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance);
-    Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance);
+    Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance, CastFailure* outFailure = nullptr, uint32_t* outFailureArgIndex = nullptr);
     Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance);
     Result instantiateStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance);
 }

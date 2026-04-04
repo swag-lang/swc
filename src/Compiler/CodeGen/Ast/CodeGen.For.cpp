@@ -167,8 +167,8 @@ namespace
 
     void emitLoopVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar, MicroReg valueReg)
     {
-        const TypeInfo&          typeInfo      = codeGen.typeMgr().get(symVar.typeRef());
-        const MicroOpBits        opBits        = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
+        const TypeInfo&   typeInfo = codeGen.typeMgr().get(symVar.typeRef());
+        const MicroOpBits opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         if (codeGen.localStackBaseReg().isValid() &&
             symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
             symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
@@ -194,8 +194,8 @@ namespace
             return;
 
         const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(symVar, false);
-        const TypeInfo&          typeInfo      = codeGen.typeMgr().get(symVar.typeRef());
-        const MicroOpBits        opBits        = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
+        const TypeInfo&          typeInfo       = codeGen.typeMgr().get(symVar.typeRef());
+        const MicroOpBits        opBits         = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         codeGen.builder().emitLoadRegMem(valueReg, storagePayload.reg, 0, opBits);
     }
 

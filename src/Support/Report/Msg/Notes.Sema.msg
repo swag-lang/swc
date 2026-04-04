@@ -3,6 +3,7 @@ SWC_DIAG_DEF(sema_note_unsigned_signed, Note, "value exceeds the maximum of the 
 SWC_DIAG_DEF(sema_note_cast_explicit, Note, "you could cast the value explicitly")
 SWC_DIAG_DEF(sema_note_enum_underlying_cast, Note, "the enum's underlying type is '{opt-type}'")
 SWC_DIAG_DEF(sema_note_other_definition, Note, "previous definition of '{tok}' is here")
+SWC_DIAG_DEF(sema_note_previous_capture, Note, "previous capture of '{tok}' is here")
 SWC_DIAG_DEF(sema_note_previous_case_value, Note, "previous case value is here")
 SWC_DIAG_DEF(sema_note_previous_default_case, Note, "previous default case is here")
 SWC_DIAG_DEF(sema_note_switch_missing_enum_value, Note, "missing enum value '{value}'")

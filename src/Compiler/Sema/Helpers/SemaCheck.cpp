@@ -166,7 +166,7 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
         // A parameter without a default follows a parameter with a default value
         if (param.hasExtraFlag(SymbolVariableFlagsE::Initialized))
         {
-            hasDefault = true;
+            hasDefault          = true;
             previousDefaultParm = &param;
         }
         else if (hasDefault)
@@ -213,7 +213,9 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
     // Left must be a l-value
     if (!sema.isLValue(leftView.nodeRef()))
     {
-        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, nodeRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, nodeRef);
+        if (leftView.typeRef().isValid())
+            diag.addArgument(Diagnostic::ARG_TYPE, leftView.typeRef());
         diag.report(sema.ctx());
         return Result::Error;
     }

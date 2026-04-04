@@ -701,7 +701,13 @@ namespace
         // Keep normal wait semantics here (noWaitOnEmpty = false) to behave like `Enum.Value`.
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
         if (lookUpCxt.empty())
-            return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, argRef);
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_auto_scope_missing_enum_value, argRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
+            diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, paramTy);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
 
         // Substitute `.Value` -> `Enum.Value` for downstream codegen / semantic checks.
         auto [memberRef, memberPtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(argNode.tokRef());
@@ -847,10 +853,10 @@ namespace
         if (!buildCallArgMapping(sema, fn, args, ufcsArg, mapping, outFail))
             return Result::Continue;
 
-        const auto&       params    = fn.parameters();
-        const auto        numParams = static_cast<uint32_t>(params.size());
-        const uint32_t    numArgs   = countCallArgs(args, ufcsArg);
-        const VariadicInfo vi       = getVariadicInfo(sema, fn);
+        const auto&        params    = fn.parameters();
+        const auto         numParams = static_cast<uint32_t>(params.size());
+        const uint32_t     numArgs   = countCallArgs(args, ufcsArg);
+        const VariadicInfo vi        = getVariadicInfo(sema, fn);
 
         if (!vi.any() && !mapping.variadicArgs.empty())
         {
@@ -1110,8 +1116,8 @@ namespace
 
                 if (!a.viable && ufcsArg.isValid())
                 {
-                    candidate  = {};
-                    fail       = {};
+                    candidate = {};
+                    fail      = {};
                     SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, candidate, fail));
                     if (candidate.viable)
                     {
@@ -1314,14 +1320,14 @@ namespace
         const CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
         if (fixedVariadicArg.argRef.isValid())
         {
-            SemaNodeView argView(sema, fixedVariadicArg.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            SemaNodeView              argView(sema, fixedVariadicArg.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, fixedVariadicArg.callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
         }
 
         for (const CallArgEntry& entry : mapping.variadicArgs)
         {
-            SemaNodeView argView(sema, entry.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            SemaNodeView              argView(sema, entry.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
         }

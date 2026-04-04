@@ -428,8 +428,8 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
 
 Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 {
-    const TaskContext& ctx = sema.ctx();
-    const Token&       tok = sema.token(codeRef());
+    const TaskContext& ctx    = sema.ctx();
+    const Token&       tok    = sema.token(codeRef());
     const auto         tokStr = tok.string(sema.compiler().srcView(srcViewRef()));
     auto               str    = tokStr;
 
@@ -463,8 +463,8 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 
 Result AstHexaLiteral::semaPreNode(Sema& sema) const
 {
-    const TaskContext& ctx = sema.ctx();
-    const Token&       tok = sema.token(codeRef());
+    const TaskContext& ctx    = sema.ctx();
+    const Token&       tok    = sema.token(codeRef());
     const auto         tokStr = tok.string(sema.compiler().srcView(srcViewRef()));
     auto               str    = tokStr;
 

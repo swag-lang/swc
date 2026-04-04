@@ -111,7 +111,17 @@ namespace
 
         const TypeRef normalizedTypeRef = normalizeWithBindingType(sema.ctx(), rawTypeRef);
         if (!normalizedTypeRef.isValid())
+        {
+            if (rawTypeRef.isValid())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, errorRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, rawTypeRef);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
             return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, errorRef);
+        }
 
         const TypeInfo& typeInfo = sema.typeMgr().get(normalizedTypeRef);
         if (typeInfo.isStruct() || typeInfo.isAggregateStruct() || typeInfo.isEnum())
@@ -143,7 +153,10 @@ namespace
             return Result::Continue;
         }
 
-        return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, errorRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, errorRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, normalizedTypeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     Result checkIfVarDeclCondition(Sema& sema, AstNodeRef varDeclRef)

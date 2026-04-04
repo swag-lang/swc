@@ -556,6 +556,20 @@ namespace
         EnumFlags<AstVarDeclFlagsE> flags;
     };
 
+    Result reportMissingInitializer(Sema& sema, DiagnosticId id, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
+    {
+        const SourceCodeRef where{context.owner->srcViewRef(), context.tokDiag};
+        if (symbols.size() == 1 && symbols[0])
+        {
+            auto diag = SemaError::report(sema, id, where);
+            diag.addArgument(Diagnostic::ARG_SYM, symbols[0]->name(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        return SemaError::raise(sema, id, where);
+    }
+
     Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
         SemaNodeView nodeInitView = sema.viewNodeTypeConstant(context.nodeInitRef);
@@ -590,9 +604,9 @@ namespace
         if (context.nodeInitRef.isValid() && nodeInitView.cstRef() == sema.cstMgr().cstUndefined())
         {
             if (isConst)
-                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+                return reportMissingInitializer(sema, DiagnosticId::sema_err_const_missing_init, context, symbols);
             if (isLet)
-                return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+                return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
             if (context.nodeTypeRef.isInvalid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
@@ -668,13 +682,13 @@ namespace
             }
         }
 
-        const SymbolMap* fieldOwnerSymMap = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
+        const SymbolMap* fieldOwnerSymMap      = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
         const bool       directSelfStructField = explicitTypeRef.isValid() &&
-                                          explicitType &&
-                                          explicitType->isStruct() &&
-                                          fieldOwnerSymMap &&
-                                          fieldOwnerSymMap->isStruct() &&
-                                          &explicitType->payloadSymStruct() == &fieldOwnerSymMap->cast<SymbolStruct>();
+                                           explicitType &&
+                                           explicitType->isStruct() &&
+                                           fieldOwnerSymMap &&
+                                           fieldOwnerSymMap->isStruct() &&
+                                           &explicitType->payloadSymStruct() == &fieldOwnerSymMap->cast<SymbolStruct>();
 
         ConstantRef implicitStructCstRef = ConstantRef::invalid();
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
@@ -693,7 +707,7 @@ namespace
             if (context.nodeInitRef.isInvalid())
             {
                 if (!hasImplicitStructInit)
-                    return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+                    return reportMissingInitializer(sema, DiagnosticId::sema_err_const_missing_init, context, symbols);
                 completeConst(sema, symbols, implicitStructCstRef, explicitTypeRef);
                 return Result::Continue;
             }
@@ -706,7 +720,7 @@ namespace
 
         // Variable
         if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructInit)
-            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+            return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 

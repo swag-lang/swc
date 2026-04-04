@@ -814,7 +814,7 @@ namespace
         if (openParen == std::string_view::npos || openParen + 1 >= text.size())
             return {};
 
-        std::string_view condition = text.substr(openParen + 1);
+        std::string_view condition  = text.substr(openParen + 1);
         const size_t     closeParen = condition.rfind(')');
         if (closeParen != std::string_view::npos)
             condition = condition.substr(0, closeParen);

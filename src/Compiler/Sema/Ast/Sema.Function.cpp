@@ -1063,8 +1063,15 @@ namespace
             const AstClosureArgument& captureArg = sema.node(captureRef).cast<AstClosureArgument>();
             const SemaNodeView        sourceView = sema.viewSymbol(captureArg.nodeIdentifierRef);
             Symbol* const             sourceSym  = sourceView.sym();
-            if (!sourceSym || !sourceSym->isVariable())
+            if (!sourceSym)
                 return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+
+            if (!sourceSym->isVariable())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
 
             auto&           sourceVar = sourceSym->cast<SymbolVariable>();
             const TypeRef   typeRef   = sourceVar.typeRef();
@@ -1073,7 +1080,12 @@ namespace
 
             const bool captureByRef = captureArg.hasFlag(AstClosureArgumentFlagsE::Address);
             if (captureByRef && sourceVar.hasExtraFlag(SymbolVariableFlagsE::Let))
-                return SemaError::raise(sema, DiagnosticId::sema_err_take_address_constant, captureArg.nodeIdentifierRef);
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_let_by_ref, captureArg.nodeIdentifierRef);
+                diag.addArgument(Diagnostic::ARG_SYM, sourceVar.name(sema.ctx()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
 
             uint32_t storageSize  = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
             uint32_t storageAlign = typeInfo.alignOf(ctx);
@@ -1107,8 +1119,16 @@ namespace
 
             if (sourceVar.idRef().isValid())
             {
-                if (sym.addSingleSymbol(ctx, captureSym) != captureSym)
-                    return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+                Symbol* inserted = sym.addSingleSymbol(ctx, captureSym);
+                if (inserted != captureSym)
+                {
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_duplicate, captureArg.nodeIdentifierRef);
+                    diag.addArgument(Diagnostic::ARG_SYM, sourceVar.name(ctx));
+                    diag.addNote(DiagnosticId::sema_note_previous_capture);
+                    diag.last().addSpan(inserted->codeRange(ctx));
+                    diag.report(ctx);
+                    return Result::Error;
+                }
             }
 
             captureSym->setDeclared(ctx);

@@ -97,15 +97,13 @@ void SourceView::codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runt
     SWC_ASSERT(!stringView_.empty());
     SWC_ASSERT(!lines_.empty());
 
-    auto clampLine = [this](uint32_t line) -> uint32_t
-    {
+    auto clampLine = [this](uint32_t line) -> uint32_t {
         if (!line)
             return 1;
         return std::min(line, static_cast<uint32_t>(lines_.size()));
     };
 
-    auto lineBounds = [this](uint32_t line) -> std::pair<uint32_t, uint32_t>
-    {
+    auto lineBounds = [this](uint32_t line) -> std::pair<uint32_t, uint32_t> {
         const uint32_t start = lines_[line - 1];
         uint32_t       end   = static_cast<uint32_t>(stringView_.size());
         if (line < lines_.size())

@@ -79,8 +79,8 @@ namespace
         normalizeIndexReferenceOperand(codeGen, indexPayload, indexTypeRef);
 
         const TypeInfo& indexType = codeGen.typeMgr().get(indexTypeRef);
-        outIndexBits           = CodeGenTypeHelpers::copyBits(indexType);
-        const bool indexSigned = indexType.isIntSigned();
+        outIndexBits              = CodeGenTypeHelpers::copyBits(indexType);
+        const bool indexSigned    = indexType.isIntSigned();
 
         if (outIndexBits == MicroOpBits::B64 && indexPayload.isValue())
             return indexPayload.reg;

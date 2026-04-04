@@ -462,7 +462,7 @@ namespace
 
         if (prependUfcsArg && ufcsArg.isValid() && numParams > 0)
         {
-            outMapping[0].argRef = ufcsArg;
+            outMapping[0].argRef       = ufcsArg;
             outMapping[0].callArgIndex = 0;
         }
 
@@ -472,7 +472,7 @@ namespace
         for (uint32_t userIndex = 0; userIndex < args.size(); ++userIndex)
         {
             const AstNodeRef argRef  = args[userIndex];
-            const AstNode& argNode = sema.node(argRef);
+            const AstNode&   argNode = sema.node(argRef);
 
             if (argNode.is(AstNodeId::NamedArgument))
             {
@@ -492,7 +492,7 @@ namespace
                 if (found < 0 || outMapping[found].argRef.isValid())
                     return false;
 
-                outMapping[found].argRef = argRef;
+                outMapping[found].argRef       = argRef;
                 outMapping[found].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg);
                 continue;
             }
@@ -506,7 +506,7 @@ namespace
             if (nextPos >= numParams)
                 return false;
 
-            outMapping[nextPos].argRef = argRef;
+            outMapping[nextPos].argRef       = argRef;
             outMapping[nextPos].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg);
             ++nextPos;
         }

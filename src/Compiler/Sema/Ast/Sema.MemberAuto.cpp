@@ -332,6 +332,20 @@ namespace
                 outSymbols.push_back(s);
         }
     }
+
+    Diagnostic reportCannotComputeAutoScopeMember(Sema& sema, AstNodeRef autoMemberRef, IdentifierRef idRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, autoMemberRef);
+        diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
+        return diag;
+    }
+
+    Result raiseCannotComputeAutoScopeMember(Sema& sema, AstNodeRef autoMemberRef, IdentifierRef idRef)
+    {
+        auto diag = reportCannotComputeAutoScopeMember(sema, autoMemberRef, idRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
 }
 
 Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -344,6 +358,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     // Parser tags the callee expression when building a call: `.foo()`.
     const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
+    const SemaNodeView  nodeRightView = sema.viewNode(nodeIdentRef);
+    const SourceCodeRef codeRef       = nodeRightView.node()->codeRef();
+    const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
+    SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));
 
     SmallVector4<AutoMemberCandidate> candidates;
     SWC_RESULT(collectAutoMemberCandidates(sema, candidates));
@@ -354,13 +372,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         // resolution can provide that context.
         if (hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument))
             return Result::SkipChildren;
-        return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
+        return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
     }
-
-    const SemaNodeView  nodeRightView = sema.viewNode(nodeIdentRef);
-    const SourceCodeRef codeRef       = nodeRightView.node()->codeRef();
-    const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
-    SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));
 
     // Probe candidates without pausing on empty results.
     SmallVector2<AutoMemberMatch> matches;
@@ -381,7 +394,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         {
             const AutoMemberCandidate& candidate = candidates.front();
             if (!candidate.typeRef.isValid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
+                return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
 
             const TypeInfo& typeInfo = sema.typeMgr().get(candidate.typeRef);
 
@@ -396,7 +409,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             return Result::Error;
         }
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
+        auto diag = reportCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
         for (const auto& candidate : candidates)
         {
             if (!candidate.typeRef.isValid())
@@ -434,7 +447,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         mergeAutoMemberMatches(matches, all);
         if (!all.empty())
             return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), all);
-        return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
+        return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
     }
 
     const AutoMemberCandidate& selected = matches.front().candidate;

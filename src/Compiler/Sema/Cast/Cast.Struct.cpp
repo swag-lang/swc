@@ -79,7 +79,7 @@ namespace
         const SourceCodeRef fieldRef = aggregateFieldRef(args, fieldIndex, expectedCount);
         if (fieldRef.isValid())
             args.castRequest->errorCodeRef = fieldRef;
-        const Result res               = args.castRequest->fail(id, args.srcTypeRef, args.dstTypeRef, value);
+        const Result res = args.castRequest->fail(id, args.srcTypeRef, args.dstTypeRef, value);
         if (id == DiagnosticId::sema_err_unnamed_parameter && args.srcType->isAggregateStruct())
             args.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
         args.castRequest->errorCodeRef = previous;

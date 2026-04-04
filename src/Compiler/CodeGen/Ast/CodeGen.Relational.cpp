@@ -75,7 +75,7 @@ namespace
         if (!codeGen.typeMgr().get(payloadTypeRef).isScalarNumeric())
             return;
 
-        ioTypeRef = payloadTypeRef;
+        ioTypeRef         = payloadTypeRef;
         ioPayload.typeRef = payloadTypeRef;
         if (ioPayload.isValue())
         {

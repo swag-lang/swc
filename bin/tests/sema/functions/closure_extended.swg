@@ -123,7 +123,7 @@ impl PathOwner
 #test
 {
     let fixed = 10
-    let bad: ClosureNullary = func|&fixed|()->s32 { return fixed } // swc-expected-error {{sema_err_take_address_constant}}
+    let bad: ClosureNullary = func|&fixed|()->s32 { return fixed } // swc-expected-error {{sema_err_closure_capture_let_by_ref}}
 }
 
 #test
@@ -134,7 +134,7 @@ impl PathOwner
 #test
 {
     var value = 1
-    let bad: ClosureNullary = func|value, value|()->s32 { return value } // swc-expected-error {{sema_err_closure_capture_invalid}}
+    let bad: ClosureNullary = func|value, value|()->s32 { return value } // swc-expected-error {{sema_err_closure_capture_duplicate}}
 }
 
 #test

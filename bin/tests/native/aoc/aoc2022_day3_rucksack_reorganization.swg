@@ -352,16 +352,16 @@ const EdgeFeatureReport: RucksackReport = #run solveWithLanguageFeatures(cast(co
     let second = cast(const [..] u8) "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"
     let third = cast(const [..] u8) "PmmdzqPrVvPwwTWBwg"
 
-    @assert(priorityOf('a''u8) == 1'u32)
-    @assert(priorityOf('z''u8) == 26'u32)
-    @assert(priorityOf('A''u8) == 27'u32)
-    @assert(priorityOf('Z''u8) == 52'u32)
+    @assert(priorityOf('a') == 1)
+    @assert(priorityOf('z') == 26)
+    @assert(priorityOf('A') == 27)
+    @assert(priorityOf('Z') == 52)
     @assert(priorityFromMask(maskForItem('p''u8)) == 16'u32)
     @assert(priorityFromMask(duplicateMask(first)) == 16'u32)
     @assert(priorityFromMask(badgeMask(first, second, third)) == 18'u32)
 
     var scratch: [3] u64
-    fill'(u64)(scratch, 7'u64)
+    fill(scratch, 7'u64)
     @assert(scratch[0] == 7'u64)
     @assert(scratch[1] == 7'u64)
     @assert(scratch[2] == 7'u64)

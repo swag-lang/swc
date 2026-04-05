@@ -269,6 +269,18 @@ func @panic(message: string, loc: SourceCodeLocation)
     __panicBox(cast(string) str, title)
 }
 
+#[Swag.Safety(.All, .All, false)]
+func @safetypanic(message: string, loc: SourceCodeLocation)
+{
+    if @jit
+    {
+        __raiseException666(message, loc, .Safety)
+        return
+    }
+
+    @panic(message, loc)
+}
+
 func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
 {
     var loc: SourceCodeLocation

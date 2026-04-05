@@ -857,6 +857,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicCompilerError:
         case TokenId::IntrinsicCompilerWarning:
         case TokenId::IntrinsicPanic:
+        case TokenId::IntrinsicSafetyPanic:
         case TokenId::IntrinsicAtomicAdd:
             return parseIntrinsicCallExpr(2);
         case TokenId::IntrinsicMemCpy:

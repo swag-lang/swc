@@ -48,7 +48,7 @@ namespace
             return Result::Continue;
 
         SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::Panic, panicFn, codeRef));
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
         SWC_ASSERT(panicFn != nullptr);
 
         SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);

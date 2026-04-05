@@ -14,13 +14,12 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr std::string_view K_BOUND_CHECK_MESSAGE = "index is out of bounds";
-
     CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
     {
         const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
@@ -50,7 +49,7 @@ namespace
         outArgs.push_back(arg);
     }
 
-    SymbolFunction* runtimePanicFunction(CodeGen& codeGen)
+    SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen)
     {
         if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
             payload && payload->runtimeFunctionSymbol != nullptr)
@@ -58,7 +57,7 @@ namespace
             return payload->runtimeFunctionSymbol;
         }
 
-        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Panic);
+        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
         if (idRef.isInvalid())
             return nullptr;
 
@@ -98,6 +97,12 @@ namespace
         return Result::Continue;
     }
 
+    Result emitRuntimeDiagnosticCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, const AstNode& node, const DiagnosticId diagId)
+    {
+        SWC_ASSERT(diagId != DiagnosticId::None);
+        return emitRuntimePanicCall(codeGen, runtimeFunction, node, Diagnostic::diagIdMessage(diagId));
+    }
+
     MicroReg materializeIndexBoundReg(CodeGen& codeGen, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {
         MicroBuilder&  builder  = codeGen.builder();
@@ -135,7 +140,7 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
         return Result::Continue;
 
-    SymbolFunction* panicFunction = runtimePanicFunction(codeGen);
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
     SWC_ASSERT(panicFunction != nullptr);
 
     MicroBuilder&       builder     = codeGen.builder();
@@ -143,7 +148,7 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     const MicroLabelRef inBoundsRef = builder.createLabel();
     builder.emitCmpRegReg(indexReg, countReg, MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, inBoundsRef);
-    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(indexRef), K_BOUND_CHECK_MESSAGE));
+    SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(indexRef), DiagnosticId::safety_err_bound_check));
     builder.placeLabel(inBoundsRef);
     return Result::Continue;
 }

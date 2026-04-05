@@ -47,6 +47,15 @@ namespace Runtime
         uint8_t capture[CLOSURE_CAPTURE_BUFFER_SIZE];
     };
 
+    enum class ExceptionKind : uint64_t
+    {
+        Panic   = 0,
+        Error   = 1,
+        Warning = 2,
+        Assert  = 3,
+        Safety  = 4,
+    };
+
     enum class TypeInfoKind : uint8_t
     {
         Invalid,

@@ -291,6 +291,7 @@ SWC_TOKEN_DEF(IntrinsicCompilerWarning, "@compilerwarning",  TokenIdKindE::Intri
 SWC_TOKEN_DEF(IntrinsicBreakpoint, "@breakpoint",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicAssert, "@assert",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicPanic, "@panic",  TokenIdKindE::Intrinsic)
+SWC_TOKEN_DEF(IntrinsicSafetyPanic, "@safetypanic",  TokenIdKindE::Intrinsic)
 
 // INTRINSICS - LIFECYCLE
 

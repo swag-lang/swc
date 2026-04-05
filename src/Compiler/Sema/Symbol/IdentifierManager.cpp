@@ -107,6 +107,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
         {.name = PredefinedName::RuntimeExit, .str = "__exit"},
         {.name = PredefinedName::RuntimePanic, .str = "@panic"},
+        {.name = PredefinedName::RuntimeSafetyPanic, .str = "@safetypanic"},
         {.name = PredefinedName::RuntimeAs, .str = "@as"},
         {.name = PredefinedName::RuntimeIs, .str = "@is"},
         {.name = PredefinedName::RuntimeStringCmp, .str = "@stringcmp"},
@@ -121,6 +122,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Exit)]           = predefined(PredefinedName::RuntimeExit);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]          = predefined(PredefinedName::RuntimePanic);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]    = predefined(PredefinedName::RuntimeSafetyPanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]             = predefined(PredefinedName::RuntimeAs);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]             = predefined(PredefinedName::RuntimeIs);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]       = predefined(PredefinedName::RuntimeTlsAlloc);

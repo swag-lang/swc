@@ -19,6 +19,7 @@ public:
     {
         Exit,
         Panic,
+        SafetyPanic,
         As,
         Is,
         TlsAlloc,
@@ -115,6 +116,7 @@ public:
         BuildCfg,
         RuntimeExit,
         RuntimePanic,
+        RuntimeSafetyPanic,
         RuntimeAs,
         RuntimeIs,
         RuntimeStringCmp,

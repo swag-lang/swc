@@ -785,15 +785,6 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
-    constexpr std::string_view K_SAFETY_BOUND_CHECK_MESSAGE = "index is out of bounds";
-
-    enum class RuntimeExceptionKind : uint64_t
-    {
-        Panic   = 0,
-        Error   = 1,
-        Warning = 2,
-        Assert  = 3,
-    };
 
     std::string_view runtimeStringView(const Runtime::String& value)
     {
@@ -851,45 +842,44 @@ namespace
         uint64_t                           kindRaw = 0;
         decodeCompilerDiagnosticException(location, message, kindRaw);
 
-        const auto kind = static_cast<RuntimeExceptionKind>(kindRaw);
+        const auto kind = static_cast<Runtime::ExceptionKind>(kindRaw);
 
         DiagnosticId       diagId;
         DiagnosticSeverity severity;
-        bool               useRuntimeMessage = true;
         switch (kind)
         {
-            case RuntimeExceptionKind::Panic:
+            case Runtime::ExceptionKind::Panic:
                 diagId             = DiagnosticId::sema_err_compiler_panic;
                 severity           = DiagnosticSeverity::Error;
                 *outErrorKind      = JITCallErrorKind::HardwareException;
                 outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
                 break;
-            case RuntimeExceptionKind::Error:
+            case Runtime::ExceptionKind::Error:
                 diagId             = DiagnosticId::sema_err_compiler_error;
                 severity           = DiagnosticSeverity::Error;
                 *outErrorKind      = JITCallErrorKind::HardwareException;
                 outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
                 break;
-            case RuntimeExceptionKind::Warning:
+            case Runtime::ExceptionKind::Warning:
                 diagId             = DiagnosticId::sema_warn_compiler_warning;
                 severity           = DiagnosticSeverity::Warning;
                 *outErrorKind      = JITCallErrorKind::None;
                 outExceptionAction = SWC_EXCEPTION_CONTINUE_EXECUTION;
                 break;
-            case RuntimeExceptionKind::Assert:
+            case Runtime::ExceptionKind::Assert:
                 diagId             = DiagnosticId::sema_err_assert_failed;
+                severity           = DiagnosticSeverity::Error;
+                *outErrorKind      = JITCallErrorKind::HardwareException;
+                outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
+                break;
+            case Runtime::ExceptionKind::Safety:
+                diagId             = DiagnosticId::safety_err_runtime;
                 severity           = DiagnosticSeverity::Error;
                 *outErrorKind      = JITCallErrorKind::HardwareException;
                 outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
                 break;
             default:
                 SWC_UNREACHABLE();
-        }
-
-        if (kind == RuntimeExceptionKind::Panic && message == K_SAFETY_BOUND_CHECK_MESSAGE)
-        {
-            diagId            = DiagnosticId::safety_err_bound_check;
-            useRuntimeMessage = false;
         }
 
         SourceCodeRange range;
@@ -910,14 +900,14 @@ namespace
             diag.last().addSpan(range, "", severity);
 
         Utf8 diagMessage = message;
-        if (diagMessage.empty() && kind == RuntimeExceptionKind::Assert)
+        if (diagMessage.empty() && kind == Runtime::ExceptionKind::Assert)
         {
             const std::string_view assertCondition = extractAssertConditionText(range);
             if (!assertCondition.empty())
                 diagMessage = Utf8(assertCondition);
         }
 
-        if (useRuntimeMessage && !diagMessage.empty())
+        if (!diagMessage.empty())
             diag.addArgument(Diagnostic::ARG_BECAUSE, diagMessage);
 
         diag.report(ctx);

@@ -39,7 +39,7 @@ func boundCheckEnabled()->bool
         var values: [2] s32
         values[0] = 1
         values[1] = 2
-        return values[2] // swc-expected-error {{safety_err_bound_check}}
+        return values[2] // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run arrayBoundCheck()
@@ -55,7 +55,7 @@ func boundCheckEnabled()->bool
         values[0] = 1
         values[1] = 2
         var slice: [..] s32 = values
-        return slice[2] // swc-expected-error {{safety_err_bound_check}}
+        return slice[2] // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run sliceBoundCheck()
@@ -68,7 +68,7 @@ func boundCheckEnabled()->bool
     func stringBoundCheck()->u8
     {
         var text: string = "ab"
-        return text[2] // swc-expected-error {{safety_err_bound_check}}
+        return text[2] // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run stringBoundCheck()
@@ -85,7 +85,7 @@ func boundCheckEnabled()->bool
         values[0, 1] = 2
         values[1, 0] = 3
         values[1, 1] = 4
-        return values[1, 2] // swc-expected-error {{safety_err_bound_check}}
+        return values[1, 2] // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run multiArrayBoundCheck()

@@ -5,6 +5,7 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaSafety.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -58,12 +59,12 @@ struct CodeGenNodePayload
 
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {
-        runtimeSafetyMask |= Runtime::safetyMask(what);
+        runtimeSafetyMask |= SemaSafety::mask(what);
     }
 
     bool hasRuntimeSafety(Runtime::SafetyWhat what) const
     {
-        return Runtime::hasSafetyMask(runtimeSafetyMask, what);
+        return SemaSafety::hasMask(runtimeSafetyMask, what);
     }
 };
 

@@ -348,20 +348,6 @@ namespace Runtime
         All         = 0xFFFF,
     };
 
-    constexpr uint16_t safetyMask(const SafetyWhat what) noexcept
-    {
-        return static_cast<uint16_t>(what);
-    }
-
-    constexpr bool hasSafetyMask(const uint16_t mask, const SafetyWhat what) noexcept
-    {
-        const uint16_t requestedMask = safetyMask(what);
-        if (!requestedMask)
-            return true;
-
-        return (mask & requestedMask) == requestedMask;
-    }
-
     struct BuildCfgBackend
     {
         bool     optimize;

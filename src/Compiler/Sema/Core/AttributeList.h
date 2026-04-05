@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Helpers/SemaSafety.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -85,12 +86,12 @@ struct AttributeList
 
     void addRuntimeSafetyOverride(Runtime::SafetyWhat what, bool value)
     {
-        runtimeSafetyOverrides.push_back({.whatMask = Runtime::safetyMask(what), .value = value});
+        runtimeSafetyOverrides.push_back({.whatMask = SemaSafety::mask(what), .value = value});
     }
 
     uint16_t effectiveRuntimeSafetyMask(Runtime::SafetyWhat buildCfgMask) const
     {
-        uint16_t result = Runtime::safetyMask(buildCfgMask);
+        uint16_t result = SemaSafety::mask(buildCfgMask);
         for (const auto& overrideValue : runtimeSafetyOverrides)
         {
             if (overrideValue.value)
@@ -105,7 +106,7 @@ struct AttributeList
     bool hasRuntimeSafety(Runtime::SafetyWhat buildCfgMask, Runtime::SafetyWhat what) const
     {
         const uint16_t effectiveMask = effectiveRuntimeSafetyMask(buildCfgMask);
-        return Runtime::hasSafetyMask(effectiveMask, what);
+        return SemaSafety::hasMask(effectiveMask, what);
     }
 
     void setBackendOptimize(bool value)

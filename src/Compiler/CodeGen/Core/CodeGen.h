@@ -102,10 +102,10 @@ struct CodeGenDeferredAction
         ImplicitDrop,
     };
 
-    Kind             kind         = Kind::DeferStmt;
-    AstNodeRef       deferStmtRef = AstNodeRef::invalid();
-    AstNodeRef       bodyRef      = AstNodeRef::invalid();
-    AstModifierFlags modifierFlags;
+    Kind                  kind         = Kind::DeferStmt;
+    AstNodeRef            deferStmtRef = AstNodeRef::invalid();
+    AstNodeRef            bodyRef      = AstNodeRef::invalid();
+    AstModifierFlags      modifierFlags;
     const SymbolVariable* variable          = nullptr;
     SymbolFunction*       lifecycleFunction = nullptr;
     uint32_t              lifecycleSizeOf   = 0;

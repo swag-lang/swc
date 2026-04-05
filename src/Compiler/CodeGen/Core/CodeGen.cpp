@@ -562,8 +562,8 @@ Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroR
     preparedArg.isAddressed = false;
     preparedArg.numBits     = 64;
 
-    const CallConvKind             callConvKind = calledFunction.callConvKind();
-    const ABICall::PreparedCall    preparedCall = ABICall::prepareArgs(builder(), callConvKind, std::span{&preparedArg, 1});
+    const CallConvKind          callConvKind = calledFunction.callConvKind();
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder(), callConvKind, std::span{&preparedArg, 1});
     if (calledFunction.isForeign())
         ABICall::callExtern(builder(), callConvKind, &calledFunction, preparedCall);
     else
@@ -649,13 +649,13 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
     if (deferScopes_.empty())
         return;
 
-    auto& action              = deferScopes_.back().actions.emplace_back();
-    action.kind               = CodeGenDeferredAction::Kind::ImplicitDrop;
-    action.variable           = &symVar;
-    action.lifecycleFunction  = dropFunction;
-    action.lifecycleSizeOf    = sizeOf;
-    action.lifecycleCount     = count;
-    action.modifierFlags      = AstModifierFlagsE::Zero;
+    auto& action             = deferScopes_.back().actions.emplace_back();
+    action.kind              = CodeGenDeferredAction::Kind::ImplicitDrop;
+    action.variable          = &symVar;
+    action.lifecycleFunction = dropFunction;
+    action.lifecycleSizeOf   = sizeOf;
+    action.lifecycleCount    = count;
+    action.modifierFlags     = AstModifierFlagsE::Zero;
 }
 
 void CodeGen::registerImplicitParameterDrops()

@@ -461,14 +461,14 @@ namespace
         return Result::Continue;
     }
 
-    Result emitAssignStructLifecycle(CodeGen&              codeGen,
-                                     AstNodeRef            leftRef,
+    Result emitAssignStructLifecycle(CodeGen&                  codeGen,
+                                     AstNodeRef                leftRef,
                                      const CodeGenNodePayload& originalRightPayload,
-                                     TypeRef               rightTypeRef,
-                                     TypeRef               originalRightTypeRef,
-                                     TokenId               assignOp,
-                                     AstModifierFlags      modifierFlags,
-                                     AstNodeRef            rightRef)
+                                     TypeRef                   rightTypeRef,
+                                     TypeRef                   originalRightTypeRef,
+                                     TokenId                   assignOp,
+                                     AstModifierFlags          modifierFlags,
+                                     AstNodeRef                rightRef)
     {
         const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp);
         if (assignOp != TokenId::SymEqual)
@@ -480,14 +480,14 @@ namespace
         if (!targetType.isStruct())
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
 
-        const auto&      targetStruct      = targetType.payloadSymStruct();
-        const bool       isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw});
-        const bool       isMoveRaw         = modifierFlags.has(AstModifierFlagsE::MoveRaw);
-        const bool       skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop);
-        SymbolFunction*  targetDrop        = skipTargetDrop ? nullptr : const_cast<SymbolFunction*>(targetStruct.opDrop());
-        SymbolFunction*  postLifecycle     = isMove ? const_cast<SymbolFunction*>(targetStruct.opPostMove()) : const_cast<SymbolFunction*>(targetStruct.opPostCopy());
-        SymbolFunction*  sourceDrop        = nullptr;
-        const bool       canResetSource    = isMove && !isMoveRaw && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
+        const auto&     targetStruct   = targetType.payloadSymStruct();
+        const bool      isMove         = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw});
+        const bool      isMoveRaw      = modifierFlags.has(AstModifierFlagsE::MoveRaw);
+        const bool      skipTargetDrop = modifierFlags.has(AstModifierFlagsE::NoDrop);
+        SymbolFunction* targetDrop     = skipTargetDrop ? nullptr : const_cast<SymbolFunction*>(targetStruct.opDrop());
+        SymbolFunction* postLifecycle  = isMove ? const_cast<SymbolFunction*>(targetStruct.opPostMove()) : const_cast<SymbolFunction*>(targetStruct.opPostCopy());
+        SymbolFunction* sourceDrop     = nullptr;
+        const bool      canResetSource = isMove && !isMoveRaw && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
         if (canResetSource)
         {
             uint32_t sourceSizeOf = 0;
@@ -697,13 +697,13 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
     }
 
-    const Token&       tok          = codeGen.token(codeRef());
-    CodeGenNodePayload rightPayload = codeGen.payload(nodeRightRef);
-    const SemaNodeView rightView    = codeGen.viewType(nodeRightRef);
+    const Token&       tok                  = codeGen.token(codeRef());
+    CodeGenNodePayload rightPayload         = codeGen.payload(nodeRightRef);
+    const SemaNodeView rightView            = codeGen.viewType(nodeRightRef);
     const TypeRef      originalRightTypeRef = rightView.typeRef();
     TypeRef            rightTypeRef         = originalRightTypeRef;
-    rightPayload                    = normalizeMoveAssignPayload(codeGen, rightPayload, rightTypeRef, modifierFlags);
-    const AstNodeRef leftRef        = codeGen.viewZero(nodeLeftRef).nodeRef();
+    rightPayload                            = normalizeMoveAssignPayload(codeGen, rightPayload, rightTypeRef, modifierFlags);
+    const AstNodeRef leftRef                = codeGen.viewZero(nodeLeftRef).nodeRef();
 
     if (leftRef.isValid() && codeGen.node(leftRef).is(AstNodeId::AssignList))
     {

@@ -420,8 +420,8 @@
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Relational.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Safety.cpp">
-      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenSafety.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
@@ -1022,8 +1022,8 @@
     <ClInclude Include="src\Backend\\Micro\MicroReg.h">
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\CodeGen\Ast\CodeGen.Safety.h">
-      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenSafety.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>

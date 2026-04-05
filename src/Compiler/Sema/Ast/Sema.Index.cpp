@@ -22,6 +22,49 @@ namespace
     Result          completeIndexRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     SymbolVariable& registerUniqueIndexRuntimeStorageSymbol(Sema& sema, const AstNode& node);
 
+    CodeGenNodePayload& ensureIndexCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    bool needsIndexBoundCheck(const TypeInfo& indexedType)
+    {
+        return indexedType.isArray() ||
+               indexedType.isSlice() ||
+               indexedType.isString() ||
+               indexedType.isVariadic() ||
+               indexedType.isTypedVariadic();
+    }
+
+    Result setupIndexBoundCheck(Sema& sema, AstNodeRef nodeRef, const TypeInfo& indexedType, const SourceCodeRef& codeRef)
+    {
+        if (!needsIndexBoundCheck(indexedType))
+            return Result::Continue;
+
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::BoundCheck))
+            return Result::Continue;
+
+        auto& payload = ensureIndexCodeGenPayload(sema, nodeRef);
+        payload.addRuntimeSafety(Runtime::SafetyWhat::BoundCheck);
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::Panic, panicFn, codeRef));
+        SWC_ASSERT(panicFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        payload.runtimeFunctionSymbol = panicFn;
+        return Result::Continue;
+    }
+
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
         TypeRef indexTypeRef = nodeArgView.typeRef();
@@ -346,19 +389,16 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         sema.setIsLValue(*this);
     }
 
+    SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), *nodeExprView.type(), codeRef()));
+
     const TypeRef runtimeStorageTypeRef = indexRuntimeStorageTypeRef(sema, nodeExprView, nodeExprRef);
     if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
     {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CodeGenNodePayload>();
-            sema.setCodeGenPayload(sema.curNodeRef(), payload);
-        }
+        auto& payload = ensureIndexCodeGenPayload(sema, sema.curNodeRef());
 
         if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
         {
-            payload->runtimeStorageSym = boundStorage;
+            payload.runtimeStorageSym = boundStorage;
         }
         else
         {
@@ -367,7 +407,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
             storageSym.setDeclared(sema.ctx());
             SWC_RESULT(Match::ghosting(sema, storageSym));
             SWC_RESULT(completeIndexRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
-            payload->runtimeStorageSym = &storageSym;
+            payload.runtimeStorageSym = &storageSym;
         }
     }
 
@@ -486,6 +526,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
     }
 
     sema.setIsValue(*this);
+    SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), *nodeExprView.type(), codeRef()));
     return Result::Continue;
 }
 

@@ -785,6 +785,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
+    constexpr std::string_view K_SAFETY_BOUND_CHECK_MESSAGE = "index is out of bounds";
 
     enum class RuntimeExceptionKind : uint64_t
     {
@@ -854,6 +855,7 @@ namespace
 
         DiagnosticId       diagId;
         DiagnosticSeverity severity;
+        bool               useRuntimeMessage = true;
         switch (kind)
         {
             case RuntimeExceptionKind::Panic:
@@ -884,6 +886,12 @@ namespace
                 SWC_UNREACHABLE();
         }
 
+        if (kind == RuntimeExceptionKind::Panic && message == K_SAFETY_BOUND_CHECK_MESSAGE)
+        {
+            diagId            = DiagnosticId::safety_err_bound_check;
+            useRuntimeMessage = false;
+        }
+
         SourceCodeRange range;
         FileRef         fileRef = FileRef::invalid();
         if (location)
@@ -909,7 +917,7 @@ namespace
                 diagMessage = Utf8(assertCondition);
         }
 
-        if (!diagMessage.empty())
+        if (useRuntimeMessage && !diagMessage.empty())
             diag.addArgument(Diagnostic::ARG_BECAUSE, diagMessage);
 
         diag.report(ctx);

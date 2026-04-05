@@ -199,6 +199,73 @@ namespace
         return Result::Continue;
     }
 
+    const ConstantValue& unwrapAttributeConstant(Sema& sema, const ConstantValue& value)
+    {
+        if (!value.isEnumValue())
+            return value;
+        return sema.cstMgr().get(value.getEnumValue());
+    }
+
+    Result collectResolvedConstantValue(Sema& sema, const ResolvedCallArgument& arg, const ConstantValue*& outValue)
+    {
+        outValue = nullptr;
+        if (arg.argRef.isValid())
+        {
+            SWC_RESULT(SemaCheck::isConstant(sema, arg.argRef));
+            const SemaNodeView argView = sema.viewConstant(arg.argRef);
+            SWC_ASSERT(argView.cst() != nullptr);
+            outValue = &unwrapAttributeConstant(sema, *argView.cst());
+            return Result::Continue;
+        }
+
+        if (!arg.defaultCstRef.isValid())
+            return Result::Continue;
+
+        outValue = &unwrapAttributeConstant(sema, sema.cstMgr().get(arg.defaultCstRef));
+        return Result::Continue;
+    }
+
+    Result collectResolvedBoolValue(Sema& sema, const ResolvedCallArgument& arg, bool& outValue)
+    {
+        const ConstantValue* value = nullptr;
+        SWC_RESULT(collectResolvedConstantValue(sema, arg, value));
+        SWC_ASSERT(value != nullptr);
+        SWC_ASSERT(value->isBool());
+        outValue = value->getBool();
+        return Result::Continue;
+    }
+
+    Result collectResolvedEnumMaskValue(Sema& sema, const ResolvedCallArgument& arg, uint64_t& outValue)
+    {
+        const ConstantValue* value = nullptr;
+        SWC_RESULT(collectResolvedConstantValue(sema, arg, value));
+        SWC_ASSERT(value != nullptr);
+        SWC_ASSERT(value->isInt());
+        SWC_ASSERT(value->getInt().fits64());
+        outValue = static_cast<uint64_t>(value->getInt().asI64());
+        return Result::Continue;
+    }
+
+    Result collectSafetyOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
+    {
+        SWC_ASSERT(args.size() >= 3);
+
+        uint64_t contextValue = 0;
+        uint64_t whatValue    = 0;
+        bool     enabled      = false;
+        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], contextValue));
+        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], whatValue));
+        SWC_RESULT(collectResolvedBoolValue(sema, args[2], enabled));
+
+        constexpr uint64_t K_SAFETY_CONTEXT_BYTECODE = 1;
+        constexpr uint64_t K_SAFETY_CONTEXT_ALL      = 3;
+        if (contextValue != K_SAFETY_CONTEXT_BYTECODE && contextValue != K_SAFETY_CONTEXT_ALL)
+            return Result::Continue;
+
+        outAttributes.addRuntimeSafetyOverride(static_cast<Runtime::SafetyWhat>(whatValue), enabled);
+        return Result::Continue;
+    }
+
     Result collectForeignStringValue(Sema& sema, Utf8& outValue, const ResolvedCallArgument& arg)
     {
         outValue.clear();
@@ -243,14 +310,17 @@ namespace
         if (!attrSym.inSwagNamespace(sema.ctx()))
             return Result::Continue;
 
-        const IdentifierManager& idMgr = sema.idMgr();
-        const IdentifierRef      idRef = attrSym.idRef();
+        const IdentifierManager& idMgr      = sema.idMgr();
+        const IdentifierRef      idRef      = attrSym.idRef();
+        const IdentifierRef      safetyIdRef = sema.idMgr().addIdentifier("Safety");
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
             return collectPrintMicroOptions(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintAst))
             return collectPrintAstOptions(sema, args, outAttributes);
+        if (idRef == safetyIdRef)
+            return collectSafetyOptions(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))
             return collectForeignOptions(sema, resolvedArgs, outAttributes);
         return Result::Continue;

@@ -27,7 +27,7 @@ exit /b 0
 :run_cfg
 set "BUILD_CFG=%~1"
 
-for %%S in (lexer parser errors\lexer errors\parser sema errors\sema jit) do (
+for %%S in (lexer parser errors\lexer errors\parser sema errors\sema jit safety) do (
     set "STAGE_ARGS="
     if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
     if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
@@ -36,6 +36,7 @@ for %%S in (lexer parser errors\lexer errors\parser sema errors\sema jit) do (
     if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
     if /I "%%S"=="errors\sema" set "STAGE_ARGS=--sema-only"
     if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
+    if /I "%%S"=="safety" set "STAGE_ARGS=--no-output"
     swc test -d "%ROOT%\bin\tests\%%S" --build-cfg !BUILD_CFG! !STAGE_ARGS! !EXTRA_ARGS!
     if errorlevel 1 exit /b 1
 )

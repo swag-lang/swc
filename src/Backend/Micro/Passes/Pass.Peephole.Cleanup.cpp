@@ -301,6 +301,22 @@ namespace
         return false;
     }
 
+    bool isZeroTestTrueCond(const MicroCond cond)
+    {
+        return cond == MicroCond::Equal || cond == MicroCond::Zero;
+    }
+
+    bool isZeroTestFalseCond(const MicroCond cond)
+    {
+        return cond == MicroCond::NotEqual || cond == MicroCond::NotZero;
+    }
+
+    bool hasSameZeroTestPolarity(const MicroCond lhs, const MicroCond rhs)
+    {
+        return (isZeroTestTrueCond(lhs) && isZeroTestTrueCond(rhs)) ||
+               (isZeroTestFalseCond(lhs) && isZeroTestFalseCond(rhs));
+    }
+
     bool foldSetCondCompareZeroIntoDirectJump(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
@@ -318,6 +334,20 @@ namespace
         MicroInstrRef setCondRef  = MicroInstrRef::invalid();
         if (!tryResolveOriginalSetCond(setCondCond, setCondRef, context, cmpRef, cmpOps[0].reg))
             return false;
+
+        // Once the trailing bool compare is removed, the jump will read whatever flags are still live.
+        // Only fold when no later instruction has overwritten the flags produced for the original setcc.
+        auto setCondIt = MicroStorage::Iterator{context.instructions, setCondRef};
+        if (!setCondRef.isValid() || setCondIt == cursor.endIt)
+            return false;
+
+        ++setCondIt;
+        for (; setCondIt != cursor.curIt; ++setCondIt)
+        {
+            const MicroInstr& scanInst = *setCondIt;
+            if (MicroInstrInfo::definesCpuFlags(scanInst))
+                return false;
+        }
 
         MicroStorage::Iterator jumpIt = cursor.nextIt;
         for (; jumpIt != endIt; ++jumpIt)
@@ -414,11 +444,71 @@ namespace
                 return false;
         }
 
+        MicroStorage::Iterator jumpIt      = endIt;
+        auto                   newJumpCond = MicroCond::Unconditional;
+        for (auto scanIt = std::next(nextIt); scanIt != endIt; ++scanIt)
+        {
+            const MicroInstr&        scanInst = *scanIt;
+            const MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
+            if (!scanOps)
+                return false;
+
+            const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
+            if (MicroInstrInfo::usesCpuFlags(scanInst))
+            {
+                if (scanInst.op != MicroInstrOpcode::JumpCond)
+                    return false;
+
+                if (scanOps[0].cpuCond != MicroCond::Equal &&
+                    scanOps[0].cpuCond != MicroCond::Zero &&
+                    scanOps[0].cpuCond != MicroCond::NotEqual &&
+                    scanOps[0].cpuCond != MicroCond::NotZero)
+                {
+                    return false;
+                }
+
+                newJumpCond = foldedCond;
+                if (!hasSameZeroTestPolarity(scanOps[0].cpuCond, nextSetCondOps[1].cpuCond))
+                {
+                    if (!MicroPassHelpers::tryInvertCondition(newJumpCond, newJumpCond))
+                        return false;
+                }
+
+                jumpIt = scanIt;
+                break;
+            }
+
+            if (MicroInstrInfo::definesCpuFlags(scanInst))
+                break;
+            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                break;
+        }
+
         const MicroCond originalNextSetCond = nextSetCondOps[1].cpuCond;
         nextSetCondOps[1].cpuCond           = foldedCond;
-        if (MicroPassHelpers::violatesEncoderConformance(context, nextSetCondInst, nextSetCondOps))
+        auto               originalJumpCond = MicroCond::Unconditional;
+        MicroInstr*        jumpMutable      = nullptr;
+        MicroInstrOperand* jumpOps          = nullptr;
+        if (jumpIt != endIt)
+        {
+            jumpMutable = context.instructions->ptr(jumpIt.current);
+            jumpOps     = jumpMutable ? jumpMutable->ops(*context.operands) : nullptr;
+            if (!jumpMutable || !jumpOps)
+            {
+                nextSetCondOps[1].cpuCond = originalNextSetCond;
+                return false;
+            }
+
+            originalJumpCond   = jumpOps[0].cpuCond;
+            jumpOps[0].cpuCond = newJumpCond;
+        }
+
+        if (MicroPassHelpers::violatesEncoderConformance(context, nextSetCondInst, nextSetCondOps) ||
+            (jumpMutable && MicroPassHelpers::violatesEncoderConformance(context, *jumpMutable, jumpOps)))
         {
             nextSetCondOps[1].cpuCond = originalNextSetCond;
+            if (jumpOps)
+                jumpOps[0].cpuCond = originalJumpCond;
             return false;
         }
 

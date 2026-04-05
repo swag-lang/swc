@@ -18,6 +18,7 @@ public:
     enum class RuntimeFunctionKind : uint8_t
     {
         Exit,
+        Panic,
         As,
         Is,
         TlsAlloc,
@@ -113,6 +114,7 @@ public:
         Gvtd,
         BuildCfg,
         RuntimeExit,
+        RuntimePanic,
         RuntimeAs,
         RuntimeIs,
         RuntimeStringCmp,

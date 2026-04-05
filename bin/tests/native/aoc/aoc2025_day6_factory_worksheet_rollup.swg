@@ -141,7 +141,7 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
             column += 1
         }
 
-        let problemValue = evaluateProblem(sheet, firstColumn, column)
+        let problemValue = evaluateProblem(sheet, firstColumn, column - 1)
 
         result.problemCount += 1
         result.grandTotal += problemValue.value

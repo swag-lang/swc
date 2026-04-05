@@ -339,8 +339,10 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     CodeGenNodePayload* nodePayload = safePayload(nodeRef);
     if (!nodePayload)
     {
-        nodePayload                    = compiler().allocate<CodeGenNodePayload>();
-        nodePayload->runtimeStorageSym = nullptr;
+        nodePayload                         = compiler().allocate<CodeGenNodePayload>();
+        nodePayload->runtimeStorageSym      = nullptr;
+        nodePayload->runtimeFunctionSymbol  = nullptr;
+        nodePayload->runtimeSafetyMask      = 0;
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 

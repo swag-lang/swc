@@ -6,7 +6,7 @@ set "NATIVE_OUTPUT=%ROOT%\.output"
 set "EXE_OUTPUT=%NATIVE_OUTPUT%\exe"
 set "EXE_WORKDIR=%NATIVE_OUTPUT%\work\exe"
 
-for %%S in (lexer parser errors\lexer errors\parser sema errors\sema jit native) do (
+for %%S in (lexer parser errors\lexer errors\parser sema errors\sema jit safety native) do (
     set "STAGE_ARGS="
     if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
     if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
@@ -15,6 +15,7 @@ for %%S in (lexer parser errors\lexer errors\parser sema errors\sema jit native)
     if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
     if /I "%%S"=="errors\sema" set "STAGE_ARGS=--sema-only"
     if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
+    if /I "%%S"=="safety" set "STAGE_ARGS=--no-output"
     swc test --artifact-kind exe -d "%ROOT%\bin\tests\%%S" --out-dir "%EXE_OUTPUT%" --work-dir "%EXE_WORKDIR%" !STAGE_ARGS! %*
     if errorlevel 1 exit /b 1
 )

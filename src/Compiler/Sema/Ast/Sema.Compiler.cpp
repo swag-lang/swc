@@ -881,6 +881,29 @@ namespace
         return Result::Continue;
     }
 
+    Result semaCompilerSafety(Sema& sema, const AstCompilerCallOne& node)
+    {
+        const TaskContext& ctx      = sema.ctx();
+        const AstNodeRef   childRef = node.nodeArgRef;
+        SWC_RESULT(SemaCheck::isConstant(sema, childRef));
+
+        const SemaNodeView view = sema.viewConstant(childRef);
+        SWC_ASSERT(view.cst() != nullptr);
+
+        const ConstantValue* constant = view.cst();
+        if (constant->isEnumValue())
+            constant = &sema.cstMgr().get(constant->getEnumValue());
+
+        SWC_ASSERT(constant->isInt());
+        SWC_ASSERT(constant->getInt().fits64());
+
+        const auto requestedSafety = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
+        const bool enabled = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, requestedSafety);
+        const ConstantValue value = ConstantValue::makeBool(ctx, enabled);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+        return Result::Continue;
+    }
+
     Result semaCompilerLocation(Sema& sema, const AstCompilerCallOne& node)
     {
         TypeRef typeRef = TypeRef::invalid();
@@ -969,6 +992,8 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerDefined(sema, *this);
         case TokenId::CompilerIsConstExpr:
             return semaCompilerIsConstExpr(sema, *this);
+        case TokenId::CompilerSafety:
+            return semaCompilerSafety(sema, *this);
         case TokenId::CompilerLocation:
             return semaCompilerLocation(sema, *this);
         case TokenId::CompilerForeignLib:
@@ -980,7 +1005,6 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerHasTag:
         case TokenId::CompilerRunes:
-        case TokenId::CompilerSafety:
         case TokenId::CompilerLoad:
             // TODO
             SWC_INTERNAL_ERROR();

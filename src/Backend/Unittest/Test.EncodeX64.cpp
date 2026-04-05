@@ -440,6 +440,32 @@ SWC_TEST_BEGIN(EncodeX64_UnwindFromMicro)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(EncodeX64_UnwindFramePointerSetupAfterStackShape)
+{
+    constexpr std::array<uint8_t, 12> expected = {
+        0x01,
+        0x0A,
+        0x04,
+        0x05,
+        0x0A,
+        0x32,
+        0x06,
+        0xF0,
+        0x04,
+        0x03,
+        0x01,
+        0x50,
+    };
+
+    SWC_RESULT(runUnwindCase(ctx, [](MicroBuilder& b) {
+        b.emitPush(RBP);
+        b.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+        b.emitPush(R15);
+        b.emitOpBinaryRegImm(RSP, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
+        b.emitRet(); }, expected));
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(EncodeX64_UnwindStopsBeforeStackStoreBody)
 {
     constexpr std::array<uint8_t, 12> expected = {
@@ -474,9 +500,9 @@ SWC_TEST_BEGIN(EncodeX64_UnwindUpdatesFramePointerWhenAssignedTwice)
         0x03,
         0x05,
         0x08,
-        0x03,
-        0x05,
         0x32,
+        0x04,
+        0x03,
         0x01,
         0x50,
         0x00,

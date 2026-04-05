@@ -2,11 +2,13 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/JIT/JITExecManager.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeLinkerCoff.h"
 #include "Backend/Runtime.h"
+#include "Main/Command/Command.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -14,6 +16,7 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
+#include "Main/Stats.h"
 #include "Support/Os/Os.h"
 #include "Support/Unittest/Unittest.h"
 
@@ -408,6 +411,151 @@ SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
     }
 
     if (!foundExitRelocation)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
+{
+    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_native_compiler_run_test_{:08x}.swg", uniqueId);
+
+    {
+        std::ofstream output(sourcePath, std::ios::binary);
+        output << "#global fileprivate\n";
+        output << "var GValue: s32 = 0\n";
+        output << "#test\n";
+        output << "{\n";
+        output << "    const a = 666\n";
+        output << "    let b = #run a\n";
+        output << "    GValue = b\n";
+        output << "    @assert(GValue == 666)\n";
+        output << "}\n";
+    }
+
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Test;
+    cmdLine.buildCfg        = "debug";
+    cmdLine.backendKindName = "exe";
+    cmdLine.name            = "compiler_run_expr_test";
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    if (compiler.nativeTestFunctions().size() != 1)
+        return Result::Error;
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    SWC_RESULT(nativeBuilder.prepare());
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    TaskContext compilerCtx(compiler);
+    const SymbolVariable* globalVar = nullptr;
+    for (const SymbolVariable* symbol : nativeBuilder.regularGlobals)
+    {
+        if (!symbol)
+            continue;
+        if (symbol->name(compilerCtx) != "GValue")
+            continue;
+
+        globalVar = symbol;
+        break;
+    }
+
+    if (!globalVar || !globalVar->hasGlobalStorage())
+        return Result::Error;
+
+    const auto& nativeFunctions = compiler.nativeCodeSegment();
+    if (nativeFunctions.empty())
+        return Result::Error;
+
+    SWC_RESULT(SymbolFunction::jitBatch(compilerCtx, nativeFunctions));
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const SymbolFunction* const testFn = compiler.nativeTestFunctions().front();
+    if (!testFn)
+        return Result::Error;
+    if (!testFn->jitEntryAddress())
+        return Result::Error;
+
+    JITExecManager::Request request;
+    request.function     = testFn;
+    request.nodeRef      = testFn->declNodeRef();
+    request.codeRef      = testFn->decl() ? testFn->decl()->codeRef() : SourceCodeRef::invalid();
+    request.runImmediate = true;
+    SWC_RESULT(compiler.jitExecMgr().submit(compilerCtx, request));
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const auto* const globalValue = reinterpret_cast<const int32_t*>(compiler.dataSegmentAddress(globalVar->globalStorageKind(), globalVar->offset()));
+    if (!globalValue || *globalValue != 666)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_SilentSpecOpProbeDoesNotDropStructCopyTests)
+{
+    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_native_silent_spec_op_probe_{:08x}.swg", uniqueId);
+
+    {
+        std::ofstream output(sourcePath, std::ios::binary);
+        output << "struct Buffer\n";
+        output << "{\n";
+        output << "    value: u32\n";
+        output << "}\n";
+        output << "impl Buffer\n";
+        output << "{\n";
+        output << "    mtd opAffect(text: string)\n";
+        output << "    {\n";
+        output << "        .value = cast(u32) @countof(text)\n";
+        output << "    }\n";
+        output << "}\n";
+        output << "#test\n";
+        output << "{\n";
+        output << "    var value: Buffer\n";
+        output << "    value = \"abc\"\n";
+        output << "    @assert(value.value == 3)\n";
+        output << "}\n";
+        output << "#test\n";
+        output << "{\n";
+        output << "    var src: Buffer\n";
+        output << "    src = \"wxyz\"\n";
+        output << "    var dst: Buffer\n";
+        output << "    dst = src\n";
+        output << "    @assert(dst.value == 4)\n";
+        output << "}\n";
+    }
+
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Test;
+    cmdLine.buildCfg        = "debug";
+    cmdLine.backendKindName = "exe";
+    cmdLine.name            = "silent_spec_op_probe";
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    if (compiler.nativeTestFunctions().size() != 2)
+        return Result::Error;
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    SWC_RESULT(nativeBuilder.prepare());
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (nativeBuilder.testFunctions.size() != 2)
         return Result::Error;
 }
 SWC_TEST_END()

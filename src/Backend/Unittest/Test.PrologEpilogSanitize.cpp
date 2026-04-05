@@ -12,14 +12,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPrologEpilogSanitizePass(MicroBuilder& builder)
+    Result runPrologEpilogSanitizePass(MicroBuilder& builder, const bool forceFramePointer = false)
     {
         MicroPrologEpilogSanitizePass pass;
         MicroPassManager              passManager;
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Host;
+        passContext.callConvKind     = CallConvKind::Host;
+        passContext.forceFramePointer = forceFramePointer;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -112,11 +113,14 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
         return Result::Error;
 
     const MicroOperandStorage& operands = builder.operands();
+    const MicroInstr*          fpInst   = instructionAt(builder, 1);
     const MicroInstr*          subInst  = instructionAt(builder, 2);
     const MicroInstr*          addInst  = instructionAt(builder, 4);
-    if (!subInst || !addInst)
+    if (!subInst || !fpInst || !addInst)
         return Result::Error;
 
+    if (!isFramePointerSetup(*fpInst, fpInst->ops(operands), rbp, rsp))
+        return Result::Error;
     if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 48))
         return Result::Error;
     if (!isStackAdjust(*addInst, addInst->ops(operands), rsp, MicroOp::Add, 32))
@@ -144,12 +148,15 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
         return Result::Error;
 
     const MicroOperandStorage& operands       = builder.operands();
+    const MicroInstr*          fpInst         = instructionAt(builder, 1);
     const MicroInstr*          firstSubInst   = instructionAt(builder, 2);
     const MicroInstr*          secondSubInst  = instructionAt(builder, 4);
     const MicroInstr*          epilogueAddIns = instructionAt(builder, 5);
-    if (!firstSubInst || !secondSubInst || !epilogueAddIns)
+    if (!firstSubInst || !fpInst || !secondSubInst || !epilogueAddIns)
         return Result::Error;
 
+    if (!isFramePointerSetup(*fpInst, fpInst->ops(operands), rbp, rsp))
+        return Result::Error;
     if (!isStackAdjust(*firstSubInst, firstSubInst->ops(operands), rsp, MicroOp::Subtract, 16))
         return Result::Error;
     if (!isStackAdjust(*secondSubInst, secondSubInst->ops(operands), rsp, MicroOp::Subtract, 32))
@@ -222,9 +229,43 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryPr
 
     if (firstInst->op != MicroInstrOpcode::Push)
         return Result::Error;
-    if (!isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
+    if (!isFramePointerSetup(*secondInst, secondInst->ops(operands), rbp, rsp))
         return Result::Error;
-    if (!isFramePointerSetup(*thirdInst, thirdInst->ops(operands), rbp, rsp))
+    if (!isStackAdjust(*thirdInst, thirdInst->ops(operands), rsp, MicroOp::Subtract, 32))
+        return Result::Error;
+    if (fourthInst->op != MicroInstrOpcode::Ret)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReinsertsForcedFramePointerSetupWhenMissing)
+{
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rbp = MicroReg::intReg(5);
+    MicroBuilder       builder(ctx);
+
+    builder.emitPush(rbp);
+    builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPrologEpilogSanitizePass(builder, true));
+
+    if (builder.instructions().count() != 4)
+        return Result::Error;
+
+    const MicroOperandStorage& operands   = builder.operands();
+    const MicroInstr*          firstInst  = instructionAt(builder, 0);
+    const MicroInstr*          secondInst = instructionAt(builder, 1);
+    const MicroInstr*          thirdInst  = instructionAt(builder, 2);
+    const MicroInstr*          fourthInst = instructionAt(builder, 3);
+    if (!firstInst || !secondInst || !thirdInst || !fourthInst)
+        return Result::Error;
+
+    if (firstInst->op != MicroInstrOpcode::Push)
+        return Result::Error;
+    if (!isFramePointerSetup(*secondInst, secondInst->ops(operands), rbp, rsp))
+        return Result::Error;
+    if (!isStackAdjust(*thirdInst, thirdInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
     if (fourthInst->op != MicroInstrOpcode::Ret)
         return Result::Error;

@@ -157,24 +157,62 @@ namespace
         SWC_ASSERT(context.operands);
 
         std::vector<MicroInstrRef> framePointerSetupRefs;
+        MicroInstrRef              framePointerPushRef = MicroInstrRef::invalid();
+        MicroInstrRef              insertBeforeRef     = MicroInstrRef::invalid();
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
         {
             const MicroInstrOperand* ops = it->ops(*context.operands);
             if (!isPrologueInstruction(conv, *it, ops, conv.stackPointer))
                 break;
 
+            if (it->op == MicroInstrOpcode::Push &&
+                ops &&
+                it->numOperands >= 1 &&
+                ops[0].reg == conv.framePointer &&
+                framePointerPushRef.isInvalid())
+            {
+                framePointerPushRef = it.current;
+                auto nextIt         = it;
+                ++nextIt;
+                insertBeforeRef = nextIt.current;
+            }
+
             if (isFramePointerSetupInstruction(conv, *it, ops, conv.stackPointer))
                 framePointerSetupRefs.push_back(it.current);
         }
 
-        if (framePointerSetupRefs.size() < 2)
+        if (framePointerSetupRefs.empty())
+        {
+            if (!context.forceFramePointer || !conv.framePointer.isValid())
+                return false;
+            if (!insertBeforeRef.isValid())
+                return false;
+
+            MicroInstrOperand setFrameOps[3];
+            setFrameOps[0].reg    = conv.framePointer;
+            setFrameOps[1].reg    = conv.stackPointer;
+            setFrameOps[2].opBits = MicroOpBits::B64;
+            context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps, true);
+            return true;
+        }
+
+        if (!insertBeforeRef.isValid())
             return false;
 
-        // Keep the last frame-pointer setup and remove older ones from the entry prologue.
-        for (size_t i = framePointerSetupRefs.size() - 1; i > 0; --i)
-            context.instructions->erase(framePointerSetupRefs[i - 1]);
+        if (framePointerSetupRefs.size() == 1 && framePointerSetupRefs.front() == insertBeforeRef)
+            return false;
 
-        return true;
+        MicroInstrOperand setFrameOps[3];
+        setFrameOps[0].reg    = conv.framePointer;
+        setFrameOps[1].reg    = conv.stackPointer;
+        setFrameOps[2].opBits = MicroOpBits::B64;
+        context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps, true);
+
+        bool changed = true;
+        for (const MicroInstrRef ref : framePointerSetupRefs)
+            changed |= context.instructions->erase(ref);
+
+        return changed;
     }
 
     bool sanitizePrologueStackAdjustments(const MicroPassContext& context, const CallConv& conv)
@@ -246,6 +284,17 @@ namespace
 
             auto nextIt = it;
             ++nextIt;
+            if (nextIt == context.instructions->view().end())
+                return false;
+
+            while (nextIt != context.instructions->view().end())
+            {
+                const MicroInstrOperand* nextOps = nextIt->ops(*context.operands);
+                if (!isFramePointerSetupInstruction(conv, *nextIt, nextOps, conv.stackPointer))
+                    break;
+                ++nextIt;
+            }
+
             if (nextIt == context.instructions->view().end())
                 return false;
 

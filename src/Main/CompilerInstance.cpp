@@ -172,7 +172,13 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     setupRuntimeCompiler();
 }
 
-CompilerInstance::~CompilerInstance() = default;
+CompilerInstance::~CompilerInstance()
+{
+    // SymbolFunction instances are arena-allocated, so their JITMemory destructors do not reliably
+    // run during compiler teardown. Unregister prepared function tables before executable pages are
+    // released or stale Windows unwind entries can survive into the next compiler instance.
+    resetPreparedJitFunctions();
+}
 
 std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind, const uint32_t offset)
 {

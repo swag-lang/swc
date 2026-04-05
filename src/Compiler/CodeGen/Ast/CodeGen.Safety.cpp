@@ -37,11 +37,7 @@ namespace
         return payload;
     }
 
-    void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
-                                 CodeGen&                           codeGen,
-                                 const CallConv&                    callConv,
-                                 TypeRef                            argTypeRef,
-                                 MicroReg                           srcReg)
+    void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, TypeRef argTypeRef, MicroReg srcReg)
     {
         const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
 

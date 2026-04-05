@@ -248,6 +248,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Logical.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Relational.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Safety.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp"/>
@@ -463,6 +464,7 @@
         <ClInclude Include="src\Backend\\Encoder\X64Unwind.h"/>
         <ClInclude Include="src\Backend\\Encoder\X64Unwind.Windows.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroReg.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Ast\CodeGen.Safety.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>

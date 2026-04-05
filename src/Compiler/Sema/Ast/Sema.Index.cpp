@@ -35,7 +35,7 @@ namespace
 
     Result setupIndexBoundCheck(Sema& sema, AstNodeRef nodeRef, const TypeInfo& indexedType, const SourceCodeRef& codeRef)
     {
-        if (!indexedType.needsRuntimeIndexBoundCheck())
+        if (!indexedType.isIndexable())
             return Result::Continue;
 
         if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::BoundCheck))

@@ -30,9 +30,9 @@ struct CodeGenNodePayload
         Address,
     };
 
-    MicroReg    reg;
-    TypeRef     typeRef     = TypeRef::invalid();
-    StorageKind storageKind = StorageKind::Value;
+    MicroReg        reg;
+    TypeRef         typeRef               = TypeRef::invalid();
+    StorageKind     storageKind           = StorageKind::Value;
     SymbolVariable* runtimeStorageSym     = nullptr;
     SymbolFunction* runtimeFunctionSymbol = nullptr;
     uint16_t        runtimeSafetyMask     = 0;

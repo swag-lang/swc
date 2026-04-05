@@ -357,10 +357,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         return Result::SkipChildren;
 
     // Parser tags the callee expression when building a call: `.foo()`.
-    const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
-    const SemaNodeView  nodeRightView = sema.viewNode(nodeIdentRef);
-    const SourceCodeRef codeRef       = nodeRightView.node()->codeRef();
-    const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
+    const bool          allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
+    const SemaNodeView  nodeRightView    = sema.viewNode(nodeIdentRef);
+    const SourceCodeRef codeRef          = nodeRightView.node()->codeRef();
+    const IdentifierRef idRef            = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
     SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));
 
     SmallVector4<AutoMemberCandidate> candidates;

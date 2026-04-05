@@ -310,8 +310,8 @@ namespace
         if (!attrSym.inSwagNamespace(sema.ctx()))
             return Result::Continue;
 
-        const IdentifierManager& idMgr      = sema.idMgr();
-        const IdentifierRef      idRef      = attrSym.idRef();
+        const IdentifierManager& idMgr       = sema.idMgr();
+        const IdentifierRef      idRef       = attrSym.idRef();
         const IdentifierRef      safetyIdRef = sema.idMgr().addIdentifier("Safety");
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);

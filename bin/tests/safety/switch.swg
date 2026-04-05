@@ -37,7 +37,7 @@ func switchSafetyEnabled()->bool
     func completeScalarSwitchPanic(v: s32)->s32
     {
         #[Swag.Complete]
-        switch v // swc1-expected-error {{safety_err_runtime}}
+        switch v // swc-expected-error {{safety_err_runtime}}
         {
             case 1 to 3:
                 return 10

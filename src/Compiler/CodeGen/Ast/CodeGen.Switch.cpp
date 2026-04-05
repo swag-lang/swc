@@ -573,10 +573,10 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
     if (switchState->noMatchLabel.isValid())
     {
         builder.placeLabel(switchState->noMatchLabel);
-        const auto&         switchNode    = codeGen.node(codeGen.curNodeRef()).cast<AstSwitchStmt>();
-        const AstNodeRef    switchExprRef = switchNode.nodeExprRef;
+        const auto&          switchNode    = codeGen.node(codeGen.curNodeRef()).cast<AstSwitchStmt>();
+        const AstNodeRef     switchExprRef = switchNode.nodeExprRef;
         const SwitchPayload* semaPayload   = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
-        const Result        result        = CodeGenSafety::emitSwitchCheck(codeGen, codeGen.node(switchExprRef), semaPayload ? semaPayload->runtimePanicSymbol : nullptr);
+        const Result         result        = CodeGenSafety::emitSwitchCheck(codeGen, codeGen.node(switchExprRef), semaPayload ? semaPayload->runtimePanicSymbol : nullptr);
         if (result != Result::Continue)
             return result;
     }

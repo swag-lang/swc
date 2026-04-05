@@ -897,9 +897,9 @@ namespace
         SWC_ASSERT(constant->isInt());
         SWC_ASSERT(constant->getInt().fits64());
 
-        const auto requestedSafety = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
-        const bool enabled = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, requestedSafety);
-        const ConstantValue value = ConstantValue::makeBool(ctx, enabled);
+        const auto          requestedSafety = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
+        const bool          enabled         = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, requestedSafety);
+        const ConstantValue value           = ConstantValue::makeBool(ctx, enabled);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }

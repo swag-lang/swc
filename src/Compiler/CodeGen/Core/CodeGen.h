@@ -96,9 +96,20 @@ struct ScopedDebugNoStep final
 
 struct CodeGenDeferredAction
 {
+    enum class Kind : uint8_t
+    {
+        DeferStmt,
+        ImplicitDrop,
+    };
+
+    Kind             kind         = Kind::DeferStmt;
     AstNodeRef       deferStmtRef = AstNodeRef::invalid();
     AstNodeRef       bodyRef      = AstNodeRef::invalid();
     AstModifierFlags modifierFlags;
+    const SymbolVariable* variable          = nullptr;
+    SymbolFunction*       lifecycleFunction = nullptr;
+    uint32_t              lifecycleSizeOf   = 0;
+    uint32_t              lifecycleCount    = 0;
 };
 
 struct CodeGenDeferScope
@@ -169,6 +180,13 @@ private:
 class CodeGen
 {
 public:
+    enum class LifecycleKind : uint8_t
+    {
+        Drop,
+        PostCopy,
+        PostMove,
+    };
+
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
@@ -301,9 +319,14 @@ public:
     MicroReg                  offsetAddressReg(MicroReg baseReg, uint32_t offset);
     CodeGenNodePayload        resolveLocalStackPayload(const SymbolVariable& sym, bool cache = true);
     MicroReg                  runtimeStorageAddressReg(AstNodeRef nodeRef);
+    bool                      tryBuildLifecycleAction(TypeRef typeRef, LifecycleKind lifecycleKind, SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const;
+    Result                    emitLifecycleAction(SymbolFunction& calledFunction, MicroReg addressReg);
+    Result                    emitLifecycleAction(SymbolFunction& calledFunction, MicroReg addressReg, uint32_t sizeOf, uint32_t count);
     void                      pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
     Result                    popDeferScope();
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
+    void                      registerImplicitDrop(const SymbolVariable& symVar);
+    void                      registerImplicitParameterDrops();
     Result                    emitDeferredActionsForReturn();
     Result                    emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef);
     Result                    emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);

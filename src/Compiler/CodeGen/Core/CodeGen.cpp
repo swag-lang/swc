@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroReg.h"
@@ -50,6 +52,122 @@ namespace
         return codeGen.localStackBaseReg().isValid() && sym.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal);
     }
 
+    bool tryBuildLifecycleActionRec(const CodeGen&               codeGen,
+                                    TypeRef                      typeRef,
+                                    const CodeGen::LifecycleKind lifecycleKind,
+                                    SymbolFunction*&             outFunction,
+                                    uint32_t&                    outSizeOf,
+                                    uint32_t&                    outCount)
+    {
+        outFunction = nullptr;
+        outSizeOf   = 0;
+        outCount    = 0;
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& originalType = codeGen.typeMgr().get(typeRef);
+        const TypeRef   rawTypeRef   = originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid() && rawTypeRef != typeRef)
+            typeRef = rawTypeRef;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isArray())
+        {
+            uint64_t multiplier = 1;
+            for (const uint64_t dim : typeInfo.payloadArrayDims())
+                multiplier *= dim;
+            if (!multiplier)
+                return false;
+
+            SymbolFunction* elemFunction = nullptr;
+            uint32_t        elemSizeOf   = 0;
+            uint32_t        elemCount    = 0;
+            if (!tryBuildLifecycleActionRec(codeGen, typeInfo.payloadArrayElemTypeRef(), lifecycleKind, elemFunction, elemSizeOf, elemCount))
+                return false;
+
+            const uint64_t totalCount = multiplier * elemCount;
+            SWC_ASSERT(totalCount > 0);
+            SWC_ASSERT(totalCount <= std::numeric_limits<uint32_t>::max());
+
+            outFunction = elemFunction;
+            outSizeOf   = elemSizeOf;
+            outCount    = static_cast<uint32_t>(totalCount);
+            return true;
+        }
+
+        if (!typeInfo.isStruct())
+            return false;
+
+        SymbolFunction* lifecycleFunction = nullptr;
+        switch (lifecycleKind)
+        {
+            case CodeGen::LifecycleKind::Drop:
+                lifecycleFunction = typeInfo.payloadSymStruct().opDrop();
+                break;
+            case CodeGen::LifecycleKind::PostCopy:
+                lifecycleFunction = typeInfo.payloadSymStruct().opPostCopy();
+                break;
+            case CodeGen::LifecycleKind::PostMove:
+                lifecycleFunction = typeInfo.payloadSymStruct().opPostMove();
+                break;
+        }
+
+        if (!lifecycleFunction)
+            return false;
+
+        auto&          mutableCtx = const_cast<TaskContext&>(codeGen.ctx());
+        const uint64_t sizeOf     = typeInfo.sizeOf(mutableCtx);
+        SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
+
+        outFunction = lifecycleFunction;
+        outSizeOf   = static_cast<uint32_t>(sizeOf);
+        outCount    = 1;
+        return true;
+    }
+
+    bool functionHasImplicitDrops(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    {
+        SymbolFunction* dropFunction = nullptr;
+        uint32_t        sizeOf       = 0;
+        uint32_t        count        = 0;
+
+        for (const SymbolVariable* symVar : symbolFunc.parameters())
+        {
+            if (symVar && codeGen.tryBuildLifecycleAction(symVar->typeRef(), CodeGen::LifecycleKind::Drop, dropFunction, sizeOf, count))
+                return true;
+        }
+
+        for (const SymbolVariable* symVar : symbolFunc.localVariables())
+        {
+            if (symVar && codeGen.tryBuildLifecycleAction(symVar->typeRef(), CodeGen::LifecycleKind::Drop, dropFunction, sizeOf, count))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool resolveDeferredVariableAddress(CodeGen& codeGen, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
+    {
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid())
+        {
+            outPayload = codeGen.resolveLocalStackPayload(symVar, false);
+            return outPayload.isAddress();
+        }
+
+        if (const CodeGenNodePayload* variablePayload = codeGen.variablePayload(symVar))
+        {
+            outPayload = *variablePayload;
+            return outPayload.isAddress();
+        }
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
+            outPayload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), symVar);
+            return outPayload.isAddress();
+        }
+
+        return false;
+    }
 }
 
 void CodeGenFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
@@ -99,7 +217,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         deferredEmitDepth_                = 0;
         currentDeferredAddressGeneration_ = 0;
         nextDeferredAddressGeneration_    = 1;
-        hasDeferredStatements_            = containsNodeId(root, AstNodeId::DeferStmt);
+        hasDeferredStatements_            = containsNodeId(root, AstNodeId::DeferStmt) || functionHasImplicitDrops(*this, symbolFunc);
         clearGvtdScratchLayout();
         frames_.clear();
         frames_.emplace_back();
@@ -425,6 +543,57 @@ MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
     return storagePayload.reg;
 }
 
+bool CodeGen::tryBuildLifecycleAction(const TypeRef typeRef, const LifecycleKind lifecycleKind, SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const
+{
+    return tryBuildLifecycleActionRec(*this, typeRef, lifecycleKind, outFunction, outSizeOf, outCount);
+}
+
+Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroReg addressReg)
+{
+    SWC_ASSERT(addressReg.isValid());
+
+    function().addCallDependency(&calledFunction);
+
+    ABICall::PreparedArg preparedArg;
+    preparedArg.srcReg      = addressReg;
+    preparedArg.kind        = ABICall::PreparedArgKind::Direct;
+    preparedArg.isFloat     = false;
+    preparedArg.isSigned    = false;
+    preparedArg.isAddressed = false;
+    preparedArg.numBits     = 64;
+
+    const CallConvKind             callConvKind = calledFunction.callConvKind();
+    const ABICall::PreparedCall    preparedCall = ABICall::prepareArgs(builder(), callConvKind, std::span{&preparedArg, 1});
+    if (calledFunction.isForeign())
+        ABICall::callExtern(builder(), callConvKind, &calledFunction, preparedCall);
+    else
+        ABICall::callLocal(builder(), callConvKind, &calledFunction, preparedCall);
+
+    return Result::Continue;
+}
+
+Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroReg addressReg, const uint32_t sizeOf, const uint32_t count)
+{
+    if (!count)
+        return Result::Continue;
+
+    if (count == 1)
+        return emitLifecycleAction(calledFunction, addressReg);
+
+    SWC_ASSERT(sizeOf != 0);
+
+    const MicroReg cursorReg = nextVirtualIntRegister();
+    builder().emitLoadRegReg(cursorReg, addressReg, MicroOpBits::B64);
+    for (uint32_t i = 0; i < count; i++)
+    {
+        SWC_RESULT(emitLifecycleAction(calledFunction, cursorReg));
+        if (i + 1 != count)
+            builder().emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
+    }
+
+    return Result::Continue;
+}
+
 void CodeGen::pushDeferScope(AstNodeRef scopeRef, AstNodeRef breakOwnerRef, AstNodeRef switchCaseRef)
 {
     if (!hasDeferredStatements_)
@@ -454,9 +623,48 @@ void CodeGen::registerDefer(const AstNodeRef deferStmtRef, const AstNodeRef body
         return;
 
     auto& action         = deferScopes_.back().actions.emplace_back();
+    action.kind          = CodeGenDeferredAction::Kind::DeferStmt;
     action.deferStmtRef  = resolvedNodeRef(deferStmtRef);
     action.bodyRef       = resolvedNodeRef(bodyRef);
     action.modifierFlags = modifierFlags;
+}
+
+void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
+{
+    if (!hasDeferredStatements_)
+        return;
+    if (symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        return;
+    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
+        !symVar.hasExtraFlag(SymbolVariableFlagsE::Initialized))
+        return;
+
+    SymbolFunction* dropFunction = nullptr;
+    uint32_t        sizeOf       = 0;
+    uint32_t        count        = 0;
+    if (!tryBuildLifecycleAction(symVar.typeRef(), LifecycleKind::Drop, dropFunction, sizeOf, count))
+        return;
+
+    SWC_ASSERT(!deferScopes_.empty());
+    if (deferScopes_.empty())
+        return;
+
+    auto& action              = deferScopes_.back().actions.emplace_back();
+    action.kind               = CodeGenDeferredAction::Kind::ImplicitDrop;
+    action.variable           = &symVar;
+    action.lifecycleFunction  = dropFunction;
+    action.lifecycleSizeOf    = sizeOf;
+    action.lifecycleCount     = count;
+    action.modifierFlags      = AstModifierFlagsE::Zero;
+}
+
+void CodeGen::registerImplicitParameterDrops()
+{
+    for (const SymbolVariable* symVar : function().parameters())
+    {
+        if (symVar)
+            registerImplicitDrop(*symVar);
+    }
 }
 
 namespace
@@ -466,11 +674,29 @@ namespace
         for (size_t i = deferScope.actions.size(); i != 0; --i)
         {
             const auto& action = deferScope.actions[i - 1];
-            SWC_ASSERT(action.modifierFlags == AstModifierFlagsE::Zero);
-            if (action.bodyRef.isInvalid())
-                continue;
+            switch (action.kind)
+            {
+                case CodeGenDeferredAction::Kind::DeferStmt:
+                    SWC_ASSERT(action.modifierFlags == AstModifierFlagsE::Zero);
+                    if (action.bodyRef.isInvalid())
+                        continue;
 
-            SWC_RESULT(codeGen.emitNodeNow(action.bodyRef));
+                    SWC_RESULT(codeGen.emitNodeNow(action.bodyRef));
+                    break;
+
+                case CodeGenDeferredAction::Kind::ImplicitDrop:
+                {
+                    if (!action.variable || !action.lifecycleFunction)
+                        continue;
+
+                    CodeGenNodePayload variablePayload;
+                    if (!resolveDeferredVariableAddress(codeGen, *action.variable, variablePayload))
+                        continue;
+
+                    SWC_RESULT(codeGen.emitLifecycleAction(*action.lifecycleFunction, variablePayload.reg, action.lifecycleSizeOf, action.lifecycleCount));
+                    break;
+                }
+            }
         }
 
         return Result::Continue;

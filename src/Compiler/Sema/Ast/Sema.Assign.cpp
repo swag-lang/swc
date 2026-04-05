@@ -56,6 +56,21 @@ namespace
         rightView.type()           = &sema.typeMgr().get(valueTypeRef);
     }
 
+    void markMoveAssignmentSourceAddressableStorage(AstModifierFlags modifierFlags, const SemaNodeView& rightView)
+    {
+        if (!modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw}))
+            return;
+        if (!rightView.sym() || !rightView.sym()->isVariable() || !rightView.type())
+            return;
+        if (rightView.type()->isReference() || rightView.type()->isAnyPointer() || rightView.type()->isMoveReference())
+            return;
+
+        auto& symVar = rightView.sym()->cast<SymbolVariable>();
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+            symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+            symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+    }
+
     Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
     {
         switch (op)
@@ -251,7 +266,7 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeLeftView  = sema.viewNodeTypeSymbol(nodeLeftRef);
-    SemaNodeView       nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
+    SemaNodeView       nodeRightView = sema.viewNodeTypeConstantSymbol(nodeRightRef);
 
     const Token& tok = sema.token(codeRef());
     if (nodeLeftView.node()->is(AstNodeId::AssignList))
@@ -275,6 +290,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
 
     applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
+    markMoveAssignmentSourceAddressableStorage(modifierFlags, nodeRightView);
 
     if (tok.id == TokenId::SymEqual)
     {

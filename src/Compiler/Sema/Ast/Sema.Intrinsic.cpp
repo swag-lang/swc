@@ -48,6 +48,44 @@ namespace
 
         return TypeRef::invalid();
     }
+
+    void markIntrinsicOperandAddressableStorage(const SemaNodeView& operandView)
+    {
+        if (!operandView.sym() || !operandView.sym()->isVariable() || !operandView.type() || operandView.type()->isReference() || operandView.type()->isAnyPointer())
+            return;
+
+        auto& symVar = operandView.sym()->cast<SymbolVariable>();
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+            symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+            symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+    }
+
+    Result semaIntrinsicLifecycleStmt(Sema& sema, AstNodeRef whatRef, AstNodeRef countRef)
+    {
+        const SemaNodeView whatView = sema.viewNodeTypeSymbol(whatRef);
+        SWC_RESULT(SemaCheck::isValue(sema, whatView.nodeRef()));
+
+        if (countRef.isValid())
+        {
+            SemaNodeView countView = sema.viewNodeTypeConstant(countRef);
+            SWC_RESULT(SemaCheck::isValue(sema, countView.nodeRef()));
+            SWC_RESULT(Cast::cast(sema, countView, sema.typeMgr().typeU64(), CastKind::Implicit));
+
+            if (!whatView.type() || !whatView.type()->isAnyPointer())
+                return SemaError::raiseRequestedTypeFam(sema, whatView.nodeRef(), whatView.typeRef(), sema.typeMgr().typeBlockPtrVoid());
+            return Result::Continue;
+        }
+
+        if (whatView.type() && (whatView.type()->isAnyPointer() || whatView.type()->isReference()))
+            return Result::Continue;
+
+        SWC_ASSERT(whatView.node() != nullptr);
+        if (!sema.isLValue(*whatView.node()))
+            return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, whatView.nodeRef());
+
+        markIntrinsicOperandAddressableStorage(whatView);
+        return Result::Continue;
+    }
 }
 
 Result AstIntrinsicValue::semaPostNode(Sema& sema)
@@ -70,6 +108,21 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
         default:
             SWC_INTERNAL_ERROR();
     }
+}
+
+Result AstIntrinsicDrop::semaPostNode(Sema& sema) const
+{
+    return semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef);
+}
+
+Result AstIntrinsicPostCopy::semaPostNode(Sema& sema) const
+{
+    return semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef);
+}
+
+Result AstIntrinsicPostMove::semaPostNode(Sema& sema) const
+{
+    return semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef);
 }
 
 namespace

@@ -305,6 +305,7 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
     else
     {
         materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
+        codeGen.registerImplicitDrop(symVar);
     }
 
     return Result::Continue;
@@ -330,6 +331,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
             materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
+            codeGen.registerImplicitDrop(symVar);
         }
     }
 

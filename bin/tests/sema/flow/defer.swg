@@ -23,7 +23,10 @@ struct DeferReturnInfo
     trace: s64
 }
 
-struct DeferDropTracker {}
+struct DeferDropTracker
+{
+    value: s32 = 0
+}
 
 var DropCount: u32 = 0
 
@@ -380,7 +383,6 @@ func deferThrowTop() throw
     #assert(V3 == 65)
 }
 
-/*
 #test
 {
     // compiler1312, compiler1313, compiler1314
@@ -416,33 +418,52 @@ func deferThrowTop() throw
 
 #test
 {
-    // compiler2346
-    func deferEarlyReturnBeforeRegistration()->s64
+    #[Swag.NoInline]
+    func consumeDropTracker(value: DeferDropTracker)
     {
-        resetDeferTrace()
-        appendDeferTrace(1)
-        return DeferTrace
-        defer appendDeferTrace(2)
     }
 
-    const V = #run deferEarlyReturnBeforeRegistration()
-    #assert(V == 1)
+    func deferParameterDropInfo()->DeferDropInfo
+    {
+        DropCount = 0
+        with var result: retval
+        {
+            .count = 0
+            .drops = 0
+        }
+
+        {
+            var x: DeferDropTracker
+            consumeDropTracker(x)
+            result.count = cast(s32) DropCount
+        }
+
+        result.drops = DropCount
+        return result
+    }
+
+    #assert(#typeof(deferParameterDropInfo()) == DeferDropInfo)
 }
 
 #test
 {
-    // compiler2735, compiler2736
-    func deferThrowTrace()->s64
+    func deferReturnDropInfo()->DeferDropInfo
     {
-        resetDeferTrace()
-        catch deferThrowTop()
-        return DeferTrace
+        DropCount = 0
+        with var result: retval
+        {
+            .count = 42
+            .drops = 0
+        }
+
+        defer result.drops = DropCount
+        var x: DeferDropTracker
+        x.value = 1
+        return result
     }
 
-    const V = #run deferThrowTrace()
-    #assert(V == 124)
+    #assert(#typeof(deferReturnDropInfo()) == DeferDropInfo)
 }
-*/
 
 #test
 {

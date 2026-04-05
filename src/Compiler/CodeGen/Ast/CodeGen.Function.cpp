@@ -75,56 +75,7 @@ namespace
 
     bool tryBuildGvtdEntry(CodeGen& codeGen, TypeRef typeRef, SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
     {
-        outOpDrop = nullptr;
-        outSizeOf = 0;
-        outCount  = 0;
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& originalType = codeGen.typeMgr().get(typeRef);
-        const TypeRef   rawTypeRef   = originalType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid() && rawTypeRef != typeRef)
-            typeRef = rawTypeRef;
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (typeInfo.isArray())
-        {
-            uint64_t multiplier = 1;
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                multiplier *= dim;
-            if (!multiplier)
-                return false;
-
-            SymbolFunction* elemOpDrop = nullptr;
-            uint32_t        elemSizeOf = 0;
-            uint32_t        elemCount  = 0;
-            if (!tryBuildGvtdEntry(codeGen, typeInfo.payloadArrayElemTypeRef(), elemOpDrop, elemSizeOf, elemCount))
-                return false;
-
-            const uint64_t totalCount = multiplier * elemCount;
-            SWC_ASSERT(totalCount > 0);
-            SWC_ASSERT(totalCount <= std::numeric_limits<uint32_t>::max());
-
-            outOpDrop = elemOpDrop;
-            outSizeOf = elemSizeOf;
-            outCount  = static_cast<uint32_t>(totalCount);
-            return true;
-        }
-
-        if (!typeInfo.isStruct())
-            return false;
-
-        SymbolFunction* opDrop = typeInfo.payloadSymStruct().opDrop();
-        if (!opDrop)
-            return false;
-
-        const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
-        SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
-
-        outOpDrop = opDrop;
-        outSizeOf = static_cast<uint32_t>(sizeOf);
-        outCount  = 1;
-        return true;
+        return codeGen.tryBuildLifecycleAction(typeRef, CodeGen::LifecycleKind::Drop, outOpDrop, outSizeOf, outCount);
     }
 
     void collectGvtdEntriesRec(CodeGen& codeGen, const SymbolMap& symbolMap, SmallVector<CodeGenGvtdEntry>& outEntries)
@@ -489,6 +440,23 @@ namespace
         }
     }
 
+    void markDroppableParametersAddressable(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    {
+        SymbolFunction* dropFunction = nullptr;
+        uint32_t        sizeOf       = 0;
+        uint32_t        count        = 0;
+        for (SymbolVariable* symVar : symbolFunc.parameters())
+        {
+            if (!symVar)
+                continue;
+            if (!codeGen.tryBuildLifecycleAction(symVar->typeRef(), CodeGen::LifecycleKind::Drop, dropFunction, sizeOf, count))
+                continue;
+            if (symVar->typeRef().isValid() && codeGen.typeMgr().get(symVar->typeRef()).isReference())
+                continue;
+            symVar->addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+        }
+    }
+
     void collectRegisterParameterIndices(SmallVector<uint32_t>& outIndices, const std::vector<SymbolVariable*>& params, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         SWC_ASSERT(paramInfos.size() == params.size());
@@ -767,6 +735,21 @@ namespace
         }
     }
 
+    bool shouldDelayReturnMaterializationForDeferredActions(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
+    {
+        if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return true;
+
+        if (exprRef.isInvalid())
+            return false;
+
+        const SemaNodeView symbolView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
+        if (symbolView.sym() && symbolView.sym()->isVariable() && symbolView.sym()->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return true;
+
+        return false;
+    }
+
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
     {
         MicroBuilder&                          builder       = codeGen.builder();
@@ -787,18 +770,19 @@ namespace
 
         SWC_ASSERT(exprRef.isValid());
 
-        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        const CodeGenNodePayload& exprPayload                = codeGen.payload(exprRef);
+        const bool                delayReturnMaterialization = shouldDelayReturnMaterializationForDeferredActions(codeGen, exprRef, exprPayload);
         if (normalizedRet.isIndirect)
         {
             // Hidden first argument points to caller-provided return storage.
             const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
             SWC_ASSERT(outputStorageReg.isValid());
-            if (exprPayload.isAddress())
+            if (!delayReturnMaterialization && exprPayload.isAddress())
             {
                 if (exprPayload.reg != outputStorageReg)
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
             }
-            else
+            else if (!delayReturnMaterialization)
             {
                 const uint32_t copySize = normalizedRet.indirectSize;
                 auto           copyBits = MicroOpBits::Zero;
@@ -811,6 +795,8 @@ namespace
             }
 
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+            if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg)
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
@@ -823,12 +809,22 @@ namespace
             SWC_ASSERT(retBits != MicroOpBits::Zero);
 
             const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
-            if (exprPayload.isAddress())
-                builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
-            else
-                builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
+            if (!delayReturnMaterialization)
+            {
+                if (exprPayload.isAddress())
+                    builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
+                else
+                    builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
+            }
 
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+            if (delayReturnMaterialization)
+            {
+                if (exprPayload.isAddress())
+                    builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
+                else
+                    builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
+            }
             ABICall::materializeValueToReturnRegs(builder, callConvKind, returnValueReg, false, normalizedRet);
         }
 
@@ -972,6 +968,7 @@ namespace
         }
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
+        markDroppableParametersAddressable(codeGen, symbolFunc);
         collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
         buildLocalStackLayout(codeGen);
         {
@@ -983,6 +980,9 @@ namespace
             spillAddressableParametersToLocalSlots(codeGen, symbolFunc);
             spillParametersToDebugSlots(codeGen, symbolFunc);
         }
+
+        codeGen.pushDeferScope(declRef);
+        codeGen.registerImplicitParameterDrops();
 
         return Result::Continue;
     }
@@ -1001,13 +1001,17 @@ namespace
         if (hasExpressionBody)
         {
             SWC_ASSERT(bodyRef.isValid());
-            return emitFunctionReturn(codeGen, symbolFunc, bodyRef);
+            SWC_RESULT(emitFunctionReturn(codeGen, symbolFunc, bodyRef));
+            return codeGen.popDeferScope();
         }
 
         if (normalizedRet.isVoid)
-            return emitFunctionReturn(codeGen, symbolFunc, AstNodeRef::invalid());
+        {
+            SWC_RESULT(emitFunctionReturn(codeGen, symbolFunc, AstNodeRef::invalid()));
+            return codeGen.popDeferScope();
+        }
 
-        return Result::Continue;
+        return codeGen.popDeferScope();
     }
 }
 

@@ -221,6 +221,125 @@ namespace
         return codeGen.viewType(nodeRef).typeRef();
     }
 
+    TypeRef normalizeIntrinsicLifecycleTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return typeRef;
+
+        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid())
+            return rawTypeRef;
+        return typeRef;
+    }
+
+    TypeRef intrinsicLifecycleTargetTypeRef(CodeGen& codeGen, TypeRef whatTypeRef, const bool hasExplicitCount)
+    {
+        whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatTypeRef);
+        if (!whatTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& whatType = codeGen.typeMgr().get(whatTypeRef);
+        if (whatType.isReference() || whatType.isAnyPointer())
+            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatType.payloadTypeRef());
+
+        if (!hasExplicitCount)
+            return whatTypeRef;
+
+        while (whatTypeRef.isValid())
+        {
+            const TypeInfo& currentType = codeGen.typeMgr().get(whatTypeRef);
+            if (!currentType.isArray())
+                break;
+            whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType.payloadArrayElemTypeRef());
+        }
+
+        return whatTypeRef;
+    }
+
+    MicroReg materializeIntrinsicLifecycleAddress(CodeGen& codeGen, AstNodeRef whatRef)
+    {
+        const CodeGenNodePayload& whatPayload = codeGen.payload(whatRef);
+        const TypeRef             whatTypeRef = whatPayload.effectiveTypeRef(codeGen.viewType(whatRef).typeRef());
+        SWC_ASSERT(whatTypeRef.isValid());
+        if (whatTypeRef.isInvalid())
+            return MicroReg::invalid();
+
+        const TypeInfo& whatType = codeGen.typeMgr().get(whatTypeRef);
+        if (whatType.isReference() || whatType.isAnyPointer())
+        {
+            if (!whatPayload.isAddress())
+                return whatPayload.reg;
+
+            const MicroReg pointerReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(pointerReg, whatPayload.reg, 0, MicroOpBits::B64);
+            return pointerReg;
+        }
+
+        SWC_ASSERT(whatPayload.isAddress());
+        return whatPayload.reg;
+    }
+
+    MicroReg materializeIntrinsicLifecycleCountReg(CodeGen& codeGen, AstNodeRef countRef)
+    {
+        const CodeGenNodePayload& countPayload = codeGen.payload(countRef);
+        const MicroReg            countReg     = codeGen.nextVirtualIntRegister();
+        if (countPayload.isAddress())
+            codeGen.builder().emitLoadRegMem(countReg, countPayload.reg, 0, MicroOpBits::B64);
+        else
+            codeGen.builder().emitLoadRegReg(countReg, countPayload.reg, MicroOpBits::B64);
+        return countReg;
+    }
+
+    Result emitIntrinsicLifecycleLoop(CodeGen& codeGen, SymbolFunction& calledFunction, MicroReg baseAddressReg, const uint32_t sizeOf, MicroReg countReg)
+    {
+        SWC_ASSERT(baseAddressReg.isValid());
+        SWC_ASSERT(countReg.isValid());
+        SWC_ASSERT(sizeOf != 0);
+
+        MicroBuilder&       builder   = codeGen.builder();
+        const MicroLabelRef loopLabel = builder.createLabel();
+        const MicroLabelRef doneLabel = builder.createLabel();
+        const MicroReg      cursorReg = codeGen.nextVirtualIntRegister();
+        const MicroReg      iterReg   = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(cursorReg, baseAddressReg, MicroOpBits::B64);
+        builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
+        builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+        builder.placeLabel(loopLabel);
+        SWC_RESULT(codeGen.emitLifecycleAction(calledFunction, cursorReg));
+        builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
+
+    Result emitIntrinsicLifecycleStmt(CodeGen& codeGen, AstNodeRef whatRef, AstNodeRef countRef, const CodeGen::LifecycleKind lifecycleKind)
+    {
+        const TypeRef targetTypeRef = intrinsicLifecycleTargetTypeRef(codeGen, codeGen.viewType(whatRef).typeRef(), countRef.isValid());
+
+        SymbolFunction* lifecycleFunction = nullptr;
+        uint32_t        sizeOf            = 0;
+        uint32_t        count             = 0;
+        if (!codeGen.tryBuildLifecycleAction(targetTypeRef, lifecycleKind, lifecycleFunction, sizeOf, count))
+            return Result::Continue;
+
+        const MicroReg addressReg = materializeIntrinsicLifecycleAddress(codeGen, whatRef);
+        SWC_ASSERT(addressReg.isValid());
+        if (!addressReg.isValid())
+            return Result::Continue;
+
+        if (countRef.isValid())
+        {
+            const MicroReg countReg = materializeIntrinsicLifecycleCountReg(codeGen, countRef);
+            return emitIntrinsicLifecycleLoop(codeGen, *lifecycleFunction, addressReg, sizeOf, countReg);
+        }
+
+        return codeGen.emitLifecycleAction(*lifecycleFunction, addressReg, sizeOf, count);
+    }
+
     bool resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo)
     {
         if (const SymbolImpl* implSym = srcStruct.findInterfaceImpl(dstItf.idRef()))
@@ -1657,6 +1776,21 @@ Result AstIntrinsicValue::codeGenPostNode(CodeGen& codeGen) const
         default:
             SWC_UNREACHABLE();
     }
+}
+
+Result AstIntrinsicDrop::codeGenPostNode(CodeGen& codeGen) const
+{
+    return emitIntrinsicLifecycleStmt(codeGen, nodeWhatRef, nodeCountRef, CodeGen::LifecycleKind::Drop);
+}
+
+Result AstIntrinsicPostCopy::codeGenPostNode(CodeGen& codeGen) const
+{
+    return emitIntrinsicLifecycleStmt(codeGen, nodeWhatRef, nodeCountRef, CodeGen::LifecycleKind::PostCopy);
+}
+
+Result AstIntrinsicPostMove::codeGenPostNode(CodeGen& codeGen) const
+{
+    return emitIntrinsicLifecycleStmt(codeGen, nodeWhatRef, nodeCountRef, CodeGen::LifecycleKind::PostMove);
 }
 
 Result AstCountOfExpr::codeGenPostNode(CodeGen& codeGen) const

@@ -18,6 +18,91 @@ struct DeferReturnInfo
     trace: s64
 }
 
+struct DeferDropTracker
+{
+    value: s32 = 0
+}
+
+var DropCount: u32 = 0
+
+impl DeferDropTracker
+{
+    func opDrop(me)
+    {
+        DropCount += 1
+    }
+}
+
+struct DeferDropInfo
+{
+    count: s32
+    drops: u32
+}
+
+func deferBreakToScopeAndDrop()->DeferDropInfo
+{
+    DropCount = 0
+    with var result: retval
+    {
+        .count = 0
+        .drops = 0
+    }
+
+    #scope(Outer)
+    {
+        var x: DeferDropTracker
+        defer result.count += 1
+        for 1
+        {
+            var y: DeferDropTracker
+            defer result.count += 1
+            break to Outer
+        }
+    }
+
+    result.drops = DropCount
+    return result
+}
+
+#[Swag.NoInline]
+func consumeDropTracker(value: DeferDropTracker)
+{
+}
+
+func deferParameterDropInfo()->DeferDropInfo
+{
+    DropCount = 0
+    with var result: retval
+    {
+        .count = 0
+        .drops = 0
+    }
+
+    {
+        var x: DeferDropTracker
+        consumeDropTracker(x)
+        result.count = cast(s32) DropCount
+    }
+
+    result.drops = DropCount
+    return result
+}
+
+func deferReturnDropInfo()->DeferDropInfo
+{
+    DropCount = 0
+    with var result: retval
+    {
+        .count = 42
+        .drops = 0
+    }
+
+    defer result.drops = DropCount
+    var x: DeferDropTracker
+    x.value = 1
+    return result
+}
+
 #test
 {
     func deferBlockBodyTrace()->DeferReturnInfo
@@ -289,58 +374,19 @@ struct DeferReturnInfo
     #assert(V == 7123)
 }
 
-/*
 #test
 {
     // compiler1312, compiler1313, compiler1314
-    struct DeferDropTracker {}
-
-    var dropCount: u32 = 0
-
-    impl DeferDropTracker
-    {
-        func opDrop(me)
-        {
-            dropCount += 1
-        }
-    }
-
-    struct DeferDropInfo
-    {
-        count: s32
-        drops: u32
-    }
-
-    func deferBreakToScopeAndDrop()->DeferDropInfo
-    {
-        dropCount = 0
-        with var result: retval
-        {
-            .count = 0
-            .drops = 0
-        }
-
-        #scope(Outer)
-        {
-            var x: DeferDropTracker
-            defer result.count += 1
-            for 1
-            {
-                var y: DeferDropTracker
-                defer result.count += 1
-                break to Outer
-            }
-        }
-
-        result.drops = dropCount
-        return result
-    }
-
-    const V = #run deferBreakToScopeAndDrop()
-    #assert(V.count == 2)
-    #assert(V.drops == 2)
+    let v0 = deferBreakToScopeAndDrop()
+    let v1 = deferParameterDropInfo()
+    let v2 = deferReturnDropInfo()
+    @assert(v0.count == 2)
+    @assert(v0.drops == 2)
+    @assert(v1.count == 1)
+    @assert(v1.drops == 2)
+    @assert(v2.count == 42)
+    @assert(v2.drops == 1)
 }
-*/
 
 #test
 {

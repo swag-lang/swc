@@ -23,7 +23,10 @@ struct DeferReturnInfo
     trace: s64
 }
 
-struct DeferDropTracker {}
+struct DeferDropTracker
+{
+    value: s32 = 0
+}
 
 var DropCount: u32 = 0
 
@@ -314,6 +317,45 @@ func deferBreakToScopeAndDrop()->DeferDropInfo
     return result
 }
 
+#[Swag.NoInline]
+func consumeDropTracker(value: DeferDropTracker)
+{
+}
+
+func deferParameterDropInfo()->DeferDropInfo
+{
+    DropCount = 0
+    with var result: retval
+    {
+        .count = 0
+        .drops = 0
+    }
+
+    {
+        var x: DeferDropTracker
+        consumeDropTracker(x)
+        result.count = cast(s32) DropCount
+    }
+
+    result.drops = DropCount
+    return result
+}
+
+func deferReturnDropInfo()->DeferDropInfo
+{
+    DropCount = 0
+    with var result: retval
+    {
+        .count = 42
+        .drops = 0
+    }
+
+    defer result.drops = DropCount
+    var x: DeferDropTracker
+    x.value = 1
+    return result
+}
+
 func deferEarlyReturnBeforeRegistration()->s64
 {
     resetDeferTrace()
@@ -418,7 +460,6 @@ func deferBreakToScope()->s64
     @assert(deferSwitch(9) == 65)
 }
 
-/*
 #test
 {
     let v = deferBreakToScopeAndDrop()
@@ -428,14 +469,17 @@ func deferBreakToScope()->s64
 
 #test
 {
-    @assert(deferEarlyReturnBeforeRegistration() == 1)
+    let v = deferParameterDropInfo()
+    @assert(v.count == 1)
+    @assert(v.drops == 2)
 }
 
 #test
 {
-    @assert(deferThrowTrace() == 124)
+    let v = deferReturnDropInfo()
+    @assert(v.count == 42)
+    @assert(v.drops == 1)
 }
-*/
 
 #test
 {

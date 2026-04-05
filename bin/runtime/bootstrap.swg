@@ -159,15 +159,6 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Sanity(what: bool)
 
-    // To what context the 'Safety' attribute must be applied
-    enum SafetyContext
-    {
-        Compiler = 0     // Compiler context (during compile)
-        ByteCode = 1     // During bytecode generation (dynamic checks)
-        Sanity   = 2     // During sanity pass
-        All
-    }
-
     // All safety checks
     #[Swag.EnumFlags]
     enum SafetyWhat: u16
@@ -188,7 +179,7 @@ namespace Swag
 
     // Enable/Disable one or more safety checks.
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
-    attr Safety(context: SafetyContext, what: SafetyWhat, value: bool)
+    attr Safety(what: SafetyWhat, value: bool)
 
     // Set optimized code generation on/off.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.File), AttrMulti]

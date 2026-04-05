@@ -134,24 +134,24 @@ attr NoDoc()                // Do not generate documentation
 Enable or disable safety checks.
 Examples:
 ```
-#[Swag.Safety('', false)]                 // Disable all checks
-#[Swag.Safety('boundcheck|nan', false)]   // Disable 'boundcheck' and 'nan'
+#[Swag.Safety(.All, false)]                 // Disable all checks
+#[Swag.Safety(.BoundCheck | .NaN, false)]   // Disable 'BoundCheck' and 'NaN'
 ```
 Checks:
-* 'boundcheck'  -> Out-of-bounds access
-* 'overflow'    -> Loss on type conversion
-* 'math'        -> Math checks (e.g., negative '@sqrt')
-* 'switch'      -> Invalid case in '#[Swag.Complete]' switch
-* 'unreachable' -> Panic on '@unreachable'
-* 'any'         -> Panic if 'any' cast mismatches runtime type
-* 'bool'        -> Panic if 'bool' is not 'true' or 'false'
-* 'nan'         -> Panic if 'nan' used in float arithmetic
-* 'sanity'      -> Per-function sanity check
-* 'null'        -> Panic on dereferencing null pointers
-If 'what' is null or empty, every option will be affected.
+* '.BoundCheck'  -> Out-of-bounds access
+* '.Overflow'    -> Loss on type conversion
+* '.Math'        -> Math checks (e.g., negative '@sqrt')
+* '.DynCast'     -> Panic if an 'any' cast mismatches the runtime type
+* '.Switch'      -> Invalid case in '#[Swag.Complete]' switch
+* '.Unreachable' -> Panic on '@unreachable'
+* '.Bool'        -> Panic if 'bool' is not 'true' or 'false'
+* '.NaN'         -> Panic if 'NaN' is used in float arithmetic
+* '.Null'        -> Panic on dereferencing null pointers
+* '.Memory'      -> Memory-related runtime checks
+Use '.All' to affect every safety check.
 */
 #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
-attr Safety(what: string, value: bool)
+attr Safety(what: SafetyWhat, value: bool)
 
 /**
 # Optimization Controls

@@ -248,19 +248,12 @@ namespace
 
     Result collectSafetyOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
     {
-        SWC_ASSERT(args.size() >= 3);
+        SWC_ASSERT(args.size() >= 2);
 
-        uint64_t contextValue = 0;
-        uint64_t whatValue    = 0;
-        bool     enabled      = false;
-        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], contextValue));
-        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], whatValue));
-        SWC_RESULT(collectResolvedBoolValue(sema, args[2], enabled));
-
-        constexpr uint64_t K_SAFETY_CONTEXT_BYTECODE = 1;
-        constexpr uint64_t K_SAFETY_CONTEXT_ALL      = 3;
-        if (contextValue != K_SAFETY_CONTEXT_BYTECODE && contextValue != K_SAFETY_CONTEXT_ALL)
-            return Result::Continue;
+        uint64_t whatValue = 0;
+        bool     enabled   = false;
+        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], whatValue));
+        SWC_RESULT(collectResolvedBoolValue(sema, args[1], enabled));
 
         outAttributes.addRuntimeSafetyOverride(static_cast<Runtime::SafetyWhat>(whatValue), enabled);
         return Result::Continue;

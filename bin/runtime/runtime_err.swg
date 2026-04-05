@@ -166,7 +166,7 @@ func @compilerwarning(message: string, loc: SourceCodeLocation)
 }
 
 // Stop the execution and panic
-#[Swag.Safety(.All, .All, false)]
+#[Swag.Safety(.All, false)]
 func @panic(message: string, loc: SourceCodeLocation)
 {
     let cxt = @getcontext()
@@ -269,7 +269,7 @@ func @panic(message: string, loc: SourceCodeLocation)
     __panicBox(cast(string) str, title)
 }
 
-#[Swag.Safety(.All, .All, false)]
+#[Swag.Safety(.All, false)]
 func @safetypanic(message: string, loc: SourceCodeLocation)
 {
     if @jit

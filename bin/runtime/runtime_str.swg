@@ -2,7 +2,7 @@ using Swag
 
 ////////////////////////////////////////////////////////////
 
-#[Discardable, Safety(.All, .All, false)]
+#[Discardable, Safety(.All, false)]
 func __itoa(result: [*] u8, value: s64)->[*] u8
 {
     const conv = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
@@ -42,7 +42,7 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
     return retVal
 }
 
-#[Discardable, Safety(.All, .All, false)]
+#[Discardable, Safety(.All, false)]
 func __utoa(result: [*] u8, value: u64)->[*] u8
 {
     const conv = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
@@ -76,7 +76,7 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
     return retVal
 }
 
-#[Safety(.All, .All, false)]
+#[Safety(.All, false)]
 func __ftoa(result: [*] u8, value: f64)
 {
     var ipart = cast(s64) value
@@ -172,7 +172,7 @@ func @print(params: ...)
 
         if ko.flags & TypeInfoFlags.PointerTypeInfo
         {
-            #[Safety(.All, .DynCast, false)]
+            #[Safety(.DynCast, false)]
             let ptr = cast(const *TypeInfo) v
             __printString(ptr.name)
             continue
@@ -180,7 +180,7 @@ func @print(params: ...)
 
         if ko.flags & TypeInfoFlags.CString
         {
-            #[Safety(.All, .DynCast, false)]
+            #[Safety(.DynCast, false)]
             let ptr = cast(const [*] u8) v
             let len = @countof(cast(cstring) ptr)
             __printString(@mkstring(ptr, len))
@@ -189,7 +189,7 @@ func @print(params: ...)
 
         if ko.kind == .Pointer
         {
-            #[Safety(.All, .DynCast, false)]
+            #[Safety(.DynCast, false)]
             __printU64(cast(u64) v)
             continue
         }

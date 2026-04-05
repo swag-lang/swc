@@ -1,4 +1,4 @@
-#global #[Swag.Safety(.All, .All, false)]
+#global #[Swag.Safety(.All, false)]
 
 // Swag script file
 #dependencies

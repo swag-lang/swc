@@ -1,12 +1,12 @@
 #global fileprivate
 
-#[Swag.Safety(.All, .BoundCheck, false)]
+#[Swag.Safety(.BoundCheck, false)]
 func boundCheckDisabled()->bool
 {
     return #safety(Swag.SafetyWhat.BoundCheck)
 }
 
-#[Swag.Safety(.All, .BoundCheck, true)]
+#[Swag.Safety(.BoundCheck, true)]
 func boundCheckEnabled()->bool
 {
     return #safety(Swag.SafetyWhat.BoundCheck)
@@ -33,7 +33,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func arrayBoundCheck()->s32
     {
         var values: [2] s32
@@ -48,7 +48,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func sliceBoundCheck()->s32
     {
         var values: [2] s32
@@ -64,7 +64,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func stringBoundCheck()->u8
     {
         var text: string = "ab"
@@ -77,7 +77,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func multiArrayBoundCheck()->s32
     {
         var values: [2, 2] s32
@@ -95,7 +95,7 @@ func boundCheckEnabled()->bool
 // Dynamic index: index value known only at runtime
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func arrayDynamicBoundCheck(idx: u64)->s32
     {
         var values: [2] s32
@@ -110,7 +110,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func sliceDynamicBoundCheck(idx: u64)->s32
     {
         var values: [3] s32
@@ -127,7 +127,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func stringDynamicBoundCheck(idx: u64)->u8
     {
         var text: string = "hello"
@@ -140,7 +140,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func multiArrayDynamicBoundCheck(i: u64, j: u64)->s32
     {
         var values: [2, 2] s32
@@ -158,7 +158,7 @@ func boundCheckEnabled()->bool
 // Empty slice: any index is out of bounds at runtime
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func emptySliceBoundCheck()->s32
     {
         var slice: [..] s32
@@ -172,7 +172,7 @@ func boundCheckEnabled()->bool
 // In-bound accesses (constant and dynamic) must not panic
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func arrayInBounds(idx: u64)->s32
     {
         var values: [3] s32
@@ -188,7 +188,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, true)]
+    #[Swag.Safety(.BoundCheck, true)]
     func sliceInBounds(idx: u64)->s32
     {
         var values: [3] s32
@@ -206,7 +206,7 @@ func boundCheckEnabled()->bool
 // When bound check is disabled, out-of-bounds access must not call the safety panic
 #test
 {
-    #[Swag.Safety(.All, .BoundCheck, false)]
+    #[Swag.Safety(.BoundCheck, false)]
     func arrayBoundCheckDisabled()->s32
     {
         var values: [2] s32

@@ -1,5 +1,5 @@
 #global fileprivate
-#global #[Swag.Safety(.All, .All, false)]
+#global #[Swag.Safety(.All, false)]
 
 func eqF32(a: f32, b: f32)->bool { return a == b }
 func neF32(a: f32, b: f32)->bool { return a != b }

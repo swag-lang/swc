@@ -1,12 +1,12 @@
 #global fileprivate
 
-#[Swag.Safety(.All, .Switch, false)]
+#[Swag.Safety(.Switch, false)]
 func switchSafetyDisabled()->bool
 {
     return #safety(Swag.SafetyWhat.Switch)
 }
 
-#[Swag.Safety(.All, .Switch, true)]
+#[Swag.Safety(.Switch, true)]
 func switchSafetyEnabled()->bool
 {
     return #safety(Swag.SafetyWhat.Switch)
@@ -33,7 +33,7 @@ func switchSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .Switch, true)]
+    #[Swag.Safety(.Switch, true)]
     func completeScalarSwitchPanic(v: s32)->s32
     {
         #[Swag.Complete]
@@ -52,7 +52,7 @@ func switchSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .Switch, true)]
+    #[Swag.Safety(.Switch, true)]
     func completeWhereSwitchPanic(v: s32)->s32
     {
         #[Swag.Complete]
@@ -71,7 +71,7 @@ func switchSafetyEnabled()->bool
 
 #test
 {
-    #[Swag.Safety(.All, .Switch, false)]
+    #[Swag.Safety(.Switch, false)]
     func completeScalarSwitchDisabled(v: s32)->s32
     {
         #[Swag.Complete]

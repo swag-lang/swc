@@ -17,15 +17,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct SwitchPayload
+    Result setupSwitchRuntimeSafety(Sema& sema, SwitchPayload& payload, const SourceCodeRef& codeRef)
     {
-        std::unordered_map<ConstantRef, AstNodeRef> seen;
-        std::unordered_map<TypeRef, AstNodeRef>     seenDynamicTypes;
+        if (!payload.isComplete)
+            return Result::Continue;
 
-        TypeRef    exprTypeRef     = TypeRef::invalid();
-        AstNodeRef firstDefaultRef = AstNodeRef::invalid();
-        bool       isComplete      = false;
-    };
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Switch))
+            return Result::Continue;
+
+        payload.hasRuntimeSwitchSafety = true;
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        if (payload.runtimePanicSymbol != nullptr)
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
+        SWC_ASSERT(panicFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        payload.runtimePanicSymbol = panicFn;
+        return Result::Continue;
+    }
 
     Result setupStringCompareRuntimeCall(Sema& sema)
     {
@@ -273,8 +288,10 @@ namespace
 
 Result AstSwitchStmt::semaPreNode(Sema& sema) const
 {
+    const bool isComplete = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
+
     // A switch can be marked with the 'Complete' attribute, except if it does not have an expression.
-    if (sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete))
+    if (isComplete)
     {
         if (!nodeExprRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
@@ -294,7 +311,7 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     sema.pushFramePopOnPostNode(frame);
 
     auto* payload       = sema.compiler().allocate<SwitchPayload>();
-    payload->isComplete = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
+    payload->isComplete = isComplete;
     sema.setSemaPayload(sema.curNodeRef(), payload);
     return Result::Continue;
 }
@@ -370,6 +387,8 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         if (finalType.isString())
             SWC_RESULT(setupStringCompareRuntimeCall(sema));
+
+        SWC_RESULT(setupSwitchRuntimeSafety(sema, *payload, codeRef()));
 
         if (type.isEnum())
         {

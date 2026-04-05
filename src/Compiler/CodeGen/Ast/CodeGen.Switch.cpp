@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
@@ -34,6 +35,7 @@ namespace
     struct SwitchStmtCodeGenPayload
     {
         MicroLabelRef                                            doneLabel          = MicroLabelRef::invalid();
+        MicroLabelRef                                            noMatchLabel       = MicroLabelRef::invalid();
         TypeRef                                                  compareTypeRef     = TypeRef::invalid();
         CodeGenNodePayload                                       switchValuePayload = {};
         MicroReg                                                 switchValueReg;
@@ -428,6 +430,11 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
     SwitchStmtCodeGenPayload switchState;
     switchState.doneLabel     = builder.createLabel();
     switchState.hasExpression = nodeExprRef.isValid();
+    if (const auto* semaPayload = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
+        semaPayload && semaPayload->hasRuntimeSwitchSafety)
+    {
+        switchState.noMatchLabel = builder.createLabel();
+    }
 
     // Build the whole case label graph up front so `fallthrough` and "next test" edges are stable before
     // any case body starts emitting code.
@@ -563,6 +570,17 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
     SWC_ASSERT(switchState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
+    if (switchState->noMatchLabel.isValid())
+    {
+        builder.placeLabel(switchState->noMatchLabel);
+        const auto&         switchNode    = codeGen.node(codeGen.curNodeRef()).cast<AstSwitchStmt>();
+        const AstNodeRef    switchExprRef = switchNode.nodeExprRef;
+        const SwitchPayload* semaPayload   = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
+        const Result        result        = CodeGenSafety::emitSwitchCheck(codeGen, codeGen.node(switchExprRef), semaPayload ? semaPayload->runtimePanicSymbol : nullptr);
+        if (result != Result::Continue)
+            return result;
+    }
+
     builder.placeLabel(switchState->doneLabel);
     codeGen.popFrame();
     eraseSwitchStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
@@ -582,7 +600,9 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     const SwitchCaseCodeGenPayload& caseState = itCase->second;
-    const MicroLabelRef             failLabel = caseState.hasNextCase ? caseState.nextTestLabel : switchState->doneLabel;
+    const MicroLabelRef             failLabel = caseState.hasNextCase
+                                                    ? caseState.nextTestLabel
+                                                    : (switchState->noMatchLabel.isValid() ? switchState->noMatchLabel : switchState->doneLabel);
 
     MicroBuilder& builder = codeGen.builder();
 

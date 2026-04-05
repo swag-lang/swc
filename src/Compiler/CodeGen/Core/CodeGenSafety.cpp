@@ -153,4 +153,11 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     return Result::Continue;
 }
 
+Result CodeGenSafety::emitSwitchCheck(CodeGen& codeGen, const AstNode& node, SymbolFunction* panicFunction)
+{
+    SymbolFunction* resolvedPanicFunction = panicFunction ? panicFunction : runtimeSafetyPanicFunction(codeGen);
+    SWC_ASSERT(resolvedPanicFunction != nullptr);
+    return emitRuntimePanicCall(codeGen, *resolvedPanicFunction, node, "unexpected case value in complete switch");
+}
+
 SWC_END_NAMESPACE();

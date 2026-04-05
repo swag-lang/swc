@@ -6,12 +6,14 @@
 SWC_BEGIN_NAMESPACE();
 
 class CodeGen;
+class SymbolFunction;
 class TypeInfo;
 struct CodeGenNodePayload;
 
 namespace CodeGenSafety
 {
     Result emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg);
+    Result emitSwitchCheck(CodeGen& codeGen, const AstNode& node, SymbolFunction* panicFunction);
 }
 
 SWC_END_NAMESPACE();

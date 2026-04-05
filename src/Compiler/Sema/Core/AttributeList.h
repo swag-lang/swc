@@ -55,16 +55,16 @@ struct RuntimeSafetyOverride
 // A list of attributes
 struct AttributeList
 {
-    SmallVector4<AttributeInstance>    attributes;
-    RtAttributeFlags                   rtFlags = RtAttributeFlagsE::Zero;
+    SmallVector4<AttributeInstance>     attributes;
+    RtAttributeFlags                    rtFlags = RtAttributeFlagsE::Zero;
     SmallVector4<RuntimeSafetyOverride> runtimeSafetyOverrides;
-    SmallVector4<Utf8>                 printMicroPassOptions;
-    SmallVector4<Utf8>                 printAstStageOptions;
-    std::optional<bool>                backendOptimize;
-    bool                               hasForeign = false;
-    Utf8                               foreignModuleName;
-    Utf8                               foreignFunctionName;
-    Utf8                               foreignLinkModuleName;
+    SmallVector4<Utf8>                  printMicroPassOptions;
+    SmallVector4<Utf8>                  printAstStageOptions;
+    std::optional<bool>                 backendOptimize;
+    bool                                hasForeign = false;
+    Utf8                                foreignModuleName;
+    Utf8                                foreignFunctionName;
+    Utf8                                foreignLinkModuleName;
 
     bool empty() const
     {
@@ -83,19 +83,14 @@ struct AttributeList
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
 
-    static uint16_t safetyMask(Runtime::SafetyWhat what)
-    {
-        return static_cast<uint16_t>(what);
-    }
-
     void addRuntimeSafetyOverride(Runtime::SafetyWhat what, bool value)
     {
-        runtimeSafetyOverrides.push_back({.whatMask = safetyMask(what), .value = value});
+        runtimeSafetyOverrides.push_back({.whatMask = Runtime::safetyMask(what), .value = value});
     }
 
     uint16_t effectiveRuntimeSafetyMask(Runtime::SafetyWhat buildCfgMask) const
     {
-        uint16_t result = safetyMask(buildCfgMask);
+        uint16_t result = Runtime::safetyMask(buildCfgMask);
         for (const auto& overrideValue : runtimeSafetyOverrides)
         {
             if (overrideValue.value)
@@ -109,12 +104,8 @@ struct AttributeList
 
     bool hasRuntimeSafety(Runtime::SafetyWhat buildCfgMask, Runtime::SafetyWhat what) const
     {
-        const uint16_t requestedMask = safetyMask(what);
-        if (!requestedMask)
-            return true;
-
         const uint16_t effectiveMask = effectiveRuntimeSafetyMask(buildCfgMask);
-        return (effectiveMask & requestedMask) == requestedMask;
+        return Runtime::hasSafetyMask(effectiveMask, what);
     }
 
     void setBackendOptimize(bool value)

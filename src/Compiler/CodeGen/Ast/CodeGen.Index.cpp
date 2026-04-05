@@ -63,15 +63,6 @@ namespace
         return copyReg;
     }
 
-    bool needsIndexBoundCheck(const TypeInfo& indexedType)
-    {
-        return indexedType.isArray() ||
-               indexedType.isSlice() ||
-               indexedType.isString() ||
-               indexedType.isVariadic() ||
-               indexedType.isTypedVariadic();
-    }
-
     SymbolFunction* runtimePanicFunction(CodeGen& codeGen)
     {
         if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
@@ -155,7 +146,7 @@ namespace
             return countReg;
         }
 
-        if (indexedType.isSlice() || indexedType.isVariadic() || indexedType.isTypedVariadic())
+        if (indexedType.isSlice() || indexedType.isAnyVariadic())
         {
             builder.emitLoadRegMem(countReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);
             return countReg;
@@ -170,7 +161,7 @@ namespace
         if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
             return Result::Continue;
 
-        if (!needsIndexBoundCheck(indexedType))
+        if (!indexedType.needsRuntimeIndexBoundCheck())
             return Result::Continue;
 
         SymbolFunction* panicFunction = runtimePanicFunction(codeGen);

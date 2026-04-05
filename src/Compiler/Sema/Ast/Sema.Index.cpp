@@ -33,18 +33,9 @@ namespace
         return *payload;
     }
 
-    bool needsIndexBoundCheck(const TypeInfo& indexedType)
-    {
-        return indexedType.isArray() ||
-               indexedType.isSlice() ||
-               indexedType.isString() ||
-               indexedType.isVariadic() ||
-               indexedType.isTypedVariadic();
-    }
-
     Result setupIndexBoundCheck(Sema& sema, AstNodeRef nodeRef, const TypeInfo& indexedType, const SourceCodeRef& codeRef)
     {
-        if (!needsIndexBoundCheck(indexedType))
+        if (!indexedType.needsRuntimeIndexBoundCheck())
             return Result::Continue;
 
         if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::BoundCheck))

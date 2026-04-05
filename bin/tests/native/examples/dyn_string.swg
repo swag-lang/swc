@@ -313,7 +313,6 @@ impl DynString
 // paths with a zero-length buffer.
 // ---------------------------------------------------------------------------
 
-#[Swag.PrintMicro]
 #test
 {
     var empty: DynString

@@ -18,9 +18,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_NATURAL_COLUMN_WIDTH = 56U;
-    constexpr char     K_NATURAL_TAG_BEGIN    = '\x1E';
-    constexpr char     K_NATURAL_TAG_END      = '\x1F';
+    constexpr uint32_t K_NATURAL_COLUMN_WIDTH       = 56U;
+    constexpr uint32_t K_CONSTANT_PREVIEW_MAX_CHARS = 40U;
+    constexpr char     K_NATURAL_TAG_BEGIN          = '\x1E';
+    constexpr char     K_NATURAL_TAG_END            = '\x1F';
 
     enum class NaturalTagKind : char
     {
@@ -1172,10 +1173,95 @@ namespace
         return "<unknown>";
     }
 
+    Utf8 clampPreview(Utf8 value, const uint32_t maxChars = K_CONSTANT_PREVIEW_MAX_CHARS)
+    {
+        if (Utf8Helper::countChars(value.view()) <= maxChars)
+            return value;
+
+        return Utf8Helper::substrChars(value.view(), 0, maxChars) + "...";
+    }
+
+    Utf8 quotedConstantPreview(Utf8 escaped)
+    {
+        constexpr uint32_t K_QUOTED_PREVIEW_MAX_CONTENT_CHARS = K_CONSTANT_PREVIEW_MAX_CHARS > 5 ? K_CONSTANT_PREVIEW_MAX_CHARS - 5 : 1;
+        if (Utf8Helper::countChars(escaped.view()) > K_QUOTED_PREVIEW_MAX_CONTENT_CHARS)
+            escaped = clampPreview(std::move(escaped), K_QUOTED_PREVIEW_MAX_CONTENT_CHARS);
+
+        Utf8 preview;
+        preview += '"';
+        preview += escaped;
+        preview += '"';
+        return preview;
+    }
+
+    Utf8 escapeConstantPreview(std::string_view value)
+    {
+        Utf8 result;
+        result.reserve(value.size());
+        for (const char c : value)
+        {
+            switch (c)
+            {
+                case '\r':
+                    result += "\\r";
+                    break;
+                case '\n':
+                    result += "\\n";
+                    break;
+                case '\t':
+                    result += "\\t";
+                    break;
+                case '"':
+                    result += "\\\"";
+                    break;
+                default:
+                    if (std::iscntrl(static_cast<unsigned char>(c)))
+                        result += '?';
+                    else
+                        result += c;
+                    break;
+            }
+        }
+
+        return result;
+    }
+
+    Utf8 constantNaturalPreview(const TaskContext& ctx, const ConstantValue& cst)
+    {
+        if (cst.typeRef().isValid())
+        {
+            const TypeInfo& typeInfo = ctx.typeMgr().get(cst.typeRef());
+            if (typeInfo.isString() && cst.isStruct(cst.typeRef()))
+            {
+                const auto* const value = cst.getStruct<Runtime::String>(cst.typeRef());
+                return quotedConstantPreview(escapeConstantPreview(Utf8{*value}));
+            }
+        }
+
+        if (cst.isString())
+            return quotedConstantPreview(escapeConstantPreview(cst.getString()));
+
+        return clampPreview(escapeConstantPreview(cst.toString(ctx)));
+    }
+
+    Utf8 relocationTargetConstantNaturalValue(const TaskContext& ctx, const MicroRelocation& relocation)
+    {
+        const ConstantValue& cst     = ctx.cstMgr().get(relocation.constantRef);
+        const Utf8           preview = constantNaturalPreview(ctx, cst);
+        if (!cst.typeRef().isValid())
+            return preview;
+
+        const TypeInfo& typeInfo = ctx.typeMgr().get(cst.typeRef());
+        if (preview.empty())
+            return std::format("{}", typeInfo.toName(ctx));
+
+        return std::format("{} = {}", typeInfo.toName(ctx), preview);
+    }
+
     Utf8 relocationTargetNaturalValue(const TaskContext& ctx, const MicroRelocation& relocation)
     {
         if (relocation.constantRef.isValid())
-            return relocationTargetDebugValue(ctx, relocation);
+            return relocationTargetConstantNaturalValue(ctx, relocation);
 
         if (relocation.targetSymbol)
         {
@@ -1311,12 +1397,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                                          (inst.op == MicroInstrOpcode::LoadRegPtrReloc ||
                                           inst.op == MicroInstrOpcode::CallLocal ||
                                           inst.op == MicroInstrOpcode::CallExtern);
-        const bool             hasInlineCallRelocation = instructionRelocation != nullptr &&
+        const bool hasInlineCallRelocation = instructionRelocation != nullptr &&
                                              (inst.op == MicroInstrOpcode::CallLocal ||
                                               inst.op == MicroInstrOpcode::CallExtern);
-        const Utf8 inlineRelocNaturalValue = hasInlineRelocation ? relocationTargetNaturalValue(ctx, *instructionRelocation) : Utf8{};
-        const Utf8 inlineCallRelocValue    = hasInlineCallRelocation ? relocationTargetCallAddressValue(*instructionRelocation) : Utf8{};
-        auto       natural                 = naturalInstruction(inst, ops, regPrintMode, encoder, inlineRelocNaturalValue);
+        const Utf8               inlineRelocNaturalValue = hasInlineRelocation ? relocationTargetNaturalValue(ctx, *instructionRelocation) : Utf8{};
+        const Utf8               inlineCallRelocValue    = hasInlineCallRelocation ? relocationTargetCallAddressValue(*instructionRelocation) : Utf8{};
+        auto                     natural                 = naturalInstruction(inst, ops, regPrintMode, encoder, inlineRelocNaturalValue);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
         std::unordered_set<Utf8> virtualRegs;

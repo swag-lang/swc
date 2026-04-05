@@ -5,6 +5,7 @@
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -1177,7 +1178,11 @@ namespace
             return relocationTargetDebugValue(ctx, relocation);
 
         if (relocation.targetSymbol)
+        {
+            if (relocation.targetSymbol->isFunction())
+                return relocation.targetSymbol->getFullScopedName(ctx);
             return relocation.targetSymbol->name(ctx);
+        }
 
         if (relocation.kind == MicroRelocation::Kind::CompilerAddress)
             return std::format("compiler+0x{:X}", relocation.targetAddress);
@@ -1193,6 +1198,26 @@ namespace
             return std::format("0x{:X}", relocation.targetAddress);
 
         return "<unknown>";
+    }
+
+    Utf8 relocationTargetCallAddressValue(const MicroRelocation& relocation)
+    {
+        if (relocation.targetAddress == MicroRelocation::K_SELF_ADDRESS)
+            return "<self>";
+
+        if (relocation.targetAddress)
+            return hexU64(relocation.targetAddress);
+
+        if (relocation.targetSymbol && relocation.targetSymbol->isFunction())
+        {
+            const auto& targetFunction = relocation.targetSymbol->cast<SymbolFunction>();
+            if (const void* const patchAddress = targetFunction.jitPatchAddress())
+                return hexU64(reinterpret_cast<uint64_t>(patchAddress));
+            if (const void* const entryAddress = targetFunction.jitEntryAddress())
+                return hexU64(reinterpret_cast<uint64_t>(entryAddress));
+        }
+
+        return "0x0";
     }
 
     void appendInstructionRelocationOrigin(Utf8& out, const TaskContext& ctx, const MicroRelocation* relocation)
@@ -1286,8 +1311,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                                          (inst.op == MicroInstrOpcode::LoadRegPtrReloc ||
                                           inst.op == MicroInstrOpcode::CallLocal ||
                                           inst.op == MicroInstrOpcode::CallExtern);
-        const Utf8               inlineRelocNaturalValue = hasInlineRelocation ? relocationTargetNaturalValue(ctx, *instructionRelocation) : Utf8{};
-        auto                     natural                 = naturalInstruction(inst, ops, regPrintMode, encoder, inlineRelocNaturalValue);
+        const bool             hasInlineCallRelocation = instructionRelocation != nullptr &&
+                                             (inst.op == MicroInstrOpcode::CallLocal ||
+                                              inst.op == MicroInstrOpcode::CallExtern);
+        const Utf8 inlineRelocNaturalValue = hasInlineRelocation ? relocationTargetNaturalValue(ctx, *instructionRelocation) : Utf8{};
+        const Utf8 inlineCallRelocValue    = hasInlineCallRelocation ? relocationTargetCallAddressValue(*instructionRelocation) : Utf8{};
+        auto       natural                 = naturalInstruction(inst, ops, regPrintMode, encoder, inlineRelocNaturalValue);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
         std::unordered_set<Utf8> virtualRegs;
@@ -1363,7 +1392,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::CallExtern:
                 appendColored(out, ctx, SyntaxColor::Type, callConvName(ops[0].callConv));
                 appendSep(out);
-                appendImmediate(out, ctx, inlineRelocNaturalValue.empty() ? "reloc" : inlineRelocNaturalValue, hasInlineRelocation);
+                appendImmediate(out, ctx, inlineCallRelocValue.empty() ? "reloc" : inlineCallRelocValue, hasInlineRelocation);
                 break;
 
             case MicroInstrOpcode::JumpCond:

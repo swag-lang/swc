@@ -442,14 +442,11 @@ namespace
 
     void markDroppableParametersAddressable(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
-        SymbolFunction* dropFunction = nullptr;
-        uint32_t        sizeOf       = 0;
-        uint32_t        count        = 0;
         for (SymbolVariable* symVar : symbolFunc.parameters())
         {
             if (!symVar)
                 continue;
-            if (!codeGen.tryBuildLifecycleAction(symVar->typeRef(), CodeGen::LifecycleKind::Drop, dropFunction, sizeOf, count))
+            if (!codeGen.hasLifecycle(symVar->typeRef(), CodeGen::LifecycleKind::Drop))
                 continue;
             if (symVar->typeRef().isValid() && codeGen.typeMgr().get(symVar->typeRef()).isReference())
                 continue;

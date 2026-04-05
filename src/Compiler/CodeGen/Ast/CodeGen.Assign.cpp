@@ -480,24 +480,16 @@ namespace
         if (!targetType.isStruct())
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
 
-        const auto&     targetStruct   = targetType.payloadSymStruct();
-        const bool      isMove         = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw});
-        const bool      isMoveRaw      = modifierFlags.has(AstModifierFlagsE::MoveRaw);
-        const bool      skipTargetDrop = modifierFlags.has(AstModifierFlagsE::NoDrop);
-        SymbolFunction* targetDrop     = skipTargetDrop ? nullptr : const_cast<SymbolFunction*>(targetStruct.opDrop());
-        SymbolFunction* postLifecycle  = isMove ? const_cast<SymbolFunction*>(targetStruct.opPostMove()) : const_cast<SymbolFunction*>(targetStruct.opPostCopy());
-        SymbolFunction* sourceDrop     = nullptr;
-        const bool      canResetSource = isMove && !isMoveRaw && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
-        if (canResetSource)
-        {
-            uint32_t sourceSizeOf = 0;
-            uint32_t sourceCount  = 0;
-            codeGen.tryBuildLifecycleAction(rightTypeRef, CodeGen::LifecycleKind::Drop, sourceDrop, sourceSizeOf, sourceCount);
-            if (sourceCount != 1)
-                sourceDrop = nullptr;
-        }
+        const bool               isMove             = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw});
+        const bool               isMoveRaw          = modifierFlags.has(AstModifierFlagsE::MoveRaw);
+        const bool               skipTargetDrop     = modifierFlags.has(AstModifierFlagsE::NoDrop);
+        const CodeGen::LifecycleKind postKind       = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        const bool               hasTargetDrop      = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
+        const bool               hasPostLifecycle   = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
+        const bool               canResetSource     = isMove && !isMoveRaw && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
+        const bool               shouldResetSource  = canResetSource && codeGen.hasLifecycle(rightTypeRef, CodeGen::LifecycleKind::Drop);
 
-        if (!targetDrop && !postLifecycle && !sourceDrop)
+        if (!hasTargetDrop && !hasPostLifecycle && !shouldResetSource)
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
 
         AssignEncodeContext lifecycleCtx = encodeCtx;
@@ -528,15 +520,15 @@ namespace
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
         }
 
-        if (targetDrop)
-            SWC_RESULT(codeGen.emitLifecycleAction(*targetDrop, lifecycleCtx.target.payload.reg));
+        if (hasTargetDrop)
+            SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop, lifecycleCtx.target.payload.reg));
 
         SWC_RESULT(emitAssignEncoded(codeGen, lifecycleCtx, assignOp));
 
-        if (postLifecycle)
-            SWC_RESULT(codeGen.emitLifecycleAction(*postLifecycle, lifecycleCtx.target.payload.reg));
+        if (hasPostLifecycle)
+            SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, postKind, lifecycleCtx.target.payload.reg));
 
-        if (sourceDrop)
+        if (shouldResetSource)
             SWC_RESULT(emitStructDefaultValue(codeGen, rightTypeRef, stableRight.reg));
 
         if (doneLabel.isValid())

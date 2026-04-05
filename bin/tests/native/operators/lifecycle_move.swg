@@ -49,6 +49,37 @@ impl Tracked
     }
 }
 
+struct EmbeddedTracked
+{
+    inner: Tracked
+}
+
+struct EmbeddedTrackedWithOps
+{
+    inner: Tracked
+}
+
+impl EmbeddedTrackedWithOps
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropTrace = DropTrace * 100 + 90
+    }
+
+    mtd opPostCopy()
+    {
+        PostCopyCount += 1
+        .inner.value += 100
+    }
+
+    mtd opPostMove()
+    {
+        PostMoveCount += 1
+        .inner.value += 200
+    }
+}
+
 #[Swag.Overload]
 func assignTracked(dst: &Tracked, src: &&Tracked)
 {
@@ -157,6 +188,51 @@ func overloadMoveInfo()->LifecycleInfo
     var src = Tracked{9}
     assignTracked(&dst, moveref &src)
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func embeddedCopyAssignInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var dst = EmbeddedTracked{Tracked{1}}
+    var src = EmbeddedTracked{Tracked{2}}
+    dst = src
+    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func embeddedMoveAssignInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var dst = EmbeddedTracked{Tracked{7}}
+    var src = EmbeddedTracked{Tracked{3}}
+    dst = #move src
+    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func embeddedOuterCopyAssignInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var dst = EmbeddedTrackedWithOps{Tracked{4}}
+    var src = EmbeddedTrackedWithOps{Tracked{5}}
+    dst = src
+    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func embeddedOuterMoveAssignInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var dst = EmbeddedTrackedWithOps{Tracked{8}}
+    var src = EmbeddedTrackedWithOps{Tracked{3}}
+    dst = #move src
+    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func embeddedOuterNoDropCopyAssignInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var dst = EmbeddedTrackedWithOps{Tracked{6}}
+    var src = EmbeddedTrackedWithOps{Tracked{2}}
+    dst = #nodrop src
+    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 #test
@@ -278,4 +354,59 @@ func overloadMoveInfo()->LifecycleInfo
     @assert(v.dropTrace == 5)
     @assert(v.postCopy == 0)
     @assert(v.postMove == 1)
+}
+
+#test
+{
+    let v = embeddedCopyAssignInfo()
+    @assert(v.dst == 12)
+    @assert(v.src == 2)
+    @assert(v.drops == 1)
+    @assert(v.dropTrace == 1)
+    @assert(v.postCopy == 1)
+    @assert(v.postMove == 0)
+}
+
+#test
+{
+    let v = embeddedMoveAssignInfo()
+    @assert(v.dst == 23)
+    @assert(v.src == 5)
+    @assert(v.drops == 1)
+    @assert(v.dropTrace == 7)
+    @assert(v.postCopy == 0)
+    @assert(v.postMove == 1)
+}
+
+#test
+{
+    let v = embeddedOuterCopyAssignInfo()
+    @assert(v.dst == 115)
+    @assert(v.src == 5)
+    @assert(v.drops == 2)
+    @assert(v.dropTrace == 9004)
+    @assert(v.postCopy == 2)
+    @assert(v.postMove == 0)
+}
+
+#test
+{
+    let v = embeddedOuterMoveAssignInfo()
+    @assert(v.dst == 223)
+    @assert(v.src == 5)
+    @assert(v.drops == 2)
+    @assert(v.dropTrace == 9008)
+    @assert(v.postCopy == 0)
+    @assert(v.postMove == 2)
+}
+
+#test
+{
+    let v = embeddedOuterNoDropCopyAssignInfo()
+    @assert(v.dst == 112)
+    @assert(v.src == 2)
+    @assert(v.drops == 0)
+    @assert(v.dropTrace == 0)
+    @assert(v.postCopy == 2)
+    @assert(v.postMove == 0)
 }

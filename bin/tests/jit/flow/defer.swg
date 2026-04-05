@@ -33,6 +33,11 @@ impl DeferDropTracker
     }
 }
 
+struct DeferDropHolder
+{
+    inner: DeferDropTracker
+}
+
 struct DeferDropInfo
 {
     count: s32
@@ -69,6 +74,11 @@ func consumeDropTracker(value: DeferDropTracker)
 {
 }
 
+#[Swag.NoInline]
+func consumeDropHolder(value: DeferDropHolder)
+{
+}
+
 func deferParameterDropInfo()->DeferDropInfo
 {
     DropCount = 0
@@ -81,6 +91,25 @@ func deferParameterDropInfo()->DeferDropInfo
     {
         var x: DeferDropTracker
         consumeDropTracker(x)
+        result.count = cast(s32) DropCount
+    }
+
+    result.drops = DropCount
+    return result
+}
+
+func deferEmbeddedParameterDropInfo()->DeferDropInfo
+{
+    DropCount = 0
+    with var result: retval
+    {
+        .count = 0
+        .drops = 0
+    }
+
+    {
+        var x: DeferDropHolder
+        consumeDropHolder(x)
         result.count = cast(s32) DropCount
     }
 
@@ -380,12 +409,15 @@ func deferReturnDropInfo()->DeferDropInfo
     let v0 = deferBreakToScopeAndDrop()
     let v1 = deferParameterDropInfo()
     let v2 = deferReturnDropInfo()
+    let v3 = deferEmbeddedParameterDropInfo()
     @assert(v0.count == 2)
     @assert(v0.drops == 2)
     @assert(v1.count == 1)
     @assert(v1.drops == 2)
     @assert(v2.count == 42)
     @assert(v2.drops == 1)
+    @assert(v3.count == 1)
+    @assert(v3.drops == 2)
 }
 
 #test

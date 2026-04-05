@@ -76,6 +76,13 @@ struct CodeGenGvtdEntry
     uint32_t              count    = 0;
 };
 
+enum class CodeGenLifecycleKind : uint8_t
+{
+    Drop,
+    PostCopy,
+    PostMove,
+};
+
 struct ScopedDebugNoStep final
 {
     ScopedDebugNoStep(MicroBuilder& builder, const bool value) :
@@ -106,10 +113,9 @@ struct CodeGenDeferredAction
     AstNodeRef            deferStmtRef = AstNodeRef::invalid();
     AstNodeRef            bodyRef      = AstNodeRef::invalid();
     AstModifierFlags      modifierFlags;
-    const SymbolVariable* variable          = nullptr;
-    SymbolFunction*       lifecycleFunction = nullptr;
-    uint32_t              lifecycleSizeOf   = 0;
-    uint32_t              lifecycleCount    = 0;
+    const SymbolVariable* variable         = nullptr;
+    TypeRef               lifecycleTypeRef = TypeRef::invalid();
+    CodeGenLifecycleKind  lifecycleKind    = CodeGenLifecycleKind::Drop;
 };
 
 struct CodeGenDeferScope
@@ -180,12 +186,7 @@ private:
 class CodeGen
 {
 public:
-    enum class LifecycleKind : uint8_t
-    {
-        Drop,
-        PostCopy,
-        PostMove,
-    };
+    using LifecycleKind = CodeGenLifecycleKind;
 
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
@@ -319,9 +320,13 @@ public:
     MicroReg                  offsetAddressReg(MicroReg baseReg, uint32_t offset);
     CodeGenNodePayload        resolveLocalStackPayload(const SymbolVariable& sym, bool cache = true);
     MicroReg                  runtimeStorageAddressReg(AstNodeRef nodeRef);
+    bool                      hasLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind) const;
     bool                      tryBuildLifecycleAction(TypeRef typeRef, LifecycleKind lifecycleKind, SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const;
     Result                    emitLifecycleAction(SymbolFunction& calledFunction, MicroReg addressReg);
     Result                    emitLifecycleAction(SymbolFunction& calledFunction, MicroReg addressReg, uint32_t sizeOf, uint32_t count);
+    Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg);
+    Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, uint32_t count);
+    Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, MicroReg countReg);
     void                      pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
     Result                    popDeferScope();
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);

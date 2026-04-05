@@ -290,40 +290,10 @@ namespace
         return countReg;
     }
 
-    Result emitIntrinsicLifecycleLoop(CodeGen& codeGen, SymbolFunction& calledFunction, MicroReg baseAddressReg, const uint32_t sizeOf, MicroReg countReg)
-    {
-        SWC_ASSERT(baseAddressReg.isValid());
-        SWC_ASSERT(countReg.isValid());
-        SWC_ASSERT(sizeOf != 0);
-
-        MicroBuilder&       builder   = codeGen.builder();
-        const MicroLabelRef loopLabel = builder.createLabel();
-        const MicroLabelRef doneLabel = builder.createLabel();
-        const MicroReg      cursorReg = codeGen.nextVirtualIntRegister();
-        const MicroReg      iterReg   = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(cursorReg, baseAddressReg, MicroOpBits::B64);
-        builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
-        builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-
-        builder.placeLabel(loopLabel);
-        SWC_RESULT(codeGen.emitLifecycleAction(calledFunction, cursorReg));
-        builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
-        builder.placeLabel(doneLabel);
-        return Result::Continue;
-    }
-
     Result emitIntrinsicLifecycleStmt(CodeGen& codeGen, AstNodeRef whatRef, AstNodeRef countRef, const CodeGen::LifecycleKind lifecycleKind)
     {
         const TypeRef targetTypeRef = intrinsicLifecycleTargetTypeRef(codeGen, codeGen.viewType(whatRef).typeRef(), countRef.isValid());
-
-        SymbolFunction* lifecycleFunction = nullptr;
-        uint32_t        sizeOf            = 0;
-        uint32_t        count             = 0;
-        if (!codeGen.tryBuildLifecycleAction(targetTypeRef, lifecycleKind, lifecycleFunction, sizeOf, count))
+        if (!codeGen.hasLifecycle(targetTypeRef, lifecycleKind))
             return Result::Continue;
 
         const MicroReg addressReg = materializeIntrinsicLifecycleAddress(codeGen, whatRef);
@@ -334,10 +304,10 @@ namespace
         if (countRef.isValid())
         {
             const MicroReg countReg = materializeIntrinsicLifecycleCountReg(codeGen, countRef);
-            return emitIntrinsicLifecycleLoop(codeGen, *lifecycleFunction, addressReg, sizeOf, countReg);
+            return codeGen.emitLifecycle(targetTypeRef, lifecycleKind, addressReg, countReg);
         }
 
-        return codeGen.emitLifecycleAction(*lifecycleFunction, addressReg, sizeOf, count);
+        return codeGen.emitLifecycle(targetTypeRef, lifecycleKind, addressReg);
     }
 
     bool resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo)

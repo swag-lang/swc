@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
@@ -50,6 +51,68 @@ namespace
         if (sym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
             return true;
         return codeGen.localStackBaseReg().isValid() && sym.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal);
+    }
+
+    TypeRef normalizeLifecycleTypeRef(const CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid())
+            return rawTypeRef;
+        return typeRef;
+    }
+
+    SymbolFunction* resolveDirectLifecycleFunction(const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
+    {
+        if (!typeInfo.isStruct())
+            return nullptr;
+
+        switch (lifecycleKind)
+        {
+            case CodeGenLifecycleKind::Drop:
+                return typeInfo.payloadSymStruct().opDrop();
+            case CodeGenLifecycleKind::PostCopy:
+                return typeInfo.payloadSymStruct().opPostCopy();
+            case CodeGenLifecycleKind::PostMove:
+                return typeInfo.payloadSymStruct().opPostMove();
+        }
+
+        return nullptr;
+    }
+
+    bool hasLifecycleRec(const CodeGen& codeGen, TypeRef typeRef, const CodeGenLifecycleKind lifecycleKind)
+    {
+        typeRef = normalizeLifecycleTypeRef(codeGen, typeRef);
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isArray())
+        {
+            uint64_t totalCount = 1;
+            for (const uint64_t dim : typeInfo.payloadArrayDims())
+                totalCount *= dim;
+            if (!totalCount)
+                return false;
+
+            return hasLifecycleRec(codeGen, typeInfo.payloadArrayElemTypeRef(), lifecycleKind);
+        }
+
+        if (!typeInfo.isStruct())
+            return false;
+
+        if (resolveDirectLifecycleFunction(typeInfo, lifecycleKind))
+            return true;
+
+        for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+        {
+            if (field && hasLifecycleRec(codeGen, field->typeRef(), lifecycleKind))
+                return true;
+        }
+
+        return false;
     }
 
     bool tryBuildLifecycleActionRec(const CodeGen&               codeGen,
@@ -98,19 +161,7 @@ namespace
         if (!typeInfo.isStruct())
             return false;
 
-        SymbolFunction* lifecycleFunction = nullptr;
-        switch (lifecycleKind)
-        {
-            case CodeGen::LifecycleKind::Drop:
-                lifecycleFunction = typeInfo.payloadSymStruct().opDrop();
-                break;
-            case CodeGen::LifecycleKind::PostCopy:
-                lifecycleFunction = typeInfo.payloadSymStruct().opPostCopy();
-                break;
-            case CodeGen::LifecycleKind::PostMove:
-                lifecycleFunction = typeInfo.payloadSymStruct().opPostMove();
-                break;
-        }
+        SymbolFunction* lifecycleFunction = resolveDirectLifecycleFunction(typeInfo, lifecycleKind);
 
         if (!lifecycleFunction)
             return false;
@@ -125,21 +176,77 @@ namespace
         return true;
     }
 
+    Result emitLifecycleRec(CodeGen& codeGen, TypeRef typeRef, const CodeGenLifecycleKind lifecycleKind, const MicroReg addressReg)
+    {
+        typeRef = normalizeLifecycleTypeRef(codeGen, typeRef);
+        if (!typeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isArray())
+        {
+            uint64_t totalCount = 1;
+            for (const uint64_t dim : typeInfo.payloadArrayDims())
+                totalCount *= dim;
+            if (!totalCount)
+                return Result::Continue;
+
+            SWC_ASSERT(totalCount <= std::numeric_limits<uint32_t>::max());
+            return codeGen.emitLifecycle(typeInfo.payloadArrayElemTypeRef(), lifecycleKind, addressReg, static_cast<uint32_t>(totalCount));
+        }
+
+        if (!typeInfo.isStruct())
+            return Result::Continue;
+
+        SymbolFunction* directLifecycle = resolveDirectLifecycleFunction(typeInfo, lifecycleKind);
+        const auto&     fields          = typeInfo.payloadSymStruct().fields();
+
+        // A user-defined drop must see its fields still alive. Post-copy and post-move run after the
+        // contained fields have repaired their own state.
+        if (lifecycleKind == CodeGenLifecycleKind::Drop && directLifecycle)
+            SWC_RESULT(codeGen.emitLifecycleAction(*directLifecycle, addressReg));
+
+        if (lifecycleKind == CodeGenLifecycleKind::Drop)
+        {
+            for (size_t i = fields.size(); i != 0; --i)
+            {
+                const SymbolVariable* field = fields[i - 1];
+                if (!field || !codeGen.hasLifecycle(field->typeRef(), lifecycleKind))
+                    continue;
+
+                const MicroReg fieldAddressReg = field->offset() ? codeGen.offsetAddressReg(addressReg, field->offset()) : addressReg;
+                SWC_RESULT(codeGen.emitLifecycle(field->typeRef(), lifecycleKind, fieldAddressReg));
+            }
+        }
+        else
+        {
+            for (const SymbolVariable* field : fields)
+            {
+                if (!field || !codeGen.hasLifecycle(field->typeRef(), lifecycleKind))
+                    continue;
+
+                const MicroReg fieldAddressReg = field->offset() ? codeGen.offsetAddressReg(addressReg, field->offset()) : addressReg;
+                SWC_RESULT(codeGen.emitLifecycle(field->typeRef(), lifecycleKind, fieldAddressReg));
+            }
+
+            if (directLifecycle)
+                SWC_RESULT(codeGen.emitLifecycleAction(*directLifecycle, addressReg));
+        }
+
+        return Result::Continue;
+    }
+
     bool functionHasImplicitDrops(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
-        SymbolFunction* dropFunction = nullptr;
-        uint32_t        sizeOf       = 0;
-        uint32_t        count        = 0;
-
         for (const SymbolVariable* symVar : symbolFunc.parameters())
         {
-            if (symVar && codeGen.tryBuildLifecycleAction(symVar->typeRef(), CodeGen::LifecycleKind::Drop, dropFunction, sizeOf, count))
+            if (symVar && codeGen.hasLifecycle(symVar->typeRef(), CodeGen::LifecycleKind::Drop))
                 return true;
         }
 
         for (const SymbolVariable* symVar : symbolFunc.localVariables())
         {
-            if (symVar && codeGen.tryBuildLifecycleAction(symVar->typeRef(), CodeGen::LifecycleKind::Drop, dropFunction, sizeOf, count))
+            if (symVar && codeGen.hasLifecycle(symVar->typeRef(), CodeGen::LifecycleKind::Drop))
                 return true;
         }
 
@@ -548,6 +655,11 @@ bool CodeGen::tryBuildLifecycleAction(const TypeRef typeRef, const LifecycleKind
     return tryBuildLifecycleActionRec(*this, typeRef, lifecycleKind, outFunction, outSizeOf, outCount);
 }
 
+bool CodeGen::hasLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleKind) const
+{
+    return hasLifecycleRec(*this, typeRef, lifecycleKind);
+}
+
 Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroReg addressReg)
 {
     SWC_ASSERT(addressReg.isValid());
@@ -572,6 +684,11 @@ Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroR
     return Result::Continue;
 }
 
+Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleKind, const MicroReg addressReg)
+{
+    return emitLifecycleRec(*this, typeRef, lifecycleKind, addressReg);
+}
+
 Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroReg addressReg, const uint32_t sizeOf, const uint32_t count)
 {
     if (!count)
@@ -591,6 +708,68 @@ Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroR
             builder().emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
     }
 
+    return Result::Continue;
+}
+
+Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleKind, const MicroReg addressReg, const uint32_t count)
+{
+    if (!count)
+        return Result::Continue;
+
+    if (count == 1)
+        return emitLifecycle(typeRef, lifecycleKind, addressReg);
+
+    const TypeRef normalizedTypeRef = normalizeLifecycleTypeRef(*this, typeRef);
+    SWC_ASSERT(normalizedTypeRef.isValid());
+    if (normalizedTypeRef.isInvalid())
+        return Result::Continue;
+
+    auto&          mutableCtx = const_cast<TaskContext&>(ctx());
+    const TypeInfo& typeInfo   = typeMgr().get(normalizedTypeRef);
+    const uint64_t  sizeOf     = typeInfo.sizeOf(mutableCtx);
+    SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
+
+    const MicroReg cursorReg = nextVirtualIntRegister();
+    builder().emitLoadRegReg(cursorReg, addressReg, MicroOpBits::B64);
+    for (uint32_t i = 0; i < count; i++)
+    {
+        SWC_RESULT(emitLifecycle(normalizedTypeRef, lifecycleKind, cursorReg));
+        if (i + 1 != count)
+            builder().emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
+    }
+
+    return Result::Continue;
+}
+
+Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleKind, const MicroReg addressReg, const MicroReg countReg)
+{
+    const TypeRef normalizedTypeRef = normalizeLifecycleTypeRef(*this, typeRef);
+    SWC_ASSERT(normalizedTypeRef.isValid());
+    if (normalizedTypeRef.isInvalid())
+        return Result::Continue;
+
+    auto&          mutableCtx = const_cast<TaskContext&>(ctx());
+    const TypeInfo& typeInfo   = typeMgr().get(normalizedTypeRef);
+    const uint64_t  sizeOf     = typeInfo.sizeOf(mutableCtx);
+    SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
+
+    MicroBuilder& builder   = this->builder();
+    const auto    loopLabel = builder.createLabel();
+    const auto    doneLabel = builder.createLabel();
+    const auto    cursorReg = nextVirtualIntRegister();
+    const auto    iterReg   = nextVirtualIntRegister();
+    builder.emitLoadRegReg(cursorReg, addressReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
+    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+    builder.placeLabel(loopLabel);
+    SWC_RESULT(emitLifecycle(normalizedTypeRef, lifecycleKind, cursorReg));
+    builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+    builder.placeLabel(doneLabel);
     return Result::Continue;
 }
 
@@ -639,23 +818,19 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
         !symVar.hasExtraFlag(SymbolVariableFlagsE::Initialized))
         return;
 
-    SymbolFunction* dropFunction = nullptr;
-    uint32_t        sizeOf       = 0;
-    uint32_t        count        = 0;
-    if (!tryBuildLifecycleAction(symVar.typeRef(), LifecycleKind::Drop, dropFunction, sizeOf, count))
+    if (!hasLifecycle(symVar.typeRef(), LifecycleKind::Drop))
         return;
 
     SWC_ASSERT(!deferScopes_.empty());
     if (deferScopes_.empty())
         return;
 
-    auto& action             = deferScopes_.back().actions.emplace_back();
-    action.kind              = CodeGenDeferredAction::Kind::ImplicitDrop;
-    action.variable          = &symVar;
-    action.lifecycleFunction = dropFunction;
-    action.lifecycleSizeOf   = sizeOf;
-    action.lifecycleCount    = count;
-    action.modifierFlags     = AstModifierFlagsE::Zero;
+    auto& action            = deferScopes_.back().actions.emplace_back();
+    action.kind             = CodeGenDeferredAction::Kind::ImplicitDrop;
+    action.variable         = &symVar;
+    action.lifecycleTypeRef = symVar.typeRef();
+    action.lifecycleKind    = LifecycleKind::Drop;
+    action.modifierFlags    = AstModifierFlagsE::Zero;
 }
 
 void CodeGen::registerImplicitParameterDrops()
@@ -686,14 +861,14 @@ namespace
 
                 case CodeGenDeferredAction::Kind::ImplicitDrop:
                 {
-                    if (!action.variable || !action.lifecycleFunction)
+                    if (!action.variable || action.lifecycleTypeRef.isInvalid())
                         continue;
 
                     CodeGenNodePayload variablePayload;
                     if (!resolveDeferredVariableAddress(codeGen, *action.variable, variablePayload))
                         continue;
 
-                    SWC_RESULT(codeGen.emitLifecycleAction(*action.lifecycleFunction, variablePayload.reg, action.lifecycleSizeOf, action.lifecycleCount));
+                    SWC_RESULT(codeGen.emitLifecycle(action.lifecycleTypeRef, action.lifecycleKind, variablePayload.reg));
                     break;
                 }
             }

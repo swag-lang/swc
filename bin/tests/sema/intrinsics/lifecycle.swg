@@ -50,6 +50,42 @@ impl Tracked
     }
 }
 
+struct EmbeddedTracked
+{
+    inner: Tracked
+}
+
+struct EmbeddedTrackedArray
+{
+    inner: [2] Tracked
+}
+
+struct EmbeddedTrackedWithOps
+{
+    inner: Tracked
+}
+
+impl EmbeddedTrackedWithOps
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropTrace = DropTrace * 100 + 90
+    }
+
+    mtd opPostCopy()
+    {
+        PostCopyCount += 1
+        .inner.value += 100
+    }
+
+    mtd opPostMove()
+    {
+        PostMoveCount += 1
+        .inner.value += 200
+    }
+}
+
 func intrinsicSingleInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
@@ -78,6 +114,27 @@ func intrinsicArrayCountInfo()->IntrinsicInfo
     @postmove(&arr[0], count)
     @drop(&arr[0], count)
     return {arr[0].value, arr[1].value, arr[2].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicEmbeddedInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+    var a = EmbeddedTracked{Tracked{1}}
+    var b = EmbeddedTrackedWithOps{Tracked{2}}
+    var c = EmbeddedTrackedArray{[Tracked{3}, Tracked{4}]}
+    @postcopy(a)
+    @postmove(b)
+    @drop(c)
+    return {a.inner.value, b.inner.value, c.inner[1].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicEmbeddedOuterCopyDropInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+    var a = EmbeddedTrackedWithOps{Tracked{7}}
+    @postcopy(a)
+    @drop(a)
+    return {a.inner.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 #test
@@ -112,4 +169,26 @@ func intrinsicArrayCountInfo()->IntrinsicInfo
     #assert(V.dropTrace == 2122)
     #assert(V.postCopy == 0)
     #assert(V.postMove == 2)
+}
+
+#test
+{
+    const V = #run intrinsicEmbeddedInfo()
+    #assert(V.first == 11)
+    #assert(V.second == 222)
+    #assert(V.third == 4)
+    #assert(V.drops == 2)
+    #assert(V.dropTrace == 304)
+    #assert(V.postCopy == 1)
+    #assert(V.postMove == 2)
+}
+
+#test
+{
+    const V = #run intrinsicEmbeddedOuterCopyDropInfo()
+    #assert(V.first == 117)
+    #assert(V.drops == 2)
+    #assert(V.dropTrace == 9117)
+    #assert(V.postCopy == 2)
+    #assert(V.postMove == 0)
 }

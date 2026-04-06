@@ -11,6 +11,7 @@ public:
 
 private:
     std::unordered_map<MicroReg, MicroReg> aliases_;
+    std::unordered_set<MicroLabelRef>      referencedLabels_;
 };
 
 SWC_END_NAMESPACE();

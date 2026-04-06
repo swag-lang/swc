@@ -1660,6 +1660,201 @@ namespace
         return true;
     }
 
+    // Checks if a condition only depends on ZF (zero flag).
+    bool isZeroFlagOnlyCondition(MicroCond cond)
+    {
+        switch (cond)
+        {
+            case MicroCond::Equal:
+            case MicroCond::NotEqual:
+            case MicroCond::Zero:
+            case MicroCond::NotZero:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // Checks if a MicroOp writes a result back to the register AND sets ZF
+    // based on whether that result is zero (equivalent to "cmp result, 0").
+    bool isResultWriteBackOp(MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::Add:
+            case MicroOp::Subtract:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
+            case MicroOp::Negate:
+            case MicroOp::BitwiseNot:
+                return true;
+            // Test, Compare, Exchange do NOT write back the result.
+            default:
+                return false;
+        }
+    }
+
+    // Checks if the flag-defining instruction sets ZF based on its written result.
+    bool definesZeroFlagFromResult(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::OpBinaryRegImm:
+                return ops && isResultWriteBackOp(ops[2].microOp);
+            case MicroInstrOpcode::OpBinaryRegReg:
+                return ops && isResultWriteBackOp(ops[3].microOp);
+            case MicroInstrOpcode::OpUnaryReg:
+                return ops && isResultWriteBackOp(ops[2].microOp);
+            case MicroInstrOpcode::ClearReg:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    MicroReg getDefinedRegister(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops)
+            return MicroReg::invalid();
+
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::OpBinaryRegImm:
+            case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpUnaryReg:
+            case MicroInstrOpcode::ClearReg:
+                return ops[0].reg;
+            default:
+                return MicroReg::invalid();
+        }
+    }
+
+    MicroOpBits getDefinedOpBits(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops)
+            return MicroOpBits::Zero;
+
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::OpBinaryRegImm:
+            case MicroInstrOpcode::OpUnaryReg:
+                return ops[1].opBits;
+            case MicroInstrOpcode::OpBinaryRegReg:
+                return ops[2].opBits;
+            case MicroInstrOpcode::ClearReg:
+                return ops[1].opBits;
+            default:
+                return MicroOpBits::Zero;
+        }
+    }
+
+    // Eliminate "cmp r, 0" when the immediately preceding instruction already defines
+    // CPU flags on the same register with the same width, and ALL subsequent flag consumers
+    // only test ZF (Equal/NotEqual/Zero/NotZero).
+    bool eliminateRedundantCompareZeroAfterFlagDef(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
+    {
+        const MicroPassContext&  context = pass.context();
+        const MicroInstrRef      instRef = cursor.instRef;
+        const MicroInstr&        inst    = *(cursor.inst);
+        const MicroInstrOperand* ops     = cursor.ops;
+        if (!ops)
+            return false;
+
+        if (inst.op != MicroInstrOpcode::CmpRegImm)
+            return false;
+
+        // Only handle "cmp r, 0".
+        if (ops[2].valueU64 != 0)
+            return false;
+
+        const MicroReg    cmpReg    = ops[0].reg;
+        const MicroOpBits cmpOpBits = ops[1].opBits;
+        if (!cmpReg.isValid() || !cmpReg.isInt())
+            return false;
+
+        // Find the previous instruction.
+        const MicroInstrRef previousRef = context.instructions->findPreviousInstructionRef(instRef);
+        if (previousRef.isInvalid())
+            return false;
+
+        const MicroInstr* prevInst = context.instructions->ptr(previousRef);
+        if (!prevInst)
+            return false;
+
+        // The previous instruction must define flags and set them based on its result.
+        if (!MicroInstrInfo::definesCpuFlags(*prevInst))
+            return false;
+
+        const MicroInstrOperand* prevOps = prevInst->ops(*context.operands);
+        if (!definesZeroFlagFromResult(*prevInst, prevOps))
+            return false;
+        if (!prevOps)
+            return false;
+
+        // Must define the same register with the same width.
+        const MicroReg    prevDefReg = getDefinedRegister(*prevInst, prevOps);
+        const MicroOpBits prevBits   = getDefinedOpBits(*prevInst, prevOps);
+        if (prevDefReg != cmpReg || prevBits != cmpOpBits)
+            return false;
+
+        // All subsequent flag consumers must only test ZF.
+        for (auto scanIt = cursor.nextIt; scanIt != cursor.endIt; ++scanIt)
+        {
+            const MicroInstr& scanInst = *scanIt;
+
+            if (MicroInstrInfo::definesCpuFlags(scanInst))
+                break;
+
+            const MicroInstrUseDef scanUseDef = scanInst.collectUseDef(*context.operands, context.encoder);
+            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, scanUseDef))
+                break;
+
+            if (!MicroInstrInfo::usesCpuFlags(scanInst))
+                continue;
+
+            const MicroInstrOperand* scanOps = scanInst.ops(*context.operands);
+            if (!scanOps)
+                return false;
+
+            // JumpCond and JumpCondImm have the condition in ops[0].cpuCond.
+            if (scanInst.op == MicroInstrOpcode::JumpCond || scanInst.op == MicroInstrOpcode::JumpCondImm)
+            {
+                if (!isZeroFlagOnlyCondition(scanOps[0].cpuCond))
+                    return false;
+                continue;
+            }
+
+            // SetCondReg has the condition in ops[1].cpuCond.
+            if (scanInst.op == MicroInstrOpcode::SetCondReg)
+            {
+                if (!isZeroFlagOnlyCondition(scanOps[1].cpuCond))
+                    return false;
+                continue;
+            }
+
+            // LoadCondRegReg has the condition in ops[2].cpuCond.
+            if (scanInst.op == MicroInstrOpcode::LoadCondRegReg)
+            {
+                if (!isZeroFlagOnlyCondition(scanOps[2].cpuCond))
+                    return false;
+                continue;
+            }
+
+            // Unknown flag consumer - bail out.
+            return false;
+        }
+
+        context.instructions->erase(instRef);
+        return true;
+    }
+
     bool removeDeadCompareInstruction(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)
     {
         const MicroPassContext&  context = pass.context();
@@ -2116,6 +2311,11 @@ void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
     // Purpose: remove a stack load restored unchanged later, with no observable intervening effect.
     // Example: mov rax, [rsp+56]; mov rcx, [rsp+64]; mov [rsp+56], rax -> mov rcx, [rsp+64]
     outRules.emplace_back(RuleTarget::LoadRegMem, removeRedundantStackLoadStorePair);
+
+    // Rule: eliminate_redundant_compare_zero_after_flag_def
+    // Purpose: remove cmp r, 0 when the previous instruction already defines flags on the same register.
+    // Example: add r10, 3; cmp r10, 0; je L0 -> add r10, 3; je L0
+    outRules.emplace_back(RuleTarget::CmpRegImm, eliminateRedundantCompareZeroAfterFlagDef);
 
     // Rule: remove_dead_compare_instruction
     // Purpose: remove compare operations whose flags are never consumed.

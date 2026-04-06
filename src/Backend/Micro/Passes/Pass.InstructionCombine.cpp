@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Memory/MemoryProfile.h"
 
-// Combines consecutive immediate ops on the same destination into one op.
+// Combines nearby immediate ops on the same destination into one op.
 // Example: add r1, 2; add r1, 3  ->  add r1, 5.
 // Example: xor r1, 7; xor r1, 7  ->  <remove both or replace with no-op>.
-// This reduces instruction count and pressure on later passes.
+// Looks through intervening instructions that don't touch the target register.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -135,41 +136,54 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
             continue;
         }
 
-        auto nextIt = it;
-        ++nextIt;
-        if (nextIt == storage.view().end())
+        MicroInstrOperand* firstOps   = first.ops(operands);
+        const MicroReg     targetReg  = firstOps[0].reg;
+        const MicroOpBits  targetBits = firstOps[1].opBits;
+
+        // Search forward for the next OpBinaryRegImm on the same register,
+        // skipping instructions that don't touch it.
+        constexpr uint32_t kMaxLookahead = 8;
+        uint32_t           lookahead     = 0;
+        bool               combined      = false;
+        auto               scanIt        = it;
+        ++scanIt;
+
+        for (; scanIt != storage.view().end() && lookahead < kMaxLookahead; ++scanIt, ++lookahead)
         {
-            ++it;
-            continue;
+            const MicroInstr& candidate = *scanIt;
+
+            // Found a combinable instruction.
+            if (candidate.op == MicroInstrOpcode::OpBinaryRegImm)
+            {
+                const MicroInstrOperand* candidateOps = candidate.ops(operands);
+                if (candidateOps[0].reg == targetReg && candidateOps[1].opBits == targetBits)
+                {
+                    MicroOp  combinedOp    = firstOps[2].microOp;
+                    uint64_t combinedValue = firstOps[3].valueU64;
+                    if (combineImmediateOperations(combinedOp, combinedValue, firstOps[2].microOp, firstOps[3].valueU64, candidateOps[2].microOp, candidateOps[3].valueU64, targetBits))
+                    {
+                        firstOps[2].microOp  = combinedOp;
+                        firstOps[3].valueU64 = combinedValue;
+                        storage.erase(scanIt.current);
+                        context.passChanged = true;
+                        combined            = true;
+                    }
+                    break;
+                }
+            }
+
+            // Stop if the intervening instruction touches our target register.
+            const MicroInstrUseDef useDef = candidate.collectUseDef(operands, context.encoder);
+            if (microRegSpanContains(useDef.uses, targetReg) || microRegSpanContains(useDef.defs, targetReg))
+                break;
+
+            // Stop at control flow barriers.
+            if (MicroInstrInfo::isLocalDataflowBarrier(candidate, useDef))
+                break;
         }
 
-        const MicroInstr& second = *nextIt;
-        if (second.op != MicroInstrOpcode::OpBinaryRegImm)
-        {
+        if (!combined)
             ++it;
-            continue;
-        }
-
-        MicroInstrOperand*       firstOps  = first.ops(operands);
-        const MicroInstrOperand* secondOps = second.ops(operands);
-        if (firstOps[0].reg != secondOps[0].reg || firstOps[1].opBits != secondOps[1].opBits)
-        {
-            ++it;
-            continue;
-        }
-
-        MicroOp  combinedOp    = firstOps[2].microOp;
-        uint64_t combinedValue = firstOps[3].valueU64;
-        if (!combineImmediateOperations(combinedOp, combinedValue, firstOps[2].microOp, firstOps[3].valueU64, secondOps[2].microOp, secondOps[3].valueU64, firstOps[1].opBits))
-        {
-            ++it;
-            continue;
-        }
-
-        firstOps[2].microOp  = combinedOp;
-        firstOps[3].valueU64 = combinedValue;
-        storage.erase(nextIt.current);
-        context.passChanged = true;
     }
 
     return Result::Continue;

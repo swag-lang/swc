@@ -95,8 +95,12 @@ bool MicroLoadStoreForwardingPass::canCrossInstruction(const MicroInstr& store, 
     SWC_ASSERT(context_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);
 
+    const MicroInstrOperand* scanOps = scanInst.ops(*operands_);
+    if (MicroPassHelpers::shouldClearDataflowStateOnControlFlowBoundary(scanInst, scanOps, referencedLabels_))
+        return false;
+
     const MicroInstrUseDef useDef = scanInst.collectUseDef(*operands_, context_->encoder);
-    if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+    if (useDef.isCall)
         return false;
     if (MicroInstrInfo::isMemoryWriteInstruction(scanInst))
         return false;

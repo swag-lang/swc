@@ -142,6 +142,31 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroLoadStoreForwarding_DoesNotPromoteAcrossLabelBarrier)
 {
+    // A referenced label (jump target) must stop stack slot promotion.
+    MicroBuilder        builder(ctx);
+    constexpr MicroReg  rsp      = MicroReg::intReg(4);
+    constexpr MicroReg  src      = MicroReg::intReg(8);
+    constexpr MicroReg  dst      = MicroReg::intReg(11);
+    const MicroLabelRef labelRef = builder.createLabel();
+
+    builder.emitLoadMemReg(rsp, 32, src, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, labelRef);
+    builder.placeLabel(labelRef);
+    builder.emitLoadRegMem(dst, rsp, 32, MicroOpBits::B64);
+
+    SWC_RESULT(runLoadStoreForwardingPass(builder));
+
+    const MicroInstr* inst3 = instructionAt(builder, 3);
+    if (!inst3)
+        return Result::Error;
+    if (inst3->op != MicroInstrOpcode::LoadRegMem)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroLoadStoreForwarding_PromotesAcrossUnreferencedLabel)
+{
+    // An unreferenced label (fall-through only) allows stack slot promotion.
     MicroBuilder        builder(ctx);
     constexpr MicroReg  rsp      = MicroReg::intReg(4);
     constexpr MicroReg  src      = MicroReg::intReg(8);
@@ -154,10 +179,12 @@ SWC_TEST_BEGIN(MicroLoadStoreForwarding_DoesNotPromoteAcrossLabelBarrier)
 
     SWC_RESULT(runLoadStoreForwardingPass(builder));
 
-    const MicroInstr* inst2 = instructionAt(builder, 2);
+    const MicroOperandStorage& operands = builder.operands();
+    const MicroInstr*          inst2    = instructionAt(builder, 2);
     if (!inst2)
         return Result::Error;
-    if (inst2->op != MicroInstrOpcode::LoadRegMem)
+    const MicroInstrOperand* ops2 = inst2->ops(operands);
+    if (inst2->op != MicroInstrOpcode::LoadRegReg || ops2[1].reg != src)
         return Result::Error;
 }
 SWC_TEST_END()

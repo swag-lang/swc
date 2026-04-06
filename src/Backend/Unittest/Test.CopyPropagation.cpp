@@ -83,6 +83,35 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroCopyPropagation_StopsAtLabel)
 {
+    // A referenced label (jump target) must stop alias propagation.
+    MicroBuilder        builder(ctx);
+    constexpr MicroReg  r8  = MicroReg::intReg(8);
+    constexpr MicroReg  r9  = MicroReg::intReg(9);
+    constexpr MicroReg  r10 = MicroReg::intReg(10);
+    const MicroLabelRef mid = builder.createLabel();
+
+    builder.emitLoadRegImm(r8, ApInt(3, 64), MicroOpBits::B64);
+    builder.emitLoadRegReg(r9, r8, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, mid);
+    builder.placeLabel(mid);
+    builder.emitCmpRegReg(r10, r9, MicroOpBits::B64);
+
+    SWC_RESULT(runCopyPropagationPass(builder));
+
+    const MicroOperandStorage& operands = builder.operands();
+    const MicroInstr*          inst4    = instructionAt(builder, 4);
+    if (!inst4)
+        return Result::Error;
+
+    const MicroInstrOperand* ops4 = inst4->ops(operands);
+    if (inst4->op != MicroInstrOpcode::CmpRegReg || ops4[1].reg != r9)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroCopyPropagation_PropagatesThroughUnreferencedLabel)
+{
+    // An unreferenced label (fall-through only) allows alias propagation.
     MicroBuilder        builder(ctx);
     constexpr MicroReg  r8  = MicroReg::intReg(8);
     constexpr MicroReg  r9  = MicroReg::intReg(9);
@@ -102,7 +131,7 @@ SWC_TEST_BEGIN(MicroCopyPropagation_StopsAtLabel)
         return Result::Error;
 
     const MicroInstrOperand* ops3 = inst3->ops(operands);
-    if (inst3->op != MicroInstrOpcode::CmpRegReg || ops3[1].reg != r9)
+    if (inst3->op != MicroInstrOpcode::CmpRegReg || ops3[1].reg != r8)
         return Result::Error;
 }
 SWC_TEST_END()

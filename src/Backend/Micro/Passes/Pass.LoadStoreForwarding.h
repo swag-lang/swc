@@ -62,6 +62,8 @@ private:
     MicroPassContext*    context_  = nullptr;
     MicroStorage*        storage_  = nullptr;
     MicroOperandStorage* operands_ = nullptr;
+
+    std::unordered_set<MicroLabelRef> referencedLabels_;
 };
 
 SWC_END_NAMESPACE();

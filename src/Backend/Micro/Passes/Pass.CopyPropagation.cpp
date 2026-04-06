@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.CopyPropagation.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Memory/MemoryProfile.h"
 
 // Propagates register aliases created by copy/move instructions.
@@ -53,11 +54,16 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
 
     aliases_.clear();
     aliases_.reserve(64);
+    referencedLabels_.clear();
+    referencedLabels_.reserve(context.instructions->count());
+    MicroPassHelpers::collectReferencedLabels(*context.instructions, *context.operands, referencedLabels_, true);
 
     MicroOperandStorage& operands = *context.operands;
     for (const MicroInstr& inst : context.instructions->view())
     {
-        if (inst.op == MicroInstrOpcode::Label)
+        const MicroInstrOperand* ops = inst.ops(operands);
+
+        if (MicroPassHelpers::shouldClearDataflowStateOnControlFlowBoundary(inst, ops, referencedLabels_))
         {
             aliases_.clear();
             continue;
@@ -90,14 +96,15 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
 
         if (inst.op == MicroInstrOpcode::LoadRegReg)
         {
-            const MicroInstrOperand* instOps = inst.ops(operands);
-            const MicroReg           dstReg  = instOps[0].reg;
-            const MicroReg           srcReg  = resolveAlias(aliases_, instOps[1].reg);
-            if (dstReg != srcReg && dstReg.isSameClass(srcReg) && instOps[2].opBits == MicroOpBits::B64)
+            const MicroReg dstReg = ops[0].reg;
+            const MicroReg srcReg = resolveAlias(aliases_, ops[1].reg);
+            if (dstReg != srcReg && dstReg.isSameClass(srcReg) && ops[2].opBits == MicroOpBits::B64)
                 aliases_[dstReg] = srcReg;
         }
 
-        if (MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
+        // Calls clobber registers, invalidating all aliases.
+        // Labels and terminators are handled by shouldClearDataflowStateOnControlFlowBoundary above.
+        if (useDef.isCall)
             aliases_.clear();
     }
 

@@ -448,7 +448,14 @@ namespace
             case MicroOp::ShiftLeft:
             case MicroOp::ShiftRight:
             case MicroOp::ShiftArithmeticRight:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
                 return value == 0;
+            case MicroOp::MultiplySigned:
+            case MicroOp::MultiplyUnsigned:
+            case MicroOp::DivideSigned:
+            case MicroOp::DivideUnsigned:
+                return value == 1;
             case MicroOp::And:
             {
                 const uint64_t mask = getBitsMask(opBits);

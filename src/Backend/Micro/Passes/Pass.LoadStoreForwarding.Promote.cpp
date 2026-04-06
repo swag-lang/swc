@@ -24,8 +24,14 @@ bool MicroLoadStoreForwardingPass::promoteStackSlotLoads() const
             continue;
         }
 
+        if (MicroPassHelpers::shouldClearDataflowStateOnControlFlowBoundary(inst, ops, referencedLabels_))
+        {
+            slotValues.clear();
+            continue;
+        }
+
         const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context_->encoder);
-        if (MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
+        if (useDef.isCall)
         {
             slotValues.clear();
             continue;

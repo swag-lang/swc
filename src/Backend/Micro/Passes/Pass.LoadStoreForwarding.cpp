@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Memory/MemoryProfile.h"
 
 // Forwards recent store values into matching following loads.
@@ -15,6 +16,9 @@ void MicroLoadStoreForwardingPass::initRunState(MicroPassContext& context)
     context_  = &context;
     storage_  = context.instructions;
     operands_ = context.operands;
+    referencedLabels_.clear();
+    referencedLabels_.reserve(storage_->count());
+    MicroPassHelpers::collectReferencedLabels(*storage_, *operands_, referencedLabels_, true);
 }
 
 Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)

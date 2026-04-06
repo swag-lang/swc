@@ -3,6 +3,7 @@
 #include "Compiler/Lexer/LangSpec.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
@@ -1199,6 +1200,7 @@ void Lexer::tokenizeRaw(TaskContext& ctx, SourceView& srcView)
 
 void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
 {
+    SWC_MEM_SCOPE("Frontend/Lexer");
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeLexer);
 #endif

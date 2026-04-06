@@ -6,6 +6,7 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Timer.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -79,11 +80,9 @@ Result SourceFile::loadContent(TaskContext& ctx)
     if (!content_.empty())
         return Result::Continue;
 
+    SWC_MEM_SCOPE("Frontend/LoadFile");
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeLoadFile);
-#endif
-
-#if SWC_HAS_STATS
     Stats::get().numFiles.fetch_add(1);
 #endif
 

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Support/Memory/MemoryProfile.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -28,6 +29,7 @@ SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root) :
 
 JobResult SemaJob::exec()
 {
+    SWC_MEM_SCOPE("Sema");
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeSema);
 #endif

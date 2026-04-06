@@ -11,6 +11,7 @@
 #include "Main/Stats.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedAction.h"
 
@@ -359,6 +360,7 @@ bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const ui
 
 Result NativeBackendBuilder::run()
 {
+    SWC_MEM_SCOPE("Backend/Native");
     SWC_RESULT(validateTarget());
 
     const NativeArtifactBuilder artifactBuilder(*this);

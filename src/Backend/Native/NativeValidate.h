@@ -15,8 +15,8 @@ public:
 private:
     bool isNativeStaticType(TypeRef typeRef) const;
     void validateRelocations(const SymbolFunction& owner, const MachineCode& code) const;
-    bool validateConstantRelocation(const MicroRelocation& relocation) const;
-    bool validateNativeStaticPayload(TypeRef typeRef, uint32_t shardIndex, Ref baseOffset, ByteSpan bytes) const;
+    void validateConstantRelocation(const MicroRelocation& relocation) const;
+    void validateNativeStaticPayload(TypeRef typeRef, uint32_t shardIndex, Ref baseOffset, ByteSpan bytes) const;
     bool findDataSegmentRelocation(uint32_t& outTargetOffset, uint32_t shardIndex, uint32_t offset) const;
     bool findFunctionSymbolRelocation(const SymbolFunction*& outTargetSymbol, uint32_t shardIndex, uint32_t offset) const;
 

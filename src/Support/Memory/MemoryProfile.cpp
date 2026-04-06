@@ -6,8 +6,6 @@
 #include "Main/Stats.h"
 #endif
 
-#include "Support/Os/Os.h"
-
 SWC_BEGIN_NAMESPACE();
 
 namespace
@@ -16,7 +14,7 @@ namespace
     {
         void*    rawPtr        = nullptr;
         size_t   trackedBytes  = 0;
-        uint32_t signatureSlot = std::numeric_limits<uint32_t>::max();
+        uint32_t categoryIndex = std::numeric_limits<uint32_t>::max();
         uint32_t flags         = 0;
     };
 
@@ -28,53 +26,34 @@ namespace
     }
 
 #if SWC_HAS_STATS
-    constexpr uint32_t K_OVERFLOW_SLOT          = 0;
-    constexpr uint32_t K_SIGNATURE_CAPACITY     = 16 * 1024;
-    constexpr uint32_t K_EXTERNAL_CAPACITY      = 16 * 1024;
-    constexpr uint32_t K_INVALID_SIGNATURE_SLOT = std::numeric_limits<uint32_t>::max();
-    constexpr uint32_t K_CAPTURE_SKIP_FRAMES    = 3;
-    constexpr uint32_t K_ALLOCATION_FLAG_TRACKED = 1u << 0;
-
-    struct SignatureEntry
-    {
-        std::array<uintptr_t, MemoryProfile::MAX_CALLSTACK_FRAMES> frames{};
-        uint64_t                                                   hash         = 0;
-        size_t                                                     currentBytes = 0;
-        size_t                                                     peakBytes    = 0;
-        size_t                                                     totalBytes   = 0;
-        size_t                                                     allocCount   = 0;
-        size_t                                                     freeCount    = 0;
-        size_t                                                     liveCount    = 0;
-        uint32_t                                                   frameCount   = 0;
-        bool                                                       used         = false;
-    };
+    constexpr uint32_t K_EXTERNAL_CAPACITY       = 16 * 1024;
+    constexpr uint32_t K_INVALID_CATEGORY        = MemoryProfile::INVALID_CATEGORY;
+    constexpr uint32_t K_ALLOCATION_FLAG_TRACKED  = 1u << 0;
 
     struct ExternalEntry
     {
         const void* ptr           = nullptr;
         size_t      trackedBytes  = 0;
-        uint32_t    signatureSlot = K_INVALID_SIGNATURE_SLOT;
+        uint32_t    categoryIndex = K_INVALID_CATEGORY;
         bool        used          = false;
     };
 
     struct MemoryProfileState
     {
-        std::atomic<bool>                              detailedTrackingEnabled = false;
-        std::mutex                                  mutex;
-        std::array<SignatureEntry, K_SIGNATURE_CAPACITY> signatures{};
-        std::array<ExternalEntry, K_EXTERNAL_CAPACITY>   externals{};
+        std::atomic<bool>                                              detailedTrackingEnabled = false;
+        std::array<MemoryProfile::CategoryInfo, MemoryProfile::MAX_CATEGORIES> categories{};
+        std::atomic<uint32_t>                                          categoryCount = 0;
+        std::mutex                                                     registrationMutex;
+        std::mutex                                                     externalMutex;
+        std::array<ExternalEntry, K_EXTERNAL_CAPACITY>                 externals{};
     };
 
-    thread_local uint32_t g_SuppressDepth = 0;
+    thread_local uint32_t g_SuppressDepth    = 0;
+    thread_local uint32_t g_CurrentCategory  = K_INVALID_CATEGORY;
 
     MemoryProfileState& memoryProfileState()
     {
         static MemoryProfileState state;
-        static const bool         initialized = [] {
-            state.signatures[K_OVERFLOW_SLOT].used = true;
-            return true;
-        }();
-        SWC_UNUSED(initialized);
         return state;
     }
 
@@ -83,99 +62,77 @@ namespace
         return g_SuppressDepth != 0;
     }
 
-    [[nodiscard]] bool shouldTrackTotals()
+    [[nodiscard]] bool shouldTrack()
     {
         return !isTrackingSuppressed();
     }
 
     [[nodiscard]] bool isDetailedTrackingEnabled()
     {
-        return shouldTrackTotals() && memoryProfileState().detailedTrackingEnabled.load(std::memory_order_relaxed);
+        return shouldTrack() && memoryProfileState().detailedTrackingEnabled.load(std::memory_order_relaxed);
     }
 
-    [[nodiscard]] uint64_t hashFrames(const std::array<uintptr_t, MemoryProfile::MAX_CALLSTACK_FRAMES>& frames, const uint32_t frameCount)
-    {
-        uint64_t hash = 1469598103934665603ull;
-        for (uint32_t i = 0; i < frameCount; ++i)
-        {
-            hash ^= static_cast<uint64_t>(frames[i]);
-            hash *= 1099511628211ull;
-        }
-
-        hash ^= frameCount;
-        hash *= 1099511628211ull;
-        return hash;
-    }
-
-    [[nodiscard]] uint32_t captureFrames(std::array<uintptr_t, MemoryProfile::MAX_CALLSTACK_FRAMES>& outFrames, const uint32_t skipFrames)
-    {
-        outFrames.fill(0);
-        return Os::captureCallStack(std::span(outFrames), skipFrames + 1);
-    }
-
-    uint32_t findOrCreateSignatureSlotLocked(const std::array<uintptr_t, MemoryProfile::MAX_CALLSTACK_FRAMES>& frames, const uint32_t frameCount)
+    uint32_t findOrRegisterCategory(const char* name, const char* file, const uint32_t line)
     {
         MemoryProfileState& state = memoryProfileState();
-        if (!frameCount)
-            return K_OVERFLOW_SLOT;
+        const uint32_t      count = state.categoryCount.load(std::memory_order_acquire);
 
-        const uint64_t hash  = hashFrames(frames, frameCount);
-        const uint32_t start = 1 + static_cast<uint32_t>(hash % (K_SIGNATURE_CAPACITY - 1));
-
-        for (uint32_t probe = 0; probe < K_SIGNATURE_CAPACITY - 1; ++probe)
+        // Search existing categories (lock-free read of immutable fields)
+        for (uint32_t i = 0; i < count; ++i)
         {
-            const uint32_t    slot  = 1 + ((start - 1 + probe) % (K_SIGNATURE_CAPACITY - 1));
-            SignatureEntry& entry = state.signatures[slot];
-            if (!entry.used)
-            {
-                entry.used       = true;
-                entry.hash       = hash;
-                entry.frameCount = frameCount;
-                entry.frames     = frames;
-                return slot;
-            }
-
-            if (entry.hash != hash || entry.frameCount != frameCount)
-                continue;
-
-            bool sameFrames = true;
-            for (uint32_t i = 0; i < frameCount; ++i)
-            {
-                if (entry.frames[i] != frames[i])
-                {
-                    sameFrames = false;
-                    break;
-                }
-            }
-
-            if (sameFrames)
-                return slot;
+            if (state.categories[i].name == name)
+                return i;
         }
 
-        return K_OVERFLOW_SLOT;
+        // Register new category under lock
+        const std::scoped_lock lock(state.registrationMutex);
+
+        // Re-check after acquiring lock
+        const uint32_t countAfterLock = state.categoryCount.load(std::memory_order_relaxed);
+        for (uint32_t i = count; i < countAfterLock; ++i)
+        {
+            if (state.categories[i].name == name)
+                return i;
+        }
+
+        SWC_ASSERT(countAfterLock < MemoryProfile::MAX_CATEGORIES);
+        if (countAfterLock >= MemoryProfile::MAX_CATEGORIES)
+            return K_INVALID_CATEGORY;
+
+        const uint32_t newIndex = countAfterLock;
+        auto&          cat      = state.categories[newIndex];
+        cat.name = name;
+        cat.file = file;
+        cat.line = line;
+        state.categoryCount.store(newIndex + 1, std::memory_order_release);
+        return newIndex;
     }
 
-    void applyAllocLocked(const uint32_t signatureSlot, const size_t trackedBytes)
+    void applyCategoryAlloc(const uint32_t categoryIndex, const size_t trackedBytes)
     {
-        SWC_ASSERT(signatureSlot < K_SIGNATURE_CAPACITY);
-        SignatureEntry& entry = memoryProfileState().signatures[signatureSlot];
-        entry.currentBytes += trackedBytes;
-        entry.totalBytes += trackedBytes;
-        entry.allocCount += 1;
-        entry.liveCount += 1;
-        if (entry.currentBytes > entry.peakBytes)
-            entry.peakBytes = entry.currentBytes;
+        if (categoryIndex == K_INVALID_CATEGORY)
+            return;
+
+        auto& cat = memoryProfileState().categories[categoryIndex];
+        const size_t newCurrent = cat.currentBytes.fetch_add(trackedBytes, std::memory_order_relaxed) + trackedBytes;
+        cat.totalBytes.fetch_add(trackedBytes, std::memory_order_relaxed);
+        cat.allocCount.fetch_add(1, std::memory_order_relaxed);
+
+        // Update peak with CAS loop
+        size_t prevPeak = cat.peakBytes.load(std::memory_order_relaxed);
+        while (newCurrent > prevPeak && !cat.peakBytes.compare_exchange_weak(prevPeak, newCurrent, std::memory_order_relaxed))
+        {
+        }
     }
 
-    void applyFreeLocked(const uint32_t signatureSlot, const size_t trackedBytes)
+    void applyCategoryFree(const uint32_t categoryIndex, const size_t trackedBytes)
     {
-        SWC_ASSERT(signatureSlot < K_SIGNATURE_CAPACITY);
-        SignatureEntry& entry = memoryProfileState().signatures[signatureSlot];
-        SWC_ASSERT(entry.currentBytes >= trackedBytes);
-        SWC_ASSERT(entry.liveCount > 0);
-        entry.currentBytes -= trackedBytes;
-        entry.freeCount += 1;
-        entry.liveCount -= 1;
+        if (categoryIndex == K_INVALID_CATEGORY)
+            return;
+
+        auto& cat = memoryProfileState().categories[categoryIndex];
+        cat.currentBytes.fetch_sub(trackedBytes, std::memory_order_relaxed);
+        cat.freeCount.fetch_add(1, std::memory_order_relaxed);
     }
 
     void applyGlobalAlloc(const size_t trackedBytes)
@@ -188,18 +145,6 @@ namespace
     void applyGlobalFree(const size_t trackedBytes)
     {
         Stats::get().memAllocated.fetch_sub(trackedBytes, std::memory_order_relaxed);
-    }
-
-    void releaseExternalEntryLocked(ExternalEntry& entry)
-    {
-        if (!entry.used)
-            return;
-
-        if (entry.signatureSlot != K_INVALID_SIGNATURE_SLOT)
-            applyFreeLocked(entry.signatureSlot, entry.trackedBytes);
-
-        applyGlobalFree(entry.trackedBytes);
-        entry = {};
     }
 
     uint32_t findExternalSlotLocked(const void* ptr)
@@ -226,99 +171,14 @@ namespace
         return firstFree;
     }
 
-    [[nodiscard]] bool isNoiseSymbol(const std::string_view symbolName)
+    void releaseExternalEntryLocked(ExternalEntry& entry)
     {
-        return symbolName.contains("swc::MemoryProfile::") ||
-               symbolName.contains("operator new") ||
-               symbolName.contains("operator delete") ||
-               symbolName.contains("mi_") ||
-               symbolName.contains("malloc") ||
-               symbolName.contains("free") ||
-               symbolName.contains("std::") ||
-               symbolName.contains("swc::Os::allocExecutableMemory") ||
-               symbolName.contains("swc::Os::captureCallStack");
-    }
+        if (!entry.used)
+            return;
 
-    [[nodiscard]] bool isProjectFrame(const Os::ResolvedAddress& address)
-    {
-        return address.sourceLocation.contains("src\\") || address.sourceLocation.contains("src/");
-    }
-
-    [[nodiscard]] bool isAllocationWrapperSymbol(const std::string_view symbolName)
-    {
-        return symbolName.contains("swc::CompilerInstance::allocate") ||
-               symbolName.contains("swc::CompilerInstance::allocateArray") ||
-               symbolName.contains("swc::Arena::allocate") ||
-               symbolName.contains("swc::DataSegment::reserveBytes") ||
-               symbolName.contains("swc::DataSegment::addSpan") ||
-               symbolName.contains("swc::DataSegment::addString") ||
-               symbolName.contains("swc::PagedStore::pushBack") ||
-               symbolName.contains("swc::PagedStore::pushCopySpan") ||
-               symbolName.contains("swc::PagedStore::reserveRange");
-    }
-
-    [[nodiscard]] bool isAllocationSiteSymbol(const std::string_view symbolName)
-    {
-        return symbolName.contains("swc::Arena::addBlock") ||
-               symbolName.contains("swc::PagedStore::newPage") ||
-               symbolName.contains("swc::PagedStore::Page::Page") ||
-               symbolName.contains("swc::PagedStore::allocate") ||
-               symbolName.contains("swc::DataSegment::allocateStorageLocked") ||
-               symbolName.contains("swc::Os::allocExecutableMemory");
-    }
-
-    [[nodiscard]] bool isGenericProjectSymbol(const std::string_view symbolName)
-    {
-        return symbolName.contains("swc::Command::") ||
-               symbolName.contains("swc::CompilerInstance::processCommand") ||
-               symbolName.contains("swc::CompilerInstance::run") ||
-               symbolName.contains("swc::NativeBackendBuilder::run");
-    }
-
-    [[nodiscard]] Utf8 formatResolvedFrameLabel(const Os::ResolvedAddress& resolved, const uintptr_t address)
-    {
-        Utf8 label;
-        if (!resolved.symbolName.empty())
-            label = resolved.symbolName;
-        else if (!resolved.moduleName.empty())
-            label = resolved.moduleName;
-        else
-            label = std::format("0x{:016X}", address);
-
-        if (!resolved.sourceLocation.empty())
-        {
-            label += " @ ";
-            label += resolved.sourceLocation;
-        }
-
-        return label;
-    }
-
-    void selectTopHotspots(std::vector<MemoryProfile::Hotspot>& outHotspots,
-                           std::vector<MemoryProfile::Hotspot>  allHotspots,
-                           const size_t                         topN,
-                           const size_t                         minPeakBytes,
-                           const size_t                         minTotalBytes,
-                           const auto&                          comparator)
-    {
-        std::ranges::sort(allHotspots, comparator);
-
-        const auto appendFiltered = [&](const bool allowFallback) {
-            for (const auto& hotspot : allHotspots)
-            {
-                const bool relevant = hotspot.peakBytes >= minPeakBytes || hotspot.totalBytes >= minTotalBytes;
-                if (!allowFallback && !relevant)
-                    continue;
-
-                outHotspots.push_back(hotspot);
-                if (outHotspots.size() >= topN)
-                    return;
-            }
-        };
-
-        appendFiltered(false);
-        if (outHotspots.empty())
-            appendFiltered(true);
+        applyCategoryFree(entry.categoryIndex, entry.trackedBytes);
+        applyGlobalFree(entry.trackedBytes);
+        entry = {};
     }
 #else
     thread_local uint32_t g_SuppressDepth = 0;
@@ -372,26 +232,20 @@ namespace MemoryProfile
 
         header->rawPtr        = rawPtr;
         header->trackedBytes  = usableSize > userOffset ? usableSize - userOffset : size;
-        header->signatureSlot = K_INVALID_SIGNATURE_SLOT;
+        header->categoryIndex = K_INVALID_CATEGORY;
         header->flags         = 0;
 
-        if (shouldTrackTotals())
+        if (shouldTrack())
         {
             header->flags = K_ALLOCATION_FLAG_TRACKED;
+
             if (isDetailedTrackingEnabled())
             {
-                std::array<uintptr_t, MAX_CALLSTACK_FRAMES> frames{};
-                const uint32_t frameCount = captureFrames(frames, K_CAPTURE_SKIP_FRAMES);
+                header->categoryIndex = g_CurrentCategory;
+                applyCategoryAlloc(header->categoryIndex, header->trackedBytes);
+            }
 
-                const std::scoped_lock lock(memoryProfileState().mutex);
-                header->signatureSlot = findOrCreateSignatureSlotLocked(frames, frameCount);
-                applyAllocLocked(header->signatureSlot, header->trackedBytes);
-                applyGlobalAlloc(header->trackedBytes);
-            }
-            else
-            {
-                applyGlobalAlloc(header->trackedBytes);
-            }
+            applyGlobalAlloc(header->trackedBytes);
         }
 
         return reinterpret_cast<void*>(userAddress);
@@ -413,12 +267,7 @@ namespace MemoryProfile
 
         if (header->flags & K_ALLOCATION_FLAG_TRACKED)
         {
-            if (header->signatureSlot != K_INVALID_SIGNATURE_SLOT)
-            {
-                const std::scoped_lock lock(memoryProfileState().mutex);
-                applyFreeLocked(header->signatureSlot, header->trackedBytes);
-            }
-
+            applyCategoryFree(header->categoryIndex, header->trackedBytes);
             applyGlobalFree(header->trackedBytes);
         }
 
@@ -428,20 +277,24 @@ namespace MemoryProfile
 #endif
     }
 
-    void trackExternalAlloc(const void* ptr, const size_t size, const uint32_t skipFrames)
+    void trackExternalAlloc(const void* ptr, const size_t size, const char* category, const char* file, const uint32_t line)
     {
 #if SWC_HAS_STATS
         if (!ptr || size == 0 || isTrackingSuppressed())
             return;
 
-        std::array<uintptr_t, MAX_CALLSTACK_FRAMES> frames{};
-        uint32_t                                    frameCount     = 0;
-        const bool                                  trackDetailed  = isDetailedTrackingEnabled();
+        const bool     trackDetailed = isDetailedTrackingEnabled();
+        uint32_t       catIndex      = K_INVALID_CATEGORY;
         if (trackDetailed)
-            frameCount = captureFrames(frames, K_CAPTURE_SKIP_FRAMES + skipFrames);
+        {
+            if (category)
+                catIndex = findOrRegisterCategory(category, file, line);
+            else
+                catIndex = g_CurrentCategory;
+        }
 
-        const std::scoped_lock lock(memoryProfileState().mutex);
-        const uint32_t         externalSlot  = findExternalSlotLocked(ptr);
+        const std::scoped_lock lock(memoryProfileState().externalMutex);
+        const uint32_t         externalSlot = findExternalSlotLocked(ptr);
         SWC_ASSERT(externalSlot != K_EXTERNAL_CAPACITY);
         if (externalSlot == K_EXTERNAL_CAPACITY)
             return;
@@ -453,19 +306,18 @@ namespace MemoryProfile
         entry.used          = true;
         entry.ptr           = ptr;
         entry.trackedBytes  = size;
-        entry.signatureSlot = K_INVALID_SIGNATURE_SLOT;
+        entry.categoryIndex = catIndex;
 
         if (trackDetailed)
-        {
-            entry.signatureSlot = findOrCreateSignatureSlotLocked(frames, frameCount);
-            applyAllocLocked(entry.signatureSlot, size);
-        }
+            applyCategoryAlloc(catIndex, size);
 
         applyGlobalAlloc(size);
 #else
         SWC_UNUSED(ptr);
         SWC_UNUSED(size);
-        SWC_UNUSED(skipFrames);
+        SWC_UNUSED(category);
+        SWC_UNUSED(file);
+        SWC_UNUSED(line);
 #endif
     }
 
@@ -475,7 +327,7 @@ namespace MemoryProfile
         if (!ptr)
             return;
 
-        const std::scoped_lock lock(memoryProfileState().mutex);
+        const std::scoped_lock lock(memoryProfileState().externalMutex);
         const uint32_t         externalSlot = findExternalSlotLocked(ptr);
         if (externalSlot == K_EXTERNAL_CAPACITY)
             return;
@@ -491,176 +343,46 @@ namespace MemoryProfile
     }
 
 #if SWC_HAS_STATS
-    void buildSummary(Summary& outSummary, const size_t topN, const size_t minPeakBytes, const size_t minTotalBytes)
+    ScopedCategory::ScopedCategory(const char* category, const char* file, const uint32_t line)
+    {
+        prevIndex_       = g_CurrentCategory;
+        g_CurrentCategory = findOrRegisterCategory(category, file, line);
+    }
+
+    ScopedCategory::~ScopedCategory()
+    {
+        g_CurrentCategory = prevIndex_;
+    }
+
+    void buildSummary(Summary& outSummary)
     {
         ScopedSuppress suppress;
         outSummary = {};
 
-        std::vector<Hotspot> allHotspots;
+        MemoryProfileState& state = memoryProfileState();
+        outSummary.totalCurrentBytes = Stats::get().memAllocated.load(std::memory_order_relaxed);
+        outSummary.totalPeakBytes    = Stats::get().memMaxAllocated.load(std::memory_order_relaxed);
+
+        const uint32_t count = state.categoryCount.load(std::memory_order_acquire);
+        outSummary.categories.reserve(count);
+
+        for (uint32_t i = 0; i < count; ++i)
         {
-            const std::scoped_lock lock(memoryProfileState().mutex);
-            outSummary.totalCurrentBytes = Stats::get().memAllocated.load(std::memory_order_relaxed);
-            outSummary.totalPeakBytes    = Stats::get().memMaxAllocated.load(std::memory_order_relaxed);
-
-            for (const SignatureEntry& entry : memoryProfileState().signatures)
-            {
-                if (!entry.used)
-                    continue;
-                if (!entry.currentBytes && !entry.totalBytes && !entry.allocCount)
-                    continue;
-
-                Hotspot hotspot;
-                hotspot.frames       = entry.frames;
-                hotspot.currentBytes = entry.currentBytes;
-                hotspot.peakBytes    = entry.peakBytes;
-                hotspot.totalBytes   = entry.totalBytes;
-                hotspot.allocCount   = entry.allocCount;
-                hotspot.freeCount    = entry.freeCount;
-                hotspot.liveCount    = entry.liveCount;
-                hotspot.frameCount   = entry.frameCount;
-                allHotspots.push_back(std::move(hotspot));
-            }
-        }
-
-        selectTopHotspots(outSummary.peakHotspots, std::vector<Hotspot>(allHotspots), topN, minPeakBytes, minTotalBytes, [](const Hotspot& lhs, const Hotspot& rhs) {
-            if (lhs.peakBytes != rhs.peakBytes)
-                return lhs.peakBytes > rhs.peakBytes;
-            if (lhs.totalBytes != rhs.totalBytes)
-                return lhs.totalBytes > rhs.totalBytes;
-            return lhs.allocCount > rhs.allocCount;
-        });
-
-        selectTopHotspots(outSummary.totalHotspots, std::move(allHotspots), topN, minPeakBytes, minTotalBytes, [](const Hotspot& lhs, const Hotspot& rhs) {
-            if (lhs.totalBytes != rhs.totalBytes)
-                return lhs.totalBytes > rhs.totalBytes;
-            if (lhs.peakBytes != rhs.peakBytes)
-                return lhs.peakBytes > rhs.peakBytes;
-            return lhs.allocCount > rhs.allocCount;
-        });
-    }
-
-    HotspotLocation formatHotspotLocation(const TaskContext* ctx, const Hotspot& hotspot)
-    {
-        ScopedSuppress suppress;
-        HotspotLocation result;
-
-        if (!hotspot.frameCount)
-        {
-            result.allocationSite = "<overflow>";
-            return result;
-        }
-
-        Utf8 fallback;
-        struct ResolvedFrame
-        {
-            Utf8                label;
-            Os::ResolvedAddress resolved;
-        };
-
-        std::vector<ResolvedFrame> resolvedFrames;
-        resolvedFrames.reserve(hotspot.frameCount);
-
-        for (uint32_t i = 0; i < hotspot.frameCount; ++i)
-        {
-            Os::ResolvedAddress resolved;
-            if (!Os::resolveAddress(resolved, hotspot.frames[i], ctx))
-            {
-                if (fallback.empty())
-                    fallback = std::format("0x{:016X}", hotspot.frames[i]);
-                continue;
-            }
-
-            Utf8 label = formatResolvedFrameLabel(resolved, hotspot.frames[i]);
-            if (fallback.empty())
-                fallback = label;
-
-            if (isNoiseSymbol(resolved.symbolName))
+            const auto& cat = state.categories[i];
+            if (!cat.allocCount.load(std::memory_order_relaxed))
                 continue;
 
-            resolvedFrames.push_back({
-                .label    = std::move(label),
-                .resolved = std::move(resolved),
-            });
+            CategorySnapshot snap;
+            snap.name         = cat.name;
+            snap.file         = cat.file;
+            snap.line         = cat.line;
+            snap.currentBytes = cat.currentBytes.load(std::memory_order_relaxed);
+            snap.peakBytes    = cat.peakBytes.load(std::memory_order_relaxed);
+            snap.totalBytes   = cat.totalBytes.load(std::memory_order_relaxed);
+            snap.allocCount   = cat.allocCount.load(std::memory_order_relaxed);
+            snap.freeCount    = cat.freeCount.load(std::memory_order_relaxed);
+            outSummary.categories.push_back(snap);
         }
-
-        size_t allocationIndex = std::numeric_limits<size_t>::max();
-        for (size_t i = 0; i < resolvedFrames.size(); ++i)
-        {
-            const auto& frame = resolvedFrames[i];
-            if (!isAllocationSiteSymbol(frame.resolved.symbolName))
-                continue;
-
-            result.allocationSite = frame.label;
-            allocationIndex       = i;
-            break;
-        }
-
-        if (result.allocationSite.empty())
-        {
-            for (size_t i = 0; i < resolvedFrames.size(); ++i)
-            {
-                const auto& frame = resolvedFrames[i];
-                if (!isProjectFrame(frame.resolved))
-                    continue;
-                if (isAllocationWrapperSymbol(frame.resolved.symbolName))
-                    continue;
-                if (isGenericProjectSymbol(frame.resolved.symbolName))
-                    continue;
-
-                result.allocationSite = frame.label;
-                allocationIndex       = i;
-                break;
-            }
-        }
-
-        if (result.allocationSite.empty())
-        {
-            for (size_t i = 0; i < resolvedFrames.size(); ++i)
-            {
-                const auto& frame = resolvedFrames[i];
-                if (!isProjectFrame(frame.resolved))
-                    continue;
-
-                result.allocationSite = frame.label;
-                allocationIndex       = i;
-                break;
-            }
-        }
-
-        if (result.allocationSite.empty() && !resolvedFrames.empty())
-        {
-            result.allocationSite = resolvedFrames.front().label;
-            allocationIndex       = 0;
-        }
-
-        if (result.allocationSite.empty())
-        {
-            if (!fallback.empty())
-                result.allocationSite = fallback;
-            else
-                result.allocationSite = std::format("0x{:016X}", hotspot.frames[0]);
-            return result;
-        }
-
-        if (allocationIndex < resolvedFrames.size() &&
-            isAllocationSiteSymbol(resolvedFrames[allocationIndex].resolved.symbolName))
-        {
-            for (size_t i = allocationIndex + 1; i < resolvedFrames.size(); ++i)
-            {
-                const auto& frame = resolvedFrames[i];
-                if (!isProjectFrame(frame.resolved))
-                    continue;
-                if (isAllocationWrapperSymbol(frame.resolved.symbolName))
-                    continue;
-                if (isGenericProjectSymbol(frame.resolved.symbolName))
-                    continue;
-
-                result.callerSite = frame.label;
-                break;
-            }
-        }
-
-        return result;
     }
 #endif
 }

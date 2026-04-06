@@ -14,6 +14,7 @@
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Memory/MemoryProfile.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -580,6 +581,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
     if (hasLoweredCode())
         return Result::Continue;
     auto& builder = microInstrBuilder(ctx);
+    SWC_MEM_SCOPE("Backend/MicroLower");
 #if SWC_HAS_STATS
     Timer timeMicroLower(&Stats::get().timeMicroLower);
 #endif

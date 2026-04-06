@@ -11,6 +11,135 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#if SWC_HAS_STATS
+namespace
+{
+    struct TreeNode
+    {
+        Utf8                                segment;
+        size_t                              peakBytes    = 0;
+        size_t                              currentBytes = 0;
+        size_t                              totalBytes   = 0;
+        size_t                              allocCount   = 0;
+        size_t                              freeCount    = 0;
+        const MemoryProfile::CategorySnapshot* leaf     = nullptr;
+        std::map<Utf8, std::unique_ptr<TreeNode>> children;
+    };
+
+    void insertIntoTree(TreeNode& root, const MemoryProfile::CategorySnapshot& snap)
+    {
+        TreeNode*   node     = &root;
+        std::string_view name = snap.name;
+
+        while (!name.empty())
+        {
+            size_t      sep = name.find('/');
+            std::string_view segment;
+            if (sep == std::string_view::npos)
+            {
+                segment = name;
+                name    = {};
+            }
+            else
+            {
+                segment = name.substr(0, sep);
+                name    = name.substr(sep + 1);
+            }
+
+            Utf8 key(segment);
+            auto it = node->children.find(key);
+            if (it == node->children.end())
+            {
+                auto child     = std::make_unique<TreeNode>();
+                child->segment = key;
+                it             = node->children.emplace(std::move(key), std::move(child)).first;
+            }
+
+            node = it->second.get();
+        }
+
+        // Accumulate leaf stats
+        node->peakBytes    += snap.peakBytes;
+        node->currentBytes += snap.currentBytes;
+        node->totalBytes   += snap.totalBytes;
+        node->allocCount   += snap.allocCount;
+        node->freeCount    += snap.freeCount;
+        node->leaf          = &snap;
+    }
+
+    void propagateStats(TreeNode& node)
+    {
+        for (auto& [_, child] : node.children)
+        {
+            propagateStats(*child);
+            node.peakBytes    += child->peakBytes;
+            node.currentBytes += child->currentBytes;
+            node.totalBytes   += child->totalBytes;
+            node.allocCount   += child->allocCount;
+            node.freeCount    += child->freeCount;
+        }
+    }
+
+    void printTree(Utf8& out, const TreeNode& node, const size_t totalPeakBytes, const uint32_t depth)
+    {
+        // Collect and sort children by peak bytes descending
+        std::vector<const TreeNode*> sorted;
+        sorted.reserve(node.children.size());
+        for (const auto& [_, child] : node.children)
+            sorted.push_back(child.get());
+        std::ranges::sort(sorted, [](const TreeNode* a, const TreeNode* b) {
+            return a->peakBytes > b->peakBytes;
+        });
+
+        for (const auto* child : sorted)
+        {
+            if (!child->peakBytes && !child->totalBytes)
+                continue;
+
+            // Indent
+            for (uint32_t i = 0; i < depth; ++i)
+                out += "  ";
+
+            const double peakPct = totalPeakBytes ? 100.0 * static_cast<double>(child->peakBytes) / static_cast<double>(totalPeakBytes) : 0.0;
+
+            out += std::format("{}", child->segment);
+
+            // Pad name to alignment
+            const size_t nameLen = child->segment.length() + depth * 2;
+            if (nameLen < 30)
+                out.append(30 - nameLen, '.');
+            else
+                out += "..";
+
+            out += std::format(" peak {:>9s} ({:5.1f}%)", Utf8Helper::toNiceSize(child->peakBytes), peakPct);
+
+            if (child->totalBytes != child->peakBytes)
+                out += std::format("  churn {:>9s}", Utf8Helper::toNiceSize(child->totalBytes));
+
+            if (child->allocCount)
+                out += std::format("  allocs {:>8s}", Utf8Helper::toNiceBigNumber(child->allocCount));
+
+            // Show file:line for leaf nodes
+            if (child->leaf && child->leaf->file)
+            {
+                // Extract just the filename from the path
+                std::string_view filePath = child->leaf->file;
+                auto             lastSep  = filePath.find_last_of("\\/");
+                if (lastSep != std::string_view::npos)
+                    filePath = filePath.substr(lastSep + 1);
+                out += std::format("  [{}:{}]", filePath, child->leaf->line);
+            }
+
+            out += "\n";
+
+            // Recurse into children
+            if (!child->children.empty())
+                printTree(out, *child, totalPeakBytes, depth + 1);
+        }
+    }
+}
+#endif
+
 void Stats::print(const TaskContext& ctx) const
 {
     const Logger::ScopedLock loggerLock(ctx.global().logger());
@@ -63,110 +192,39 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
 
-    constexpr size_t kMemoryHotspotTopN         = 4;
-    constexpr size_t kMemoryHotspotMinPeakBytes = 1024 * 1024;
-    constexpr size_t kMemoryHotspotMinTotalBytes = 16 * 1024 * 1024;
-
-    MemoryProfile::Summary memoryProfileSummary;
-    MemoryProfile::buildSummary(memoryProfileSummary, kMemoryHotspotTopN, kMemoryHotspotMinPeakBytes, kMemoryHotspotMinTotalBytes);
-
-    const auto appendFieldLine = [](Utf8& out, const std::string_view label, const Utf8& value) {
-        out += "  ";
-        out += label;
-        if (label.size() < 14)
-            out.append(14 - label.size(), ' ');
-        out += ": ";
-        out += value;
-        out += "\n";
-    };
-
-    const auto appendLocationLine = [](Utf8& out, const std::string_view label, const Utf8& value) {
-        if (value.empty())
-            return;
-
-        out += "      ";
-        out += label;
-        if (label.size() < 12)
-            out.append(12 - label.size(), ' ');
-        out += ": ";
-        out += value;
-        out += "\n";
-    };
-
-    const auto appendLiveHotspots = [&](Utf8& out, const std::vector<MemoryProfile::Hotspot>& hotspots) {
-        if (hotspots.empty())
-            return;
-
-        out += "\nTop Live Allocation Hotspots\n";
-        for (size_t i = 0; i < hotspots.size(); ++i)
-        {
-            const auto& hotspot = hotspots[i];
-            const double peakPct = memoryProfileSummary.totalPeakBytes ? 100.0 * static_cast<double>(hotspot.peakBytes) / static_cast<double>(memoryProfileSummary.totalPeakBytes) : 0.0;
-            const auto   location = MemoryProfile::formatHotspotLocation(&ctx, hotspot);
-
-            out += std::format("  [{}] peak {} ({:.1f}%), current {}, live blocks {}\n",
-                               i + 1,
-                               Utf8Helper::toNiceSize(hotspot.peakBytes),
-                               peakPct,
-                               Utf8Helper::toNiceSize(hotspot.currentBytes),
-                               Utf8Helper::toNiceBigNumber(hotspot.liveCount));
-            out += std::format("      churn {}, allocs {}, avg {}, frees {}\n",
-                               Utf8Helper::toNiceSize(hotspot.totalBytes),
-                               Utf8Helper::toNiceBigNumber(hotspot.allocCount),
-                               Utf8Helper::toNiceSize(hotspot.allocCount ? hotspot.totalBytes / hotspot.allocCount : 0),
-                               Utf8Helper::toNiceBigNumber(hotspot.freeCount));
-            appendLocationLine(out, "allocator", location.allocationSite);
-            appendLocationLine(out, "triggered by", location.callerSite);
-
-            if (i + 1 != hotspots.size())
-                out += "\n";
-        }
-    };
-
-    const auto appendChurnHotspots = [&](Utf8& out, const std::vector<MemoryProfile::Hotspot>& hotspots) {
-        if (hotspots.empty())
-            return;
-
-        out += "\nTop Allocation Churn\n";
-        for (size_t i = 0; i < hotspots.size(); ++i)
-        {
-            const auto& hotspot  = hotspots[i];
-            const auto  location = MemoryProfile::formatHotspotLocation(&ctx, hotspot);
-
-            out += std::format("  [{}] churn {}, allocs {}, avg {}\n",
-                               i + 1,
-                               Utf8Helper::toNiceSize(hotspot.totalBytes),
-                               Utf8Helper::toNiceBigNumber(hotspot.allocCount),
-                               Utf8Helper::toNiceSize(hotspot.allocCount ? hotspot.totalBytes / hotspot.allocCount : 0));
-            out += std::format("      peak {}, current {}, live blocks {}, frees {}\n",
-                               Utf8Helper::toNiceSize(hotspot.peakBytes),
-                               Utf8Helper::toNiceSize(hotspot.currentBytes),
-                               Utf8Helper::toNiceBigNumber(hotspot.liveCount),
-                               Utf8Helper::toNiceBigNumber(hotspot.freeCount));
-            appendLocationLine(out, "allocator", location.allocationSite);
-            appendLocationLine(out, "triggered by", location.callerSite);
-
-            if (i + 1 != hotspots.size())
-                out += "\n";
-        }
-    };
+    // Memory profile
+    MemoryProfile::Summary summary;
+    MemoryProfile::buildSummary(summary);
 
     Utf8 memorySection;
-    memorySection += "\nMemory\n";
-    appendFieldLine(memorySection, "tracked peak", Utf8Helper::toNiceSize(memoryProfileSummary.totalPeakBytes));
-    appendFieldLine(memorySection, "tracked current", Utf8Helper::toNiceSize(memoryProfileSummary.totalCurrentBytes));
-    appendFieldLine(memorySection, "report filter", std::format(">= {} peak or >= {} churn",
-                                                                 Utf8Helper::toNiceSize(kMemoryHotspotMinPeakBytes),
-                                                                 Utf8Helper::toNiceSize(kMemoryHotspotMinTotalBytes)));
+    memorySection += "\nMemory Profile\n";
+    memorySection += std::format("  tracked peak....... {}\n", Utf8Helper::toNiceSize(summary.totalPeakBytes));
+    memorySection += std::format("  tracked current.... {}\n", Utf8Helper::toNiceSize(summary.totalCurrentBytes));
 
-    if (memoryProfileSummary.peakHotspots.empty() && memoryProfileSummary.totalHotspots.empty())
+    if (summary.categories.empty())
     {
-        appendFieldLine(memorySection, "hotspots", "none above reporting threshold");
+        memorySection += "  (no category data — add SWC_MEM_SCOPE to track allocations)\n";
     }
     else
     {
-        appendLiveHotspots(memorySection, memoryProfileSummary.peakHotspots);
-        appendChurnHotspots(memorySection, memoryProfileSummary.totalHotspots);
+        memorySection += "\n";
+
+        // Build hierarchical tree
+        TreeNode root;
+        for (const auto& cat : summary.categories)
+            insertIntoTree(root, cat);
+        propagateStats(root);
+
+        // Also collect untagged bytes
+        size_t taggedPeak = root.peakBytes;
+        if (taggedPeak < summary.totalPeakBytes)
+        {
+            const size_t untaggedPeak = summary.totalPeakBytes - taggedPeak;
+            const double untaggedPct  = 100.0 * static_cast<double>(untaggedPeak) / static_cast<double>(summary.totalPeakBytes);
+            memorySection += std::format("  (untagged)...................... peak {:>9s} ({:5.1f}%)\n", Utf8Helper::toNiceSize(untaggedPeak), untaggedPct);
+        }
+
+        printTree(memorySection, root, summary.totalPeakBytes, 1);
     }
 
     Logger::print(ctx, memorySection);

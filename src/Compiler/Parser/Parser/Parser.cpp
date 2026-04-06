@@ -2,6 +2,7 @@
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Support/Core/Utf8Helper.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -288,6 +289,7 @@ void Parser::expectEndStatement()
 
 void Parser::parse(TaskContext& ctx, Ast& ast)
 {
+    SWC_MEM_SCOPE("Frontend/Parser");
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeParser);
 #endif

@@ -21,6 +21,15 @@ namespace
 
         return true;
     }
+
+    void validateFunctionSymbolRelocation(const NativeBackendBuilder& builder, const SymbolFunction* target)
+    {
+        SWC_ASSERT(target != nullptr);
+        if (target->isForeign())
+            return;
+
+        SWC_ASSERT(builder.functionBySymbol.contains(target));
+    }
 }
 
 NativeValidate::NativeValidate(NativeBackendBuilder& builder) :
@@ -149,25 +158,23 @@ void NativeValidate::validateRelocations(const SymbolFunction& owner, const Mach
                 break;
 
             case MicroRelocation::Kind::ConstantAddress:
-                SWC_ASSERT(validateConstantRelocation(relocation));
+                validateConstantRelocation(relocation);
                 break;
         }
     }
 }
 
-bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocation) const
+void NativeValidate::validateConstantRelocation(const MicroRelocation& relocation) const
 {
-    if (!relocation.constantRef.isValid())
-        return false;
+    SWC_ASSERT(relocation.constantRef.isValid());
 
     const ConstantValue& constant = builder_.compiler().cstMgr().get(relocation.constantRef);
     if (constant.kind() == ConstantKind::ValuePointer || constant.kind() == ConstantKind::BlockPointer || constant.kind() == ConstantKind::Null)
-        return true;
+        return;
 
     uint32_t  shardIndex = 0;
     const Ref baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
-    if (baseOffset == INVALID_REF)
-        return false;
+    SWC_ASSERT(baseOffset != INVALID_REF);
 
     const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
 
@@ -176,16 +183,16 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
         const ByteSpan payload           = constant.getStruct();
         uint32_t       payloadShardIndex = 0;
         const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
-        if (payloadOffset == INVALID_REF || payloadShardIndex != shardIndex)
-            return false;
+        SWC_ASSERT(payloadOffset != INVALID_REF);
+        SWC_ASSERT(payloadShardIndex == shardIndex);
 
         DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, baseOffset))
-            return false;
-        if (allocation.offset != payloadOffset || allocation.size < payload.size())
-            return false;
+        SWC_ASSERT(segment.findAllocation(allocation, baseOffset));
+        SWC_ASSERT(allocation.offset == payloadOffset);
+        SWC_ASSERT(allocation.size >= payload.size());
 
-        return validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
+        validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
+        return;
     }
 
     if (constant.kind() == ConstantKind::Array)
@@ -193,161 +200,150 @@ bool NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
         const ByteSpan payload           = constant.getArray();
         uint32_t       payloadShardIndex = 0;
         const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
-        if (payloadOffset == INVALID_REF || payloadShardIndex != shardIndex)
-            return false;
+        SWC_ASSERT(payloadOffset != INVALID_REF);
+        SWC_ASSERT(payloadShardIndex == shardIndex);
 
         DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, baseOffset))
-            return false;
-        if (allocation.offset != payloadOffset || allocation.size < payload.size())
-            return false;
+        SWC_ASSERT(segment.findAllocation(allocation, baseOffset));
+        SWC_ASSERT(allocation.offset == payloadOffset);
+        SWC_ASSERT(allocation.size >= payload.size());
 
-        return validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
+        validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
+        return;
     }
-    if (constant.typeRef().isInvalid())
-        return false;
+
+    SWC_ASSERT(constant.typeRef().isValid());
 
     const uint64_t sizeOf = builder_.ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_.ctx());
-    if (!sizeOf || baseOffset + sizeOf > segment.extentSize())
-        return false;
+    SWC_ASSERT(sizeOf != 0);
+    SWC_ASSERT(baseOffset + sizeOf <= segment.extentSize());
 
     const auto* payloadBytes = segment.ptr<std::byte>(baseOffset);
-    if (!payloadBytes)
-        return false;
+    SWC_ASSERT(payloadBytes != nullptr);
 
-    return validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, ByteSpan{payloadBytes, static_cast<size_t>(sizeOf)});
+    validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, ByteSpan{payloadBytes, static_cast<size_t>(sizeOf)});
 }
 
-namespace
+void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const uint32_t shardIndex, const Ref baseOffset, const ByteSpan bytes) const
 {
-    bool validateFunctionSymbolRelocation(const NativeBackendBuilder& builder, const SymbolFunction* target)
-    {
-        if (!target)
-            return false;
-
-        if (target->isForeign())
-            return true;
-
-        return builder.functionBySymbol.contains(target);
-    }
-}
-
-bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const uint32_t shardIndex, const Ref baseOffset, const ByteSpan bytes) const
-{
-    if (typeRef.isInvalid())
-        return false;
+    SWC_ASSERT(typeRef.isValid());
 
     const DataSegment& segment  = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
     const TypeInfo&    typeInfo = builder_.ctx().typeMgr().get(typeRef);
     if (typeInfo.isAlias())
     {
         const TypeRef unwrapped = typeInfo.unwrap(builder_.ctx(), typeRef, TypeExpandE::Alias);
-        return unwrapped.isValid() && validateNativeStaticPayload(unwrapped, shardIndex, baseOffset, bytes);
+        SWC_ASSERT(unwrapped.isValid());
+        validateNativeStaticPayload(unwrapped, shardIndex, baseOffset, bytes);
+        return;
     }
 
     if (typeInfo.isEnum())
-        return validateNativeStaticPayload(typeInfo.payloadSymEnum().underlyingTypeRef(), shardIndex, baseOffset, bytes);
+    {
+        validateNativeStaticPayload(typeInfo.payloadSymEnum().underlyingTypeRef(), shardIndex, baseOffset, bytes);
+        return;
+    }
 
     if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
-        return true;
+        return;
 
     if (typeInfo.isInterface())
-        return isZeroFilled(bytes);
+    {
+        SWC_ASSERT(isZeroFilled(bytes));
+        return;
+    }
 
     if (typeInfo.isAny())
     {
-        if (bytes.size() != sizeof(Runtime::Any))
-            return false;
+        SWC_ASSERT(bytes.size() == sizeof(Runtime::Any));
 
         const auto* value = reinterpret_cast<const Runtime::Any*>(bytes.data());
         if (!value->type)
-            return value->value == nullptr;
+        {
+            SWC_ASSERT(value->value == nullptr);
+            return;
+        }
 
         uint32_t typeInfoOffset = 0;
-        if (!findDataSegmentRelocation(typeInfoOffset, shardIndex, baseOffset + offsetof(Runtime::Any, type)))
-            return false;
-        if (typeInfoOffset >= segment.extentSize())
-            return false;
+        SWC_ASSERT(findDataSegmentRelocation(typeInfoOffset, shardIndex, baseOffset + offsetof(Runtime::Any, type)));
+        SWC_ASSERT(typeInfoOffset < segment.extentSize());
 
         const auto* runtimeType = segment.ptr<Runtime::TypeInfo>(typeInfoOffset);
-        if (!runtimeType)
-            return false;
+        SWC_ASSERT(runtimeType != nullptr);
 
         const TypeRef valueTypeRef = builder_.ctx().typeGen().getBackTypeRef(runtimeType);
-        if (valueTypeRef.isInvalid())
-            return false;
+        SWC_ASSERT(valueTypeRef.isValid());
 
         if (!value->value)
-            return true;
+            return;
 
         uint32_t valueOffset = 0;
-        if (!findDataSegmentRelocation(valueOffset, shardIndex, baseOffset + offsetof(Runtime::Any, value)))
-            return false;
-        if (valueOffset >= segment.extentSize())
-            return false;
+        SWC_ASSERT(findDataSegmentRelocation(valueOffset, shardIndex, baseOffset + offsetof(Runtime::Any, value)));
+        SWC_ASSERT(valueOffset < segment.extentSize());
 
         const uint64_t valueSize = builder_.ctx().typeMgr().get(valueTypeRef).sizeOf(builder_.ctx());
-        if (!valueSize || valueOffset + valueSize > segment.extentSize())
-            return false;
+        SWC_ASSERT(valueSize != 0);
+        SWC_ASSERT(valueOffset + valueSize <= segment.extentSize());
 
         const auto* payloadBytes = segment.ptr<std::byte>(valueOffset);
-        if (!payloadBytes)
-            return false;
+        SWC_ASSERT(payloadBytes != nullptr);
 
-        return validateNativeStaticPayload(valueTypeRef, shardIndex, valueOffset, ByteSpan{payloadBytes, static_cast<size_t>(valueSize)});
+        validateNativeStaticPayload(valueTypeRef, shardIndex, valueOffset, ByteSpan{payloadBytes, static_cast<size_t>(valueSize)});
+        return;
     }
 
     if (typeInfo.isString())
     {
-        if (bytes.size() != sizeof(Runtime::String))
-            return false;
+        SWC_ASSERT(bytes.size() == sizeof(Runtime::String));
 
         const auto* value = reinterpret_cast<const Runtime::String*>(bytes.data());
         if (!value->ptr)
-            return value->length == 0;
+        {
+            SWC_ASSERT(value->length == 0);
+            return;
+        }
 
         uint32_t targetOffset = 0;
-        return findDataSegmentRelocation(targetOffset, shardIndex, baseOffset + offsetof(Runtime::String, ptr)) && targetOffset < segment.extentSize();
+        SWC_ASSERT(findDataSegmentRelocation(targetOffset, shardIndex, baseOffset + offsetof(Runtime::String, ptr)));
+        SWC_ASSERT(targetOffset < segment.extentSize());
+        return;
     }
 
     if (typeInfo.isSlice())
     {
-        if (bytes.size() != sizeof(Runtime::Slice<uint8_t>))
-            return false;
+        SWC_ASSERT(bytes.size() == sizeof(Runtime::Slice<uint8_t>));
 
         const auto* slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(bytes.data());
         if (!slice->ptr)
-            return slice->count == 0;
+        {
+            SWC_ASSERT(slice->count == 0);
+            return;
+        }
 
         const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
         const TypeInfo& elementType    = builder_.ctx().typeMgr().get(elementTypeRef);
         const uint64_t  elementSize    = elementType.sizeOf(builder_.ctx());
-        if (!elementSize)
-            return false;
+        SWC_ASSERT(elementSize != 0);
 
         uint32_t targetOffset = 0;
-        if (!findDataSegmentRelocation(targetOffset, shardIndex, baseOffset + offsetof(Runtime::Slice<uint8_t>, ptr)))
-            return false;
+        SWC_ASSERT(findDataSegmentRelocation(targetOffset, shardIndex, baseOffset + offsetof(Runtime::Slice<uint8_t>, ptr)));
 
         const uint64_t byteCount = slice->count * elementSize;
-        if (targetOffset + byteCount > segment.extentSize())
-            return false;
+        SWC_ASSERT(targetOffset + byteCount <= segment.extentSize());
 
         if (elementType.isBool() || elementType.isChar() || elementType.isRune() || elementType.isInt() || elementType.isFloat())
-            return true;
+            return;
 
         const auto* segmentBytes = segment.ptr<std::byte>(targetOffset);
-        if (!segmentBytes)
-            return false;
+        SWC_ASSERT(segmentBytes != nullptr);
 
         for (uint64_t offset = 0; offset < byteCount; offset += elementSize)
         {
             const auto elementBytes = ByteSpan{segmentBytes + offset, static_cast<size_t>(elementSize)};
-            if (!validateNativeStaticPayload(elementTypeRef, shardIndex, targetOffset + static_cast<uint32_t>(offset), elementBytes))
-                return false;
+            validateNativeStaticPayload(elementTypeRef, shardIndex, targetOffset + static_cast<uint32_t>(offset), elementBytes);
         }
 
-        return true;
+        return;
     }
 
     if (typeInfo.isArray())
@@ -355,8 +351,7 @@ bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
         const TypeInfo& elementType    = builder_.ctx().typeMgr().get(elementTypeRef);
         const uint64_t  elementSize    = elementType.sizeOf(builder_.ctx());
-        if (!elementSize)
-            return false;
+        SWC_ASSERT(elementSize != 0);
 
         uint64_t totalCount = 1;
         for (const uint64_t dim : typeInfo.payloadArrayDims())
@@ -365,12 +360,12 @@ bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         for (uint64_t idx = 0; idx < totalCount; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
+            SWC_ASSERT(elementOffset + elementSize <= bytes.size());
             const auto     elementBytes  = ByteSpan{bytes.data() + elementOffset, static_cast<size_t>(elementSize)};
-            if (!validateNativeStaticPayload(elementTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(elementOffset), elementBytes))
-                return false;
+            validateNativeStaticPayload(elementTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(elementOffset), elementBytes);
         }
 
-        return true;
+        return;
     }
 
     if (typeInfo.isStruct())
@@ -384,15 +379,13 @@ bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
             const TypeInfo& fieldType    = builder_.ctx().typeMgr().get(fieldTypeRef);
             const uint64_t  fieldSize    = fieldType.sizeOf(builder_.ctx());
             const uint64_t  fieldOffset  = field->offset();
-            if (fieldOffset + fieldSize > bytes.size())
-                return false;
+            SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
 
             const auto fieldBytes = ByteSpan{bytes.data() + fieldOffset, static_cast<size_t>(fieldSize)};
-            if (!validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(fieldOffset), fieldBytes))
-                return false;
+            validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(fieldOffset), fieldBytes);
         }
 
-        return true;
+        return;
     }
 
     if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
@@ -410,61 +403,64 @@ bool NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
                 continue;
 
             offset = Math::alignUpU64(offset, align);
-            if (offset + fieldSize > bytes.size())
-                return false;
+            SWC_ASSERT(offset + fieldSize <= bytes.size());
 
             const auto fieldBytes = ByteSpan{bytes.data() + offset, static_cast<size_t>(fieldSize)};
-            if (!validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(offset), fieldBytes))
-                return false;
+            validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(offset), fieldBytes);
 
             offset += fieldSize;
         }
 
-        return true;
+        return;
     }
 
     if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
     {
-        if (bytes.size() != sizeof(Runtime::ClosureValue))
-            return false;
+        SWC_ASSERT(bytes.size() == sizeof(Runtime::ClosureValue));
 
         const auto* value = reinterpret_cast<const Runtime::ClosureValue*>(bytes.data());
         if (!value->invoke)
-            return isZeroFilled(bytes);
+        {
+            SWC_ASSERT(isZeroFilled(bytes));
+            return;
+        }
 
         uint32_t invokeOffset = 0;
-        if (!findDataSegmentRelocation(invokeOffset, shardIndex, baseOffset + offsetof(Runtime::ClosureValue, invoke)))
-            return false;
-        if (invokeOffset >= segment.extentSize())
-            return false;
+        SWC_ASSERT(findDataSegmentRelocation(invokeOffset, shardIndex, baseOffset + offsetof(Runtime::ClosureValue, invoke)));
+        SWC_ASSERT(invokeOffset < segment.extentSize());
 
         const auto capturedPtr = *reinterpret_cast<const uint64_t*>(value->capture);
         if (!capturedPtr)
-            return true;
+            return;
 
         uint32_t captureOffset = 0;
-        return findDataSegmentRelocation(captureOffset, shardIndex, baseOffset + offsetof(Runtime::ClosureValue, capture)) &&
-               captureOffset < segment.extentSize();
+        SWC_ASSERT(findDataSegmentRelocation(captureOffset, shardIndex, baseOffset + offsetof(Runtime::ClosureValue, capture)));
+        SWC_ASSERT(captureOffset < segment.extentSize());
+        return;
     }
 
     if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isTypeInfo() || typeInfo.isCString() || typeInfo.isFunction())
     {
-        if (bytes.size() != sizeof(uint64_t))
-            return false;
+        SWC_ASSERT(bytes.size() == sizeof(uint64_t));
 
         const uint64_t ptr = *reinterpret_cast<const uint64_t*>(bytes.data());
         if (!ptr)
-            return true;
+            return;
 
         uint32_t targetOffset = 0;
         if (findDataSegmentRelocation(targetOffset, shardIndex, baseOffset))
-            return targetOffset < segment.extentSize();
+        {
+            SWC_ASSERT(targetOffset < segment.extentSize());
+            return;
+        }
 
         const SymbolFunction* targetFunction = nullptr;
-        return findFunctionSymbolRelocation(targetFunction, shardIndex, baseOffset) && validateFunctionSymbolRelocation(builder_, targetFunction);
+        SWC_ASSERT(findFunctionSymbolRelocation(targetFunction, shardIndex, baseOffset));
+        validateFunctionSymbolRelocation(builder_, targetFunction);
+        return;
     }
 
-    return false;
+    SWC_ASSERT(false);
 }
 
 bool NativeValidate::findDataSegmentRelocation(uint32_t& outTargetOffset, const uint32_t shardIndex, const uint32_t offset) const

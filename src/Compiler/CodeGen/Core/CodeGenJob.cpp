@@ -6,6 +6,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Memory/MemoryProfile.h"
 #if SWC_HAS_STATS
 #include "Support/Core/Timer.h"
 #endif
@@ -117,6 +118,7 @@ JobResult CodeGenJob::exec()
     if (!symbolFunc_->isCodeGenPreSolved())
     {
         SWC_ASSERT(root_.isValid());
+        SWC_MEM_SCOPE("Backend/CodeGen");
 #if SWC_HAS_STATS
         Timer timeCodeGen(&Stats::get().timeCodeGen);
 #endif

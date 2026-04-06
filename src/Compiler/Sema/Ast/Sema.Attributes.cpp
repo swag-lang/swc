@@ -199,11 +199,11 @@ namespace
         return Result::Continue;
     }
 
-    const ConstantValue& unwrapAttributeConstant(Sema& sema, const ConstantValue& value)
+    const ConstantValue* unwrapAttributeConstant(Sema& sema, const ConstantValue& value)
     {
         if (!value.isEnumValue())
-            return value;
-        return sema.cstMgr().get(value.getEnumValue());
+            return &value;
+        return &sema.cstMgr().get(value.getEnumValue());
     }
 
     Result collectResolvedConstantValue(Sema& sema, const ResolvedCallArgument& arg, const ConstantValue*& outValue)
@@ -214,14 +214,14 @@ namespace
             SWC_RESULT(SemaCheck::isConstant(sema, arg.argRef));
             const SemaNodeView argView = sema.viewConstant(arg.argRef);
             SWC_ASSERT(argView.cst() != nullptr);
-            outValue = &unwrapAttributeConstant(sema, *argView.cst());
+            outValue = unwrapAttributeConstant(sema, *argView.cst());
             return Result::Continue;
         }
 
         if (!arg.defaultCstRef.isValid())
             return Result::Continue;
 
-        outValue = &unwrapAttributeConstant(sema, sema.cstMgr().get(arg.defaultCstRef));
+        outValue = unwrapAttributeConstant(sema, sema.cstMgr().get(arg.defaultCstRef));
         return Result::Continue;
     }
 

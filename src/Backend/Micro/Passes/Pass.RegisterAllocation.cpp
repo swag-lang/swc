@@ -87,7 +87,7 @@ bool MicroRegisterAllocationPass::isLiveAcrossCall(MicroReg key) const
 
 void MicroRegisterAllocationPass::markLiveAcrossCall(MicroReg key)
 {
-    const uint32_t denseIndex = denseVirtualIndex(key);
+    const uint32_t denseIndex        = denseVirtualIndex(key);
     vregsLiveAcrossCall_[denseIndex] = 1;
 }
 
@@ -101,7 +101,7 @@ bool MicroRegisterAllocationPass::requiresCallSpill(MicroReg key) const
 
 void MicroRegisterAllocationPass::markCallSpill(MicroReg key)
 {
-    const uint32_t denseIndex = denseVirtualIndex(key);
+    const uint32_t denseIndex   = denseVirtualIndex(key);
     callSpillFlags_[denseIndex] = 1;
 }
 
@@ -268,7 +268,7 @@ void MicroRegisterAllocationPass::prepareInstructionData()
 {
     usePositions_.clear();
 
-    controlFlowGraph_ = &((context_->builder)->controlFlowGraph());
+    controlFlowGraph_                                    = &((context_->builder)->controlFlowGraph());
     const std::span<const MicroInstrRef> instructionRefs = controlFlowGraph_->instructionRefs();
     SWC_ASSERT(instructionRefs.size() == instructionCount_);
     if (instructionRefs.size() != instructionCount_)
@@ -793,7 +793,7 @@ bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg     requestVi
     for (const uint32_t mappedDenseIndex : mappedVirtualIndices_)
     {
         SWC_ASSERT(mappedDenseIndex < virtualRegs.size());
-        const MicroReg virtKey = virtualRegs[mappedDenseIndex];
+        const MicroReg virtKey  = virtualRegs[mappedDenseIndex];
         const auto&    regState = states_[mappedDenseIndex];
         SWC_ASSERT(regState.mapped);
         const MicroReg physReg = regState.phys;
@@ -875,8 +875,8 @@ void MicroRegisterAllocationPass::unmapVirtReg(MicroReg virtKey)
     SWC_ASSERT(regState.mappedListIndex != std::numeric_limits<uint32_t>::max());
     SWC_ASSERT(regState.mappedListIndex < mappedVirtualIndices_.size());
 
-    const uint32_t removedListIndex = regState.mappedListIndex;
-    const uint32_t lastDenseIndex   = mappedVirtualIndices_.back();
+    const uint32_t removedListIndex         = regState.mappedListIndex;
+    const uint32_t lastDenseIndex           = mappedVirtualIndices_.back();
     mappedVirtualIndices_[removedListIndex] = lastDenseIndex;
     mappedVirtualIndices_.pop_back();
 
@@ -898,7 +898,7 @@ void MicroRegisterAllocationPass::mapVirtReg(MicroReg virtKey, MicroReg physReg)
         regState.mapped = true;
     }
 
-    regState.phys   = physReg;
+    regState.phys = physReg;
 }
 
 bool MicroRegisterAllocationPass::selectEvictionCandidateWithFallback(MicroReg     requestVirtKey,
@@ -1109,7 +1109,7 @@ void MicroRegisterAllocationPass::spillMappedVirtualsForConcreteTouches(const Mi
     {
         const uint32_t denseIndex = mappedVirtualIndices_[mappedIndex];
         SWC_ASSERT(denseIndex < virtualRegs.size());
-        const MicroReg virtKey = virtualRegs[denseIndex];
+        const MicroReg virtKey  = virtualRegs[denseIndex];
         auto&          regState = states_[denseIndex];
         SWC_ASSERT(regState.mapped);
         const MicroReg physReg = regState.phys;
@@ -1141,7 +1141,7 @@ void MicroRegisterAllocationPass::spillCallLiveOut(uint32_t stamp, int64_t stack
     {
         const uint32_t denseIndex = mappedVirtualIndices_[mappedIndex];
         SWC_ASSERT(denseIndex < virtualRegs.size());
-        const MicroReg virtKey = virtualRegs[denseIndex];
+        const MicroReg virtKey  = virtualRegs[denseIndex];
         auto&          regState = states_[denseIndex];
         SWC_ASSERT(regState.mapped);
         const MicroReg physReg = regState.phys;
@@ -1173,11 +1173,11 @@ void MicroRegisterAllocationPass::flushAllMappedVirtuals(uint32_t stamp, int64_t
     for (const uint32_t denseIndex : mappedVirtualIndices_)
     {
         SWC_ASSERT(denseIndex < virtualRegs.size());
-        const MicroReg virtKey = virtualRegs[denseIndex];
+        const MicroReg virtKey  = virtualRegs[denseIndex];
         auto&          regState = states_[denseIndex];
         SWC_ASSERT(regState.mapped);
         const MicroReg physReg = regState.phys;
-        const bool liveOut  = isLiveOut(virtKey, stamp);
+        const bool     liveOut = isLiveOut(virtKey, stamp);
         if (liveOut && (regState.dirty || !regState.hasSpill))
         {
             ensureSpillSlot(regState, physReg.isFloat());
@@ -1200,7 +1200,7 @@ void MicroRegisterAllocationPass::clearAllMappedVirtuals()
 {
     for (const uint32_t denseIndex : mappedVirtualIndices_)
     {
-        auto& regState           = states_[denseIndex];
+        auto& regState = states_[denseIndex];
         SWC_ASSERT(regState.mapped);
         const MicroReg physReg   = regState.phys;
         regState.mapped          = false;

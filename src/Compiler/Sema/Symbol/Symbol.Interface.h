@@ -19,6 +19,7 @@ public:
     const std::vector<SymbolFunction*>& functions() const { return functions_; }
     void                                addFunction(SymbolFunction* sym);
     Result                              canBeCompleted(Sema& sema) const;
+
 private:
     std::vector<SymbolFunction*> functions_;
 };

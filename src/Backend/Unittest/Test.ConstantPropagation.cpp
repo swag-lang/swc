@@ -119,13 +119,13 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedStructPayloadOutsideDataSegment)
         .ptr    = "borrowed-struct",
         .length = 15,
     };
-    const char*   expectedPtr    = runtimeString.ptr;
+    const char*    expectedPtr    = runtimeString.ptr;
     const uint64_t expectedLength = runtimeString.length;
 
-    const ConstantValue value = ConstantValue::makeStructBorrowed(ctx,
-                                                                  ctx.typeMgr().typeString(),
-                                                                  ByteSpan{reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString)});
-    const ConstantRef   cstRef = ctx.cstMgr().addConstant(ctx, value);
+    const ConstantValue  value  = ConstantValue::makeStructBorrowed(ctx,
+                                                                    ctx.typeMgr().typeString(),
+                                                                    ByteSpan{reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString)});
+    const ConstantRef    cstRef = ctx.cstMgr().addConstant(ctx, value);
     const ConstantValue& stored = ctx.cstMgr().get(cstRef);
     if (!stored.isStruct() || stored.typeRef() != ctx.typeMgr().typeString())
         return Result::Error;
@@ -159,13 +159,13 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
 
     std::array<uint64_t, 1> dims{source.size()};
     const TypeRef           arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
-    const ConstantValue           value        = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{source.data(), source.size()});
-    const ConstantRef             cstRef       = ctx.cstMgr().addConstant(ctx, value);
-    const ConstantValue&          stored       = ctx.cstMgr().get(cstRef);
+    const ConstantValue     value        = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{source.data(), source.size()});
+    const ConstantRef       cstRef       = ctx.cstMgr().addConstant(ctx, value);
+    const ConstantValue&    stored       = ctx.cstMgr().get(cstRef);
     if (!stored.isArray() || stored.typeRef() != arrayTypeRef)
         return Result::Error;
 
-    uint32_t   shardIndex = 0;
+    uint32_t shardIndex = 0;
     if (ctx.cstMgr().findDataSegmentRef(shardIndex, stored.getArray().data()) == INVALID_REF)
         return Result::Error;
     if (stored.getArray().data() == source.data())
@@ -192,7 +192,7 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedSlicePayloadOutsideDataSegment)
     if (!stored.isSlice())
         return Result::Error;
 
-    uint32_t   shardIndex = 0;
+    uint32_t shardIndex = 0;
     if (ctx.cstMgr().findDataSegmentRef(shardIndex, stored.getSlice().data()) == INVALID_REF)
         return Result::Error;
     if (stored.getSlice().data() == source.data())

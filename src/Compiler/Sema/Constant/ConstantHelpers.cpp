@@ -224,7 +224,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
 {
     outCstRef = ConstantRef::invalid();
 
-    const TaskContext& ctx = sema.ctx();
+    const TaskContext& ctx     = sema.ctx();
     TypeRef            typeRef = TypeRef::invalid();
     SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, SourceCodeRef::invalid()));
 
@@ -259,7 +259,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
 
     const auto          bytes  = ByteSpan{storage, sizeof(Runtime::SourceCodeLocation)};
     const ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
-    outCstRef                = sema.cstMgr().addConstant(ctx, cstVal);
+    outCstRef                  = sema.cstMgr().addConstant(ctx, cstVal);
     return Result::Continue;
 }
 

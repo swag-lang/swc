@@ -551,7 +551,7 @@ namespace
         else
         {
             SWC_ASSERT(param != nullptr);
-            normalizedTypeRef = param->typeRef();
+            normalizedTypeRef         = param->typeRef();
             ConstantRef defaultCstRef = ConstantRef::invalid();
             SWC_RESULT(defaultArgumentConstantRef(codeGen, defaultCstRef, callRef, arg));
             SWC_ASSERT(defaultCstRef.isValid());

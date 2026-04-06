@@ -131,13 +131,13 @@ public:
         Count,
     };
 
-    void              setup(const TaskContext& ctx);
-    IdentifierRef     addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef);
-    IdentifierRef     addIdentifier(std::string_view name);
-    IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
-    IdentifierRef     addIdentifierOwned(std::string_view name);
-    IdentifierRef     addIdentifierOwned(std::string_view name, uint32_t hash);
-    const Identifier& get(IdentifierRef idRef) const;
+    void                setup(const TaskContext& ctx);
+    IdentifierRef       addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef);
+    IdentifierRef       addIdentifier(std::string_view name);
+    IdentifierRef       addIdentifier(std::string_view name, uint32_t hash);
+    IdentifierRef       addIdentifierOwned(std::string_view name);
+    IdentifierRef       addIdentifierOwned(std::string_view name, uint32_t hash);
+    const Identifier&   get(IdentifierRef idRef) const;
     IdentifierRef       predefined(PredefinedName name) const { return predefined_[static_cast<size_t>(name)]; }
     IdentifierRef       runtimeFunction(RuntimeFunctionKind kind) const { return runtimeFunctions_[static_cast<size_t>(kind)]; }
     RuntimeFunctionKind runtimeFunctionKind(IdentifierRef idRef) const;

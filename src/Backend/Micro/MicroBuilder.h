@@ -99,8 +99,8 @@ public:
     void                                invalidateControlFlowGraph();
     void                                markControlFlowGraphMaybeDirty();
 
-    Result                  runPasses(Encoder* encoder, MicroPassContext& context);
-    Result                  runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
+    Result        runPasses(Encoder* encoder, MicroPassContext& context);
+    Result        runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
     MicroLabelRef createLabel();
     void          placeLabel(MicroLabelRef labelRef);
 

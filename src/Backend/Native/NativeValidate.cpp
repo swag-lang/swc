@@ -361,7 +361,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         {
             const uint64_t elementOffset = idx * elementSize;
             SWC_ASSERT(elementOffset + elementSize <= bytes.size());
-            const auto     elementBytes  = ByteSpan{bytes.data() + elementOffset, static_cast<size_t>(elementSize)};
+            const auto elementBytes = ByteSpan{bytes.data() + elementOffset, static_cast<size_t>(elementSize)};
             validateNativeStaticPayload(elementTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(elementOffset), elementBytes);
         }
 

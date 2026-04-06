@@ -1637,7 +1637,7 @@ namespace
                         }
                         else if (SemaHelpers::isDirectCallerLocationDefault(sema, *param))
                         {
-                            resolvedArg.defaultKind   = CallArgumentDefaultKind::Constant;
+                            resolvedArg.defaultKind = CallArgumentDefaultKind::Constant;
                             SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(sema, resolvedArg.defaultCstRef, sema.node(sema.curNodeRef()), SemaHelpers::currentLocationFunction(sema)));
                         }
                     }

@@ -661,7 +661,7 @@ namespace
 
     Result mapArguments(Sema& sema, bool& outMapped, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings, InlineVariadicBinding& outVariadic)
     {
-        outMapped    = false;
+        outMapped   = false;
         outVariadic = {};
 
         const auto& params = fn.parameters();

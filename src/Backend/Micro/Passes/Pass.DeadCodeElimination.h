@@ -59,8 +59,8 @@ private:
     std::vector<MicroInstrRef>            cfgEraseList_;
 
     // Reusable buffers for linear tail liveness
-    std::unordered_set<MicroReg>          linearLiveRegs_;
-    std::vector<MicroInstrRef>            linearEraseList_;
+    std::unordered_set<MicroReg> linearLiveRegs_;
+    std::vector<MicroInstrRef>   linearEraseList_;
 };
 
 SWC_END_NAMESPACE();

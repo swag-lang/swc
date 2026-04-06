@@ -43,6 +43,7 @@ public:
     void addFinalPass(MicroPass& pass) { finalPasses_.push_back(&pass); }
 
     Result run(MicroPassContext& context) const;
+
 private:
     std::vector<MicroPass*> startPasses_;
     std::vector<MicroPass*> loopPasses_;

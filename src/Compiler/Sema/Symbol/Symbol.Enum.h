@@ -53,8 +53,8 @@ public:
 
     void                     addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*> impls() const;
-    bool     isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
-    uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
+    bool                     isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
+    uint64_t                 sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 
 private:
     TypeRef underlyingTypeRef_ = TypeRef::invalid();

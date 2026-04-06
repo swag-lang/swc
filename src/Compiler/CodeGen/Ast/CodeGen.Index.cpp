@@ -235,7 +235,7 @@ namespace
 
         outPayload.typeRef = resultTypeRef;
         outPayload.setIsAddress();
-        outPayload.reg     = codeGen.nextVirtualIntRegister();
+        outPayload.reg        = codeGen.nextVirtualIntRegister();
         MicroBuilder& builder = codeGen.builder();
         builder.emitLoadAddressAmcRegMem(outPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
         return Result::Continue;
@@ -373,7 +373,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());
 
-    const TypeRef resultTypeRef = resolveIndexedResultTypeRef(codeGen, *indexedView.type());
+    const TypeRef      resultTypeRef = resolveIndexedResultTypeRef(codeGen, *indexedView.type());
     CodeGenNodePayload indexedResultPayload;
     SWC_RESULT(emitIndexAddress(codeGen, indexedResultPayload, nodeArgRef, *indexedView.type(), indexedPayload, resultTypeRef));
     codeGen.setPayloadAddressReg(codeGen.curNodeRef(), indexedResultPayload.reg, resultTypeRef);
@@ -395,7 +395,7 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
         const TypeInfo& currentType = codeGen.typeMgr().get(currentTypeRef);
         const TypeRef   nextTypeRef = resolveIndexedResultTypeRef(codeGen, currentType);
         SWC_RESULT(emitIndexAddress(codeGen, currentPayload, indexRef, currentType, currentPayload, nextTypeRef));
-        currentTypeRef              = nextTypeRef;
+        currentTypeRef = nextTypeRef;
     }
 
     codeGen.setPayloadAddressReg(codeGen.curNodeRef(), currentPayload.reg, currentTypeRef);

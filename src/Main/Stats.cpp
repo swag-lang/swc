@@ -60,12 +60,12 @@ namespace
             node = it->second.get();
         }
 
-        node->peakBytes    += snap.peakBytes;
+        node->peakBytes += snap.peakBytes;
         node->currentBytes += snap.currentBytes;
-        node->totalBytes   += snap.totalBytes;
-        node->allocCount   += snap.allocCount;
-        node->freeCount    += snap.freeCount;
-        node->leaf          = &snap;
+        node->totalBytes += snap.totalBytes;
+        node->allocCount += snap.allocCount;
+        node->freeCount += snap.freeCount;
+        node->leaf = &snap;
     }
 
     void propagateStats(TreeNode& node)
@@ -73,18 +73,18 @@ namespace
         for (auto& [_, child] : node.children)
         {
             propagateStats(*child);
-            node.peakBytes    += child->peakBytes;
+            node.peakBytes += child->peakBytes;
             node.currentBytes += child->currentBytes;
-            node.totalBytes   += child->totalBytes;
-            node.allocCount   += child->allocCount;
-            node.freeCount    += child->freeCount;
+            node.totalBytes += child->totalBytes;
+            node.allocCount += child->allocCount;
+            node.freeCount += child->freeCount;
         }
     }
 
     void printMemLine(const TaskContext& ctx, const Utf8& name, const size_t nameIndent, const size_t totalPeakBytes, const size_t peakBytes, const size_t totalBytes, const size_t allocCount, const MemoryProfile::CategorySnapshot* leaf)
     {
-        const auto gray  = LogColorHelper::toAnsi(ctx, LogColor::Gray);
-        const auto white = LogColorHelper::toAnsi(ctx, LogColor::White);
+        const auto   gray    = LogColorHelper::toAnsi(ctx, LogColor::Gray);
+        const auto   white   = LogColorHelper::toAnsi(ctx, LogColor::White);
         const double peakPct = totalPeakBytes ? 100.0 * static_cast<double>(peakBytes) / static_cast<double>(totalPeakBytes) : 0.0;
 
         // Name with indent

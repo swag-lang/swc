@@ -49,6 +49,7 @@ public:
     const SymbolFunction*        resolveInterfaceMethodTarget(const SymbolFunction& interfaceMethod) const;
     std::vector<SymbolFunction*> specOps() const;
     Result                       ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
+
 private:
     std::vector<SymbolFunction*> specOps_;
     mutable std::mutex           interfaceMethodTableMutex_;

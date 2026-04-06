@@ -16,15 +16,15 @@ namespace MemoryProfile
         ScopedSuppress& operator=(const ScopedSuppress&) = delete;
     };
 
-    void                 setDetailedTrackingEnabled(bool enabled);
+    void                setDetailedTrackingEnabled(bool enabled);
     [[nodiscard]] void* allocateHeap(size_t size, size_t alignment, bool throwOnFailure);
-    void                 freeHeap(void* block) noexcept;
-    void                 trackExternalAlloc(const void* ptr, size_t size, const char* category = nullptr, const char* file = nullptr, uint32_t line = 0);
-    void                 trackExternalFree(const void* ptr) noexcept;
+    void                freeHeap(void* block) noexcept;
+    void                trackExternalAlloc(const void* ptr, size_t size, const char* category = nullptr, const char* file = nullptr, uint32_t line = 0);
+    void                trackExternalFree(const void* ptr) noexcept;
 
 #if SWC_HAS_STATS
-    inline constexpr uint32_t MAX_CATEGORIES    = 512;
-    inline constexpr uint32_t INVALID_CATEGORY  = std::numeric_limits<uint32_t>::max();
+    inline constexpr uint32_t MAX_CATEGORIES   = 512;
+    inline constexpr uint32_t INVALID_CATEGORY = std::numeric_limits<uint32_t>::max();
 
     struct CategoryInfo
     {

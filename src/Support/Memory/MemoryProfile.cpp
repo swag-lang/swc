@@ -21,14 +21,14 @@ namespace
     [[nodiscard]] uintptr_t alignUpAddress(const uintptr_t value, const size_t alignment)
     {
         SWC_ASSERT(alignment != 0);
-        const uintptr_t mask = static_cast<uintptr_t>(alignment - 1);
+        const uintptr_t mask = alignment - 1;
         return (value + mask) & ~mask;
     }
 
 #if SWC_HAS_STATS
     constexpr uint32_t K_EXTERNAL_CAPACITY       = 16 * 1024;
     constexpr uint32_t K_INVALID_CATEGORY        = MemoryProfile::INVALID_CATEGORY;
-    constexpr uint32_t K_ALLOCATION_FLAG_TRACKED  = 1u << 0;
+    constexpr uint32_t K_ALLOCATION_FLAG_TRACKED = 1u << 0;
 
     struct ExternalEntry
     {
@@ -40,16 +40,16 @@ namespace
 
     struct MemoryProfileState
     {
-        std::atomic<bool>                                              detailedTrackingEnabled = false;
+        std::atomic<bool>                                                      detailedTrackingEnabled = false;
         std::array<MemoryProfile::CategoryInfo, MemoryProfile::MAX_CATEGORIES> categories{};
-        std::atomic<uint32_t>                                          categoryCount = 0;
-        std::mutex                                                     registrationMutex;
-        std::mutex                                                     externalMutex;
-        std::array<ExternalEntry, K_EXTERNAL_CAPACITY>                 externals{};
+        std::atomic<uint32_t>                                                  categoryCount = 0;
+        std::mutex                                                             registrationMutex;
+        std::mutex                                                             externalMutex;
+        std::array<ExternalEntry, K_EXTERNAL_CAPACITY>                         externals{};
     };
 
-    thread_local uint32_t g_SuppressDepth    = 0;
-    thread_local uint32_t g_CurrentCategory  = K_INVALID_CATEGORY;
+    thread_local uint32_t g_SuppressDepth   = 0;
+    thread_local uint32_t g_CurrentCategory = K_INVALID_CATEGORY;
 
     MemoryProfileState& memoryProfileState()
     {
@@ -101,9 +101,9 @@ namespace
 
         const uint32_t newIndex = countAfterLock;
         auto&          cat      = state.categories[newIndex];
-        cat.name = name;
-        cat.file = file;
-        cat.line = line;
+        cat.name                = name;
+        cat.file                = file;
+        cat.line                = line;
         state.categoryCount.store(newIndex + 1, std::memory_order_release);
         return newIndex;
     }
@@ -113,7 +113,7 @@ namespace
         if (categoryIndex == K_INVALID_CATEGORY)
             return;
 
-        auto& cat = memoryProfileState().categories[categoryIndex];
+        auto&        cat        = memoryProfileState().categories[categoryIndex];
         const size_t newCurrent = cat.currentBytes.fetch_add(trackedBytes, std::memory_order_relaxed) + trackedBytes;
         cat.totalBytes.fetch_add(trackedBytes, std::memory_order_relaxed);
         cat.allocCount.fetch_add(1, std::memory_order_relaxed);
@@ -149,13 +149,13 @@ namespace
 
     uint32_t findExternalSlotLocked(const void* ptr)
     {
-        MemoryProfileState& state = memoryProfileState();
-        const auto          hash  = static_cast<uintptr_t>(reinterpret_cast<uintptr_t>(ptr) >> 4);
-        const uint32_t      start = static_cast<uint32_t>(hash % K_EXTERNAL_CAPACITY);
+        MemoryProfileState& state     = memoryProfileState();
+        const auto          hash      = reinterpret_cast<uintptr_t>(ptr) >> 4;
+        const uint32_t      start     = static_cast<uint32_t>(hash % K_EXTERNAL_CAPACITY);
         uint32_t            firstFree = K_EXTERNAL_CAPACITY;
         for (uint32_t probe = 0; probe < K_EXTERNAL_CAPACITY; ++probe)
         {
-            const uint32_t   slot  = (start + probe) % K_EXTERNAL_CAPACITY;
+            const uint32_t slot  = (start + probe) % K_EXTERNAL_CAPACITY;
             ExternalEntry& entry = state.externals[slot];
             if (entry.used)
             {
@@ -224,11 +224,11 @@ namespace MemoryProfile
             return nullptr;
         }
 
-        const auto  rawAddress  = reinterpret_cast<uintptr_t>(rawPtr);
-        const auto  userAddress = alignUpAddress(rawAddress + sizeof(AllocationHeader), effectiveAlignment);
-        auto* const header      = reinterpret_cast<AllocationHeader*>(userAddress - sizeof(AllocationHeader));
-        const size_t usableSize = mi_usable_size(rawPtr);
-        const size_t userOffset = static_cast<size_t>(userAddress - rawAddress);
+        const auto   rawAddress  = reinterpret_cast<uintptr_t>(rawPtr);
+        const auto   userAddress = alignUpAddress(rawAddress + sizeof(AllocationHeader), effectiveAlignment);
+        auto* const  header      = reinterpret_cast<AllocationHeader*>(userAddress - sizeof(AllocationHeader));
+        const size_t usableSize  = mi_usable_size(rawPtr);
+        const size_t userOffset  = userAddress - rawAddress;
 
         header->rawPtr        = rawPtr;
         header->trackedBytes  = usableSize > userOffset ? usableSize - userOffset : size;
@@ -283,8 +283,8 @@ namespace MemoryProfile
         if (!ptr || size == 0 || isTrackingSuppressed())
             return;
 
-        const bool     trackDetailed = isDetailedTrackingEnabled();
-        uint32_t       catIndex      = K_INVALID_CATEGORY;
+        const bool trackDetailed = isDetailedTrackingEnabled();
+        uint32_t   catIndex      = K_INVALID_CATEGORY;
         if (trackDetailed)
         {
             if (category)
@@ -345,7 +345,7 @@ namespace MemoryProfile
 #if SWC_HAS_STATS
     ScopedCategory::ScopedCategory(const char* category, const char* file, const uint32_t line)
     {
-        prevIndex_       = g_CurrentCategory;
+        prevIndex_        = g_CurrentCategory;
         g_CurrentCategory = findOrRegisterCategory(category, file, line);
     }
 
@@ -359,7 +359,7 @@ namespace MemoryProfile
         ScopedSuppress suppress;
         outSummary = {};
 
-        MemoryProfileState& state = memoryProfileState();
+        MemoryProfileState& state    = memoryProfileState();
         outSummary.totalCurrentBytes = Stats::get().memAllocated.load(std::memory_order_relaxed);
         outSummary.totalPeakBytes    = Stats::get().memMaxAllocated.load(std::memory_order_relaxed);
 

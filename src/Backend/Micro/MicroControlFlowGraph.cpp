@@ -6,9 +6,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_CFG_HASH_OFFSET_BASIS = 1469598103934665603ull;
-    constexpr uint64_t K_CFG_HASH_PRIME        = 1099511628211ull;
-    constexpr uint64_t K_CFG_HASH_INVALID_OPS  = std::numeric_limits<uint64_t>::max();
+    constexpr uint64_t K_CFG_HASH_OFFSET_BASIS     = 1469598103934665603ull;
+    constexpr uint64_t K_CFG_HASH_PRIME            = 1099511628211ull;
+    constexpr uint64_t K_CFG_HASH_INVALID_OPS      = std::numeric_limits<uint64_t>::max();
     constexpr uint32_t K_INVALID_INSTRUCTION_INDEX = std::numeric_limits<uint32_t>::max();
 
     template<typename T, size_t InlineCapacity>

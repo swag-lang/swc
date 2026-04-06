@@ -80,6 +80,7 @@ public:
     void                          finishGenericCompletion() const noexcept;
     bool                          isGenericNodeCompleted() const noexcept;
     void                          setGenericNodeCompleted() const noexcept;
+
 private:
     struct GenericData;
 

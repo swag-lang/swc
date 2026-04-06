@@ -1075,7 +1075,7 @@ namespace
 
         ConstantRef sourceLocRef = ConstantRef::invalid();
         SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocRef, node));
-        const auto        sourceLoc    = makeAddressPayloadFromConstant(codeGen, sourceLocRef);
+        const auto sourceLoc = makeAddressPayloadFromConstant(codeGen, sourceLocRef);
 
         ABICall::PreparedArg messageArg;
         messageArg.srcReg = nullMessage.reg;
@@ -1091,12 +1091,12 @@ namespace
         ABICall::PreparedArg locationArg;
         locationArg.srcReg = sourceLoc.reg;
         {
-            const TypeRef locationTypeRef = codeGen.cstMgr().get(sourceLocRef).typeRef();
-            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, locationTypeRef, ABITypeNormalize::Usage::Argument);
-            locationArg.kind                                     = ABICall::PreparedArgKind::Direct;
-            locationArg.isFloat                                  = normalizedArg.isFloat;
-            locationArg.numBits                                  = normalizedArg.numBits;
-            locationArg.isAddressed                              = false;
+            const TypeRef                          locationTypeRef = codeGen.cstMgr().get(sourceLocRef).typeRef();
+            const ABITypeNormalize::NormalizedType normalizedArg   = ABITypeNormalize::normalize(codeGen.ctx(), callConv, locationTypeRef, ABITypeNormalize::Usage::Argument);
+            locationArg.kind                                       = ABICall::PreparedArgKind::Direct;
+            locationArg.isFloat                                    = normalizedArg.isFloat;
+            locationArg.numBits                                    = normalizedArg.numBits;
+            locationArg.isAddressed                                = false;
         }
         preparedArgs.push_back(locationArg);
 

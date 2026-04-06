@@ -567,7 +567,7 @@ namespace
                 const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
                 if (len)
                 {
-                    modulePath[len]      = 0;
+                    modulePath[len]       = 0;
                     outAddress.moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
                     hasInfo               = true;
                 }
@@ -661,7 +661,7 @@ namespace Os
 
         std::array<void*, 64> rawFrames{};
         const uint32_t        maxFrames = static_cast<uint32_t>(std::min(outFrames.size(), rawFrames.size()));
-        const USHORT          numFrames = ::CaptureStackBackTrace(skipFrames + 1, static_cast<DWORD>(maxFrames), rawFrames.data(), nullptr);
+        const USHORT          numFrames = ::CaptureStackBackTrace(skipFrames + 1, maxFrames, rawFrames.data(), nullptr);
         for (uint32_t i = 0; i < numFrames; ++i)
             outFrames[i] = reinterpret_cast<uintptr_t>(rawFrames[i]);
         return numFrames;

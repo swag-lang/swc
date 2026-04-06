@@ -342,7 +342,7 @@ namespace
         if (conv.intPersistentRegs.empty())
             return;
 
-        const MicroReg srcReg = conv.intArgRegs.empty() ? conv.intTransientRegs[0] : conv.intArgRegs[0];
+        const MicroReg     srcReg     = conv.intArgRegs.empty() ? conv.intTransientRegs[0] : conv.intArgRegs[0];
         constexpr MicroReg savedValue = MicroReg::virtualIntReg(7401);
 
         SmallVector<MicroReg> forbiddenRegs;

@@ -363,34 +363,6 @@ const GenericInstanceStorage& SymbolStruct::genericInstanceStorage() const noexc
     return data->instances;
 }
 
-#if SWC_HAS_STATS
-size_t SymbolStruct::memStorageReserved() const
-{
-    size_t result = Symbol::memStorageReserved();
-    result += vectorStorageReserved(fields_);
-
-    {
-        const std::shared_lock lk(mutexImpls_);
-        result += vectorStorageReserved(impls_);
-    }
-
-    {
-        const std::shared_lock lk(mutexInterfaces_);
-        result += vectorStorageReserved(interfaces_);
-    }
-
-    {
-        const std::shared_lock lk(mutexSpecOps_);
-        result += vectorStorageReserved(specOps_);
-    }
-
-    if (const GenericData* data = genericData())
-        result += sizeof(GenericData) + data->instances.memStorageReserved();
-
-    return result;
-}
-#endif
-
 bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const
 {
     if (const auto* data = genericData())

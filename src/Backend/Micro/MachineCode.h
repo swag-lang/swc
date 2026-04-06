@@ -16,15 +16,6 @@ struct MachineCode
     std::vector<DebugSourceRange> debugSourceRanges;
 
     Result emit(TaskContext& ctx, MicroBuilder& builder);
-#if SWC_HAS_STATS
-    size_t memStorageReserved() const
-    {
-        return bytes.capacity() * sizeof(std::byte) +
-               unwindInfo.capacity() * sizeof(std::byte) +
-               codeRelocations.capacity() * sizeof(MicroRelocation) +
-               debugSourceRanges.capacity() * sizeof(DebugSourceRange);
-    }
-#endif
 };
 
 SWC_END_NAMESPACE();

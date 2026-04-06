@@ -780,30 +780,6 @@ Result MicroBuilder::runPasses(Encoder* encoder, MicroPassContext& context)
     return runPasses(passManager_, encoder, context);
 }
 
-#if SWC_HAS_STATS
-size_t MicroBuilder::memStorageReserved() const
-{
-    size_t result = vectorStorageReserved(printPassOptions_);
-    for (const Utf8& value : printPassOptions_)
-        result += utf8StorageReserved(value);
-
-    result += utf8StorageReserved(printSymbolName_);
-    result += utf8StorageReserved(printFilePath_);
-    result += vectorStorageReserved(labels_);
-    result += vectorStorageReserved(relocations_);
-    result += unorderedMapStorageReserved(virtualRegForbiddenPhysRegs_);
-    for (const auto& [virtualReg, forbiddenRegs] : virtualRegForbiddenPhysRegs_)
-    {
-        SWC_UNUSED(virtualReg);
-        result += smallVectorStorageReserved(forbiddenRegs);
-    }
-
-    result += passManager_.memStorageReserved();
-    result += controlFlowGraph_.memStorageReserved();
-    return result;
-}
-#endif
-
 Utf8 MicroBuilder::formatInstructions(MicroRegPrintMode regPrintMode, const Encoder* encoder) const
 {
     return MicroPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, this);

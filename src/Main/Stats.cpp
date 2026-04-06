@@ -63,58 +63,113 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
 
+    constexpr size_t kMemoryHotspotTopN         = 4;
+    constexpr size_t kMemoryHotspotMinPeakBytes = 1024 * 1024;
+    constexpr size_t kMemoryHotspotMinTotalBytes = 16 * 1024 * 1024;
+
     MemoryProfile::Summary memoryProfileSummary;
-    MemoryProfile::buildSummary(memoryProfileSummary, 6, 1024 * 1024, 16 * 1024 * 1024);
+    MemoryProfile::buildSummary(memoryProfileSummary, kMemoryHotspotTopN, kMemoryHotspotMinPeakBytes, kMemoryHotspotMinTotalBytes);
 
-    const auto formatHotspotSummary = [&](const MemoryProfile::Hotspot& hotspot) {
-        const double peakPct = memoryProfileSummary.totalPeakBytes ? 100.0 * static_cast<double>(hotspot.peakBytes) / static_cast<double>(memoryProfileSummary.totalPeakBytes) : 0.0;
-
-        Utf8 result;
-        result += "peak=";
-        result += Utf8Helper::toNiceSize(hotspot.peakBytes);
-        result += std::format(" ({:.1f}%)", peakPct);
-        result += " current=";
-        result += Utf8Helper::toNiceSize(hotspot.currentBytes);
-        result += " total=";
-        result += Utf8Helper::toNiceSize(hotspot.totalBytes);
-        result += " allocs=";
-        result += Utf8Helper::toNiceBigNumber(hotspot.allocCount);
-        result += " avg=";
-        result += Utf8Helper::toNiceSize(hotspot.allocCount ? hotspot.totalBytes / hotspot.allocCount : 0);
-        return result;
+    const auto appendFieldLine = [](Utf8& out, const std::string_view label, const Utf8& value) {
+        out += "  ";
+        out += label;
+        if (label.size() < 14)
+            out.append(14 - label.size(), ' ');
+        out += ": ";
+        out += value;
+        out += "\n";
     };
 
-    const auto printHotspotSection = [&](const std::string_view headerPrefix, const std::vector<MemoryProfile::Hotspot>& hotspots) {
+    const auto appendLocationLine = [](Utf8& out, const std::string_view label, const Utf8& value) {
+        if (value.empty())
+            return;
+
+        out += "      ";
+        out += label;
+        if (label.size() < 12)
+            out.append(12 - label.size(), ' ');
+        out += ": ";
+        out += value;
+        out += "\n";
+    };
+
+    const auto appendLiveHotspots = [&](Utf8& out, const std::vector<MemoryProfile::Hotspot>& hotspots) {
+        if (hotspots.empty())
+            return;
+
+        out += "\nTop Live Allocation Hotspots\n";
         for (size_t i = 0; i < hotspots.size(); ++i)
         {
-            const Utf8 header = std::format("{}[{}]", headerPrefix, i + 1);
-            Logger::printHeaderDot(ctx, colorHeader, header, colorMsg, formatHotspotSummary(hotspots[i]));
+            const auto& hotspot = hotspots[i];
+            const double peakPct = memoryProfileSummary.totalPeakBytes ? 100.0 * static_cast<double>(hotspot.peakBytes) / static_cast<double>(memoryProfileSummary.totalPeakBytes) : 0.0;
+            const auto   location = MemoryProfile::formatHotspotLocation(&ctx, hotspot);
 
-            const auto location = MemoryProfile::formatHotspotLocation(&ctx, hotspots[i]);
-            Logger::printHeaderDot(ctx, colorHeader, "  alloc", colorMsg, location.allocationSite, ".", 44);
-            if (!location.callerSite.empty())
-                Logger::printHeaderDot(ctx, colorHeader, "  from", colorMsg, location.callerSite, ".", 44);
+            out += std::format("  [{}] peak {} ({:.1f}%), current {}, live blocks {}\n",
+                               i + 1,
+                               Utf8Helper::toNiceSize(hotspot.peakBytes),
+                               peakPct,
+                               Utf8Helper::toNiceSize(hotspot.currentBytes),
+                               Utf8Helper::toNiceBigNumber(hotspot.liveCount));
+            out += std::format("      churn {}, allocs {}, avg {}, frees {}\n",
+                               Utf8Helper::toNiceSize(hotspot.totalBytes),
+                               Utf8Helper::toNiceBigNumber(hotspot.allocCount),
+                               Utf8Helper::toNiceSize(hotspot.allocCount ? hotspot.totalBytes / hotspot.allocCount : 0),
+                               Utf8Helper::toNiceBigNumber(hotspot.freeCount));
+            appendLocationLine(out, "allocator", location.allocationSite);
+            appendLocationLine(out, "triggered by", location.callerSite);
 
             if (i + 1 != hotspots.size())
-                Logger::print(ctx, "\n");
+                out += "\n";
         }
     };
 
-    Logger::print(ctx, "\n");
-    Logger::printHeaderDot(ctx, colorHeader, "mem.total.peak", colorMsg, Utf8Helper::toNiceSize(memoryProfileSummary.totalPeakBytes));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.total.current", colorMsg, Utf8Helper::toNiceSize(memoryProfileSummary.totalCurrentBytes));
+    const auto appendChurnHotspots = [&](Utf8& out, const std::vector<MemoryProfile::Hotspot>& hotspots) {
+        if (hotspots.empty())
+            return;
 
-    if (!memoryProfileSummary.peakHotspots.empty())
+        out += "\nTop Allocation Churn\n";
+        for (size_t i = 0; i < hotspots.size(); ++i)
+        {
+            const auto& hotspot  = hotspots[i];
+            const auto  location = MemoryProfile::formatHotspotLocation(&ctx, hotspot);
+
+            out += std::format("  [{}] churn {}, allocs {}, avg {}\n",
+                               i + 1,
+                               Utf8Helper::toNiceSize(hotspot.totalBytes),
+                               Utf8Helper::toNiceBigNumber(hotspot.allocCount),
+                               Utf8Helper::toNiceSize(hotspot.allocCount ? hotspot.totalBytes / hotspot.allocCount : 0));
+            out += std::format("      peak {}, current {}, live blocks {}, frees {}\n",
+                               Utf8Helper::toNiceSize(hotspot.peakBytes),
+                               Utf8Helper::toNiceSize(hotspot.currentBytes),
+                               Utf8Helper::toNiceBigNumber(hotspot.liveCount),
+                               Utf8Helper::toNiceBigNumber(hotspot.freeCount));
+            appendLocationLine(out, "allocator", location.allocationSite);
+            appendLocationLine(out, "triggered by", location.callerSite);
+
+            if (i + 1 != hotspots.size())
+                out += "\n";
+        }
+    };
+
+    Utf8 memorySection;
+    memorySection += "\nMemory\n";
+    appendFieldLine(memorySection, "tracked peak", Utf8Helper::toNiceSize(memoryProfileSummary.totalPeakBytes));
+    appendFieldLine(memorySection, "tracked current", Utf8Helper::toNiceSize(memoryProfileSummary.totalCurrentBytes));
+    appendFieldLine(memorySection, "report filter", std::format(">= {} peak or >= {} churn",
+                                                                 Utf8Helper::toNiceSize(kMemoryHotspotMinPeakBytes),
+                                                                 Utf8Helper::toNiceSize(kMemoryHotspotMinTotalBytes)));
+
+    if (memoryProfileSummary.peakHotspots.empty() && memoryProfileSummary.totalHotspots.empty())
     {
-        Logger::print(ctx, "\n");
-        printHotspotSection("mem.hotspot.live", memoryProfileSummary.peakHotspots);
+        appendFieldLine(memorySection, "hotspots", "none above reporting threshold");
+    }
+    else
+    {
+        appendLiveHotspots(memorySection, memoryProfileSummary.peakHotspots);
+        appendChurnHotspots(memorySection, memoryProfileSummary.totalHotspots);
     }
 
-    if (!memoryProfileSummary.totalHotspots.empty())
-    {
-        Logger::print(ctx, "\n");
-        printHotspotSection("mem.hotspot.churn", memoryProfileSummary.totalHotspots);
-    }
+    Logger::print(ctx, memorySection);
 #endif
 
     Logger::print(ctx, "\n");

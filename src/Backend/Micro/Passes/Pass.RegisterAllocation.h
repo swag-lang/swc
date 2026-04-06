@@ -16,9 +16,6 @@ public:
     std::string_view  name() const override { return "regalloc"; }
     MicroRegPrintMode printModeBefore() const override { return MicroRegPrintMode::Virtual; }
     Result            run(MicroPassContext& context) override;
-#if SWC_HAS_STATS
-    size_t            memStorageReserved() const;
-#endif
     struct VRegState
     {
         MicroReg    phys;

@@ -77,39 +77,4 @@ TypeRef TypeGen::getBackTypeRef(const void* ptr) const
     return TypeRef::invalid();
 }
 
-#if SWC_HAS_STATS
-size_t TypeGen::memStorageReserved() const
-{
-    size_t result = 0;
-
-    {
-        const std::scoped_lock lk(cachesMutex_);
-        result += unorderedMapStorageReserved(caches_);
-        for (const auto& [storage, cachePtr] : caches_)
-        {
-            SWC_UNUSED(storage);
-            if (!cachePtr)
-                continue;
-
-            result += sizeof(TypeGenCache);
-
-            const std::scoped_lock cacheLock(cachePtr->mutex);
-            result += unorderedMapStorageReserved(cachePtr->entries);
-            for (const auto& [typeRef, entry] : cachePtr->entries)
-            {
-                SWC_UNUSED(typeRef);
-                result += typeGenEntryStorageReserved(entry);
-            }
-        }
-    }
-
-    {
-        const std::scoped_lock lk(ptrToTypeMutex_);
-        result += unorderedMapStorageReserved(ptrToType_);
-    }
-
-    return result;
-}
-#endif
-
 SWC_END_NAMESPACE();

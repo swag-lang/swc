@@ -303,25 +303,4 @@ void DataSegment::recordAllocation(const uint32_t offset, const uint32_t size, u
     });
 }
 
-#if SWC_HAS_STATS
-size_t DataSegment::memStorageReserved() const
-{
-    const std::shared_lock lock(mutex_);
-    size_t                 result = store_.allocatedBytes();
-    for (const LargeBlock& block : largeBlocks_)
-        result += block.size;
-    result += largeBlocks_.capacity() * sizeof(LargeBlock);
-    result += relocations_.capacity() * sizeof(DataSegmentRelocation);
-    result += allocations_.capacity() * sizeof(DataSegmentAllocation);
-    result += stringMap_.bucket_count() * sizeof(void*);
-    result += stringMap_.size() * (sizeof(std::pair<const std::string, std::pair<std::string_view, uint32_t>>) + sizeof(void*));
-    for (const auto& [value, entry] : stringMap_)
-    {
-        SWC_UNUSED(entry);
-        result += value.capacity() + 1;
-    }
-    return result;
-}
-#endif
-
 SWC_END_NAMESPACE();

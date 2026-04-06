@@ -91,10 +91,6 @@ public:
 
     TypeRef         addType(const TypeInfo& typeInfo);
     const TypeInfo& get(TypeRef typeRef) const;
-#if SWC_HAS_STATS
-    size_t memStorageReserved() const;
-#endif
-
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 

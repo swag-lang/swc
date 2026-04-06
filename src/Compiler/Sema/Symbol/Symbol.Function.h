@@ -109,11 +109,6 @@ public:
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
-#if SWC_HAS_STATS
-    size_t                  memSemaStorageReserved() const;
-    size_t                  memCodeGenStorageReserved() const;
-#endif
-
     bool                   isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
     void                   setGenericRoot(bool value) noexcept;
     bool                   isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }

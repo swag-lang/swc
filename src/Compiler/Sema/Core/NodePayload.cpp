@@ -116,46 +116,6 @@ const NodePayload::Shard* NodePayload::tryGetShard(uint32_t shardIdx) const
     return shards_[shardIdx].load(std::memory_order_acquire);
 }
 
-#if SWC_HAS_STATS
-size_t NodePayload::memStorageUsed() const
-{
-    size_t result = 0;
-    for (const auto& shardRef : shards_)
-    {
-        const Shard* shard = shardRef.load(std::memory_order_acquire);
-        if (!shard)
-            continue;
-
-        const std::shared_lock lock(shard->mutex);
-        result += shard->store.size();
-    }
-
-    return result;
-}
-
-size_t NodePayload::memStorageReserved() const
-{
-    size_t result = 0;
-    for (const auto& shardRef : shards_)
-    {
-        const Shard* shard = shardRef.load(std::memory_order_acquire);
-        if (!shard)
-            continue;
-
-        const std::shared_lock lock(shard->mutex);
-        result += shard->store.allocatedBytes();
-        result += shard->codeGenPayloads.bucket_count() * sizeof(void*);
-        result += shard->codeGenPayloads.size() * (sizeof(std::pair<const AstNodeRef, void*>) + sizeof(void*));
-        result += shard->semaPayloads.bucket_count() * sizeof(void*);
-        result += shard->semaPayloads.size() * (sizeof(std::pair<const AstNodeRef, void*>) + sizeof(void*));
-        result += shard->resolvedCallArgsByNode.bucket_count() * sizeof(void*);
-        result += shard->resolvedCallArgsByNode.size() * (sizeof(std::pair<const AstNodeRef, SpanRef>) + sizeof(void*));
-    }
-
-    return result;
-}
-#endif
-
 void NodePayload::storePayload(AstNode& node, uint16_t bits, uint32_t ref)
 {
     node.storePayloadState(AstNode::makePayloadState(bits, ref));

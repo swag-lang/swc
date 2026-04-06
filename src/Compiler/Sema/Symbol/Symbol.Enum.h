@@ -53,10 +53,6 @@ public:
 
     void                     addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*> impls() const;
-#if SWC_HAS_STATS
-    size_t                   memStorageReserved() const;
-#endif
-
     bool     isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
     uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 

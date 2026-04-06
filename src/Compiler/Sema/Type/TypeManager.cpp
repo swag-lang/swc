@@ -236,40 +236,6 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
     return *(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
 }
 
-#if SWC_HAS_STATS
-size_t TypeManager::memStorageReserved() const
-{
-    size_t result = 0;
-    for (const Shard& shard : shards_)
-    {
-        const std::shared_lock lk(shard.mutex);
-        result += shard.store.allocatedBytes();
-        result += shard.map.bucket_count() * sizeof(void*);
-        result += shard.map.size() * (sizeof(std::pair<const TypeInfo, TypeRef>) + sizeof(void*));
-        for (const auto& [typeInfo, typeRef] : shard.map)
-        {
-            SWC_UNUSED(typeRef);
-            // Payload vectors are duplicated in both the map key and the paged-store copy.
-            result += 2 * typePayloadStorageReserved(typeInfo);
-        }
-    }
-
-    {
-        const std::shared_lock lk(mutexRt_);
-        result += mapRtKind_.bucket_count() * sizeof(void*);
-        result += mapRtKind_.size() * (sizeof(std::pair<const IdentifierRef, RuntimeTypeKind>) + sizeof(void*));
-    }
-
-    result += promoteTable_.capacity() * sizeof(std::vector<TypeRef>);
-    for (const std::vector<TypeRef>& row : promoteTable_)
-        result += row.capacity() * sizeof(TypeRef);
-
-    result += promoteIndex_.bucket_count() * sizeof(void*);
-    result += promoteIndex_.size() * (sizeof(std::pair<const uint32_t, uint32_t>) + sizeof(void*));
-    return result;
-}
-#endif
-
 TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const
 {
     if (lhs == rhs && !force32BitInts)

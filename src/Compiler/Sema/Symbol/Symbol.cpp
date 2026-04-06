@@ -315,13 +315,4 @@ const TypeInfo& Symbol::typeInfo(const TaskContext& ctx) const
     return ctx.typeMgr().get(typeRef_);
 }
 
-#if SWC_HAS_STATS
-size_t Symbol::memStorageReserved() const
-{
-    if (!attributes_)
-        return 0;
-    return attributeListStorageReserved(*attributes_);
-}
-#endif
-
 SWC_END_NAMESPACE();

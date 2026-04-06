@@ -61,10 +61,6 @@ public:
     void                                      restoreFromPreserveOffsets(ByteSpan src) const;
     std::vector<DataSegmentRelocation>        copyRelocations() const;
     const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
-#if SWC_HAS_STATS
-    size_t memStorageReserved() const;
-#endif
-
     template<typename T>
     std::pair<uint32_t, T*> reserve()
     {

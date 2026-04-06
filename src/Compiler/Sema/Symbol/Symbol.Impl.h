@@ -49,10 +49,6 @@ public:
     const SymbolFunction*        resolveInterfaceMethodTarget(const SymbolFunction& interfaceMethod) const;
     std::vector<SymbolFunction*> specOps() const;
     Result                       ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
-#if SWC_HAS_STATS
-    size_t                       memStorageReserved() const;
-#endif
-
 private:
     std::vector<SymbolFunction*> specOps_;
     mutable std::mutex           interfaceMethodTableMutex_;

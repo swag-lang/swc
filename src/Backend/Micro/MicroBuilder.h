@@ -102,10 +102,6 @@ public:
     const MicroPassManager& passManager() const { return passManager_; }
     Result                  runPasses(Encoder* encoder, MicroPassContext& context);
     Result                  runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
-#if SWC_HAS_STATS
-    size_t                  memStorageReserved() const;
-#endif
-
     MicroLabelRef createLabel();
     void          placeLabel(MicroLabelRef labelRef);
 

@@ -566,26 +566,6 @@ GenericInstanceStorage& SymbolFunction::genericInstanceStorage(const TaskContext
     return ensureGenericData(ctx).instances;
 }
 
-#if SWC_HAS_STATS
-size_t SymbolFunction::memSemaStorageReserved() const
-{
-    size_t result = Symbol::memStorageReserved();
-    result += vectorStorageReserved(parameters_);
-    result += vectorStorageReserved(localVariables_);
-    result += vectorStorageReserved(callDependencies_);
-
-    if (const GenericData* data = genericData())
-        result += sizeof(GenericData) + data->instances.memStorageReserved();
-
-    return result;
-}
-
-size_t SymbolFunction::memCodeGenStorageReserved() const
-{
-    return microInstrBuilder_.memStorageReserved() + loweredMicroCode_.memStorageReserved();
-}
-#endif
-
 void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
 {
     appendDepOrder(out, *const_cast<SymbolFunction*>(this));

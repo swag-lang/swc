@@ -31,14 +31,6 @@ std::vector<SymbolImpl*> SymbolEnum::impls() const
     return impls_;
 }
 
-#if SWC_HAS_STATS
-size_t SymbolEnum::memStorageReserved() const
-{
-    const std::shared_lock lk(mutexImpls_);
-    return Symbol::memStorageReserved() + vectorStorageReserved(impls_);
-}
-#endif
-
 bool SymbolEnum::computeNextValue(Sema& sema, const SourceCodeRef& codeRef)
 {
     bool overflow = false;

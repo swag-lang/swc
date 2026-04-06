@@ -214,22 +214,6 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     return result;
 }
 
-#if SWC_HAS_STATS
-size_t IdentifierManager::memStorageReserved() const
-{
-    size_t result = 0;
-    for (const Shard& shard : shards_)
-    {
-        const std::shared_lock lk(shard.mutex);
-        result += shard.store.allocatedBytes();
-        result += shard.stringStore.allocatedBytes();
-        result += shard.map.allocatedBytes();
-    }
-
-    return result;
-}
-#endif
-
 const Identifier& IdentifierManager::get(IdentifierRef idRef) const
 {
     SWC_ASSERT(idRef.isValid());

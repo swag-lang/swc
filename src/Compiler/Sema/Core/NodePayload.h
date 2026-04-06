@@ -66,11 +66,6 @@ public:
     ~NodePayload();
     bool hasResolvedCallArguments(AstNodeRef nodeRef) const;
 
-#if SWC_HAS_STATS
-    size_t memStorageUsed() const;
-    size_t memStorageReserved() const;
-#endif
-
 protected:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }

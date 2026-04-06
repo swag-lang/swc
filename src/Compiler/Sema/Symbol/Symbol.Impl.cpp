@@ -94,14 +94,6 @@ std::vector<SymbolFunction*> SymbolImpl::specOps() const
     return specOps_;
 }
 
-#if SWC_HAS_STATS
-size_t SymbolImpl::memStorageReserved() const
-{
-    const std::shared_lock lk(mutex_);
-    return Symbol::memStorageReserved() + vectorStorageReserved(specOps_);
-}
-#endif
-
 Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const
 {
     outRef = ConstantRef::invalid();

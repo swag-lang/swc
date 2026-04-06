@@ -189,15 +189,4 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     }
 }
 
-#if SWC_HAS_STATS
-size_t MicroControlFlowGraph::memStorageReserved() const
-{
-    size_t result = instructionRefs_.capacity() * sizeof(MicroInstrRef);
-    result += successors_.capacity() * sizeof(SmallVector<uint32_t>);
-    for (const SmallVector<uint32_t>& successors : successors_)
-        result += smallVectorStorageReserved(successors);
-    return result;
-}
-#endif
-
 SWC_END_NAMESPACE();

@@ -34,11 +34,4 @@ Result SymbolInterface::canBeCompleted(Sema& sema) const
     return Result::Continue;
 }
 
-#if SWC_HAS_STATS
-size_t SymbolInterface::memStorageReserved() const
-{
-    return Symbol::memStorageReserved() + vectorStorageReserved(functions_);
-}
-#endif
-
 SWC_END_NAMESPACE();

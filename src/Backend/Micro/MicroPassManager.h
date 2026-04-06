@@ -43,10 +43,6 @@ public:
     void addFinalPass(MicroPass& pass) { finalPasses_.push_back(&pass); }
 
     Result run(MicroPassContext& context) const;
-#if SWC_HAS_STATS
-    size_t memStorageReserved() const;
-#endif
-
 private:
     std::vector<MicroPass*> startPasses_;
     std::vector<MicroPass*> loopPasses_;

@@ -55,9 +55,6 @@ public:
 
     Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);
     TypeRef getBackTypeRef(const void* ptr) const;
-#if SWC_HAS_STATS
-    size_t memStorageReserved() const;
-#endif
 
 private:
     enum class LayoutKind

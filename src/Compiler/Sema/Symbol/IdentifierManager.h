@@ -18,6 +18,8 @@ public:
     enum class RuntimeFunctionKind : uint8_t
     {
         Exit,
+        TestCountInit,
+        TestCountTick,
         Panic,
         SafetyPanic,
         As,
@@ -115,6 +117,8 @@ public:
         Gvtd,
         BuildCfg,
         RuntimeExit,
+        RuntimeTestCountInit,
+        RuntimeTestCountTick,
         RuntimePanic,
         RuntimeSafetyPanic,
         RuntimeAs,

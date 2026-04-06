@@ -106,6 +106,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Gvtd, .str = "Gvtd"},
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
         {.name = PredefinedName::RuntimeExit, .str = "__exit"},
+        {.name = PredefinedName::RuntimeTestCountInit, .str = "__testCountInit"},
+        {.name = PredefinedName::RuntimeTestCountTick, .str = "__testCountTick"},
         {.name = PredefinedName::RuntimePanic, .str = "@panic"},
         {.name = PredefinedName::RuntimeSafetyPanic, .str = "@safetypanic"},
         {.name = PredefinedName::RuntimeAs, .str = "@as"},
@@ -121,6 +123,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
         predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Exit)]           = predefined(PredefinedName::RuntimeExit);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountInit)]  = predefined(PredefinedName::RuntimeTestCountInit);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountTick)]  = predefined(PredefinedName::RuntimeTestCountTick);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]          = predefined(PredefinedName::RuntimePanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]    = predefined(PredefinedName::RuntimeSafetyPanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]             = predefined(PredefinedName::RuntimeAs);

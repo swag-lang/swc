@@ -9,6 +9,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
+#include "Support/Report/Diagnostic.h"
 #include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -137,6 +138,27 @@ namespace
 
         const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
         return !file || file->ast().srcView().runsNativeArtifact();
+    }
+
+    bool reportJitTestCountMismatch(TaskContext& ctx, const uint32_t expectedCount, const uint32_t actualCount)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_jit_test_count_mismatch);
+        diag.addArgument(Diagnostic::ARG_COUNT, expectedCount);
+        diag.addArgument(Diagnostic::ARG_VALUE, actualCount);
+        diag.report(ctx);
+        return false;
+    }
+
+    uint32_t expectedJitTestCount(const CompilerInstance& compiler)
+    {
+        uint32_t result = 0;
+        for (const SymbolFunction* function : compiler.nativeTestFunctions())
+        {
+            if (function && shouldRunJitFunction(compiler, *function))
+                result++;
+        }
+
+        return result;
     }
 
     bool hasArtifactEntryPoints(const CompilerInstance& compiler)
@@ -321,6 +343,7 @@ namespace
             return true;
 
         TaskContext                 ctx(compiler);
+        const uint32_t              expectedTestCount = expectedJitTestCount(compiler);
         TimedActionLog::ScopedStage stage(ctx, {
                                                    .key    = "jit",
                                                    .label  = "JIT",
@@ -345,6 +368,9 @@ namespace
         sortAndUniqueFunctions(preMainFunctions, ctx);
         sortAndUniqueFunctions(testFunctions, ctx);
 
+        if (testFunctions.size() != expectedTestCount)
+            return reportJitTestCountMismatch(ctx, expectedTestCount, static_cast<uint32_t>(testFunctions.size()));
+
         if (initFunctions.empty() && preMainFunctions.empty() && testFunctions.empty())
             return true;
 
@@ -352,6 +378,16 @@ namespace
                 return SymbolFunction::jitBatch(ctx, allFunctions);
             }) != Result::Continue)
             return false;
+
+        uint32_t jitReadyTestCount = 0;
+        for (const SymbolFunction* function : testFunctions)
+        {
+            if (function && function->jitEntryAddress())
+                jitReadyTestCount++;
+        }
+
+        if (jitReadyTestCount != expectedTestCount)
+            return reportJitTestCountMismatch(ctx, expectedTestCount, jitReadyTestCount);
 
         DataSegmentRestoreGuard restoreGuard = {
             .compiler = &compiler,
@@ -370,13 +406,18 @@ namespace
                 return false;
         }
 
+        uint32_t executedTestCount = 0;
         for (const SymbolFunction* function : testFunctions)
         {
             if (!runJitFunction(ctx, *function))
                 return false;
+            executedTestCount++;
         }
 
-        return true;
+        if (executedTestCount != expectedTestCount)
+            return reportJitTestCountMismatch(ctx, expectedTestCount, executedTestCount);
+
+        return !Stats::hasError();
     }
 
     bool finishTestCommand(CompilerInstance& compiler)

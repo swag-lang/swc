@@ -20,6 +20,8 @@ SWC_DIAG_DEF(cmd_err_native_artifact_start_failed, Error, "cannot start '{path}'
 SWC_DIAG_DEF(cmd_err_native_artifact_wait_failed, Error, "waiting for '{path}' failed")
 SWC_DIAG_DEF(cmd_err_native_artifact_exit_code_failed, Error, "cannot get exit code for '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_artifact_failed, Error, "generated executable exited with code {value}")
+SWC_DIAG_DEF(cmd_err_jit_test_count_mismatch, Error, "JIT executed {value} '#test' function(s), expected {count}")
+SWC_DIAG_DEF(cmd_err_native_test_count_mismatch, Error, "native artifact executed {value} '#test' function(s), expected {count}")
 SWC_DIAG_DEF(cmd_err_native_main_missing, Error, "native executable generation requires one '#main' function")
 SWC_DIAG_DEF(cmd_err_native_root_module_missing, Error, "semantic analysis did not produce a root symbol module")
 SWC_DIAG_DEF(cmd_err_native_codegen_source_missing, Error, "native backend did not find a source file for code generation")

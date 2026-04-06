@@ -95,6 +95,8 @@ public:
     CompilerInstance&       compiler();
     const CompilerInstance& compiler() const;
     bool                    tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
+    uint32_t                expectedTestFunctionCount() const;
+    DiagnosticId            lastErrorId() const { return lastErrorId_; }
 
     Result run();
     Result prepare();
@@ -147,6 +149,7 @@ private:
     TaskContext       ctx_;
     CompilerInstance& compiler_;
     bool              runArtifact_ = false;
+    DiagnosticId      lastErrorId_ = DiagnosticId::None;
 };
 
 SWC_END_NAMESPACE();

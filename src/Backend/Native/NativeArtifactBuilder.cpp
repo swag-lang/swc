@@ -464,9 +464,33 @@ Result NativeArtifactBuilder::buildStartup() const
     if (builder_->mainFunctions.empty() && builder_->testFunctions.empty())
         return builder_->reportError(DiagnosticId::cmd_err_native_main_missing);
 
+    const uint32_t expectedTestCount = builder_->expectedTestFunctionCount();
+    if (builder_->testFunctions.size() != expectedTestCount)
+    {
+        return builder_->reportError(DiagnosticId::cmd_err_native_test_count_mismatch,
+                                     Diagnostic::ARG_COUNT,
+                                     expectedTestCount,
+                                     Diagnostic::ARG_VALUE,
+                                     static_cast<uint32_t>(builder_->testFunctions.size()));
+    }
+
     auto         startup = std::make_unique<NativeStartupInfo>();
     MicroBuilder builder(builder_->ctx());
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
+
+    SymbolFunction* testCountInitFn = nullptr;
+    SymbolFunction* testCountTickFn = nullptr;
+    if (expectedTestCount)
+    {
+        const IdentifierRef testCountInitIdRef = builder_->ctx().idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestCountInit);
+        const IdentifierRef testCountTickIdRef = builder_->ctx().idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestCountTick);
+        testCountInitFn                        = builder_->compiler().runtimeFunctionSymbol(testCountInitIdRef);
+        testCountTickFn                        = builder_->compiler().runtimeFunctionSymbol(testCountTickIdRef);
+        SWC_ASSERT(testCountInitFn != nullptr);
+        SWC_ASSERT(testCountTickFn != nullptr);
+        if (!testCountInitFn || !testCountTickFn)
+            return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+    }
 
     // The startup thunk runs compiler-generated lifecycle hooks and then hands off
     // process termination to the runtime wrapper for the active target.
@@ -474,8 +498,35 @@ Result NativeArtifactBuilder::buildStartup() const
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     for (SymbolFunction* symbol : builder_->preMainFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+
+    if (testCountInitFn)
+    {
+        const MicroReg expectedCountReg = MicroReg::virtualIntReg(builder.nextVirtualIntRegIndexHint());
+        builder.emitLoadRegImm(expectedCountReg, ApInt(expectedTestCount, 64), MicroOpBits::B64);
+
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.push_back({
+            .srcReg      = expectedCountReg,
+            .kind        = ABICall::PreparedArgKind::Direct,
+            .isFloat     = false,
+            .isSigned    = false,
+            .isAddressed = false,
+            .numBits     = 64,
+        });
+
+        const ABICall::PreparedCall preparedInit = ABICall::prepareArgs(builder, testCountInitFn->callConvKind(), preparedArgs);
+        ABICall::callLocal(builder, testCountInitFn->callConvKind(), testCountInitFn, preparedInit);
+    }
+
     for (SymbolFunction* symbol : builder_->testFunctions)
+    {
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+        if (testCountTickFn)
+        {
+            const ABICall::PreparedCall preparedTick = ABICall::prepareArgs(builder, testCountTickFn->callConvKind(), {});
+            ABICall::callLocal(builder, testCountTickFn->callConvKind(), testCountTickFn, preparedTick);
+        }
+    }
     for (SymbolFunction* symbol : builder_->mainFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     for (SymbolFunction* symbol : builder_->dropFunctions)

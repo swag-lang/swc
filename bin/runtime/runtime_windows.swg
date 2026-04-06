@@ -316,8 +316,25 @@ func __raiseException666(message: string, loc: Swag.SourceCodeLocation, kind: Sw
 }
 
 ////////////////////////////////////////////////////////////
+const __testCountMismatchExitTag = 0xA0000000'u32
+
+func __exitTestCountMismatch(executed: u32)
+{
+    using __Win32RT
+    ExitProcess(__testCountMismatchExitTag | (executed & 0x0FFFFFFF))
+}
+
+////////////////////////////////////////////////////////////
 func __loaddll(name: string)              => __Win32RT.LoadLibraryA(@dataof(name))
-func __exit()                             => __Win32RT.ExitProcess(0)
+
+func __exit()
+{
+    let cxt = @getcontext()
+    if cxt.testExpectedCount and cxt.testExecutedCount != cxt.testExpectedCount do
+        __exitTestCountMismatch(cast(u32) cxt.testExecutedCount)
+    __Win32RT.ExitProcess(0)
+}
+
 func __tlsAlloc()                         => cast(u64) __Win32RT.TlsAlloc()
 func __tlsSetValue(id: u64, value: *void) => __Win32RT.TlsSetValue(cast(u32) id, value)
 func __tlsGetValue(id: u64)->*void        => __Win32RT.TlsGetValue(cast(u32) id)

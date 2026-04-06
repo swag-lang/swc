@@ -71,6 +71,15 @@ namespace
 
         cmdLine.command = CommandKind::Build;
         cmdLine.name    = "native_paths";
+        cmdLine.sourceDrivenTest = false;
+        cmdLine.testNative       = true;
+        cmdLine.testJit          = true;
+        cmdLine.lexOnly          = false;
+        cmdLine.syntaxOnly       = false;
+        cmdLine.semaOnly         = false;
+        cmdLine.output           = true;
+        cmdLine.unittest         = false;
+        cmdLine.verboseUnittest  = false;
         cmdLine.directories.clear();
         cmdLine.files.clear();
         cmdLine.originalDirectories.clear();
@@ -556,6 +565,55 @@ SWC_TEST_BEGIN(NativeArtifact_SilentSpecOpProbeDoesNotDropStructCopyTests)
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
     if (nativeBuilder.testFunctions.size() != 2)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
+{
+    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_native_test_count_mismatch_{:08x}.swg", uniqueId);
+
+    {
+        std::ofstream output(sourcePath, std::ios::binary);
+        output << "#test\n";
+        output << "{\n";
+        output << "    @assert(true)\n";
+        output << "}\n";
+        output << "#test\n";
+        output << "{\n";
+        output << "    @assert(true)\n";
+        output << "}\n";
+    }
+
+    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine(ctx, "test_count_mismatch", "exe");
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.files.insert(sourcePath);
+    cmdLine.directories.clear();
+    cmdLine.originalFiles.clear();
+    cmdLine.originalDirectories.clear();
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    SWC_RESULT(nativeBuilder.prepare());
+    if (nativeBuilder.testFunctions.size() != 2)
+        return Result::Error;
+
+    nativeBuilder.testFunctions.pop_back();
+    nativeBuilder.ctx().setSilentDiagnostic(true);
+
+    const NativeArtifactBuilder artifactBuilder(nativeBuilder);
+    if (artifactBuilder.build() != Result::Error)
+        return Result::Error;
+    if (nativeBuilder.lastErrorId() != DiagnosticId::cmd_err_native_test_count_mismatch)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 }
 SWC_TEST_END()

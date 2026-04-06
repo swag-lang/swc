@@ -239,6 +239,21 @@ func @dbgalloc() => cast(*DebugAllocator) @getcontext().debugAllocator
 func @sysalloc() => &__sysAlloc
 func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
 
+func __testCountInit(expected: u64)
+{
+    let cxt = @getcontext()
+    cxt.testExpectedCount = expected
+    cxt.testExecutedCount = 0
+}
+
+func __testCountTick()
+{
+    let cxt = @getcontext()
+    if !cxt.testExpectedCount do
+        return
+    cxt.testExecutedCount += 1
+}
+
 func __setupRuntime(flags: RuntimeFlags)
 {
     let cxt = @getcontext()

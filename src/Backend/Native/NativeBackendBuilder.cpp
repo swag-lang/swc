@@ -17,6 +17,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint32_t K_NATIVE_TEST_COUNT_MISMATCH_EXIT_TAG        = 0xA0000000u;
+    constexpr uint32_t K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK = 0x0FFFFFFFu;
+
     template<typename T>
     struct SortEntry
     {
@@ -318,6 +321,19 @@ const CompilerInstance& NativeBackendBuilder::compiler() const
     return compiler_;
 }
 
+uint32_t NativeBackendBuilder::expectedTestFunctionCount() const
+{
+    uint32_t result = 0;
+    for (const SymbolFunction* function : compiler_.nativeTestFunctions())
+    {
+        if (!function || !shouldPrepareSymbol(*this, *function))
+            continue;
+        result++;
+    }
+
+    return result;
+}
+
 bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
 {
     outOffset = 0;
@@ -434,6 +450,7 @@ Result NativeBackendBuilder::reportError(DiagnosticId id)
 
 Result NativeBackendBuilder::reportError(const Diagnostic& diag)
 {
+    lastErrorId_ = diag.elements().empty() ? DiagnosticId::None : diag.elements().front()->id();
     diag.report(ctx_);
     return Result::Error;
 }
@@ -508,6 +525,15 @@ Result NativeBackendBuilder::runGeneratedArtifact()
             return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, Utf8(artifactPath));
         case Os::ProcessRunResult::ExitCodeFailed:
             return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
+    }
+
+    const uint32_t expectedTestCount = expectedTestFunctionCount();
+    if (compiler_.cmdLine().isTestCommand() &&
+        expectedTestCount &&
+        (exitCode & ~K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK) == K_NATIVE_TEST_COUNT_MISMATCH_EXIT_TAG)
+    {
+        const uint32_t actualTestCount = exitCode & K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK;
+        return reportError(DiagnosticId::cmd_err_native_test_count_mismatch, Diagnostic::ARG_COUNT, expectedTestCount, Diagnostic::ARG_VALUE, actualTestCount);
     }
 
     if (exitCode != 0)

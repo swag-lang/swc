@@ -25,7 +25,7 @@ struct SmallVec
 
 impl SmallVec
 {
-    mtd isInline() -> bool
+    mtd const isInline() -> bool
     {
         return .capacity <= InlineCap
     }
@@ -64,7 +64,7 @@ impl SmallVec
         .count += 1
     }
 
-    mtd at(i: u64) -> s32
+    mtd const at(i: u64) -> s32
     {
         @assert(i < .count)
         return .ptr[i]

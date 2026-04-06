@@ -40,6 +40,13 @@ std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_
 
 namespace
 {
+    size_t constantPayloadStorageReserved(const ConstantValue& value)
+    {
+        if (!value.isAggregate())
+            return 0;
+        return value.getAggregate().capacity() * sizeof(ConstantRef);
+    }
+
     uint32_t resolveBorrowedPayloadShardIndex(const ConstantManager& manager, const ConstantValue& value)
     {
         const void* payloadPtr = nullptr;
@@ -243,6 +250,12 @@ size_t ConstantManager::memStorageReserved() const
         result += shard.dataSegment.memStorageReserved();
         result += shard.map.bucket_count() * sizeof(void*);
         result += shard.map.size() * (sizeof(std::pair<const ConstantValue, ConstantRef>) + sizeof(void*));
+        for (const auto& [value, ref] : shard.map)
+        {
+            SWC_UNUSED(ref);
+            // Aggregate payload vectors are duplicated in both the map key and the stored constant copy.
+            result += 2 * constantPayloadStorageReserved(value);
+        }
     }
 
     return result;

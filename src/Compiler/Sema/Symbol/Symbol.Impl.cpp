@@ -20,6 +20,14 @@ namespace
         dims.push_back(count);
         return ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeValuePtrVoid()));
     }
+
+#if SWC_HAS_STATS
+    template<typename T>
+    size_t vectorStorageReserved(const std::vector<T>& values)
+    {
+        return values.capacity() * sizeof(T);
+    }
+#endif
 }
 
 SymbolStruct* SymbolImpl::symStruct() const
@@ -85,6 +93,14 @@ std::vector<SymbolFunction*> SymbolImpl::specOps() const
     const std::shared_lock lk(mutex_);
     return specOps_;
 }
+
+#if SWC_HAS_STATS
+size_t SymbolImpl::memStorageReserved() const
+{
+    const std::shared_lock lk(mutex_);
+    return Symbol::memStorageReserved() + vectorStorageReserved(specOps_);
+}
+#endif
 
 Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const
 {

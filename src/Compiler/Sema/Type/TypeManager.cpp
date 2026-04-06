@@ -49,6 +49,29 @@ namespace
     }
 
     constexpr std::array<RuntimeTypeKind, static_cast<size_t>(IdentifierManager::PredefinedName::Count)> PREDEFINED_RUNTIME_MAP = makePredefinedRuntimeMap();
+
+#if SWC_HAS_STATS
+    size_t typePayloadStorageReserved(const TypeInfo& typeInfo)
+    {
+        switch (typeInfo.kind())
+        {
+            case TypeInfoKind::Array:
+                return typeInfo.payloadArrayDims().capacity() * sizeof(uint64_t);
+
+            case TypeInfoKind::AggregateStruct:
+            case TypeInfoKind::AggregateArray:
+            {
+                const auto& payload = typeInfo.payloadAggregate();
+                return payload.types.capacity() * sizeof(TypeRef) +
+                       payload.names.capacity() * sizeof(IdentifierRef) +
+                       payload.fieldRefs.capacity() * sizeof(SourceCodeRef);
+            }
+
+            default:
+                return 0;
+        }
+    }
+#endif
 }
 
 void TypeManager::setup(TaskContext& ctx)
@@ -224,6 +247,12 @@ size_t TypeManager::memStorageReserved() const
         result += shard.store.allocatedBytes();
         result += shard.map.bucket_count() * sizeof(void*);
         result += shard.map.size() * (sizeof(std::pair<const TypeInfo, TypeRef>) + sizeof(void*));
+        for (const auto& [typeInfo, typeRef] : shard.map)
+        {
+            SWC_UNUSED(typeRef);
+            // Payload vectors are duplicated in both the map key and the paged-store copy.
+            result += 2 * typePayloadStorageReserved(typeInfo);
+        }
     }
 
     {

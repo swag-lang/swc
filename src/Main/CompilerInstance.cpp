@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -32,6 +33,54 @@ namespace
 {
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
+
+    template<typename T>
+    size_t vectorStorageReserved(const std::vector<T>& values)
+    {
+        return values.capacity() * sizeof(T);
+    }
+
+    template<typename K, typename V, typename H, typename E, typename A>
+    size_t unorderedMapStorageReserved(const std::unordered_map<K, V, H, E, A>& map)
+    {
+        return map.bucket_count() * sizeof(void*) +
+               map.size() * (sizeof(std::pair<const K, V>) + sizeof(void*));
+    }
+
+    template<typename K, typename H, typename E, typename A>
+    size_t unorderedSetStorageReserved(const std::unordered_set<K, H, E, A>& set)
+    {
+        return set.bucket_count() * sizeof(void*) +
+               set.size() * (sizeof(K) + sizeof(void*));
+    }
+
+    size_t utf8StorageReserved(const Utf8& value)
+    {
+        return value.capacity() + 1;
+    }
+
+    size_t utf8VectorStorageReserved(const std::vector<Utf8>& values)
+    {
+        size_t result = vectorStorageReserved(values);
+        for (const Utf8& value : values)
+            result += utf8StorageReserved(value);
+        return result;
+    }
+
+    void collectSymbolsRecursive(const SymbolMap& symbolMap, std::unordered_set<const Symbol*>& visited, std::vector<const Symbol*>& out)
+    {
+        std::vector<const Symbol*> symbols;
+        symbolMap.getAllSymbols(symbols, true);
+        for (const Symbol* symbol : symbols)
+        {
+            if (!symbol || !visited.insert(symbol).second)
+                continue;
+
+            out.push_back(symbol);
+            if (symbol->isSymMap())
+                collectSymbolsRecursive(*symbol->asSymMap(), visited, out);
+        }
+    }
 
     template<typename T>
     bool appendUnique(std::vector<T*>& values, T* value)
@@ -270,6 +319,10 @@ void CompilerInstance::logStats()
     size_t memFrontendIdentifiers     = 0;
     size_t memFrontendAstReserved     = 0;
     size_t memSemaNodePayloadReserved = 0;
+    size_t memSemaSymbolOwnedReserved = 0;
+    size_t memCompilerStateReserved   = 0;
+    size_t memCodegenMicroBuilder     = 0;
+    size_t memCodegenMachineCode      = 0;
 
     {
         const std::shared_lock lock(mutex_);
@@ -293,6 +346,29 @@ void CompilerInstance::logStats()
             memFrontendTrivia += srcView->triviaStart().capacity() * sizeof(uint32_t);
             memFrontendIdentifiers += srcView->identifiers().capacity() * sizeof(SourceIdentifier);
         }
+
+        memCompilerStateReserved += vectorStorageReserved(files_);
+        memCompilerStateReserved += vectorStorageReserved(filePtrs_);
+        memCompilerStateReserved += vectorStorageReserved(srcViews_);
+        memCompilerStateReserved += vectorStorageReserved(perThreadData_);
+        memCompilerStateReserved += utf8VectorStorageReserved(foreignLibs_);
+        memCompilerStateReserved += unorderedMapStorageReserved(runtimeFunctionSymbols_);
+        memCompilerStateReserved += vectorStorageReserved(nativeCodeSegment_);
+        memCompilerStateReserved += vectorStorageReserved(nativeTestFunctions_);
+        memCompilerStateReserved += vectorStorageReserved(nativeInitFunctions_);
+        memCompilerStateReserved += vectorStorageReserved(nativePreMainFunctions_);
+        memCompilerStateReserved += vectorStorageReserved(nativeDropFunctions_);
+        memCompilerStateReserved += vectorStorageReserved(nativeMainFunctions_);
+        memCompilerStateReserved += vectorStorageReserved(nativeGlobalFunctionInitTargets_);
+        memCompilerStateReserved += vectorStorageReserved(nativeGlobalVariables_);
+        memCompilerStateReserved += vectorStorageReserved(jitPreparedFunctions_);
+    }
+
+    {
+        const std::scoped_lock lock(reportedDiagnosticsMutex_);
+        memCompilerStateReserved += unorderedSetStorageReserved(reportedDiagnostics_);
+        for (const Utf8& value : reportedDiagnostics_)
+            memCompilerStateReserved += utf8StorageReserved(value);
     }
 
     size_t memCompilerArenaReserved = 0;
@@ -303,10 +379,55 @@ void CompilerInstance::logStats()
 
     const size_t memSemaConstantsReserved = cstMgr_ ? cstMgr_->memStorageReserved() : 0;
     const size_t memSemaTypesReserved     = typeMgr_ ? typeMgr_->memStorageReserved() : 0;
+    const size_t memTypeGenReserved       = typeGen_ ? typeGen_->memStorageReserved() : 0;
     const size_t memDataSegmentConstant   = constantSegment_.memStorageReserved();
     const size_t memDataSegmentGlobalZero = globalZeroSegment_.memStorageReserved();
     const size_t memDataSegmentGlobalInit = globalInitSegment_.memStorageReserved();
     const size_t memDataSegmentCompiler   = compilerSegment_.memStorageReserved();
+
+    if (symModule_)
+    {
+        std::unordered_set<const Symbol*> visited;
+        std::vector<const Symbol*>        symbols;
+        collectSymbolsRecursive(*symModule_, visited, symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            if (!symbol)
+                continue;
+
+            switch (symbol->kind())
+            {
+                case SymbolKind::Function:
+                {
+                    const auto& symFunc = symbol->cast<SymbolFunction>();
+                    memSemaSymbolOwnedReserved += symFunc.memSemaStorageReserved();
+                    memCodegenMicroBuilder += symFunc.microInstrBuilder().memStorageReserved();
+                    memCodegenMachineCode += symFunc.loweredCode().memStorageReserved();
+                    break;
+                }
+
+                case SymbolKind::Struct:
+                    memSemaSymbolOwnedReserved += symbol->cast<SymbolStruct>().memStorageReserved();
+                    break;
+
+                case SymbolKind::Enum:
+                    memSemaSymbolOwnedReserved += symbol->cast<SymbolEnum>().memStorageReserved();
+                    break;
+
+                case SymbolKind::Interface:
+                    memSemaSymbolOwnedReserved += symbol->cast<SymbolInterface>().memStorageReserved();
+                    break;
+
+                case SymbolKind::Impl:
+                    memSemaSymbolOwnedReserved += symbol->cast<SymbolImpl>().memStorageReserved();
+                    break;
+
+                default:
+                    memSemaSymbolOwnedReserved += symbol->memStorageReserved();
+                    break;
+            }
+        }
+    }
 
     Stats& stats = Stats::get();
     stats.memFrontendSource.store(memFrontendSource, std::memory_order_relaxed);
@@ -317,13 +438,18 @@ void CompilerInstance::logStats()
     stats.memFrontendAstReserved.store(memFrontendAstReserved, std::memory_order_relaxed);
     stats.memSemaNodePayloadReserved.store(memSemaNodePayloadReserved, std::memory_order_relaxed);
     stats.memSemaIdentifiersReserved.store(idMgr_ ? idMgr_->memStorageReserved() : 0, std::memory_order_relaxed);
+    stats.memSemaSymbolOwnedReserved.store(memSemaSymbolOwnedReserved, std::memory_order_relaxed);
+    stats.memTypeGenReserved.store(memTypeGenReserved, std::memory_order_relaxed);
     stats.memCompilerArenaReserved.store(memCompilerArenaReserved, std::memory_order_relaxed);
+    stats.memCompilerStateReserved.store(memCompilerStateReserved, std::memory_order_relaxed);
     stats.memConstantsReserved.store(memSemaConstantsReserved, std::memory_order_relaxed);
     stats.memTypesReserved.store(memSemaTypesReserved, std::memory_order_relaxed);
     stats.memDataSegmentConstant.store(memDataSegmentConstant, std::memory_order_relaxed);
     stats.memDataSegmentGlobalZero.store(memDataSegmentGlobalZero, std::memory_order_relaxed);
     stats.memDataSegmentGlobalInit.store(memDataSegmentGlobalInit, std::memory_order_relaxed);
     stats.memDataSegmentCompiler.store(memDataSegmentCompiler, std::memory_order_relaxed);
+    stats.memMicroBuilderReserved.store(memCodegenMicroBuilder, std::memory_order_relaxed);
+    stats.memMachineCodeReserved.store(memCodegenMachineCode, std::memory_order_relaxed);
 #endif
 
     const TaskContext ctx(*this);

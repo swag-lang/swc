@@ -310,10 +310,16 @@ size_t DataSegment::memStorageReserved() const
     size_t                 result = store_.allocatedBytes();
     for (const LargeBlock& block : largeBlocks_)
         result += block.size;
+    result += largeBlocks_.capacity() * sizeof(LargeBlock);
     result += relocations_.capacity() * sizeof(DataSegmentRelocation);
     result += allocations_.capacity() * sizeof(DataSegmentAllocation);
     result += stringMap_.bucket_count() * sizeof(void*);
     result += stringMap_.size() * (sizeof(std::pair<const std::string, std::pair<std::string_view, uint32_t>>) + sizeof(void*));
+    for (const auto& [value, entry] : stringMap_)
+    {
+        SWC_UNUSED(entry);
+        result += value.capacity() + 1;
+    }
     return result;
 }
 #endif

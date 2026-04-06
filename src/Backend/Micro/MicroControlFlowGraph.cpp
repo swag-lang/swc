@@ -10,6 +10,14 @@ namespace
     constexpr uint64_t K_CFG_HASH_PRIME        = 1099511628211ull;
     constexpr uint64_t K_CFG_HASH_INVALID_OPS  = std::numeric_limits<uint64_t>::max();
 
+    template<typename T, size_t InlineCapacity>
+    size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
+    {
+        if (values.isInline())
+            return 0;
+        return values.capacity() * sizeof(T);
+    }
+
     void mixControlFlowHash(uint64_t& inOutHash, uint64_t value)
     {
         inOutHash ^= value;
@@ -180,5 +188,16 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             successors.push_back(static_cast<uint32_t>(instructionIndex + 1));
     }
 }
+
+#if SWC_HAS_STATS
+size_t MicroControlFlowGraph::memStorageReserved() const
+{
+    size_t result = instructionRefs_.capacity() * sizeof(MicroInstrRef);
+    result += successors_.capacity() * sizeof(SmallVector<uint32_t>);
+    for (const SmallVector<uint32_t>& successors : successors_)
+        result += smallVectorStorageReserved(successors);
+    return result;
+}
+#endif
 
 SWC_END_NAMESPACE();

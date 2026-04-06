@@ -8,6 +8,7 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/Logger.h"
@@ -26,6 +27,49 @@ namespace
         T*   symbol = nullptr;
         Utf8 key;
     };
+
+    template<typename T>
+    size_t vectorStorageReserved(const std::vector<T>& values)
+    {
+        return values.capacity() * sizeof(T);
+    }
+
+    template<typename K, typename V, typename H, typename E, typename A>
+    size_t unorderedMapStorageReserved(const std::unordered_map<K, V, H, E, A>& map)
+    {
+        return map.bucket_count() * sizeof(void*) +
+               map.size() * (sizeof(std::pair<const K, V>) + sizeof(void*));
+    }
+
+    size_t utf8StorageReserved(const Utf8& value)
+    {
+        return value.capacity() + 1;
+    }
+
+    size_t pathStorageReserved(const fs::path& value)
+    {
+        return value.native().capacity() * sizeof(fs::path::value_type);
+    }
+
+    size_t nativeSectionStorageReserved(const NativeSectionData& data)
+    {
+        return utf8StorageReserved(data.name) +
+               vectorStorageReserved(data.bytes) +
+               vectorStorageReserved(data.relocations);
+    }
+
+    size_t nativeFunctionInfoStorageReserved(const NativeFunctionInfo& info)
+    {
+        return utf8StorageReserved(info.sortKey) +
+               utf8StorageReserved(info.symbolName) +
+               utf8StorageReserved(info.debugName);
+    }
+
+    size_t nativeObjDescriptionStorageReserved(const NativeObjDescription& description)
+    {
+        return pathStorageReserved(description.objPath) +
+               vectorStorageReserved(description.functions);
+    }
 
     template<typename T, typename MAKE_KEY>
     void sortAndUnique(std::vector<T*>& values, const MAKE_KEY& makeKey)
@@ -372,12 +416,24 @@ Result NativeBackendBuilder::run()
                                                 });
 
         SWC_RESULT(prepare());
+#if SWC_HAS_STATS
+        updateMemoryStats();
+#endif
         SWC_RESULT(artifactBuilder.build());
+#if SWC_HAS_STATS
+        updateMemoryStats();
+#endif
         SWC_RESULT(writeObjects());
+#if SWC_HAS_STATS
+        updateMemoryStats();
+#endif
 
         const auto linker = NativeLinker::create(*this);
         SWC_ASSERT(linker != nullptr);
         SWC_RESULT(linker->link());
+#if SWC_HAS_STATS
+        updateMemoryStats();
+#endif
     }
 
     if (runArtifact_ && compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
@@ -402,6 +458,9 @@ Result NativeBackendBuilder::prepare()
     filterPreparedSymbols(dropFunctions, *this);
     filterPreparedSymbols(mainFunctions, *this);
     filterPreparedSymbols(regularGlobals, *this);
+#if SWC_HAS_STATS
+    updateMemoryStats();
+#endif
 
     auto functions = compiler_.nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
@@ -428,7 +487,13 @@ Result NativeBackendBuilder::prepare()
         appendCodeGenDependencies(*this, functions);
         sortAndUnique(functions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
         rebuildFunctionInfos(*this, functions);
+#if SWC_HAS_STATS
+        updateMemoryStats();
+#endif
         SWC_RESULT(scheduleCodeGen(*this));
+#if SWC_HAS_STATS
+        updateMemoryStats();
+#endif
 
         if (!appendCodeGenDependencies(*this, functions))
             return Result::Continue;
@@ -483,6 +548,56 @@ Result NativeBackendBuilder::validateTarget()
 
     return Result::Continue;
 }
+
+#if SWC_HAS_STATS
+size_t NativeBackendBuilder::memStorageReserved() const
+{
+    size_t result = vectorStorageReserved(testFunctions) +
+                    vectorStorageReserved(initFunctions) +
+                    vectorStorageReserved(preMainFunctions) +
+                    vectorStorageReserved(dropFunctions) +
+                    vectorStorageReserved(mainFunctions) +
+                    vectorStorageReserved(regularGlobals) +
+                    vectorStorageReserved(functionInfos) +
+                    unorderedMapStorageReserved(functionBySymbol) +
+                    nativeSectionStorageReserved(mergedRData) +
+                    nativeSectionStorageReserved(mergedData) +
+                    nativeSectionStorageReserved(mergedBss) +
+                    vectorStorageReserved(objectDescriptions) +
+                    pathStorageReserved(buildDir) +
+                    pathStorageReserved(artifactPath) +
+                    pathStorageReserved(pdbPath);
+
+    for (const NativeFunctionInfo& info : functionInfos)
+        result += nativeFunctionInfoStorageReserved(info);
+
+    if (startup)
+    {
+        result += sizeof(NativeStartupInfo);
+        result += startup->code.memStorageReserved();
+        result += utf8StorageReserved(startup->symbolName);
+        result += utf8StorageReserved(startup->debugName);
+    }
+
+    for (const auto& entries : rdataAllocationMap)
+        result += vectorStorageReserved(entries);
+
+    for (const NativeObjDescription& description : objectDescriptions)
+        result += nativeObjDescriptionStorageReserved(description);
+
+    return result;
+}
+
+void NativeBackendBuilder::updateMemoryStats() const
+{
+    const size_t current = memStorageReserved();
+    auto&        peak    = Stats::get().memNativeBackendPeak;
+    size_t       prev    = peak.load(std::memory_order_relaxed);
+    while (current > prev && !peak.compare_exchange_weak(prev, current, std::memory_order_relaxed))
+    {
+    }
+}
+#endif
 
 Result NativeBackendBuilder::writeObjects()
 {

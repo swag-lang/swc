@@ -13,6 +13,9 @@ public:
     const SmallVector<uint32_t>&           successors(uint32_t instructionIndex) const { return successors_[instructionIndex]; }
     bool                                   hasUnsupportedControlFlowForCfgLiveness() const { return hasUnsupportedControlFlowForCfgLiveness_; }
     bool                                   supportsDeadCodeLiveness() const { return supportsDeadCodeLiveness_; }
+#if SWC_HAS_STATS
+    size_t                                 memStorageReserved() const;
+#endif
 
 private:
     void            clear();

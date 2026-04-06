@@ -4,6 +4,32 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    template<typename T, size_t InlineCapacity>
+    size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
+    {
+        if (values.isInline())
+            return 0;
+        return values.capacity() * sizeof(T);
+    }
+
+    template<typename K, typename V, typename H, typename E, typename A>
+    size_t unorderedMapStorageReserved(const std::unordered_map<K, V, H, E, A>& map)
+    {
+        return map.bucket_count() * sizeof(void*) +
+               map.size() * (sizeof(std::pair<const K, V>) + sizeof(void*));
+    }
+
+    size_t typeGenEntryStorageReserved(const TypeGen::TypeGenCache::Entry& entry)
+    {
+        return smallVectorStorageReserved(entry.deps) +
+               smallVectorStorageReserved(entry.structFieldTypes) +
+               smallVectorStorageReserved(entry.usingFieldTypes) +
+               smallVectorStorageReserved(entry.funcParamTypes);
+    }
+}
+
 TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 {
     std::scoped_lock lk(cachesMutex_);
@@ -50,5 +76,40 @@ TypeRef TypeGen::getBackTypeRef(const void* ptr) const
         return it->second;
     return TypeRef::invalid();
 }
+
+#if SWC_HAS_STATS
+size_t TypeGen::memStorageReserved() const
+{
+    size_t result = 0;
+
+    {
+        const std::scoped_lock lk(cachesMutex_);
+        result += unorderedMapStorageReserved(caches_);
+        for (const auto& [storage, cachePtr] : caches_)
+        {
+            SWC_UNUSED(storage);
+            if (!cachePtr)
+                continue;
+
+            result += sizeof(TypeGenCache);
+
+            const std::scoped_lock cacheLock(cachePtr->mutex);
+            result += unorderedMapStorageReserved(cachePtr->entries);
+            for (const auto& [typeRef, entry] : cachePtr->entries)
+            {
+                SWC_UNUSED(typeRef);
+                result += typeGenEntryStorageReserved(entry);
+            }
+        }
+    }
+
+    {
+        const std::scoped_lock lk(ptrToTypeMutex_);
+        result += unorderedMapStorageReserved(ptrToType_);
+    }
+
+    return result;
+}
+#endif
 
 SWC_END_NAMESPACE();

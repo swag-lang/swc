@@ -80,6 +80,9 @@ public:
     void                          finishGenericCompletion() const noexcept;
     bool                          isGenericNodeCompleted() const noexcept;
     void                          setGenericNodeCompleted() const noexcept;
+#if SWC_HAS_STATS
+    size_t                        memStorageReserved() const;
+#endif
 
 private:
     struct GenericData;

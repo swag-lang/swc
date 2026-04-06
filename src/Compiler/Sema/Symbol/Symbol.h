@@ -139,6 +139,9 @@ public:
     Utf8             getFullScopedName(const TaskContext& ctx) const;
     void             appendFullScopedName(const TaskContext& ctx, Utf8& out) const;
     const TypeInfo&  typeInfo(const TaskContext& ctx) const;
+#if SWC_HAS_STATS
+    size_t           memStorageReserved() const;
+#endif
 
     template<typename T>
     T* safeCast()

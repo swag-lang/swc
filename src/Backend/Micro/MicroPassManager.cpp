@@ -29,6 +29,12 @@ namespace
     constexpr uint32_t K_OPT_ITERATION_OFF = 1;
     constexpr uint32_t K_OPT_ITERATION_ON  = 16;
 
+    template<typename T>
+    size_t vectorStorageReserved(const std::vector<T>& values)
+    {
+        return values.capacity() * sizeof(T);
+    }
+
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
         if (!backendCfg.optimize)
@@ -292,5 +298,47 @@ Result MicroPassManager::run(MicroPassContext& context) const
 
     return Result::Continue;
 }
+
+#if SWC_HAS_STATS
+size_t MicroPassManager::memStorageReserved() const
+{
+    size_t result = vectorStorageReserved(startPasses_) +
+                    vectorStorageReserved(loopPasses_) +
+                    vectorStorageReserved(finalPasses_);
+
+    if (cfgSimplifyPass_)
+        result += sizeof(MicroControlFlowSimplificationPass);
+    if (instructionCombinePass_)
+        result += sizeof(MicroInstructionCombinePass);
+    if (strengthReductionPass_)
+        result += sizeof(MicroStrengthReductionPass);
+    if (copyPropagationPass_)
+        result += sizeof(MicroCopyPropagationPass);
+    if (constantPropagationPass_)
+        result += sizeof(MicroConstantPropagationPass);
+    if (deadCodePass_)
+        result += sizeof(MicroDeadCodeEliminationPass);
+    if (branchFoldingPass_)
+        result += sizeof(MicroBranchFoldingPass);
+    if (loadStoreForwardPass_)
+        result += sizeof(MicroLoadStoreForwardingPass);
+    if (peepholePass_)
+        result += sizeof(MicroPeepholePass);
+    if (stackAdjustNormalizePass_)
+        result += sizeof(MicroStackAdjustNormalizePass);
+    if (regAllocPass_)
+        result += sizeof(MicroRegisterAllocationPass) + regAllocPass_->memStorageReserved();
+    if (prologEpilogPass_)
+        result += sizeof(MicroPrologEpilogPass);
+    if (prologEpilogSanitizePass_)
+        result += sizeof(MicroPrologEpilogSanitizePass);
+    if (legalizePass_)
+        result += sizeof(MicroLegalizePass);
+    if (emitPass_)
+        result += sizeof(MicroEmitPass);
+
+    return result;
+}
+#endif
 
 SWC_END_NAMESPACE();

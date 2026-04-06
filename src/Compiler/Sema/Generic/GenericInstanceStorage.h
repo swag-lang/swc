@@ -83,6 +83,20 @@ public:
         return instance;
     }
 
+#if SWC_HAS_STATS
+    size_t memStorageReserved() const
+    {
+        size_t result = genericInstances_.capacity() * sizeof(GenericInstanceEntry);
+        for (const GenericInstanceEntry& entry : genericInstances_)
+        {
+            if (!entry.args.isInline())
+                result += entry.args.capacity() * sizeof(GenericInstanceKey);
+        }
+
+        return result;
+    }
+#endif
+
 private:
     static bool sameArgs(std::span<const GenericInstanceKey> lhs, std::span<const GenericInstanceKey> rhs) noexcept
     {

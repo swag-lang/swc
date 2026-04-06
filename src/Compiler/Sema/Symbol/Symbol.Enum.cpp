@@ -6,6 +6,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#if SWC_HAS_STATS
+namespace
+{
+    template<typename T>
+    size_t vectorStorageReserved(const std::vector<T>& values)
+    {
+        return values.capacity() * sizeof(T);
+    }
+}
+#endif
+
 void SymbolEnum::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexImpls_);
@@ -19,6 +30,14 @@ std::vector<SymbolImpl*> SymbolEnum::impls() const
     const std::shared_lock lk(mutexImpls_);
     return impls_;
 }
+
+#if SWC_HAS_STATS
+size_t SymbolEnum::memStorageReserved() const
+{
+    const std::shared_lock lk(mutexImpls_);
+    return Symbol::memStorageReserved() + vectorStorageReserved(impls_);
+}
+#endif
 
 bool SymbolEnum::computeNextValue(Sema& sema, const SourceCodeRef& codeRef)
 {

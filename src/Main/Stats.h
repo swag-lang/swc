@@ -27,7 +27,10 @@ struct Stats
     std::atomic<size_t> memFrontendAstReserved     = 0;
     std::atomic<size_t> memSemaNodePayloadReserved = 0;
     std::atomic<size_t> memSemaIdentifiersReserved = 0;
+    std::atomic<size_t> memSemaSymbolOwnedReserved = 0;
+    std::atomic<size_t> memTypeGenReserved         = 0;
     std::atomic<size_t> memCompilerArenaReserved   = 0;
+    std::atomic<size_t> memCompilerStateReserved   = 0;
     std::atomic<size_t> memConstants               = 0;
     std::atomic<size_t> memConstantsReserved       = 0;
     std::atomic<size_t> memTypes                   = 0;
@@ -36,6 +39,9 @@ struct Stats
     std::atomic<size_t> memSymbolMaps              = 0;
     std::atomic<size_t> memJitReserved             = 0;
     std::atomic<size_t> memMicroStorageFinal       = 0;
+    std::atomic<size_t> memMicroBuilderReserved    = 0;
+    std::atomic<size_t> memMachineCodeReserved     = 0;
+    std::atomic<size_t> memNativeBackendPeak       = 0;
     std::atomic<size_t> memDataSegmentConstant     = 0;
     std::atomic<size_t> memDataSegmentGlobalZero   = 0;
     std::atomic<size_t> memDataSegmentGlobalInit   = 0;

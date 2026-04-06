@@ -78,15 +78,21 @@ void Stats::print(const TaskContext& ctx) const
     const size_t memFrontendAstReservedValue   = memFrontendAstReserved.load();
     const size_t memSemaSymbolsValue           = memSymbols.load();
     const size_t memSemaSymbolMapsValue        = memSymbolMaps.load();
+    const size_t memSemaSymbolOwnedValue       = memSemaSymbolOwnedReserved.load();
     const size_t memSemaConstantsValue         = memConstants.load();
     const size_t memSemaConstantsReserved      = memConstantsReserved.load();
     const size_t memSemaTypesValue             = memTypes.load();
     const size_t memSemaTypesReserved          = memTypesReserved.load();
     const size_t memSemaNodePayloadValue       = memSemaNodePayloadReserved.load();
     const size_t memSemaIdentifiersValue       = memSemaIdentifiersReserved.load();
+    const size_t memTypeGenReservedValue       = memTypeGenReserved.load();
     const size_t memCompilerArenaValue         = memCompilerArenaReserved.load();
+    const size_t memCompilerStateValue         = memCompilerStateReserved.load();
     const size_t memJitReservedValue           = memJitReserved.load();
     const size_t memMicroStorageFinalValue     = memMicroStorageFinal.load();
+    const size_t memMicroBuilderValue          = memMicroBuilderReserved.load();
+    const size_t memMachineCodeValue           = memMachineCodeReserved.load();
+    const size_t memNativeBackendPeakValue     = memNativeBackendPeak.load();
     const size_t memDataSegmentConstantValue   = memDataSegmentConstant.load();
     const size_t memDataSegmentGlobalZeroValue = memDataSegmentGlobalZero.load();
     const size_t memDataSegmentGlobalInitValue = memDataSegmentGlobalInit.load();
@@ -100,18 +106,22 @@ void Stats::print(const TaskContext& ctx) const
                                       memFrontendAstReservedValue;
     const size_t semaTotalKnown = memSemaSymbolsValue +
                                   memSemaSymbolMapsValue +
+                                  memSemaSymbolOwnedValue +
                                   memSemaConstantsReserved +
                                   memSemaTypesReserved +
                                   memSemaNodePayloadValue +
                                   memSemaIdentifiersValue +
+                                  memTypeGenReservedValue +
                                   memCompilerArenaValue +
                                   memDataSegmentConstantValue +
                                   memDataSegmentGlobalZeroValue +
                                   memDataSegmentGlobalInitValue +
                                   memDataSegmentCompilerValue;
-    const size_t codegenTotalKnown = memJitReservedValue + memMicroStorageFinalValue;
-    const size_t totalKnown        = frontendTotalKnown + semaTotalKnown + codegenTotalKnown;
-    const size_t unknownPeak       = memTotal > totalKnown ? memTotal - totalKnown : 0;
+    const size_t compilerTotalKnown = memCompilerStateValue;
+    const size_t codegenTotalKnown  = memJitReservedValue + memMicroStorageFinalValue + memMicroBuilderValue + memMachineCodeValue;
+    const size_t totalKnown         = frontendTotalKnown + semaTotalKnown + compilerTotalKnown + codegenTotalKnown;
+    const size_t totalKnownPeakEstimate = totalKnown + memNativeBackendPeakValue;
+    const size_t unknownPeak            = memTotal > totalKnownPeakEstimate ? memTotal - totalKnownPeakEstimate : 0;
     const size_t unknownCurrent    = memCurrent > totalKnown ? memCurrent - totalKnown : 0;
     const size_t unknownTransient  = memTotal > memCurrent ? memTotal - memCurrent : 0;
 
@@ -119,11 +129,13 @@ void Stats::print(const TaskContext& ctx) const
     memoryStageSums.push_back({.name = "mem.total", .value = memTotal});
     memoryStageSums.push_back({.name = "mem.current", .value = memCurrent});
     memoryStageSums.push_back({.name = "mem.totalKnown", .value = totalKnown});
+    memoryStageSums.push_back({.name = "mem.totalKnownPeakEstimate", .value = totalKnownPeakEstimate});
     memoryStageSums.push_back({.name = "mem.untracked.peak", .value = unknownPeak});
     memoryStageSums.push_back({.name = "mem.untracked.current", .value = unknownCurrent});
     memoryStageSums.push_back({.name = "mem.untracked.transient", .value = unknownTransient});
     memoryStageSums.push_back({.name = "mem.frontend.totalKnown", .value = frontendTotalKnown});
     memoryStageSums.push_back({.name = "mem.sema.totalKnown", .value = semaTotalKnown});
+    memoryStageSums.push_back({.name = "mem.compiler.totalKnown", .value = compilerTotalKnown});
     memoryStageSums.push_back({.name = "mem.codegen.totalKnown", .value = codegenTotalKnown});
 
     std::vector<MemoryStatLine> memoryDetails;
@@ -135,19 +147,25 @@ void Stats::print(const TaskContext& ctx) const
     memoryDetails.push_back({.name = "mem.frontend.ast", .value = memFrontendAstReservedValue});
     memoryDetails.push_back({.name = "mem.sema.symbols", .value = memSemaSymbolsValue});
     memoryDetails.push_back({.name = "mem.sema.symbolMaps", .value = memSemaSymbolMapsValue});
+    memoryDetails.push_back({.name = "mem.sema.symbolOwned", .value = memSemaSymbolOwnedValue});
     memoryDetails.push_back({.name = "mem.sema.constants", .value = memSemaConstantsValue});
     memoryDetails.push_back({.name = "mem.sema.constantsStorage", .value = memSemaConstantsReserved});
     memoryDetails.push_back({.name = "mem.sema.types", .value = memSemaTypesValue});
     memoryDetails.push_back({.name = "mem.sema.typesStorage", .value = memSemaTypesReserved});
     memoryDetails.push_back({.name = "mem.sema.nodePayload", .value = memSemaNodePayloadValue});
     memoryDetails.push_back({.name = "mem.sema.identifiers", .value = memSemaIdentifiersValue});
+    memoryDetails.push_back({.name = "mem.sema.typeGen", .value = memTypeGenReservedValue});
     memoryDetails.push_back({.name = "mem.compiler.arena", .value = memCompilerArenaValue});
+    memoryDetails.push_back({.name = "mem.compiler.state", .value = memCompilerStateValue});
     memoryDetails.push_back({.name = "mem.compiler.dataSegmentConstant", .value = memDataSegmentConstantValue});
     memoryDetails.push_back({.name = "mem.compiler.dataSegmentGlobalZero", .value = memDataSegmentGlobalZeroValue});
     memoryDetails.push_back({.name = "mem.compiler.dataSegmentGlobalInit", .value = memDataSegmentGlobalInitValue});
     memoryDetails.push_back({.name = "mem.compiler.dataSegmentCompiler", .value = memDataSegmentCompilerValue});
     memoryDetails.push_back({.name = "mem.jit.reserved", .value = memJitReservedValue});
     memoryDetails.push_back({.name = "mem.micro.storageFinal", .value = memMicroStorageFinalValue});
+    memoryDetails.push_back({.name = "mem.codegen.microBuilder", .value = memMicroBuilderValue});
+    memoryDetails.push_back({.name = "mem.codegen.machineCode", .value = memMachineCodeValue});
+    memoryDetails.push_back({.name = "mem.codegen.nativeBuilderPeak", .value = memNativeBackendPeakValue});
 
     std::ranges::sort(memoryDetails, [](const MemoryStatLine& lhs, const MemoryStatLine& rhs) {
         return lhs.value > rhs.value;

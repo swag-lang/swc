@@ -19,6 +19,9 @@ public:
     const std::vector<SymbolFunction*>& functions() const { return functions_; }
     void                                addFunction(SymbolFunction* sym);
     Result                              canBeCompleted(Sema& sema) const;
+#if SWC_HAS_STATS
+    size_t                              memStorageReserved() const;
+#endif
 
 private:
     std::vector<SymbolFunction*> functions_;

@@ -49,12 +49,15 @@ public:
             TypeRef              funcReturnTypeRef = TypeRef::invalid();
         };
 
-        std::mutex                         mutex;
+        mutable std::mutex                 mutex;
         std::unordered_map<TypeRef, Entry> entries;
     };
 
     Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);
     TypeRef getBackTypeRef(const void* ptr) const;
+#if SWC_HAS_STATS
+    size_t memStorageReserved() const;
+#endif
 
 private:
     enum class LayoutKind
@@ -84,7 +87,7 @@ private:
 
     static Result processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache);
 
-    std::mutex                                                            cachesMutex_;
+    mutable std::mutex                                                    cachesMutex_;
     std::unordered_map<const DataSegment*, std::unique_ptr<TypeGenCache>> caches_;
     mutable std::mutex                                                    ptrToTypeMutex_;
     std::unordered_map<const void*, TypeRef>                              ptrToType_;

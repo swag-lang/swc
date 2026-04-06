@@ -5,6 +5,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#if SWC_HAS_STATS
+namespace
+{
+    template<typename T>
+    size_t vectorStorageReserved(const std::vector<T>& values)
+    {
+        return values.capacity() * sizeof(T);
+    }
+}
+#endif
+
 void SymbolInterface::addFunction(SymbolFunction* sym)
 {
     SWC_ASSERT(sym != nullptr);
@@ -22,5 +33,12 @@ Result SymbolInterface::canBeCompleted(Sema& sema) const
 
     return Result::Continue;
 }
+
+#if SWC_HAS_STATS
+size_t SymbolInterface::memStorageReserved() const
+{
+    return Symbol::memStorageReserved() + vectorStorageReserved(functions_);
+}
+#endif
 
 SWC_END_NAMESPACE();

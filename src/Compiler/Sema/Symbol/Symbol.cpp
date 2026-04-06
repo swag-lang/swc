@@ -12,6 +12,40 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     const AttributeList EMPTY_ATTRIBUTES;
+
+#if SWC_HAS_STATS
+    template<typename T, size_t InlineCapacity>
+    size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
+    {
+        if (values.isInline())
+            return 0;
+        return values.capacity() * sizeof(T);
+    }
+
+    size_t utf8StorageReserved(const Utf8& value)
+    {
+        return value.capacity() + 1;
+    }
+
+    size_t attributeListStorageReserved(const AttributeList& attributes)
+    {
+        size_t result = smallVectorStorageReserved(attributes.attributes);
+        result += smallVectorStorageReserved(attributes.runtimeSafetyOverrides);
+
+        result += smallVectorStorageReserved(attributes.printMicroPassOptions);
+        for (const Utf8& option : attributes.printMicroPassOptions)
+            result += utf8StorageReserved(option);
+
+        result += smallVectorStorageReserved(attributes.printAstStageOptions);
+        for (const Utf8& option : attributes.printAstStageOptions)
+            result += utf8StorageReserved(option);
+
+        result += utf8StorageReserved(attributes.foreignModuleName);
+        result += utf8StorageReserved(attributes.foreignFunctionName);
+        result += utf8StorageReserved(attributes.foreignLinkModuleName);
+        return result;
+    }
+#endif
 }
 
 SourceCodeRange Symbol::codeRange(TaskContext& ctx) const noexcept
@@ -280,5 +314,14 @@ const TypeInfo& Symbol::typeInfo(const TaskContext& ctx) const
     SWC_ASSERT(typeRef_.isValid());
     return ctx.typeMgr().get(typeRef_);
 }
+
+#if SWC_HAS_STATS
+size_t Symbol::memStorageReserved() const
+{
+    if (!attributes_)
+        return 0;
+    return attributeListStorageReserved(*attributes_);
+}
+#endif
 
 SWC_END_NAMESPACE();

@@ -14,6 +14,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#if SWC_HAS_STATS
+namespace
+{
+    template<typename T>
+    size_t vectorStorageReserved(const std::vector<T>& values)
+    {
+        return values.capacity() * sizeof(T);
+    }
+}
+#endif
+
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexImpls_);
@@ -351,6 +362,34 @@ const GenericInstanceStorage& SymbolStruct::genericInstanceStorage() const noexc
     SWC_ASSERT(data != nullptr);
     return data->instances;
 }
+
+#if SWC_HAS_STATS
+size_t SymbolStruct::memStorageReserved() const
+{
+    size_t result = Symbol::memStorageReserved();
+    result += vectorStorageReserved(fields_);
+
+    {
+        const std::shared_lock lk(mutexImpls_);
+        result += vectorStorageReserved(impls_);
+    }
+
+    {
+        const std::shared_lock lk(mutexInterfaces_);
+        result += vectorStorageReserved(interfaces_);
+    }
+
+    {
+        const std::shared_lock lk(mutexSpecOps_);
+        result += vectorStorageReserved(specOps_);
+    }
+
+    if (const GenericData* data = genericData())
+        result += sizeof(GenericData) + data->instances.memStorageReserved();
+
+    return result;
+}
+#endif
 
 bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const
 {

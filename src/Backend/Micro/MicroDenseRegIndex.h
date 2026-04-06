@@ -55,6 +55,16 @@ public:
         return regs_;
     }
 
+#if SWC_HAS_STATS
+    size_t memStorageReserved() const
+    {
+        size_t result = regToIndex_.bucket_count() * sizeof(void*);
+        result += regToIndex_.size() * (sizeof(std::pair<const MicroReg, uint32_t>) + sizeof(void*));
+        result += regs_.capacity() * sizeof(MicroReg);
+        return result;
+    }
+#endif
+
 private:
     std::unordered_map<MicroReg, uint32_t> regToIndex_;
     std::vector<MicroReg>                  regs_;

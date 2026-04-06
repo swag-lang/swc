@@ -17,6 +17,37 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    template<typename T>
+    size_t vectorStorageReserved(const std::vector<T>& values)
+    {
+        return values.capacity() * sizeof(T);
+    }
+
+    template<typename T, size_t InlineCapacity>
+    size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
+    {
+        if (values.isInline())
+            return 0;
+        return values.capacity() * sizeof(T);
+    }
+
+    template<typename K, typename V, typename H, typename E, typename A>
+    size_t unorderedMapStorageReserved(const std::unordered_map<K, V, H, E, A>& map)
+    {
+        return map.bucket_count() * sizeof(void*) +
+               map.size() * (sizeof(std::pair<const K, V>) + sizeof(void*));
+    }
+
+    template<typename K, typename H, typename E, typename A>
+    size_t unorderedSetStorageReserved(const std::unordered_set<K, H, E, A>& set)
+    {
+        return set.bucket_count() * sizeof(void*) +
+               set.size() * (sizeof(K) + sizeof(void*));
+    }
+}
+
 void MicroRegisterAllocationPass::initState(MicroPassContext& context)
 {
     context_          = &context;
@@ -1481,6 +1512,83 @@ void MicroRegisterAllocationPass::clearState()
     liveStamp_.clear();
     callSpillVregs_.clear();
 }
+
+#if SWC_HAS_STATS
+size_t MicroRegisterAllocationPass::memStorageReserved() const
+{
+    size_t result = 0;
+
+    result += vectorStorageReserved(liveOut_);
+    for (const std::vector<MicroReg>& regs : liveOut_)
+        result += vectorStorageReserved(regs);
+
+    result += vectorStorageReserved(concreteLiveOut_);
+    for (const std::vector<MicroReg>& regs : concreteLiveOut_)
+        result += vectorStorageReserved(regs);
+
+    result += unorderedSetStorageReserved(vregsLiveAcrossCall_);
+    result += unorderedMapStorageReserved(usePositions_);
+    for (const auto& [reg, positions] : usePositions_)
+    {
+        SWC_UNUSED(reg);
+        result += vectorStorageReserved(positions);
+    }
+
+    result += unorderedMapStorageReserved(concreteTouchPositions_);
+    for (const auto& [reg, positions] : concreteTouchPositions_)
+    {
+        SWC_UNUSED(reg);
+        result += vectorStorageReserved(positions);
+    }
+
+    result += vectorStorageReserved(instructionUseDefs_);
+    result += denseVirtualRegs_.memStorageReserved();
+    result += denseConcreteRegs_.memStorageReserved();
+
+    result += vectorStorageReserved(useVirtualIndices_);
+    for (const auto& values : useVirtualIndices_)
+        result += smallVectorStorageReserved(values);
+
+    result += vectorStorageReserved(defVirtualIndices_);
+    for (const auto& values : defVirtualIndices_)
+        result += smallVectorStorageReserved(values);
+
+    result += vectorStorageReserved(useConcreteIndices_);
+    for (const auto& values : useConcreteIndices_)
+        result += smallVectorStorageReserved(values);
+
+    result += vectorStorageReserved(defConcreteIndices_);
+    for (const auto& values : defConcreteIndices_)
+        result += smallVectorStorageReserved(values);
+
+    result += vectorStorageReserved(liveInVirtualBits_);
+    result += vectorStorageReserved(liveInConcreteBits_);
+
+    result += vectorStorageReserved(predecessors_);
+    for (const auto& values : predecessors_)
+        result += smallVectorStorageReserved(values);
+
+    result += vectorStorageReserved(worklist_);
+    result += vectorStorageReserved(inWorklist_);
+    result += vectorStorageReserved(tempOutVirtual_);
+    result += vectorStorageReserved(tempInVirtual_);
+    result += vectorStorageReserved(tempOutConcrete_);
+    result += vectorStorageReserved(tempInConcrete_);
+
+    result += unorderedSetStorageReserved(intPersistentSet_);
+    result += unorderedSetStorageReserved(floatPersistentSet_);
+    result += smallVectorStorageReserved(freeIntTransient_);
+    result += smallVectorStorageReserved(freeIntPersistent_);
+    result += smallVectorStorageReserved(freeFloatTransient_);
+    result += smallVectorStorageReserved(freeFloatPersistent_);
+
+    result += unorderedMapStorageReserved(states_);
+    result += unorderedMapStorageReserved(mapping_);
+    result += unorderedMapStorageReserved(liveStamp_);
+    result += unorderedSetStorageReserved(callSpillVregs_);
+    return result;
+}
+#endif
 
 Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 {

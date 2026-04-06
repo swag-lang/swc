@@ -10,32 +10,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    template<typename T>
-    size_t vectorStorageReserved(const std::vector<T>& values)
-    {
-        return values.capacity() * sizeof(T);
-    }
-
-    template<typename T, size_t InlineCapacity>
-    size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
-    {
-        if (values.isInline())
-            return 0;
-        return values.capacity() * sizeof(T);
-    }
-
-    template<typename K, typename V, typename H, typename E, typename A>
-    size_t unorderedMapStorageReserved(const std::unordered_map<K, V, H, E, A>& map)
-    {
-        return map.bucket_count() * sizeof(void*) +
-               map.size() * (sizeof(std::pair<const K, V>) + sizeof(void*));
-    }
-
-    size_t utf8StorageReserved(const Utf8& value)
-    {
-        return value.capacity() + 1;
-    }
-
     MicroRelocation::Kind dataSegmentRelocationKind(const DataSegmentKind kind)
     {
         switch (kind)
@@ -799,18 +773,18 @@ void MicroBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sou
 
 void MicroBuilder::releaseMemory()
 {
-    instructions_                = {};
-    operands_                    = {};
-    currentDebugSourceCodeRef_   = SourceCodeRef::invalid();
-    currentDebugNoStep_          = false;
-    printSymbolName_             = Utf8();
-    printFilePath_               = Utf8();
-    printSourceLine_             = 0;
-    printPassOptions_            = {};
-    labels_                      = {};
-    relocations_                 = {};
-    virtualRegForbiddenPhysRegs_ = {};
-    passManager_.clear();
+    instructions_                    = {};
+    operands_                        = {};
+    currentDebugSourceCodeRef_       = SourceCodeRef::invalid();
+    currentDebugNoStep_              = false;
+    printSymbolName_                 = Utf8();
+    printFilePath_                   = Utf8();
+    printSourceLine_                 = 0;
+    printPassOptions_                = {};
+    labels_                          = {};
+    relocations_                     = {};
+    virtualRegForbiddenPhysRegs_     = {};
+    passManager_                     = MicroPassManager{};
     controlFlowGraph_                = {};
     controlFlowGraphStorageRevision_ = 0;
     controlFlowGraphHash_            = 0;

@@ -186,7 +186,6 @@ public:
     {
 #if SWC_HAS_STATS
         Stats::get().numSymbols.fetch_add(1);
-        Stats::get().memSymbols.fetch_add(sizeof(T), std::memory_order_relaxed);
 #endif
         return ctx.compiler().allocate<T>(decl, tokRef, idRef, flags);
     }

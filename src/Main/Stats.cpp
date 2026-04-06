@@ -3,6 +3,7 @@
 #include "Main/Global.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -62,122 +63,58 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
 
-    struct MemoryStatLine
-    {
-        std::string_view name;
-        size_t           value = 0;
+    MemoryProfile::Summary memoryProfileSummary;
+    MemoryProfile::buildSummary(memoryProfileSummary, 6, 1024 * 1024, 16 * 1024 * 1024);
+
+    const auto formatHotspotSummary = [&](const MemoryProfile::Hotspot& hotspot) {
+        const double peakPct = memoryProfileSummary.totalPeakBytes ? 100.0 * static_cast<double>(hotspot.peakBytes) / static_cast<double>(memoryProfileSummary.totalPeakBytes) : 0.0;
+
+        Utf8 result;
+        result += "peak=";
+        result += Utf8Helper::toNiceSize(hotspot.peakBytes);
+        result += std::format(" ({:.1f}%)", peakPct);
+        result += " current=";
+        result += Utf8Helper::toNiceSize(hotspot.currentBytes);
+        result += " total=";
+        result += Utf8Helper::toNiceSize(hotspot.totalBytes);
+        result += " allocs=";
+        result += Utf8Helper::toNiceBigNumber(hotspot.allocCount);
+        result += " avg=";
+        result += Utf8Helper::toNiceSize(hotspot.allocCount ? hotspot.totalBytes / hotspot.allocCount : 0);
+        return result;
     };
 
-    const size_t memTotal                      = memMaxAllocated.load();
-    const size_t memCurrent                    = memAllocated.load();
-    const size_t memFrontendSourceValue        = memFrontendSource.load();
-    const size_t memFrontendTokensValue        = memFrontendTokens.load();
-    const size_t memFrontendLinesValue         = memFrontendLines.load();
-    const size_t memFrontendTriviaValue        = memFrontendTrivia.load();
-    const size_t memFrontendIdentifiersValue   = memFrontendIdentifiers.load();
-    const size_t memFrontendAstReservedValue   = memFrontendAstReserved.load();
-    const size_t memSemaSymbolsValue           = memSymbols.load();
-    const size_t memSemaSymbolMapsValue        = memSymbolMaps.load();
-    const size_t memSemaSymbolOwnedValue       = memSemaSymbolOwnedReserved.load();
-    const size_t memSemaConstantsValue         = memConstants.load();
-    const size_t memSemaConstantsReserved      = memConstantsReserved.load();
-    const size_t memSemaTypesValue             = memTypes.load();
-    const size_t memSemaTypesReserved          = memTypesReserved.load();
-    const size_t memSemaNodePayloadValue       = memSemaNodePayloadReserved.load();
-    const size_t memSemaIdentifiersValue       = memSemaIdentifiersReserved.load();
-    const size_t memTypeGenReservedValue       = memTypeGenReserved.load();
-    const size_t memCompilerArenaValue         = memCompilerArenaReserved.load();
-    const size_t memCompilerStateValue         = memCompilerStateReserved.load();
-    const size_t memJitReservedValue           = memJitReserved.load();
-    const size_t memMicroStorageFinalValue     = memMicroStorageFinal.load();
-    const size_t memMicroBuilderValue          = memMicroBuilderReserved.load();
-    const size_t memMachineCodeValue           = memMachineCodeReserved.load();
-    const size_t memNativeBackendPeakValue     = memNativeBackendPeak.load();
-    const size_t memDataSegmentConstantValue   = memDataSegmentConstant.load();
-    const size_t memDataSegmentGlobalZeroValue = memDataSegmentGlobalZero.load();
-    const size_t memDataSegmentGlobalInitValue = memDataSegmentGlobalInit.load();
-    const size_t memDataSegmentCompilerValue   = memDataSegmentCompiler.load();
+    const auto printHotspotSection = [&](const std::string_view headerPrefix, const std::vector<MemoryProfile::Hotspot>& hotspots) {
+        for (size_t i = 0; i < hotspots.size(); ++i)
+        {
+            const Utf8 header = std::format("{}[{}]", headerPrefix, i + 1);
+            Logger::printHeaderDot(ctx, colorHeader, header, colorMsg, formatHotspotSummary(hotspots[i]));
 
-    const size_t frontendTotalKnown = memFrontendSourceValue +
-                                      memFrontendTokensValue +
-                                      memFrontendLinesValue +
-                                      memFrontendTriviaValue +
-                                      memFrontendIdentifiersValue +
-                                      memFrontendAstReservedValue;
-    const size_t semaTotalKnown = memSemaSymbolsValue +
-                                  memSemaSymbolMapsValue +
-                                  memSemaSymbolOwnedValue +
-                                  memSemaConstantsReserved +
-                                  memSemaTypesReserved +
-                                  memSemaNodePayloadValue +
-                                  memSemaIdentifiersValue +
-                                  memTypeGenReservedValue +
-                                  memCompilerArenaValue +
-                                  memDataSegmentConstantValue +
-                                  memDataSegmentGlobalZeroValue +
-                                  memDataSegmentGlobalInitValue +
-                                  memDataSegmentCompilerValue;
-    const size_t compilerTotalKnown = memCompilerStateValue;
-    const size_t codegenTotalKnown  = memJitReservedValue + memMicroStorageFinalValue + memMicroBuilderValue + memMachineCodeValue;
-    const size_t totalKnown         = frontendTotalKnown + semaTotalKnown + compilerTotalKnown + codegenTotalKnown;
-    const size_t totalKnownPeakEstimate = totalKnown + memNativeBackendPeakValue;
-    const size_t unknownPeak            = memTotal > totalKnownPeakEstimate ? memTotal - totalKnownPeakEstimate : 0;
-    const size_t unknownCurrent    = memCurrent > totalKnown ? memCurrent - totalKnown : 0;
-    const size_t unknownTransient  = memTotal > memCurrent ? memTotal - memCurrent : 0;
+            const auto location = MemoryProfile::formatHotspotLocation(&ctx, hotspots[i]);
+            Logger::printHeaderDot(ctx, colorHeader, "  alloc", colorMsg, location.allocationSite, ".", 44);
+            if (!location.callerSite.empty())
+                Logger::printHeaderDot(ctx, colorHeader, "  from", colorMsg, location.callerSite, ".", 44);
 
-    std::vector<MemoryStatLine> memoryStageSums;
-    memoryStageSums.push_back({.name = "mem.total", .value = memTotal});
-    memoryStageSums.push_back({.name = "mem.current", .value = memCurrent});
-    memoryStageSums.push_back({.name = "mem.totalKnown", .value = totalKnown});
-    memoryStageSums.push_back({.name = "mem.totalKnownPeakEstimate", .value = totalKnownPeakEstimate});
-    memoryStageSums.push_back({.name = "mem.untracked.peak", .value = unknownPeak});
-    memoryStageSums.push_back({.name = "mem.untracked.current", .value = unknownCurrent});
-    memoryStageSums.push_back({.name = "mem.untracked.transient", .value = unknownTransient});
-    memoryStageSums.push_back({.name = "mem.frontend.totalKnown", .value = frontendTotalKnown});
-    memoryStageSums.push_back({.name = "mem.sema.totalKnown", .value = semaTotalKnown});
-    memoryStageSums.push_back({.name = "mem.compiler.totalKnown", .value = compilerTotalKnown});
-    memoryStageSums.push_back({.name = "mem.codegen.totalKnown", .value = codegenTotalKnown});
-
-    std::vector<MemoryStatLine> memoryDetails;
-    memoryDetails.push_back({.name = "mem.frontend.source", .value = memFrontendSourceValue});
-    memoryDetails.push_back({.name = "mem.frontend.tokens", .value = memFrontendTokensValue});
-    memoryDetails.push_back({.name = "mem.frontend.lines", .value = memFrontendLinesValue});
-    memoryDetails.push_back({.name = "mem.frontend.trivia", .value = memFrontendTriviaValue});
-    memoryDetails.push_back({.name = "mem.frontend.identifiers", .value = memFrontendIdentifiersValue});
-    memoryDetails.push_back({.name = "mem.frontend.ast", .value = memFrontendAstReservedValue});
-    memoryDetails.push_back({.name = "mem.sema.symbols", .value = memSemaSymbolsValue});
-    memoryDetails.push_back({.name = "mem.sema.symbolMaps", .value = memSemaSymbolMapsValue});
-    memoryDetails.push_back({.name = "mem.sema.symbolOwned", .value = memSemaSymbolOwnedValue});
-    memoryDetails.push_back({.name = "mem.sema.constants", .value = memSemaConstantsValue});
-    memoryDetails.push_back({.name = "mem.sema.constantsStorage", .value = memSemaConstantsReserved});
-    memoryDetails.push_back({.name = "mem.sema.types", .value = memSemaTypesValue});
-    memoryDetails.push_back({.name = "mem.sema.typesStorage", .value = memSemaTypesReserved});
-    memoryDetails.push_back({.name = "mem.sema.nodePayload", .value = memSemaNodePayloadValue});
-    memoryDetails.push_back({.name = "mem.sema.identifiers", .value = memSemaIdentifiersValue});
-    memoryDetails.push_back({.name = "mem.sema.typeGen", .value = memTypeGenReservedValue});
-    memoryDetails.push_back({.name = "mem.compiler.arena", .value = memCompilerArenaValue});
-    memoryDetails.push_back({.name = "mem.compiler.state", .value = memCompilerStateValue});
-    memoryDetails.push_back({.name = "mem.compiler.dataSegmentConstant", .value = memDataSegmentConstantValue});
-    memoryDetails.push_back({.name = "mem.compiler.dataSegmentGlobalZero", .value = memDataSegmentGlobalZeroValue});
-    memoryDetails.push_back({.name = "mem.compiler.dataSegmentGlobalInit", .value = memDataSegmentGlobalInitValue});
-    memoryDetails.push_back({.name = "mem.compiler.dataSegmentCompiler", .value = memDataSegmentCompilerValue});
-    memoryDetails.push_back({.name = "mem.jit.reserved", .value = memJitReservedValue});
-    memoryDetails.push_back({.name = "mem.micro.storageFinal", .value = memMicroStorageFinalValue});
-    memoryDetails.push_back({.name = "mem.codegen.microBuilder", .value = memMicroBuilderValue});
-    memoryDetails.push_back({.name = "mem.codegen.machineCode", .value = memMachineCodeValue});
-    memoryDetails.push_back({.name = "mem.codegen.nativeBuilderPeak", .value = memNativeBackendPeakValue});
-
-    std::ranges::sort(memoryDetails, [](const MemoryStatLine& lhs, const MemoryStatLine& rhs) {
-        return lhs.value > rhs.value;
-    });
+            if (i + 1 != hotspots.size())
+                Logger::print(ctx, "\n");
+        }
+    };
 
     Logger::print(ctx, "\n");
-    for (const MemoryStatLine& memoryStat : memoryStageSums)
-        Logger::printHeaderDot(ctx, colorHeader, memoryStat.name, colorMsg, Utf8Helper::toNiceSize(memoryStat.value));
+    Logger::printHeaderDot(ctx, colorHeader, "mem.total.peak", colorMsg, Utf8Helper::toNiceSize(memoryProfileSummary.totalPeakBytes));
+    Logger::printHeaderDot(ctx, colorHeader, "mem.total.current", colorMsg, Utf8Helper::toNiceSize(memoryProfileSummary.totalCurrentBytes));
 
-    Logger::print(ctx, "\n");
-    for (const MemoryStatLine& memoryStat : memoryDetails)
-        Logger::printHeaderDot(ctx, colorHeader, memoryStat.name, colorMsg, Utf8Helper::toNiceSize(memoryStat.value));
+    if (!memoryProfileSummary.peakHotspots.empty())
+    {
+        Logger::print(ctx, "\n");
+        printHotspotSection("mem.hotspot.live", memoryProfileSummary.peakHotspots);
+    }
+
+    if (!memoryProfileSummary.totalHotspots.empty())
+    {
+        Logger::print(ctx, "\n");
+        printHotspotSection("mem.hotspot.churn", memoryProfileSummary.totalHotspots);
+    }
 #endif
 
     Logger::print(ctx, "\n");

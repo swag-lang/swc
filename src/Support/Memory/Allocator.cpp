@@ -1,63 +1,22 @@
 // ReSharper disable CppParameterNamesMismatch
 #include "pch.h"
-#include "Main/Stats.h"
-#include "Support/Memory/mimalloc/include/mimalloc.h"
+#include "Support/Memory/MemoryProfile.h"
 
 namespace
 {
-#if SWC_HAS_STATS
-    void trackAlloc(const void* ptr)
+    [[nodiscard]] void* allocThrow(const size_t size, const size_t align)
     {
-        if (!ptr)
-            return;
-
-        swc::Stats&  stats = swc::Stats::get();
-        const size_t size  = mi_usable_size(ptr);
-        stats.memAllocated.fetch_add(size, std::memory_order_relaxed);
-        swc::Stats::setMax(stats.memAllocated, stats.memMaxAllocated);
+        return swc::MemoryProfile::allocateHeap(size, align, true);
     }
 
-    void trackFree(const void* ptr)
+    [[nodiscard]] void* allocNoThrow(const size_t size, const size_t align) noexcept
     {
-        if (!ptr)
-            return;
-
-        const size_t size = mi_usable_size(ptr);
-        swc::Stats::get().memAllocated.fetch_sub(size, std::memory_order_relaxed);
-    }
-#else
-    void trackAlloc(void*)
-    {
-    }
-    void trackFree(void*)
-    {
-    }
-#endif
-
-    [[nodiscard]] void* allocThrow(size_t size, size_t align)
-    {
-        void* ptr = mi_malloc_aligned(size, align);
-        if (!ptr)
-            throw std::bad_alloc();
-
-        trackAlloc(ptr);
-        return ptr;
+        return swc::MemoryProfile::allocateHeap(size, align, false);
     }
 
-    [[nodiscard]] void* allocNoThrow(size_t size, size_t align) noexcept
+    void freeBlock(void* block) noexcept
     {
-        void* ptr = mi_malloc_aligned(size, align);
-        trackAlloc(ptr);
-        return ptr;
-    }
-
-    void freeBlock(void* block, size_t align) noexcept
-    {
-        if (!block)
-            return;
-
-        trackFree(block);
-        mi_free_aligned(block, align);
+        swc::MemoryProfile::freeHeap(block);
     }
 }
 
@@ -103,60 +62,60 @@ void* operator new[](size_t size, std::align_val_t align, const std::nothrow_t&)
 
 void operator delete(void* block) noexcept
 {
-    freeBlock(block, sizeof(void*));
+    freeBlock(block);
 }
 
 void operator delete[](void* block) noexcept
 {
-    freeBlock(block, sizeof(void*));
+    freeBlock(block);
 }
 
 void operator delete(void* block, std::size_t) noexcept
 {
-    freeBlock(block, sizeof(void*));
+    freeBlock(block);
 }
 
 void operator delete[](void* block, std::size_t) noexcept
 {
-    freeBlock(block, sizeof(void*));
+    freeBlock(block);
 }
 
 void operator delete(void* block, const std::nothrow_t&) noexcept
 {
-    freeBlock(block, sizeof(void*));
+    freeBlock(block);
 }
 
 void operator delete[](void* block, const std::nothrow_t&) noexcept
 {
-    freeBlock(block, sizeof(void*));
+    freeBlock(block);
 }
 
-void operator delete(void* block, std::align_val_t align) noexcept
+void operator delete(void* block, std::align_val_t) noexcept
 {
-    freeBlock(block, static_cast<size_t>(align));
+    freeBlock(block);
 }
 
-void operator delete[](void* block, std::align_val_t align) noexcept
+void operator delete[](void* block, std::align_val_t) noexcept
 {
-    freeBlock(block, static_cast<size_t>(align));
+    freeBlock(block);
 }
 
-void operator delete(void* block, std::size_t, std::align_val_t align) noexcept
+void operator delete(void* block, std::size_t, std::align_val_t) noexcept
 {
-    freeBlock(block, static_cast<size_t>(align));
+    freeBlock(block);
 }
 
-void operator delete[](void* block, std::size_t, std::align_val_t align) noexcept
+void operator delete[](void* block, std::size_t, std::align_val_t) noexcept
 {
-    freeBlock(block, static_cast<size_t>(align));
+    freeBlock(block);
 }
 
-void operator delete(void* block, std::align_val_t align, const std::nothrow_t&) noexcept
+void operator delete(void* block, std::align_val_t, const std::nothrow_t&) noexcept
 {
-    freeBlock(block, static_cast<size_t>(align));
+    freeBlock(block);
 }
 
-void operator delete[](void* block, std::align_val_t align, const std::nothrow_t&) noexcept
+void operator delete[](void* block, std::align_val_t, const std::nothrow_t&) noexcept
 {
-    freeBlock(block, static_cast<size_t>(align));
+    freeBlock(block);
 }

@@ -32,11 +32,9 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     SWC_RESULT(builder.runPasses(&encoder, passContext));
 
 #if SWC_HAS_STATS
-    const size_t numMicroInstrFinal   = builder.instructions().count();
-    const size_t memMicroStorageFinal = builder.instructions().allocatedBytes() + builder.operands().allocatedBytes();
+    const size_t numMicroInstrFinal = builder.instructions().count();
     Stats::get().numMicroInstrNoOptim.fetch_add(numMicroInstrNoOptim, std::memory_order_relaxed);
     Stats::get().numMicroInstrFinal.fetch_add(numMicroInstrFinal, std::memory_order_relaxed);
-    Stats::get().memMicroStorageFinal.fetch_add(memMicroStorageFinal, std::memory_order_relaxed);
 #endif
 
     const auto codeSize = encoder.size();

@@ -71,7 +71,6 @@ namespace
     {
 #if SWC_HAS_STATS
         Stats::get().numConstants.fetch_add(1);
-        Stats::get().memConstants.fetch_add(sizeof(ConstantValue), std::memory_order_relaxed);
 #endif
 
 #if SWC_HAS_REF_DEBUG_INFO

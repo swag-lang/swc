@@ -564,6 +564,9 @@
     <ClCompile Include="src\Support\Memory\Allocator.cpp">
       <Filter>src\Support\Memory</Filter>
     </ClCompile>
+    <ClCompile Include="src\Support\Memory\MemoryProfile.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
     <ClCompile Include="src\Support\Memory\Arena.cpp">
       <Filter>src\Support\Memory</Filter>
     </ClCompile>
@@ -1164,6 +1167,9 @@
       <Filter>src\Support\Memory</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Memory\Heap.h">
+      <Filter>src\Support\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Memory\MemoryProfile.h">
       <Filter>src\Support\Memory</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Os\Os.h">

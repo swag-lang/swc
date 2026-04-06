@@ -37,21 +37,6 @@ namespace
         return head;
     }
 
-#if SWC_HAS_STATS
-    size_t symbolMapStorageReserved(const std::unordered_map<IdentifierRef, Symbol*>& map)
-    {
-        return map.bucket_count() * sizeof(void*) +
-               map.size() * (sizeof(std::pair<const IdentifierRef, Symbol*>) + sizeof(void*));
-    }
-
-    void updateSymbolMapStorageStats(size_t before, size_t after)
-    {
-        if (after > before)
-            Stats::get().memSymbolMaps.fetch_add(after - before, std::memory_order_relaxed);
-        else if (before > after)
-            Stats::get().memSymbolMaps.fetch_sub(before - after, std::memory_order_relaxed);
-    }
-#endif
 }
 
 SymbolMap::SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
@@ -93,15 +78,7 @@ void SymbolMap::maybeUpgradeToSharded(TaskContext& ctx)
     if (bigMap_.size() < SHARD_AFTER_KEYS)
         return;
 
-#if SWC_HAS_STATS
-    const size_t beforeStorage = symbolMapStorageReserved(bigMap_);
-#endif
-
     auto* newShards = ctx.compiler().allocateArray<Shard>(SHARD_COUNT);
-
-#if SWC_HAS_STATS
-    Stats::get().memSymbols.fetch_add(sizeof(Shard) * SHARD_COUNT, std::memory_order_relaxed);
-#endif
 
     const size_t totalKeys = bigMap_.size();
     const size_t perShard  = (totalKeys / SHARD_COUNT) + 1;
@@ -110,13 +87,6 @@ void SymbolMap::maybeUpgradeToSharded(TaskContext& ctx)
 
     for (const auto& [id, head] : bigMap_)
         newShards[shardIndex(id)].map.emplace(id, head);
-
-#if SWC_HAS_STATS
-    size_t afterStorage = 0;
-    for (uint32_t i = 0; i < SHARD_COUNT; ++i)
-        afterStorage += symbolMapStorageReserved(newShards[i].map);
-    updateSymbolMapStorageStats(beforeStorage, afterStorage);
-#endif
 
     std::unordered_map<IdentifierRef, Symbol*>().swap(bigMap_);
     shards_.store(newShards, std::memory_order_release);
@@ -136,18 +106,9 @@ Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* s
             return it->second;
     }
 
-#if SWC_HAS_STATS
-    const size_t beforeStorage = symbolMapStorageReserved(shard.map);
-#endif
-
     Symbol*& head         = shard.map[idRef];
     Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
     symbol->setOwnerSymMap(this);
-
-#if SWC_HAS_STATS
-    const size_t afterStorage = symbolMapStorageReserved(shard.map);
-    updateSymbolMapStorageStats(beforeStorage, afterStorage);
-#endif
 
     if (notify)
         ctx.compiler().notifyAlive();
@@ -347,16 +308,9 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
         }
 
         // Transition to big
-#if SWC_HAS_STATS
-        const size_t beforeStorage = symbolMapStorageReserved(bigMap_);
-#endif
         bigMap_.reserve(SMALL_CAP * 2ull);
         for (uint32_t i = 0; i < smallSize_; ++i)
             bigMap_.emplace(small_[i].key, small_[i].head);
-#if SWC_HAS_STATS
-        const size_t afterStorage = symbolMapStorageReserved(bigMap_);
-        updateSymbolMapStorageStats(beforeStorage, afterStorage);
-#endif
         smallSize_ = SMALL_CAP + 1; // Mark as big
     }
 
@@ -384,15 +338,8 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
             return it->second;
     }
 
-#if SWC_HAS_STATS
-    const size_t beforeStorage = symbolMapStorageReserved(bigMap_);
-#endif
     Symbol*& head         = bigMap_[idRef];
     Symbol*  insertedHead = insertSymbolOrdered(head, symbol);
-#if SWC_HAS_STATS
-    const size_t afterStorage = symbolMapStorageReserved(bigMap_);
-    updateSymbolMapStorageStats(beforeStorage, afterStorage);
-#endif
     count_++;
     symbol->setOwnerSymMap(this);
     ctx.compiler().notifyAlive();

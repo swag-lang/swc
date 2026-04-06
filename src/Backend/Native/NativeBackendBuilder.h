@@ -101,9 +101,6 @@ public:
     Result run();
     Result prepare();
     Result writeObject(uint32_t objIndex);
-#if SWC_HAS_STATS
-    size_t memStorageReserved() const;
-#endif
 
     Result reportError(DiagnosticId id);
 
@@ -148,9 +145,6 @@ private:
     Result validateTarget();
     Result writeObjects();
     Result runGeneratedArtifact();
-#if SWC_HAS_STATS
-    void   updateMemoryStats() const;
-#endif
 
     TaskContext       ctx_;
     CompilerInstance& compiler_;

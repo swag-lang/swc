@@ -210,7 +210,6 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 
 #if SWC_HAS_STATS
     Stats::get().numTypes.fetch_add(1);
-    Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
 #endif
 
     const uint32_t localIndex = shard.store.pushBack(typeInfo);

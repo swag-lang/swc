@@ -13,6 +13,13 @@ class TaskContext;
 
 namespace Os
 {
+    struct ResolvedAddress
+    {
+        Utf8 moduleName;
+        Utf8 symbolName;
+        Utf8 sourceLocation;
+    };
+
     enum class ProcessRunResult : uint8_t
     {
         Ok,
@@ -83,6 +90,8 @@ namespace Os
     const char* hostExceptionBackendName();
     uint32_t    currentProcessId();
     uint32_t    currentThreadId();
+    uint32_t    captureCallStack(std::span<uintptr_t> outFrames, uint32_t skipFrames = 0);
+    bool        resolveAddress(ResolvedAddress& outAddress, uintptr_t address, const TaskContext* ctx = nullptr);
     size_t      peakProcessMemoryUsage();
     void        decodeHostException(uint32_t& outExceptionCode, const void*& outExceptionAddress, const void* platformExceptionPointers);
     void        appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers);

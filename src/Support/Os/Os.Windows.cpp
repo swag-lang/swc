@@ -4,6 +4,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -549,6 +550,64 @@ namespace
             appendWindowsStackFrame(outMsg, ctx, i, reinterpret_cast<uintptr_t>(frames[i]));
     }
 
+    bool resolveWindowsAddress(Os::ResolvedAddress& outAddress, const uintptr_t address, const TaskContext* ctx)
+    {
+        outAddress = {};
+        if (!address)
+            return false;
+
+        bool                     hasInfo = false;
+        MEMORY_BASIC_INFORMATION mbi{};
+        if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
+        {
+            const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
+            if (modBase)
+            {
+                char        modulePath[MAX_PATH + 1]{};
+                const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
+                if (len)
+                {
+                    modulePath[len]      = 0;
+                    outAddress.moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
+                    hasInfo               = true;
+                }
+            }
+        }
+
+        if (!ensureSymbolEngineInitialized())
+            return hasInfo;
+
+        SymbolEngineState&     state = symbolEngineState();
+        const std::scoped_lock lock(state.mutex);
+
+        const HANDLE                                            process = GetCurrentProcess();
+        std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
+
+        auto* symbol         = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen   = MAX_SYM_NAME;
+
+        DWORD64 displacement = 0;
+        if (SymFromAddr(process, address, &displacement, symbol))
+        {
+            outAddress.symbolName = displacement ? Utf8(std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement))) : Utf8(symbol->Name);
+            hasInfo               = true;
+        }
+
+        IMAGEHLP_LINE64 lineInfo{};
+        lineInfo.SizeOfStruct = sizeof(lineInfo);
+        DWORD lineDisp        = 0;
+        if (SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
+        {
+            outAddress.sourceLocation = FileSystem::formatFileLocation(ctx, fs::path(lineInfo.FileName), lineInfo.LineNumber);
+            if (lineDisp)
+                outAddress.sourceLocation += std::format(" (+{})", lineDisp);
+            hasInfo = true;
+        }
+
+        return hasInfo;
+    }
+
     bool tryLoadExternalModulePath(void*& outModuleHandle, const fs::path& modulePath)
     {
         const Utf8    moduleFileName = modulePath.string();
@@ -593,6 +652,24 @@ namespace Os
     uint32_t currentThreadId()
     {
         return static_cast<uint32_t>(GetCurrentThreadId());
+    }
+
+    uint32_t captureCallStack(const std::span<uintptr_t> outFrames, const uint32_t skipFrames)
+    {
+        if (outFrames.empty())
+            return 0;
+
+        std::array<void*, 64> rawFrames{};
+        const uint32_t        maxFrames = static_cast<uint32_t>(std::min(outFrames.size(), rawFrames.size()));
+        const USHORT          numFrames = ::CaptureStackBackTrace(skipFrames + 1, static_cast<DWORD>(maxFrames), rawFrames.data(), nullptr);
+        for (uint32_t i = 0; i < numFrames; ++i)
+            outFrames[i] = reinterpret_cast<uintptr_t>(rawFrames[i]);
+        return numFrames;
+    }
+
+    bool resolveAddress(ResolvedAddress& outAddress, const uintptr_t address, const TaskContext* ctx)
+    {
+        return resolveWindowsAddress(outAddress, address, ctx);
     }
 
     size_t peakProcessMemoryUsage()
@@ -974,7 +1051,9 @@ namespace Os
 
     void* allocExecutableMemory(uint32_t size)
     {
-        return VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        void* const ptr = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        MemoryProfile::trackExternalAlloc(ptr, size);
+        return ptr;
     }
 
     bool makeWritableExecutableMemory(void* ptr, uint32_t size)
@@ -996,6 +1075,7 @@ namespace Os
     {
         if (!ptr)
             return;
+        MemoryProfile::trackExternalFree(ptr);
         (void) VirtualFree(ptr, 0, MEM_RELEASE);
     }
 

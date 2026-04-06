@@ -724,7 +724,7 @@ Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecyc
     if (normalizedTypeRef.isInvalid())
         return Result::Continue;
 
-    auto&          mutableCtx = const_cast<TaskContext&>(ctx());
+    auto&           mutableCtx = const_cast<TaskContext&>(ctx());
     const TypeInfo& typeInfo   = typeMgr().get(normalizedTypeRef);
     const uint64_t  sizeOf     = typeInfo.sizeOf(mutableCtx);
     SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
@@ -748,7 +748,7 @@ Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecyc
     if (normalizedTypeRef.isInvalid())
         return Result::Continue;
 
-    auto&          mutableCtx = const_cast<TaskContext&>(ctx());
+    auto&           mutableCtx = const_cast<TaskContext&>(ctx());
     const TypeInfo& typeInfo   = typeMgr().get(normalizedTypeRef);
     const uint64_t  sizeOf     = typeInfo.sizeOf(mutableCtx);
     SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());

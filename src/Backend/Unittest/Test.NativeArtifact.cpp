@@ -8,10 +8,10 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeLinkerCoff.h"
 #include "Backend/Runtime.h"
-#include "Main/Command/Command.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -69,8 +69,8 @@ namespace
         CommandLine    cmdLine = ctx.cmdLine();
         const fs::path root    = inputRootForTest(cmdLine);
 
-        cmdLine.command = CommandKind::Build;
-        cmdLine.name    = "native_paths";
+        cmdLine.command          = CommandKind::Build;
+        cmdLine.name             = "native_paths";
         cmdLine.sourceDrivenTest = false;
         cmdLine.testNative       = true;
         cmdLine.testJit          = true;
@@ -464,7 +464,7 @@ SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    TaskContext compilerCtx(compiler);
+    TaskContext           compilerCtx(compiler);
     const SymbolVariable* globalVar = nullptr;
     for (const SymbolVariable* symbol : nativeBuilder.regularGlobals)
     {

@@ -1248,7 +1248,7 @@ namespace
 
         SemaFrame frame = sema.frame();
         auto&     symFn = sema.viewSymbol(nodeRef).sym()->cast<SymbolFunction>();
-        
+
         // `#run` lowers to a helper function that is executed during sema. The enclosing
         // runtime function must not keep it as a normal runtime call dependency, or JIT/native
         // test discovery will try to prepare a compile-time-only helper that never survives

@@ -15,7 +15,7 @@ namespace
     {
         if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
             return;
-        
+
         // Overload/spec-op probing can intentionally suppress diagnostics; those speculative
         // failures must not poison the enclosing runtime function.
         if (sema.ctx().silentDiagnostic())

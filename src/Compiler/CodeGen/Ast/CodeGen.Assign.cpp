@@ -480,14 +480,14 @@ namespace
         if (!targetType.isStruct())
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
 
-        const bool               isMove             = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw});
-        const bool               isMoveRaw          = modifierFlags.has(AstModifierFlagsE::MoveRaw);
-        const bool               skipTargetDrop     = modifierFlags.has(AstModifierFlagsE::NoDrop);
-        const CodeGen::LifecycleKind postKind       = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
-        const bool               hasTargetDrop      = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
-        const bool               hasPostLifecycle   = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
-        const bool               canResetSource     = isMove && !isMoveRaw && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
-        const bool               shouldResetSource  = canResetSource && codeGen.hasLifecycle(rightTypeRef, CodeGen::LifecycleKind::Drop);
+        const bool                   isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw});
+        const bool                   isMoveRaw         = modifierFlags.has(AstModifierFlagsE::MoveRaw);
+        const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop);
+        const CodeGen::LifecycleKind postKind          = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        const bool                   hasTargetDrop     = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
+        const bool                   hasPostLifecycle  = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
+        const bool                   canResetSource    = isMove && !isMoveRaw && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
+        const bool                   shouldResetSource = canResetSource && codeGen.hasLifecycle(rightTypeRef, CodeGen::LifecycleKind::Drop);
 
         if (!hasTargetDrop && !hasPostLifecycle && !shouldResetSource)
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);

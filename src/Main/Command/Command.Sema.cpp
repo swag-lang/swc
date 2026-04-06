@@ -11,6 +11,7 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/ScopedTimedAction.h"
 #include "Support/Thread/Job.h"
 #include "Support/Thread/JobManager.h"
@@ -97,6 +98,7 @@ namespace Command
 {
     void sema(CompilerInstance& compiler)
     {
+        SWC_MEM_SCOPE("Sema");
         TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, {
                                                    .key    = "sema",

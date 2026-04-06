@@ -9,6 +9,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/ScopedTimedAction.h"
 
@@ -342,6 +343,7 @@ namespace
         if (!hasJitEligibleInputs(compiler))
             return true;
 
+        SWC_MEM_SCOPE("Backend/JIT");
         TaskContext                 ctx(compiler);
         const uint32_t              expectedTestCount = expectedJitTestCount(compiler);
         TimedActionLog::ScopedStage stage(ctx, {

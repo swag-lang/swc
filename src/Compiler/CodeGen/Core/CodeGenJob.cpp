@@ -67,6 +67,7 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
 
 JobResult CodeGenJob::exec()
 {
+    SWC_MEM_SCOPE("Backend/CodeGen");
     SWC_ASSERT(symbolFunc_);
     ctx().state().reset();
     if (symbolFunc_->isIgnored())
@@ -118,7 +119,6 @@ JobResult CodeGenJob::exec()
     if (!symbolFunc_->isCodeGenPreSolved())
     {
         SWC_ASSERT(root_.isValid());
-        SWC_MEM_SCOPE("Backend/CodeGen");
 #if SWC_HAS_STATS
         Timer timeCodeGen(&Stats::get().timeCodeGen);
 #endif

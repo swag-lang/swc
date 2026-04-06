@@ -1247,7 +1247,7 @@ namespace
     Utf8 relocationTargetConstantNaturalValue(const TaskContext& ctx, const MicroRelocation& relocation)
     {
         const ConstantValue& cst     = ctx.cstMgr().get(relocation.constantRef);
-        const Utf8           preview = constantNaturalPreview(ctx, cst);
+        Utf8                 preview = constantNaturalPreview(ctx, cst);
         if (!cst.typeRef().isValid())
             return preview;
 

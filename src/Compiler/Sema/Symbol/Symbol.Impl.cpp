@@ -20,14 +20,6 @@ namespace
         dims.push_back(count);
         return ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeValuePtrVoid()));
     }
-
-#if SWC_HAS_STATS
-    template<typename T>
-    size_t vectorStorageReserved(const std::vector<T>& values)
-    {
-        return values.capacity() * sizeof(T);
-    }
-#endif
 }
 
 SymbolStruct* SymbolImpl::symStruct() const

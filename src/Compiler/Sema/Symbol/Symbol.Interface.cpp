@@ -5,17 +5,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-#if SWC_HAS_STATS
-namespace
-{
-    template<typename T>
-    size_t vectorStorageReserved(const std::vector<T>& values)
-    {
-        return values.capacity() * sizeof(T);
-    }
-}
-#endif
-
 void SymbolInterface::addFunction(SymbolFunction* sym)
 {
     SWC_ASSERT(sym != nullptr);

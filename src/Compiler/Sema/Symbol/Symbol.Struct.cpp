@@ -14,17 +14,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-#if SWC_HAS_STATS
-namespace
-{
-    template<typename T>
-    size_t vectorStorageReserved(const std::vector<T>& values)
-    {
-        return values.capacity() * sizeof(T);
-    }
-}
-#endif
-
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexImpls_);
@@ -370,7 +359,7 @@ bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, Small
     return false;
 }
 
-void SymbolStruct::setGenericCompletionOwner(const TaskContext& ctx) noexcept
+void SymbolStruct::setGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
     auto&              data     = ensureGenericData();
     const TaskContext* expected = nullptr;

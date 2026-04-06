@@ -76,7 +76,7 @@ namespace
 
     bool byteSpanEq(ByteSpan lhs, ByteSpan rhs)
     {
-        return lhs.size() == rhs.size() && (!lhs.size() || std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0);
+        return lhs.size() == rhs.size() && (lhs.empty() || std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0);
     }
 }
 
@@ -149,7 +149,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
 {
-    std::array<std::byte, 4> source{
+    std::array source{
         std::byte{0x10},
         std::byte{0x20},
         std::byte{0x30},
@@ -157,7 +157,7 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
     };
     const auto expectedBytes = source;
 
-    std::array<uint64_t, 1> dims{source.size()};
+    std::array dims{source.size()};
     const TypeRef           arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
     const ConstantValue     value        = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{source.data(), source.size()});
     const ConstantRef       cstRef       = ctx.cstMgr().addConstant(ctx, value);
@@ -179,7 +179,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedSlicePayloadOutsideDataSegment)
 {
-    std::array<std::byte, 3> source{
+    std::array source{
         std::byte{0xAA},
         std::byte{0xBB},
         std::byte{0xCC},

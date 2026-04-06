@@ -395,7 +395,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     const uint32_t virtualWordCount  = denseVirtualRegs_.wordCount();
     const uint32_t concreteWordCount = denseConcreteRegs_.wordCount();
     const auto&    virtualRegs       = denseVirtualRegs_.regs();
-    const auto&    concreteRegs      = denseConcreteRegs_.regs();
 
     states_.clear();
     states_.resize(virtualRegs.size());
@@ -1242,7 +1241,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // 1) assign physical registers for each virtual operand,
     // 2) queue spill loads/stores around the instruction,
     // 3) release dead mappings.
-    std::fill(liveStampByDenseIndex_.begin(), liveStampByDenseIndex_.end(), 0);
+    std::ranges::fill(liveStampByDenseIndex_, 0);
     uint32_t stamp      = 1;
     uint32_t idx        = 0;
     int64_t  stackDepth = 0;
@@ -1253,7 +1252,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     {
         if (stamp == std::numeric_limits<uint32_t>::max())
         {
-            std::fill(liveStampByDenseIndex_.begin(), liveStampByDenseIndex_.end(), 0);
+            std::ranges::fill(liveStampByDenseIndex_, 0);
             stamp = 1;
         }
         ++stamp;

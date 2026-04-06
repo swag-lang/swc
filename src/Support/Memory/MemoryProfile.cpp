@@ -149,14 +149,14 @@ namespace
 
     uint32_t findExternalSlotLocked(const void* ptr)
     {
-        MemoryProfileState& state     = memoryProfileState();
-        const auto          hash      = reinterpret_cast<uintptr_t>(ptr) >> 4;
-        const uint32_t      start     = static_cast<uint32_t>(hash % K_EXTERNAL_CAPACITY);
-        uint32_t            firstFree = K_EXTERNAL_CAPACITY;
+        const MemoryProfileState& state     = memoryProfileState();
+        const auto                hash      = reinterpret_cast<uintptr_t>(ptr) >> 4;
+        const uint32_t            start     = static_cast<uint32_t>(hash % K_EXTERNAL_CAPACITY);
+        uint32_t                  firstFree = K_EXTERNAL_CAPACITY;
         for (uint32_t probe = 0; probe < K_EXTERNAL_CAPACITY; ++probe)
         {
-            const uint32_t slot  = (start + probe) % K_EXTERNAL_CAPACITY;
-            ExternalEntry& entry = state.externals[slot];
+            const uint32_t       slot  = (start + probe) % K_EXTERNAL_CAPACITY;
+            const ExternalEntry& entry = state.externals[slot];
             if (entry.used)
             {
                 if (entry.ptr == ptr)
@@ -263,8 +263,7 @@ namespace MemoryProfile
             return;
 
 #if SWC_HAS_STATS
-        auto* const header = reinterpret_cast<AllocationHeader*>(block) - 1;
-
+        const auto* const header = static_cast<AllocationHeader*>(block) - 1;
         if (header->flags & K_ALLOCATION_FLAG_TRACKED)
         {
             applyCategoryFree(header->categoryIndex, header->trackedBytes);
@@ -359,9 +358,9 @@ namespace MemoryProfile
         ScopedSuppress suppress;
         outSummary = {};
 
-        MemoryProfileState& state    = memoryProfileState();
-        outSummary.totalCurrentBytes = Stats::get().memAllocated.load(std::memory_order_relaxed);
-        outSummary.totalPeakBytes    = Stats::get().memMaxAllocated.load(std::memory_order_relaxed);
+        const MemoryProfileState& state = memoryProfileState();
+        outSummary.totalCurrentBytes    = Stats::get().memAllocated.load(std::memory_order_relaxed);
+        outSummary.totalPeakBytes       = Stats::get().memMaxAllocated.load(std::memory_order_relaxed);
 
         const uint32_t count = state.categoryCount.load(std::memory_order_acquire);
         outSummary.categories.reserve(count);

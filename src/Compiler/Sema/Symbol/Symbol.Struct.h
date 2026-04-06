@@ -74,7 +74,7 @@ public:
     bool                          tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
     GenericInstanceStorage&       genericInstanceStorage() noexcept;
     const GenericInstanceStorage& genericInstanceStorage() const noexcept;
-    void                          setGenericCompletionOwner(const TaskContext& ctx) noexcept;
+    void                          setGenericCompletionOwner(const TaskContext& ctx) const noexcept;
     bool                          isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
     bool                          tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
     void                          finishGenericCompletion() const noexcept;

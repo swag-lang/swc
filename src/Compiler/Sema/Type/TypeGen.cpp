@@ -6,27 +6,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    template<typename T, size_t InlineCapacity>
-    size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
+    template<typename T, size_t N>
+    size_t smallVectorStorageReserved(const SmallVector<T, N>& values)
     {
         if (values.isInline())
             return 0;
         return values.capacity() * sizeof(T);
-    }
-
-    template<typename K, typename V, typename H, typename E, typename A>
-    size_t unorderedMapStorageReserved(const std::unordered_map<K, V, H, E, A>& map)
-    {
-        return map.bucket_count() * sizeof(void*) +
-               map.size() * (sizeof(std::pair<const K, V>) + sizeof(void*));
-    }
-
-    size_t typeGenEntryStorageReserved(const TypeGen::TypeGenCache::Entry& entry)
-    {
-        return smallVectorStorageReserved(entry.deps) +
-               smallVectorStorageReserved(entry.structFieldTypes) +
-               smallVectorStorageReserved(entry.usingFieldTypes) +
-               smallVectorStorageReserved(entry.funcParamTypes);
     }
 }
 

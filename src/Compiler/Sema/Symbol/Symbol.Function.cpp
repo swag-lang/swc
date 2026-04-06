@@ -89,14 +89,6 @@ namespace
         }
     }
 
-#if SWC_HAS_STATS
-    template<typename T>
-    size_t vectorStorageReserved(const std::vector<T>& values)
-    {
-        return values.capacity() * sizeof(T);
-    }
-#endif
-
     bool isLocalLayoutReady(TaskContext& ctx, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -820,7 +812,7 @@ const SymbolInterface* SymbolFunction::declInterfaceContext() const noexcept
 
         if (symMap->isImpl())
         {
-            if (SymbolInterface* itf = symMap->cast<SymbolImpl>().symInterface())
+            if (const SymbolInterface* itf = symMap->cast<SymbolImpl>().symInterface())
                 return itf;
         }
 

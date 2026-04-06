@@ -1,5 +1,4 @@
 #pragma once
-#include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Support/Core/SmallVector.h"
 

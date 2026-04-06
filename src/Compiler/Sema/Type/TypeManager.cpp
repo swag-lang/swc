@@ -49,29 +49,6 @@ namespace
     }
 
     constexpr std::array<RuntimeTypeKind, static_cast<size_t>(IdentifierManager::PredefinedName::Count)> PREDEFINED_RUNTIME_MAP = makePredefinedRuntimeMap();
-
-#if SWC_HAS_STATS
-    size_t typePayloadStorageReserved(const TypeInfo& typeInfo)
-    {
-        switch (typeInfo.kind())
-        {
-            case TypeInfoKind::Array:
-                return typeInfo.payloadArrayDims().capacity() * sizeof(uint64_t);
-
-            case TypeInfoKind::AggregateStruct:
-            case TypeInfoKind::AggregateArray:
-            {
-                const auto& payload = typeInfo.payloadAggregate();
-                return payload.types.capacity() * sizeof(TypeRef) +
-                       payload.names.capacity() * sizeof(IdentifierRef) +
-                       payload.fieldRefs.capacity() * sizeof(SourceCodeRef);
-            }
-
-            default:
-                return 0;
-        }
-    }
-#endif
 }
 
 void TypeManager::setup(TaskContext& ctx)

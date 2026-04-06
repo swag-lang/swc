@@ -487,7 +487,7 @@ namespace
         const MicroCond originalNextSetCond = nextSetCondOps[1].cpuCond;
         nextSetCondOps[1].cpuCond           = foldedCond;
         auto               originalJumpCond = MicroCond::Unconditional;
-        MicroInstr*        jumpMutable      = nullptr;
+        const MicroInstr*  jumpMutable      = nullptr;
         MicroInstrOperand* jumpOps          = nullptr;
         if (jumpIt != endIt)
         {

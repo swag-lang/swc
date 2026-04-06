@@ -29,12 +29,6 @@ namespace
     constexpr uint32_t K_OPT_ITERATION_OFF = 1;
     constexpr uint32_t K_OPT_ITERATION_ON  = 16;
 
-    template<typename T>
-    size_t vectorStorageReserved(const std::vector<T>& values)
-    {
-        return values.capacity() * sizeof(T);
-    }
-
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
         if (!backendCfg.optimize)

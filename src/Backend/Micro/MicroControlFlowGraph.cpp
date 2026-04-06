@@ -11,14 +11,6 @@ namespace
     constexpr uint64_t K_CFG_HASH_INVALID_OPS      = std::numeric_limits<uint64_t>::max();
     constexpr uint32_t K_INVALID_INSTRUCTION_INDEX = std::numeric_limits<uint32_t>::max();
 
-    template<typename T, size_t InlineCapacity>
-    size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
-    {
-        if (values.isInline())
-            return 0;
-        return values.capacity() * sizeof(T);
-    }
-
     void mixControlFlowHash(uint64_t& inOutHash, uint64_t value)
     {
         inOutHash ^= value;

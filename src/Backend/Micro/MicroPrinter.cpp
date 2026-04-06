@@ -1183,9 +1183,9 @@ namespace
 
     Utf8 quotedConstantPreview(Utf8 escaped)
     {
-        constexpr uint32_t K_QUOTED_PREVIEW_MAX_CONTENT_CHARS = K_CONSTANT_PREVIEW_MAX_CHARS > 5 ? K_CONSTANT_PREVIEW_MAX_CHARS - 5 : 1;
-        if (Utf8Helper::countChars(escaped.view()) > K_QUOTED_PREVIEW_MAX_CONTENT_CHARS)
-            escaped = clampPreview(std::move(escaped), K_QUOTED_PREVIEW_MAX_CONTENT_CHARS);
+        constexpr uint32_t kQuotedPreviewMaxContentChars = K_CONSTANT_PREVIEW_MAX_CHARS > 5 ? K_CONSTANT_PREVIEW_MAX_CHARS - 5 : 1;
+        if (Utf8Helper::countChars(escaped.view()) > kQuotedPreviewMaxContentChars)
+            escaped = clampPreview(std::move(escaped), kQuotedPreviewMaxContentChars);
 
         Utf8 preview;
         preview += '"';

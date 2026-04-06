@@ -237,7 +237,7 @@ namespace
         return Result::Continue;
     }
 
-    bool functionHasImplicitDrops(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    bool functionHasImplicitDrops(const CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         for (const SymbolVariable* symVar : symbolFunc.parameters())
         {

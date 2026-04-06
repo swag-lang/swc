@@ -40,13 +40,6 @@ std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_
 
 namespace
 {
-    size_t constantPayloadStorageReserved(const ConstantValue& value)
-    {
-        if (!value.isAggregate())
-            return 0;
-        return value.getAggregate().capacity() * sizeof(ConstantRef);
-    }
-
     uint32_t resolveBorrowedPayloadShardIndex(const ConstantManager& manager, const ConstantValue& value)
     {
         const void* payloadPtr = nullptr;
@@ -177,9 +170,8 @@ namespace
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
-    uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
-    bool     keepBorrowedPayload =
-        (value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed() && isBorrowedPayloadBackedByDataSegment(*this, value);
+    uint32_t   shardIndex          = value.hash() & (SHARD_COUNT - 1);
+    const bool keepBorrowedPayload = (value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed() && isBorrowedPayloadBackedByDataSegment(*this, value);
     if ((value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed())
     {
         const uint32_t payloadShardIndex = resolveBorrowedPayloadShardIndex(*this, value);

@@ -70,7 +70,7 @@ namespace
 
     void propagateStats(TreeNode& node)
     {
-        for (auto& [_, child] : node.children)
+        for (auto& child : node.children | std::views::values)
         {
             propagateStats(*child);
             node.peakBytes += child->peakBytes;
@@ -140,7 +140,7 @@ namespace
     {
         std::vector<const TreeNode*> sorted;
         sorted.reserve(node.children.size());
-        for (const auto& [_, child] : node.children)
+        for (const auto& child : node.children | std::views::values)
             sorted.push_back(child.get());
         std::ranges::sort(sorted, [](const TreeNode* a, const TreeNode* b) {
             return a->peakBytes > b->peakBytes;

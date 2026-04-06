@@ -659,13 +659,17 @@ namespace
         return Result::Continue;
     }
 
-    bool mapArguments(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings, InlineVariadicBinding& outVariadic)
+    Result mapArguments(Sema& sema, bool& outMapped, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings, InlineVariadicBinding& outVariadic)
     {
+        outMapped    = false;
         outVariadic = {};
 
         const auto& params = fn.parameters();
         if (params.empty())
-            return !ufcsArg.isValid() && args.empty();
+        {
+            outMapped = !ufcsArg.isValid() && args.empty();
+            return Result::Continue;
+        }
 
         const TypeInfo& lastParamType  = params.back()->type(sema.ctx());
         const bool      hasAnyVariadic = lastParamType.isAnyVariadic();
@@ -695,7 +699,7 @@ namespace
             }
             else
             {
-                return false;
+                return Result::Continue;
             }
         }
 
@@ -719,7 +723,7 @@ namespace
             }
 
             if (paramIndex >= params.size())
-                return false;
+                return Result::Continue;
 
             const AstNodeRef argValueRef = bindingArgumentRef(sema, *params[paramIndex], namedArg.nodeArgRef);
             if (hasAnyVariadic && paramIndex == numFixed)
@@ -729,9 +733,9 @@ namespace
             }
 
             if (paramIndex >= numFixed)
-                return false;
+                return Result::Continue;
             if (isBindingAssigned(bound[paramIndex]))
-                return false;
+                return Result::Continue;
 
             bound[paramIndex].idRef   = params[paramIndex]->idRef();
             bound[paramIndex].exprRef = argValueRef;
@@ -762,11 +766,11 @@ namespace
             }
 
             if (nextParam >= numFixed)
-                return false;
+                return Result::Continue;
         }
 
         if (bound.size() != numFixed)
-            return false;
+            return Result::Continue;
 
         for (size_t i = 0; i < numFixed; i++)
         {
@@ -775,20 +779,20 @@ namespace
                 const SymbolVariable* param = params[i];
                 SWC_ASSERT(param != nullptr);
                 if (!param->hasExtraFlag(SymbolVariableFlagsE::Initialized))
-                    return false;
+                    return Result::Continue;
 
                 bound[i].idRef = param->idRef();
                 if (SemaHelpers::isDirectCallerLocationDefault(sema, *param))
                 {
                     const SourceCodeRange codeRange = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
                     bound[i].typeRef                = param->typeRef();
-                    bound[i].cstRef                 = ConstantHelpers::makeSourceCodeLocation(sema, codeRange, SemaHelpers::currentLocationFunction(sema));
+                    SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(sema, bound[i].cstRef, codeRange, SemaHelpers::currentLocationFunction(sema)));
                 }
                 else
                 {
                     const AstNodeRef defaultRef = bindingArgumentRef(sema, *param, SemaHelpers::defaultArgumentExprRef(*param));
                     if (defaultRef.isInvalid())
-                        return false;
+                        return Result::Continue;
                     bound[i].exprRef = defaultRef;
                 }
             }
@@ -797,7 +801,8 @@ namespace
                 outBindings.push_back(bound[i]);
         }
 
-        return true;
+        outMapped = true;
+        return Result::Continue;
     }
 
 }
@@ -836,7 +841,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     SmallVector<SemaClone::ParamBinding> bindings;
     InlineVariadicBinding                variadicBinding;
-    if (!mapArguments(sema, callRef, fn, args, ufcsArg, bindings, variadicBinding))
+    bool                                 mapped = false;
+    SWC_RESULT(mapArguments(sema, mapped, callRef, fn, args, ufcsArg, bindings, variadicBinding));
+    if (!mapped)
         return Result::Continue;
 
     AliasIdentifierArray aliasIdentifiers = {};

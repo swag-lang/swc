@@ -82,7 +82,8 @@ namespace
         const auto messageArg = makeAddressPayloadFromConstant(codeGen, messageCstRef);
         appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[0]->typeRef(), messageArg.reg);
 
-        const ConstantRef sourceLocCstRef = ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), node);
+        ConstantRef sourceLocCstRef = ConstantRef::invalid();
+        SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, node));
         SWC_ASSERT(sourceLocCstRef.isValid());
         const auto sourceLocArg = makeAddressPayloadFromConstant(codeGen, sourceLocCstRef);
         appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[1]->typeRef(), sourceLocArg.reg);

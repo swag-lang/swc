@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -384,6 +385,9 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         SWC_ASSERT(function_ == &symbolFunc);
         SWC_ASSERT(root_ == root);
     }
+
+    TypeRef sourceLocTypeRef = TypeRef::invalid();
+    SWC_RESULT(sema().waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, sourceLocTypeRef, symbolFunc.codeRef()));
 
     while (true)
     {

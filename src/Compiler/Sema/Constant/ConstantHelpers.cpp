@@ -220,14 +220,18 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     return sema.cstMgr().addConstant(ctx, result);
 }
 
-ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCodeRange& codeRange, const SymbolFunction* function)
+Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const SourceCodeRange& codeRange, const SymbolFunction* function)
 {
-    const TaskContext& ctx      = sema.ctx();
-    const TypeRef      typeRef  = sema.typeMgr().structSourceCodeLocation();
-    const SourceView*  srcView  = codeRange.srcView;
-    const SourceFile*  file     = srcView ? srcView->file() : nullptr;
-    const Utf8         fileName = file ? Utf8(file->path().string()) : Utf8{};
-    const Utf8         funcName = function ? function->getFullScopedName(ctx) : Utf8{};
+    outCstRef = ConstantRef::invalid();
+
+    const TaskContext& ctx = sema.ctx();
+    TypeRef            typeRef = TypeRef::invalid();
+    SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, SourceCodeRef::invalid()));
+
+    const SourceView* srcView  = codeRange.srcView;
+    const SourceFile* file     = srcView ? srcView->file() : nullptr;
+    const Utf8        fileName = file ? Utf8(file->path().string()) : Utf8{};
+    const Utf8        funcName = function ? function->getFullScopedName(ctx) : Utf8{};
 
     const std::string_view shardKey   = !fileName.empty() ? fileName.view() : funcName.view();
     const uint32_t         shardIndex = std::hash<std::string_view>{}(shardKey) & (ConstantManager::SHARD_COUNT - 1);
@@ -255,13 +259,14 @@ ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCode
 
     const auto          bytes  = ByteSpan{storage, sizeof(Runtime::SourceCodeLocation)};
     const ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
-    return sema.cstMgr().addConstant(ctx, cstVal);
+    outCstRef                = sema.cstMgr().addConstant(ctx, cstVal);
+    return Result::Continue;
 }
 
-ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const AstNode& node, const SymbolFunction* function)
+Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const AstNode& node, const SymbolFunction* function)
 {
     const SourceCodeRange codeRange = node.codeRangeWithChildren(sema.ctx(), sema.ast());
-    return makeSourceCodeLocation(sema, codeRange, function);
+    return makeSourceCodeLocation(sema, outCstRef, codeRange, function);
 }
 
 SWC_END_NAMESPACE();

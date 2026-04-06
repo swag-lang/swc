@@ -559,7 +559,9 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
-            sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, *this, SemaHelpers::currentLocationFunction(sema)));
+            ConstantRef cstRef = ConstantRef::invalid();
+            SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(sema, cstRef, *this, SemaHelpers::currentLocationFunction(sema)));
+            sema.setConstant(sema.curNodeRef(), cstRef);
             break;
         }
 
@@ -922,7 +924,9 @@ namespace
         }
 
         const SourceCodeRange codeRange = view.sym()->codeRange(sema.ctx());
-        sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, codeRange, view.sym()->safeCast<SymbolFunction>()));
+        ConstantRef           cstRef    = ConstantRef::invalid();
+        SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(sema, cstRef, codeRange, view.sym()->safeCast<SymbolFunction>()));
+        sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }
 

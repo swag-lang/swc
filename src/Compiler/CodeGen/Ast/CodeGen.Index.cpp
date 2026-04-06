@@ -214,11 +214,11 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    CodeGenNodePayload emitIndexAddress(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, TypeRef resultTypeRef)
+    Result emitIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, TypeRef resultTypeRef)
     {
         auto           indexBits = MicroOpBits::B64;
         const MicroReg indexReg  = materializeIndexReg(codeGen, indexRef, indexBits);
-        SWC_INTERNAL_CHECK(CodeGenSafety::emitBoundCheck(codeGen, indexRef, indexedType, indexedPayload, indexReg) == Result::Continue);
+        SWC_RESULT(CodeGenSafety::emitBoundCheck(codeGen, indexRef, indexedType, indexedPayload, indexReg));
         MicroReg baseReg = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
 
         if (indexedType.isArray() && indexedPayload.isAddress())
@@ -233,13 +233,12 @@ namespace
         const uint64_t resultSize = resolveIndexStrideSize(codeGen, indexedType);
         SWC_ASSERT(resultSize > 0);
 
-        CodeGenNodePayload resultPayload;
-        resultPayload.typeRef = resultTypeRef;
-        resultPayload.setIsAddress();
-        resultPayload.reg     = codeGen.nextVirtualIntRegister();
+        outPayload.typeRef = resultTypeRef;
+        outPayload.setIsAddress();
+        outPayload.reg     = codeGen.nextVirtualIntRegister();
         MicroBuilder& builder = codeGen.builder();
-        builder.emitLoadAddressAmcRegMem(resultPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
-        return resultPayload;
+        builder.emitLoadAddressAmcRegMem(outPayload.reg, MicroOpBits::B64, baseReg, indexReg, resultSize, 0, indexBits);
+        return Result::Continue;
     }
 
     Result emitSliceValue(CodeGen& codeGen, const AstIndexExpr& node)
@@ -374,8 +373,9 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());
 
-    const TypeRef            resultTypeRef        = resolveIndexedResultTypeRef(codeGen, *indexedView.type());
-    const CodeGenNodePayload indexedResultPayload = emitIndexAddress(codeGen, nodeArgRef, *indexedView.type(), indexedPayload, resultTypeRef);
+    const TypeRef resultTypeRef = resolveIndexedResultTypeRef(codeGen, *indexedView.type());
+    CodeGenNodePayload indexedResultPayload;
+    SWC_RESULT(emitIndexAddress(codeGen, indexedResultPayload, nodeArgRef, *indexedView.type(), indexedPayload, resultTypeRef));
     codeGen.setPayloadAddressReg(codeGen.curNodeRef(), indexedResultPayload.reg, resultTypeRef);
     return Result::Continue;
 }
@@ -394,7 +394,7 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         const TypeInfo& currentType = codeGen.typeMgr().get(currentTypeRef);
         const TypeRef   nextTypeRef = resolveIndexedResultTypeRef(codeGen, currentType);
-        currentPayload              = emitIndexAddress(codeGen, indexRef, currentType, currentPayload, nextTypeRef);
+        SWC_RESULT(emitIndexAddress(codeGen, currentPayload, indexRef, currentType, currentPayload, nextTypeRef));
         currentTypeRef              = nextTypeRef;
     }
 

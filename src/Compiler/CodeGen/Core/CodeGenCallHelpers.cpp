@@ -488,27 +488,30 @@ namespace
         return SemaRuntime::transparentLocationFunction(&codeGen.function());
     }
 
-    ConstantRef defaultArgumentConstantRef(CodeGen& codeGen, AstNodeRef callRef, const ResolvedCallArgument& arg)
+    Result defaultArgumentConstantRef(CodeGen& codeGen, ConstantRef& outCstRef, AstNodeRef callRef, const ResolvedCallArgument& arg)
     {
+        outCstRef = ConstantRef::invalid();
+
         switch (arg.defaultKind)
         {
             case CallArgumentDefaultKind::Constant:
-                return arg.defaultCstRef;
+                outCstRef = arg.defaultCstRef;
+                return Result::Continue;
 
             case CallArgumentDefaultKind::CallerLocation:
             {
                 const SourceCodeRange codeRange = codeGen.node(callRef).codeRangeWithChildren(codeGen.ctx(), codeGen.ast());
-                return ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), codeRange, currentLocationFunction(codeGen));
+                return ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), outCstRef, codeRange, currentLocationFunction(codeGen));
             }
 
             case CallArgumentDefaultKind::None:
                 break;
         }
 
-        return ConstantRef::invalid();
+        return Result::Continue;
     }
 
-    void appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg)
+    Result appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg)
     {
         CodeGenNodePayload argPayload;
         TypeRef            normalizedTypeRef = TypeRef::invalid();
@@ -548,8 +551,9 @@ namespace
         else
         {
             SWC_ASSERT(param != nullptr);
-            normalizedTypeRef               = param->typeRef();
-            const ConstantRef defaultCstRef = defaultArgumentConstantRef(codeGen, callRef, arg);
+            normalizedTypeRef = param->typeRef();
+            ConstantRef defaultCstRef = ConstantRef::invalid();
+            SWC_RESULT(defaultArgumentConstantRef(codeGen, defaultCstRef, callRef, arg));
             SWC_ASSERT(defaultCstRef.isValid());
             SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, defaultCstRef));
         }
@@ -566,6 +570,7 @@ namespace
         fillPreparedDirectArgType(preparedArg, codeGen, callConv, argPayload, normalizedTypeRef, arg);
         preparedArg.kind = abiPreparedArgKind(arg.passKind);
         outArgs.push_back(preparedArg);
+        return Result::Continue;
     }
 
     const CodeGenNodePayload* resolveCallPayload(CodeGen& codeGen, AstNodeRef calleeRef)
@@ -896,7 +901,7 @@ namespace
         outPreparedArg.isAddressed = false;
     }
 
-    void buildPreparedABIArguments(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, MicroReg closureContextReg, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize)
+    Result buildPreparedABIArguments(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, MicroReg closureContextReg, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
         outArgs.clear();
@@ -945,7 +950,7 @@ namespace
             {
                 // Interface dispatch prepends the runtime receiver object, but the selected
                 // interface method symbol only exposes the explicit user parameters.
-                appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, nullptr, resolvedArg);
+                SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, nullptr, resolvedArg));
                 ++argIndex;
                 continue;
             }
@@ -954,13 +959,13 @@ namespace
                 break;
 
             const SymbolVariable* param = paramIndex < params.size() ? params[paramIndex] : nullptr;
-            appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, param, resolvedArg);
+            SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, param, resolvedArg));
             ++argIndex;
             ++paramIndex;
         }
 
         if (!hasVariadic)
-            return;
+            return Result::Continue;
 
         ABICall::PreparedArg variadicPreparedArg;
         SWC_ASSERT(params[variadicParamIdx] != nullptr);
@@ -972,6 +977,7 @@ namespace
         else
             packUntypedVariadicArgument(variadicPreparedArg, outTransientStackSize, codeGen, callConv, variadicArgs, normalizedVariadic);
         outArgs.push_back(variadicPreparedArg);
+        return Result::Continue;
     }
 }
 
@@ -996,7 +1002,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     uint32_t transientStackSize = 0;
-    buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), calledFunction, closureContextReg, args, preparedArgs, transientStackSize);
+    SWC_RESULT(buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), calledFunction, closureContextReg, args, preparedArgs, transientStackSize));
     MicroReg hiddenRetStorageReg = MicroReg::invalid();
     if (normalizedRet.isIndirect)
     {

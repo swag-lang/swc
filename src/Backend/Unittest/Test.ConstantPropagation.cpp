@@ -73,6 +73,11 @@ namespace
         const ConstantValue constantValue = ConstantValue::makeStructBorrowed(ctx, ctx.typeMgr().typeString(), ByteSpan{storage, sizeof(Runtime::String)});
         return ctx.cstMgr().addConstant(ctx, constantValue);
     }
+
+    bool byteSpanEq(ByteSpan lhs, ByteSpan rhs)
+    {
+        return lhs.size() == rhs.size() && (!lhs.size() || std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0);
+    }
 }
 
 SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
@@ -104,6 +109,97 @@ SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
 
     const MicroInstrOperand* ops3 = inst3->ops(operands);
     if (inst3->op != MicroInstrOpcode::CmpRegImm || ops3[2].valueU64 != 42)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedStructPayloadOutsideDataSegment)
+{
+    Runtime::String runtimeString{
+        .ptr    = "borrowed-struct",
+        .length = 15,
+    };
+    const char*   expectedPtr    = runtimeString.ptr;
+    const uint64_t expectedLength = runtimeString.length;
+
+    const ConstantValue value = ConstantValue::makeStructBorrowed(ctx,
+                                                                  ctx.typeMgr().typeString(),
+                                                                  ByteSpan{reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString)});
+    const ConstantRef   cstRef = ctx.cstMgr().addConstant(ctx, value);
+    const ConstantValue& stored = ctx.cstMgr().get(cstRef);
+    if (!stored.isStruct() || stored.typeRef() != ctx.typeMgr().typeString())
+        return Result::Error;
+
+    uint32_t shardIndex = 0;
+    if (ctx.cstMgr().findDataSegmentRef(shardIndex, stored.getStruct().data()) == INVALID_REF)
+        return Result::Error;
+    if (stored.getStruct().data() == reinterpret_cast<const std::byte*>(&runtimeString))
+        return Result::Error;
+
+    runtimeString.ptr    = nullptr;
+    runtimeString.length = 0;
+
+    const auto* storedString = stored.getStruct<Runtime::String>(ctx.typeMgr().typeString());
+    if (!storedString)
+        return Result::Error;
+    if (storedString->ptr != expectedPtr || storedString->length != expectedLength)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
+{
+    std::array<std::byte, 4> source{
+        std::byte{0x10},
+        std::byte{0x20},
+        std::byte{0x30},
+        std::byte{0x40},
+    };
+    const auto expectedBytes = source;
+
+    std::array<uint64_t, 1> dims{source.size()};
+    const TypeRef           arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantValue           value        = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{source.data(), source.size()});
+    const ConstantRef             cstRef       = ctx.cstMgr().addConstant(ctx, value);
+    const ConstantValue&          stored       = ctx.cstMgr().get(cstRef);
+    if (!stored.isArray() || stored.typeRef() != arrayTypeRef)
+        return Result::Error;
+
+    uint32_t   shardIndex = 0;
+    if (ctx.cstMgr().findDataSegmentRef(shardIndex, stored.getArray().data()) == INVALID_REF)
+        return Result::Error;
+    if (stored.getArray().data() == source.data())
+        return Result::Error;
+
+    source.fill(std::byte{0});
+    if (!byteSpanEq(stored.getArray(), ByteSpan{expectedBytes.data(), expectedBytes.size()}))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedSlicePayloadOutsideDataSegment)
+{
+    std::array<std::byte, 3> source{
+        std::byte{0xAA},
+        std::byte{0xBB},
+        std::byte{0xCC},
+    };
+    const auto expectedBytes = source;
+
+    const ConstantValue  value  = ConstantValue::makeSliceBorrowed(ctx, ctx.typeMgr().typeU8(), ByteSpan{source.data(), source.size()});
+    const ConstantRef    cstRef = ctx.cstMgr().addConstant(ctx, value);
+    const ConstantValue& stored = ctx.cstMgr().get(cstRef);
+    if (!stored.isSlice())
+        return Result::Error;
+
+    uint32_t   shardIndex = 0;
+    if (ctx.cstMgr().findDataSegmentRef(shardIndex, stored.getSlice().data()) == INVALID_REF)
+        return Result::Error;
+    if (stored.getSlice().data() == source.data())
+        return Result::Error;
+
+    source.fill(std::byte{0});
+    if (!byteSpanEq(stored.getSlice(), ByteSpan{expectedBytes.data(), expectedBytes.size()}))
         return Result::Error;
 }
 SWC_TEST_END()

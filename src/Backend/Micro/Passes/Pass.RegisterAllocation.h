@@ -133,7 +133,7 @@ private:
     std::vector<SmallVector<uint32_t, 4>>               defConcreteIndices_;
     std::vector<uint64_t>                               liveInVirtualBits_;
     std::vector<uint64_t>                               liveInConcreteBits_;
-    std::vector<SmallVector<uint32_t>>                  predecessors_;
+    std::vector<SmallVector<uint32_t, 2>>               predecessors_;
     std::vector<uint32_t>                               worklist_;
     std::vector<uint8_t>                                inWorklist_;
     std::vector<uint64_t>                               tempOutVirtual_;

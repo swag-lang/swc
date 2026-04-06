@@ -591,6 +591,11 @@ Result SymbolFunction::emit(TaskContext& ctx)
         ctx.state().jitEmissionError = true;
         return emitResult;
     }
+
+    // Lowered machine code keeps the emitted bytes/debug info/relocations.
+    // The micro builder itself is transient and otherwise retains per-function IR memory.
+    builder.releaseMemory();
+
 #if SWC_HAS_STATS
     Stats::get().numCodeGenFunctions.fetch_add(1, std::memory_order_relaxed);
 #endif

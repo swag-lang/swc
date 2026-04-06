@@ -797,4 +797,25 @@ void MicroBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sou
     printSourceLine_ = sourceLine;
 }
 
+void MicroBuilder::releaseMemory()
+{
+    instructions_                = {};
+    operands_                    = {};
+    currentDebugSourceCodeRef_   = SourceCodeRef::invalid();
+    currentDebugNoStep_          = false;
+    printSymbolName_             = Utf8();
+    printFilePath_               = Utf8();
+    printSourceLine_             = 0;
+    printPassOptions_            = {};
+    labels_                      = {};
+    relocations_                 = {};
+    virtualRegForbiddenPhysRegs_ = {};
+    passManager_.clear();
+    controlFlowGraph_                = {};
+    controlFlowGraphStorageRevision_ = 0;
+    controlFlowGraphHash_            = 0;
+    hasControlFlowGraph_             = false;
+    controlFlowGraphMaybeDirty_      = false;
+}
+
 SWC_END_NAMESPACE();

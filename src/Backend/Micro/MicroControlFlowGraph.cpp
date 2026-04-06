@@ -9,6 +9,7 @@ namespace
     constexpr uint64_t K_CFG_HASH_OFFSET_BASIS = 1469598103934665603ull;
     constexpr uint64_t K_CFG_HASH_PRIME        = 1099511628211ull;
     constexpr uint64_t K_CFG_HASH_INVALID_OPS  = std::numeric_limits<uint64_t>::max();
+    constexpr uint32_t K_INVALID_INSTRUCTION_INDEX = std::numeric_limits<uint32_t>::max();
 
     template<typename T, size_t InlineCapacity>
     size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
@@ -100,9 +101,12 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     const uint32_t instructionCount = storage.count();
     instructionRefs_.reserve(instructionCount);
     successors_.resize(instructionCount);
+    std::vector<uint32_t> labelToInstructionIndex;
+    labelToInstructionIndex.reserve(instructionCount / 4 + 1);
 
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
+        const uint32_t instructionIndex = static_cast<uint32_t>(instructionRefs_.size());
         instructionRefs_.push_back(it.current);
         const MicroInstr& inst = *it;
         if (inst.op == MicroInstrOpcode::JumpReg || inst.op == MicroInstrOpcode::JumpCondImm)
@@ -112,25 +116,17 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         {
             const MicroInstrOperand* labelOps = inst.ops(operands);
             if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<uint32_t>::max())
+            {
                 supportsDeadCodeLiveness_ = false;
+            }
+            else
+            {
+                const uint32_t labelIndex = static_cast<uint32_t>(labelOps[0].valueU64);
+                if (labelIndex >= labelToInstructionIndex.size())
+                    labelToInstructionIndex.resize(labelIndex + 1, K_INVALID_INSTRUCTION_INDEX);
+                labelToInstructionIndex[labelIndex] = instructionIndex;
+            }
         }
-    }
-
-    std::unordered_map<MicroLabelRef, uint32_t> labelToInstructionIndex;
-    labelToInstructionIndex.reserve(instructionRefs_.size() / 2 + 1);
-
-    for (size_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
-    {
-        const MicroInstr* inst = storage.ptr(instructionRefs_[instructionIndex]);
-        if (!inst || inst->op != MicroInstrOpcode::Label)
-            continue;
-
-        const MicroInstrOperand* labelOps = inst->ops(operands);
-        if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<uint32_t>::max())
-            continue;
-
-        const MicroLabelRef labelRef(static_cast<uint32_t>(labelOps[0].valueU64));
-        labelToInstructionIndex[labelRef] = static_cast<uint32_t>(instructionIndex);
     }
 
     for (size_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
@@ -142,8 +138,8 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             continue;
         }
 
-        SmallVector<uint32_t>& successors     = successors_[instructionIndex];
-        const bool             hasFallthrough = instructionIndex + 1 < instructionRefs_.size();
+        auto&      successors     = successors_[instructionIndex];
+        const bool hasFallthrough = instructionIndex + 1 < instructionRefs_.size();
         if (inst->op == MicroInstrOpcode::JumpCond || inst->op == MicroInstrOpcode::JumpCondImm)
         {
             const MicroInstrOperand* jumpOps = inst->ops(operands);
@@ -153,11 +149,11 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             }
             else
             {
-                const MicroLabelRef targetLabelRef(static_cast<uint32_t>(jumpOps[2].valueU64));
-                const auto          targetIt = labelToInstructionIndex.find(targetLabelRef);
-                if (targetIt != labelToInstructionIndex.end())
+                const uint32_t targetLabelIndex = static_cast<uint32_t>(jumpOps[2].valueU64);
+                if (targetLabelIndex < labelToInstructionIndex.size() &&
+                    labelToInstructionIndex[targetLabelIndex] != K_INVALID_INSTRUCTION_INDEX)
                 {
-                    successors.push_back(targetIt->second);
+                    successors.push_back(labelToInstructionIndex[targetLabelIndex]);
                 }
                 else
                 {

@@ -444,7 +444,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
         predecessors_[idx].clear();
-        const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
+        const auto& successors = controlFlowGraph.successors(idx);
         for (const uint32_t succIdx : successors)
         {
             if (succIdx >= instructionCount_)
@@ -478,7 +478,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         for (uint64_t& value : tempOutConcrete_)
             value = 0;
 
-        const SmallVector<uint32_t>& successors = controlFlowGraph.successors(instructionIndex);
+        const auto& successors = controlFlowGraph.successors(instructionIndex);
         for (const uint32_t succIdx : successors)
         {
             if (succIdx >= instructionCount_)
@@ -531,7 +531,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         for (uint64_t& value : tempOutConcrete_)
             value = 0;
 
-        const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
+        const auto& successors = controlFlowGraph.successors(idx);
         for (const uint32_t succIdx : successors)
         {
             if (succIdx >= instructionCount_)
@@ -573,7 +573,7 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
     for (uint64_t& value : tempOutConcrete_)
         value = 0;
 
-    const SmallVector<uint32_t>& successors = controlFlowGraph_->successors(instructionIndex);
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
     for (const uint32_t succIdx : successors)
     {
         if (succIdx >= instructionCount_)

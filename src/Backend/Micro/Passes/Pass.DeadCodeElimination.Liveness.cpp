@@ -97,10 +97,10 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
     const uint32_t        rowWordCount = denseRegIndex.wordCount();
     std::vector<uint64_t> liveInBits(static_cast<size_t>(instructionCount) * rowWordCount, 0);
 
-    std::vector<SmallVector<uint32_t>> predecessors(instructionCount);
+    std::vector<SmallVector<uint32_t, 2>> predecessors(instructionCount);
     for (uint32_t idx = 0; idx < instructionCount; ++idx)
     {
-        const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
+        const auto& successors = controlFlowGraph.successors(idx);
         for (const uint32_t successorIdx : successors)
         {
             if (successorIdx >= instructionCount)

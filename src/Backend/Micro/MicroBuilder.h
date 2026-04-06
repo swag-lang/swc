@@ -80,6 +80,7 @@ public:
     void                                setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&     backendBuildCfg() const { return backendBuildCfg_; }
     void                                setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
+    void                                releaseMemory();
     const Utf8&                         printSymbolName() const { return printSymbolName_; }
     const Utf8&                         printFilePath() const { return printFilePath_; }
     uint32_t                            printSourceLine() const { return printSourceLine_; }

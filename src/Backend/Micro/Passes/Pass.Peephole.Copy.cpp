@@ -726,6 +726,8 @@ namespace
             return false;
         if (opOps[1].reg == srcReg)
             return false;
+        if (!pass.isCopyDeadAfterInstruction(std::next(copyBackIt), endIt, tmpReg))
+            return false;
 
         MicroInstrOperand* mutableOpOps   = opInst.ops(*context.operands);
         const MicroReg     originalDstReg = mutableOpOps[0].reg;
@@ -1078,6 +1080,8 @@ namespace
 
         if (ops[2].opBits != unaryOps[1].opBits || ops[2].opBits != copyBackOps[2].opBits)
             return false;
+        if (!pass.isCopyDeadAfterInstruction(std::next(copyBackIt), endIt, tmpReg))
+            return false;
 
         const MicroReg originalDstReg = unaryOps[0].reg;
         unaryOps[0].reg               = srcReg;
@@ -1405,6 +1409,12 @@ namespace
         if (ops[0].reg != nextOps[0].reg || ops[2].opBits != nextOps[2].opBits)
             return false;
 
+        // The following copy may still consume the current destination as its source.
+        // Example: mov rdx, r10; mov rdx, rdx. Removing the first copy would change
+        // the second instruction from "keep forwarded value" to "keep old rdx".
+        if (nextOps[1].reg == ops[0].reg)
+            return false;
+
         context.instructions->erase(instRef);
         return true;
     }
@@ -1508,6 +1518,8 @@ namespace
         if (prevOpOps[1].reg == origReg)
             return false;
         if (cursor.ops[2].opBits != prevOpOps[2].opBits || cursor.ops[2].opBits != prevCopyOps[2].opBits)
+            return false;
+        if (!pass.isCopyDeadAfterInstruction(cursor.nextIt, cursor.endIt, tmpReg))
             return false;
 
         MicroInstrOperand* mutablePrevOpOps = prevOpInst.ops(*context.operands);

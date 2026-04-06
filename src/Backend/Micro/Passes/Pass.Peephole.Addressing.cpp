@@ -23,6 +23,16 @@ namespace
         return microRegSpanContains(useDef.uses, reg) || microRegSpanContains(useDef.defs, reg);
     }
 
+    bool survivesCall(const MicroPassContext& context, const MicroReg reg)
+    {
+        const CallConv& conv = CallConv::get(context.callConvKind);
+        if (reg.isInt())
+            return conv.isIntPersistentReg(reg);
+        if (reg.isFloat())
+            return conv.isFloatPersistentReg(reg);
+        return false;
+    }
+
     template<size_t N>
     bool wouldConformEncoder(const MicroPassContext& context, MicroInstrOpcode opcode, const std::array<MicroInstrOperand, N>& ops)
     {
@@ -1185,14 +1195,7 @@ namespace
             {
                 if (useDef.isCall)
                 {
-                    const CallConv& conv         = CallConv::get(context.callConvKind);
-                    bool            survivesCall = false;
-                    if (tmpReg.isInt())
-                        survivesCall = conv.isIntPersistentReg(tmpReg);
-                    else if (tmpReg.isFloat())
-                        survivesCall = conv.isFloatPersistentReg(tmpReg);
-
-                    if (!survivesCall)
+                    if (!survivesCall(context, baseReg))
                         return false;
                     continue;
                 }
@@ -1408,16 +1411,9 @@ namespace
             if (hasBaseDef)
                 baseWasRedefined = true;
 
-            if (useDef.isCall && !candidates.empty())
+            if (useDef.isCall)
             {
-                const CallConv& conv         = CallConv::get(context.callConvKind);
-                bool            survivesCall = false;
-                if (tmpReg.isInt())
-                    survivesCall = conv.isIntPersistentReg(tmpReg);
-                else if (tmpReg.isFloat())
-                    survivesCall = conv.isFloatPersistentReg(tmpReg);
-
-                if (!survivesCall)
+                if (!survivesCall(context, baseReg))
                     return false;
             }
         }

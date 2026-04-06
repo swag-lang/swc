@@ -1221,6 +1221,11 @@ namespace
             if (!scanOps)
                 return false;
 
+            // Taking an address makes the stack slot observable through an alias, so the
+            // simple store-to-load forwarding below is no longer sound.
+            if (isAddressOnlyInstruction(scanInst))
+                return false;
+
             const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
             if (useDef.isCall)
                 return false;

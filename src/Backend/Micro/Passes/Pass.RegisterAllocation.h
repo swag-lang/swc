@@ -9,6 +9,7 @@ SWC_BEGIN_NAMESPACE();
 struct CallConv;
 class MicroStorage;
 class MicroOperandStorage;
+class MicroControlFlowGraph;
 
 class MicroRegisterAllocationPass final : public MicroPass
 {
@@ -21,6 +22,7 @@ public:
         MicroReg    phys;
         uint64_t    spillOffset = 0;
         MicroOpBits spillBits   = MicroOpBits::B64;
+        uint32_t    mappedListIndex = std::numeric_limits<uint32_t>::max();
         bool        mapped      = false;
         bool        hasSpill    = false;
         bool        dirty       = false;
@@ -59,7 +61,15 @@ private:
     void clearState();
     void initState(MicroPassContext& context);
 
+    uint32_t        denseVirtualIndex(MicroReg key) const;
+    VRegState&      stateForVirtual(MicroReg key);
+    const VRegState& stateForVirtual(MicroReg key) const;
     bool            isLiveOut(MicroReg key, uint32_t stamp) const;
+    bool            isLiveAcrossCall(MicroReg key) const;
+    void            markLiveAcrossCall(MicroReg key);
+    bool            requiresCallSpill(MicroReg key) const;
+    void            markCallSpill(MicroReg key);
+    void            clearCallSpill(MicroReg key);
     static bool     containsKey(MicroRegSpan keys, MicroReg key);
     static void     appendUniqueReg(SmallVector<MicroReg>& regs, MicroReg reg);
     bool            isPersistentPhysReg(MicroReg reg) const;
@@ -72,6 +82,10 @@ private:
     uint32_t        distanceToNextUse(MicroReg key, uint32_t instructionIndex) const;
     void            prepareInstructionData();
     void            analyzeLiveness();
+    void            computeCurrentLiveOutBits(uint32_t instructionIndex);
+    void            markCurrentVirtualLiveOut(uint32_t stamp);
+    void            rebuildCurrentConcreteLiveOutRegs();
+    bool            isCurrentConcreteLiveOut(MicroReg key) const;
     void            setupPools();
     void            ensureSpillSlot(VRegState& regState, bool isFloat);
     static uint64_t spillMemOffset(uint64_t spillOffset, int64_t stackDepth);
@@ -108,9 +122,6 @@ private:
     bool     hasControlFlow_   = false;
     bool     hasVirtualRegs_   = false;
 
-    std::vector<std::vector<MicroReg>>                  liveOut_;
-    std::vector<std::vector<MicroReg>>                  concreteLiveOut_;
-    std::unordered_set<MicroReg>                        vregsLiveAcrossCall_;
     std::unordered_map<MicroReg, std::vector<uint32_t>> usePositions_;
     std::unordered_map<MicroReg, std::vector<uint32_t>> concreteTouchPositions_;
     std::vector<MicroInstrUseDef>                       instructionUseDefs_;
@@ -129,6 +140,11 @@ private:
     std::vector<uint64_t>                               tempInVirtual_;
     std::vector<uint64_t>                               tempOutConcrete_;
     std::vector<uint64_t>                               tempInConcrete_;
+    std::vector<uint32_t>                               liveStampByDenseIndex_;
+    std::vector<uint8_t>                                vregsLiveAcrossCall_;
+    std::vector<uint8_t>                                callSpillFlags_;
+    std::vector<uint32_t>                               mappedVirtualIndices_;
+    std::vector<MicroReg>                               currentConcreteLiveOut_;
 
     std::unordered_set<MicroReg> intPersistentSet_;
     std::unordered_set<MicroReg> floatPersistentSet_;
@@ -138,10 +154,8 @@ private:
     SmallVector<MicroReg> freeFloatTransient_;
     SmallVector<MicroReg> freeFloatPersistent_;
 
-    std::unordered_map<MicroReg, VRegState> states_;
-    std::unordered_map<MicroReg, MicroReg>  mapping_;
-    std::unordered_map<MicroReg, uint32_t>  liveStamp_;
-    std::unordered_set<MicroReg>            callSpillVregs_;
+    std::vector<VRegState>           states_;
+    const MicroControlFlowGraph*     controlFlowGraph_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

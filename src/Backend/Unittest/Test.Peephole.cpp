@@ -187,6 +187,51 @@ SWC_TEST_BEGIN(Peephole_RemovesAdjacentPushPopSameRegister)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Peephole_KeepsForwardedArgCopyBeforeCall)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rdx = MicroReg::intReg(3);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
+    constexpr MicroReg r11 = MicroReg::intReg(11);
+
+    builder.emitLoadRegReg(rdx, r10, MicroOpBits::B64);
+    builder.emitLoadRegReg(rdx, rdx, MicroOpBits::B64);
+    builder.emitCallReg(r11, CallConvKind::Host);
+    builder.emitRet();
+
+    SWC_RESULT(runPeepholePass(builder));
+
+    bool                       hasForwardedArgCopy = false;
+    const MicroOperandStorage& operands            = builder.operands();
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            continue;
+
+        if (inst.op == MicroInstrOpcode::LoadRegReg &&
+            ops[0].reg == rdx &&
+            ops[1].reg == r10 &&
+            ops[2].opBits == MicroOpBits::B64)
+        {
+            hasForwardedArgCopy = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::LoadRegReg &&
+            ops[0].reg == rdx &&
+            ops[1].reg == rdx)
+        {
+            return Result::Error;
+        }
+    }
+
+    if (!hasForwardedArgCopy)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Peephole_RevisitsPreviousProducerAfterRewrite)
 {
     MicroBuilder builder(ctx);
@@ -216,6 +261,167 @@ SWC_TEST_BEGIN(Peephole_RevisitsPreviousProducerAfterRewrite)
         return Result::Error;
 
     return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_DoesNotFoldAddressBaseAcrossCallIntoTransientReg)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
+    constexpr MicroReg r11 = MicroReg::intReg(11);
+    constexpr MicroReg r15 = MicroReg::intReg(15);
+
+    builder.emitLoadAddressRegMem(r15, r10, 4, MicroOpBits::B64);
+    builder.emitCallReg(r11, CallConvKind::Host);
+    builder.emitLoadMemReg(r15, 0, rax, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runPeepholePass(builder));
+
+    bool                       hasAddressTemp      = false;
+    bool                       hasStoreThroughTemp = false;
+    const MicroOperandStorage& operands            = builder.operands();
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            continue;
+
+        if (inst.op == MicroInstrOpcode::LoadAddrRegMem &&
+            ops[0].reg == r15 &&
+            ops[1].reg == r10 &&
+            ops[2].opBits == MicroOpBits::B64 &&
+            ops[3].valueU64 == 4)
+        {
+            hasAddressTemp = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::LoadMemReg &&
+            ops[0].reg == r15 &&
+            ops[1].reg == rax &&
+            ops[2].opBits == MicroOpBits::B32 &&
+            ops[3].valueU64 == 0)
+        {
+            hasStoreThroughTemp = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::LoadMemReg &&
+            ops[0].reg == r10 &&
+            ops[1].reg == rax &&
+            ops[2].opBits == MicroOpBits::B32 &&
+            ops[3].valueU64 == 4)
+        {
+            return Result::Error;
+        }
+    }
+
+    if (!hasAddressTemp || !hasStoreThroughTemp)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_DoesNotForwardStackSlotAcrossAddressTakenAlias)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    const CallConv& conv = CallConv::host();
+
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg rdx = MicroReg::intReg(3);
+    constexpr MicroReg r11 = MicroReg::intReg(11);
+
+    builder.emitLoadMemReg(conv.stackPointer, 0x30, rdx, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(rcx, conv.stackPointer, 0x30, MicroOpBits::B64);
+    builder.emitLoadMemImm(rcx, 0, ApInt(42, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(r11, conv.stackPointer, 0x30, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.stackPointer, 0x28, r11, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPeepholePass(builder));
+
+    bool                       hasBadForwardedCopy  = false;
+    bool                       hasBadForwardedStore = false;
+    const MicroOperandStorage& operands             = builder.operands();
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            continue;
+
+        if (inst.op == MicroInstrOpcode::LoadRegReg &&
+            ops[0].reg == r11 &&
+            ops[1].reg == rdx &&
+            ops[2].opBits == MicroOpBits::B64)
+        {
+            hasBadForwardedCopy = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::LoadMemReg &&
+            ops[0].reg == conv.stackPointer &&
+            ops[1].reg == rdx &&
+            ops[2].opBits == MicroOpBits::B64 &&
+            ops[3].valueU64 == 0x28)
+        {
+            hasBadForwardedStore = true;
+        }
+    }
+
+    if (hasBadForwardedCopy || hasBadForwardedStore)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_DoesNotRetargetCopyBackFoldWhenTempValueStaysLive)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    const CallConv&    conv = CallConv::host();
+    const MicroReg     rax  = conv.intReturn;
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    constexpr MicroReg r10  = MicroReg::intReg(10);
+
+    builder.emitLoadRegReg(rax, r8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(rax, r10, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadRegReg(r8, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPeepholePass(builder));
+
+    bool                       hasUpdatedTempOp   = false;
+    bool                       hasBadRetargetedOp = false;
+    const MicroOperandStorage& operands           = builder.operands();
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            continue;
+
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg &&
+            ops[0].reg == rax &&
+            ops[1].reg == r10 &&
+            ops[2].opBits == MicroOpBits::B64 &&
+            ops[3].microOp == MicroOp::Add)
+        {
+            hasUpdatedTempOp = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg &&
+            ops[0].reg == r8 &&
+            ops[1].reg == r10 &&
+            ops[2].opBits == MicroOpBits::B64 &&
+            ops[3].microOp == MicroOp::Add)
+        {
+            hasBadRetargetedOp = true;
+        }
+    }
+
+    if (!hasUpdatedTempOp || hasBadRetargetedOp)
+        return Result::Error;
 }
 SWC_TEST_END()
 

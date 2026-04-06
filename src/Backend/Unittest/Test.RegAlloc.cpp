@@ -308,6 +308,60 @@ namespace
         b.emitRet();
     }
 
+    void buildVirtualDefAvoidsLiveConcreteReg(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv& conv = CallConv::get(callConvKind);
+
+        constexpr MicroReg liveAddrReg = MicroReg::intReg(11);
+        constexpr MicroReg altReg      = MicroReg::intReg(10);
+        constexpr MicroReg srcReg      = MicroReg::intReg(8);
+        constexpr MicroReg tmpValue    = MicroReg::virtualIntReg(7400);
+
+        SmallVector<MicroReg> forbiddenRegs;
+        for (const auto reg : conv.intRegs)
+        {
+            if (reg == liveAddrReg || reg == altReg)
+                continue;
+
+            forbiddenRegs.push_back(reg);
+        }
+
+        b.addVirtualRegForbiddenPhysRegs(tmpValue, forbiddenRegs.span());
+        b.emitLoadRegReg(liveAddrReg, conv.stackPointer, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(liveAddrReg, ApInt(0x40, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(srcReg, ApInt(0x11223344, 64), MicroOpBits::B64);
+        b.emitLoadRegReg(tmpValue, srcReg, MicroOpBits::B64);
+        b.emitLoadMemReg(conv.stackPointer, 0x20, liveAddrReg, MicroOpBits::B64);
+        b.emitLoadRegReg(conv.intReturn, tmpValue, MicroOpBits::B64);
+        b.emitRet();
+    }
+
+    void buildConcreteCopyUsesPersistentFallback(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv& conv = CallConv::get(callConvKind);
+        if (conv.intPersistentRegs.empty())
+            return;
+
+        const MicroReg srcReg = conv.intArgRegs.empty() ? conv.intTransientRegs[0] : conv.intArgRegs[0];
+        constexpr MicroReg savedValue = MicroReg::virtualIntReg(7401);
+
+        SmallVector<MicroReg> forbiddenRegs;
+        for (const auto reg : conv.intTransientRegs)
+        {
+            if (reg == srcReg)
+                continue;
+
+            forbiddenRegs.push_back(reg);
+        }
+
+        b.addVirtualRegForbiddenPhysRegs(savedValue, forbiddenRegs.span());
+        b.emitLoadRegImm(srcReg, ApInt(0x11223344, 64), MicroOpBits::B64);
+        b.emitLoadRegReg(savedValue, srcReg, MicroOpBits::B64);
+        b.emitLoadRegImm(srcReg, ApInt(0x55667788, 64), MicroOpBits::B64);
+        b.emitLoadRegReg(conv.intReturn, savedValue, MicroOpBits::B64);
+        b.emitRet();
+    }
+
     bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
@@ -446,6 +500,44 @@ namespace
                 continue;
 
             if (ops[0].reg == ops[1].reg)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool returnUsesReg(MicroBuilder& builder, MicroReg returnReg, MicroReg reg)
+    {
+        auto& storeOps = builder.operands();
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadRegReg)
+                continue;
+
+            const MicroInstrOperand* ops = inst.ops(storeOps);
+            if (!ops)
+                continue;
+
+            if (ops[0].reg == returnReg && ops[1].reg == reg)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool returnUsesPersistentReg(MicroBuilder& builder, MicroReg returnReg, const CallConv& conv)
+    {
+        auto& storeOps = builder.operands();
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadRegReg)
+                continue;
+
+            const MicroInstrOperand* ops = inst.ops(storeOps);
+            if (!ops || ops[0].reg != returnReg)
+                continue;
+
+            if (std::ranges::find(conv.intPersistentRegs, ops[1].reg) != conv.intPersistentRegs.end())
                 return true;
         }
 
@@ -685,6 +777,56 @@ SWC_TEST_BEGIN(RegAlloc_ConcreteLoadDestAcrossCall)
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
 
         if (hasAliasingLoadBase(builder))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_VirtualDefAvoidsLiveConcreteReg)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroBuilder builder(ctx);
+        buildVirtualDefAvoidsLiveConcreteReg(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+
+        if (returnUsesReg(builder, CallConv::get(callConvKind).intReturn, MicroReg::intReg(11)))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_UsesPersistentFallbackWhenTransientPoolExhausted)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        const CallConv& conv = CallConv::get(callConvKind);
+        if (conv.intPersistentRegs.empty())
+            continue;
+
+        MicroBuilder builder(ctx);
+        buildConcreteCopyUsesPersistentFallback(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+
+        if (!returnUsesPersistentReg(builder, conv.intReturn, conv))
             return Result::Error;
     }
 }

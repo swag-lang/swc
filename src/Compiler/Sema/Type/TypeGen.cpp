@@ -4,17 +4,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    template<typename T, size_t N>
-    size_t smallVectorStorageReserved(const SmallVector<T, N>& values)
-    {
-        if (values.isInline())
-            return 0;
-        return values.capacity() * sizeof(T);
-    }
-}
-
 TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 {
     std::scoped_lock lk(cachesMutex_);

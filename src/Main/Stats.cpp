@@ -151,7 +151,7 @@ namespace
             if (!child->peakBytes && !child->totalBytes)
                 continue;
 
-            printMemLine(ctx, child->segment, depth * 2, totalPeakBytes, child->peakBytes, child->totalBytes, child->allocCount, child->leaf);
+            printMemLine(ctx, child->segment, depth * 2ull, totalPeakBytes, child->peakBytes, child->totalBytes, child->allocCount, child->leaf);
 
             if (!child->children.empty())
                 printTree(ctx, *child, totalPeakBytes, depth + 1);

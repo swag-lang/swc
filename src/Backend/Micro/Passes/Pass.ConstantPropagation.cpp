@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Propagates known constants through register operations.
 // Example: load r1, 5; add r2, r1  ->  add r2, 5.
@@ -12,6 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result MicroConstantPropagationPass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/ConstProp");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

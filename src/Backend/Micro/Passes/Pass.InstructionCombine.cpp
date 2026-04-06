@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Combines consecutive immediate ops on the same destination into one op.
 // Example: add r1, 2; add r1, 3  ->  add r1, 5.
@@ -119,6 +120,7 @@ namespace
 
 Result MicroInstructionCombinePass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/InstCombine");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

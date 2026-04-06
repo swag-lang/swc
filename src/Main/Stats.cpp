@@ -14,26 +14,28 @@ SWC_BEGIN_NAMESPACE();
 #if SWC_HAS_STATS
 namespace
 {
+    constexpr size_t K_NAME_COLUMN = 40;
+
     struct TreeNode
     {
-        Utf8                                segment;
-        size_t                              peakBytes    = 0;
-        size_t                              currentBytes = 0;
-        size_t                              totalBytes   = 0;
-        size_t                              allocCount   = 0;
-        size_t                              freeCount    = 0;
-        const MemoryProfile::CategorySnapshot* leaf     = nullptr;
+        Utf8                                      segment;
+        size_t                                    peakBytes    = 0;
+        size_t                                    currentBytes = 0;
+        size_t                                    totalBytes   = 0;
+        size_t                                    allocCount   = 0;
+        size_t                                    freeCount    = 0;
+        const MemoryProfile::CategorySnapshot*    leaf         = nullptr;
         std::map<Utf8, std::unique_ptr<TreeNode>> children;
     };
 
     void insertIntoTree(TreeNode& root, const MemoryProfile::CategorySnapshot& snap)
     {
-        TreeNode*   node     = &root;
+        TreeNode*        node = &root;
         std::string_view name = snap.name;
 
         while (!name.empty())
         {
-            size_t      sep = name.find('/');
+            const size_t     sep = name.find('/');
             std::string_view segment;
             if (sep == std::string_view::npos)
             {
@@ -58,7 +60,6 @@ namespace
             node = it->second.get();
         }
 
-        // Accumulate leaf stats
         node->peakBytes    += snap.peakBytes;
         node->currentBytes += snap.currentBytes;
         node->totalBytes   += snap.totalBytes;
@@ -80,9 +81,63 @@ namespace
         }
     }
 
-    void printTree(Utf8& out, const TreeNode& node, const size_t totalPeakBytes, const uint32_t depth)
+    void printMemLine(const TaskContext& ctx, const Utf8& name, const size_t nameIndent, const size_t totalPeakBytes, const size_t peakBytes, const size_t totalBytes, const size_t allocCount, const MemoryProfile::CategorySnapshot* leaf)
     {
-        // Collect and sort children by peak bytes descending
+        const auto gray  = LogColorHelper::toAnsi(ctx, LogColor::Gray);
+        const auto white = LogColorHelper::toAnsi(ctx, LogColor::White);
+        const double peakPct = totalPeakBytes ? 100.0 * static_cast<double>(peakBytes) / static_cast<double>(totalPeakBytes) : 0.0;
+
+        // Name with indent
+        std::cout << LogColorHelper::toAnsi(ctx, LogColor::Yellow);
+        for (size_t i = 0; i < nameIndent; ++i)
+            std::cout << ' ';
+        std::cout << name;
+
+        // Dots to fill
+        const size_t usedCols = nameIndent + name.length();
+        std::cout << gray;
+        if (usedCols < K_NAME_COLUMN)
+        {
+            std::cout << ' ';
+            for (size_t i = usedCols + 1; i < K_NAME_COLUMN; ++i)
+                std::cout << '.';
+        }
+        else
+        {
+            std::cout << "..";
+        }
+
+        // Peak (always shown)
+        std::cout << ' ' << gray << "peak " << white << std::format("{:>9s} ({:5.1f}%)", Utf8Helper::toNiceSize(peakBytes), peakPct);
+
+        // Churn (fixed width)
+        if (totalBytes && totalBytes != peakBytes)
+            std::cout << "  " << gray << "churn " << white << std::format("{:>9s}", Utf8Helper::toNiceSize(totalBytes));
+        else
+            std::cout << std::format("{:17s}", "");
+
+        // Allocs (fixed width)
+        if (allocCount)
+            std::cout << "  " << gray << "allocs " << white << std::format("{:>9s}", Utf8Helper::toNiceBigNumber(allocCount));
+        else
+            std::cout << std::format("{:18s}", "");
+
+        // File:line for leaf nodes (now aligned)
+        if (leaf && leaf->file)
+        {
+            std::string_view filePath = leaf->file;
+            const auto       lastSep  = filePath.find_last_of("\\/");
+            if (lastSep != std::string_view::npos)
+                filePath = filePath.substr(lastSep + 1);
+            std::cout << "  " << gray << std::format("[{}:{}]", filePath, leaf->line);
+        }
+
+        std::cout << LogColorHelper::toAnsi(ctx, LogColor::Reset);
+        std::cout << '\n';
+    }
+
+    void printTree(const TaskContext& ctx, const TreeNode& node, const size_t totalPeakBytes, const uint32_t depth)
+    {
         std::vector<const TreeNode*> sorted;
         sorted.reserve(node.children.size());
         for (const auto& [_, child] : node.children)
@@ -96,45 +151,10 @@ namespace
             if (!child->peakBytes && !child->totalBytes)
                 continue;
 
-            // Indent
-            for (uint32_t i = 0; i < depth; ++i)
-                out += "  ";
+            printMemLine(ctx, child->segment, depth * 2, totalPeakBytes, child->peakBytes, child->totalBytes, child->allocCount, child->leaf);
 
-            const double peakPct = totalPeakBytes ? 100.0 * static_cast<double>(child->peakBytes) / static_cast<double>(totalPeakBytes) : 0.0;
-
-            out += std::format("{}", child->segment);
-
-            // Pad name to alignment
-            const size_t nameLen = child->segment.length() + depth * 2;
-            if (nameLen < 30)
-                out.append(30 - nameLen, '.');
-            else
-                out += "..";
-
-            out += std::format(" peak {:>9s} ({:5.1f}%)", Utf8Helper::toNiceSize(child->peakBytes), peakPct);
-
-            if (child->totalBytes != child->peakBytes)
-                out += std::format("  churn {:>9s}", Utf8Helper::toNiceSize(child->totalBytes));
-
-            if (child->allocCount)
-                out += std::format("  allocs {:>8s}", Utf8Helper::toNiceBigNumber(child->allocCount));
-
-            // Show file:line for leaf nodes
-            if (child->leaf && child->leaf->file)
-            {
-                // Extract just the filename from the path
-                std::string_view filePath = child->leaf->file;
-                auto             lastSep  = filePath.find_last_of("\\/");
-                if (lastSep != std::string_view::npos)
-                    filePath = filePath.substr(lastSep + 1);
-                out += std::format("  [{}:{}]", filePath, child->leaf->line);
-            }
-
-            out += "\n";
-
-            // Recurse into children
             if (!child->children.empty())
-                printTree(out, *child, totalPeakBytes, depth + 1);
+                printTree(ctx, *child, totalPeakBytes, depth + 1);
         }
     }
 }
@@ -196,38 +216,29 @@ void Stats::print(const TaskContext& ctx) const
     MemoryProfile::Summary summary;
     MemoryProfile::buildSummary(summary);
 
-    Utf8 memorySection;
-    memorySection += "\nMemory Profile\n";
-    memorySection += std::format("  tracked peak....... {}\n", Utf8Helper::toNiceSize(summary.totalPeakBytes));
-    memorySection += std::format("  tracked current.... {}\n", Utf8Helper::toNiceSize(summary.totalCurrentBytes));
+    Logger::print(ctx, "\n");
+    Logger::printHeaderDot(ctx, colorHeader, "mem.trackedPeak", colorMsg, Utf8Helper::toNiceSize(summary.totalPeakBytes));
+    Logger::printHeaderDot(ctx, colorHeader, "mem.trackedCurrent", colorMsg, Utf8Helper::toNiceSize(summary.totalCurrentBytes));
 
-    if (summary.categories.empty())
+    if (!summary.categories.empty())
     {
-        memorySection += "  (no category data — add SWC_MEM_SCOPE to track allocations)\n";
-    }
-    else
-    {
-        memorySection += "\n";
+        Logger::print(ctx, "\n");
 
-        // Build hierarchical tree
         TreeNode root;
         for (const auto& cat : summary.categories)
             insertIntoTree(root, cat);
         propagateStats(root);
 
-        // Also collect untagged bytes
-        size_t taggedPeak = root.peakBytes;
+        // Untagged
+        const size_t taggedPeak = root.peakBytes;
         if (taggedPeak < summary.totalPeakBytes)
         {
             const size_t untaggedPeak = summary.totalPeakBytes - taggedPeak;
-            const double untaggedPct  = 100.0 * static_cast<double>(untaggedPeak) / static_cast<double>(summary.totalPeakBytes);
-            memorySection += std::format("  (untagged)...................... peak {:>9s} ({:5.1f}%)\n", Utf8Helper::toNiceSize(untaggedPeak), untaggedPct);
+            printMemLine(ctx, Utf8("(untagged)"), 0, summary.totalPeakBytes, untaggedPeak, 0, 0, nullptr);
         }
 
-        printTree(memorySection, root, summary.totalPeakBytes, 1);
+        printTree(ctx, root, summary.totalPeakBytes, 0);
     }
-
-    Logger::print(ctx, memorySection);
 #endif
 
     Logger::print(ctx, "\n");

@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Simplifies the micro CFG by removing structurally redundant control flow.
 // Example: jmp L1; L1:          ->  <remove jump>.
@@ -72,6 +73,7 @@ namespace
 
 Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/CfgSimplify");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

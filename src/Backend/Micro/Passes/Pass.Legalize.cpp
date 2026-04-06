@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Rewrites non-encodable instruction forms into legal encoder forms.
 // Example: unsupported mem+imm pattern -> sequence using a temporary register.
@@ -886,6 +887,7 @@ namespace
 
 Result MicroLegalizePass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/Legalize");
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.builder);
     SWC_ASSERT(context.instructions);

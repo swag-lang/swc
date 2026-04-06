@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Eliminates side-effect-free instructions whose results are not live.
 // Example: add r1, 4; ... (r1 never used) -> <remove add>.
@@ -20,6 +21,7 @@ void MicroDeadCodeEliminationPass::initRunState(MicroPassContext& context)
 
 Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/DCE");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

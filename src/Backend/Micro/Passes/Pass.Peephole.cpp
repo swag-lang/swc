@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.Peephole.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Support/Memory/MemoryProfile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -175,6 +176,7 @@ bool MicroPeepholePass::hasCallAfterInstruction(const MicroInstrRef instRef) con
 
 Result MicroPeepholePass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/Peephole");
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
 

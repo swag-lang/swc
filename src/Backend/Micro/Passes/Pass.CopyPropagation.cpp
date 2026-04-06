@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.CopyPropagation.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Propagates register aliases created by copy/move instructions.
 // Example: mov r2, r1; add r3, r2 -> add r3, r1.
@@ -46,6 +47,7 @@ namespace
 
 Result MicroCopyPropagationPass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/CopyProp");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

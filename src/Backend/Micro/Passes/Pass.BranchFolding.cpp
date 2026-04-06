@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Folds branch decisions when compare inputs are compile-time constants.
 // Example: cmp r1, 42; jz L1 -> jmp L1 (if r1 is known 42).
@@ -17,6 +18,7 @@ namespace
 
 Result MicroBranchFoldingPass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/BranchFold");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

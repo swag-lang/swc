@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Replaces expensive arithmetic with cheaper equivalent forms.
 // Example: mul r1, 8 -> shl r1, 3.
@@ -46,6 +47,7 @@ namespace
 
 Result MicroStrengthReductionPass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/StrengthReduce");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

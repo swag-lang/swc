@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Forwards recent store values into matching following loads.
 // Example: store [rbp+8], r1; load r2, [rbp+8] -> mov r2, r1.
@@ -18,6 +19,7 @@ void MicroLoadStoreForwardingPass::initRunState(MicroPassContext& context)
 
 Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/LoadStoreFwd");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 

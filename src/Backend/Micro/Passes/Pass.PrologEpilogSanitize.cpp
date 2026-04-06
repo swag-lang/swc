@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
+#include "Support/Memory/MemoryProfile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -383,6 +384,7 @@ namespace
 
 Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/PrologEpilogSanitize");
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
 

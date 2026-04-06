@@ -750,8 +750,11 @@ Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder,
 
 Result MicroBuilder::runPasses(Encoder* encoder, MicroPassContext& context)
 {
-    passManager_.configureDefaultPipeline(backendBuildCfg_.optimize);
-    return runPasses(passManager_, encoder, context);
+    // Reuse a thread-local pass manager to avoid per-function allocation/destruction
+    // of 15 pass objects and their internal data structures.
+    static thread_local MicroPassManager tlPassManager;
+    tlPassManager.configureDefaultPipeline(backendBuildCfg_.optimize);
+    return runPasses(tlPassManager, encoder, context);
 }
 
 Utf8 MicroBuilder::formatInstructions(MicroRegPrintMode regPrintMode, const Encoder* encoder) const
@@ -784,7 +787,6 @@ void MicroBuilder::releaseMemory()
     labels_                          = {};
     relocations_                     = {};
     virtualRegForbiddenPhysRegs_     = {};
-    passManager_                     = MicroPassManager{};
     controlFlowGraph_                = {};
     controlFlowGraphStorageRevision_ = 0;
     controlFlowGraphHash_            = 0;

@@ -20,7 +20,7 @@ namespace
     }
 }
 
-bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(const MicroControlFlowGraph& controlFlowGraph) const
+bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(const MicroControlFlowGraph& controlFlowGraph)
 {
     SWC_ASSERT(storage_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);
@@ -31,17 +31,22 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
 
     const uint32_t instructionCount = static_cast<uint32_t>(instructionRefs.size());
 
-    std::vector<const MicroInstr*> instructionPtrs(instructionCount, nullptr);
+    cfgInstructionPtrs_.assign(instructionCount, nullptr);
 
-    std::vector<uint8_t> pureDefCandidateFlags(instructionCount, 0);
-    std::vector          pureDefDenseDefIndex(instructionCount, K_INVALID_DENSE_INDEX);
+    cfgPureDefCandidateFlags_.assign(instructionCount, 0);
+    cfgPureDefDenseDefIndex_.assign(instructionCount, K_INVALID_DENSE_INDEX);
 
     MicroDenseRegIndex denseRegIndex;
     const size_t       denseReserve = static_cast<size_t>(instructionCount) * 2ull + 8ull;
     denseRegIndex.reserve(denseReserve);
 
-    std::vector<SmallVector<uint32_t, 4>> killDenseIndices(instructionCount);
-    std::vector<SmallVector<uint32_t, 4>> useDenseIndices(instructionCount);
+    cfgKillDenseIndices_.resize(instructionCount);
+    cfgUseDenseIndices_.resize(instructionCount);
+    for (uint32_t i = 0; i < instructionCount; ++i)
+    {
+        cfgKillDenseIndices_[i].clear();
+        cfgUseDenseIndices_[i].clear();
+    }
 
     const CallConv& conv = CallConv::get(callConvKind_);
 
@@ -49,14 +54,14 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
     {
         const MicroInstrRef instructionRef = instructionRefs[idx];
         const MicroInstr*   inst           = storage_->ptr(instructionRef);
-        instructionPtrs[idx]               = inst;
+        cfgInstructionPtrs_[idx]           = inst;
         if (!inst)
             continue;
 
         MicroInstrUseDef useDef = inst->collectUseDef(*operands_, encoder_);
 
-        auto& killIndices = killDenseIndices[idx];
-        auto& useIndices  = useDenseIndices[idx];
+        auto& killIndices = cfgKillDenseIndices_[idx];
+        auto& useIndices  = cfgUseDenseIndices_[idx];
 
         if (inst->op == MicroInstrOpcode::Ret)
         {
@@ -89,104 +94,104 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
         if (isBackwardDeadDefRemovableInstruction(*inst) &&
             isPureDefCandidate(*inst, useDef, encoder_, callConvKind_))
         {
-            pureDefCandidateFlags[idx] = 1;
-            pureDefDenseDefIndex[idx]  = denseRegIndex.ensure(useDef.defs.front());
+            cfgPureDefCandidateFlags_[idx] = 1;
+            cfgPureDefDenseDefIndex_[idx]  = denseRegIndex.ensure(useDef.defs.front());
         }
     }
 
-    const uint32_t        rowWordCount = denseRegIndex.wordCount();
-    std::vector<uint64_t> liveInBits(static_cast<size_t>(instructionCount) * rowWordCount, 0);
+    const uint32_t rowWordCount = denseRegIndex.wordCount();
+    cfgLiveInBits_.assign(static_cast<size_t>(instructionCount) * rowWordCount, 0);
 
-    std::vector<SmallVector<uint32_t, 2>> predecessors(instructionCount);
+    cfgPredecessors_.resize(instructionCount);
     for (uint32_t idx = 0; idx < instructionCount; ++idx)
     {
+        cfgPredecessors_[idx].clear();
         const auto& successors = controlFlowGraph.successors(idx);
         for (const uint32_t successorIdx : successors)
         {
             if (successorIdx >= instructionCount)
                 continue;
-            predecessors[successorIdx].push_back(idx);
+            cfgPredecessors_[successorIdx].push_back(idx);
         }
     }
 
-    std::vector<uint32_t> worklist;
-    worklist.reserve(instructionCount);
-    std::vector<uint8_t> inWorklist(instructionCount, 0);
+    cfgWorklist_.clear();
+    cfgWorklist_.reserve(instructionCount);
+    cfgInWorklist_.assign(instructionCount, 0);
     for (uint32_t idx = 0; idx < instructionCount; ++idx)
     {
-        worklist.push_back(idx);
-        inWorklist[idx] = 1;
+        cfgWorklist_.push_back(idx);
+        cfgInWorklist_[idx] = 1;
     }
 
-    std::vector<uint64_t> tempOut(rowWordCount, 0);
-    std::vector<uint64_t> tempIn(rowWordCount, 0);
+    cfgTempOut_.assign(rowWordCount, 0);
+    cfgTempIn_.assign(rowWordCount, 0);
 
     const auto computeLiveOut = [&](uint32_t instructionIdx) {
-        for (uint64_t& wordBits : tempOut)
+        for (uint64_t& wordBits : cfgTempOut_)
             wordBits = 0;
         for (const uint32_t successorIdx : controlFlowGraph.successors(instructionIdx))
         {
             if (successorIdx >= instructionCount)
                 continue;
-            const std::span<const uint64_t> successorLiveIn = DenseBits::row(liveInBits, successorIdx, rowWordCount);
-            for (size_t wordIndex = 0; wordIndex < tempOut.size(); ++wordIndex)
-                tempOut[wordIndex] |= successorLiveIn[wordIndex];
+            const std::span<const uint64_t> successorLiveIn = DenseBits::row(cfgLiveInBits_, successorIdx, rowWordCount);
+            for (size_t wordIndex = 0; wordIndex < cfgTempOut_.size(); ++wordIndex)
+                cfgTempOut_[wordIndex] |= successorLiveIn[wordIndex];
         }
     };
 
-    while (!worklist.empty())
+    while (!cfgWorklist_.empty())
     {
-        const uint32_t idx = worklist.back();
-        worklist.pop_back();
-        inWorklist[idx] = 0;
+        const uint32_t idx = cfgWorklist_.back();
+        cfgWorklist_.pop_back();
+        cfgInWorklist_[idx] = 0;
 
-        if (!instructionPtrs[idx])
+        if (!cfgInstructionPtrs_[idx])
             continue;
 
         computeLiveOut(idx);
 
-        tempIn = tempOut;
-        for (const uint32_t bitIndex : killDenseIndices[idx])
-            DenseBits::clear(tempIn, bitIndex);
-        for (const uint32_t bitIndex : useDenseIndices[idx])
-            DenseBits::set(tempIn, bitIndex);
+        cfgTempIn_ = cfgTempOut_;
+        for (const uint32_t bitIndex : cfgKillDenseIndices_[idx])
+            DenseBits::clear(cfgTempIn_, bitIndex);
+        for (const uint32_t bitIndex : cfgUseDenseIndices_[idx])
+            DenseBits::set(cfgTempIn_, bitIndex);
 
-        if (!DenseBits::copyIfChanged(DenseBits::row(liveInBits, idx, rowWordCount), tempIn))
+        if (!DenseBits::copyIfChanged(DenseBits::row(cfgLiveInBits_, idx, rowWordCount), cfgTempIn_))
             continue;
 
-        for (const uint32_t predecessorIdx : predecessors[idx])
+        for (const uint32_t predecessorIdx : cfgPredecessors_[idx])
         {
-            if (inWorklist[predecessorIdx])
+            if (cfgInWorklist_[predecessorIdx])
                 continue;
-            worklist.push_back(predecessorIdx);
-            inWorklist[predecessorIdx] = 1;
+            cfgWorklist_.push_back(predecessorIdx);
+            cfgInWorklist_[predecessorIdx] = 1;
         }
     }
 
-    bool                       removedAny = false;
-    std::vector<MicroInstrRef> eraseList;
-    eraseList.reserve(64);
+    bool removedAny = false;
+    cfgEraseList_.clear();
 
     for (uint32_t idx = 0; idx < instructionCount; ++idx)
     {
-        if (!instructionPtrs[idx] || !pureDefCandidateFlags[idx])
+        if (!cfgInstructionPtrs_[idx] || !cfgPureDefCandidateFlags_[idx])
             continue;
 
         computeLiveOut(idx);
 
-        const uint32_t defDenseIndex = pureDefDenseDefIndex[idx];
+        const uint32_t defDenseIndex = cfgPureDefDenseDefIndex_[idx];
         SWC_ASSERT(defDenseIndex != K_INVALID_DENSE_INDEX);
-        if (DenseBits::contains(tempOut, defDenseIndex))
+        if (DenseBits::contains(cfgTempOut_, defDenseIndex))
             continue;
 
-        const MicroInstr* inst = instructionPtrs[idx];
+        const MicroInstr* inst = cfgInstructionPtrs_[idx];
         if (inst && MicroInstrInfo::definesCpuFlags(*inst) && !areCpuFlagsDeadAfterInstruction(instructionRefs[idx]))
             continue;
 
-        eraseList.push_back(instructionRefs[idx]);
+        cfgEraseList_.push_back(instructionRefs[idx]);
     }
 
-    for (const MicroInstrRef eraseRef : eraseList)
+    for (const MicroInstrRef eraseRef : cfgEraseList_)
     {
         storage_->erase(eraseRef);
         removedAny = true;
@@ -195,24 +200,23 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
     return removedAny;
 }
 
-bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinearTail() const
+bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinearTail()
 {
     SWC_ASSERT(storage_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);
 
-    bool                         removedAny = false;
-    std::unordered_set<MicroReg> liveRegs;
-    liveRegs.reserve(64);
+    bool removedAny = false;
+    linearLiveRegs_.clear();
+    linearLiveRegs_.reserve(64);
 
     const auto applyLiveness = [&](const MicroInstrUseDef& ud) {
         for (const MicroReg defReg : ud.defs)
-            liveRegs.erase(defReg);
+            linearLiveRegs_.erase(defReg);
         for (const MicroReg useReg : ud.uses)
-            liveRegs.insert(useReg);
+            linearLiveRegs_.insert(useReg);
     };
 
-    std::vector<MicroInstrRef> eraseList;
-    eraseList.reserve(64);
+    linearEraseList_.clear();
 
     const CallConv& conv = CallConv::get(callConvKind_);
 
@@ -232,21 +236,21 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
 
             const CallConv& convAtCall = CallConv::get(useDef.callConv);
 
-            killCallClobberedRegs(liveRegs, convAtCall);
-            addCallArgumentRegs(liveRegs, convAtCall);
+            killCallClobberedRegs(linearLiveRegs_, convAtCall);
+            addCallArgumentRegs(linearLiveRegs_, convAtCall);
             for (const MicroReg useReg : useDef.uses)
-                liveRegs.insert(useReg);
+                linearLiveRegs_.insert(useReg);
             continue;
         }
 
         if (isControlFlowBarrier(inst))
         {
-            liveRegs.clear();
+            linearLiveRegs_.clear();
             if (inst.op == MicroInstrOpcode::Ret)
             {
                 processRegion = true;
-                addLiveReg(liveRegs, conv.intReturn);
-                addLiveReg(liveRegs, conv.floatReturn);
+                addLiveReg(linearLiveRegs_, conv.intReturn);
+                addLiveReg(linearLiveRegs_, conv.floatReturn);
                 continue;
             }
 
@@ -265,7 +269,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
         }
 
         const MicroReg defKey = useDef.defs.front();
-        if (!liveRegs.contains(defKey))
+        if (!linearLiveRegs_.contains(defKey))
         {
             if (MicroInstrInfo::definesCpuFlags(inst) && !areCpuFlagsDeadAfterInstruction(instRef))
             {
@@ -273,7 +277,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
                 continue;
             }
 
-            eraseList.push_back(instRef);
+            linearEraseList_.push_back(instRef);
             removedAny = true;
             continue;
         }
@@ -281,13 +285,13 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
         applyLiveness(useDef);
     }
 
-    for (const MicroInstrRef ref : eraseList)
+    for (const MicroInstrRef ref : linearEraseList_)
         storage_->erase(ref);
 
     return removedAny;
 }
 
-bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLiveness() const
+bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLiveness()
 {
     SWC_ASSERT(context_ != nullptr);
     SWC_ASSERT(storage_ != nullptr);

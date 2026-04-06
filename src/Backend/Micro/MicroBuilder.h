@@ -99,8 +99,6 @@ public:
     void                                invalidateControlFlowGraph();
     void                                markControlFlowGraphMaybeDirty();
 
-    MicroPassManager&       passManager() { return passManager_; }
-    const MicroPassManager& passManager() const { return passManager_; }
     Result                  runPasses(Encoder* encoder, MicroPassContext& context);
     Result                  runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
     MicroLabelRef createLabel();
@@ -169,7 +167,6 @@ private:
     std::vector<MicroInstrRef>                          labels_;
     std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<MicroReg, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
-    MicroPassManager                                    passManager_;
     MicroControlFlowGraph                               controlFlowGraph_;
     uint64_t                                            controlFlowGraphStorageRevision_ = 0;
     uint64_t                                            controlFlowGraphHash_            = 0;

@@ -18,37 +18,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    template<typename T>
-    size_t vectorStorageReserved(const std::vector<T>& values)
-    {
-        return values.capacity() * sizeof(T);
-    }
-
-    template<typename T, size_t InlineCapacity>
-    size_t smallVectorStorageReserved(const SmallVector<T, InlineCapacity>& values)
-    {
-        if (values.isInline())
-            return 0;
-        return values.capacity() * sizeof(T);
-    }
-
-    template<typename K, typename V, typename H, typename E, typename A>
-    size_t unorderedMapStorageReserved(const std::unordered_map<K, V, H, E, A>& map)
-    {
-        return map.bucket_count() * sizeof(void*) +
-               map.size() * (sizeof(std::pair<const K, V>) + sizeof(void*));
-    }
-
-    template<typename K, typename H, typename E, typename A>
-    size_t unorderedSetStorageReserved(const std::unordered_set<K, H, E, A>& set)
-    {
-        return set.bucket_count() * sizeof(void*) +
-               set.size() * (sizeof(K) + sizeof(void*));
-    }
-}
-
 void MicroRegisterAllocationPass::initState(MicroPassContext& context)
 {
     context_          = &context;
@@ -164,10 +133,10 @@ void MicroRegisterAllocationPass::appendUniqueReg(SmallVector<MicroReg>& regs, M
 bool MicroRegisterAllocationPass::isPersistentPhysReg(MicroReg reg) const
 {
     if (reg.isInt())
-        return intPersistentSet_.contains(reg);
+        return containsKey(intPersistentRegs_, reg);
 
     if (reg.isFloat())
-        return floatPersistentSet_.contains(reg);
+        return containsKey(floatPersistentRegs_, reg);
 
     SWC_ASSERT(false);
     return false;
@@ -262,7 +231,7 @@ void MicroRegisterAllocationPass::returnToFreePool(MicroReg reg)
 {
     if (reg.isInt())
     {
-        if (intPersistentSet_.contains(reg))
+        if (containsKey(intPersistentRegs_, reg))
             freeIntPersistent_.push_back(reg);
         else
             freeIntTransient_.push_back(reg);
@@ -271,7 +240,7 @@ void MicroRegisterAllocationPass::returnToFreePool(MicroReg reg)
 
     if (reg.isFloat())
     {
-        if (floatPersistentSet_.contains(reg))
+        if (containsKey(floatPersistentRegs_, reg))
             freeFloatPersistent_.push_back(reg);
         else
             freeFloatTransient_.push_back(reg);
@@ -637,16 +606,14 @@ bool MicroRegisterAllocationPass::isCurrentConcreteLiveOut(MicroReg key) const
 void MicroRegisterAllocationPass::setupPools()
 {
     // Build free lists split by class (int/float) and persistence (transient/persistent).
-    intPersistentSet_.clear();
-    floatPersistentSet_.clear();
-    intPersistentSet_.reserve(conv_->intPersistentRegs.size() * 2 + 8);
-    floatPersistentSet_.reserve(conv_->floatPersistentRegs.size() * 2 + 8);
+    intPersistentRegs_.clear();
+    floatPersistentRegs_.clear();
 
     for (const auto reg : conv_->intPersistentRegs)
-        intPersistentSet_.insert(reg);
+        intPersistentRegs_.push_back(reg);
 
     for (const auto reg : conv_->floatPersistentRegs)
-        floatPersistentSet_.insert(reg);
+        floatPersistentRegs_.push_back(reg);
 
     freeIntTransient_.clear();
     freeIntPersistent_.clear();
@@ -664,7 +631,7 @@ void MicroRegisterAllocationPass::setupPools()
         if (reg == conv_->preferredLocalStackBaseReg())
             continue;
 
-        if (intPersistentSet_.contains(reg))
+        if (containsKey(intPersistentRegs_, reg))
             freeIntPersistent_.push_back(reg);
         else
             freeIntTransient_.push_back(reg);
@@ -672,7 +639,7 @@ void MicroRegisterAllocationPass::setupPools()
 
     for (const auto reg : conv_->floatRegs)
     {
-        if (floatPersistentSet_.contains(reg))
+        if (containsKey(floatPersistentRegs_, reg))
             freeFloatPersistent_.push_back(reg);
         else
             freeFloatTransient_.push_back(reg);
@@ -1276,12 +1243,12 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // 2) queue spill loads/stores around the instruction,
     // 3) release dead mappings.
     std::fill(liveStampByDenseIndex_.begin(), liveStampByDenseIndex_.end(), 0);
-    uint32_t                                   stamp      = 1;
-    uint32_t                                   idx        = 0;
-    int64_t                                    stackDepth = 0;
-    std::unordered_map<MicroLabelRef, int64_t> labelStackDepth;
+    uint32_t stamp      = 1;
+    uint32_t idx        = 0;
+    int64_t  stackDepth = 0;
+    labelStackDepth_.clear();
     if (hasControlFlow_)
-        labelStackDepth.reserve(instructions_->count() / 2 + 1);
+        labelStackDepth_.reserve(instructions_->count() / 2 + 1);
     for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it)
     {
         if (stamp == std::numeric_limits<uint32_t>::max())
@@ -1299,8 +1266,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         {
             const MicroInstrOperand* const ops = it->ops(*operands_);
             const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[0].valueU64));
-            const auto                     labelIt = labelStackDepth.find(labelRef);
-            if (labelIt != labelStackDepth.end())
+            const auto                     labelIt = labelStackDepth_.find(labelRef);
+            if (labelIt != labelStackDepth_.end())
                 stackDepth = labelIt->second;
         }
 
@@ -1329,10 +1296,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         if (flushBoundary)
         {
-            std::vector<PendingInsert> boundaryPending;
-            boundaryPending.reserve(mappedVirtualIndices_.size());
-            flushAllMappedVirtuals(stamp, stackDepth, boundaryPending);
-            for (const auto& pendingInst : boundaryPending)
+            boundaryPending_.clear();
+            flushAllMappedVirtuals(stamp, stackDepth, boundaryPending_);
+            for (const auto& pendingInst : boundaryPending_)
             {
                 instructions_->insertBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps), true);
             }
@@ -1435,10 +1401,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         destructiveConcreteAliases.reserve(2);
         collectDestructiveLoadConstraints(destructiveLoadLiveBases, destructiveConcreteAliases, *it, instOps, stamp);
 
-        std::vector<PendingInsert> pending;
-        pending.reserve(4);
+        pending_.clear();
 
-        spillMappedVirtualsForConcreteTouches(instructionUseDefs_[idx], protectedKeys, stamp, stackDepth, pending);
+        spillMappedVirtualsForConcreteTouches(instructionUseDefs_[idx], protectedKeys, stamp, stackDepth, pending_);
 
         struct AssignedPhysReg
         {
@@ -1517,7 +1482,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (liveAcrossCall && !request.needsPersistent)
                 markCallSpill(request.virtKey);
 
-            const auto physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, remapForbiddenPhysRegs, stamp, stackDepth, pending);
+            const auto physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, remapForbiddenPhysRegs, stamp, stackDepth, pending_);
             assignedPhysRegs.push_back({request.virtKey, physReg});
 
             if (liveAcrossCall && !isPersistentPhysReg(physReg))
@@ -1549,9 +1514,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         }
 
         if (isCall)
-            spillCallLiveOut(stamp, stackDepth, pending);
+            spillCallLiveOut(stamp, stackDepth, pending_);
 
-        for (const auto& pendingInst : pending)
+        for (const auto& pendingInst : pending_)
         {
             instructions_->insertBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps), true);
         }
@@ -1562,7 +1527,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         {
             const MicroInstrOperand* const ops = it->ops(*operands_);
             const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[2].valueU64));
-            mergeLabelStackDepth(labelStackDepth, labelRef, stackDepth);
+            mergeLabelStackDepth(labelStackDepth_, labelRef, stackDepth);
         }
 
         applyStackPointerDelta(stackDepth, *it);
@@ -1598,7 +1563,7 @@ void MicroRegisterAllocationPass::insertSpillFrame() const
     subOps[3].valueU64 = spillFrameSize;
     instructions_->insertBefore(*operands_, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps, true);
 
-    std::vector<MicroInstrRef> retRefs;
+    SmallVector<MicroInstrRef> retRefs;
     for (auto it = instructions_->view().begin(); it != instructions_->view().end(); ++it)
     {
         if (it->op == MicroInstrOpcode::Ret)
@@ -1651,13 +1616,16 @@ void MicroRegisterAllocationPass::clearState()
     callSpillFlags_.clear();
     mappedVirtualIndices_.clear();
     currentConcreteLiveOut_.clear();
-    intPersistentSet_.clear();
-    floatPersistentSet_.clear();
+    intPersistentRegs_.clear();
+    floatPersistentRegs_.clear();
     freeIntTransient_.clear();
     freeIntPersistent_.clear();
     freeFloatTransient_.clear();
     freeFloatPersistent_.clear();
     states_.clear();
+    pending_.clear();
+    boundaryPending_.clear();
+    labelStackDepth_.clear();
 }
 
 Result MicroRegisterAllocationPass::run(MicroPassContext& context)

@@ -2022,9 +2022,11 @@ void MicroPeepholePass::precomputeStackSlotInfo()
     SWC_ASSERT(context_ != nullptr);
 
     stackReadRanges_.clear();
-    instrSeqNum_.clear();
     lastCallSeqNum_ = 0;
     hasAnyCall_     = false;
+
+    const uint32_t instrCount = storage_->count();
+    instrSeqNum_.assign(instrCount * 2 + 16, UINT32_MAX);
 
     const auto view  = storage_->view();
     const auto endIt = view.end();

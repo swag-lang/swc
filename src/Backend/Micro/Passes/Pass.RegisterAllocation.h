@@ -146,16 +146,19 @@ private:
     std::vector<uint32_t>                               mappedVirtualIndices_;
     std::vector<MicroReg>                               currentConcreteLiveOut_;
 
-    std::unordered_set<MicroReg> intPersistentSet_;
-    std::unordered_set<MicroReg> floatPersistentSet_;
+    SmallVector<MicroReg> intPersistentRegs_;
+    SmallVector<MicroReg> floatPersistentRegs_;
 
     SmallVector<MicroReg> freeIntTransient_;
     SmallVector<MicroReg> freeIntPersistent_;
     SmallVector<MicroReg> freeFloatTransient_;
     SmallVector<MicroReg> freeFloatPersistent_;
 
-    std::vector<VRegState>           states_;
-    const MicroControlFlowGraph*     controlFlowGraph_ = nullptr;
+    std::vector<VRegState>                      states_;
+    const MicroControlFlowGraph*                controlFlowGraph_ = nullptr;
+    std::vector<PendingInsert>                  pending_;
+    std::vector<PendingInsert>                  boundaryPending_;
+    std::unordered_map<MicroLabelRef, int64_t>  labelStackDepth_;
 };
 
 SWC_END_NAMESPACE();

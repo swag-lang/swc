@@ -46,18 +46,18 @@ func lzU64(value: u64)->u64 => @bitcountlz(value)
 
 #test
 {
-    @assert(tzU8(0'u8) == 0'u8)
-    @assert(tzU8(0x28'u8) == 4'u8)
-    @assert(tzU16(0x8000'u16) == 16'u16)
-    @assert(tzU32(1'u32) == 1'u32)
-    @assert(tzU64(0x00010000_00000000'u64) == 49'u64)
+    @assert(tzU8(0'u8) == 8'u8)
+    @assert(tzU8(0x28'u8) == 3'u8)
+    @assert(tzU16(0x8000'u16) == 15'u16)
+    @assert(tzU32(1'u32) == 0'u32)
+    @assert(tzU64(0x00010000_00000000'u64) == 48'u64)
 }
 
 #test
 {
-    @assert(lzU8(0'u8) == 0'u8)
-    @assert(lzU8(1'u8) == 8'u8)
-    @assert(lzU16(1'u16) == 16'u16)
-    @assert(lzU32(0x80000000'u32) == 1'u32)
-    @assert(lzU64(1'u64) == 64'u64)
+    @assert(lzU8(0'u8) == 8'u8)
+    @assert(lzU8(1'u8) == 7'u8)
+    @assert(lzU16(1'u16) == 15'u16)
+    @assert(lzU32(0x80000000'u32) == 0'u32)
+    @assert(lzU64(1'u64) == 63'u64)
 }

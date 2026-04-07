@@ -1352,7 +1352,7 @@ namespace
             return Result::Continue;
         }
 
-        builder.emitClearReg(resultPayload.reg, resultBits);
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth, 64), resultBits);
         builder.emitCmpRegImm(materializedValue, ApInt(0, 64), resultBits);
         const MicroLabelRef doneLabel = builder.createLabel();
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
@@ -1360,7 +1360,6 @@ namespace
         if (kind == BitCountKind::Tz)
         {
             builder.emitOpBinaryRegReg(resultPayload.reg, materializedValue, MicroOp::BitScanForward, resultBits);
-            builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(1, 64), MicroOp::Add, resultBits);
         }
         else
         {
@@ -1368,7 +1367,7 @@ namespace
             const MicroReg bitPosReg = codeGen.nextVirtualIntRegister();
             builder.emitClearReg(bitPosReg, resultBits);
             builder.emitOpBinaryRegReg(bitPosReg, materializedValue, MicroOp::BitScanReverse, resultBits);
-            builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth, 64), resultBits);
+            builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth - 1, 64), resultBits);
             builder.emitOpBinaryRegReg(resultPayload.reg, bitPosReg, MicroOp::Subtract, resultBits);
         }
 

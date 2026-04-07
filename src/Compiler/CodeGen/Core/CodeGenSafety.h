@@ -36,6 +36,7 @@ namespace CodeGenSafety
     Result emitFloatNanCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, const TypeInfo& floatType);
     Result emitUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, Math::FoldIntrinsicUnaryFloatOp op, MaterializeNumericOperandFn materializeOperandFn);
     Result emitPowIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, LoadNumericOperandFn loadOperandFn);
+    Result emitDynCastCheck(CodeGen& codeGen, SymbolFunction& panicFunction, const AstNode& node);
     Result emitUnreachableCheck(CodeGen& codeGen, const AstNode& node);
 }
 

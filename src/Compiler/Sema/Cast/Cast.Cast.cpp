@@ -102,6 +102,77 @@ namespace
         return Result::Continue;
     }
 
+    Result setupCastFromAnyRuntime(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
+    {
+        if (castFlags.has(CastFlagsE::BitCast))
+            return Result::Continue;
+        if (!castFlags.has(CastFlagsE::FromExplicitNode))
+            return Result::Continue;
+        if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        if (!srcType.isAny())
+            return Result::Continue;
+
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        if (dstType.isAny())
+            return Result::Continue;
+
+        const bool hasDynCastSafety = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::DynCast);
+        const bool dstIsStruct      = dstType.isStruct();
+
+        // DynCast safety for non-struct types: only check value types where type mismatch is clearly wrong.
+        // Pointer-like, reference, slice, interface, variadic destinations are excluded because
+        // they have more flexible runtime semantics (null compatibility, type erasure, etc.)
+        const bool dstIsSafeCheckable = !dstType.isAnyPointer() && !dstType.isReference() && !dstType.isMoveReference() &&
+                                        !dstType.isInterface() && !dstType.isAnyVariadic();
+
+        // Nothing to set up for non-struct without safety, or non-checkable without struct @as
+        if (!dstIsStruct && (!hasDynCastSafety || !dstIsSafeCheckable))
+            return Result::Continue;
+
+        auto& payload = ensureCastCodeGenPayload(sema, nodeRef);
+
+        if (hasDynCastSafety)
+            payload.addRuntimeSafety(Runtime::SafetyWhat::DynCast);
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        const auto& codeRef = sema.node(nodeRef).codeRef();
+
+        // For struct destinations, use the @as mechanism for proper using-field resolution
+        if (dstIsStruct)
+        {
+            SymbolFunction* asFn = nullptr;
+            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::As, asFn, codeRef));
+            SWC_ASSERT(asFn != nullptr);
+            SemaHelpers::addCurrentFunctionCallDependency(sema, asFn);
+            payload.runtimeFunctionSymbol = asFn;
+        }
+        else
+        {
+            // For non-struct destinations with DynCast safety, use @typecmp for type verification
+            SymbolFunction* typeCmpFn = nullptr;
+            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TypeCmp, typeCmpFn, codeRef));
+            SWC_ASSERT(typeCmpFn != nullptr);
+            SemaHelpers::addCurrentFunctionCallDependency(sema, typeCmpFn);
+            payload.runtimeFunctionSymbol = typeCmpFn;
+        }
+
+        // Resolve panic function when DynCast safety is enabled
+        if (hasDynCastSafety)
+        {
+            SymbolFunction* panicFn = nullptr;
+            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
+            SWC_ASSERT(panicFn != nullptr);
+            SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        }
+
+        return Result::Continue;
+    }
+
     void setEnumUnderlyingCastNote(CastRequest& castRequest, TypeRef enumTypeRef, TypeRef underlyingTypeRef)
     {
         castRequest.failure.srcTypeRef = enumTypeRef;
@@ -1368,6 +1439,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             }
 
             SWC_RESULT(setupCastOverflowRuntimeSafety(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
+            SWC_RESULT(setupCastFromAnyRuntime(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
         }
         else
         {

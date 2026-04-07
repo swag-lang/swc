@@ -10,6 +10,8 @@
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -521,6 +523,44 @@ namespace
         return Result::Continue;
     }
 
+    // Emit a DynCast safety panic call using the generic safety panic function.
+    Result emitDynCastPanic(CodeGen& codeGen, const AstNode& node)
+    {
+        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
+        SWC_ASSERT(idRef.isValid());
+        SymbolFunction* panicFn = codeGen.compiler().runtimeFunctionSymbol(idRef);
+        SWC_ASSERT(panicFn != nullptr);
+        return CodeGenSafety::emitDynCastCheck(codeGen, *panicFn, node);
+    }
+
+    // Emit a @typecmp call: returns the bool result in outResultReg.
+    Result emitTypeCmpCall(CodeGen& codeGen, SymbolFunction& typeCmpFn, MicroReg expectedTypeReg, MicroReg actualTypeReg, MicroReg flagsReg, MicroReg outResultReg)
+    {
+        codeGen.function().addCallDependency(&typeCmpFn);
+
+        const CallConvKind                callConvKind = typeCmpFn.callConvKind();
+        const CallConv&                   callConv     = CallConv::get(callConvKind);
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(3);
+
+        const auto& params = typeCmpFn.parameters();
+        SWC_ASSERT(params.size() == 3);
+        appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[0]->typeRef(), expectedTypeReg);
+        appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[1]->typeRef(), actualTypeReg);
+        appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[2]->typeRef(), flagsReg);
+
+        MicroBuilder&              builder      = codeGen.builder();
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        if (typeCmpFn.isForeign())
+            ABICall::callExtern(builder, callConvKind, &typeCmpFn, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &typeCmpFn, preparedCall);
+
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, typeCmpFn.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        ABICall::materializeReturnToReg(builder, outResultReg, callConvKind, normalizedRet);
+        return Result::Continue;
+    }
+
     Result emitAnyCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         if (dstTypeRef.isInvalid())
@@ -548,11 +588,105 @@ namespace
 
         SWC_ASSERT(srcPayload.isAddress());
 
+        const auto* castPayload     = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const bool  hasDynCastSafety = castPayload && castPayload->hasRuntimeSafety(Runtime::SafetyWhat::DynCast);
+
         MicroBuilder& builder = codeGen.builder();
-        // Runtime `any` stores a type pointer plus an address to the erased value. Casting out of it only
-        // decides whether the destination expects that address directly or wants the pointed-to bits.
+
+        // Runtime `any` stores a type pointer plus an address to the erased value.
         const MicroReg valueAddrReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(valueAddrReg, srcPayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
+
+        // For struct destinations, use the @as mechanism for proper using-field resolution.
+        if (dstType.isStruct() && castPayload && castPayload->runtimeFunctionSymbol)
+        {
+            auto& asFn = *castPayload->runtimeFunctionSymbol;
+
+            // Load source type from any.type
+            const MicroReg sourceTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(sourceTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+
+            // Load target type info constant
+            MicroReg targetTypeReg = MicroReg::invalid();
+            SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, dstTypeRef));
+
+            // Call @as(targetType, sourceType, valuePtr) -> #null *void
+            const MicroReg asResultReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(asResultReg, ApInt(0, 64), MicroOpBits::B64);
+
+            // Guard: skip the call if source type is null
+            const MicroLabelRef doneLabel = builder.createLabel();
+            builder.emitCmpRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+            // Guard: source type must be a struct
+            const MicroReg kindReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(kindReg, sourceTypeReg, offsetof(Runtime::TypeInfo, kind), MicroOpBits::B8);
+            builder.emitCmpRegImm(kindReg, ApInt(static_cast<uint64_t>(Runtime::TypeInfoKind::Struct), 64), MicroOpBits::B8);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doneLabel);
+
+            const MicroReg args[] = {targetTypeReg, sourceTypeReg, valueAddrReg};
+            SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, asFn, args, asResultReg));
+
+            builder.placeLabel(doneLabel);
+
+            // DynCast safety: panic if @as returned null
+            if (hasDynCastSafety)
+            {
+                const MicroLabelRef okLabel = builder.createLabel();
+                builder.emitCmpRegImm(asResultReg, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, okLabel);
+                SWC_RESULT(emitDynCastPanic(codeGen, codeGen.node(codeGen.curNodeRef())));
+                builder.placeLabel(okLabel);
+            }
+
+            // Use the @as result as the value address
+            auto valueBits = MicroOpBits::Zero;
+            if (anyCastAsValueBits(codeGen, dstType, valueBits))
+            {
+                CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+                dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+                builder.emitLoadRegMem(dstPayload.reg, asResultReg, 0, valueBits);
+                return Result::Continue;
+            }
+
+            const CodeGenNodePayload& dstPayload = codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.nextVirtualIntRegister(), dstTypeRef);
+            builder.emitLoadRegReg(dstPayload.reg, asResultReg, MicroOpBits::B64);
+            return Result::Continue;
+        }
+
+        // DynCast safety for non-struct destinations: verify type with @typecmp
+        if (hasDynCastSafety && castPayload && castPayload->runtimeFunctionSymbol)
+        {
+            auto& typeCmpFn = *castPayload->runtimeFunctionSymbol;
+
+            // Load source type from any.type
+            const MicroReg actualTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(actualTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+
+            // Skip the check if the any has no type info (null/uninitialized any)
+            const MicroLabelRef skipLabel = builder.createLabel();
+            builder.emitCmpRegImm(actualTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skipLabel);
+
+            // Load expected type info constant
+            MicroReg expectedTypeReg = MicroReg::invalid();
+            SWC_RESULT(loadTypeInfoConstantReg(expectedTypeReg, codeGen, dstTypeRef));
+
+            // TypeCmpFlags.CastAny = 1
+            const MicroReg flagsReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(flagsReg, ApInt(1, 64), MicroOpBits::B64);
+
+            // Call @typecmp(expectedType, actualType, .CastAny) -> bool
+            const MicroReg cmpResultReg = codeGen.nextVirtualIntRegister();
+            SWC_RESULT(emitTypeCmpCall(codeGen, typeCmpFn, expectedTypeReg, actualTypeReg, flagsReg, cmpResultReg));
+
+            // Panic if types don't match
+            builder.emitCmpRegImm(cmpResultReg, ApInt(0, 64), MicroOpBits::B8);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
+            SWC_RESULT(emitDynCastPanic(codeGen, codeGen.node(codeGen.curNodeRef())));
+            builder.placeLabel(skipLabel);
+        }
 
         if (dstType.isString() || dstType.isSlice() || dstType.isInterface() || dstType.isAnyVariadic())
         {

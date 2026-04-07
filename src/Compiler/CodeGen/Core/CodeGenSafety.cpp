@@ -676,6 +676,11 @@ Result CodeGenSafety::emitPowIntrinsicCall(CodeGen& codeGen, const AstIntrinsicC
     return emitFloatNanCheck(codeGen, node, resultReg, resultType);
 }
 
+Result CodeGenSafety::emitDynCastCheck(CodeGen& codeGen, SymbolFunction& panicFunction, const AstNode& node)
+{
+    return emitRuntimeDiagnosticCall(codeGen, panicFunction, node, DiagnosticId::safety_err_dyn_cast);
+}
+
 Result CodeGenSafety::emitUnreachableCheck(CodeGen& codeGen, const AstNode& node)
 {
     const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());

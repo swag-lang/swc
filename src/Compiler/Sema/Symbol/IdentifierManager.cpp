@@ -112,6 +112,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeSafetyPanic, .str = "@safetypanic"},
         {.name = PredefinedName::RuntimeAs, .str = "@as"},
         {.name = PredefinedName::RuntimeIs, .str = "@is"},
+        {.name = PredefinedName::RuntimeTypeCmp, .str = "@typecmp"},
         {.name = PredefinedName::RuntimeStringCmp, .str = "@stringcmp"},
         {.name = PredefinedName::RuntimeTlsAlloc, .str = "__tlsAlloc"},
         {.name = PredefinedName::RuntimeTlsGetPtr, .str = "__tlsGetPtr"},
@@ -129,6 +130,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]    = predefined(PredefinedName::RuntimeSafetyPanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]             = predefined(PredefinedName::RuntimeAs);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]             = predefined(PredefinedName::RuntimeIs);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TypeCmp)]        = predefined(PredefinedName::RuntimeTypeCmp);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]       = predefined(PredefinedName::RuntimeTlsAlloc);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]      = predefined(PredefinedName::RuntimeTlsGetPtr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]    = predefined(PredefinedName::RuntimeTlsGetValue);

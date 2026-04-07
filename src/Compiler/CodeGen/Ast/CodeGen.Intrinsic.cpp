@@ -1815,17 +1815,17 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::IntrinsicSqrt:
             return codeGenSqrt(codeGen, *this);
         case TokenId::IntrinsicASin:
-            return CodeGenSafety::codeGenUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::ASin, materializeIntrinsicNumericOperand);
+            return CodeGenSafety::emiUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::ASin, materializeIntrinsicNumericOperand);
         case TokenId::IntrinsicACos:
-            return CodeGenSafety::codeGenUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::ACos, materializeIntrinsicNumericOperand);
+            return CodeGenSafety::emiUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::ACos, materializeIntrinsicNumericOperand);
         case TokenId::IntrinsicLog:
-            return CodeGenSafety::codeGenUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::Log, materializeIntrinsicNumericOperand);
+            return CodeGenSafety::emiUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::Log, materializeIntrinsicNumericOperand);
         case TokenId::IntrinsicLog2:
-            return CodeGenSafety::codeGenUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::Log2, materializeIntrinsicNumericOperand);
+            return CodeGenSafety::emiUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::Log2, materializeIntrinsicNumericOperand);
         case TokenId::IntrinsicLog10:
-            return CodeGenSafety::codeGenUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::Log10, materializeIntrinsicNumericOperand);
+            return CodeGenSafety::emiUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::Log10, materializeIntrinsicNumericOperand);
         case TokenId::IntrinsicPow:
-            return CodeGenSafety::codeGenPowIntrinsicCall(codeGen, *this, loadIntrinsicNumericOperand);
+            return CodeGenSafety::emitPowIntrinsicCall(codeGen, *this, loadIntrinsicNumericOperand);
         case TokenId::IntrinsicAbs:
             return codeGenAbs(codeGen, *this);
         case TokenId::IntrinsicMin:

@@ -274,7 +274,7 @@ Result CodeGenSafety::emitFloatNanCheck(CodeGen& codeGen, const AstNode& node, c
     return Result::Continue;
 }
 
-Result CodeGenSafety::codeGenUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, Math::FoldIntrinsicUnaryFloatOp op, MaterializeNumericOperandFn materializeOperandFn)
+Result CodeGenSafety::emiUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, Math::FoldIntrinsicUnaryFloatOp op, MaterializeNumericOperandFn materializeOperandFn)
 {
     SWC_ASSERT(materializeOperandFn != nullptr);
     if (!hasMathRuntimeSafety(codeGen))
@@ -304,7 +304,7 @@ Result CodeGenSafety::codeGenUnaryMathIntrinsicCall(CodeGen& codeGen, const AstI
     return Result::Continue;
 }
 
-Result CodeGenSafety::codeGenPowIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, LoadNumericOperandFn loadOperandFn)
+Result CodeGenSafety::emitPowIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, LoadNumericOperandFn loadOperandFn)
 {
     SWC_ASSERT(loadOperandFn != nullptr);
     SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef));

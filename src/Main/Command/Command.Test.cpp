@@ -353,17 +353,25 @@ namespace
                                                    .detail = "compiler test entry points",
                                                });
 
-        NativeBackendBuilder nativeBuilder(compiler, false);
-        if (nativeBuilder.prepare() != Result::Continue)
-            return false;
+        std::vector<SymbolFunction*> allFunctions;
+        std::vector<SymbolFunction*> initFunctions;
+        std::vector<SymbolFunction*> preMainFunctions;
+        std::vector<SymbolFunction*> testFunctions;
 
-        auto allFunctions = compiler.nativeCodeSegment();
-        std::erase_if(allFunctions, [&](const SymbolFunction* function) {
-            return function == nullptr || !shouldRunJitFunction(compiler, *function);
-        });
-        auto initFunctions    = nativeBuilder.initFunctions;
-        auto preMainFunctions = nativeBuilder.preMainFunctions;
-        auto testFunctions    = nativeBuilder.testFunctions;
+        {
+            SWC_MEM_SCOPE("Backend/JIT/Prepare");
+            NativeBackendBuilder nativeBuilder(compiler, false);
+            if (nativeBuilder.prepare() != Result::Continue)
+                return false;
+
+            allFunctions = compiler.nativeCodeSegment();
+            std::erase_if(allFunctions, [&](const SymbolFunction* function) {
+                return function == nullptr || !shouldRunJitFunction(compiler, *function);
+            });
+            initFunctions    = std::move(nativeBuilder.initFunctions);
+            preMainFunctions = std::move(nativeBuilder.preMainFunctions);
+            testFunctions    = std::move(nativeBuilder.testFunctions);
+        }
 
         sortAndUniqueFunctions(allFunctions, ctx);
         sortAndUniqueFunctions(initFunctions, ctx);
@@ -376,10 +384,13 @@ namespace
         if (initFunctions.empty() && preMainFunctions.empty() && testFunctions.empty())
             return true;
 
-        if (runAfterPauses(ctx, [&] {
-                return SymbolFunction::jitBatch(ctx, allFunctions);
-            }) != Result::Continue)
-            return false;
+        {
+            SWC_MEM_SCOPE("Backend/JIT/Compile");
+            if (runAfterPauses(ctx, [&] {
+                    return SymbolFunction::jitBatch(ctx, allFunctions);
+                }) != Result::Continue)
+                return false;
+        }
 
         uint32_t jitReadyTestCount = 0;
         for (const SymbolFunction* function : testFunctions)

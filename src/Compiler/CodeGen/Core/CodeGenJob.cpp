@@ -40,29 +40,30 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
     symbolFunc_(&symbolFunc),
     root_(root)
 {
-    if (symbolFunc.srcViewRef() != sema.ast().srcView().ref())
+    // Resolve the NodePayload now (cheap pointer lookup), defer Sema/CodeGen creation to exec().
+    const SourceView& symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
+    const FileRef     symbolFileRef = symbolSrcView.fileRef();
+    if (symbolFileRef.isValid())
+        nodePayloadCtx_ = &sema.compiler().file(symbolFileRef).nodePayloadContext();
+
+    if (!nodePayloadCtx_)
     {
-        const SourceView& symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
-        const FileRef     symbolFileRef = symbolSrcView.fileRef();
-        if (symbolFileRef.isValid())
-        {
-            SourceFile& symbolFile = sema.compiler().file(symbolFileRef);
-            ownedSema_             = std::make_unique<Sema>(Job::ctx(), symbolFile.nodePayloadContext(), false);
-        }
-    }
-    else
-    {
-        ownedSema_ = std::make_unique<Sema>(Job::ctx(), sema, root);
+        const SourceFile* semaFile = sema.file();
+        SWC_ASSERT(semaFile != nullptr);
+        const FileRef semaFileRef = sema.ast().srcView().fileRef();
+        nodePayloadCtx_ = &sema.compiler().file(semaFileRef).nodePayloadContext();
     }
 
-    if (!ownedSema_)
-        ownedSema_ = std::make_unique<Sema>(Job::ctx(), sema, root);
-
-    SWC_ASSERT(ownedSema_ != nullptr);
-    codeGen_ = std::make_unique<CodeGen>(*ownedSema_);
-    func     = [this] {
+    func = [this] {
         return exec();
     };
+}
+
+void CodeGenJob::initSemaAndCodeGen()
+{
+    SWC_ASSERT(nodePayloadCtx_ != nullptr);
+    ownedSema_ = std::make_unique<Sema>(ctx(), *nodePayloadCtx_, false);
+    codeGen_   = std::make_unique<CodeGen>(*ownedSema_);
 }
 
 JobResult CodeGenJob::exec()
@@ -80,6 +81,9 @@ JobResult CodeGenJob::exec()
         symbolFunc_->setCodeGenCompleted(ctx());
         return JobResult::Done;
     }
+
+    if (!ownedSema_)
+        initSemaAndCodeGen();
 
     const Result selfWaitResult = sema().waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
     if (selfWaitResult != Result::Continue)

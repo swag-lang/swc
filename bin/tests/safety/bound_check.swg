@@ -203,6 +203,61 @@ func boundCheckEnabled()->bool
     @assert(value == 9)
 }
 
+// Variadic argument bound check
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func variadicBoundCheck(args: s32...)->s32
+    {
+        return args[3] // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run variadicBoundCheck(10, 20, 30)
+}
+
+// Exact boundary: index == count is out of bounds
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func arrayExactBoundary(idx: u64)->s32
+    {
+        var values: [3] s32
+        values[0] = 1
+        values[1] = 2
+        values[2] = 3
+        return values[idx] // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run arrayExactBoundary(3)
+}
+
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func sliceExactBoundary(idx: u64)->s32
+    {
+        var values: [2] s32
+        values[0] = 5
+        values[1] = 6
+        var slice: [..] s32 = values
+        return slice[idx] // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run sliceExactBoundary(2)
+}
+
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func stringExactBoundary(idx: u64)->u8
+    {
+        var text: string = "abc"
+        return text[idx] // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run stringExactBoundary(3)
+}
+
 // When bound check is disabled, out-of-bounds access must not call the safety panic
 #test
 {

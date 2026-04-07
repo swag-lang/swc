@@ -87,3 +87,27 @@ func switchSafetyEnabled()->bool
     const value = #run completeScalarSwitchDisabled(9)
     @assert(value == 77)
 }
+
+// Complete switch that actually matches must not panic
+#test
+{
+    #[Swag.Safety(.Switch, true)]
+    func completeScalarSwitchValid(v: s32)->s32
+    {
+        #[Swag.Complete]
+        switch v
+        {
+            case 1:
+                return 10
+            case 2 to 5:
+                return 20
+            case 6:
+                return 30
+        }
+
+        return 0
+    }
+
+    const value = #run completeScalarSwitchValid(3)
+    @assert(value == 20)
+}

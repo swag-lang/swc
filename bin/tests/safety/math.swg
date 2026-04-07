@@ -162,3 +162,161 @@ func mathSafetyEnabled()->bool
     const value = #run invalidPowDisabled(-1.0, 0.5)
     @assert(value != value)
 }
+
+// =============================================
+// f32 domain checks
+// =============================================
+
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidSqrtF32(v: f32)->f32
+    {
+        return @sqrt(v) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidSqrtF32(-1.0'f32)
+}
+
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidAsinF32(v: f32)->f32
+    {
+        return @asin(v) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidAsinF32(2.0'f32)
+}
+
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidAcosF32(v: f32)->f32
+    {
+        return @acos(v) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidAcosF32(-2.0'f32)
+}
+
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidLogF32(v: f32)->f32
+    {
+        return @log(v) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidLogF32(-1.0'f32)
+}
+
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidLog2F32(v: f32)->f32
+    {
+        return @log2(v) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidLog2F32(-1.0'f32)
+}
+
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidLog10F32(v: f32)->f32
+    {
+        return @log10(v) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidLog10F32(-1.0'f32)
+}
+
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidPowF32(a, b: f32)->f32
+    {
+        return @pow(a, b) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidPowF32(-1.0'f32, 0.5'f32)
+}
+
+// =============================================
+// Additional domain boundary cases
+// =============================================
+
+// @asin with value < -1
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidAsinNeg(v: f64)->f64
+    {
+        return @asin(v) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidAsinNeg(-2.0)
+}
+
+// @acos with value > 1
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func invalidAcosPos(v: f64)->f64
+    {
+        return @acos(v) // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run invalidAcosPos(2.0)
+}
+
+// Valid boundary: @asin(-1.0) and @acos(1.0) must not panic
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func validAsinBoundary()->f64
+    {
+        return @asin(-1.0'f64) + @asin(1.0'f64)
+    }
+
+    const value = #run validAsinBoundary()
+}
+
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func validAcosBoundary()->f64
+    {
+        return @acos(-1.0'f64) + @acos(1.0'f64)
+    }
+
+    const value = #run validAcosBoundary()
+}
+
+// Valid: @sqrt(0.0) must not panic
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func validSqrtZero()->f64
+    {
+        return @sqrt(0.0'f64)
+    }
+
+    const value = #run validSqrtZero()
+    @assert(value == 0.0)
+}
+
+// Valid: @pow with integer exponent on negative base must not panic
+#test
+{
+    #[Swag.Safety(.Math, true)]
+    func validPowIntExp(a, b: f64)->f64
+    {
+        return @pow(a, b)
+    }
+
+    const value = #run validPowIntExp(-2.0, 3.0)
+    @assert(value == -8.0)
+}

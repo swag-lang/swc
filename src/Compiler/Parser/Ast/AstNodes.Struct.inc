@@ -1302,6 +1302,8 @@ struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
 // -----------------------------------------------------------------------------
 struct AstUnreachableStmt : AstNodeT<AstNodeId::UnreachableStmt>
 {
+    static Result semaPreNode(Sema& sema);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------

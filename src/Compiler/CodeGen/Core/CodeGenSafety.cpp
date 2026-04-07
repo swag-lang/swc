@@ -161,4 +161,15 @@ Result CodeGenSafety::emitSwitchCheck(CodeGen& codeGen, const AstNode& node, Sym
     return emitRuntimePanicCall(codeGen, *resolvedPanicFunction, node, "unexpected case value in complete switch");
 }
 
+Result CodeGenSafety::emitUnreachableCheck(CodeGen& codeGen, const AstNode& node)
+{
+    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Unreachable))
+        return Result::Continue;
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
+    SWC_ASSERT(panicFunction != nullptr);
+    return emitRuntimePanicCall(codeGen, *panicFunction, node, "reached unreachable statement");
+}
+
 SWC_END_NAMESPACE();

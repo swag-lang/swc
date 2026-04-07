@@ -143,7 +143,7 @@ Checks:
 * '.Math'        -> Math checks (e.g., negative '@sqrt')
 * '.DynCast'     -> Panic if an 'any' cast mismatches the runtime type
 * '.Switch'      -> Invalid case in '#[Swag.Complete]' switch
-* '.Unreachable' -> Panic on '@unreachable'
+* '.Unreachable' -> Panic on 'unreachable'
 * '.Bool'        -> Panic if 'bool' is not 'true' or 'false'
 * '.NaN'         -> Panic if 'NaN' is used in float arithmetic
 * '.Null'        -> Panic on dereferencing null pointers

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
@@ -8,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -17,6 +19,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload& ensureUnreachableCodeGenPayload(Sema& sema, const AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    Result setupUnreachableRuntimeSafety(Sema& sema, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+    {
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Unreachable))
+            return Result::Continue;
+
+        auto& payload = ensureUnreachableCodeGenPayload(sema, nodeRef);
+        payload.addRuntimeSafety(Runtime::SafetyWhat::Unreachable);
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
+        SWC_ASSERT(panicFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        payload.runtimeFunctionSymbol = panicFn;
+        return Result::Continue;
+    }
+
     ForStmtSemaPayload& ensureForStmtSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<ForStmtSemaPayload>(nodeRef))
@@ -351,6 +384,11 @@ Result AstBreakStmt::semaPreNode(Sema& sema)
     if (sema.frame().currentBreakableKind() == SemaFrame::BreakContextKind::None)
         return SemaError::raise(sema, DiagnosticId::sema_err_break_outside_breakable, sema.curNodeRef());
     return Result::Continue;
+}
+
+Result AstUnreachableStmt::semaPreNode(Sema& sema)
+{
+    return setupUnreachableRuntimeSafety(sema, sema.curNodeRef(), sema.curNode().codeRef());
 }
 
 Result AstContinueStmt::semaPreNode(Sema& sema)

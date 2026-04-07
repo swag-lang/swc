@@ -783,6 +783,11 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
     return Result::Continue;
 }
 
+Result AstUnreachableStmt::codeGenPostNode(CodeGen& codeGen)
+{
+    return CodeGenSafety::emitUnreachableCheck(codeGen, codeGen.curNode());
+}
+
 Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
 {
     const AstNodeRef switchRef = codeGen.frame().currentSwitch();

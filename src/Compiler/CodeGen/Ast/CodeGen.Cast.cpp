@@ -147,13 +147,13 @@ namespace
         {
             constexpr uint32_t bias = 127;
             const uint32_t     sign = negative ? (1u << 31) : 0u;
-            return sign | exponent + bias << 23;
+            return sign | (exponent + bias) << 23;
         }
 
         SWC_ASSERT(floatBits == MicroOpBits::B64);
         constexpr uint64_t bias = 1023;
         const uint64_t     sign = negative ? (1ull << 63) : 0ull;
-        return sign | (exponent + bias << 52);
+        return sign | ((exponent + bias) << 52);
     }
 
     MicroReg emitUnsignedIntToFloatReg(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, TypeRef dstTypeRef)

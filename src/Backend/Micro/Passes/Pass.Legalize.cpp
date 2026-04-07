@@ -553,20 +553,6 @@ namespace
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegImm, ops);
     }
 
-    void insertPush(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)
-    {
-        std::array<MicroInstrOperand, 1> ops;
-        ops[0].reg = reg;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::Push, ops);
-    }
-
-    void insertPop(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)
-    {
-        std::array<MicroInstrOperand, 1> ops;
-        ops[0].reg = reg;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::Pop, ops);
-    }
-
     void applyRewriteRegImmToRegReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);

@@ -18,12 +18,14 @@ namespace
         uint32_t flags         = 0;
     };
 
+#if SWC_HAS_STATS
     [[nodiscard]] uintptr_t alignUpAddress(const uintptr_t value, const size_t alignment)
     {
         SWC_ASSERT(alignment != 0);
         const uintptr_t mask = alignment - 1;
         return (value + mask) & ~mask;
     }
+#endif
 
 #if SWC_HAS_STATS
     constexpr uint32_t K_EXTERNAL_CAPACITY       = 16 * 1024;

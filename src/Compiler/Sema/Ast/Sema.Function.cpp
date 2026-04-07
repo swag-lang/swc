@@ -21,7 +21,6 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
-#include "Support/Math/Fold.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();

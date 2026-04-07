@@ -443,14 +443,14 @@ namespace
         return ApInt(value, 64);
     }
 
-    Result emitShiftBinaryIntLike(CodeGen&             codeGen,
-                                  const AstBinaryExpr& node,
-                                  CodeGenNodePayload&  nodePayload,
-                                  const MicroReg       originalLeftReg,
-                                  const MicroReg       rightReg,
-                                  const TypeInfo&      operationType,
-                                  const MicroOpBits    opBits,
-                                  const TokenId        tokId)
+    Result emitShiftBinaryIntLike(CodeGen&                  codeGen,
+                                  const AstBinaryExpr&      node,
+                                  const CodeGenNodePayload& nodePayload,
+                                  const MicroReg            originalLeftReg,
+                                  const MicroReg            rightReg,
+                                  const TypeInfo&           operationType,
+                                  const MicroOpBits         opBits,
+                                  const TokenId             tokId)
     {
         const bool          isLeftShift   = tokId == TokenId::SymLowerLower;
         const bool          isSigned      = operationType.isIntLike() && !operationType.isIntLikeUnsigned();
@@ -546,7 +546,7 @@ namespace
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
         materializeArithmeticOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, encodeCtx.operationTypeRef);
 
-        auto finalizeIntLikeResult = [&]() {
+        auto finalizeIntLikeResult = [&] {
             convertArithmeticOperand(nodePayload.reg, codeGen, encodeCtx.operationTypeRef, encodeCtx.resultTypeRef);
             return Result::Continue;
         };

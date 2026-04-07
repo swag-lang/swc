@@ -796,6 +796,20 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
             if (shiftUsesFixedCount)
                 info.addUse(x64RegToMicroReg(X64Reg::Rcx));
             break;
+        case MicroOp::MultiplySigned:
+        {
+            // B8 signed multiply uses one-operand IMUL (no two-operand 8-bit form exists),
+            // which requires RAX and clobbers RDX, like MultiplyUnsigned.
+            const MicroOpBits opBits = (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryMemImm)
+                                           ? ops[1].opBits
+                                           : ops[2].opBits;
+            if (opBits == MicroOpBits::B8)
+            {
+                info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
+                info.addDef(x64RegToMicroReg(X64Reg::Rdx));
+            }
+            break;
+        }
         case MicroOp::MultiplyUnsigned:
             info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
             info.addDef(x64RegToMicroReg(X64Reg::Rdx));
@@ -835,7 +849,9 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             }
         }
 
+        const bool isB8SignedMul = op == MicroOp::MultiplySigned && ops[2].opBits == MicroOpBits::B8;
         if (op == MicroOp::MultiplyUnsigned ||
+            isB8SignedMul ||
             op == MicroOp::DivideUnsigned ||
             op == MicroOp::DivideSigned ||
             op == MicroOp::ModuloUnsigned ||
@@ -984,7 +1000,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (!supportsOpBinaryRegImm(ops[2].microOp) || requiresRegImmRewrite(ops[2].microOp))
+        const bool isB8SignedMulImm = ops[2].microOp == MicroOp::MultiplySigned && ops[1].opBits == MicroOpBits::B8;
+        if (!supportsOpBinaryRegImm(ops[2].microOp) || requiresRegImmRewrite(ops[2].microOp) || isB8SignedMulImm)
         {
             outIssue.kind        = MicroConformanceIssueKind::RewriteRegImmToRegReg;
             outIssue.requiredReg = x64RegToMicroReg(X64Reg::Rax);
@@ -2043,11 +2060,19 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     else if (op == MicroOp::MultiplySigned)
     {
         if (opBits == MicroOpBits::B8)
-            encodeLoadSignedExtendRegReg(regDst, regDst, MicroOpBits::B32, opBits);
-        emitRex(store_, opBits, regDst, memReg);
-        emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, 0xAF);
-        emitModRm(store_, memOffset, regDst, memReg);
+        {
+            // One-operand IMUL r/m8 from memory: AL * [mem] → AX, OF correct for s8.
+            emitRex(store_, opBits, MicroReg{}, memReg);
+            emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
+            emitModRm(store_, memOffset, MODRM_REG_5, memReg);
+        }
+        else
+        {
+            emitRex(store_, opBits, regDst, memReg);
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, 0xAF);
+            emitModRm(store_, memOffset, regDst, memReg);
+        }
     }
 
     ///////////////////////////////////////////
@@ -2149,14 +2174,20 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     {
         if (opBits == MicroOpBits::B8)
         {
-            encodeLoadSignedExtendRegReg(regDst, regDst, MicroOpBits::B32, opBits);
-            encodeLoadSignedExtendRegReg(regSrc, regSrc, MicroOpBits::B32, opBits);
+            // Two-operand IMUL has no 8-bit form. Use one-operand IMUL r/m8 (F6 /5):
+            // AL * r/m8 → AX, with OF=1 when the result doesn't fit in s8.
+            const auto rax = x64RegToMicroReg(X64Reg::Rax);
+            emitRex(store_, opBits, rax, regSrc);
+            emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
+            emitModRm(store_, MODRM_REG_5, regSrc);
         }
-
-        emitRex(store_, opBits, regDst, regSrc);
-        emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, 0xAF);
-        emitModRm(store_, regDst, regSrc);
+        else
+        {
+            emitRex(store_, opBits, regDst, regSrc);
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, 0xAF);
+            emitModRm(store_, regDst, regSrc);
+        }
     }
 
     ///////////////////////////////////////////

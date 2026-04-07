@@ -258,6 +258,17 @@ func overflowSafetyEnabled()->bool
 #test
 {
     #[Swag.Safety(.Overflow, true)]
+    func mulOverflowS8(a, b: s8)->s8
+    {
+        return a * b // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run mulOverflowS8(127's8, 2's8)
+}
+
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
     func mulOverflowS16(a, b: s16)->s16
     {
         return a * b // swc-expected-error {{safety_err_runtime}}

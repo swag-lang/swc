@@ -21,6 +21,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Support/Math/Fold.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -1272,6 +1273,62 @@ namespace
         return Result::Continue;
     }
 
+    bool intrinsicNeedsMathRuntimeSafety(const TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::IntrinsicSqrt:
+            case TokenId::IntrinsicASin:
+            case TokenId::IntrinsicACos:
+            case TokenId::IntrinsicLog:
+            case TokenId::IntrinsicLog2:
+            case TokenId::IntrinsicLog10:
+            case TokenId::IntrinsicPow:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    CodeGenNodePayload& ensureIntrinsicCallCodeGenPayload(Sema& sema)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(sema.curNodeRef(), payload);
+        return *payload;
+    }
+
+    Result setupIntrinsicMathRuntimeSafety(Sema& sema, const AstIntrinsicCallExpr& node)
+    {
+        if (sema.viewConstant(sema.curNodeRef()).hasConstant())
+            return Result::Continue;
+
+        const TokenId tokenId = sema.token(node.codeRef()).id;
+        if (!intrinsicNeedsMathRuntimeSafety(tokenId))
+            return Result::Continue;
+
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Math))
+            return Result::Continue;
+
+        auto& payload = ensureIntrinsicCallCodeGenPayload(sema);
+        payload.addRuntimeSafety(Runtime::SafetyWhat::Math);
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, node.codeRef()));
+        SWC_ASSERT(panicFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        payload.runtimeFunctionSymbol = panicFn;
+        return Result::Continue;
+    }
+
     TypeRef callExprRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
     {
         if (sema.isGlobalScope())
@@ -1668,6 +1725,7 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
             fn->setUsesGvtd();
     }
 
+    SWC_RESULT(setupIntrinsicMathRuntimeSafety(sema, *this));
     return Result::Continue;
 }
 

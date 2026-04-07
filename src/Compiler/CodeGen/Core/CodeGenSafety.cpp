@@ -161,6 +161,17 @@ Result CodeGenSafety::emitSwitchCheck(CodeGen& codeGen, const AstNode& node, Sym
     return emitRuntimePanicCall(codeGen, *resolvedPanicFunction, node, "unexpected case value in complete switch");
 }
 
+Result CodeGenSafety::emitMathCheck(CodeGen& codeGen, const AstNode& node)
+{
+    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Math))
+        return Result::Continue;
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
+    SWC_ASSERT(panicFunction != nullptr);
+    return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_invalid_argument);
+}
+
 Result CodeGenSafety::emitUnreachableCheck(CodeGen& codeGen, const AstNode& node)
 {
     const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());

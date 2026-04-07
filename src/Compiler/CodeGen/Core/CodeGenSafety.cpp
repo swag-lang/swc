@@ -221,14 +221,14 @@ Result CodeGenSafety::emitNegativeShiftCheck(CodeGen& codeGen, const AstNode& no
 
 Result CodeGenSafety::emitUnaryMathDomainCheck(CodeGen& codeGen, const MicroReg valueReg, const TypeInfo& floatType, Math::FoldIntrinsicUnaryFloatOp op, const MicroLabelRef failLabel)
 {
-    if (!CodeGenSafety::hasMathRuntimeSafety(codeGen))
+    if (!hasMathRuntimeSafety(codeGen))
         return Result::Continue;
 
     const auto opBits = CodeGenTypeHelpers::numericBits(floatType);
     SWC_ASSERT(floatType.isFloat());
     SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
 
-    MicroBuilder& builder = codeGen.builder();
+    MicroBuilder&  builder = codeGen.builder();
     const MicroReg zeroReg = emitFloatImmediateReg(codeGen, opBits, 0);
     if (op == Math::FoldIntrinsicUnaryFloatOp::Sqrt)
     {
@@ -285,7 +285,7 @@ Result CodeGenSafety::emitUnaryMathDomainCheck(CodeGen& codeGen, const MicroReg 
 
 Result CodeGenSafety::emitFloatNanCheck(CodeGen& codeGen, const AstNode& node, const MicroReg valueReg, const TypeInfo& floatType)
 {
-    if (!CodeGenSafety::hasMathRuntimeSafety(codeGen))
+    if (!hasMathRuntimeSafety(codeGen))
         return Result::Continue;
 
     const auto opBits = CodeGenTypeHelpers::numericBits(floatType);

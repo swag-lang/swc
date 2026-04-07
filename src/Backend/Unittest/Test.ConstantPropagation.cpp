@@ -157,11 +157,11 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
     };
     const auto expectedBytes = source;
 
-    std::array dims{source.size()};
-    const TypeRef           arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
-    const ConstantValue     value        = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{source.data(), source.size()});
-    const ConstantRef       cstRef       = ctx.cstMgr().addConstant(ctx, value);
-    const ConstantValue&    stored       = ctx.cstMgr().get(cstRef);
+    std::array           dims{source.size()};
+    const TypeRef        arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantValue  value        = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{source.data(), source.size()});
+    const ConstantRef    cstRef       = ctx.cstMgr().addConstant(ctx, value);
+    const ConstantValue& stored       = ctx.cstMgr().get(cstRef);
     if (!stored.isArray() || stored.typeRef() != arrayTypeRef)
         return Result::Error;
 

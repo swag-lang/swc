@@ -5,8 +5,8 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -108,8 +108,8 @@ namespace
         if (srcBits == MicroOpBits::B64)
             return srcReg;
 
-        MicroBuilder& builder = codeGen.builder();
-        const MicroReg dstReg = codeGen.nextVirtualIntRegister();
+        MicroBuilder&  builder = codeGen.builder();
+        const MicroReg dstReg  = codeGen.nextVirtualIntRegister();
         if (srcType.isIntLikeUnsigned())
             builder.emitLoadZeroExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
         else
@@ -147,19 +147,19 @@ namespace
         {
             constexpr uint32_t bias = 127;
             const uint32_t     sign = negative ? (1u << 31) : 0u;
-            return static_cast<uint64_t>(sign | ((exponent + bias) << 23));
+            return sign | exponent + bias << 23;
         }
 
         SWC_ASSERT(floatBits == MicroOpBits::B64);
         constexpr uint64_t bias = 1023;
         const uint64_t     sign = negative ? (1ull << 63) : 0ull;
-        return sign | (static_cast<uint64_t>(exponent + bias) << 52);
+        return sign | (exponent + bias << 52);
     }
 
     MicroReg emitUnsignedIntToFloatReg(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, TypeRef dstTypeRef)
     {
-        MicroBuilder&   builder = codeGen.builder();
-        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        MicroBuilder&     builder = codeGen.builder();
+        const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
         const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
         const MicroOpBits dstBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         SWC_ASSERT(srcType.isIntLikeUnsigned());
@@ -239,14 +239,14 @@ namespace
         if (srcType.isBool() || dstType.isBool())
             return Result::Continue;
 
-        const MicroOpBits srcBits  = CodeGenTypeHelpers::numericOrBoolBits(srcType);
-        const MicroReg    srcReg64 = widenIntRegTo64(codeGen, srcReg, srcType, srcBits);
+        const MicroOpBits srcBits     = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+        const MicroReg    srcReg64    = widenIntRegTo64(codeGen, srcReg, srcType, srcBits);
         const bool        srcUnsigned = srcType.isIntLikeUnsigned();
         const bool        dstUnsigned = dstType.isIntLikeUnsigned();
         const uint32_t    dstBits     = dstType.payloadIntLikeBits();
         if (!dstBits)
             return Result::Continue;
-        MicroBuilder&     builder     = codeGen.builder();
+        MicroBuilder&       builder   = codeGen.builder();
         const MicroLabelRef failLabel = builder.createLabel();
         const MicroLabelRef doneLabel = builder.createLabel();
 
@@ -291,14 +291,14 @@ namespace
         if (dstType.isBool())
             return Result::Continue;
 
-        const MicroOpBits  srcBits   = CodeGenTypeHelpers::numericOrBoolBits(srcType);
-        const uint32_t     dstBits   = dstType.payloadIntLikeBits();
+        const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+        const uint32_t    dstBits = dstType.payloadIntLikeBits();
         if (!dstBits)
             return Result::Continue;
-        const bool         dstUnsigned = dstType.isIntLikeUnsigned();
-        MicroBuilder&      builder   = codeGen.builder();
-        const MicroLabelRef failLabel = builder.createLabel();
-        const MicroLabelRef doneLabel = builder.createLabel();
+        const bool          dstUnsigned = dstType.isIntLikeUnsigned();
+        MicroBuilder&       builder     = codeGen.builder();
+        const MicroLabelRef failLabel   = builder.createLabel();
+        const MicroLabelRef doneLabel   = builder.createLabel();
 
         if (dstUnsigned)
         {

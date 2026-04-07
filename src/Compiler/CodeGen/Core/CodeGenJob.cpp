@@ -51,7 +51,7 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
         const SourceFile* semaFile = sema.file();
         SWC_ASSERT(semaFile != nullptr);
         const FileRef semaFileRef = sema.ast().srcView().fileRef();
-        nodePayloadCtx_ = &sema.compiler().file(semaFileRef).nodePayloadContext();
+        nodePayloadCtx_           = &sema.compiler().file(semaFileRef).nodePayloadContext();
     }
 
     func = [this] {

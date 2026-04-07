@@ -22,9 +22,9 @@ private:
 
     std::unique_ptr<Sema>    ownedSema_;
     std::unique_ptr<CodeGen> codeGen_;
-    SymbolFunction*          symbolFunc_      = nullptr;
-    NodePayload*             nodePayloadCtx_  = nullptr;
-    AstNodeRef               root_            = AstNodeRef::invalid();
+    SymbolFunction*          symbolFunc_     = nullptr;
+    NodePayload*             nodePayloadCtx_ = nullptr;
+    AstNodeRef               root_           = AstNodeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

@@ -132,7 +132,7 @@ namespace
 
     uint64_t opBitWidth(MicroOpBits opBits)
     {
-        return static_cast<uint64_t>(getNumBits(opBits));
+        return getNumBits(opBits);
     }
 
     MicroReg widenIntRegTo64(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, MicroOpBits srcBits)
@@ -140,8 +140,8 @@ namespace
         if (srcBits == MicroOpBits::B64)
             return srcReg;
 
-        MicroBuilder& builder = codeGen.builder();
-        const MicroReg dstReg = codeGen.nextVirtualIntRegister();
+        MicroBuilder&  builder = codeGen.builder();
+        const MicroReg dstReg  = codeGen.nextVirtualIntRegister();
         if (srcType.isIntLikeUnsigned())
             builder.emitLoadZeroExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
         else
@@ -157,29 +157,29 @@ namespace
         return ApInt(value, 64);
     }
 
-    Result emitShiftAssignCompoundIntLike(CodeGen& codeGen,
-                                          const AstAssignStmt& node,
+    Result emitShiftAssignCompoundIntLike(CodeGen&                   codeGen,
+                                          const AstAssignStmt&       node,
                                           const AssignEncodeContext& encodeCtx,
-                                          const MicroReg leftReg,
-                                          const MicroReg rightReg,
-                                          const TypeInfo& targetType,
-                                          const MicroOpBits opBits,
-                                          const TokenId assignOp)
+                                          const MicroReg             leftReg,
+                                          const MicroReg             rightReg,
+                                          const TypeInfo&            targetType,
+                                          const MicroOpBits          opBits,
+                                          const TokenId              assignOp)
     {
-        const bool         isLeftShift     = assignOp == TokenId::SymLowerLowerEqual;
-        const bool         isSigned        = targetType.isIntLike() && !targetType.isIntLikeUnsigned();
-        const bool         hasSafety       = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
-        const bool         allowWrap       = node.modifierFlags.has(AstModifierFlagsE::Wrap);
-        const bool         checkOverflow   = isLeftShift && hasSafety && !allowWrap;
-        MicroBuilder&      builder         = codeGen.builder();
-        const MicroOp      shiftOp         = intBinaryMicroOp(Token::assignToBinary(assignOp), isSigned);
-        const uint64_t     bitWidth        = opBitWidth(opBits);
-        const MicroReg     originalLeftReg = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
-        const MicroReg     countReg64      = widenIntRegTo64(codeGen, rightReg, targetType, opBits);
-        const MicroLabelRef nonNegative    = builder.createLabel();
-        const MicroLabelRef normalLabel    = builder.createLabel();
-        const MicroLabelRef largeLabel     = builder.createLabel();
-        const MicroLabelRef doneLabel      = builder.createLabel();
+        const bool          isLeftShift     = assignOp == TokenId::SymLowerLowerEqual;
+        const bool          isSigned        = targetType.isIntLike() && !targetType.isIntLikeUnsigned();
+        const bool          hasSafety       = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
+        const bool          allowWrap       = node.modifierFlags.has(AstModifierFlagsE::Wrap);
+        const bool          checkOverflow   = isLeftShift && hasSafety && !allowWrap;
+        MicroBuilder&       builder         = codeGen.builder();
+        const MicroOp       shiftOp         = intBinaryMicroOp(Token::assignToBinary(assignOp), isSigned);
+        const uint64_t      bitWidth        = opBitWidth(opBits);
+        const MicroReg      originalLeftReg = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
+        const MicroReg      countReg64      = widenIntRegTo64(codeGen, rightReg, targetType, opBits);
+        const MicroLabelRef nonNegative     = builder.createLabel();
+        const MicroLabelRef normalLabel     = builder.createLabel();
+        const MicroLabelRef largeLabel      = builder.createLabel();
+        const MicroLabelRef doneLabel       = builder.createLabel();
 
         builder.emitLoadRegReg(originalLeftReg, leftReg, opBits);
 

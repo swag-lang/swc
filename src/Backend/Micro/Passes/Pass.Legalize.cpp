@@ -369,21 +369,21 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyRewriteLoadFloatRegImm(const MicroPassContext& context,
-                                     const Encoder&          encoder,
-                                     MicroInstrRef           instRef,
-                                     const MicroInstr&       inst,
+    void applyRewriteLoadFloatRegImm(const MicroPassContext&  context,
+                                     const Encoder&           encoder,
+                                     MicroInstrRef            instRef,
+                                     const MicroInstr&        inst,
                                      const MicroInstrOperand* ops,
-                                     uint64_t                stackScratchBaseOffset,
-                                     uint32_t&               nextVirtualIntRegIndex)
+                                     uint64_t                 stackScratchBaseOffset,
+                                     uint32_t&                nextVirtualIntRegIndex)
     {
         SWC_UNUSED(stackScratchBaseOffset);
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm || inst.op == MicroInstrOpcode::LoadRegPtrReloc);
         SWC_ASSERT(inst.numOperands >= 3);
 
-        const MicroReg dstReg   = ops[0].reg;
-        MicroOpBits    opBits   = ops[1].opBits;
+        const MicroReg dstReg = ops[0].reg;
+        MicroOpBits    opBits = ops[1].opBits;
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             opBits = MicroOpBits::B64;
 
@@ -576,7 +576,7 @@ namespace
         const MicroReg         originalReg    = ops[0].reg;
         const MicroOpBits      opBits         = ops[1].opBits;
         const MicroOp          originalOp     = originalOpcode == MicroInstrOpcode::OpBinaryRegImm || originalOpcode == MicroInstrOpcode::OpBinaryMemImm ? ops[2].microOp : MicroOp::Move;
-        uint64_t          originalOffset = 0;
+        uint64_t               originalOffset = 0;
         if (originalOpcode == MicroInstrOpcode::OpBinaryMemImm)
             originalOffset = ops[3].valueU64;
         else if (originalOpcode == MicroInstrOpcode::CmpMemImm)

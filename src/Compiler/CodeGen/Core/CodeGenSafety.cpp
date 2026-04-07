@@ -24,6 +24,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool hasRuntimeSafety(const CodeGen& codeGen, const Runtime::SafetyWhat what)
+    {
+        const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        return nodePayload && nodePayload->hasRuntimeSafety(what);
+    }
+
     CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
     {
         const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
@@ -145,8 +151,12 @@ namespace
 
 bool CodeGenSafety::hasMathRuntimeSafety(const CodeGen& codeGen)
 {
-    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
-    return nodePayload && nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Math);
+    return hasRuntimeSafety(codeGen, Runtime::SafetyWhat::Math);
+}
+
+bool CodeGenSafety::hasOverflowRuntimeSafety(const CodeGen& codeGen)
+{
+    return hasRuntimeSafety(codeGen, Runtime::SafetyWhat::Overflow);
 }
 
 Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg)
@@ -187,6 +197,26 @@ Result CodeGenSafety::emitMathCheck(CodeGen& codeGen, const AstNode& node)
     SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
     SWC_ASSERT(panicFunction != nullptr);
     return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_invalid_argument);
+}
+
+Result CodeGenSafety::emitOverflowCheck(CodeGen& codeGen, const AstNode& node)
+{
+    if (!hasOverflowRuntimeSafety(codeGen))
+        return Result::Continue;
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
+    SWC_ASSERT(panicFunction != nullptr);
+    return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_integer_overflow);
+}
+
+Result CodeGenSafety::emitNegativeShiftCheck(CodeGen& codeGen, const AstNode& node)
+{
+    if (!hasOverflowRuntimeSafety(codeGen))
+        return Result::Continue;
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
+    SWC_ASSERT(panicFunction != nullptr);
+    return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_negative_shift);
 }
 
 Result CodeGenSafety::emitUnaryMathDomainCheck(CodeGen& codeGen, const MicroReg valueReg, const TypeInfo& floatType, Math::FoldIntrinsicUnaryFloatOp op, const MicroLabelRef failLabel)
@@ -274,7 +304,7 @@ Result CodeGenSafety::emitFloatNanCheck(CodeGen& codeGen, const AstNode& node, c
     return Result::Continue;
 }
 
-Result CodeGenSafety::emiUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, Math::FoldIntrinsicUnaryFloatOp op, MaterializeNumericOperandFn materializeOperandFn)
+Result CodeGenSafety::emitUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, Math::FoldIntrinsicUnaryFloatOp op, MaterializeNumericOperandFn materializeOperandFn)
 {
     SWC_ASSERT(materializeOperandFn != nullptr);
     if (!hasMathRuntimeSafety(codeGen))

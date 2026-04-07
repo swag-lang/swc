@@ -2414,13 +2414,7 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
 
     else if (op == MicroOp::Add)
     {
-        if (value == 1 && backendBuildCfg().optimize)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xFF, opBits);
-            emitModRm(store_, MODRM_REG_0, reg);
-        }
-        else if (opBits == MicroOpBits::B8)
+        if (opBits == MicroOpBits::B8)
         {
             emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x80);
@@ -2451,13 +2445,7 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
 
     else if (op == MicroOp::Subtract)
     {
-        if (value == 1 && backendBuildCfg().optimize)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xFF, opBits);
-            emitModRm(store_, MODRM_REG_1, reg);
-        }
-        else if (opBits == MicroOpBits::B8)
+        if (opBits == MicroOpBits::B8)
         {
             emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x80);
@@ -2781,13 +2769,7 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
 
     else if (op == MicroOp::Add)
     {
-        if (value == 1 && backendBuildCfg().optimize)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xFF, opBits);
-            emitModRm(store_, memOffset, MODRM_REG_0, memReg);
-        }
-        else if (opBits == MicroOpBits::B8)
+        if (opBits == MicroOpBits::B8)
         {
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x80);
@@ -2818,13 +2800,7 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
 
     else if (op == MicroOp::Subtract)
     {
-        if (value == 1 && backendBuildCfg().optimize)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xFF, opBits);
-            emitModRm(store_, memOffset, MODRM_REG_1, memReg);
-        }
-        else if (opBits == MicroOpBits::B8)
+        if (opBits == MicroOpBits::B8)
         {
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x80);

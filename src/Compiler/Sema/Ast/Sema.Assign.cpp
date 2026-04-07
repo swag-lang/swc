@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -7,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -14,6 +17,121 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef      assignmentTargetTypeRef(const SemaNodeView& leftView);
+    SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView);
+
+    CodeGenNodePayload& ensureAssignCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    Result setupAssignOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+    {
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
+            return Result::Continue;
+
+        auto& payload = ensureAssignCodeGenPayload(sema, nodeRef);
+        payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
+        SWC_ASSERT(panicFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        payload.runtimeFunctionSymbol = panicFn;
+        return Result::Continue;
+    }
+
+    Result checkAssignModifiers(Sema& sema, const AstAssignStmt& node)
+    {
+        const TokenId tokId = sema.token(node.codeRef()).id;
+        auto          allowed =
+            AstModifierFlagsE::NoDrop |
+            AstModifierFlagsE::Ref |
+            AstModifierFlagsE::ConstRef |
+            AstModifierFlagsE::Move |
+            AstModifierFlagsE::MoveRaw;
+
+        switch (tokId)
+        {
+            case TokenId::SymPlusEqual:
+            case TokenId::SymMinusEqual:
+            case TokenId::SymAsteriskEqual:
+                allowed.add(AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote);
+                break;
+
+            case TokenId::SymSlashEqual:
+            case TokenId::SymPercentEqual:
+                allowed.add(AstModifierFlagsE::Promote);
+                break;
+
+            case TokenId::SymLowerLowerEqual:
+            case TokenId::SymGreaterGreaterEqual:
+                allowed.add(AstModifierFlagsE::Wrap);
+                break;
+
+            default:
+                break;
+        }
+
+        return SemaCheck::modifiers(sema, node, node.modifierFlags, allowed);
+    }
+
+    Result checkIntegerModifiers(Sema& sema, const AstAssignStmt& node, const SemaNodeView& nodeLeftView)
+    {
+        if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
+            return Result::Continue;
+
+        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
+        if (targetLeftView.type()->isInt())
+            return Result::Continue;
+
+        const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
+        const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
+        auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
+        diag.addArgument(Diagnostic::ARG_TYPE, targetLeftView.typeRef());
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    bool needsAssignOverflowRuntimeSafety(const AstAssignStmt& node, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, Sema& sema)
+    {
+        if (op == TokenId::SymEqual)
+            return false;
+
+        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
+        if (!targetLeftView.type() || !nodeRightView.type())
+            return false;
+        if (!targetLeftView.type()->isIntLike() || !nodeRightView.type()->isIntLike())
+            return false;
+
+        switch (op)
+        {
+            case TokenId::SymPlusEqual:
+            case TokenId::SymMinusEqual:
+            case TokenId::SymAsteriskEqual:
+            case TokenId::SymSlashEqual:
+            case TokenId::SymPercentEqual:
+                return !node.modifierFlags.has(AstModifierFlagsE::Wrap);
+
+            case TokenId::SymLowerLowerEqual:
+            case TokenId::SymGreaterGreaterEqual:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     void markAssignmentTargetAddressableStorage(const SemaNodeView& leftView)
     {
         if (!leftView.sym() || !leftView.sym()->isVariable() || !leftView.type() || leftView.type()->isReference())
@@ -237,12 +355,7 @@ namespace
 
 Result AstAssignStmt::semaPreNode(Sema& sema) const
 {
-    constexpr AstModifierFlags allowed = AstModifierFlagsE::NoDrop |
-                                         AstModifierFlagsE::Ref |
-                                         AstModifierFlagsE::ConstRef |
-                                         AstModifierFlagsE::Move |
-                                         AstModifierFlagsE::MoveRaw;
-    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
+    SWC_RESULT(checkAssignModifiers(sema, *this));
     return Result::Continue;
 }
 
@@ -304,7 +417,10 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, targetLeftView, nodeRightView));
     }
 
+    SWC_RESULT(checkIntegerModifiers(sema, *this, nodeLeftView));
     SWC_RESULT(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView));
+    if (needsAssignOverflowRuntimeSafety(*this, tok.id, nodeLeftView, nodeRightView, sema))
+        SWC_RESULT(setupAssignOverflowRuntimeSafety(sema, sema.curNodeRef(), codeRef()));
     return Result::Continue;
 }
 

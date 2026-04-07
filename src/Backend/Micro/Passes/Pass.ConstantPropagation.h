@@ -129,6 +129,7 @@ private:
     void                    clearControlFlowBoundaryForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
     void                    clearForCallBoundary(bool hasStackAddressArg);
     void                    setCompareState(uint64_t lhs, uint64_t rhs, MicroOpBits opBits);
+    bool                    areCpuFlagsDeadAfterInstruction(MicroInstrRef instructionRef) const;
     void                    markStackWriteHandled(MicroReg baseReg, bool& handledMemoryWrite);
 
     KnownRegMap                                               known_;

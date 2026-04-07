@@ -42,9 +42,9 @@ func computeCrc64(bytes: const [..] u8)->u64
         for 8
         {
             if (crc & 0x8000_0000_0000_0000'u64) != 0'u64 do
-                crc = (crc << 1) ^ Polynomial
+                crc = (crc << #wrap 1) ^ Polynomial
             else do
-                crc <<= 1
+                crc = crc << #wrap 1
         }
     }
 

@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -91,6 +92,52 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    TypeRef resolveBinaryOperandSourceTypeRef(CodeGen& codeGen, AstNodeRef operandRef, const SemaNodeView& operandView, const CodeGenNodePayload& operandPayload)
+    {
+        const AstNode& operand = codeGen.node(operandRef);
+        if (operand.is(AstNodeId::CastExpr))
+        {
+            const auto& castNode = operand.cast<AstCastExpr>();
+            if (!castNode.hasFlag(AstCastExprFlagsE::Explicit) && castNode.nodeExprRef.isValid())
+            {
+                const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(castNode.nodeExprRef, SemaNodeViewPartE::Type).typeRef();
+                if (storedSourceTypeRef.isValid())
+                    return storedSourceTypeRef;
+            }
+
+            if (operandPayload.typeRef.isValid())
+                return operandPayload.typeRef;
+        }
+        else if (operand.is(AstNodeId::AutoCastExpr))
+        {
+            const auto& autoCastNode = operand.cast<AstAutoCastExpr>();
+            if (autoCastNode.nodeExprRef.isValid())
+            {
+                const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(autoCastNode.nodeExprRef, SemaNodeViewPartE::Type).typeRef();
+                if (storedSourceTypeRef.isValid())
+                    return storedSourceTypeRef;
+            }
+
+            if (operandPayload.typeRef.isValid())
+                return operandPayload.typeRef;
+        }
+        else if (operand.is(AstNodeId::AsCastExpr) && operandPayload.typeRef.isValid())
+        {
+            return operandPayload.typeRef;
+        }
+
+        const TypeRef storedTypeRef = codeGen.sema().viewStored(operandRef, SemaNodeViewPartE::Type).typeRef();
+        if (storedTypeRef.isValid())
+        {
+            return storedTypeRef;
+        }
+
+        if (operandPayload.typeRef.isValid())
+            return operandPayload.typeRef;
+
+        return operandView.typeRef();
+    }
+
     BinaryEncodeContext buildBinaryEncodeContext(CodeGen& codeGen, const AstBinaryExpr& node, TokenId tokId)
     {
         BinaryEncodeContext ctx;
@@ -101,30 +148,39 @@ namespace
 
         ctx.leftPayload         = &codeGen.payload(node.nodeLeftRef);
         ctx.rightPayload        = &codeGen.payload(node.nodeRightRef);
-        ctx.leftOperandTypeRef  = ctx.leftPayload->effectiveTypeRef(leftView.typeRef());
-        ctx.rightOperandTypeRef = ctx.rightPayload->effectiveTypeRef(rightView.typeRef());
+        ctx.leftOperandTypeRef  = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeLeftRef, leftView, *ctx.leftPayload);
+        ctx.rightOperandTypeRef = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
         ctx.leftOperandTypeRef  = codeGen.typeMgr().get(ctx.leftOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
         ctx.rightOperandTypeRef = codeGen.typeMgr().get(ctx.rightOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
         ctx.resultTypeRef       = codeGen.curViewType().typeRef();
-        ctx.operationTypeRef    = ctx.leftOperandTypeRef;
+        ctx.operationTypeRef    = codeGen.typeMgr().get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
+        if (!ctx.operationTypeRef.isValid())
+            ctx.operationTypeRef = ctx.leftOperandTypeRef;
         SWC_ASSERT(ctx.leftOperandTypeRef.isValid());
         SWC_ASSERT(ctx.rightOperandTypeRef.isValid());
         SWC_ASSERT(ctx.resultTypeRef.isValid());
         SWC_ASSERT(ctx.operationTypeRef.isValid());
 
-        const TypeInfo& leftOperandType  = codeGen.typeMgr().get(ctx.leftOperandTypeRef);
-        const TypeInfo& rightOperandType = codeGen.typeMgr().get(ctx.rightOperandTypeRef);
-        ctx.encodingKind                 = resolveBinaryEncodingKind(tokId, leftOperandType, rightOperandType);
+        TypeRef leftSemanticTypeRef  = codeGen.typeMgr().get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
+        TypeRef rightSemanticTypeRef = codeGen.typeMgr().get(rightView.typeRef()).unwrapAliasEnum(codeGen.ctx(), rightView.typeRef());
+        if (!leftSemanticTypeRef.isValid())
+            leftSemanticTypeRef = ctx.leftOperandTypeRef;
+        if (!rightSemanticTypeRef.isValid())
+            rightSemanticTypeRef = ctx.rightOperandTypeRef;
+
+        const TypeInfo& leftSemanticType  = codeGen.typeMgr().get(leftSemanticTypeRef);
+        const TypeInfo& rightSemanticType = codeGen.typeMgr().get(rightSemanticTypeRef);
+        ctx.encodingKind                  = resolveBinaryEncodingKind(tokId, leftSemanticType, rightSemanticType);
         // Pointer arithmetic is expressed in element units, so capture the stride once and reuse it in
         // both offset and difference lowering.
         if (ctx.encodingKind == BinaryEncodingKind::PointerOffset)
         {
-            const TypeRef pointerTypeRef = leftOperandType.isBlockPointer() ? ctx.leftOperandTypeRef : ctx.rightOperandTypeRef;
+            const TypeRef pointerTypeRef = leftSemanticType.isBlockPointer() ? leftSemanticTypeRef : rightSemanticTypeRef;
             ctx.pointerStride            = pointerStrideSize(codeGen, pointerTypeRef);
         }
         else if (ctx.encodingKind == BinaryEncodingKind::PointerDiff)
         {
-            ctx.pointerStride = pointerStrideSize(codeGen, ctx.leftOperandTypeRef);
+            ctx.pointerStride = pointerStrideSize(codeGen, leftSemanticTypeRef);
         }
 
         return ctx;
@@ -140,20 +196,62 @@ namespace
             builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
     }
 
+    bool isFloatRegClass(const MicroReg reg)
+    {
+        return reg.isFloat() || reg.isVirtualFloat();
+    }
+
+    bool isIntRegClass(const MicroReg reg)
+    {
+        return reg.isInt() || reg.isVirtualInt();
+    }
+
+    TypeRef resolveArithmeticOperandPhysicalTypeRef(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef sourceTypeRef)
+    {
+        sourceTypeRef = codeGen.typeMgr().get(sourceTypeRef).unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
+        if (!operandPayload.isValue() || !operandPayload.typeRef.isValid())
+            return sourceTypeRef;
+
+        TypeRef payloadTypeRef = codeGen.typeMgr().get(operandPayload.typeRef).unwrapAliasEnum(codeGen.ctx(), operandPayload.typeRef);
+        if (!payloadTypeRef.isValid())
+            payloadTypeRef = operandPayload.typeRef;
+        if (!payloadTypeRef.isValid())
+            return sourceTypeRef;
+
+        const TypeInfo& sourceType  = codeGen.typeMgr().get(sourceTypeRef);
+        const TypeInfo& payloadType = codeGen.typeMgr().get(payloadTypeRef);
+        if (payloadType.isFloat() && isFloatRegClass(operandPayload.reg) && !sourceType.isFloat())
+            return payloadTypeRef;
+        if ((payloadType.isIntLike() || payloadType.isBool()) && isIntRegClass(operandPayload.reg) && sourceType.isFloat())
+            return payloadTypeRef;
+
+        return sourceTypeRef;
+    }
+
     void convertArithmeticOperand(MicroReg& outReg, CodeGen& codeGen, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         if (srcTypeRef == dstTypeRef)
             return;
 
+        srcTypeRef                = codeGen.typeMgr().get(srcTypeRef).unwrapAliasEnum(codeGen.ctx(), srcTypeRef);
+        dstTypeRef                = codeGen.typeMgr().get(dstTypeRef).unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
         const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
-        const MicroOpBits srcBits = CodeGenTypeHelpers::numericBits(srcType);
-        const MicroOpBits dstBits = CodeGenTypeHelpers::numericBits(dstType);
+        const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+        const MicroOpBits dstBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
 
         MicroBuilder& builder = codeGen.builder();
-        if (srcType.isIntLike() && dstType.isIntLike())
+        const auto isIntLikeOrBool = [](const TypeInfo& typeInfo) {
+            return typeInfo.isIntLike() || typeInfo.isBool();
+        };
+
+        const auto isUnsignedLike = [](const TypeInfo& typeInfo) {
+            return typeInfo.isBool() || typeInfo.isIntLikeUnsigned();
+        };
+
+        if (isIntLikeOrBool(srcType) && isIntLikeOrBool(dstType))
         {
             if (srcBits == dstBits)
                 return;
@@ -166,7 +264,7 @@ namespace
                 return;
             }
 
-            if (srcType.isIntLikeUnsigned())
+            if (isUnsignedLike(srcType))
                 builder.emitLoadZeroExtendRegReg(dstReg, outReg, dstBits, srcBits);
             else
                 builder.emitLoadSignedExtendRegReg(dstReg, outReg, dstBits, srcBits);
@@ -174,14 +272,14 @@ namespace
             return;
         }
 
-        if (srcType.isIntLike() && dstType.isFloat())
+        if (isIntLikeOrBool(srcType) && dstType.isFloat())
         {
             MicroReg srcReg = outReg;
             if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
             {
                 srcReg                        = codeGen.nextVirtualIntRegister();
                 const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                if (srcType.isIntSigned())
+                if (!isUnsignedLike(srcType))
                     builder.emitLoadSignedExtendRegReg(srcReg, outReg, widenedBits, srcBits);
                 else
                     builder.emitLoadZeroExtendRegReg(srcReg, outReg, widenedBits, srcBits);
@@ -206,7 +304,7 @@ namespace
             return;
         }
 
-        if (srcType.isFloat() && dstType.isIntLike())
+        if (srcType.isFloat() && isIntLikeOrBool(dstType))
         {
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstReg, dstBits);
@@ -220,8 +318,9 @@ namespace
 
     void materializeArithmeticOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
+        srcTypeRef                = resolveArithmeticOperandPhysicalTypeRef(codeGen, operandPayload, srcTypeRef);
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
-        const MicroOpBits srcBits = CodeGenTypeHelpers::numericBits(srcType);
+        const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
 
         materializeBinaryOperand(outReg, codeGen, operandPayload, srcTypeRef, srcBits);
@@ -278,7 +377,7 @@ namespace
             case TokenId::SymMinus:
                 return MicroOp::Subtract;
             case TokenId::SymAsterisk:
-                return MicroOp::MultiplySigned;
+                return isSigned ? MicroOp::MultiplySigned : MicroOp::MultiplyUnsigned;
             case TokenId::SymSlash:
                 return isSigned ? MicroOp::DivideSigned : MicroOp::DivideUnsigned;
             case TokenId::SymPercent:
@@ -317,6 +416,116 @@ namespace
         }
     }
 
+    uint64_t opBitWidth(MicroOpBits opBits)
+    {
+        return static_cast<uint64_t>(getNumBits(opBits));
+    }
+
+    MicroReg widenIntRegTo64(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, MicroOpBits srcBits)
+    {
+        if (srcBits == MicroOpBits::B64)
+            return srcReg;
+
+        MicroBuilder& builder = codeGen.builder();
+        const MicroReg dstReg = codeGen.nextVirtualIntRegister();
+        if (srcType.isIntLikeUnsigned())
+            builder.emitLoadZeroExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
+        else
+            builder.emitLoadSignedExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
+        return dstReg;
+    }
+
+    ApInt minSignedImmediate(const MicroOpBits opBits)
+    {
+        const uint32_t bits = getNumBits(opBits);
+        SWC_ASSERT(bits > 0 && bits <= 64);
+        const uint64_t value = bits == 64 ? (1ull << 63) : (1ull << (bits - 1));
+        return ApInt(value, 64);
+    }
+
+    Result emitShiftBinaryIntLike(CodeGen& codeGen,
+                                  const AstBinaryExpr& node,
+                                  CodeGenNodePayload&  nodePayload,
+                                  const MicroReg       originalLeftReg,
+                                  const MicroReg       rightReg,
+                                  const TypeInfo&      operationType,
+                                  const MicroOpBits    opBits,
+                                  const TokenId        tokId)
+    {
+        const bool      isLeftShift     = tokId == TokenId::SymLowerLower;
+        const bool      isSigned        = operationType.isIntLike() && !operationType.isIntLikeUnsigned();
+        const bool      hasSafety       = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
+        const bool      allowWrap       = node.modifierFlags.has(AstModifierFlagsE::Wrap);
+        const bool      checkOverflow   = isLeftShift && hasSafety && !allowWrap;
+        MicroBuilder&   builder         = codeGen.builder();
+        const MicroOp   shiftOp         = intBinaryMicroOp(tokId, isSigned);
+        const uint64_t  bitWidth        = opBitWidth(opBits);
+        const MicroReg  countReg64      = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
+        const MicroLabelRef nonNegative = builder.createLabel();
+        const MicroLabelRef normalLabel = builder.createLabel();
+        const MicroLabelRef largeLabel  = builder.createLabel();
+        const MicroLabelRef doneLabel   = builder.createLabel();
+
+        if (isSigned)
+        {
+            builder.emitCmpRegImm(rightReg, ApInt(0, 64), opBits);
+            builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, nonNegative);
+            if (hasSafety)
+                SWC_RESULT(CodeGenSafety::emitNegativeShiftCheck(codeGen, node));
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, normalLabel);
+            builder.placeLabel(nonNegative);
+        }
+
+        builder.emitCmpRegImm(countReg64, ApInt(bitWidth, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, largeLabel);
+
+        builder.placeLabel(normalLabel);
+        builder.emitOpBinaryRegReg(nodePayload.reg, rightReg, shiftOp, opBits);
+        if (checkOverflow)
+        {
+            const MicroReg reverseReg = codeGen.nextVirtualRegisterForType(nodePayload.typeRef);
+            builder.emitLoadRegReg(reverseReg, nodePayload.reg, opBits);
+            builder.emitOpBinaryRegReg(reverseReg, rightReg, isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight, opBits);
+            builder.emitCmpRegReg(reverseReg, originalLeftReg, opBits);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+            SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
+        }
+
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(largeLabel);
+
+        if (isLeftShift)
+        {
+            if (checkOverflow)
+            {
+                const MicroLabelRef zeroLabel = builder.createLabel();
+                builder.emitCmpRegImm(originalLeftReg, ApInt(0, 64), opBits);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, zeroLabel);
+                SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
+                builder.placeLabel(zeroLabel);
+            }
+
+            builder.emitClearReg(nodePayload.reg, opBits);
+        }
+        else if (isSigned)
+        {
+            const MicroLabelRef negativeLabel = builder.createLabel();
+            builder.emitCmpRegImm(originalLeftReg, ApInt(0, 64), opBits);
+            builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, negativeLabel);
+            builder.emitClearReg(nodePayload.reg, opBits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+            builder.placeLabel(negativeLabel);
+            builder.emitLoadRegImm(nodePayload.reg, ApInt(std::numeric_limits<uint64_t>::max(), 64), opBits);
+        }
+        else
+        {
+            builder.emitClearReg(nodePayload.reg, opBits);
+        }
+
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
+
     Result emitBinaryIntLike(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
     {
         SWC_ASSERT(encodeCtx.leftPayload);
@@ -326,19 +535,80 @@ namespace
         SWC_ASSERT(encodeCtx.resultTypeRef.isValid());
         SWC_ASSERT(encodeCtx.operationTypeRef.isValid());
 
+        const auto&       node          = codeGen.node(codeGen.curNodeRef()).cast<AstBinaryExpr>();
         const TypeInfo&   operationType = codeGen.typeMgr().get(encodeCtx.operationTypeRef);
         const MicroOp     op            = intBinaryMicroOp(tokId, !operationType.isIntLikeUnsigned());
         const MicroOpBits opBits        = CodeGenTypeHelpers::numericBits(operationType);
+        const bool        isSigned      = operationType.isIntLike() && !operationType.isIntLikeUnsigned();
+        const bool        hasSafety     = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
         materializeArithmeticOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, encodeCtx.operationTypeRef);
 
+        auto finalizeIntLikeResult = [&]() {
+            convertArithmeticOperand(nodePayload.reg, codeGen, encodeCtx.operationTypeRef, encodeCtx.resultTypeRef);
+            return Result::Continue;
+        };
+
         MicroReg rightReg;
         materializeArithmeticOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, encodeCtx.operationTypeRef);
 
+        if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
+        {
+            const MicroReg stableLeftReg = codeGen.nextVirtualRegisterForType(encodeCtx.resultTypeRef);
+            codeGen.builder().emitLoadRegReg(stableLeftReg, nodePayload.reg, opBits);
+            SWC_RESULT(emitShiftBinaryIntLike(codeGen, node, nodePayload, stableLeftReg, rightReg, operationType, opBits, tokId));
+            return finalizeIntLikeResult();
+        }
+
+        if (isSigned && (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent))
+        {
+            MicroBuilder&       builder      = codeGen.builder();
+            const MicroLabelRef doOpLabel    = builder.createLabel();
+            const MicroLabelRef doneLabel    = builder.createLabel();
+            builder.emitCmpRegImm(rightReg, ApInt(std::numeric_limits<uint64_t>::max(), 64), opBits);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
+            builder.emitCmpRegImm(nodePayload.reg, minSignedImmediate(opBits), opBits);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
+            if (hasSafety)
+                SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
+            if (tokId == TokenId::SymPercent)
+                builder.emitClearReg(nodePayload.reg, opBits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+            builder.placeLabel(doOpLabel);
+            builder.emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
+            builder.placeLabel(doneLabel);
+            return finalizeIntLikeResult();
+        }
+
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
-        return Result::Continue;
+
+        if (hasSafety)
+        {
+            MicroBuilder&       builder         = codeGen.builder();
+            const MicroLabelRef noOverflowLabel = builder.createLabel();
+            switch (tokId)
+            {
+                case TokenId::SymPlus:
+                case TokenId::SymMinus:
+                    builder.emitJumpToLabel(isSigned ? MicroCond::NotOverflow : MicroCond::AboveOrEqual, MicroOpBits::B32, noOverflowLabel);
+                    SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
+                    builder.placeLabel(noOverflowLabel);
+                    break;
+
+                case TokenId::SymAsterisk:
+                    builder.emitJumpToLabel(MicroCond::NotOverflow, MicroOpBits::B32, noOverflowLabel);
+                    SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
+                    builder.placeLabel(noOverflowLabel);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return finalizeIntLikeResult();
     }
 
     Result emitBinaryFloat(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)

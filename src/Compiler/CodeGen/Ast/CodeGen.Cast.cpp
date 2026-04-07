@@ -6,7 +6,9 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
@@ -99,6 +101,259 @@ namespace
     {
         outBits = CodeGenTypeHelpers::scalarStoreBits(dstType, codeGen.ctx());
         return outBits != MicroOpBits::Zero;
+    }
+
+    MicroReg widenIntRegTo64(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, MicroOpBits srcBits)
+    {
+        if (srcBits == MicroOpBits::B64)
+            return srcReg;
+
+        MicroBuilder& builder = codeGen.builder();
+        const MicroReg dstReg = codeGen.nextVirtualIntRegister();
+        if (srcType.isIntLikeUnsigned())
+            builder.emitLoadZeroExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
+        else
+            builder.emitLoadSignedExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
+        return dstReg;
+    }
+
+    uint64_t maxUnsignedValue(const uint32_t bits)
+    {
+        if (bits >= 64)
+            return std::numeric_limits<uint64_t>::max();
+        return (1ull << bits) - 1;
+    }
+
+    uint64_t maxSignedValue(const uint32_t bits)
+    {
+        SWC_ASSERT(bits > 0 && bits <= 64);
+        if (bits == 64)
+            return std::numeric_limits<int64_t>::max();
+        return (1ull << (bits - 1)) - 1;
+    }
+
+    uint64_t minSignedValue(const uint32_t bits)
+    {
+        SWC_ASSERT(bits > 0 && bits <= 64);
+        if (bits == 64)
+            return 1ull << 63;
+        const int64_t value = -(static_cast<int64_t>(1ull << (bits - 1)));
+        return static_cast<uint64_t>(value);
+    }
+
+    uint64_t floatPow2Bits(const bool negative, const uint32_t exponent, const MicroOpBits floatBits)
+    {
+        if (floatBits == MicroOpBits::B32)
+        {
+            constexpr uint32_t bias = 127;
+            const uint32_t     sign = negative ? (1u << 31) : 0u;
+            return static_cast<uint64_t>(sign | ((exponent + bias) << 23));
+        }
+
+        SWC_ASSERT(floatBits == MicroOpBits::B64);
+        constexpr uint64_t bias = 1023;
+        const uint64_t     sign = negative ? (1ull << 63) : 0ull;
+        return sign | (static_cast<uint64_t>(exponent + bias) << 52);
+    }
+
+    MicroReg emitUnsignedIntToFloatReg(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, TypeRef dstTypeRef)
+    {
+        MicroBuilder&   builder = codeGen.builder();
+        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+        const MicroOpBits dstBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+        SWC_ASSERT(srcType.isIntLikeUnsigned());
+        SWC_ASSERT(dstType.isFloat());
+        SWC_ASSERT(srcBits != MicroOpBits::Zero);
+        SWC_ASSERT(dstBits == MicroOpBits::B32 || dstBits == MicroOpBits::B64);
+
+        const auto finishFromF64 = [&](MicroReg f64Reg) {
+            if (dstBits == MicroOpBits::B64)
+                return f64Reg;
+
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            builder.emitClearReg(dstReg, dstBits);
+            builder.emitOpBinaryRegReg(dstReg, f64Reg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
+            return dstReg;
+        };
+
+        if (srcBits == MicroOpBits::B64)
+        {
+            const MicroLabelRef directLabel = builder.createLabel();
+            const MicroLabelRef doneLabel   = builder.createLabel();
+            const MicroReg      dstF64Reg   = codeGen.nextVirtualFloatRegister();
+
+            builder.emitCmpRegImm(srcReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, directLabel);
+
+            const MicroReg shiftedReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(shiftedReg, srcReg, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(shiftedReg, ApInt(1, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+
+            const MicroReg lsbReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(lsbReg, srcReg, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(lsbReg, ApInt(1, 64), MicroOp::And, MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(shiftedReg, lsbReg, MicroOp::Or, MicroOpBits::B64);
+
+            builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(dstF64Reg, shiftedReg, MicroOp::ConvertIntToFloat, MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(dstF64Reg, dstF64Reg, MicroOp::FloatAdd, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+            builder.placeLabel(directLabel);
+            builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(dstF64Reg, srcReg, MicroOp::ConvertIntToFloat, MicroOpBits::B64);
+            builder.placeLabel(doneLabel);
+            return finishFromF64(dstF64Reg);
+        }
+
+        MicroReg    convertReg  = srcReg;
+        MicroOpBits convertBits = srcBits;
+        if (getNumBits(srcBits) < 32 || dstBits == MicroOpBits::B64 || srcBits == MicroOpBits::B32)
+        {
+            const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 || srcBits == MicroOpBits::B32 ? MicroOpBits::B64 : MicroOpBits::B32;
+            const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
+            builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, widenedBits, srcBits);
+            convertReg  = widenedReg;
+            convertBits = widenedBits;
+        }
+
+        if (convertBits == MicroOpBits::B64)
+        {
+            const MicroReg dstF64Reg = codeGen.nextVirtualFloatRegister();
+            builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(dstF64Reg, convertReg, MicroOp::ConvertIntToFloat, MicroOpBits::B64);
+            return finishFromF64(dstF64Reg);
+        }
+
+        const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        builder.emitClearReg(dstReg, dstBits);
+        builder.emitOpBinaryRegReg(dstReg, convertReg, MicroOp::ConvertIntToFloat, dstBits);
+        return dstReg;
+    }
+
+    Result emitIntLikeCastOverflowCheck(CodeGen& codeGen, const AstNode& node, const MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        if (!CodeGenSafety::hasOverflowRuntimeSafety(codeGen))
+            return Result::Continue;
+        if (srcType.isBool() || dstType.isBool())
+            return Result::Continue;
+
+        const MicroOpBits srcBits  = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+        const MicroReg    srcReg64 = widenIntRegTo64(codeGen, srcReg, srcType, srcBits);
+        const bool        srcUnsigned = srcType.isIntLikeUnsigned();
+        const bool        dstUnsigned = dstType.isIntLikeUnsigned();
+        const uint32_t    dstBits     = dstType.payloadIntLikeBits();
+        if (!dstBits)
+            return Result::Continue;
+        MicroBuilder&     builder     = codeGen.builder();
+        const MicroLabelRef failLabel = builder.createLabel();
+        const MicroLabelRef doneLabel = builder.createLabel();
+
+        if (dstUnsigned)
+        {
+            if (!srcUnsigned)
+            {
+                builder.emitCmpRegImm(srcReg64, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, failLabel);
+            }
+
+            if (dstBits < 64)
+            {
+                builder.emitCmpRegImm(srcReg64, ApInt(maxUnsignedValue(dstBits), 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(srcUnsigned ? MicroCond::Above : MicroCond::Greater, MicroOpBits::B32, failLabel);
+            }
+        }
+        else if (srcUnsigned)
+        {
+            builder.emitCmpRegImm(srcReg64, ApInt(maxSignedValue(dstBits), 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Above, MicroOpBits::B32, failLabel);
+        }
+        else if (dstBits < 64)
+        {
+            builder.emitCmpRegImm(srcReg64, ApInt(minSignedValue(dstBits), 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, failLabel);
+            builder.emitCmpRegImm(srcReg64, ApInt(maxSignedValue(dstBits), 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Greater, MicroOpBits::B32, failLabel);
+        }
+
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(failLabel);
+        SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
+
+    Result emitFloatToIntCastOverflowCheck(CodeGen& codeGen, const AstNode& node, const MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        if (!CodeGenSafety::hasOverflowRuntimeSafety(codeGen))
+            return Result::Continue;
+        if (dstType.isBool())
+            return Result::Continue;
+
+        const MicroOpBits  srcBits   = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+        const uint32_t     dstBits   = dstType.payloadIntLikeBits();
+        if (!dstBits)
+            return Result::Continue;
+        const bool         dstUnsigned = dstType.isIntLikeUnsigned();
+        MicroBuilder&      builder   = codeGen.builder();
+        const MicroLabelRef failLabel = builder.createLabel();
+        const MicroLabelRef doneLabel = builder.createLabel();
+
+        if (dstUnsigned)
+        {
+            const MicroReg zeroReg = codeGen.nextVirtualFloatRegister();
+            builder.emitClearReg(zeroReg, srcBits);
+            builder.emitCmpRegReg(srcReg, zeroReg, srcBits);
+            CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                     srcType,
+                                                     {
+                                                         .primaryCond        = MicroCond::Below,
+                                                         .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
+                                                     },
+                                                     failLabel);
+
+            const MicroReg maxReg = codeGen.nextVirtualFloatRegister();
+            builder.emitLoadRegImm(maxReg, ApInt(floatPow2Bits(false, dstBits, srcBits), 64), srcBits);
+            builder.emitCmpRegReg(srcReg, maxReg, srcBits);
+            CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                     srcType,
+                                                     {
+                                                         .primaryCond        = MicroCond::AboveOrEqual,
+                                                         .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
+                                                     },
+                                                     failLabel);
+        }
+        else
+        {
+            const MicroReg minReg = codeGen.nextVirtualFloatRegister();
+            builder.emitLoadRegImm(minReg, ApInt(floatPow2Bits(true, dstBits - 1, srcBits), 64), srcBits);
+            builder.emitCmpRegReg(srcReg, minReg, srcBits);
+            CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                     srcType,
+                                                     {
+                                                         .primaryCond        = MicroCond::Below,
+                                                         .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
+                                                     },
+                                                     failLabel);
+
+            const MicroReg maxReg = codeGen.nextVirtualFloatRegister();
+            builder.emitLoadRegImm(maxReg, ApInt(floatPow2Bits(false, dstBits - 1, srcBits), 64), srcBits);
+            builder.emitCmpRegReg(srcReg, maxReg, srcBits);
+            CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                     srcType,
+                                                     {
+                                                         .primaryCond        = MicroCond::AboveOrEqual,
+                                                         .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
+                                                     },
+                                                     failLabel);
+        }
+
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(failLabel);
+        SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
     }
 
     enum class DynamicStructCastSourceKind : uint8_t
@@ -556,7 +811,8 @@ namespace
         const auto*               castPayload         = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         const bool                needsRuntimeStorage = castPayload && castPayload->runtimeStorageSym != nullptr;
 
-        TypeRef sourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();
+        const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();
+        TypeRef       sourceTypeRef       = storedSourceTypeRef;
         if (!sourceTypeRef.isValid())
             sourceTypeRef = srcPayload.typeRef;
 
@@ -578,7 +834,8 @@ namespace
             (srcNode.is(AstNodeId::CastExpr) || srcNode.is(AstNodeId::AutoCastExpr)) &&
             srcPayload.typeRef.isValid() &&
             srcPayload.typeRef == dstTypeRef &&
-            sourceTypeRef != dstTypeRef)
+            storedSourceTypeRef.isValid() &&
+            storedSourceTypeRef != dstTypeRef)
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
             return Result::Continue;
@@ -779,6 +1036,8 @@ namespace
                 builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
             }
 
+            SWC_RESULT(emitIntLikeCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, resolvedSrcType, resolvedDstType));
+
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
 
@@ -842,19 +1101,22 @@ namespace
 
         if (srcIntLikeType && dstFloatType)
         {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            if (resolvedSrcType.isIntLikeUnsigned())
+            {
+                dstPayload.reg = emitUnsignedIntToFloatReg(codeGen, srcReg, resolvedSrcType, dstTypeRef);
+                return Result::Continue;
+            }
+
             if (getNumBits(srcOpBits) < 32 || (dstOpBits == MicroOpBits::B64 && getNumBits(srcOpBits) == 32))
             {
                 const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
                 const MicroOpBits widenedBits = dstOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                if (resolvedSrcType.isIntSigned())
-                    builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
-                else
-                    builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
+                builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
                 srcReg = widenedReg;
             }
 
-            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
             builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
             return Result::Continue;
@@ -877,6 +1139,7 @@ namespace
 
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
         dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        SWC_RESULT(emitFloatToIntCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, resolvedSrcType, resolvedDstType));
         builder.emitClearReg(dstPayload.reg, dstOpBits);
         builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
 

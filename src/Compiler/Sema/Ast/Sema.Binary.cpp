@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -8,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Helpers.h"
@@ -18,6 +21,78 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload& ensureBinaryCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    Result setupBinaryOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+    {
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
+            return Result::Continue;
+
+        auto& payload = ensureBinaryCodeGenPayload(sema, nodeRef);
+        payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
+        SWC_ASSERT(panicFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        payload.runtimeFunctionSymbol = panicFn;
+        return Result::Continue;
+    }
+
+    Result checkIntegerModifiers(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView)
+    {
+        if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
+            return Result::Continue;
+
+        if (nodeLeftView.type()->isInt())
+            return Result::Continue;
+
+        const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
+        const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
+        auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef());
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    bool needsBinaryOverflowRuntimeSafety(const AstBinaryExpr& node, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        if (!nodeLeftView.type() || !nodeRightView.type())
+            return false;
+        if (!nodeLeftView.type()->isIntLike() || !nodeRightView.type()->isIntLike())
+            return false;
+
+        switch (op)
+        {
+            case TokenId::SymPlus:
+            case TokenId::SymMinus:
+            case TokenId::SymAsterisk:
+            case TokenId::SymSlash:
+            case TokenId::SymPercent:
+                return !node.modifierFlags.has(AstModifierFlagsE::Wrap);
+
+            case TokenId::SymLowerLower:
+            case TokenId::SymGreaterGreater:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     TokenId canonicalBinaryToken(TokenId op)
     {
         switch (op)
@@ -283,15 +358,19 @@ namespace
             case TokenId::SymAmpersand:
             case TokenId::SymPipe:
             case TokenId::SymCircumflex:
+                SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
+                break;
+
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
+                SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Wrap));
                 break;
 
             default:
                 break;
         }
 
+        SWC_RESULT(checkIntegerModifiers(sema, node, nodeLeftView));
         return Result::Continue;
     }
 
@@ -387,7 +466,19 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                SWC_RESULT(SemaHelpers::castBinaryRightToLeft(sema, op, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Implicit));
+                if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&
+                    nodeLeftView.type()->isScalarNumeric() &&
+                    nodeRightView.type()->isScalarNumeric())
+                {
+                    const TypeRef promotedTypeRef = sema.typeMgr().promote(nodeLeftView.typeRef(), nodeRightView.typeRef(), true);
+                    SWC_RESULT(Cast::castIfNeeded(sema, nodeLeftView, promotedTypeRef, CastKind::Promotion));
+                    SWC_RESULT(Cast::castIfNeeded(sema, nodeRightView, promotedTypeRef, CastKind::Promotion));
+                    resultTypeRef = promotedTypeRef;
+                }
+                else
+                {
+                    SWC_RESULT(SemaHelpers::castBinaryRightToLeft(sema, op, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Implicit));
+                }
                 break;
 
             default:
@@ -486,6 +577,8 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SWC_RESULT(promote(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(check(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(castAndResultType(sema, op, *this, nodeLeftView, nodeRightView));
+    if (needsBinaryOverflowRuntimeSafety(*this, op, nodeLeftView, nodeRightView))
+        SWC_RESULT(setupBinaryOverflowRuntimeSafety(sema, sema.curNodeRef(), codeRef()));
 
     return Result::Continue;
 }

@@ -112,6 +112,22 @@ struct ForeachVariadicPayload
 
 #test
 {
+    func foreachStringValueMask()->u32
+    {
+        const values: [1] string = ["1 blue"]
+
+        foreach value in values do
+            return value[0] & 15
+
+        return 0
+    }
+
+    const V = #run foreachStringValueMask()
+    #assert(V == 1'u32)
+}
+
+#test
+{
     func foreachSliceValueIndex()->s32
     {
         var arr: [4] s32 = [5, 6, 7, 8]

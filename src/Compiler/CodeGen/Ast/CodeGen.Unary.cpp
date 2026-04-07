@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -73,6 +74,14 @@ namespace
         }
 
         builder.emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, opBits);
+        if (CodeGenSafety::hasOverflowRuntimeSafety(codeGen) && operandTypeInfo.isIntSigned())
+        {
+            const auto&         node            = codeGen.node(codeGen.curNodeRef()).cast<AstUnaryExpr>();
+            const MicroLabelRef noOverflowLabel = builder.createLabel();
+            builder.emitJumpToLabel(MicroCond::NotOverflow, MicroOpBits::B32, noOverflowLabel);
+            SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
+            builder.placeLabel(noOverflowLabel);
+        }
         return Result::Continue;
     }
 

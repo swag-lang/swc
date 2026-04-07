@@ -154,7 +154,7 @@ alias TypedVariadicAlias = s32
 
 #test
 {
-    func variadicTyped(values: string...)->u8 { return values[0][0] + values[1][0] + values[2][0] }
+    func variadicTyped(values: string...)->u8 { return cast #wrap(u8) (cast(u16) values[0][0] + cast(u16) values[1][0] + cast(u16) values[2][0]) }
     const V0 = #run variadicTyped("ab", "cd", "ef")
     #assert(#typeof(V0) == u8)
     #assert(V0 == 41'u8)

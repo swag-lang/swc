@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -8,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
@@ -16,6 +19,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload& ensureUnaryCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    Result setupUnaryOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+    {
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
+            return Result::Continue;
+
+        auto& payload = ensureUnaryCodeGenPayload(sema, nodeRef);
+        payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
+        SWC_ASSERT(panicFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        payload.runtimeFunctionSymbol = panicFn;
+        return Result::Continue;
+    }
+
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
         const TaskContext& ctx = sema.ctx();
@@ -400,6 +434,8 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             SWC_INTERNAL_ERROR();
     }
 
+    if (tok.id == TokenId::SymMinus && view.type()->isIntSigned())
+        SWC_RESULT(setupUnaryOverflowRuntimeSafety(sema, sema.curNodeRef(), codeRef()));
     return Result::Continue;
 }
 

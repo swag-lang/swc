@@ -300,7 +300,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
-    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap));
 
     // Cast kind
     CastFlags castFlags = CastFlagsE::Zero;
@@ -308,6 +308,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         castFlags.add(CastFlagsE::BitCast);
     if (modifierFlags.has(AstModifierFlagsE::UnConst))
         castFlags.add(CastFlagsE::UnConst);
+    if (modifierFlags.has(AstModifierFlagsE::Wrap))
+        castFlags.add(CastFlagsE::NoOverflow);
     castFlags.add(CastFlagsE::FromExplicitNode);
 
     sema.inheritPayload(*this, nodeExprView.nodeRef());
@@ -406,7 +408,7 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
-    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap));
 
     // We do not know the destination type here (it comes from context),
     // but we still need the source expression type or constant. Copying the raw payload would

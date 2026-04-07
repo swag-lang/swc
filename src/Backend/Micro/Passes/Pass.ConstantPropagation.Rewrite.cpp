@@ -314,6 +314,7 @@ Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(MicroInstr& 
 Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
 {
     SWC_ASSERT(context_ != nullptr);
+    const bool preserveCpuFlags = MicroInstrInfo::definesCpuFlags(inst) && !areCpuFlagsDeadAfterInstruction(instRef);
 
     switch (inst.op)
     {
@@ -338,11 +339,27 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
                         switch (tryFoldBinaryImmediateForPropagation(foldedValue, itKnownDst->second.value, immValue, ops[3].microOp, ops[2].opBits, &safetyStatus))
                         {
                             case BinaryFoldResult::Folded:
-                                inst.op               = MicroInstrOpcode::LoadRegImm;
-                                inst.numOperands      = 3;
-                                ops[1].opBits         = ops[2].opBits;
-                                ops[2].valueU64       = foldedValue;
-                                context_->passChanged = true;
+                                if (preserveCpuFlags)
+                                {
+                                    InstrRewriteSnapshot rewriteSnapshot;
+                                    captureInstrRewriteSnapshot(rewriteSnapshot, inst, ops);
+
+                                    inst.op          = MicroInstrOpcode::OpBinaryRegImm;
+                                    inst.numOperands = 4;
+                                    ops[1].opBits    = rewriteSnapshot.operands[2].opBits;
+                                    ops[2].microOp   = rewriteSnapshot.operands[3].microOp;
+                                    ops[3].valueU64  = immValue;
+                                    if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
+                                        context_->passChanged = true;
+                                }
+                                else
+                                {
+                                    inst.op               = MicroInstrOpcode::LoadRegImm;
+                                    inst.numOperands      = 3;
+                                    ops[1].opBits         = ops[2].opBits;
+                                    ops[2].valueU64       = foldedValue;
+                                    context_->passChanged = true;
+                                }
                                 break;
                             case BinaryFoldResult::SafetyError:
                                 if (!MicroPassHelpers::isAddOrSubMicroOp(ops[3].microOp))
@@ -387,11 +404,27 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
                         switch (tryFoldBinaryImmediateForPropagation(foldedValue, itKnownDst->second.value, immValue, ops[3].microOp, ops[2].opBits, &safetyStatus))
                         {
                             case BinaryFoldResult::Folded:
-                                inst.op               = MicroInstrOpcode::LoadRegImm;
-                                inst.numOperands      = 3;
-                                ops[1].opBits         = ops[2].opBits;
-                                ops[2].valueU64       = foldedValue;
-                                context_->passChanged = true;
+                                if (preserveCpuFlags)
+                                {
+                                    InstrRewriteSnapshot rewriteSnapshot;
+                                    captureInstrRewriteSnapshot(rewriteSnapshot, inst, ops);
+
+                                    inst.op          = MicroInstrOpcode::OpBinaryRegImm;
+                                    inst.numOperands = 4;
+                                    ops[1].opBits    = rewriteSnapshot.operands[2].opBits;
+                                    ops[2].microOp   = rewriteSnapshot.operands[3].microOp;
+                                    ops[3].valueU64  = immValue;
+                                    if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
+                                        context_->passChanged = true;
+                                }
+                                else
+                                {
+                                    inst.op               = MicroInstrOpcode::LoadRegImm;
+                                    inst.numOperands      = 3;
+                                    ops[1].opBits         = ops[2].opBits;
+                                    ops[2].valueU64       = foldedValue;
+                                    context_->passChanged = true;
+                                }
                                 break;
                             case BinaryFoldResult::SafetyError:
                                 if (!MicroPassHelpers::isAddOrSubMicroOp(ops[3].microOp))
@@ -487,20 +520,23 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
                 const BinaryFoldResult foldResult   = tryFoldBinaryImmediateForPropagation(foldedValue, itKnown->second.value, immValue, binaryOp, opBits, &safetyStatus);
                 if (foldResult == BinaryFoldResult::Folded)
                 {
-                    inst.op               = MicroInstrOpcode::LoadRegImm;
-                    inst.numOperands      = 3;
-                    ops[1].opBits         = opBits;
-                    ops[2].valueU64       = foldedValue;
-                    context_->passChanged = true;
-
-                    if (opBits == MicroOpBits::B64)
+                    if (!preserveCpuFlags)
                     {
-                        const auto itAddress = knownAddresses_.find(ops[0].reg);
-                        if (itAddress != knownAddresses_.end())
+                        inst.op               = MicroInstrOpcode::LoadRegImm;
+                        inst.numOperands      = 3;
+                        ops[1].opBits         = opBits;
+                        ops[2].valueU64       = foldedValue;
+                        context_->passChanged = true;
+
+                        if (opBits == MicroOpBits::B64)
                         {
-                            uint64_t updatedOffset = 0;
-                            if (tryApplyUnsignedAddSubOffset(updatedOffset, itAddress->second, immValue, binaryOp))
-                                deferredAddressDef = std::pair{ops[0].reg, updatedOffset};
+                            const auto itAddress = knownAddresses_.find(ops[0].reg);
+                            if (itAddress != knownAddresses_.end())
+                            {
+                                uint64_t updatedOffset = 0;
+                                if (tryApplyUnsignedAddSubOffset(updatedOffset, itAddress->second, immValue, binaryOp))
+                                    deferredAddressDef = std::pair{ops[0].reg, updatedOffset};
+                            }
                         }
                     }
                 }
@@ -525,10 +561,13 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
                 const Math::FoldStatus foldStatus  = foldUnaryImmediateToBits(foldedValue, itKnown->second.value, ops[2].microOp, ops[1].opBits);
                 if (foldStatus == Math::FoldStatus::Ok)
                 {
-                    inst.op               = MicroInstrOpcode::LoadRegImm;
-                    inst.numOperands      = 3;
-                    ops[2].valueU64       = foldedValue;
-                    context_->passChanged = true;
+                    if (!preserveCpuFlags)
+                    {
+                        inst.op               = MicroInstrOpcode::LoadRegImm;
+                        inst.numOperands      = 3;
+                        ops[2].valueU64       = foldedValue;
+                        context_->passChanged = true;
+                    }
                 }
                 else if (Math::isSafetyError(foldStatus))
                 {

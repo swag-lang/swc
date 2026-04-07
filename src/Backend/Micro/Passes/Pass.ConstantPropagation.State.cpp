@@ -82,7 +82,10 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
         case MicroInstrOpcode::CmpRegImm:
         {
             if (!ops[0].reg.isInt())
+            {
+                compareState_.valid = false;
                 break;
+            }
 
             const auto itKnown = known_.find(ops[0].reg);
             if (itKnown != known_.end())
@@ -94,7 +97,10 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
         case MicroInstrOpcode::CmpRegReg:
         {
             if (!ops[0].reg.isInt() || !ops[1].reg.isInt())
+            {
+                compareState_.valid = false;
                 break;
+            }
 
             const auto itKnownLhs = known_.find(ops[0].reg);
             const auto itKnownRhs = known_.find(ops[1].reg);
@@ -107,7 +113,10 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
         case MicroInstrOpcode::CmpMemImm:
         {
             if (!ops[0].reg.isInt())
+            {
+                compareState_.valid = false;
                 break;
+            }
 
             uint64_t stackOffset = 0;
             if (tryResolveStackOffset(stackOffset, ops[0].reg, ops[2].valueU64))
@@ -127,7 +136,10 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
         case MicroInstrOpcode::CmpMemReg:
         {
             if (!ops[0].reg.isInt() || !ops[1].reg.isInt())
+            {
+                compareState_.valid = false;
                 break;
+            }
 
             uint64_t stackOffset = 0;
             if (tryResolveStackOffset(stackOffset, ops[0].reg, ops[3].valueU64))
@@ -184,6 +196,42 @@ void MicroConstantPropagationPass::clearForCallBoundary(const bool hasStackAddre
     knownStackAddresses_.clear();
     knownConstantPointers_.clear();
     compareState_.valid = false;
+}
+
+bool MicroConstantPropagationPass::areCpuFlagsDeadAfterInstruction(const MicroInstrRef instructionRef) const
+{
+    SWC_ASSERT(storage_ != nullptr);
+    SWC_ASSERT(operands_ != nullptr);
+    SWC_ASSERT(context_ != nullptr);
+
+    if (instructionRef.isInvalid())
+        return true;
+
+    auto       scanIt = storage_->view().begin();
+    const auto endIt  = storage_->view().end();
+    for (; scanIt != endIt; ++scanIt)
+    {
+        if (scanIt.current == instructionRef)
+            break;
+    }
+
+    if (scanIt == endIt)
+        return true;
+
+    ++scanIt;
+    for (; scanIt != endIt; ++scanIt)
+    {
+        const MicroInstr&      scanInst = *scanIt;
+        const MicroInstrUseDef useDef   = scanInst.collectUseDef(*operands_, context_->encoder);
+        if (MicroInstrInfo::usesCpuFlags(scanInst))
+            return false;
+        if (MicroInstrInfo::definesCpuFlags(scanInst))
+            return true;
+        if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+            return true;
+    }
+
+    return true;
 }
 
 SWC_END_NAMESPACE();

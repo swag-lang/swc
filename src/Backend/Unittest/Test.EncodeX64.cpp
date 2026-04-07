@@ -20,6 +20,7 @@ namespace
     using RunCaseFn     = std::function<Result(const char*, const char*, const BuilderCaseFn&)>;
 
     constexpr MicroReg RAX  = MicroReg::intReg(0);
+    constexpr MicroReg RBX  = MicroReg::intReg(1);
     constexpr MicroReg RCX  = MicroReg::intReg(2);
     constexpr MicroReg RDX  = MicroReg::intReg(3);
     constexpr MicroReg RSP  = MicroReg::intReg(4);
@@ -117,7 +118,7 @@ namespace
         ENCODE_CASE("load_reg_reg_xmm0_xmm1_b32", "F3 0F 10 C1", b.emitLoadRegReg(XMM0, XMM1, MicroOpBits::B32););
         ENCODE_CASE("load_reg_reg_xmm2_r9_b32", "66 41 0F 6E D1", b.emitLoadRegReg(XMM2, R9, MicroOpBits::B32););
         ENCODE_CASE("load_reg_reg_r10_xmm3_b32", "66 41 0F 7E DA", b.emitLoadRegReg(R10, XMM3, MicroOpBits::B32););
-        ENCODE_CASE("load_reg_imm_xmm0_b32_conform", "48 83 EC 10 40 C7 04 24 01 00 00 00 F3 40 0F 10 04 24", b.emitLoadRegImm(XMM0, ApInt(1, 64), MicroOpBits::B32););
+        ENCODE_CASE("load_reg_imm_xmm0_b32_conform", "41 BB 01 00 00 00 41 53 F3 40 0F 10 04 24 41 5B", b.emitLoadRegImm(XMM0, ApInt(1, 64), MicroOpBits::B32););
 
         ENCODE_CASE("load_reg_mem_r8_rbp_0_b64", "4C 8B 45 00", b.emitLoadRegMem(R8, RBP, 0, MicroOpBits::B64););
         ENCODE_CASE("load_reg_mem_r8_r13_0_b64", "4D 8B 45 00", b.emitLoadRegMem(R8, R13, 0, MicroOpBits::B64););
@@ -126,6 +127,7 @@ namespace
         ENCODE_CASE("load_reg_mem_r9_rbp_7f_b32", "44 8B 4D 7F", b.emitLoadRegMem(R9, RBP, 0x7F, MicroOpBits::B32););
         ENCODE_CASE("load_reg_mem_r8_rbp_neg80_b64", "4C 8B 45 80", b.emitLoadRegMem(R8, RBP, 0xFFFFFFFFFFFFFF80, MicroOpBits::B64););
         ENCODE_CASE("load_reg_mem_xmm0_rsp_1234_b64", "F2 40 0F 10 84 24 34 12 00 00", b.emitLoadRegMem(XMM0, RSP, 0x1234, MicroOpBits::B64););
+        ENCODE_CASE("load_reg_mem_xmm3_r8_b128", "41 0F 10 18", b.emitLoadRegMem(XMM3, R8, 0, MicroOpBits::B128););
         ENCODE_CASE("load_reg_mem_r10_r13_40_b16", "66 45 8B 55 40", b.emitLoadRegMem(R10, R13, 0x40, MicroOpBits::B16););
 
         ENCODE_CASE("load_sext_reg_mem_b8", "4D 0F BE 5C 24 10", b.emitLoadSignedExtendRegMem(R11, R12, 0x10, MicroOpBits::B64, MicroOpBits::B8););
@@ -145,6 +147,7 @@ namespace
         ENCODE_CASE("lea_reg_mem_rip", "4C 8D 15", b.emitLoadAddressRegMem(R10, MicroReg::instructionPointer(), 0, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_r11_r12_0", "4D 89 E3", b.emitLoadAddressRegMem(R11, R12, 0, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_r10_rsp_0_b64", "49 89 E2", b.emitLoadAddressRegMem(R10, RSP, 0, MicroOpBits::B64););
+        ENCODE_CASE("lea_reg_mem_rcx_rsp_8_b64", "48 8D 4C 24 08", b.emitLoadAddressRegMem(RCX, RSP, 0x8, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_r8_rbp_0_b64", "49 89 E8", b.emitLoadAddressRegMem(R8, RBP, 0, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_r9_r13_1234", "4D 8D 8D 34 12 00 00", b.emitLoadAddressRegMem(R9, R13, 0x1234, MicroOpBits::B64););
 
@@ -159,7 +162,9 @@ namespace
         ENCODE_CASE("load_mem_reg_r13_0_r8_b64", "4D 89 45 00", b.emitLoadMemReg(R13, 0, R8, MicroOpBits::B64););
         ENCODE_CASE("load_mem_reg_r12_r8_b64", "4D 89 04 24", b.emitLoadMemReg(R12, 0, R8, MicroOpBits::B64););
         ENCODE_CASE("load_mem_reg_r13_xmm0_b64", "F2 41 0F 11 45 7F", b.emitLoadMemReg(R13, 0x7F, XMM0, MicroOpBits::B64););
+        ENCODE_CASE("load_mem_reg_rbx_10_xmm3_b128", "0F 11 5B 10", b.emitLoadMemReg(RBX, 0x10, XMM3, MicroOpBits::B128););
         ENCODE_CASE("load_mem_reg_r13_neg80_r8_b64", "4D 89 45 80", b.emitLoadMemReg(R13, 0xFFFFFFFFFFFFFF80, R8, MicroOpBits::B64););
+        ENCODE_CASE("load_mem_reg_rsp_70_rcx_b64", "48 89 4C 24 70", b.emitLoadMemReg(RSP, 0x70, RCX, MicroOpBits::B64););
         ENCODE_CASE("load_mem_reg_rsp_b32", "44 89 8C 24 20 01 00 00", b.emitLoadMemReg(RSP, 0x120, R9, MicroOpBits::B32););
         ENCODE_CASE("load_mem_imm_r12_b8", "41 C6 04 24 7F", b.emitLoadMemImm(R12, 0, ApInt(0x7F, 64), MicroOpBits::B8););
         ENCODE_CASE("load_mem_imm_r13_80_b8", "41 C6 85 80 00 00 00 5A", b.emitLoadMemImm(R13, 0x80, ApInt(0x5A, 64), MicroOpBits::B8););
@@ -270,10 +275,12 @@ namespace
 
     Result buildBinaryImmOps(const RunCaseFn& runCase)
     {
+        ENCODE_CASE("op_binary_reg_imm_add_r8_1_b64", "49 83 C0 01", b.emitOpBinaryRegImm(R8, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_add_r8", "49 83 C0 02", b.emitOpBinaryRegImm(R8, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_add_r8_7f_b64", "49 83 C0 7F", b.emitOpBinaryRegImm(R8, ApInt(0x7F, 64), MicroOp::Add, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_add_r8_80_b64", "49 81 C0 80 00 00 00", b.emitOpBinaryRegImm(R8, ApInt(0x80, 64), MicroOp::Add, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_add_r8_neg2147483648_b64", "49 81 C0 00 00 00 80", b.emitOpBinaryRegImm(R8, ApInt(0xFFFFFFFF80000000, 64), MicroOp::Add, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_imm_sub_r9_1_b64", "49 83 E9 01", b.emitOpBinaryRegImm(R9, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_sub_r9", "49 83 E9 7F", b.emitOpBinaryRegImm(R9, ApInt(0x7F, 64), MicroOp::Subtract, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_sub_r9_ff_b64", "49 83 E9 FF", b.emitOpBinaryRegImm(R9, ApInt(0xFFFFFFFFFFFFFFFF, 64), MicroOp::Subtract, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_and_r10", "49 83 E2 7F", b.emitOpBinaryRegImm(R10, ApInt(0x7F, 64), MicroOp::And, MicroOpBits::B64););
@@ -289,7 +296,9 @@ namespace
         ENCODE_CASE("op_binary_reg_imm_shr_63_b64", "49 C1 E9 3F", b.emitOpBinaryRegImm(R9, ApInt(63, 64), MicroOp::ShiftRight, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_sar_9", "49 C1 FA 09", b.emitOpBinaryRegImm(R10, ApInt(9, 64), MicroOp::ShiftArithmeticRight, MicroOpBits::B64););
 
+        ENCODE_CASE("op_binary_mem_imm_add_1", "49 83 44 24 10 01", b.emitOpBinaryMemImm(R12, 0x10, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64););
         ENCODE_CASE("op_binary_mem_imm_add", "49 83 44 24 10 02", b.emitOpBinaryMemImm(R12, 0x10, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_mem_imm_sub_1", "49 83 6D 20 01", b.emitOpBinaryMemImm(R13, 0x20, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64););
         ENCODE_CASE("op_binary_mem_imm_sub", "49 83 6D 20 7F", b.emitOpBinaryMemImm(R13, 0x20, ApInt(0x7F, 64), MicroOp::Subtract, MicroOpBits::B64););
         ENCODE_CASE("op_binary_mem_imm_and_80_b64", "49 81 64 24 20 80 00 00 00", b.emitOpBinaryMemImm(R12, 0x20, ApInt(0x80, 64), MicroOp::And, MicroOpBits::B64););
         ENCODE_CASE("op_binary_mem_imm_and", "48 83 64 24 30 7F", b.emitOpBinaryMemImm(RSP, 0x30, ApInt(0x7F, 64), MicroOp::And, MicroOpBits::B64););
@@ -374,6 +383,63 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(EncodeX64_CmpAndCond)
 {
     SWC_RESULT(runCase(ctx, buildCmpAndCond));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_LegalizeLargeCmpRegImmPreservesLhs)
+{
+    X64Encoder   encoder(ctx);
+    MicroBuilder builder(ctx);
+    builder.emitCmpRegImm(R12, ApInt(0x7FFFFFFFFFFFFFFF, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    MicroRegisterAllocationPass regAllocPass;
+    MicroLegalizePass           legalizePass;
+    MicroEmitPass               encodePass;
+    MicroPassManager            passes;
+    passes.addStartPass(regAllocPass);
+    passes.addStartPass(legalizePass);
+    passes.addStartPass(regAllocPass);
+    passes.addStartPass(encodePass);
+
+    MicroPassContext passCtx;
+    SWC_RESULT(builder.runPasses(passes, &encoder, passCtx));
+    SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+
+    bool hasLargeImmLoad = false;
+    bool hasRewrittenCmp = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadRegImm &&
+            ops &&
+            ops[1].opBits == MicroOpBits::B64 &&
+            ops[2].valueU64 == 0x7FFFFFFFFFFFFFFFull)
+        {
+            hasLargeImmLoad = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::CmpRegReg &&
+            ops &&
+            ops[0].reg == R12 &&
+            ops[2].opBits == MicroOpBits::B64 &&
+            ops[1].reg.isInt() &&
+            ops[1].reg != R12)
+        {
+            hasRewrittenCmp = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::CmpRegImm &&
+            ops &&
+            ops[1].opBits == MicroOpBits::B64 &&
+            ops[2].valueU64 == 0x7FFFFFFFFFFFFFFFull)
+        {
+            return Result::Error;
+        }
+    }
+
+    if (!hasLargeImmLoad || !hasRewrittenCmp)
+        return Result::Error;
 }
 SWC_TEST_END()
 

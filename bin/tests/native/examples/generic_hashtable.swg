@@ -152,7 +152,7 @@ func(K, V) getOr(table: *HashTable'(K, V), key: K, fallback: V)->V
 
 func hashU64(value: u64)->u64
 {
-    return value * 11400714819323198485'u64
+    return value * #wrap 11400714819323198485'u64
 }
 
 func eqU64(a: u64, b: u64)->bool => a == b
@@ -172,7 +172,7 @@ func hashString(text: string)->u64
     foreach byte in bytes
     {
         hash ^= cast(u64) byte
-        hash *= 1099511628211'u64
+        hash = hash * #wrap 1099511628211'u64
     }
 
     return hash

@@ -20,9 +20,9 @@ struct MarketForecast
 func nextSecret(secret: u32)->u32
 {
     var value = secret
-    value = (value ^ (value << 6)) & SecretMask
+    value = (value ^ (value << #wrap 6)) & SecretMask
     value = (value ^ (value >> 5)) & SecretMask
-    value = (value ^ (value << 11)) & SecretMask
+    value = (value ^ (value << #wrap 11)) & SecretMask
     return value
 }
 

@@ -8,6 +8,8 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -17,6 +19,89 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload& ensureCastCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (payload)
+            return *payload;
+
+        payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    TypeRef unwrapCastOverflowTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrapAliasEnum(sema.ctx(), typeRef);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
+    bool castNeedsOverflowRuntimeSafety(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
+    {
+        if (castFlags.hasAny({CastFlagsE::BitCast, CastFlagsE::NoOverflow}))
+            return false;
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
+            return false;
+
+        srcTypeRef = unwrapCastOverflowTypeRef(sema, srcTypeRef);
+        dstTypeRef = unwrapCastOverflowTypeRef(sema, dstTypeRef);
+        if (!srcTypeRef.isValid() || !dstTypeRef.isValid() || srcTypeRef == dstTypeRef)
+            return false;
+
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        if (srcType.isNumericIntLike() && dstType.isNumericIntLike())
+        {
+            if (srcType.isBool() || dstType.isBool())
+                return false;
+
+            const bool     srcUnsigned = srcType.isIntLikeUnsigned();
+            const bool     dstUnsigned = dstType.isIntLikeUnsigned();
+            const uint32_t srcBits     = srcType.payloadIntLikeBits();
+            const uint32_t dstBits     = dstType.payloadIntLikeBits();
+
+            if (srcUnsigned == dstUnsigned)
+                return srcBits > dstBits;
+
+            if (srcUnsigned && !dstUnsigned)
+                return srcBits >= dstBits;
+
+            return true;
+        }
+
+        if (srcType.isFloat() && dstType.isNumericIntLike() && !dstType.isBool())
+            return true;
+
+        return false;
+    }
+
+    Result setupCastOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
+    {
+        if (!castNeedsOverflowRuntimeSafety(sema, srcTypeRef, dstTypeRef, castFlags))
+            return Result::Continue;
+
+        auto& payload = ensureCastCodeGenPayload(sema, nodeRef);
+        payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
+
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, sema.node(nodeRef).codeRef()));
+        SWC_ASSERT(panicFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
+        payload.runtimeFunctionSymbol = panicFn;
+        return Result::Continue;
+    }
+
     void setEnumUnderlyingCastNote(CastRequest& castRequest, TypeRef enumTypeRef, TypeRef underlyingTypeRef)
     {
         castRequest.failure.srcTypeRef = enumTypeRef;
@@ -1237,6 +1322,8 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             effectiveFlags.add(CastFlagsE::BitCast);
         if (autoCast.modifierFlags.has(AstModifierFlagsE::UnConst))
             effectiveFlags.add(CastFlagsE::UnConst);
+        if (autoCast.modifierFlags.has(AstModifierFlagsE::Wrap))
+            effectiveFlags.add(CastFlagsE::NoOverflow);
     }
 
     if (view.cstRef().isValid() && sema.isFoldedTypedConst(view.nodeRef()))
@@ -1259,6 +1346,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     {
         if (castRequest.constantFoldingResult().isInvalid())
         {
+            AstNodeRef runtimeCastNodeRef = view.nodeRef();
             // A contextual cast can carry flags like `UfcsArgument` even when the
             // source is already of the requested type. Re-wrapping the same node
             // in that case causes reentrant cast growth on revisits.
@@ -1276,7 +1364,10 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
                 SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, srcNodeRef, srcTypeRef, dstTypeRef));
                 view.nodeRef() = createCast(sema, dstTypeRef, srcNodeRef);
                 SWC_RESULT(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef));
+                runtimeCastNodeRef = view.nodeRef();
             }
+
+            SWC_RESULT(setupCastOverflowRuntimeSafety(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
         }
         else
         {

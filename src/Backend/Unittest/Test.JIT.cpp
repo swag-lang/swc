@@ -13,6 +13,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct Copy128Payload
+    {
+        uint64_t lo;
+        uint64_t hi;
+    };
+
     Result runCase(TaskContext& ctx, void (*buildFn)(MicroBuilder&, const CallConv&), uint64_t expectedResult)
     {
         const CallConv& callConv = CallConv::host();
@@ -64,6 +70,82 @@ namespace
         builder.emitLoadRegReg(callConv.intReturn, v0, MicroOpBits::B64);
         builder.emitRet();
     }
+
+    void buildReturnZeroAfter128BitStackCopy(MicroBuilder& builder, const CallConv& callConv)
+    {
+        static const Copy128Payload payload = {
+            .lo = 0x1122334455667788ull,
+            .hi = 0x99AABBCCDDEEFF00ull,
+        };
+        Runtime::BuildCfgBackend buildCfg{};
+        buildCfg.optimize = true;
+        builder.setBackendBuildCfg(buildCfg);
+
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg r9   = MicroReg::intReg(9);
+        constexpr MicroReg r10  = MicroReg::intReg(10);
+        constexpr MicroReg r11  = MicroReg::intReg(11);
+        constexpr MicroReg rbx  = MicroReg::intReg(1);
+        constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegReg(rbx, callConv.stackPointer, MicroOpBits::B64);
+        builder.emitLoadRegPtrImm(r8, reinterpret_cast<uint64_t>(&payload));
+        builder.emitLoadRegMem(xmm3, r8, 0, MicroOpBits::B128);
+        builder.emitLoadMemReg(rbx, 16, xmm3, MicroOpBits::B128);
+
+        builder.emitLoadRegMem(callConv.intReturn, rbx, 16, MicroOpBits::B64);
+        builder.emitLoadRegMem(r11, rbx, 24, MicroOpBits::B64);
+
+        builder.emitLoadRegImm(r9, ApInt(payload.lo, 64), MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(callConv.intReturn, r9, MicroOp::Xor, MicroOpBits::B64);
+        builder.emitLoadRegImm(r10, ApInt(payload.hi, 64), MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(r11, r10, MicroOp::Xor, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(callConv.intReturn, r11, MicroOp::Or, MicroOpBits::B64);
+
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    void buildReturnOneAfterPointerSpillRoundTrip(MicroBuilder& builder, const CallConv& callConv)
+    {
+        Runtime::BuildCfgBackend buildCfg{};
+        buildCfg.optimize = true;
+        builder.setBackendBuildCfg(buildCfg);
+
+        constexpr MicroReg rcx = MicroReg::intReg(2);
+        constexpr MicroReg r8  = MicroReg::intReg(8);
+        constexpr MicroReg r9  = MicroReg::intReg(9);
+        constexpr MicroReg r10 = MicroReg::intReg(10);
+
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(0x80, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(rcx, callConv.stackPointer, 8, MicroOpBits::B64);
+        builder.emitLoadMemReg(callConv.stackPointer, 0x70, rcx, MicroOpBits::B64);
+        builder.emitLoadRegImm(r8, ApInt(1, 64), MicroOpBits::B32);
+        builder.emitLoadRegMem(r9, callConv.stackPointer, 0x70, MicroOpBits::B64);
+        builder.emitLoadMemReg(r9, 0, r8, MicroOpBits::B32);
+        builder.emitLoadRegMem(r10, callConv.stackPointer, 0x70, MicroOpBits::B64);
+        builder.emitLoadRegMem(callConv.intReturn, r10, 0, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(0x80, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    void buildReturnOneAfterB32LoadAndZeroExtend(MicroBuilder& builder, const CallConv& callConv)
+    {
+        Runtime::BuildCfgBackend buildCfg{};
+        buildCfg.optimize = true;
+        builder.setBackendBuildCfg(buildCfg);
+
+        constexpr MicroReg rdx = MicroReg::intReg(3);
+
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadMemImm(callConv.stackPointer, 0, ApInt(1, 64), MicroOpBits::B32);
+        builder.emitLoadMemImm(callConv.stackPointer, 4, ApInt(0x12345678, 64), MicroOpBits::B32);
+        builder.emitLoadRegMem(rdx, callConv.stackPointer, 0, MicroOpBits::B32);
+        builder.emitLoadZeroExtendRegReg(callConv.intReturn, rdx, MicroOpBits::B64, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+    }
 }
 
 SWC_TEST_BEGIN(JIT_Return42)
@@ -75,6 +157,24 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JIT_RegAllocAvoidsFutureConcreteClobber)
 {
     SWC_RESULT(runCase(ctx, &buildReturnVirtualAcrossConcreteClobber, 3));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_128BitStackCopy)
+{
+    SWC_RESULT(runCase(ctx, &buildReturnZeroAfter128BitStackCopy, 0));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_PointerSpillRoundTrip)
+{
+    SWC_RESULT(runCase(ctx, &buildReturnOneAfterPointerSpillRoundTrip, 1));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_B32LoadAndZeroExtendKeepsUpperBitsClear)
+{
+    SWC_RESULT(runCase(ctx, &buildReturnOneAfterB32LoadAndZeroExtend, 1));
 }
 SWC_TEST_END()
 

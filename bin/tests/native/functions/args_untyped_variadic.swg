@@ -45,7 +45,7 @@ func variadicAnyString(values: ...)->u8
     let s0 = cast(string) values[0]
     let s1 = cast(string) values[1]
     let s2 = cast(string) values[2]
-    return s0[0] + s1[0] + s2[0]
+    return cast #wrap(u8) (cast(u16) s0[0] + cast(u16) s1[0] + cast(u16) s2[0])
 }
 
 #test

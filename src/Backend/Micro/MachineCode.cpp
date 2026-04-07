@@ -52,6 +52,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 
     codeRelocations   = builder.codeRelocations();
     debugSourceRanges = encoder.debugSourceRanges();
+
     return Result::Continue;
 }
 

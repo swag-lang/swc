@@ -76,11 +76,8 @@ namespace
         builder.emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, opBits);
         if (CodeGenSafety::hasOverflowRuntimeSafety(codeGen) && operandTypeInfo.isIntSigned())
         {
-            const auto&         node            = codeGen.node(codeGen.curNodeRef()).cast<AstUnaryExpr>();
-            const MicroLabelRef noOverflowLabel = builder.createLabel();
-            builder.emitJumpToLabel(MicroCond::NotOverflow, MicroOpBits::B32, noOverflowLabel);
-            SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
-            builder.placeLabel(noOverflowLabel);
+            const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstUnaryExpr>();
+            SWC_RESULT(CodeGenSafety::emitOverflowTrapOnFailure(codeGen, node, MicroCond::NotOverflow));
         }
         return Result::Continue;
     }

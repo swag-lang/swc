@@ -416,116 +416,6 @@ namespace
         }
     }
 
-    uint64_t opBitWidth(MicroOpBits opBits)
-    {
-        return getNumBits(opBits);
-    }
-
-    MicroReg widenIntRegTo64(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, MicroOpBits srcBits)
-    {
-        if (srcBits == MicroOpBits::B64)
-            return srcReg;
-
-        MicroBuilder&  builder = codeGen.builder();
-        const MicroReg dstReg  = codeGen.nextVirtualIntRegister();
-        if (srcType.isIntLikeUnsigned())
-            builder.emitLoadZeroExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
-        else
-            builder.emitLoadSignedExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
-        return dstReg;
-    }
-
-    ApInt minSignedImmediate(const MicroOpBits opBits)
-    {
-        const uint32_t bits = getNumBits(opBits);
-        SWC_ASSERT(bits > 0 && bits <= 64);
-        const uint64_t value = bits == 64 ? (1ull << 63) : (1ull << (bits - 1));
-        return ApInt(value, 64);
-    }
-
-    Result emitShiftBinaryIntLike(CodeGen&                  codeGen,
-                                  const AstBinaryExpr&      node,
-                                  const CodeGenNodePayload& nodePayload,
-                                  const MicroReg            originalLeftReg,
-                                  const MicroReg            rightReg,
-                                  const TypeInfo&           operationType,
-                                  const MicroOpBits         opBits,
-                                  const TokenId             tokId)
-    {
-        const bool          isLeftShift   = tokId == TokenId::SymLowerLower;
-        const bool          isSigned      = operationType.isIntLike() && !operationType.isIntLikeUnsigned();
-        const bool          hasSafety     = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
-        const bool          allowWrap     = node.modifierFlags.has(AstModifierFlagsE::Wrap);
-        const bool          checkOverflow = isLeftShift && hasSafety && !allowWrap;
-        MicroBuilder&       builder       = codeGen.builder();
-        const MicroOp       shiftOp       = intBinaryMicroOp(tokId, isSigned);
-        const uint64_t      bitWidth      = opBitWidth(opBits);
-        const MicroReg      countReg64    = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
-        const MicroLabelRef nonNegative   = builder.createLabel();
-        const MicroLabelRef normalLabel   = builder.createLabel();
-        const MicroLabelRef largeLabel    = builder.createLabel();
-        const MicroLabelRef doneLabel     = builder.createLabel();
-
-        if (isSigned)
-        {
-            builder.emitCmpRegImm(rightReg, ApInt(0, 64), opBits);
-            builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, nonNegative);
-            if (hasSafety)
-                SWC_RESULT(CodeGenSafety::emitNegativeShiftCheck(codeGen, node));
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, normalLabel);
-            builder.placeLabel(nonNegative);
-        }
-
-        builder.emitCmpRegImm(countReg64, ApInt(bitWidth, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, largeLabel);
-
-        builder.placeLabel(normalLabel);
-        builder.emitOpBinaryRegReg(nodePayload.reg, rightReg, shiftOp, opBits);
-        if (checkOverflow)
-        {
-            const MicroReg reverseReg = codeGen.nextVirtualRegisterForType(nodePayload.typeRef);
-            builder.emitLoadRegReg(reverseReg, nodePayload.reg, opBits);
-            builder.emitOpBinaryRegReg(reverseReg, rightReg, isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight, opBits);
-            builder.emitCmpRegReg(reverseReg, originalLeftReg, opBits);
-            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-            SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
-        }
-
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-        builder.placeLabel(largeLabel);
-
-        if (isLeftShift)
-        {
-            if (checkOverflow)
-            {
-                const MicroLabelRef zeroLabel = builder.createLabel();
-                builder.emitCmpRegImm(originalLeftReg, ApInt(0, 64), opBits);
-                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, zeroLabel);
-                SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
-                builder.placeLabel(zeroLabel);
-            }
-
-            builder.emitClearReg(nodePayload.reg, opBits);
-        }
-        else if (isSigned)
-        {
-            const MicroLabelRef negativeLabel = builder.createLabel();
-            builder.emitCmpRegImm(originalLeftReg, ApInt(0, 64), opBits);
-            builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, negativeLabel);
-            builder.emitClearReg(nodePayload.reg, opBits);
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-            builder.placeLabel(negativeLabel);
-            builder.emitLoadRegImm(nodePayload.reg, ApInt(std::numeric_limits<uint64_t>::max(), 64), opBits);
-        }
-        else
-        {
-            builder.emitClearReg(nodePayload.reg, opBits);
-        }
-
-        builder.placeLabel(doneLabel);
-        return Result::Continue;
-    }
-
     Result emitBinaryIntLike(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
     {
         SWC_ASSERT(encodeCtx.leftPayload);
@@ -556,57 +446,19 @@ namespace
 
         if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
         {
-            const MicroReg stableLeftReg = codeGen.nextVirtualRegisterForType(encodeCtx.resultTypeRef);
-            codeGen.builder().emitLoadRegReg(stableLeftReg, nodePayload.reg, opBits);
-            SWC_RESULT(emitShiftBinaryIntLike(codeGen, node, nodePayload, stableLeftReg, rightReg, operationType, opBits, tokId));
+            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, nodePayload.reg, rightReg, operationType, opBits, tokId, node.modifierFlags.has(AstModifierFlagsE::Wrap)));
             return finalizeIntLikeResult();
         }
 
         if (isSigned && (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent))
         {
-            MicroBuilder&       builder   = codeGen.builder();
-            const MicroLabelRef doOpLabel = builder.createLabel();
-            const MicroLabelRef doneLabel = builder.createLabel();
-            builder.emitCmpRegImm(rightReg, ApInt(std::numeric_limits<uint64_t>::max(), 64), opBits);
-            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
-            builder.emitCmpRegImm(nodePayload.reg, minSignedImmediate(opBits), opBits);
-            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
-            if (hasSafety)
-                SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
-            if (tokId == TokenId::SymPercent)
-                builder.emitClearReg(nodePayload.reg, opBits);
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-            builder.placeLabel(doOpLabel);
-            builder.emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
-            builder.placeLabel(doneLabel);
+            SWC_RESULT(CodeGenSafety::emitSignedDivOrModIntLike(codeGen, node, nodePayload.reg, rightReg, op, opBits, tokId == TokenId::SymPercent));
             return finalizeIntLikeResult();
         }
 
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
-
         if (hasSafety)
-        {
-            MicroBuilder&       builder         = codeGen.builder();
-            const MicroLabelRef noOverflowLabel = builder.createLabel();
-            switch (tokId)
-            {
-                case TokenId::SymPlus:
-                case TokenId::SymMinus:
-                    builder.emitJumpToLabel(isSigned ? MicroCond::NotOverflow : MicroCond::AboveOrEqual, MicroOpBits::B32, noOverflowLabel);
-                    SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
-                    builder.placeLabel(noOverflowLabel);
-                    break;
-
-                case TokenId::SymAsterisk:
-                    builder.emitJumpToLabel(MicroCond::NotOverflow, MicroOpBits::B32, noOverflowLabel);
-                    SWC_RESULT(CodeGenSafety::emitOverflowCheck(codeGen, node));
-                    builder.placeLabel(noOverflowLabel);
-                    break;
-
-                default:
-                    break;
-            }
-        }
+            SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, tokId, isSigned));
 
         return finalizeIntLikeResult();
     }

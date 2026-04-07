@@ -6,7 +6,11 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -130,6 +134,19 @@ namespace
 
         SWC_UNREACHABLE();
     }
+
+    MicroReg emitFloatImmediateReg(CodeGen& codeGen, const MicroOpBits opBits, const uint64_t bits)
+    {
+        const MicroReg reg = codeGen.nextVirtualFloatRegister();
+        codeGen.builder().emitLoadRegImm(reg, ApInt(bits, 64), opBits);
+        return reg;
+    }
+}
+
+bool CodeGenSafety::hasMathRuntimeSafety(const CodeGen& codeGen)
+{
+    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+    return nodePayload && nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Math);
 }
 
 Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg)
@@ -170,6 +187,136 @@ Result CodeGenSafety::emitMathCheck(CodeGen& codeGen, const AstNode& node)
     SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
     SWC_ASSERT(panicFunction != nullptr);
     return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_invalid_argument);
+}
+
+Result CodeGenSafety::emitUnaryMathDomainCheck(CodeGen& codeGen, const MicroReg valueReg, const TypeInfo& floatType, Math::FoldIntrinsicUnaryFloatOp op, const MicroLabelRef failLabel)
+{
+    if (!CodeGenSafety::hasMathRuntimeSafety(codeGen))
+        return Result::Continue;
+
+    const auto opBits = CodeGenTypeHelpers::numericBits(floatType);
+    SWC_ASSERT(floatType.isFloat());
+    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+
+    MicroBuilder& builder = codeGen.builder();
+    const MicroReg zeroReg = emitFloatImmediateReg(codeGen, opBits, 0);
+    if (op == Math::FoldIntrinsicUnaryFloatOp::Sqrt)
+    {
+        builder.emitCmpRegReg(valueReg, zeroReg, opBits);
+        CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                 floatType,
+                                                 {
+                                                     .primaryCond        = MicroCond::Below,
+                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
+                                                 },
+                                                 failLabel);
+    }
+    else if (op == Math::FoldIntrinsicUnaryFloatOp::Log || op == Math::FoldIntrinsicUnaryFloatOp::Log2 || op == Math::FoldIntrinsicUnaryFloatOp::Log10)
+    {
+        builder.emitCmpRegReg(valueReg, zeroReg, opBits);
+        CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                 floatType,
+                                                 {
+                                                     .primaryCond        = MicroCond::Below,
+                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
+                                                 },
+                                                 failLabel);
+    }
+    else
+    {
+        SWC_ASSERT(op == Math::FoldIntrinsicUnaryFloatOp::ASin || op == Math::FoldIntrinsicUnaryFloatOp::ACos);
+
+        const uint64_t minusOneBits = opBits == MicroOpBits::B32 ? 0xBF800000ull : 0xBFF0000000000000ull;
+        const uint64_t oneBits      = opBits == MicroOpBits::B32 ? 0x3F800000ull : 0x3FF0000000000000ull;
+        const MicroReg minusOneReg  = emitFloatImmediateReg(codeGen, opBits, minusOneBits);
+        const MicroReg oneReg       = emitFloatImmediateReg(codeGen, opBits, oneBits);
+
+        builder.emitCmpRegReg(valueReg, minusOneReg, opBits);
+        CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                 floatType,
+                                                 {
+                                                     .primaryCond        = MicroCond::Below,
+                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
+                                                 },
+                                                 failLabel);
+
+        builder.emitCmpRegReg(valueReg, oneReg, opBits);
+        CodeGenCompareHelpers::emitConditionJump(codeGen,
+                                                 floatType,
+                                                 {
+                                                     .primaryCond        = MicroCond::Above,
+                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
+                                                 },
+                                                 failLabel);
+    }
+
+    return Result::Continue;
+}
+
+Result CodeGenSafety::emitFloatNanCheck(CodeGen& codeGen, const AstNode& node, const MicroReg valueReg, const TypeInfo& floatType)
+{
+    if (!CodeGenSafety::hasMathRuntimeSafety(codeGen))
+        return Result::Continue;
+
+    const auto opBits = CodeGenTypeHelpers::numericBits(floatType);
+    SWC_ASSERT(floatType.isFloat());
+    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+
+    MicroBuilder&       builder   = codeGen.builder();
+    const MicroLabelRef failLabel = builder.createLabel();
+    const MicroLabelRef doneLabel = builder.createLabel();
+    builder.emitCmpRegReg(valueReg, valueReg, opBits);
+    builder.emitJumpToLabel(MicroCond::Parity, MicroOpBits::B32, failLabel);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+    builder.placeLabel(failLabel);
+    SWC_RESULT(emitMathCheck(codeGen, node));
+    builder.placeLabel(doneLabel);
+    return Result::Continue;
+}
+
+Result CodeGenSafety::codeGenUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, Math::FoldIntrinsicUnaryFloatOp op, MaterializeNumericOperandFn materializeOperandFn)
+{
+    SWC_ASSERT(materializeOperandFn != nullptr);
+    if (!hasMathRuntimeSafety(codeGen))
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
+
+    SmallVector<AstNodeRef> children;
+    codeGen.ast().appendNodes(children, node.spanChildrenRef);
+    SWC_ASSERT(children.size() == 1);
+
+    const AstNodeRef          valueRef      = children[0];
+    const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
+    const SemaNodeView        valueView     = codeGen.viewType(valueRef);
+    const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+    const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+    MicroReg                  valueReg      = MicroReg::invalid();
+    MicroBuilder&             builder       = codeGen.builder();
+    const MicroLabelRef       failLabel     = builder.createLabel();
+    const MicroLabelRef       doneLabel     = builder.createLabel();
+
+    materializeOperandFn(valueReg, codeGen, valuePayload, valueTypeRef, resultTypeRef);
+    SWC_RESULT(emitUnaryMathDomainCheck(codeGen, valueReg, codeGen.typeMgr().get(resultTypeRef), op, failLabel));
+    SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef));
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+    builder.placeLabel(failLabel);
+    SWC_RESULT(emitMathCheck(codeGen, node));
+    builder.placeLabel(doneLabel);
+    return Result::Continue;
+}
+
+Result CodeGenSafety::codeGenPowIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, LoadNumericOperandFn loadOperandFn)
+{
+    SWC_ASSERT(loadOperandFn != nullptr);
+    SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef));
+    if (!hasMathRuntimeSafety(codeGen))
+        return Result::Continue;
+
+    const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+    const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+    const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
+    MicroReg                  resultReg     = MicroReg::invalid();
+    loadOperandFn(resultReg, codeGen, resultPayload, resultTypeRef);
+    return emitFloatNanCheck(codeGen, node, resultReg, resultType);
 }
 
 Result CodeGenSafety::emitUnreachableCheck(CodeGen& codeGen, const AstNode& node)

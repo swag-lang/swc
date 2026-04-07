@@ -306,6 +306,17 @@ func overflowSafetyEnabled()->bool
 #test
 {
     #[Swag.Safety(.Overflow, true)]
+    func mulOverflowU8(a, b: u8)->u8
+    {
+        return a * b // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run mulOverflowU8(128'u8, 2'u8)
+}
+
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
     func mulOverflowU16(a, b: u16)->u16
     {
         return a * b // swc-expected-error {{safety_err_runtime}}
@@ -844,6 +855,19 @@ func overflowSafetyEnabled()->bool
     const value = #run shrAssignNegCountS32()
 }
 
+#test
+{
+    #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
+    func shlAssignNegCountS32()->s32
+    {
+        var v: s32 = 1
+        v <<= -1 // swc-expected-error {{safety_err_runtime}}
+        return v
+    }
+
+    const value = #run shlAssignNegCountS32()
+}
+
 // =============================================
 // Narrowing int-to-int casts — signed to signed
 // =============================================
@@ -1262,6 +1286,46 @@ func overflowSafetyEnabled()->bool
     }
 
     const value = #run shlWrapU8(1'u8, 8'u8)
+    @assert(value == 0'u8)
+}
+
+// #wrap suppresses bit-loss on << but negative count still errors
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func shlWrapNegCount(a, count: s8)->s8
+    {
+        return a << #wrap count // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run shlWrapNegCount(1's8, -1's8)
+}
+
+// #wrap on << suppresses bit-loss: overflow that would normally error is allowed
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func shlWrapBitLoss(a, count: s8)->s8
+    {
+        return a << #wrap count
+    }
+
+    const value = #run shlWrapBitLoss(64's8, 1's8)
+    @assert(value == -128's8)
+}
+
+// #wrap on <<= suppresses bit-loss
+#test
+{
+    #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
+    func shlAssignWrapBitLoss()->u8
+    {
+        var v: u8 = 128
+        v <<= #wrap 1
+        return v
+    }
+
+    const value = #run shlAssignWrapBitLoss()
     @assert(value == 0'u8)
 }
 

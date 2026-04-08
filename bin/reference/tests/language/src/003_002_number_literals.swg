@@ -61,15 +61,14 @@ within 32 bits. If the literal exceeds 32 bits, it is automatically inferred as 
 A 'bool' type can hold either 'true' or 'false'. Since constants are known at compile
 time, you can use '#assert' to verify their values during compilation.
 */
-// @TODO: Re-enable this boolean literal example when grouped const declarations stop tripping JIT.
-/*#test
+#test
 {
     const a = true
     #assert(a == true)
     const b, c = false
     #assert(b == false)
     #assert(c == false)
-}*/
+}
 
 /**
 # Floating-Point Values

@@ -316,6 +316,10 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView view = codeGen.curViewSymbolList();
     SWC_ASSERT(!view.symList().empty());
 
+    // Constants are fully resolved during sema and need no runtime codegen.
+    if (hasFlag(AstVarDeclFlagsE::Const))
+        return Result::Continue;
+
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
         const SymbolFunction& symbolFunc = codeGen.function();

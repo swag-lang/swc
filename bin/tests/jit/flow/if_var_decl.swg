@@ -136,3 +136,32 @@
     const V = #run ifDeclNullableSliceNull()
     @assert(V == 1)
 }
+
+// 'if const' declarations must work in condition position.
+#test
+{
+    func ifConstTruthy()->s32
+    {
+        if const a = 1 do
+            return a
+        else do
+            return -1
+    }
+
+    const V = #run ifConstTruthy()
+    @assert(V == 1)
+}
+
+#test
+{
+    func ifConstFalsy()->s32
+    {
+        if const a = 0 do
+            return -1
+        else do
+            return 42
+    }
+
+    const V = #run ifConstFalsy()
+    @assert(V == 42)
+}

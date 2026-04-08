@@ -619,7 +619,16 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
     if (ty.isString())
     {
         const auto* str = static_cast<const Runtime::String*>(valuePtr);
-        return makeString(ctx, std::string_view(str->ptr, str->length));
+        if (ty.isNullable() && !str->ptr)
+        {
+            ConstantValue nullValue = makeNull(ctx);
+            nullValue.setTypeRef(typeRef);
+            return nullValue;
+        }
+
+        ConstantValue value = makeString(ctx, std::string_view(str->ptr, str->length));
+        value.setTypeRef(typeRef);
+        return value;
     }
 
     if (ty.isValuePointer())
@@ -637,14 +646,21 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
     if (ty.isSlice())
     {
         const auto*    slice       = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
+        if (ty.isNullable() && !slice->ptr)
+        {
+            ConstantValue nullValue = makeNull(ctx);
+            nullValue.setTypeRef(typeRef);
+            return nullValue;
+        }
+
         const TypeInfo elementType = ctx.typeMgr().get(ty.payloadTypeRef());
         const uint64_t elementSize = elementType.sizeOf(ctx);
         SWC_ASSERT(elementSize != 0);
         const uint64_t byteCount = elementSize ? slice->count * elementSize : 0;
         const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), byteCount};
         if (ownership == PayloadOwnership::Borrowed)
-            return makeSliceBorrowed(ctx, ty.payloadTypeRef(), span);
-        return makeSlice(ctx, ty.payloadTypeRef(), span);
+            return makeSliceBorrowed(ctx, ty.payloadTypeRef(), span, ty.flags());
+        return makeSlice(ctx, ty.payloadTypeRef(), span, ty.flags());
     }
 
     return ConstantValue{};

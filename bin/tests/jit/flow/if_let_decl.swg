@@ -1,5 +1,7 @@
 #global fileprivate
 
+func jitRetNothing()->#null string => null
+
 func jitIfLetSimple()->s32
 {
     if let x = 1
@@ -32,6 +34,26 @@ func jitIfLetDo()->s32
     return -1
 }
 
+func jitIfLetNullableNullElse()->s32
+{
+    if let str = jitRetNothing()
+    {
+        return -1
+    }
+
+    return 1
+}
+
+func jitIfLetNullableWhereSkip()->s32
+{
+    if let str = jitRetNothing() where str[0] == 's'
+    {
+        return -1
+    }
+
+    return 1
+}
+
 #test
 {
     const V = #run jitIfLetSimple()
@@ -48,4 +70,16 @@ func jitIfLetDo()->s32
 {
     const V = #run jitIfLetDo()
     @assert(V == 5)
+}
+
+#test
+{
+    const V = #run jitIfLetNullableNullElse()
+    @assert(V == 1)
+}
+
+#test
+{
+    const V = #run jitIfLetNullableWhereSkip()
+    @assert(V == 1)
 }

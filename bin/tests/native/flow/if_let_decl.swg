@@ -1,5 +1,7 @@
 #global fileprivate
 
+func nativeRetNothing()->#null string => null
+
 func nativeIfLetSimple()->s32
 {
     if let x = 1
@@ -32,6 +34,26 @@ func nativeIfLetDo()->s32
     return -1
 }
 
+func nativeIfLetNullableNullElse()->s32
+{
+    if let str = nativeRetNothing()
+    {
+        return -1
+    }
+
+    return 1
+}
+
+func nativeIfLetNullableWhereSkip()->s32
+{
+    if let str = nativeRetNothing() where str[0] == 's'
+    {
+        return -1
+    }
+
+    return 1
+}
+
 #test
 {
     @assert(nativeIfLetSimple() == 1)
@@ -45,4 +67,14 @@ func nativeIfLetDo()->s32
 #test
 {
     @assert(nativeIfLetDo() == 5)
+}
+
+#test
+{
+    @assert(nativeIfLetNullableNullElse() == 1)
+}
+
+#test
+{
+    @assert(nativeIfLetNullableWhereSkip() == 1)
 }

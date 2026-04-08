@@ -89,9 +89,10 @@ namespace CodeGenCompareHelpers
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
+        const bool        addressBackedValue = !payload.isAddress() && typeInfo.sizeOf(codeGen.ctx()) > 8;
 
         MicroBuilder& builder = codeGen.builder();
-        if (payload.isAddress())
+        if (payload.isAddress() || addressBackedValue)
             builder.emitLoadRegMem(condReg, payload.reg, 0, condBits);
         else
             builder.emitLoadRegReg(condReg, payload.reg, condBits);

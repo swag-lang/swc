@@ -104,9 +104,9 @@ namespace
             return false;
         const ConstantValue& cst = sema.cstMgr().get(argView.cstRef());
         const ApsInt         v   = cst.getIntLike();
-        outValue    = v.as64();
-        outBitWidth = bits;
-        outUnsigned = argView.type()->isIntLikeUnsigned();
+        outValue                 = v.as64();
+        outBitWidth              = bits;
+        outUnsigned              = argView.type()->isIntLikeUnsigned();
         return true;
     }
 
@@ -117,9 +117,9 @@ namespace
         if (!resultTy.isIntLike())
             return Result::Continue;
 
-        const ApsInt      apsResult(value, bitWidth, isUnsigned);
-        const ConstantValue cv = ConstantValue::makeFromIntLike(sema.ctx(), apsResult, resultTy);
-        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
+        const ApsInt        apsResult(std::bit_cast<int64_t>(value), bitWidth, isUnsigned);
+        const ConstantValue cv     = ConstantValue::makeFromIntLike(sema.ctx(), apsResult, resultTy);
+        const ConstantRef   cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
         sema.setConstant(callRef, cstRef);
         return Result::Continue;
     }
@@ -321,8 +321,8 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                     const uint32_t bits = argView.type()->payloadIntLikeBits();
                     if (bits > 0)
                     {
-                        const ConstantValue& cst = sema.cstMgr().get(argView.cstRef());
-                        ApsInt               v   = cst.getIntLike();
+                        const ConstantValue& cst      = sema.cstMgr().get(argView.cstRef());
+                        ApsInt               v        = cst.getIntLike();
                         bool                 overflow = false;
                         v.abs(overflow);
                         return makeIntResult(sema, sema.curNodeRef(), v.as64(), bits, argView.type()->isIntLikeUnsigned());
@@ -482,16 +482,16 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 case 16:
                 {
                     const auto v = static_cast<uint16_t>(val);
-                    result = static_cast<uint64_t>((v >> 8) | (v << 8));
+                    result       = static_cast<uint64_t>((v >> 8) | (v << 8));
                     break;
                 }
                 case 32:
                 {
                     const auto v = static_cast<uint32_t>(val);
-                    result = static_cast<uint64_t>(
+                    result       = static_cast<uint64_t>(
                         ((v >> 24) & 0x000000FF) |
-                        ((v >> 8)  & 0x0000FF00) |
-                        ((v << 8)  & 0x00FF0000) |
+                        ((v >> 8) & 0x0000FF00) |
+                        ((v << 8) & 0x00FF0000) |
                         ((v << 24) & 0xFF000000));
                     break;
                 }
@@ -501,8 +501,8 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                         ((val >> 56) & 0x00000000000000FFULL) |
                         ((val >> 40) & 0x000000000000FF00ULL) |
                         ((val >> 24) & 0x0000000000FF0000ULL) |
-                        ((val >> 8)  & 0x00000000FF000000ULL) |
-                        ((val << 8)  & 0x000000FF00000000ULL) |
+                        ((val >> 8) & 0x00000000FF000000ULL) |
+                        ((val << 8) & 0x000000FF00000000ULL) |
                         ((val << 24) & 0x0000FF0000000000ULL) |
                         ((val << 40) & 0x00FF000000000000ULL) |
                         ((val << 56) & 0xFF00000000000000ULL);

@@ -570,6 +570,137 @@ namespace
         return SemaError::raise(sema, id, where);
     }
 
+    Result checkUndefinedInit(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols,
+                             bool isConst, bool isLet, bool isParameter,
+                             TypeRef explicitTypeRef, const TypeInfo* explicitType,
+                             const SemaNodeView& nodeInitView, bool& isExplicitUndefinedInit)
+    {
+        if (context.nodeInitRef.isInvalid() || nodeInitView.cstRef() != sema.cstMgr().cstUndefined())
+            return Result::Continue;
+
+        if (isConst)
+            return reportMissingInitializer(sema, DiagnosticId::sema_err_const_missing_init, context, symbols);
+        if (isLet)
+            return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
+        if (context.nodeTypeRef.isInvalid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+        if (!isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isReference())
+            return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, explicitTypeRef);
+
+        isExplicitUndefinedInit = true;
+        return Result::Continue;
+    }
+
+    Result castOrConcretizeInit(Sema& sema, const SemaPostVarDeclArgs& context, bool codeParameterDefault, TypeRef explicitTypeRef, SemaNodeView& nodeInitView)
+    {
+        if (codeParameterDefault)
+            return Result::Continue;
+
+        if (nodeInitView.typeRef().isValid() && explicitTypeRef.isValid())
+            return Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization);
+
+        if (nodeInitView.cstRef().isValid())
+        {
+            ConstantRef newCstRef;
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown));
+            sema.setConstant(nodeInitView.nodeRef(), newCstRef);
+            nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
+            if (nodeInitView.type()->isInt())
+            {
+                const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef(), nodeInitView.typeRef(), false);
+                SWC_RESULT(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
+            }
+        }
+
+        return Result::Continue;
+    }
+
+    Result concretizeAggregateArray(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef explicitTypeRef, TypeRef& finalTypeRef, SemaNodeView& nodeInitView)
+    {
+        if (explicitTypeRef.isValid() || finalTypeRef.isInvalid() || !sema.typeMgr().get(finalTypeRef).isAggregateArray())
+            return Result::Continue;
+
+        const auto& elemTypes = sema.typeMgr().get(finalTypeRef).payloadAggregate().types;
+        if (elemTypes.empty())
+            return Result::Continue;
+
+        // All elements must be compatible (same kind, or all numeric).
+        const TypeInfo& firstElem = sema.typeMgr().get(elemTypes[0]);
+        for (size_t i = 1; i < elemTypes.size(); ++i)
+        {
+            const TypeInfo& ei = sema.typeMgr().get(elemTypes[i]);
+            if (ei.kind() != firstElem.kind() && !(firstElem.isScalarNumeric() && ei.isScalarNumeric()))
+                return Result::Continue;
+        }
+
+        SmallVector4<uint64_t> dims;
+        if (!deduceArrayDimsFromType(sema, finalTypeRef, dims) || dims.empty())
+            return Result::Continue;
+
+        // Get the element type from the first concretized constant value.
+        TypeRef elemTypeRef = TypeRef::invalid();
+        if (nodeInitView.cstRef().isValid())
+        {
+            const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
+            if (cst.isAggregateArray())
+            {
+                const auto& values = cst.getAggregateArray();
+                if (!values.empty())
+                    elemTypeRef = sema.cstMgr().get(values[0]).typeRef();
+            }
+        }
+
+        if (elemTypeRef.isInvalid())
+            elemTypeRef = elemTypes[0];
+
+        finalTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
+        if (context.nodeInitRef.isValid())
+            SWC_RESULT(Cast::cast(sema, nodeInitView, finalTypeRef, CastKind::Initialization));
+
+        return Result::Continue;
+    }
+
+    Result validateFinalType(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef finalTypeRef, bool isConst, bool isParameter, bool isUsing)
+    {
+        if (finalTypeRef.isInvalid())
+            return Result::Continue;
+
+        const TypeInfo& finalType = sema.typeMgr().get(finalTypeRef);
+
+        if (isConst && finalType.isReference())
+            return reportConstRefType(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
+
+        if (finalType.isCodeBlock())
+        {
+            const auto* currentFn        = sema.currentFunction();
+            const bool  allowedCodeParam = isParameter && currentFn &&
+                                          (currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+                                           currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));
+            if (!allowedCodeParam)
+            {
+                const SourceCodeRef errorRef = context.nodeTypeRef.isValid() ? sema.node(context.nodeTypeRef).codeRef() : sema.node(context.nodeInitRef).codeRef();
+                return reportCodeTypeRestricted(sema, errorRef, finalTypeRef);
+            }
+        }
+
+        if (isUsing)
+        {
+            if (!finalType.isStruct())
+            {
+                if (!finalType.isAnyPointer() || !sema.typeMgr().get(finalType.payloadTypeRef()).isStruct())
+                {
+                    Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+                    diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
+            }
+        }
+
+        return Result::Continue;
+    }
+
     Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
         SemaNodeView nodeInitView = sema.viewNodeTypeConstant(context.nodeInitRef);
@@ -600,43 +731,8 @@ namespace
         bool            isExplicitUndefinedInit = false;
         SymbolFunction* globalFunctionInit      = nullptr;
 
-        // Initialized to 'undefined'
-        if (context.nodeInitRef.isValid() && nodeInitView.cstRef() == sema.cstMgr().cstUndefined())
-        {
-            if (isConst)
-                return reportMissingInitializer(sema, DiagnosticId::sema_err_const_missing_init, context, symbols);
-            if (isLet)
-                return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
-            if (context.nodeTypeRef.isInvalid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
-
-            if (!isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isReference())
-                return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, explicitTypeRef);
-
-            isExplicitUndefinedInit = true;
-        }
-
-        // Implicit cast from initializer to the specified type
-        if (!codeParameterDefault)
-        {
-            if (nodeInitView.typeRef().isValid() && explicitTypeRef.isValid())
-            {
-                SWC_RESULT(Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization));
-            }
-            else if (nodeInitView.cstRef().isValid())
-            {
-                ConstantRef newCstRef;
-                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown));
-                sema.setConstant(nodeInitView.nodeRef(), newCstRef);
-                nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-
-                if (nodeInitView.type()->isInt())
-                {
-                    const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef(), nodeInitView.typeRef(), false);
-                    SWC_RESULT(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
-                }
-            }
-        }
+        SWC_RESULT(checkUndefinedInit(sema, context, symbols, isConst, isLet, isParameter, explicitTypeRef, explicitType, nodeInitView, isExplicitUndefinedInit));
+        SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView));
 
         if (context.nodeInitRef.isValid())
             storeFieldDefaultConstants(symbols, nodeInitView.cstRef());
@@ -651,91 +747,9 @@ namespace
 
         TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
 
-        // Concretize aggregate array literals (e.g. [1, 2, 3]) into a proper
-        // array type [N] T when used as a variable initializer without an
-        // explicit type annotation. Only applies when all elements share a
-        // common concrete type (possibly after numeric promotion).
-        if (explicitTypeRef.isInvalid() && finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isAggregateArray())
-        {
-            const auto& elemTypes = sema.typeMgr().get(finalTypeRef).payloadAggregate().types;
-            if (!elemTypes.empty())
-            {
-                // Check all elements are compatible (same kind, or all numeric).
-                const TypeInfo& firstElem = sema.typeMgr().get(elemTypes[0]);
-                bool homogeneous = true;
-                for (size_t i = 1; i < elemTypes.size(); ++i)
-                {
-                    const TypeInfo& ei = sema.typeMgr().get(elemTypes[i]);
-                    if (ei.kind() != firstElem.kind() && !(firstElem.isScalarNumeric() && ei.isScalarNumeric()))
-                    {
-                        homogeneous = false;
-                        break;
-                    }
-                }
+        SWC_RESULT(concretizeAggregateArray(sema, context, explicitTypeRef, finalTypeRef, nodeInitView));
 
-                if (homogeneous)
-                {
-                    SmallVector4<uint64_t> dims;
-                    if (deduceArrayDimsFromType(sema, finalTypeRef, dims) && !dims.empty())
-                    {
-                        // Get the element type from the first concretized constant value.
-                        TypeRef elemTypeRef = TypeRef::invalid();
-                        if (nodeInitView.cstRef().isValid())
-                        {
-                            const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
-                            if (cst.isAggregateArray())
-                            {
-                                const auto& values = cst.getAggregateArray();
-                                if (!values.empty())
-                                    elemTypeRef = sema.cstMgr().get(values[0]).typeRef();
-                            }
-                        }
-
-                        if (elemTypeRef.isInvalid())
-                            elemTypeRef = elemTypes[0];
-
-                        if (elemTypeRef.isValid())
-                        {
-                            finalTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
-                            if (context.nodeInitRef.isValid())
-                                SWC_RESULT(Cast::cast(sema, nodeInitView, finalTypeRef, CastKind::Initialization));
-                        }
-                    }
-                }
-            }
-        }
-
-        const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
-        if (isConst && isRefType)
-            return reportConstRefType(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
-
-        if (finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isCodeBlock())
-        {
-            const auto* currentFn        = sema.currentFunction();
-            const bool  allowedCodeParam = isParameter && currentFn &&
-                                          (currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-                                           currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));
-            if (!allowedCodeParam)
-            {
-                const SourceCodeRef errorRef = context.nodeTypeRef.isValid() ? sema.node(context.nodeTypeRef).codeRef() : sema.node(context.nodeInitRef).codeRef();
-                return reportCodeTypeRestricted(sema, errorRef, finalTypeRef);
-            }
-        }
-
-        if (isUsing && finalTypeRef.isValid())
-        {
-            const TypeInfo& ultimateType = sema.typeMgr().get(finalTypeRef);
-            if (!ultimateType.isStruct())
-            {
-                if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.payloadTypeRef()).isStruct())
-                {
-                    Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
-                    diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);
-                    diag.report(sema.ctx());
-                    return Result::Error;
-                }
-            }
-        }
+        SWC_RESULT(validateFinalType(sema, context, finalTypeRef, isConst, isParameter, isUsing));
 
         const SymbolMap* fieldOwnerSymMap      = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
         const bool       directSelfStructField = explicitTypeRef.isValid() &&
@@ -776,6 +790,7 @@ namespace
         // Variable
         if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructInit)
             return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
+        const bool isRefType = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 

@@ -1,5 +1,4 @@
-#global fileprivate // 
-
+#global fileprivate
 struct Vec { x: s32 }
 
 #[Swag.Overload]
@@ -14,6 +13,7 @@ func assign(a: &Vec, b: Vec)
     a = b
 }
 
+// Move semantics with overloaded assign
 #test
 {
     var v = Vec{1}
@@ -24,6 +24,3 @@ func assign(a: &Vec, b: Vec)
     out = #move rr
     @assert(out.x == 1)
 }
-
-
-

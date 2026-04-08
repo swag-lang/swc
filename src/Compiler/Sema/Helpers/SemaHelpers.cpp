@@ -1060,7 +1060,30 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     {
         const TypeRef typeInfoRef = sema.typeMgr().typeTypeInfo();
         SWC_RESULT(Cast::cast(sema, nodeLeftView, typeInfoRef, CastKind::Explicit));
-        typeInfo = &sema.typeMgr().get(sema.typeMgr().structTypeInfo());
+
+        // Resolve the derived TypeInfo struct that matches the underlying type,
+        // so that type-specific fields (e.g. TypeInfoArray.count) are accessible.
+        const TypeInfo& underlying = sema.typeMgr().get(typeInfo->payloadTypeRef());
+        TypeRef structRef = sema.typeMgr().structTypeInfo();
+        if (underlying.isArray())
+            structRef = sema.typeMgr().structTypeInfoArray();
+        else if (underlying.isStruct())
+            structRef = sema.typeMgr().structTypeInfoStruct();
+        else if (underlying.isEnum())
+            structRef = sema.typeMgr().structTypeInfoEnum();
+        else if (underlying.isFunction())
+            structRef = sema.typeMgr().structTypeInfoFunc();
+        else if (underlying.isSlice())
+            structRef = sema.typeMgr().structTypeInfoSlice();
+        else if (underlying.isAnyPointer())
+            structRef = sema.typeMgr().structTypeInfoPointer();
+        else if (underlying.isAlias())
+            structRef = sema.typeMgr().structTypeInfoAlias();
+        else if (underlying.isAnyVariadic())
+            structRef = sema.typeMgr().structTypeInfoVariadic();
+        else if (underlying.isCodeBlock())
+            structRef = sema.typeMgr().structTypeInfoCodeBlock();
+        typeInfo = &sema.typeMgr().get(structRef);
     }
     else if (typeInfo->isTypeInfo())
     {

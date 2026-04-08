@@ -36,7 +36,16 @@ namespace
             if (cstType.isAnyPointer())
                 pointedTypeRef = cstType.payloadTypeRef();
             else if (cstType.isTypeInfo())
-                pointedTypeRef = sema.typeMgr().structTypeInfo();
+            {
+                // The constant is typed as *TypeInfo (base), but the actual data
+                // may be a derived struct (e.g. TypeInfoArray). Use the field's
+                // owner struct to determine the correct data size.
+                const SymbolMap* ownerMap = symVar.ownerSymMap();
+                if (ownerMap && ownerMap->isStruct())
+                    pointedTypeRef = ownerMap->cast<SymbolStruct>().typeRef();
+                else
+                    pointedTypeRef = sema.typeMgr().structTypeInfo();
+            }
             else
                 SWC_UNREACHABLE();
 

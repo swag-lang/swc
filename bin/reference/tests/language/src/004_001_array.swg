@@ -27,15 +27,13 @@ of elements.
 The '@countof' intrinsic returns the number of elements in an array, while
 '#sizeof' returns the total memory size in bytes.
 */
-// @TODO: Re-enable this array metadata example when array type/count reflection matches the documented API.
-// #test
-// {
-//     var array: [2] s32
-//
-//     #assert(#typeof(array).count == 2)
-//     #assert(@countof(array) == 2)
-//     #assert(#sizeof(array) == 2 * #sizeof(s32))
-// }
+#test
+{
+    var array: [2] s32
+    #assert(#typeof(array).count == 2)
+    #assert(@countof(array) == 2)
+    #assert(#sizeof(array) == 2 * #sizeof(s32))
+}
 
 /**
 # Obtaining the Address of an Array

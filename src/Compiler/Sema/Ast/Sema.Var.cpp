@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -18,6 +19,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef))
+            return *payload;
+
+        auto* payload = sema.compiler().allocate<CodeGenNodePayload>();
+        sema.setCodeGenPayload(nodeRef, payload);
+        return *payload;
+    }
+
     SymbolVariable* getVariableSymbol(Symbol* symbol)
     {
         return symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
@@ -545,6 +556,68 @@ namespace
             if (fieldCstRef.isValid())
                 symVar->setCstRef(fieldCstRef);
         }
+    }
+
+    Result completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        if (auto* ownerFunction = sema.currentFunction(); ownerFunction && typeRef.isValid())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            ownerFunction->addLocalVariable(sema.ctx(), &symVar);
+        }
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    SymbolVariable& registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName)
+    {
+        TaskContext&        ctx         = sema.ctx();
+        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(symVariable);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(symMap != nullptr);
+            symMap->addSymbol(ctx, symVariable, true);
+        }
+
+        return *symVariable;
+    }
+
+    Result attachDestructuringRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef)
+    {
+        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
+        if (payload && payload->runtimeStorageSym != nullptr)
+            return Result::Continue;
+        if (storageTypeRef.isInvalid())
+            return Result::Continue;
+
+        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+        {
+            ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
+            return Result::Continue;
+        }
+
+        auto& storageSym = registerUniqueRuntimeStorageSymbol(sema, node, "__decomp_runtime_storage");
+        storageSym.registerAttributes(sema);
+        storageSym.setDeclared(sema.ctx());
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+
+        ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
+        return Result::Continue;
     }
 
     struct SemaPostVarDeclArgs
@@ -1109,6 +1182,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     SWC_RESULT(semaPostVarDeclCommon(sema, context, symbols.span()));
 
     const SemaNodeView refreshedInitView = sema.viewNodeTypeConstant(nodeInitRef);
+    SWC_RESULT(attachDestructuringRuntimeStorageIfNeeded(sema, *this, refreshedInitView.typeRef()));
     storeDestructuringLetConstants(sema, symbols.span(), fieldsForSymbols.span(), refreshedInitView.cstRef());
 
     return Result::Continue;

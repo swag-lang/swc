@@ -1263,6 +1263,7 @@ struct AstVarDeclDestructuring : AstNodeT<AstNodeId::VarDeclDestructuring, AstVa
     AstNodeRef nodeInitRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

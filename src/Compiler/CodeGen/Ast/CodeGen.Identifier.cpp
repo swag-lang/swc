@@ -130,6 +130,94 @@ namespace
         }
     }
 
+    void storePayloadToAddress(CodeGen& codeGen, MicroReg dstReg, const CodeGenNodePayload& srcPayload, uint32_t copySize)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        if (srcPayload.isAddress())
+        {
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize);
+            return;
+        }
+
+        if (copySize > 8)
+        {
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize);
+            return;
+        }
+
+        auto copyBits = MicroOpBits::Zero;
+        if (copySize == 1)
+            copyBits = MicroOpBits::B8;
+        else if (copySize == 2)
+            copyBits = MicroOpBits::B16;
+        else if (copySize == 4)
+            copyBits = MicroOpBits::B32;
+        else
+            copyBits = MicroOpBits::B64;
+        builder.emitLoadMemReg(dstReg, 0, srcPayload.reg, copyBits);
+    }
+
+    void materializeSingleVarFromPayload(CodeGen& codeGen, const SymbolVariable& symVar, const CodeGenNodePayload& initPayload)
+    {
+        if (symVar.hasGlobalStorage())
+            return;
+
+        const uint32_t valueSize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(symVar.typeRef()));
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
+        {
+            const CodeGenNodePayload symbolPayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
+            storePayloadToAddress(codeGen, symbolPayload.reg, initPayload, valueSize);
+            return;
+        }
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid())
+        {
+            const CodeGenNodePayload symbolPayload = codeGen.resolveLocalStackPayload(symVar);
+            storePayloadToAddress(codeGen, symbolPayload.reg, initPayload, valueSize);
+            return;
+        }
+
+        CodeGenNodePayload symbolPayload;
+        symbolPayload.typeRef     = symVar.typeRef();
+        symbolPayload.storageKind = initPayload.storageKind;
+        MicroBuilder& builder     = codeGen.builder();
+        if (initPayload.isAddress())
+        {
+            symbolPayload.reg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(symbolPayload.reg, initPayload.reg, MicroOpBits::B64);
+        }
+        else
+        {
+            const MicroOpBits copyBits = identifierPayloadCopyBits(codeGen, symVar.typeRef());
+            symbolPayload.reg          = codeGen.nextVirtualRegisterForType(symVar.typeRef());
+            builder.emitLoadRegReg(symbolPayload.reg, initPayload.reg, copyBits);
+        }
+
+        codeGen.setVariablePayload(symVar, symbolPayload);
+    }
+
+    bool materializeAggregateSourceAddress(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef sourceTypeRef, const CodeGenNodePayload& sourcePayload, MicroReg& outAddressReg)
+    {
+        outAddressReg = MicroReg::invalid();
+        if (sourcePayload.isAddress())
+        {
+            outAddressReg = sourcePayload.reg;
+            return true;
+        }
+
+        const uint64_t sourceSize = codeGen.typeMgr().get(sourceTypeRef).sizeOf(codeGen.ctx());
+        if (!sourceSize || sourceSize > std::numeric_limits<uint32_t>::max())
+            return false;
+
+        const CodeGenNodePayload* sourceNodePayload = codeGen.safePayload(sourceRef);
+        if (!sourceNodePayload || sourceNodePayload->runtimeStorageSym == nullptr)
+            return false;
+
+        outAddressReg = codeGen.runtimeStorageAddressReg(sourceRef);
+        storePayloadToAddress(codeGen, outAddressReg, sourcePayload, static_cast<uint32_t>(sourceSize));
+        return true;
+    }
+
     void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
         MicroBuilder& builder  = codeGen.builder();
@@ -342,6 +430,45 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
             materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
             codeGen.registerImplicitDrop(symVar);
         }
+    }
+
+    return Result::Continue;
+}
+
+Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
+{
+    const SemaNodeView initView = codeGen.viewType(nodeInitRef);
+    SWC_ASSERT(initView.type() && initView.type()->isStruct());
+
+    const CodeGenNodePayload& initPayload = codeGen.payload(nodeInitRef);
+    MicroReg                  baseAddress = MicroReg::invalid();
+    if (!materializeAggregateSourceAddress(codeGen, nodeInitRef, initView.typeRef(), initPayload, baseAddress))
+        return Result::Error;
+
+    const auto&               fields  = initView.type()->payloadSymStruct().fields();
+    const SemaNodeView        view    = codeGen.curViewSymbolList();
+    const std::span<Symbol*>  symbols = view.symList();
+    SmallVector<TokenRef>     tokNames;
+    codeGen.ast().appendTokens(tokNames, spanNamesRef);
+
+    size_t symbolIndex = 0;
+    for (size_t i = 0; i < tokNames.size(); ++i)
+    {
+        if (tokNames[i].isInvalid())
+            continue;
+
+        SWC_ASSERT(symbolIndex < symbols.size());
+        SWC_ASSERT(i < fields.size() && fields[i] != nullptr);
+        const SymbolVariable& field  = *fields[i];
+        const SymbolVariable& symVar = symbols[symbolIndex++]->cast<SymbolVariable>();
+
+        CodeGenNodePayload fieldPayload;
+        fieldPayload.typeRef = field.typeRef();
+        fieldPayload.setIsAddress();
+        fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, field.offset());
+
+        materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
+        codeGen.registerImplicitDrop(symVar);
     }
 
     return Result::Continue;

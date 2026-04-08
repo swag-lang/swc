@@ -92,6 +92,38 @@ namespace
         return Result::Error;
     }
 
+    bool getIntLikeArg(Sema& sema, AstNodeRef argRef, uint64_t& outValue, uint32_t& outBitWidth, bool& outUnsigned)
+    {
+        const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        if (!argView.cstRef().isValid())
+            return false;
+        if (!argView.type() || !argView.type()->isIntLike())
+            return false;
+        const uint32_t bits = argView.type()->payloadIntLikeBits();
+        if (bits == 0)
+            return false;
+        const ConstantValue& cst = sema.cstMgr().get(argView.cstRef());
+        const ApsInt         v   = cst.getIntLike();
+        outValue    = v.as64();
+        outBitWidth = bits;
+        outUnsigned = argView.type()->isIntLikeUnsigned();
+        return true;
+    }
+
+    Result makeIntResult(Sema& sema, AstNodeRef callRef, uint64_t value, uint32_t bitWidth, bool isUnsigned)
+    {
+        const TypeRef   resultTypeRef = sema.viewType(callRef).typeRef();
+        const TypeInfo& resultTy      = sema.typeMgr().get(resultTypeRef);
+        if (!resultTy.isIntLike())
+            return Result::Continue;
+
+        const ApsInt      apsResult(value, bitWidth, isUnsigned);
+        const ConstantValue cv = ConstantValue::makeFromIntLike(sema.ctx(), apsResult, resultTy);
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
+        sema.setConstant(callRef, cstRef);
+        return Result::Continue;
+    }
+
     bool mapTokenToUnaryIntrinsicFoldOp(Math::FoldIntrinsicUnaryFloatOp& outOp, TokenId tokenId)
     {
         switch (tokenId)
@@ -277,6 +309,40 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
         }
 
+        case TokenId::IntrinsicAbs:
+        {
+            SWC_ASSERT(args.size() == 1);
+
+            // Integer abs
+            {
+                const SemaNodeView argView(sema, args[0], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                if (argView.cstRef().isValid() && argView.type() && argView.type()->isIntLike())
+                {
+                    const uint32_t bits = argView.type()->payloadIntLikeBits();
+                    if (bits > 0)
+                    {
+                        const ConstantValue& cst = sema.cstMgr().get(argView.cstRef());
+                        ApsInt               v   = cst.getIntLike();
+                        bool                 overflow = false;
+                        v.abs(overflow);
+                        return makeIntResult(sema, sema.curNodeRef(), v.as64(), bits, argView.type()->isIntLikeUnsigned());
+                    }
+                }
+            }
+
+            // Float abs
+            double x;
+            if (!getFloatArgAsDouble(sema, args[0], x))
+                return Result::Continue;
+
+            double                 foldedValue = 0.0;
+            const Math::FoldStatus foldStatus  = Math::foldIntrinsicUnaryFloat(foldedValue, x, Math::FoldIntrinsicUnaryFloatOp::Abs);
+            if (foldStatus != Math::FoldStatus::Ok)
+                return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
+
+            return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
+        }
+
         case TokenId::IntrinsicSin:
         case TokenId::IntrinsicCos:
         case TokenId::IntrinsicTan:
@@ -293,7 +359,6 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
         case TokenId::IntrinsicCeil:
         case TokenId::IntrinsicTrunc:
         case TokenId::IntrinsicRound:
-        case TokenId::IntrinsicAbs:
         case TokenId::IntrinsicExp:
         case TokenId::IntrinsicExp2:
         {
@@ -360,6 +425,136 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
 
             return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
+        }
+
+        case TokenId::IntrinsicBitCountNz:
+        case TokenId::IntrinsicBitCountTz:
+        case TokenId::IntrinsicBitCountLz:
+        {
+            SWC_ASSERT(args.size() == 1);
+
+            uint64_t val;
+            uint32_t bits;
+            bool     uns;
+            if (!getIntLikeArg(sema, args[0], val, bits, uns))
+                return Result::Continue;
+
+            // Mask to the actual bit width
+            if (bits < 64)
+                val &= (1ULL << bits) - 1;
+
+            uint64_t result = 0;
+            if (tok.id == TokenId::IntrinsicBitCountNz)
+            {
+                result = static_cast<uint64_t>(std::popcount(val));
+            }
+            else if (tok.id == TokenId::IntrinsicBitCountTz)
+            {
+                if (val == 0)
+                    result = bits;
+                else
+                    result = static_cast<uint64_t>(std::countr_zero(val));
+            }
+            else
+            {
+                if (val == 0)
+                    result = bits;
+                else
+                    result = static_cast<uint64_t>(std::countl_zero(val)) - (64 - bits);
+            }
+
+            return makeIntResult(sema, sema.curNodeRef(), result, bits, true);
+        }
+
+        case TokenId::IntrinsicByteSwap:
+        {
+            SWC_ASSERT(args.size() == 1);
+
+            uint64_t val;
+            uint32_t bits;
+            bool     uns;
+            if (!getIntLikeArg(sema, args[0], val, bits, uns))
+                return Result::Continue;
+
+            uint64_t result = 0;
+            switch (bits)
+            {
+                case 16:
+                {
+                    const auto v = static_cast<uint16_t>(val);
+                    result = static_cast<uint64_t>((v >> 8) | (v << 8));
+                    break;
+                }
+                case 32:
+                {
+                    const auto v = static_cast<uint32_t>(val);
+                    result = static_cast<uint64_t>(
+                        ((v >> 24) & 0x000000FF) |
+                        ((v >> 8)  & 0x0000FF00) |
+                        ((v << 8)  & 0x00FF0000) |
+                        ((v << 24) & 0xFF000000));
+                    break;
+                }
+                case 64:
+                {
+                    result =
+                        ((val >> 56) & 0x00000000000000FFULL) |
+                        ((val >> 40) & 0x000000000000FF00ULL) |
+                        ((val >> 24) & 0x0000000000FF0000ULL) |
+                        ((val >> 8)  & 0x00000000FF000000ULL) |
+                        ((val << 8)  & 0x000000FF00000000ULL) |
+                        ((val << 24) & 0x0000FF0000000000ULL) |
+                        ((val << 40) & 0x00FF000000000000ULL) |
+                        ((val << 56) & 0xFF00000000000000ULL);
+                    break;
+                }
+                default:
+                    return Result::Continue;
+            }
+
+            return makeIntResult(sema, sema.curNodeRef(), result, bits, true);
+        }
+
+        case TokenId::IntrinsicRol:
+        case TokenId::IntrinsicRor:
+        {
+            SWC_ASSERT(args.size() == 2);
+
+            uint64_t val;
+            uint32_t valBits;
+            bool     valUns;
+            if (!getIntLikeArg(sema, args[0], val, valBits, valUns))
+                return Result::Continue;
+
+            uint64_t count;
+            uint32_t countBits;
+            bool     countUns;
+            if (!getIntLikeArg(sema, args[1], count, countBits, countUns))
+                return Result::Continue;
+
+            // Mask value and count
+            if (valBits < 64)
+                val &= (1ULL << valBits) - 1;
+            count %= valBits;
+
+            uint64_t result;
+            if (count == 0)
+            {
+                result = val;
+            }
+            else if (tok.id == TokenId::IntrinsicRol)
+            {
+                result = (val << count) | (val >> (valBits - count));
+            }
+            else
+            {
+                result = (val >> count) | (val << (valBits - count));
+            }
+
+            if (valBits < 64)
+                result &= (1ULL << valBits) - 1;
+
+            return makeIntResult(sema, sema.curNodeRef(), result, valBits, true);
         }
 
         default:

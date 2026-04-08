@@ -191,14 +191,12 @@ An entire array can be initialized with a single value. This feature applies to
 variables (not constants) and works for basic types such as integers, floats,
 strings, booleans, and runes.
 */
-// @TODO: Re-enable this single-value initialization example when scalar-to-array initialization works for these array forms.
-// #test
-// {
-//     var arr: [2, 2] bool = true
-//     @assert(arr[0, 0] == true)
-//     @assert(arr[1, 1] == true)
-//
-//     var arr1: [5, 10] string = "string"
-//     @assert(arr1[0, 0] == "string")
-//     @assert(arr1[4, 9] == "string")
-// }
+#test
+{
+    var arr: [2, 2] bool = true
+    @assert(arr[0, 0] == true)
+    @assert(arr[1, 1] == true)
+    var arr1: [5, 10] string = "string"
+    @assert(arr1[0, 0] == "string")
+    @assert(arr1[4, 9] == "string")
+}

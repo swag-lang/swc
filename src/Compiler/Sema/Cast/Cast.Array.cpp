@@ -226,6 +226,44 @@ namespace
         args.castRequest->outConstRef = makeArrayConstantFromValues(args, valuesForArray);
         return Result::Continue;
     }
+
+    // Single value initialization: fill an entire array with one scalar value.
+    Result castScalarToArray(const CastArrayArgs& args)
+    {
+        // Resolve the leaf element type through nested array dimensions.
+        TypeRef leafTypeRef = args.dstType->payloadArrayElemTypeRef();
+        while (args.sema->typeMgr().get(leafTypeRef).isArray())
+            leafTypeRef = args.sema->typeMgr().get(leafTypeRef).payloadArrayElemTypeRef();
+
+        SWC_RESULT(checkElemCast(args, args.srcTypeRef, leafTypeRef));
+
+        if (!args.castRequest->isConstantFolding())
+            return Result::Continue;
+
+        // Fold the scalar to the element type.
+        ConstantRef elemRef;
+        SWC_RESULT(foldElemCast(args, args.srcTypeRef, leafTypeRef, args.castRequest->constantFoldingSrc(), elemRef));
+
+        // Replicate into every slot of the array.
+        uint64_t totalCount = 1;
+        for (const auto dim : args.dstType->payloadArrayDims())
+            totalCount *= dim;
+
+        // For nested array types (e.g. [2][3] s32), multiply by inner dimensions.
+        {
+            const TypeInfo* cur = &args.sema->typeMgr().get(args.dstType->payloadArrayElemTypeRef());
+            while (cur->isArray())
+            {
+                for (const auto dim : cur->payloadArrayDims())
+                    totalCount *= dim;
+                cur = &args.sema->typeMgr().get(cur->payloadArrayElemTypeRef());
+            }
+        }
+
+        std::vector<ConstantRef> values(totalCount, elemRef);
+        args.castRequest->outConstRef = makeArrayConstantFromValues(args, values);
+        return Result::Continue;
+    }
 }
 
 Result Cast::castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -238,6 +276,10 @@ Result Cast::castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         return castArrayToArray(args);
     if (srcType.isAggregateArray())
         return castAggregateToArray(args);
+
+    // Single value initialization (e.g. var arr: [4] s32 = 0).
+    if (castRequest.kind == CastKind::Initialization && !srcType.isAggregate())
+        return castScalarToArray(args);
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }

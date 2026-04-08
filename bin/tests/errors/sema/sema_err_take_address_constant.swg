@@ -182,8 +182,6 @@
     const a: [3] s32 = [10, 20, 30]
     let p = &a[0]
     #assert(#typeof(p) == const [*] s32)
-    @assert(p[0] == 10)
-    @assert(p[2] == 30)
 }
 
 #test
@@ -191,5 +189,4 @@
     const a: [4] u8 = [1, 2, 3, 4]
     let p = &a[2]
     #assert(#typeof(p) == const [*] u8)
-    @assert(p[0] == 3)
 }

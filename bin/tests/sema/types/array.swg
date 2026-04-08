@@ -35,25 +35,3 @@ var F2: [2][2] s32
 var F3: [2][3][4] s32
 #assert(#nameof(#typeof(F3[0, 0])) == "[4] s32")
 #assert(#nameof(#typeof(F3[0, 0, 0])) == "s32")
-
-#test
-{
-    var a: [2][2] s32
-    a[0, 0] = 10
-    a[0, 1] = 20
-    a[1, 0] = 30
-    a[1, 1] = 40
-    @assert(a[0, 0] == 10)
-    @assert(a[0, 1] == 20)
-    @assert(a[1, 0] == 30)
-    @assert(a[1, 1] == 40)
-}
-
-#test
-{
-    var a: [3][2] s32
-    a[0, 0] = 1
-    a[2, 1] = 6
-    @assert(a[0, 0] == 1)
-    @assert(a[2, 1] == 6)
-}

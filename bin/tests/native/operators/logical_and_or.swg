@@ -1,5 +1,4 @@
-#global fileprivate //
-
+#global fileprivate
 var LogCounter: s32
 
 func sideEffect(flag: bool, delta: s32)->bool
@@ -8,6 +7,7 @@ func sideEffect(flag: bool, delta: s32)->bool
     return flag
 }
 
+// Logical and/or truth table with literals
 #test
 {
     @assert(true and true)
@@ -21,6 +21,7 @@ func sideEffect(flag: bool, delta: s32)->bool
     @assert(!(false or false))
 }
 
+// Logical and/or truth table with variables
 #test
 {
     let t = true
@@ -35,6 +36,7 @@ func sideEffect(flag: bool, delta: s32)->bool
     @assert(!(f or f))
 }
 
+// Logical operators with comparison subexpressions
 #test
 {
     let a = 5 > 3 and 2 < 4
@@ -89,6 +91,7 @@ func sideEffect(flag: bool, delta: s32)->bool
     @assert(LogCounter == 11)
 }
 
+// Chained logical operators
 #test
 {
     let a = true and true and true
@@ -102,6 +105,7 @@ func sideEffect(flag: bool, delta: s32)->bool
     @assert(!d)
 }
 
+// Mixed and/or with parenthesized grouping
 #test
 {
     let a = (true or false) and (false or true)

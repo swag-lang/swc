@@ -64,6 +64,7 @@ func runMixinCaller()->bool
     return false
 }
 
+// Macro and mixin return values and callee return
 #test
 {
     @assert(runMacroValue())

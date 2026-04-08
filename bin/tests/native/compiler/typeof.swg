@@ -1,5 +1,4 @@
 #global fileprivate // 
-
 const TypedValue: s32 = 10
 
 #assert(#typeof(TypedValue) == s32)
@@ -38,6 +37,7 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
 #assert(TYPEOF_FUNC.parameters[0].pointedType == s32)
 #assert(TYPEOF_FUNC.returnType == bool)
 
+// #typeof on local vars matches expected types
 #test
 {
     var local = 1 + 1'u16
@@ -50,6 +50,7 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
     @assert(ptr == null)
 }
 
+// #typeof on compound types inspected at runtime
 #test
 {
     var types: [?] typeinfo = [#typeof(#type [2, 3] TypeOfPair), #typeof(#type [..] TypeOfPair)]

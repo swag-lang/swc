@@ -12,6 +12,7 @@ func contextStackMixB(a: s32, b: s32, c: s32, d: s32, e: s32, f: s32, g: s32, h:
     return a + b + c + d + e + f + g + h + i + j
 }
 
+// Context stack handles many parameters
 #test
 {
     var a = contextStackMixA(1, 2, 3, 4, 5, 6)

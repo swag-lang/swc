@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 #global #[Swag.Safety(.All, false)]
 
 func eqF32(a: f32, b: f32)->bool
@@ -95,6 +95,7 @@ func switchNaNRange()->bool
     }
 }
 
+// NaN comparison for f32
 #test
 {
     const a = Swag.F32.NaN
@@ -109,6 +110,7 @@ func switchNaNRange()->bool
     @assert(cmpF32(a, b) == 0)
 }
 
+// NaN comparison for f64
 #test
 {
     const a = Swag.F64.NaN
@@ -123,6 +125,7 @@ func switchNaNRange()->bool
     @assert(cmpF64(a, b) == 0)
 }
 
+// NaN in switch equality and range
 #test
 {
     @assert(switchNaNEquality())

@@ -1,5 +1,4 @@
 // 
-
 #global fileprivate
 
 #[Swag.Macro]
@@ -12,6 +11,7 @@ func macroCompute(a: s32, b: s32 = 1, c: s32 = 1)->s32
     return tmp + c
 }
 
+// Macro add and compute with defaults
 #test
 {
     let base: s32 = 40

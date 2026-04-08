@@ -1,5 +1,4 @@
-#global fileprivate // 
-
+#global fileprivate
 #[Swag.EnumFlags]
 enum A { R = 1, G = 2, B = 4 }
 
@@ -9,6 +8,7 @@ const C = A.R | .G
 
 const D = A.R & ~.G
 
+// Auto-scope enum in struct field assignment
 #test
 {
     var requestStorage: Swag.AllocatorRequest
@@ -19,12 +19,15 @@ const D = A.R & ~.G
 }
 
 func toto()->A { return .R }
+
+// Auto-scope enum in return and comparison
 #test
 {
     if(toto() == .R) {}
     @assert(toto() == .R)
 }
 
+// Auto-scope enum flags with bitwise or
 #test
 {
     let x: A = .B
@@ -47,6 +50,7 @@ impl E
     }
 }
 
+// Auto-scope enum through struct field comparison
 #test
 {
     var f: F

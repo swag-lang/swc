@@ -104,6 +104,7 @@ func remapLoopFlow(stmt: #code void)
     #inject(stmt, continue = break to Outer, break = continue)
 }
 
+// #code expr is injected twice
 #test
 {
     ExprEvalCount = 0
@@ -111,6 +112,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(ExprEvalCount == 2)
 }
 
+// #code void stmt is injected twice
 #test
 {
     StmtEvalCount = 0
@@ -118,6 +120,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(StmtEvalCount == 2)
 }
 
+// Named #code param and forwarded injection
 #test
 {
     let base = 10
@@ -126,6 +129,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(forceExpr(#code base * 3) == 30)
 }
 
+// #code with default parameter value
 #test
 {
     DefaultEvalCount = 0
@@ -133,6 +137,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(DefaultEvalCount == 1)
 }
 
+// Conditional injection via inline #code args
 #test
 {
     StmtEvalCount = 0
@@ -144,6 +149,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(StmtEvalCount == 1)
 }
 
+// Conditional injection via trailing block
 #test
 {
     StmtEvalCount = 0
@@ -163,6 +169,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(StmtEvalCount == 1)
 }
 
+// break remapped to continue in for loop
 #test
 {
     var count = 0
@@ -177,6 +184,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(count == 4)
 }
 
+// break remapped to continue in foreach loop
 #test
 {
     var count = 0
@@ -192,6 +200,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(count == 4)
 }
 
+// break remapped to scope break
 #test
 {
     var count = 0
@@ -211,6 +220,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(count == 1)
 }
 
+// break and continue both remapped in loop
 #test
 {
     var count = 0
@@ -235,6 +245,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(count == 2)
 }
 
+// continue remapped to scope break
 #test
 {
     var count = 0

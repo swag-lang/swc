@@ -1,5 +1,6 @@
-#global fileprivate // 
+#global fileprivate
 
+// Integer arithmetic operators
 #test
 {
     let a = 40 + 2
@@ -21,6 +22,7 @@
     @assert(e == 42)
 }
 
+// Float arithmetic and type promotion
 #test
 {
     let a = 40 + 2.5'f64
@@ -36,6 +38,7 @@
     @assert(c == 8.5'f64)
 }
 
+// Bitwise AND, OR, XOR on u32
 #test
 {
     let a = 0x3F'u32 & 0x2A'u32
@@ -51,6 +54,7 @@
     @assert(c == 42'u32)
 }
 
+// Shift left and right on u32 and u64
 #test
 {
     let a = 21'u32 << 1
@@ -69,6 +73,7 @@
     @assert(d == 0x0000_0000_0010_0000'u64)
 }
 
+// Operator precedence and parentheses
 #test
 {
     let a = 6 + 8 * 5 - 4
@@ -78,6 +83,7 @@
     @assert(b == 42)
 }
 
+// 64-bit integer arithmetic
 #test
 {
     let a = 10000000000's64 + 42's64

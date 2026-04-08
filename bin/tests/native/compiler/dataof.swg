@@ -1,5 +1,6 @@
 #global fileprivate // 
 
+// @dataof returns correct pointer types
 #test
 {
     var a: [..] s32
@@ -28,6 +29,7 @@
     @assert(#typeof(j) == [*] void)
 }
 
+// @dataof on string accesses character bytes
 #test
 {
     var s: string = "abc"
@@ -37,6 +39,7 @@
     @assert(p[2] == 'c')
 }
 
+// @dataof on fixed array accesses elements
 #test
 {
     var arr: [3] u8 = [1, 2, 3]
@@ -46,6 +49,7 @@
     @assert(p[2] == 3'u8)
 }
 
+// @dataof on null string returns null
 #test
 {
     var s: string = null
@@ -54,6 +58,7 @@
     @assert(p == null)
 }
 
+// @dataof allows mutation of array elements
 #test
 {
     var arr: [2] s32 = [1, 2]
@@ -62,6 +67,7 @@
     @assert(arr[0] == 7)
 }
 
+// @dataof on const string at compile time
 #test
 {
     const s: string = "abc"
@@ -72,6 +78,7 @@
     @assert(dref p == 'a''u8)
 }
 
+// @dataof on const slice at compile time
 #test
 {
     const s: const [..] u8 = cast(const [..] u8) "abc"
@@ -82,6 +89,7 @@
     @assert(dref p == 'a''u8)
 }
 
+// @dataof on const fixed array at compile time
 #test
 {
     const arr: [2] s32 = [7, 9]

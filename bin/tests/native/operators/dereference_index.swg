@@ -1,5 +1,6 @@
-#global fileprivate // 
+#global fileprivate
 
+// Array indexing and address-of element
 #test
 {
     var buf1: [4] s32
@@ -12,8 +13,7 @@
     @assert(ptr1 == &buf1[0])
 }
 
-
-
+// Multidimensional array indexing
 #test
 {
     var a4: [2, 3] s32
@@ -21,7 +21,7 @@
     @assert(@countof(a4[0]) == 3)
 }
 
-
+// Slice indexing from backing array
 #test
 {
     var backing6: [2] s32 = [11, 22]
@@ -31,8 +31,7 @@
     @assert(b6 == 11)
 }
 
-
-
+// Slice indexing with different initial values
 #test
 {
     var backing2: [2] s32 = [33, 44]
@@ -42,7 +41,7 @@
     @assert(b2 == 33)
 }
 
-
+// String character indexing
 #test
 {
     var A = "titi"

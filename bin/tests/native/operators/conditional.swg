@@ -1,10 +1,10 @@
-#global fileprivate // 
-
+#global fileprivate
 #assert((true ? 10 : 20) == 10)
 #assert((false ? 10 : 20) == 20)
 #assert((true ? "true" : "false") == "true")
 #assert((false ? "true" : "false") == "false")
 
+// Ternary with type promotion and runtime eval
 #test
 {
     const a = true ? 10's16 : 20's32
@@ -25,6 +25,7 @@
     @assert(d == 20)
 }
 
+// Ternary with zero as false condition
 #test
 {
     var a = 0 ? 1 : 2

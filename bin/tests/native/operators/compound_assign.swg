@@ -1,5 +1,6 @@
-#global fileprivate //
+#global fileprivate
 
+// Arithmetic compound assignment on s32
 #test
 {
     var a: s32 = 100
@@ -15,6 +16,7 @@
     @assert(a == 4)
 }
 
+// Bitwise compound assignment on u32
 #test
 {
     var a: u32 = 0xFF'u32
@@ -26,6 +28,7 @@
     @assert(a == 0x2A'u32)
 }
 
+// Shift compound assignment on u32
 #test
 {
     var a: u32 = 1'u32
@@ -35,6 +38,7 @@
     @assert(a == 8'u32)
 }
 
+// Shift compound assignment on u64
 #test
 {
     var a: u64 = 1'u64
@@ -44,6 +48,7 @@
     @assert(a == 0x0000_0000_0010_0000'u64)
 }
 
+// Float compound assignment on f64
 #test
 {
     var a: f64 = 10.0'f64
@@ -57,6 +62,7 @@
     @assert(a == 7.0'f64)
 }
 
+// Compound assignment on s64
 #test
 {
     var a: s64 = 1000000000's64
@@ -80,6 +86,7 @@ func mulAssign(a: &s32, b: s32)
     a *= b
 }
 
+// Compound assignment through reference parameters
 #test
 {
     var x: s32 = 10

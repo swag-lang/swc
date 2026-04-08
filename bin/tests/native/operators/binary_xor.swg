@@ -1,5 +1,4 @@
-#global fileprivate // 
-
+#global fileprivate
 func bitXor(a: u32, b: u32)->u32
 {
     return a ^ b
@@ -20,6 +19,7 @@ func bitXorWide(a: u64, b: u64)->u64
     return a ^ b
 }
 
+// XOR operations: basic, chained, self, and wide
 #test
 {
     let v0 = bitXor(47'u32, 5'u32)

@@ -159,6 +159,7 @@ func functionScopedShortCompilerOnlyRunCall()
 #assert(PersistentBytesHolder.bytes[0] == 1)
 #assert(PersistentBytesHolder.bytes[3] == 4)
 
+// #run blocks in function scope and any persistence
 #test
 {
     functionScopedRunBlock()

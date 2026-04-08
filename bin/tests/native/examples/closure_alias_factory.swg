@@ -70,6 +70,7 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
     return result
 }
 
+// SaaS subscription quote with closure discounts
 #test
 {
     const growthPlan: SubscriptionPlan =

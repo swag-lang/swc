@@ -123,6 +123,7 @@ func buildRestockPlan(items: const [..] InventoryItem)->RestockPlan
     return result
 }
 
+// Warehouse restock plan from inventory items
 #test
 {
     const inventory: [4] InventoryItem =

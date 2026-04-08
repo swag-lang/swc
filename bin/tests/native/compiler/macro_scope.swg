@@ -145,6 +145,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     }
 }
 
+// #macro injects statement twice
 #test
 {
     var a = 1
@@ -156,6 +157,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(a == 3)
 }
 
+// #macro prefers caller scope for variables
 #test
 {
     var a = 1
@@ -167,6 +169,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(a == 3)
 }
 
+// #macro exposes loop index via #up
 #test
 {
     var sum = 0
@@ -178,6 +181,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(sum == 6)
 }
 
+// #macro passes struct config into scope
 #test
 {
     var cfg: MacroScopeConfig
@@ -192,6 +196,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(total == 7)
 }
 
+// #macro binds typed alias from outer scope
 #test
 {
     var result = 0
@@ -203,6 +208,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(result == 42)
 }
 
+// #macro nested block exposes value via #up
 #test
 {
     var result = 0
@@ -216,6 +222,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
 
 // --- Alias tests ---
 
+// Single #alias0 binding in macro
 #test
 {
     var result = 0
@@ -227,6 +234,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(result == 42)
 }
 
+// Pair #alias0/#alias1 bindings in macro
 #test
 {
     var result = 0
@@ -238,6 +246,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(result == 10 + 21)
 }
 
+// #alias with #up variable reference
 #test
 {
     var result = 0
@@ -249,6 +258,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(result == 105)
 }
 
+// #alias in loop macro with repeat count
 #test
 {
     var sum = 0
@@ -260,6 +270,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(sum == 6)
 }
 
+// Nested block with dual #alias bindings
 #test
 {
     var result = 0
@@ -271,6 +282,7 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     @assert(result == 21 + 40)
 }
 
+// #alias with struct config fields
 #test
 {
     var cfg: MacroScopeConfig

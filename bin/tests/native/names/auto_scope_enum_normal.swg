@@ -22,6 +22,7 @@ func isGreen(value: A)->bool
     return value == .G
 }
 
+// Auto-scope enum in vars, arrays, structs, calls
 #test
 {
     let value: A = .G
@@ -43,6 +44,7 @@ func isGreen(value: A)->bool
     @assert(pickA(false) == .B)
 }
 
+// Auto-scope enum in conditionals and reassignment
 #test
 {
     var value: A = .R

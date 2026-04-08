@@ -1,5 +1,4 @@
 // 
-
 #global fileprivate
 
 #[Swag.Mixin]
@@ -22,6 +21,7 @@ func computeWithMixin(value: s32)->s32
     return total
 }
 
+// Mixin accesses caller scope variables
 #test
 {
     @assert(computeWithMixin(41) == 42)

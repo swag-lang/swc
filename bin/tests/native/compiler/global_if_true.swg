@@ -7,6 +7,7 @@ func makeValue()->s32
     return 42
 }
 
+// #global #if true preserves declarations
 #test
 {
     @assert(GIf.makeValue() == 42)

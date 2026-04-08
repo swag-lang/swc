@@ -131,6 +131,7 @@ func runMacroScopeTrace()->s64
 }
 */
 
+// Defer ordering with injected and mixin scopes
 #test
 {
     let v = runInjectedFunctionScopeTrace()
@@ -138,16 +139,19 @@ func runMacroScopeTrace()->s64
     @assert(v.trace == 1829)
 }
 
+// Defer in injected loop scope repeats per iteration
 #test
 {
     @assert(runInjectedLoopScope() == 818181)
 }
 
+// Mixin defer runs at end of enclosing scope
 #test
 {
     @assert(runMixinScopeLock() == 5)
 }
 
+// Mixin with param defers after body
 #test
 {
     @assert(runMixinParamTrace() == 12)

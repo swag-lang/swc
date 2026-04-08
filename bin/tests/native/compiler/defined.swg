@@ -1,5 +1,4 @@
 #global fileprivate // 
-
 const GlobalValue = 1
 
 namespace Scope
@@ -13,6 +12,7 @@ namespace Scope
 #assert(#defined(ForwardDefined))
 const ForwardDefined = 3
 
+// #defined checks local and global symbols
 #test
 {
     const LocalConst = 4

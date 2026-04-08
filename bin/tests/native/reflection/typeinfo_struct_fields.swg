@@ -62,6 +62,7 @@ struct Node
 // Field count and names for single-field struct.
 struct Single { only: f64 }
 
+// Single-field struct reflection
 #test
 {
     let info = cast(const *Swag.TypeInfoStruct) #typeof(Single)

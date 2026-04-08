@@ -68,6 +68,7 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
     return result
 }
 
+// Macro computes invoice totals correctly
 #test
 {
     const starterInvoice: [3] InvoiceLine =

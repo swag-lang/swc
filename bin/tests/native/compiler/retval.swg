@@ -40,6 +40,7 @@ func cloneBig(seed: s64)->BigRet
     return result
 }
 
+// retval with small struct via #run
 #test
 {
     let small = #run makeSmall(2, 2)
@@ -47,6 +48,7 @@ func cloneBig(seed: s64)->BigRet
     @assert(small.y == 8)
 }
 
+// retval with large struct via #run clone
 #test
 {
     let big = #run cloneBig(10)

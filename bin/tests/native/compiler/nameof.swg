@@ -1,5 +1,4 @@
 #global fileprivate // 
-
 const GlobalValue = 0
 
 enum Color
@@ -22,6 +21,7 @@ struct NamedStruct
 #assert(#nameof(s32) == "s32")
 #assert(#nameof(bool) == "bool")
 
+// #nameof and #fullnameof at runtime
 #test
 {
     const globalName = #nameof(GlobalValue)

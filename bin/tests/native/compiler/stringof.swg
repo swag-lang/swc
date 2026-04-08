@@ -1,5 +1,4 @@
 #global fileprivate // 
-
 const GlobalZero = 0
 
 enum Mode
@@ -22,6 +21,7 @@ const Negative = -10
 #assert(#stringof(true) == "true")
 #assert(#stringof(false) == "false")
 
+// #stringof at runtime with const and variables
 #test
 {
     const folded = #stringof(Folded)

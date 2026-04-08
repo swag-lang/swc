@@ -1,5 +1,4 @@
 #global fileprivate // 
-
 const Cfg = #run dref @compiler.getBuildCfg()
 
 func pureAdd(a: s32, b: s32)->s32
@@ -36,6 +35,7 @@ alias FixedArray = [pureAdd(20, 22)] s32
 #assert(PureConstexpr == 42)
 #assert(#sizeof(FixedArray) == 42 * #sizeof(s32))
 
+// Pure functions are constexpr when optimized
 #test
 {
     @assert(defaultPureArg() == 42)

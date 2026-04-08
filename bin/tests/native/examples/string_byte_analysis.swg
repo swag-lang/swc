@@ -127,6 +127,7 @@ func buildCsvPreview(csv: string)->CsvPreview
     return result
 }
 
+// CSV preview: row/column/cell counts and quoting
 #test
 {
     const csv = "id,name,qty,price_cents\n1,keyboard,4,12900\n2,\"mouse pad\",12,2500\n3,cable,8,900"

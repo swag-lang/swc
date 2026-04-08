@@ -1,5 +1,4 @@
 #global fileprivate // 
-
 const Cfg = #run dref @compiler.getBuildCfg()
 
 #assert(#typeof(Cfg) == Swag.BuildCfg)
@@ -13,6 +12,7 @@ const Cfg = #run dref @compiler.getBuildCfg()
 #assert(Cfg.backendSubKind == Swag.BuildCfgBackendSubKind.Default or
         Cfg.backendSubKind == Swag.BuildCfgBackendSubKind.Console)
 
+// BuildCfg fields are valid at runtime
 #test
 {
     @assert(Cfg.registeredConfigs == "fast-compile|debug|fast-debug|release")

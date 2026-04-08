@@ -1,5 +1,3 @@
-// 
-
 #init
 {
     Counter = 2
@@ -10,6 +8,7 @@
     Counter += 1
 }
 
+// Arithmetic helpers and init/premain counter
 #test
 {
     var a = 0
@@ -23,6 +22,7 @@
     @assert(touch(4) == 7)
 }
 
+// Triple, square_plus_seed, and counter state
 #test
 {
     check(triple(4) == 12, 4)
@@ -33,6 +33,7 @@
     @assert(Counter == 3 or Counter == 7)
 }
 
+// Pointer delta and int-from-float subtraction
 #test
 {
     check(pointer_step_delta() == 1, 8)

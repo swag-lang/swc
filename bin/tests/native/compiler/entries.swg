@@ -1,5 +1,4 @@
 // 
-
 #global fileprivate
 
 var state: s32
@@ -14,12 +13,14 @@ var state: s32
     state += 10
 }
 
+// #init and #premain run before first test
 #test
 {
     state += 100
     @assert(state == 111)
 }
 
+// State accumulates across tests
 #test
 {
     state += 1000

@@ -1,5 +1,4 @@
 #global fileprivate // 
-
 struct SizedPair
 {
     a: s32
@@ -25,6 +24,7 @@ struct SizedPair
 #assert(#sizeof(const [..] u32) == 16)
 #assert(#sizeof(SizedPair) == 16)
 
+// #sizeof on arrays and structs at runtime
 #test
 {
     @assert(#sizeof([2] s64) == 16)

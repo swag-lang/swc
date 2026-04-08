@@ -24,6 +24,7 @@ func computeUniq(value: s32)->s32
     return total
 }
 
+// #uniq identifier scoping in mixin expansion
 #test
 {
     @assert(computeUniq(3) == 148)

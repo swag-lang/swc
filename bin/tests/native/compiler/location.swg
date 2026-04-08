@@ -1,5 +1,4 @@
 #global fileprivate // 
-
 const MarkerValue = 0
 
 func markerFunction()->s32
@@ -16,6 +15,7 @@ const FunctionLocation = #location(markerFunction)
 #assert(FunctionLocation.fileName == MarkerLocation.fileName)
 #assert(FunctionLocation.lineStart > MarkerLocation.lineStart)
 
+// #location matches at compile and runtime
 #test
 {
     const localMarker = #location(MarkerValue)

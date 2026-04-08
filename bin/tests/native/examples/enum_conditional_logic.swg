@@ -111,6 +111,7 @@ func buildOrderSummary(lines: const [..] OrderLine, tier: CustomerTier)->OrderSu
     return result
 }
 
+// Order summary with tier-based discounts
 #test
 {
     const order: [3] OrderLine =

@@ -1,5 +1,4 @@
-#global fileprivate // 
-
+#global fileprivate
 func unaryMinusS32(a: s32)->s32
 {
     return -a
@@ -20,6 +19,7 @@ func unaryMinusChain(a: s32)->s32
     return -(-a)
 }
 
+// Unary minus on s32, f64, s64, and double negation
 #test
 {
     let v0 = unaryMinusS32(42)

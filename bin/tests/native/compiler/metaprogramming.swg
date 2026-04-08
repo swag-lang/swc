@@ -16,7 +16,8 @@ namespace compiler1064
     }
     
     var fibonacciOfAge: s32 = #run fibonacci(16)
-    
+
+    // #run fibonacci result persists at runtime
     #test
     {
         @assert(fibonacciOfAge == 987)
@@ -36,7 +37,8 @@ namespace compiler1386
     {
         BB
     }
-    
+
+    // Distinct enums have distinct types
     #test
     {
         using A, B
@@ -114,7 +116,8 @@ namespace compiler1599
     {
         return true
     }
-    
+
+    // #run returning bool inside #assert
     #test
     {
         #assert(#run toto()
@@ -149,7 +152,8 @@ namespace compiler1665
         @print(#typeof(ptr2).name); @print("\n")*/
         //ptr1.value = 0
     }
-    
+
+    // Variadic cast preserves original struct values
     #test
     {
         var x: TT
@@ -177,7 +181,8 @@ namespace compiler1667
         //var ptr1 = cast(const TT) x[0]
         //ptr1.value = 456
     }
-    
+
+    // Variadic with struct keeps default value
     #test
     {
         var x: TT
@@ -198,7 +203,8 @@ namespace compiler1672
     {
         return #typeof(x[0])
     }
-    
+
+    // #typeof on variadic element returns any
     #test
     {
         @assert(toto(5) == any)
@@ -260,7 +266,8 @@ namespace compiler239
         //@assert(b == 77)
         //@assert(c == 666)
     }
-    
+
+    // #run and direct call return same value
     #test
     {
         main()
@@ -292,7 +299,8 @@ namespace compiler2447
     
     const ArrCount = cast(s32) #run N()
     var arr: [ArrCount] s32
-    
+
+    // #run result used as array size
     #test
     {
         @assert(@countof(arr) == 10)
@@ -316,7 +324,8 @@ namespace compiler250
     {
         @assert(main() == 55)
     }
-    
+
+    // #run as default parameter value
     #test
     {
         main1()
@@ -459,7 +468,8 @@ namespace compiler3100
     //#global testerror
     
     func msg() => "msg"
-    
+
+    // #if false skips #error with #run
     #test
     {
         var x = 1
@@ -476,7 +486,8 @@ namespace compiler3120
     {
         return "666"
     }
-    
+
+    // #run returns string from compiler function
     #test
     {
         const Msg = #run mySillyFunction()
@@ -640,6 +651,7 @@ namespace compiler4266
 // _compiler4844.swg
 namespace compiler4844
 {
+    // #run builds a typed array at compile time
     #test
     {
         const N           = 4
@@ -661,6 +673,7 @@ namespace compiler4844
 // _compiler4845.swg
 namespace compiler4845
 {
+    // #run deduces array type from return value
     #test
     {
         const PowerOfTwo = #run
@@ -695,7 +708,8 @@ namespace compiler4848
 {
     //#global testerror "Err0023"
     struct RGB { a, b, c: s32 }
-    
+
+    // #run returns a struct literal
     #test
     {
         const X: RGB = #run
@@ -727,7 +741,8 @@ namespace compiler4849
         item: any
         other: any
     }
-    
+
+    // #run with any and struct payloads at runtime
     #test
     {
         let value = #run

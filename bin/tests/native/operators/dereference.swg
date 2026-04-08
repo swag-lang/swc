@@ -1,5 +1,6 @@
-#global fileprivate // 
+#global fileprivate
 
+// Dereference typed pointer to struct
 #test
 {
     struct AA
@@ -14,6 +15,7 @@
     @assert(v1.x == 0)
 }
 
+// Dereference const pointer to struct
 #test
 {
     struct AA
@@ -28,6 +30,7 @@
     @assert(v1.x == 0)
 }
 
+// Dereference inferred pointer type
 #test
 {
     struct AA
@@ -43,6 +46,7 @@
     @assert(v1.x == 0)
 }
 
+// Dereference double pointer
 #test
 {
     struct AA
@@ -59,6 +63,7 @@
     @assert(v1 == v)
 }
 
+// Dereference address-of expression directly
 #test
 {
     struct AA

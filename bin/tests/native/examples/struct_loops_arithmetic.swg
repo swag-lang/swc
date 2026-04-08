@@ -95,6 +95,7 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
     return result
 }
 
+// Bakery oven schedule with batches and cooling
 #test
 {
     const weekdayPrep: [4] BakeOrder =

@@ -1,5 +1,4 @@
-#global fileprivate // 
-
+#global fileprivate
 enum CmpEnum: u16
 {
     A = 10
@@ -14,6 +13,7 @@ func touch(flag: bool, delta: s32)->bool
     return flag
 }
 
+// Pointer equality and null comparison
 #test
 {
     var a: *s32 = null
@@ -25,6 +25,7 @@ func touch(flag: bool, delta: s32)->bool
     @assert(!c)
 }
 
+// Relational operators on integers
 #test
 {
     let a = -5 < 12
@@ -38,6 +39,7 @@ func touch(flag: bool, delta: s32)->bool
     @assert(d)
 }
 
+// Three-way comparison operator on integers
 #test
 {
     let a = 1 <=> 2
@@ -51,6 +53,7 @@ func touch(flag: bool, delta: s32)->bool
     @assert(c == 0)
 }
 
+// Float comparison and three-way compare
 #test
 {
     let a = 1.5'f64 < 2.5'f64
@@ -62,6 +65,7 @@ func touch(flag: bool, delta: s32)->bool
     @assert(c == 0)
 }
 
+// Enum equality comparison
 #test
 {
     let a = CmpEnum.A == CmpEnum.A
@@ -71,6 +75,7 @@ func touch(flag: bool, delta: s32)->bool
     @assert(b)
 }
 
+// Pointer identity comparison
 #test
 {
     var value0: s32 = 77
@@ -84,6 +89,7 @@ func touch(flag: bool, delta: s32)->bool
     @assert(p2 != null)
 }
 
+// Short-circuit evaluation with side effects
 #test
 {
     CompareCounter = 0

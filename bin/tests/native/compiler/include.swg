@@ -1,7 +1,7 @@
 #global fileprivate // 
-
 const SelfBytes = #include(#file)
 
+// #include reads own file as byte array
 #test
 {
     #assert(#typeof(SelfBytes) == [@countof(SelfBytes)] u8)
@@ -11,6 +11,7 @@ const SelfBytes = #include(#file)
     @assert(SelfBytes[1] == 'g''u8)
 }
 
+// #include result is mutable when assigned to var
 #test
 {
     var copy = #include(#file)

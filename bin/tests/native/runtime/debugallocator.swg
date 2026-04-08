@@ -286,6 +286,35 @@ func makeDebugAllocator(da: *DebugAllocator, sa: *SystemAllocator)->IAllocator
     da.checkAllMemory()
 }
 
+// assertIsAllocated on valid block
+#test
+{
+    var sa: SystemAllocator
+    var da: DebugAllocator
+    let itf = makeDebugAllocator(&da, &sa)
+
+    var req: AllocatorRequest
+    req.mode = .Alloc
+    req.size = 64
+    itf.req(&req)
+
+    da.assertIsAllocated(req.address)
+
+    req.mode = .Free
+    req.size = 64
+    itf.req(&req)
+}
+
+// assertIsAllocated with null is no-op
+#test
+{
+    var sa: SystemAllocator
+    var da: DebugAllocator
+    let itf = makeDebugAllocator(&da, &sa)
+
+    da.assertIsAllocated(null)
+}
+
 // AssertIsAllocated mode via interface
 #test
 {

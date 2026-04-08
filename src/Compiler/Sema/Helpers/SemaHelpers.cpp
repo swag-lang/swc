@@ -213,17 +213,9 @@ AstNodeRef SemaHelpers::defaultArgumentExprRef(const SymbolVariable& param)
     return AstNodeRef::invalid();
 }
 
-bool SemaHelpers::isDirectCallerLocationDefault(const Sema& sema, const SymbolVariable& param)
+bool SemaHelpers::isDirectCallerLocationDefault(const Sema& /*sema*/, const SymbolVariable& param)
 {
-    const AstNodeRef initRef = defaultArgumentExprRef(param);
-    if (initRef.isInvalid())
-        return false;
-
-    const AstNode& initNode = sema.node(initRef);
-    if (initNode.isNot(AstNodeId::CompilerLiteral))
-        return false;
-
-    return sema.token(initNode.codeRef()).id == TokenId::CompilerCallerLocation;
+    return param.hasExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
 }
 
 void SemaHelpers::pushConstExprRequirement(Sema& sema, AstNodeRef childRef)

@@ -745,11 +745,25 @@ namespace
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {
+            // Check if the init expression is a #callerlocation default
+            bool isCallerLocation = false;
+            if (context.nodeInitRef.isValid())
+            {
+                const AstNode& initNode = sema.node(context.nodeInitRef);
+                if (initNode.is(AstNodeId::CompilerLiteral))
+                {
+                    const Token& tok = sema.token(initNode.codeRef());
+                    isCallerLocation = tok.id == TokenId::CompilerCallerLocation;
+                }
+            }
+
             for (Symbol* s : symbols)
             {
                 auto& symVar = s->cast<SymbolVariable>();
                 if (isExplicitUndefinedInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+                if (isCallerLocation)
+                    symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
                 symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }

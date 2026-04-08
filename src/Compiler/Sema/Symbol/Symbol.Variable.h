@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
 
-enum class SymbolVariableFlagsE : uint8_t
+enum class SymbolVariableFlagsE : uint16_t
 {
     Zero                    = 0,
     Let                     = 1 << 0,
@@ -16,6 +16,7 @@ enum class SymbolVariableFlagsE : uint8_t
     FunctionLocal           = 1 << 5,
     RetVal                  = 1 << 6,
     NeedsAddressableStorage = 1 << 7,
+    CallerLocationDefault   = 1 << 8,
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 

@@ -1069,7 +1069,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         // Resolve the derived TypeInfo struct that matches the underlying type,
         // so that type-specific fields (e.g. TypeInfoArray.count) are accessible.
         const TypeInfo& underlying = sema.typeMgr().get(typeInfo->payloadTypeRef());
-        TypeRef structRef = sema.typeMgr().structTypeInfo();
+        TypeRef         structRef  = sema.typeMgr().structTypeInfo();
         if (underlying.isArray())
             structRef = sema.typeMgr().structTypeInfoArray();
         else if (underlying.isStruct())

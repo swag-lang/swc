@@ -31,13 +31,13 @@ struct CodeGenNodePayload
     };
 
     MicroReg        reg;
-    TypeRef         typeRef               = TypeRef::invalid();
+    TypeRef         typeRef                 = TypeRef::invalid();
     TypeRef         runtimeArrayFillTypeRef = TypeRef::invalid();
-    StorageKind     storageKind           = StorageKind::Value;
-    SymbolVariable* runtimeStorageSym     = nullptr;
-    SymbolFunction* runtimeFunctionSymbol = nullptr;
-    ConstantRef     runtimeArrayFillCstRef = ConstantRef::invalid();
-    uint16_t        runtimeSafetyMask     = 0;
+    StorageKind     storageKind             = StorageKind::Value;
+    SymbolVariable* runtimeStorageSym       = nullptr;
+    SymbolFunction* runtimeFunctionSymbol   = nullptr;
+    ConstantRef     runtimeArrayFillCstRef  = ConstantRef::invalid();
+    uint16_t        runtimeSafetyMask       = 0;
 
     void setIsValue() { storageKind = StorageKind::Value; }
     bool isValue() const { return storageKind == StorageKind::Value; }

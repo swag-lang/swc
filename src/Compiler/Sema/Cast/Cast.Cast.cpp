@@ -266,7 +266,7 @@ namespace
         if (fillCstRef.isInvalid())
             return Result::Continue;
 
-        auto& payload                  = ensureCastCodeGenPayload(sema, nodeRef);
+        auto& payload                   = ensureCastCodeGenPayload(sema, nodeRef);
         payload.runtimeArrayFillTypeRef = fillTypeRef;
         payload.runtimeArrayFillCstRef  = fillCstRef;
         outNeedsRuntimeStorage          = true;

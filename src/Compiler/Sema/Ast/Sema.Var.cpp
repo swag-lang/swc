@@ -570,10 +570,7 @@ namespace
         return SemaError::raise(sema, id, where);
     }
 
-    Result checkUndefinedInit(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols,
-                             bool isConst, bool isLet, bool isParameter,
-                             TypeRef explicitTypeRef, const TypeInfo* explicitType,
-                             const SemaNodeView& nodeInitView, bool& isExplicitUndefinedInit)
+    Result checkUndefinedInit(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols, bool isConst, bool isLet, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, const SemaNodeView& nodeInitView, bool& isExplicitUndefinedInit)
     {
         if (context.nodeInitRef.isInvalid() || nodeInitView.cstRef() != sema.cstMgr().cstUndefined())
             return Result::Continue;
@@ -663,7 +660,8 @@ namespace
                 while (sema.typeMgr().get(leafTypeRef).isAggregateArray())
                 {
                     const auto& inner = sema.typeMgr().get(leafTypeRef).payloadAggregate().types;
-                    if (inner.empty()) break;
+                    if (inner.empty())
+                        break;
                     leafTypeRef = inner[0];
                 }
                 // Build innermost array first, then wrap each outer dimension.

@@ -492,9 +492,9 @@ void CodeGenMemoryHelpers::emitMemFill(CodeGen& codeGen, MicroReg dstReg, MicroR
     const uint32_t                  totalBytes  = static_cast<uint32_t>(totalBytes64);
     const bool                      allow128    = optimize && totalBytes >= 32;
 
-    const MicroReg dstRegTmp    = codeGen.nextVirtualIntRegister();
-    const MicroReg fill64Reg    = codeGen.nextVirtualIntRegister();
-    const MicroReg fillScratch  = elementSizeInBytes == 8 ? MicroReg::invalid() : codeGen.nextVirtualIntRegister();
+    const MicroReg dstRegTmp   = codeGen.nextVirtualIntRegister();
+    const MicroReg fill64Reg   = codeGen.nextVirtualIntRegister();
+    const MicroReg fillScratch = elementSizeInBytes == 8 ? MicroReg::invalid() : codeGen.nextVirtualIntRegister();
     builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
     emitBuildRepeatedFillReg64(builder, fill64Reg, fillScratch, fillValueReg, elementSizeInBytes);
 

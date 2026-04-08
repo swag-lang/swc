@@ -193,7 +193,7 @@ namespace
             // location, regardless of how the initializer was produced.
             const uint32_t localSize = symVar.codeGenLocalSize();
             SWC_ASSERT(localSize > 0);
-            const CodeGenNodePayload symbolPayload = codeGen.resolveLocalStackPayload(symVar);
+            const CodeGenNodePayload symbolPayload   = codeGen.resolveLocalStackPayload(symVar);
             const AstNodeRef         resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
             const auto*              initNodePayload = resolvedInitRef.isValid() ? codeGen.sema().codeGenPayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
 

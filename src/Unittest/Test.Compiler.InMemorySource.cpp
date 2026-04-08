@@ -18,9 +18,9 @@ SWC_BEGIN_NAMESPACE();
 
 SWC_TEST_BEGIN(Compiler_InMemorySourceRunsSemaWithoutDiskIO)
 {
-    static constexpr std::string_view SOURCE = R"(func A() {}
+    static constexpr std::string_view SOURCE     = R"(func A() {}
 )";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceRunsSemaWithoutDiskIO");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceRunsSemaWithoutDiskIO");
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Syntax;

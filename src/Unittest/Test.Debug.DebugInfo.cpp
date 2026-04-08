@@ -841,13 +841,13 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
 {
-    static constexpr std::string_view SOURCE = R"(#test
+    static constexpr std::string_view SOURCE     = R"(#test
 {
     var acc: s32 = 0
     acc += 1
 }
 )";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerTestFunctionsPreserveStackDebugMetadata");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerTestFunctionsPreserveStackDebugMetadata");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
@@ -903,14 +903,14 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
 {
-    static constexpr std::string_view SOURCE = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global fileprivate
 var GValue: s32 = 7
 #test
 {
     @assert(GValue == 7)
 }
 )";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerFilePrivateGlobalsReachCodeViewDataSymbols");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerFilePrivateGlobalsReachCodeViewDataSymbols");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;

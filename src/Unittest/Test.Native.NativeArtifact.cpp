@@ -427,7 +427,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
 {
-    static constexpr std::string_view SOURCE = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global fileprivate
 var GValue: s32 = 0
 #test
 {
@@ -437,7 +437,7 @@ var GValue: s32 = 0
     @assert(GValue == 666)
 }
 )";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "CompilerRunExprInsideTestKeepsJitRunnable");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "CompilerRunExprInsideTestKeepsJitRunnable");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
@@ -509,7 +509,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_SilentSpecOpProbeDoesNotDropStructCopyTests)
 {
-    static constexpr std::string_view SOURCE = R"(struct Buffer
+    static constexpr std::string_view SOURCE     = R"(struct Buffer
 {
     value: u32
 }
@@ -535,7 +535,7 @@ impl Buffer
     @assert(dst.value == 4)
 }
 )";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "SilentSpecOpProbeDoesNotDropStructCopyTests");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "SilentSpecOpProbeDoesNotDropStructCopyTests");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
@@ -566,7 +566,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
 {
-    static constexpr std::string_view SOURCE = R"(#test
+    static constexpr std::string_view SOURCE     = R"(#test
 {
     @assert(true)
 }
@@ -575,7 +575,7 @@ SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
     @assert(true)
 }
 )";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "TestCountMismatchIsReportedBeforeStartupBuild");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "TestCountMismatchIsReportedBeforeStartupBuild");
 
     CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine(ctx, "test_count_mismatch", "exe");
     cmdLine.command     = CommandKind::Test;

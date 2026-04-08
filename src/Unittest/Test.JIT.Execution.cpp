@@ -73,7 +73,7 @@ namespace
 
     void buildReturnZeroAfter128BitStackCopy(MicroBuilder& builder, const CallConv& callConv)
     {
-        static const Copy128Payload payload = {
+        static constexpr Copy128Payload payload = {
             .lo = 0x1122334455667788ull,
             .hi = 0x99AABBCCDDEEFF00ull,
         };

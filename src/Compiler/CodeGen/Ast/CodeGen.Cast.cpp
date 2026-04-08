@@ -10,13 +10,12 @@
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Symbol/IdentifierManager.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -24,6 +23,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -549,7 +549,7 @@ namespace
         appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[1]->typeRef(), actualTypeReg);
         appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[2]->typeRef(), flagsReg);
 
-        MicroBuilder&              builder      = codeGen.builder();
+        MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         if (typeCmpFn.isForeign())
             ABICall::callExtern(builder, callConvKind, &typeCmpFn, preparedCall);
@@ -588,7 +588,7 @@ namespace
 
         SWC_ASSERT(srcPayload.isAddress());
 
-        const auto* castPayload     = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const auto* castPayload      = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         const bool  hasDynCastSafety = castPayload && castPayload->hasRuntimeSafety(Runtime::SafetyWhat::DynCast);
 
         MicroBuilder& builder = codeGen.builder();

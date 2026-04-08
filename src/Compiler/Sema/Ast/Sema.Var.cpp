@@ -634,27 +634,66 @@ namespace
                 return Result::Continue;
         }
 
-        SmallVector4<uint64_t> dims;
-        if (!deduceArrayDimsFromType(sema, finalTypeRef, dims) || dims.empty())
-            return Result::Continue;
-
-        // Get the element type from the first concretized constant value.
-        TypeRef elemTypeRef = TypeRef::invalid();
-        if (nodeInitView.cstRef().isValid())
+        // Determine the element type. For nested aggregates (e.g. [[1,2],[3,4]]),
+        // recursively concretize the inner aggregate first, then wrap with the
+        // outer dimension to produce [2][2] s32 (not [2, 2] s32).
+        TypeRef elemTypeRef = elemTypes[0];
+        if (sema.typeMgr().get(elemTypeRef).isAggregateArray())
         {
-            const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
-            if (cst.isAggregateArray())
+            // Get the concretized inner element type from the constant value.
+            if (nodeInitView.cstRef().isValid())
             {
-                const auto& values = cst.getAggregateArray();
-                if (!values.empty())
-                    elemTypeRef = sema.cstMgr().get(values[0]).typeRef();
+                const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
+                if (cst.isAggregateArray())
+                {
+                    const auto& values = cst.getAggregateArray();
+                    if (!values.empty())
+                        elemTypeRef = sema.cstMgr().get(values[0]).typeRef();
+                }
+            }
+
+            // If the inner element is still an aggregate, walk to the leaf type
+            // and build nested array types from the inside out.
+            if (sema.typeMgr().get(elemTypeRef).isAggregateArray())
+            {
+                SmallVector4<uint64_t> innerDims;
+                if (!deduceArrayDimsFromType(sema, elemTypeRef, innerDims) || innerDims.empty())
+                    return Result::Continue;
+                TypeRef leafTypeRef = elemTypeRef;
+                while (sema.typeMgr().get(leafTypeRef).isAggregateArray())
+                {
+                    const auto& inner = sema.typeMgr().get(leafTypeRef).payloadAggregate().types;
+                    if (inner.empty()) break;
+                    leafTypeRef = inner[0];
+                }
+                // Build innermost array first, then wrap each outer dimension.
+                elemTypeRef = leafTypeRef;
+                for (auto it = innerDims.rbegin(); it != innerDims.rend(); ++it)
+                {
+                    SmallVector4<uint64_t> d;
+                    d.push_back(*it);
+                    elemTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(d, elemTypeRef));
+                }
+            }
+        }
+        else
+        {
+            // Leaf element: get the concretized type from the constant.
+            if (nodeInitView.cstRef().isValid())
+            {
+                const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
+                if (cst.isAggregateArray())
+                {
+                    const auto& values = cst.getAggregateArray();
+                    if (!values.empty())
+                        elemTypeRef = sema.cstMgr().get(values[0]).typeRef();
+                }
             }
         }
 
-        if (elemTypeRef.isInvalid())
-            elemTypeRef = elemTypes[0];
-
-        finalTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
+        SmallVector4<uint64_t> outerDim;
+        outerDim.push_back(elemTypes.size());
+        finalTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(outerDim, elemTypeRef));
         if (context.nodeInitRef.isValid())
             SWC_RESULT(Cast::cast(sema, nodeInitView, finalTypeRef, CastKind::Initialization));
 

@@ -102,3 +102,28 @@ const AB1: [?] u32 = [1, 2]
 
 const AB2: [?] u32 = [[1], [2]]
 #assert(#typeof(AB2) == #type [2] [1] u32)
+
+// Aggregate array literal concretization to concrete array types.
+#test
+{
+    var a = [10, 20, 30]
+    #assert(#typeof(a) == #type [3] s32)
+    @assert(a[0] == 10)
+    @assert(a[2] == 30)
+}
+
+#test
+{
+    var a = [1'f64, 2, 3]
+    #assert(#typeof(a) == #type [3] f64)
+    @assert(a[2] == 3.0)
+}
+
+#test
+{
+    var a = [[1, 2], [3, 4]]
+    #assert(#typeof(a) == #type [2][2] s32)
+    @assert(a[0, 0] == 1)
+    @assert(a[1, 1] == 4)
+    #assert(@countof(a) == 2)
+}

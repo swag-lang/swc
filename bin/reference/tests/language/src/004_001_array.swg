@@ -176,15 +176,13 @@ similar to C/C++.
 Swag can infer the dimensions of arrays — including multi-dimensional ones —
 directly from the initialization expression.
 */
-// @TODO: Re-enable this size-deduction example when @countof accepts these inferred array literals.
-// #test
-// {
-//     var array  = [1, 2, 3, 4]
-//     var array1 = [[1, 2], [3, 4]]
-//
-//     #assert(@countof(array) == 4)
-//     #assert(@countof(array1) == 2)
-// }
+#test
+{
+    var array  = [1, 2, 3, 4]
+    var array1 = [[1, 2], [3, 4]]
+    #assert(@countof(array) == 4)
+    #assert(@countof(array1) == 2)
+}
 
 /**
 # Single Value Initialization

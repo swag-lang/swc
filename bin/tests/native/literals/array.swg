@@ -106,7 +106,6 @@ const AB2: [?] u32 = [[1], [2]]
 }
 
 // Single value initialization.
-#[Swag.PrintMicro]
 #test
 {
     var a: [40] s32 = 7

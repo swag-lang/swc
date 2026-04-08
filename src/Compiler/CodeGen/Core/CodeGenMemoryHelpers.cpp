@@ -162,36 +162,6 @@ namespace
             emitMemCopyUnrolledBackward(builder, dstReg, srcReg, tailSize, false, tmpIntReg, tmpFloatReg);
     }
 
-    void emitMemFillChunk(MicroBuilder& builder, MicroReg dstReg, uint64_t offset, MicroOpBits opBits, MicroReg fillReg)
-    {
-        builder.emitLoadMemReg(dstReg, offset, fillReg, opBits);
-    }
-
-    void emitMemFillUnrolled(MicroBuilder& builder, MicroReg dstReg, uint32_t elementSizeInBytes, uint32_t elementCount, MicroOpBits opBits, MicroReg fillReg)
-    {
-        uint64_t offset = 0;
-        for (uint32_t i = 0; i < elementCount; ++i)
-        {
-            emitMemFillChunk(builder, dstReg, offset, opBits, fillReg);
-            offset += elementSizeInBytes;
-        }
-    }
-
-    void emitMemFillLoop(MicroBuilder& builder, MicroReg dstReg, uint32_t elementSizeInBytes, uint32_t elementCount, MicroOpBits opBits, MicroReg fillReg, MicroReg countReg)
-    {
-        SWC_ASSERT(elementCount > 0);
-
-        const MicroLabelRef loopLabel = builder.createLabel();
-
-        builder.emitLoadRegImm(countReg, ApInt(elementCount, 64), MicroOpBits::B64);
-        builder.placeLabel(loopLabel);
-        emitMemFillChunk(builder, dstReg, 0, opBits, fillReg);
-        builder.emitOpBinaryRegImm(dstReg, ApInt(elementSizeInBytes, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
-    }
-
     void emitMemRepeatCopyUnrolled(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t elementSizeInBytes, uint32_t elementCount, MicroReg tmpIntReg, MicroReg tmpFloatReg)
     {
         for (uint32_t i = 0; i < elementCount; ++i)
@@ -269,6 +239,101 @@ namespace
 
         if (tailSize)
             emitMemSetUnrolled(builder, dstReg, tailSize, fillReg);
+    }
+
+    void emitBuildRepeatedFillReg64(MicroBuilder& builder, MicroReg outReg, MicroReg scratchReg, MicroReg fillValueReg, uint32_t elementSizeInBytes)
+    {
+        switch (elementSizeInBytes)
+        {
+            case 8:
+                builder.emitLoadRegReg(outReg, fillValueReg, MicroOpBits::B64);
+                return;
+
+            case 4:
+                builder.emitLoadRegReg(outReg, fillValueReg, MicroOpBits::B32);
+                builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(scratchReg, ApInt(32, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+                builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
+                return;
+
+            case 2:
+                builder.emitClearReg(outReg, MicroOpBits::B64);
+                builder.emitLoadRegReg(outReg, fillValueReg, MicroOpBits::B16);
+                builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(scratchReg, ApInt(16, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+                builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
+                builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(scratchReg, ApInt(32, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+                builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
+                return;
+
+            case 1:
+                builder.emitClearReg(outReg, MicroOpBits::B64);
+                builder.emitLoadRegReg(outReg, fillValueReg, MicroOpBits::B8);
+                builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(scratchReg, ApInt(8, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+                builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
+                builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(scratchReg, ApInt(16, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+                builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
+                builder.emitLoadRegReg(scratchReg, outReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(scratchReg, ApInt(32, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+                builder.emitOpBinaryRegReg(outReg, scratchReg, MicroOp::Or, MicroOpBits::B64);
+                return;
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    void emitMemFill128Chunk(MicroBuilder& builder, MicroReg dstReg, uint64_t offset, MicroReg fillReg)
+    {
+        builder.emitLoadMemReg(dstReg, offset, fillReg, MicroOpBits::B128);
+    }
+
+    void emitMemFill128Unrolled(MicroBuilder& builder, MicroReg dstReg, uint32_t sizeInBytes, MicroReg fill128Reg, MicroReg fill64Reg)
+    {
+        uint32_t offset = 0;
+        uint32_t remain = sizeInBytes;
+
+        while (remain >= 16)
+        {
+            emitMemFill128Chunk(builder, dstReg, offset, fill128Reg);
+            offset += 16;
+            remain -= 16;
+        }
+
+        if (remain)
+        {
+            const MicroReg tailBaseReg = dstReg;
+            if (offset)
+                builder.emitOpBinaryRegImm(tailBaseReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
+            emitMemSetUnrolled(builder, tailBaseReg, remain, fill64Reg);
+        }
+    }
+
+    void emitMemFill128Loop(MicroBuilder& builder, MicroReg dstReg, uint32_t sizeInBytes, MicroReg fill128Reg, MicroReg fill64Reg, MicroReg countReg)
+    {
+        if (sizeInBytes < 16)
+        {
+            emitMemSetUnrolled(builder, dstReg, sizeInBytes, fill64Reg);
+            return;
+        }
+
+        const uint32_t      chunkCount = sizeInBytes / 16;
+        const uint32_t      tailSize   = sizeInBytes % 16;
+        const MicroLabelRef loopLabel  = builder.createLabel();
+
+        builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+        emitMemFill128Chunk(builder, dstReg, 0, fill128Reg);
+        builder.emitOpBinaryRegImm(dstReg, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+
+        if (tailSize)
+            emitMemSetUnrolled(builder, dstReg, tailSize, fill64Reg);
     }
 
     void emitMemZeroChunk(MicroBuilder& builder, MicroReg dstReg, uint64_t offset, uint32_t chunkSize, MicroReg zeroReg)
@@ -415,32 +480,56 @@ void CodeGenMemoryHelpers::emitMemFill(CodeGen& codeGen, MicroReg dstReg, MicroR
     if (!elementSizeInBytes || !elementCount)
         return;
 
-    if (elementSizeInBytes == 1)
-    {
-        emitMemSet(codeGen, dstReg, fillValueReg, elementCount);
-        return;
-    }
+    SWC_ASSERT(elementSizeInBytes == 1 || elementSizeInBytes == 2 || elementSizeInBytes == 4 || elementSizeInBytes == 8);
 
-    const MicroOpBits opBits = microOpBitsFromChunkSize(elementSizeInBytes);
-    SWC_ASSERT(opBits != MicroOpBits::Zero);
+    const uint64_t totalBytes64 = static_cast<uint64_t>(elementSizeInBytes) * elementCount;
+    SWC_ASSERT(totalBytes64 <= std::numeric_limits<uint32_t>::max());
 
-    const uint64_t totalBytes = static_cast<uint64_t>(elementSizeInBytes) * elementCount;
-    SWC_ASSERT(totalBytes <= std::numeric_limits<uint32_t>::max());
+    MicroBuilder&                   builder     = codeGen.builder();
+    const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
+    const bool                      optimize    = buildCfg.optimize;
+    const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
+    const uint32_t                  totalBytes  = static_cast<uint32_t>(totalBytes64);
+    const bool                      allow128    = optimize && totalBytes >= 32;
 
-    MicroBuilder&  builder   = codeGen.builder();
-    const uint32_t memLimit  = getUnrollMemLimit(codeGen.buildCfgBackend());
-    const MicroReg dstRegTmp = codeGen.nextVirtualIntRegister();
-    const MicroReg countReg  = codeGen.nextVirtualIntRegister();
-
+    const MicroReg dstRegTmp    = codeGen.nextVirtualIntRegister();
+    const MicroReg fill64Reg    = codeGen.nextVirtualIntRegister();
+    const MicroReg fillScratch  = elementSizeInBytes == 8 ? MicroReg::invalid() : codeGen.nextVirtualIntRegister();
     builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
+    emitBuildRepeatedFillReg64(builder, fill64Reg, fillScratch, fillValueReg, elementSizeInBytes);
 
-    if (totalBytes <= memLimit)
+    if (!allow128)
     {
-        emitMemFillUnrolled(builder, dstRegTmp, elementSizeInBytes, elementCount, opBits, fillValueReg);
+        if (totalBytes <= unrollLimit)
+        {
+            emitMemSetUnrolled(builder, dstRegTmp, totalBytes, fill64Reg);
+            return;
+        }
+
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
+        emitMemSetLoop(builder, dstRegTmp, totalBytes, 8, fill64Reg, countReg);
         return;
     }
 
-    emitMemFillLoop(builder, dstRegTmp, elementSizeInBytes, elementCount, opBits, fillValueReg, countReg);
+    emitMemSetChunk(builder, dstRegTmp, 0, 8, fill64Reg);
+    emitMemSetChunk(builder, dstRegTmp, 8, 8, fill64Reg);
+
+    const MicroReg fill128Reg = codeGen.nextVirtualFloatRegister();
+    builder.emitLoadRegMem(fill128Reg, dstRegTmp, 0, MicroOpBits::B128);
+
+    const uint32_t remainBytes = totalBytes - 16;
+    if (!remainBytes)
+        return;
+
+    builder.emitOpBinaryRegImm(dstRegTmp, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+    if (remainBytes <= unrollLimit)
+    {
+        emitMemFill128Unrolled(builder, dstRegTmp, remainBytes, fill128Reg, fill64Reg);
+        return;
+    }
+
+    const MicroReg countReg = codeGen.nextVirtualIntRegister();
+    emitMemFill128Loop(builder, dstRegTmp, remainBytes, fill128Reg, fill64Reg, countReg);
 }
 
 void CodeGenMemoryHelpers::emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, const uint32_t elementSizeInBytes, const uint32_t elementCount)

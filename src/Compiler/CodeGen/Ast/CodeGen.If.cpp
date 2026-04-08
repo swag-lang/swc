@@ -142,10 +142,25 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
     if (resolvedWhereRef.isInvalid() && resolvedVarRef.isValid() && resolvedChildRef == resolvedVarRef)
     {
-        const SymbolVariable& symVar           = ifVarDeclConditionSymbol(codeGen, resolvedVarRef);
-        const auto*           conditionPayload = codeGen.variablePayload(symVar);
-        SWC_ASSERT(conditionPayload != nullptr);
-        emitIfStmtCondition(codeGen, ifRef, *conditionPayload, symVar.typeRef(), resolvedElseBlockRef.isValid());
+        SmallVector<Symbol*> symbols;
+        codeGen.viewSymbol(resolvedVarRef).getSymbols(symbols);
+        SWC_ASSERT(symbols.size() == 1);
+
+        if (symbols.front()->isVariable())
+        {
+            const auto& symVar           = symbols.front()->cast<SymbolVariable>();
+            const auto* conditionPayload = codeGen.variablePayload(symVar);
+            SWC_ASSERT(conditionPayload != nullptr);
+            emitIfStmtCondition(codeGen, ifRef, *conditionPayload, symVar.typeRef(), resolvedElseBlockRef.isValid());
+        }
+        else
+        {
+            // 'if const a = expr': the constant was already emitted by the walker.
+            const CodeGenNodePayload& payload = codeGen.payload(resolvedVarRef);
+            const SemaNodeView        view    = codeGen.viewType(resolvedVarRef);
+            emitIfStmtCondition(codeGen, ifRef, payload, view.typeRef(), resolvedElseBlockRef.isValid());
+        }
+
         return Result::Continue;
     }
 

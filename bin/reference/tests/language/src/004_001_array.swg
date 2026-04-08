@@ -70,20 +70,18 @@ An array literal is a list of elements enclosed in brackets '[A, B, ...]'.
 
 Swag can deduce array size and element type from the initialization expression.
 */
-// @TODO: Re-enable this deduction example when @countof accepts the inferred array literal forms used here.
-// #test
-// {
-//     var array: [?] s32 = [1, 2]
-//     @assert(array[0] == 1)
-//     @assert(array[1] == 2)
-//     #assert(@countof(array) == 2)
-//
-//     var array1 = ["10", "20", "30"]
-//     @assert(array1[0] == "10")
-//     @assert(array1[1] == "20")
-//     @assert(array1[2] == "30")
-//     #assert(@countof(array1) == 3)
-// }
+#test
+{
+    var array: [?] s32 = [1, 2]
+    @assert(array[0] == 1)
+    @assert(array[1] == 2)
+    #assert(@countof(array) == 2)
+    var array1 = ["10", "20", "30"]
+    @assert(array1[0] == "10")
+    @assert(array1[1] == "20")
+    @assert(array1[2] == "30")
+    #assert(@countof(array1) == 3)
+}
 
 /**
 # Default Initialization
@@ -128,14 +126,13 @@ them immutable after declaration.
 If no explicit type is specified, Swag infers the array’s type from the first
 element. All other elements are promoted to match that type.
 */
-// @TODO: Re-enable this inferred array type example when @countof accepts inferred array literals here.
-// #test
-// {
-//     var arr = [1'f64, 2, 3, 4]
-//     #assert(@countof(arr) == 4)
-//     #assert(#typeof(arr) == #type [4] f64)
-//     @assert(arr[3] == 4.0)
-// }
+#test
+{
+    var arr = [1'f64, 2, 3, 4]
+    #assert(@countof(arr) == 4)
+    #assert(#typeof(arr) == #type [4] f64)
+    @assert(arr[3] == 4.0)
+}
 
 /**
 # Multi-Dimensional Arrays

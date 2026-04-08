@@ -660,11 +660,13 @@ namespace
             const auto& elemTypes = sema.typeMgr().get(finalTypeRef).payloadAggregate().types;
             if (!elemTypes.empty())
             {
-                // Check all elements have the same type kind.
+                // Check all elements are compatible (same kind, or all numeric).
+                const TypeInfo& firstElem = sema.typeMgr().get(elemTypes[0]);
                 bool homogeneous = true;
                 for (size_t i = 1; i < elemTypes.size(); ++i)
                 {
-                    if (sema.typeMgr().get(elemTypes[i]).kind() != sema.typeMgr().get(elemTypes[0]).kind())
+                    const TypeInfo& ei = sema.typeMgr().get(elemTypes[i]);
+                    if (ei.kind() != firstElem.kind() && !(firstElem.isScalarNumeric() && ei.isScalarNumeric()))
                     {
                         homogeneous = false;
                         break;

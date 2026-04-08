@@ -67,25 +67,21 @@ A closure variable can also hold a regular lambda (no captures).
 Arrays, structs, and slices can be captured by value if they fit in the capture size
 and are plain data (POD).
 */
-// @TODO: Re-enable when closures can iterate captured inferred array literals again.
-// #test
-// {
-//     var x = [1, 2, 3]
-//
-//     var fct: func||(s32)->s32
-//
-//     fct = func|x|(toAdd)
-//     {
-//         var res = 0
-//         foreach v in x do
-//             res += v
-//         res += toAdd
-//         return res
-//     }
-//
-//     let result = fct(4)
-//     @assert(result == 1 + 2 + 3 + 4)
-// }
+#test
+{
+    var x = [1, 2, 3]
+    var fct: func||(s32)->s32
+    fct = func|x|(toAdd)
+    {
+        var res = 0
+        foreach v in x do
+            res += v
+        res += toAdd
+        return res
+    }
+    let result = fct(4)
+    @assert(result == 1 + 2 + 3 + 4)
+}
 
 /**
 # Modifying Captured Variables

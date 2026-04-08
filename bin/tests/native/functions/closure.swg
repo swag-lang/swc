@@ -121,3 +121,49 @@ func makeNested(base: s32)->func||()->s32
     fb = &toto
     @assert(fb(5) == 47)
 }
+
+// Local variables inside control flow within closure bodies must be accessible.
+#test
+{
+    var arr = [10, 20, 30]
+    var fct: func||(s32)->s32
+    fct = func|arr|(extra: s32)->s32
+    {
+        var sum = 0
+        foreach v in arr do
+            sum += v
+        return sum + extra
+    }
+    @assert(fct(4) == 64)
+}
+
+#test
+{
+    var fct: func||(s32)->s32
+    fct = func(n: s32)->s32
+    {
+        var total = 0
+        for i in cast(u32) n do
+            total += cast(s32) i
+        return total
+    }
+    @assert(fct(5) == 0 + 1 + 2 + 3 + 4)
+}
+
+#test
+{
+    var fct: func||(s32)->s32
+    let base = 100
+    fct = func|base|(x: s32)->s32
+    {
+        var result = base
+        if x > 0
+        {
+            var bonus = x * 2
+            result += bonus
+        }
+        return result
+    }
+    @assert(fct(5) == 110)
+    @assert(fct(0) == 100)
+}

@@ -118,6 +118,20 @@ namespace
             return false;
         if (symVar.hasGlobalStorage())
             return false;
+
+        // Local-scope variables (e.g. inside a block or foreach body) have no
+        // ownerSymMap, so ownerFunction() cannot walk the scope chain. Check
+        // the function's local variable list directly.
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+        {
+            const auto& locals = currentFn->localVariables();
+            if (std::find(locals.begin(), locals.end(), &symVar) != locals.end())
+                return false;
+        }
+
+        if (symVar.isFunctionLocalVariable(*currentFn))
+            return false;
+
         if (!(symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
               symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
               symVar.isClosureCapture()))

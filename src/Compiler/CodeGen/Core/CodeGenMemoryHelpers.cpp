@@ -162,6 +162,60 @@ namespace
             emitMemCopyUnrolledBackward(builder, dstReg, srcReg, tailSize, false, tmpIntReg, tmpFloatReg);
     }
 
+    void emitMemFillChunk(MicroBuilder& builder, MicroReg dstReg, uint64_t offset, MicroOpBits opBits, MicroReg fillReg)
+    {
+        builder.emitLoadMemReg(dstReg, offset, fillReg, opBits);
+    }
+
+    void emitMemFillUnrolled(MicroBuilder& builder, MicroReg dstReg, uint32_t elementSizeInBytes, uint32_t elementCount, MicroOpBits opBits, MicroReg fillReg)
+    {
+        uint64_t offset = 0;
+        for (uint32_t i = 0; i < elementCount; ++i)
+        {
+            emitMemFillChunk(builder, dstReg, offset, opBits, fillReg);
+            offset += elementSizeInBytes;
+        }
+    }
+
+    void emitMemFillLoop(MicroBuilder& builder, MicroReg dstReg, uint32_t elementSizeInBytes, uint32_t elementCount, MicroOpBits opBits, MicroReg fillReg, MicroReg countReg)
+    {
+        SWC_ASSERT(elementCount > 0);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+
+        builder.emitLoadRegImm(countReg, ApInt(elementCount, 64), MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+        emitMemFillChunk(builder, dstReg, 0, opBits, fillReg);
+        builder.emitOpBinaryRegImm(dstReg, ApInt(elementSizeInBytes, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+    }
+
+    void emitMemRepeatCopyUnrolled(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t elementSizeInBytes, uint32_t elementCount, MicroReg tmpIntReg, MicroReg tmpFloatReg)
+    {
+        for (uint32_t i = 0; i < elementCount; ++i)
+        {
+            emitMemCopyUnrolled(builder, dstReg, srcReg, elementSizeInBytes, true, tmpIntReg, tmpFloatReg);
+            builder.emitOpBinaryRegImm(dstReg, ApInt(elementSizeInBytes, 64), MicroOp::Add, MicroOpBits::B64);
+        }
+    }
+
+    void emitMemRepeatCopyLoop(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t elementSizeInBytes, uint32_t elementCount, MicroReg tmpIntReg, MicroReg tmpFloatReg, MicroReg countReg)
+    {
+        SWC_ASSERT(elementCount > 0);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+
+        builder.emitLoadRegImm(countReg, ApInt(elementCount, 64), MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+        emitMemCopyUnrolled(builder, dstReg, srcReg, elementSizeInBytes, true, tmpIntReg, tmpFloatReg);
+        builder.emitOpBinaryRegImm(dstReg, ApInt(elementSizeInBytes, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+    }
+
     void emitMemSetChunk(MicroBuilder& builder, MicroReg dstReg, uint64_t offset, uint32_t chunkSize, MicroReg fillReg)
     {
         builder.emitLoadMemReg(dstReg, offset, fillReg, microOpBitsFromChunkSize(chunkSize));
@@ -354,6 +408,67 @@ void CodeGenMemoryHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroR
     const MicroReg countReg  = codeGen.nextVirtualIntRegister();
     const uint32_t chunkSize = allow128 ? 16 : 8;
     emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, chunkSize, tmpIntReg, tmpFloatReg, countReg);
+}
+
+void CodeGenMemoryHelpers::emitMemFill(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, const uint32_t elementSizeInBytes, const uint32_t elementCount)
+{
+    if (!elementSizeInBytes || !elementCount)
+        return;
+
+    if (elementSizeInBytes == 1)
+    {
+        emitMemSet(codeGen, dstReg, fillValueReg, elementCount);
+        return;
+    }
+
+    const MicroOpBits opBits = microOpBitsFromChunkSize(elementSizeInBytes);
+    SWC_ASSERT(opBits != MicroOpBits::Zero);
+
+    const uint64_t totalBytes = static_cast<uint64_t>(elementSizeInBytes) * elementCount;
+    SWC_ASSERT(totalBytes <= std::numeric_limits<uint32_t>::max());
+
+    MicroBuilder&  builder   = codeGen.builder();
+    const uint32_t memLimit  = getUnrollMemLimit(codeGen.buildCfgBackend());
+    const MicroReg dstRegTmp = codeGen.nextVirtualIntRegister();
+    const MicroReg countReg  = codeGen.nextVirtualIntRegister();
+
+    builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
+
+    if (totalBytes <= memLimit)
+    {
+        emitMemFillUnrolled(builder, dstRegTmp, elementSizeInBytes, elementCount, opBits, fillValueReg);
+        return;
+    }
+
+    emitMemFillLoop(builder, dstRegTmp, elementSizeInBytes, elementCount, opBits, fillValueReg, countReg);
+}
+
+void CodeGenMemoryHelpers::emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, const uint32_t elementSizeInBytes, const uint32_t elementCount)
+{
+    if (!elementSizeInBytes || !elementCount)
+        return;
+
+    const uint64_t totalBytes = static_cast<uint64_t>(elementSizeInBytes) * elementCount;
+    SWC_ASSERT(totalBytes <= std::numeric_limits<uint32_t>::max());
+
+    MicroBuilder&  builder     = codeGen.builder();
+    const uint32_t memLimit    = getUnrollMemLimit(codeGen.buildCfgBackend());
+    const MicroReg dstRegTmp   = codeGen.nextVirtualIntRegister();
+    const MicroReg srcRegTmp   = codeGen.nextVirtualIntRegister();
+    const MicroReg tmpIntReg   = codeGen.nextVirtualIntRegister();
+    const MicroReg tmpFloatReg = codeGen.nextVirtualFloatRegister();
+    const MicroReg countReg    = codeGen.nextVirtualIntRegister();
+
+    builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(srcRegTmp, srcAddressReg, MicroOpBits::B64);
+
+    if (totalBytes <= memLimit)
+    {
+        emitMemRepeatCopyUnrolled(builder, dstRegTmp, srcRegTmp, elementSizeInBytes, elementCount, tmpIntReg, tmpFloatReg);
+        return;
+    }
+
+    emitMemRepeatCopyLoop(builder, dstRegTmp, srcRegTmp, elementSizeInBytes, elementCount, tmpIntReg, tmpFloatReg, countReg);
 }
 
 void CodeGenMemoryHelpers::emitMemSet(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t sizeInBytes)

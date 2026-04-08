@@ -8,6 +8,8 @@ class CodeGen;
 namespace CodeGenMemoryHelpers
 {
     void emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes);
+    void emitMemFill(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t elementSizeInBytes, uint32_t elementCount);
+    void emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t elementSizeInBytes, uint32_t elementCount);
     void emitMemSet(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t sizeInBytes);
     void emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t sizeInBytes);
     void emitMemMove(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes);

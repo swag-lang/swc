@@ -109,9 +109,9 @@ const AB2: [?] u32 = [[1], [2]]
 #[Swag.PrintMicro]
 #test
 {
-    var a: [4] s32 = 7
+    var a: [40] s32 = 7
     @assert(a[0] == 7)
-    @assert(a[3] == 7)
+    @assert(a[39] == 7)
 }
 
 #test

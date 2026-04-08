@@ -55,11 +55,16 @@ namespace
     {
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return TypeRef::invalid();
-        if (srcConstRef.isValid())
-            return TypeRef::invalid();
 
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        if (srcConstRef.isValid())
+        {
+            if (dstType.isArray() && !srcType.isAggregate() && !srcType.isArray())
+                return dstTypeRef;
+            return TypeRef::invalid();
+        }
 
         if (srcType.isArray() && (dstType.isSlice() || dstType.isString()))
             return dstTypeRef;

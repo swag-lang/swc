@@ -32,9 +32,11 @@ struct CodeGenNodePayload
 
     MicroReg        reg;
     TypeRef         typeRef               = TypeRef::invalid();
+    TypeRef         runtimeArrayFillTypeRef = TypeRef::invalid();
     StorageKind     storageKind           = StorageKind::Value;
     SymbolVariable* runtimeStorageSym     = nullptr;
     SymbolFunction* runtimeFunctionSymbol = nullptr;
+    ConstantRef     runtimeArrayFillCstRef = ConstantRef::invalid();
     uint16_t        runtimeSafetyMask     = 0;
 
     void setIsValue() { storageKind = StorageKind::Value; }
@@ -65,6 +67,11 @@ struct CodeGenNodePayload
     bool hasRuntimeSafety(Runtime::SafetyWhat what) const
     {
         return SemaSafety::hasMask(runtimeSafetyMask, what);
+    }
+
+    bool hasRuntimeArrayFill() const
+    {
+        return runtimeArrayFillTypeRef.isValid() && runtimeArrayFillCstRef.isValid();
     }
 };
 

@@ -219,6 +219,60 @@ namespace
 
     bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
 
+    TypeRef arrayFillLeafTypeRef(Sema& sema, TypeRef arrayTypeRef)
+    {
+        if (!arrayTypeRef.isValid())
+            return TypeRef::invalid();
+
+        TypeRef leafTypeRef = arrayTypeRef;
+        while (leafTypeRef.isValid())
+        {
+            const TypeInfo& typeInfo = sema.typeMgr().get(leafTypeRef);
+            if (!typeInfo.isArray())
+                return leafTypeRef;
+            leafTypeRef = typeInfo.payloadArrayElemTypeRef();
+        }
+
+        return TypeRef::invalid();
+    }
+
+    Result setupRuntimeArrayScalarFillIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef, CastKind castKind, bool& outNeedsRuntimeStorage)
+    {
+        outNeedsRuntimeStorage = false;
+        if (castKind != CastKind::Initialization)
+            return Result::Continue;
+        if (!srcTypeRef.isValid() || !dstTypeRef.isValid() || !srcConstRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        if (!dstType.isArray())
+            return Result::Continue;
+        if (srcType.isAggregate() || srcType.isArray())
+            return Result::Continue;
+
+        const TypeRef fillTypeRef = arrayFillLeafTypeRef(sema, dstTypeRef);
+        if (!fillTypeRef.isValid())
+            return Result::Continue;
+
+        CastRequest fillRequest(castKind);
+        fillRequest.errorNodeRef = nodeRef;
+        fillRequest.setConstantFoldingSrc(srcConstRef);
+        SWC_RESULT(Cast::castAllowed(sema, fillRequest, srcTypeRef, fillTypeRef));
+
+        ConstantRef fillCstRef = fillRequest.constantFoldingResult();
+        if (fillCstRef.isInvalid())
+            fillCstRef = srcConstRef;
+        if (fillCstRef.isInvalid())
+            return Result::Continue;
+
+        auto& payload                  = ensureCastCodeGenPayload(sema, nodeRef);
+        payload.runtimeArrayFillTypeRef = fillTypeRef;
+        payload.runtimeArrayFillCstRef  = fillCstRef;
+        outNeedsRuntimeStorage          = true;
+        return Result::Continue;
+    }
+
     bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, const bool ignoreTopLevelClosure)
     {
         if (&leftFunc == &rightFunc)
@@ -1380,6 +1434,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     CastKind      effectiveKind  = castKind;
     CastFlags     effectiveFlags = castFlags;
     const TypeRef srcTypeRef     = view.typeRef();
+    const auto    srcCstRef      = view.cstRef();
 
     // `cast()` is an explicit user request to allow explicit casts later when the destination type becomes known.
     // Therefore, when we are about to apply a contextual cast on an `AutoCastExpr`, force the cast to be explicit
@@ -1445,6 +1500,10 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         {
             sema.setType(view.nodeRef(), dstTypeRef);
             sema.setConstant(view.nodeRef(), castRequest.constantFoldingResult());
+            bool needsRuntimeStorage = false;
+            SWC_RESULT(setupRuntimeArrayScalarFillIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef, effectiveKind, needsRuntimeStorage));
+            if (needsRuntimeStorage)
+                SWC_RESULT(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef));
         }
 
         view.recompute(sema);

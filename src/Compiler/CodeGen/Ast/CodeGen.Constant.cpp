@@ -558,6 +558,62 @@ namespace
                 SWC_UNREACHABLE();
         }
     }
+
+    bool resolveRuntimeArrayFillLayout(uint32_t& outElementSize, uint32_t& outElementCount, CodeGen& codeGen, TypeRef arrayTypeRef, TypeRef elementTypeRef)
+    {
+        outElementSize  = 0;
+        outElementCount = 0;
+        if (!arrayTypeRef.isValid() || !elementTypeRef.isValid())
+            return false;
+
+        const TypeInfo& arrayType = codeGen.typeMgr().get(arrayTypeRef);
+        if (!arrayType.isArray())
+            return false;
+
+        const uint64_t elementSize = codeGen.typeMgr().get(elementTypeRef).sizeOf(codeGen.ctx());
+        const uint64_t totalSize   = arrayType.sizeOf(codeGen.ctx());
+        if (!elementSize || !totalSize)
+            return false;
+        if (totalSize % elementSize)
+            return false;
+
+        const uint64_t elementCount = totalSize / elementSize;
+        SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
+        SWC_ASSERT(elementCount <= std::numeric_limits<uint32_t>::max());
+        outElementSize  = static_cast<uint32_t>(elementSize);
+        outElementCount = static_cast<uint32_t>(elementCount);
+        return true;
+    }
+
+    Result tryEmitRuntimeArrayFill(CodeGen& codeGen, AstNodeRef nodeRef, CodeGenNodePayload& payload, TypeRef targetTypeRef, bool& outHandled)
+    {
+        outHandled = false;
+        if (!payload.hasRuntimeArrayFill() || payload.runtimeStorageSym == nullptr)
+            return Result::Continue;
+
+        uint32_t elementSize  = 0;
+        uint32_t elementCount = 0;
+        if (!resolveRuntimeArrayFillLayout(elementSize, elementCount, codeGen, targetTypeRef, payload.runtimeArrayFillTypeRef))
+            return Result::Continue;
+
+        CodeGenNodePayload fillPayload;
+        fillPayload.reg = payload.reg;
+        SWC_RESULT(emitConstantToPayload(codeGen,
+                                         fillPayload,
+                                         payload.runtimeArrayFillCstRef,
+                                         codeGen.cstMgr().get(payload.runtimeArrayFillCstRef),
+                                         payload.runtimeArrayFillTypeRef));
+
+        const MicroReg dstReg = codeGen.runtimeStorageAddressReg(nodeRef);
+        if (fillPayload.isValue() && (elementSize == 1 || elementSize == 2 || elementSize == 4 || elementSize == 8))
+            CodeGenMemoryHelpers::emitMemFill(codeGen, dstReg, fillPayload.reg, elementSize, elementCount);
+        else
+            CodeGenMemoryHelpers::emitMemRepeatCopy(codeGen, dstReg, fillPayload.reg, elementSize, elementCount);
+
+        codeGen.setPayloadAddressReg(nodeRef, dstReg, targetTypeRef);
+        outHandled = true;
+        return Result::Continue;
+    }
 }
 
 Result CodeGen::emitConstant(AstNodeRef nodeRef)
@@ -574,6 +630,11 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
         return Result::Continue;
 
     CodeGenNodePayload& payload = setPayload(nodeRef, view.typeRef());
+    bool                handled = false;
+    SWC_RESULT(tryEmitRuntimeArrayFill(*this, nodeRef, payload, view.typeRef(), handled));
+    if (handled)
+        return Result::SkipChildren;
+
     SWC_RESULT(emitConstantToPayload(*this, payload, view.cstRef(), cst, view.typeRef()));
     return Result::SkipChildren;
 }

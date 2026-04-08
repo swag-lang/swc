@@ -228,9 +228,10 @@ namespace
     }
 
     // Single value initialization: fill an entire array with one scalar value.
+    // Single value initialization: validate that the scalar can be cast to
+    // the array's leaf element type, and produce a fill constant.
     Result castScalarToArray(const CastArrayArgs& args)
     {
-        // Resolve the leaf element type through nested array dimensions.
         TypeRef leafTypeRef = args.dstType->payloadArrayElemTypeRef();
         while (args.sema->typeMgr().get(leafTypeRef).isArray())
             leafTypeRef = args.sema->typeMgr().get(leafTypeRef).payloadArrayElemTypeRef();
@@ -240,16 +241,12 @@ namespace
         if (!args.castRequest->isConstantFolding())
             return Result::Continue;
 
-        // Fold the scalar to the element type.
         ConstantRef elemRef;
         SWC_RESULT(foldElemCast(args, args.srcTypeRef, leafTypeRef, args.castRequest->constantFoldingSrc(), elemRef));
 
-        // Replicate into every slot of the array.
         uint64_t totalCount = 1;
         for (const auto dim : args.dstType->payloadArrayDims())
             totalCount *= dim;
-
-        // For nested array types (e.g. [2][3] s32), multiply by inner dimensions.
         {
             const TypeInfo* cur = &args.sema->typeMgr().get(args.dstType->payloadArrayElemTypeRef());
             while (cur->isArray())

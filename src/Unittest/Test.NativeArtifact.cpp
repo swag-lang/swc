@@ -18,7 +18,8 @@
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Support/Os/Os.h"
-#include "Support/Unittest/Unittest.h"
+#include "Unittest/Unittest.h"
+#include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -426,21 +427,17 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
 {
-    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_native_compiler_run_test_{:08x}.swg", uniqueId);
-
-    {
-        std::ofstream output(sourcePath, std::ios::binary);
-        output << "#global fileprivate\n";
-        output << "var GValue: s32 = 0\n";
-        output << "#test\n";
-        output << "{\n";
-        output << "    const a = 666\n";
-        output << "    let b = #run a\n";
-        output << "    GValue = b\n";
-        output << "    @assert(GValue == 666)\n";
-        output << "}\n";
-    }
+    static constexpr std::string_view SOURCE = R"(#global fileprivate
+var GValue: s32 = 0
+#test
+{
+    const a = 666
+    let b = #run a
+    GValue = b
+    @assert(GValue == 666)
+}
+)";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "CompilerRunExprInsideTestKeepsJitRunnable");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
@@ -452,6 +449,7 @@ SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
@@ -511,37 +509,33 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_SilentSpecOpProbeDoesNotDropStructCopyTests)
 {
-    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_native_silent_spec_op_probe_{:08x}.swg", uniqueId);
-
+    static constexpr std::string_view SOURCE = R"(struct Buffer
+{
+    value: u32
+}
+impl Buffer
+{
+    mtd opAffect(text: string)
     {
-        std::ofstream output(sourcePath, std::ios::binary);
-        output << "struct Buffer\n";
-        output << "{\n";
-        output << "    value: u32\n";
-        output << "}\n";
-        output << "impl Buffer\n";
-        output << "{\n";
-        output << "    mtd opAffect(text: string)\n";
-        output << "    {\n";
-        output << "        .value = cast(u32) @countof(text)\n";
-        output << "    }\n";
-        output << "}\n";
-        output << "#test\n";
-        output << "{\n";
-        output << "    var value: Buffer\n";
-        output << "    value = \"abc\"\n";
-        output << "    @assert(value.value == 3)\n";
-        output << "}\n";
-        output << "#test\n";
-        output << "{\n";
-        output << "    var src: Buffer\n";
-        output << "    src = \"wxyz\"\n";
-        output << "    var dst: Buffer\n";
-        output << "    dst = src\n";
-        output << "    @assert(dst.value == 4)\n";
-        output << "}\n";
+        .value = cast(u32) @countof(text)
     }
+}
+#test
+{
+    var value: Buffer
+    value = "abc"
+    @assert(value.value == 3)
+}
+#test
+{
+    var src: Buffer
+    src = "wxyz"
+    var dst: Buffer
+    dst = src
+    @assert(dst.value == 4)
+}
+)";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "SilentSpecOpProbeDoesNotDropStructCopyTests");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
@@ -553,6 +547,7 @@ SWC_TEST_BEGIN(NativeArtifact_SilentSpecOpProbeDoesNotDropStructCopyTests)
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
@@ -571,20 +566,16 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
 {
-    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_native_test_count_mismatch_{:08x}.swg", uniqueId);
-
-    {
-        std::ofstream output(sourcePath, std::ios::binary);
-        output << "#test\n";
-        output << "{\n";
-        output << "    @assert(true)\n";
-        output << "}\n";
-        output << "#test\n";
-        output << "{\n";
-        output << "    @assert(true)\n";
-        output << "}\n";
-    }
+    static constexpr std::string_view SOURCE = R"(#test
+{
+    @assert(true)
+}
+#test
+{
+    @assert(true)
+}
+)";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "TestCountMismatchIsReportedBeforeStartupBuild");
 
     CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine(ctx, "test_count_mismatch", "exe");
     cmdLine.command     = CommandKind::Test;
@@ -596,6 +587,7 @@ SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;

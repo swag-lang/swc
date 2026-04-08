@@ -8,7 +8,7 @@
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
-#include "Backend/Unittest/UnittestHelpers.h"
+#include "Unittest/UnittestHelpers.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();

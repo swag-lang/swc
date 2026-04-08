@@ -12,7 +12,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/PagedStore.h"
-#include "Support/Unittest/Unittest.h"
+#include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -43,6 +43,22 @@ const Ast& SourceFile::ast() const
     return nodePayloadContext_->ast();
 }
 
+void SourceFile::setContent(const std::string_view content)
+{
+    SWC_ASSERT(!ast().hasSourceView());
+
+    content_.clear();
+    content_.reserve(content.size() + TRAILING_0);
+    content_.resize(content.size());
+    if (!content.empty())
+    {
+        std::memcpy(content_.data(), content.data(), content.size());
+    }
+
+    for (int i = 0; i < TRAILING_0; i++)
+        content_.push_back(0);
+}
+
 void SourceFile::addErrorLineRange(const uint32_t lineStart, const uint32_t lineEnd) const
 {
     if (!lineStart || !lineEnd)
@@ -75,10 +91,22 @@ bool SourceFile::hasErrorLineInRange(const uint32_t lineStart, const uint32_t li
     return false;
 }
 
+void SourceFile::ensureSourceView(TaskContext& ctx)
+{
+    if (ast().hasSourceView())
+        return;
+
+    SourceView& srcView = ctx.compiler().addSourceView(fileRef_);
+    ast().setSourceView(srcView);
+}
+
 Result SourceFile::loadContent(TaskContext& ctx)
 {
     if (!content_.empty())
+    {
+        ensureSourceView(ctx);
         return Result::Continue;
+    }
 
     SWC_MEM_SCOPE("Frontend/LoadFile");
 #if SWC_HAS_STATS
@@ -115,8 +143,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
-    SourceView& srcView = ctx.compiler().addSourceView(fileRef_);
-    ast().setSourceView(srcView);
+    ensureSourceView(ctx);
     return Result::Continue;
 }
 

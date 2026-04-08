@@ -28,6 +28,7 @@ public:
 
     AstNodeRef        root() const { return root_; }
     void              setRoot(AstNodeRef root) { root_ = root; }
+    bool              hasSourceView() const { return srcView_ != nullptr; }
     SourceView&       srcView() { return *(srcView_); }
     const SourceView& srcView() const { return *(srcView_); }
     void              setSourceView(SourceView& srcView) { srcView_ = &srcView; }

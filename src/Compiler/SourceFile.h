@@ -32,7 +32,7 @@ public:
 
     fs::path                    path() const { return path_; }
     Utf8                        name() const { return path_.filename().string().c_str(); }
-    size_t                      size() const { return content_.size() - TRAILING_0; }
+    size_t                      size() const { return content_.empty() ? 0 : content_.size() - TRAILING_0; }
     const std::vector<char8_t>& content() const { return content_; }
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
 
@@ -58,9 +58,12 @@ public:
     void setHasWarning() { hasWarning_ = true; }
     bool hasWarning() const { return hasWarning_; }
 
+    void   setContent(std::string_view content);
     Result loadContent(TaskContext& ctx);
 
 private:
+    void ensureSourceView(TaskContext& ctx);
+
     static constexpr int TRAILING_0 = 4;
 
     FileRef   fileRef_ = FileRef::invalid();

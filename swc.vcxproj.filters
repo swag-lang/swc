@@ -28,7 +28,7 @@
     <Filter Include="src\Backend\Native">
       <UniqueIdentifier>{D3FB39C8-C0A6-4B7F-90C2-2C9CA80D3D28}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Backend\Unittest">
+    <Filter Include="src\Unittest">
       <UniqueIdentifier>{65FDA6EC-601D-B489-7F22-D2D9C7201DF5}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler">
@@ -115,70 +115,70 @@
     <Filter Include="src\Support\Thread">
       <UniqueIdentifier>{AB8199D3-24C3-4C19-33E7-938BC7C10FCB}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Support\Unittest">
-      <UniqueIdentifier>{D16A3976-D5C6-B417-DEF3-141765A379DC}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Backend\Backend.cpp">
       <Filter>src\Backend</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\UnittestHelpers.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\UnittestHelpers.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.BranchFolding.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.BranchFolding.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.ControlFlowSimplification.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.ConstantPropagation.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.ControlFlowSimplification.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.DebugInfo.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.CopyPropagation.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.DebugInfo.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.EncodeX64.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.DeadCodeElimination.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.EncodeX64.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.FFI.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.JIT.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.NativeArtifact.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.LoadStoreForwarding.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.StageLog.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.NativeArtifact.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.Peephole.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.PrologEpilogSanitize.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.PrologEpilogSanitize.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.RegAlloc.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.StackAdjustNormalize.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.StackAdjustNormalize.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Test.StrengthReduction.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Support\Unittest\Unittest.cpp">
-      <Filter>src\Support\Unittest</Filter>
+    <ClCompile Include="src\Unittest\Unittest.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Unittest\UnittestSource.cpp">
+      <Filter>src\Unittest</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\JIT\JIT.cpp">
       <Filter>src\Backend\JIT</Filter>
@@ -908,11 +908,14 @@
     <ClInclude Include="src\Backend\\Micro\MicroControlFlowGraph.h">
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\Unittest\UnittestHelpers.h">
-      <Filter>src\Backend\Unittest</Filter>
+    <ClInclude Include="src\Unittest\UnittestHelpers.h">
+      <Filter>src\Unittest</Filter>
     </ClInclude>
-    <ClInclude Include="src\Support\Unittest\Unittest.h">
-      <Filter>src\Support\Unittest</Filter>
+    <ClInclude Include="src\Unittest\Unittest.h">
+      <Filter>src\Unittest</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Unittest\UnittestSource.h">
+      <Filter>src\Unittest</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\ABI\CallConv.h">
       <Filter>src\Backend\ABI</Filter>

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Support/Unittest/Unittest.h"
+#include "Unittest/Unittest.h"
 
 #if SWC_HAS_UNITTEST
 #include "Main/Command/CommandLine.h"

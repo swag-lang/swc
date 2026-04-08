@@ -491,6 +491,9 @@ Result NativeBackendBuilder::writeObjects()
 {
     objWriteFailed.store(false, std::memory_order_release);
 
+    const NativeArtifactBuilder artifactBuilder(*this);
+    SWC_RESULT(artifactBuilder.prepareOutputFolders());
+
     JobManager& jobMgr = ctx_.global().jobMgr();
     for (uint32_t i = 0; i < objectDescriptions.size(); ++i)
     {

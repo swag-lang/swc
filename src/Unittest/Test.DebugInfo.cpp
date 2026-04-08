@@ -11,7 +11,8 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
-#include "Support/Unittest/Unittest.h"
+#include "Unittest/Unittest.h"
+#include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -663,16 +664,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_CollapsesConsecutiveSameLineEntries)
 {
-    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_info_lines_{:08x}.swg", uniqueId);
-
-    {
-        std::ofstream output(sourcePath, std::ios::binary);
-        output << "alpha beta\n";
-        output << "gamma\n";
-    }
-
-    SourceFile& sourceFile = ctx.compiler().addFile(sourcePath, FileFlagsE::CustomSrc);
+    SourceFile& sourceFile = Unittest::addTestSource(ctx,
+                                                     "DebugInfo",
+                                                     "CollapsesConsecutiveSameLineEntries",
+                                                     "alpha beta\n"
+                                                     "gamma\n");
     SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;
@@ -758,17 +754,12 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_SkipsNoStepLineEntries)
 {
-    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_info_nostep_{:08x}.swg", uniqueId);
-
-    {
-        std::ofstream output(sourcePath, std::ios::binary);
-        output << "alpha\n";
-        output << "beta\n";
-        output << "gamma\n";
-    }
-
-    SourceFile& sourceFile = ctx.compiler().addFile(sourcePath, FileFlagsE::CustomSrc);
+    SourceFile& sourceFile = Unittest::addTestSource(ctx,
+                                                     "DebugInfo",
+                                                     "SkipsNoStepLineEntries",
+                                                     "alpha\n"
+                                                     "beta\n"
+                                                     "gamma\n");
     SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;
@@ -850,17 +841,13 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
 {
-    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_compiler_test_{:08x}.swg", uniqueId);
-
-    {
-        std::ofstream output(sourcePath, std::ios::binary);
-        output << "#test\n";
-        output << "{\n";
-        output << "    var acc: s32 = 0\n";
-        output << "    acc += 1\n";
-        output << "}\n";
-    }
+    static constexpr std::string_view SOURCE = R"(#test
+{
+    var acc: s32 = 0
+    acc += 1
+}
+)";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerTestFunctionsPreserveStackDebugMetadata");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
@@ -872,6 +859,7 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
@@ -915,18 +903,14 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
 {
-    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_fileprivate_global_{:08x}.swg", uniqueId);
-
-    {
-        std::ofstream output(sourcePath, std::ios::binary);
-        output << "#global fileprivate\n";
-        output << "var GValue: s32 = 7\n";
-        output << "#test\n";
-        output << "{\n";
-        output << "    @assert(GValue == 7)\n";
-        output << "}\n";
-    }
+    static constexpr std::string_view SOURCE = R"(#global fileprivate
+var GValue: s32 = 7
+#test
+{
+    @assert(GValue == 7)
+}
+)";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerFilePrivateGlobalsReachCodeViewDataSymbols");
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
@@ -938,6 +922,7 @@ SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
@@ -1001,15 +986,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
 {
-    const uint32_t uniqueId   = ctx.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-    const fs::path sourcePath = fs::temp_directory_path() / std::format("swc_debug_info_checksum_{:08x}.swg", uniqueId);
-
-    {
-        std::ofstream output(sourcePath, std::ios::binary);
-        output << "token\n";
-    }
-
-    SourceFile& sourceFile = ctx.compiler().addFile(sourcePath, FileFlagsE::CustomSrc);
+    const fs::path sourcePath = Unittest::makeTestSourcePath("DebugInfo", "EmitsWindowsSourceChecksums");
+    SourceFile&    sourceFile = Unittest::addTestSource(ctx, sourcePath, "token\n");
     SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;

@@ -672,18 +672,30 @@ bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view mess
     return reportedDiagnostics_.insert(Utf8{message}).second;
 }
 
+void CompilerInstance::registerInMemoryFile(fs::path path, const std::string_view content)
+{
+    if (!path.is_absolute())
+        path = fs::absolute(path);
+
+    path = path.lexically_normal();
+
+    const std::unique_lock lock(mutex_);
+    inMemoryFiles_[normalizePathForCompare(path)] = Utf8(content);
+}
+
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     if (!path.is_absolute())
         path = fs::absolute(path);
 
-    return addResolvedFile(std::move(path), flags);
+    return addResolvedFile(path.lexically_normal(), flags);
 }
 
 SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     SWC_ASSERT(path.is_absolute());
+    path = path.lexically_normal();
 
     auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
@@ -691,6 +703,15 @@ SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
 #if SWC_HAS_REF_DEBUG_INFO
     fileRef.dbgPtr = files_.back().get();
 #endif
+
+    const Utf8 key = normalizePathForCompare(files_.back()->path());
+    {
+        const std::shared_lock lock(mutex_);
+        const auto             it = inMemoryFiles_.find(key);
+        if (it != inMemoryFiles_.end())
+            files_.back()->setContent(it->second.view());
+    }
+
     return *files_.back();
 }
 

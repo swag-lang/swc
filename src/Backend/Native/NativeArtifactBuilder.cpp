@@ -131,6 +131,17 @@ Result NativeArtifactBuilder::build() const
     return partitionObjects();
 }
 
+Result NativeArtifactBuilder::prepareOutputFolders() const
+{
+    NativeArtifactPaths paths;
+    queryPaths(paths, static_cast<uint32_t>(builder_->objectDescriptions.size()));
+    if (builder_->ctx().cmdLine().clear && builder_->compiler().markNativeOutputsCleared())
+        SWC_RESULT(clearOutputFolders(paths));
+    SWC_RESULT(createBuildDir(paths.buildDir));
+    SWC_RESULT(createOutDir(paths.outDir));
+    return Result::Continue;
+}
+
 void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint32_t numObjects) const
 {
     outPaths.workDir.clear();
@@ -424,10 +435,6 @@ Result NativeArtifactBuilder::partitionObjects() const
 
     NativeArtifactPaths paths;
     queryPaths(paths, numJobs);
-    if (builder_->ctx().cmdLine().clear && builder_->compiler().markNativeOutputsCleared())
-        SWC_RESULT(clearOutputFolders(paths));
-    SWC_RESULT(createBuildDir(paths.buildDir));
-    SWC_RESULT(createOutDir(paths.outDir));
     builder_->buildDir     = paths.buildDir;
     builder_->artifactPath = paths.artifactPath;
     builder_->pdbPath      = paths.pdbPath;

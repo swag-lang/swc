@@ -8,7 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Unittest/Unittest.h"
+#include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 #ifdef _M_X64

@@ -22,6 +22,7 @@ public:
     explicit NativeArtifactBuilder(NativeBackendBuilder& builder);
 
     Result build() const;
+    Result prepareOutputFolders() const;
     void   queryPaths(NativeArtifactPaths& outPaths, uint32_t numObjects = 0) const;
 
 private:

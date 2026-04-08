@@ -149,25 +149,27 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Backend\Unittest\UnittestHelpers.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.BranchFolding.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.ControlFlowSimplification.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.DebugInfo.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.EncodeX64.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.NativeArtifact.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.PrologEpilogSanitize.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.StackAdjustNormalize.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp"/>
+        <ClCompile Include="src\Unittest\UnittestHelpers.cpp"/>
+        <ClCompile Include="src\Unittest\Test.BranchFolding.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp"/>
+        <ClCompile Include="src\Unittest\Test.ConstantPropagation.cpp"/>
+        <ClCompile Include="src\Unittest\Test.ControlFlowSimplification.cpp"/>
+        <ClCompile Include="src\Unittest\Test.CopyPropagation.cpp"/>
+        <ClCompile Include="src\Unittest\Test.DebugInfo.cpp"/>
+        <ClCompile Include="src\Unittest\Test.DeadCodeElimination.cpp"/>
+        <ClCompile Include="src\Unittest\Test.EncodeX64.cpp"/>
+        <ClCompile Include="src\Unittest\Test.FFI.cpp"/>
+        <ClCompile Include="src\Unittest\Test.JIT.cpp"/>
+        <ClCompile Include="src\Unittest\Test.LoadStoreForwarding.cpp"/>
+        <ClCompile Include="src\Unittest\Test.NativeArtifact.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Peephole.cpp"/>
+        <ClCompile Include="src\Unittest\Test.PrologEpilogSanitize.cpp"/>
+        <ClCompile Include="src\Unittest\Test.RegAlloc.cpp"/>
+        <ClCompile Include="src\Unittest\Test.StackAdjustNormalize.cpp"/>
+        <ClCompile Include="src\Unittest\Test.StrengthReduction.cpp"/>
         <ClCompile Include="src\Support\Thread\Job.cpp"/>
-        <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
+        <ClCompile Include="src\Unittest\Unittest.cpp"/>
+        <ClCompile Include="src\Unittest\UnittestSource.cpp"/>
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITExecManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
@@ -426,8 +428,9 @@
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroControlFlowGraph.h"/>
-        <ClInclude Include="src\Backend\Unittest\UnittestHelpers.h"/>
-        <ClInclude Include="src\Support\Unittest\Unittest.h"/>
+        <ClInclude Include="src\Unittest\UnittestHelpers.h"/>
+        <ClInclude Include="src\Unittest\Unittest.h"/>
+        <ClInclude Include="src\Unittest\UnittestSource.h"/>
         <ClInclude Include="src\Backend\\ABI\CallConv.h"/>
         <ClInclude Include="src\Backend\\Encoder\EncoderTypes.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroInstr.Def.inc"/>

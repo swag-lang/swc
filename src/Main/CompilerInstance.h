@@ -119,6 +119,7 @@ public:
     void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
     bool                     tryRegisterReportedDiagnostic(std::string_view message);
+    void                     registerInMemoryFile(fs::path path, std::string_view content);
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *(files_[ref.get()].get()); }
@@ -203,6 +204,7 @@ private:
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;
     std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
+    std::unordered_map<Utf8, Utf8>                     inMemoryFiles_;
     std::mutex                                         reportedDiagnosticsMutex_;
     std::unordered_set<Utf8>                           reportedDiagnostics_;
     std::once_flag                                     nativeRuntimeContextTlsIdOffsetOnce_;

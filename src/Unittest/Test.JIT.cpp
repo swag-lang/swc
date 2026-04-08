@@ -6,7 +6,7 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MachineCode.h"
-#include "Support/Unittest/Unittest.h"
+#include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 #ifdef _M_X64

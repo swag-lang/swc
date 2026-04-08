@@ -6,7 +6,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
-#include "Support/Unittest/Unittest.h"
+#include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 

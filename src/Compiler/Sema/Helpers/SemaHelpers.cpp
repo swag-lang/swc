@@ -538,6 +538,11 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
         return setConstantResult(sema.cstMgr().addInt(ctx, sizeOf / sizeOfElem));
     }
 
+    if (view.type()->isAggregateArray())
+    {
+        return setConstantResult(sema.cstMgr().addInt(ctx, view.type()->payloadAggregate().types.size()));
+    }
+
     if (view.type()->isSlice() || view.type()->isAnyVariadic())
     {
         outResult.typeRef = sema.typeMgr().typeU64();

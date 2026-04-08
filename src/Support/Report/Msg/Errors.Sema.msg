@@ -111,7 +111,7 @@ SWC_DIAG_DEF(sema_err_invalid_offsetof, Error, "'#offsetof' requires a struct fi
 SWC_DIAG_DEF(sema_err_invalid_location, Error, "'#location' cannot be applied to expression of type '{type}': expected a symbol reference")
 SWC_DIAG_DEF(sema_err_invalid_location, Error, "'#location' requires a symbol reference")
 SWC_DIAG_DEF(sema_err_caller_location_default_only, Error, "'#callerlocation' can only be used as the direct default value of a function parameter")
-SWC_DIAG_DEF(sema_err_invalid_countof_type, Error, "'#countof' cannot be applied to type '{type}': expected array, slice, string, enum, or unsigned integer")
+SWC_DIAG_DEF(sema_err_invalid_countof_type, Error, "'@countof' cannot be applied to type '{type}': expected array, slice, string, enum, or unsigned integer")
 SWC_DIAG_DEF(sema_err_count_negative, Error, "count must be non-negative, found '{value}'")
 SWC_DIAG_DEF(sema_err_invalid_mkany_ptr, Error, "invalid '@mkany' pointer type '{type}'; expected '{requested-type}' or '*void'")
 SWC_DIAG_DEF(sema_err_too_many_aliases, Error, "too many call-site aliases: expected at most {count}, found {value}")

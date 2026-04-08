@@ -93,7 +93,7 @@ const J: [2] s32 = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err
 {
     var x = [1, 2]
     var y = [3, 4, 5]
-    var N: [2] [2] s32 = [x, y] // swc-expected-error {{sema_err_array_cast_too_many_values}}
+    var N: [2] [2] s32 = [x, y] // swc-expected-error {{sema_err_array_cast_dim_mismatch}}
 }
 
 const AB: [2] u32 = [1, 2]

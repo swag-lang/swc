@@ -649,7 +649,60 @@ namespace
         if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && context.nodeInitRef.isValid() && !allowGlobalFunctionAddressInit)
             SWC_RESULT(SemaCheck::isConstant(sema, nodeInitView.nodeRef()));
 
-        const TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
+        TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
+
+        // Concretize aggregate array literals (e.g. [1, 2, 3]) into a proper
+        // array type [N] T when used as a variable initializer without an
+        // explicit type annotation. Only applies when all elements share a
+        // common concrete type (possibly after numeric promotion).
+        if (explicitTypeRef.isInvalid() && finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isAggregateArray())
+        {
+            const auto& elemTypes = sema.typeMgr().get(finalTypeRef).payloadAggregate().types;
+            if (!elemTypes.empty())
+            {
+                // Check all elements have the same type kind.
+                bool homogeneous = true;
+                for (size_t i = 1; i < elemTypes.size(); ++i)
+                {
+                    if (sema.typeMgr().get(elemTypes[i]).kind() != sema.typeMgr().get(elemTypes[0]).kind())
+                    {
+                        homogeneous = false;
+                        break;
+                    }
+                }
+
+                if (homogeneous)
+                {
+                    SmallVector4<uint64_t> dims;
+                    if (deduceArrayDimsFromType(sema, finalTypeRef, dims) && !dims.empty())
+                    {
+                        // Get the element type from the first concretized constant value.
+                        TypeRef elemTypeRef = TypeRef::invalid();
+                        if (nodeInitView.cstRef().isValid())
+                        {
+                            const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
+                            if (cst.isAggregateArray())
+                            {
+                                const auto& values = cst.getAggregateArray();
+                                if (!values.empty())
+                                    elemTypeRef = sema.cstMgr().get(values[0]).typeRef();
+                            }
+                        }
+
+                        if (elemTypeRef.isInvalid())
+                            elemTypeRef = elemTypes[0];
+
+                        if (elemTypeRef.isValid())
+                        {
+                            finalTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
+                            if (context.nodeInitRef.isValid())
+                                SWC_RESULT(Cast::cast(sema, nodeInitView, finalTypeRef, CastKind::Initialization));
+                        }
+                    }
+                }
+            }
+        }
+
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
         if (isConst && isRefType)
             return reportConstRefType(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);

@@ -58,13 +58,12 @@ The '@dataof' intrinsic retrieves the address of the first element in an array.
 
 An array literal is a list of elements enclosed in brackets '[A, B, ...]'.
 */
-// @TODO: Re-enable this array literal example when @countof accepts inferred array literals here.
-// #test
-// {
-//     var arr = [1, 2, 3, 4]
-//     #assert(@countof(arr) == 4)
-//     #assert(#typeof(arr) == #type [4] s32)
-// }
+#test
+{
+     var arr = [1, 2, 3, 4]
+     #assert(@countof(arr) == 4)
+     #assert(#typeof(arr) == #type [4] s32)
+}
 
 /**
 # Type Deduction in Arrays

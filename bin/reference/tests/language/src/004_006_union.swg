@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # The `union` Type in Swag
 

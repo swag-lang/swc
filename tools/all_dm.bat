@@ -12,6 +12,8 @@ set "EXE_WORKDIR=%NATIVE_OUTPUT%\work\exe"
 set "DLL_WORKDIR=%NATIVE_OUTPUT%\work\dll"
 set "LIB_WORKDIR=%NATIVE_OUTPUT%\work\lib"
 set "RUN_WORKDIR=%NATIVE_OUTPUT%\work\native-run"
+set "REFERENCE_OUTPUT=%NATIVE_OUTPUT%\reference"
+set "REFERENCE_WORKDIR=%NATIVE_OUTPUT%\work\reference"
 
 call :run_cfg release
 if errorlevel 1 exit /b %errorlevel%
@@ -50,5 +52,8 @@ for %%K in (dll lib) do (
     swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\native" --out-dir "%NATIVE_OUTPUT%\%%K\!BUILD_CFG!" --work-dir "%NATIVE_OUTPUT%\work\%%K\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
     if errorlevel 1 exit /b 1
 )
+
+swc_devmode test -m "%ROOT%\bin\reference\tests\language" --artifact-kind exe --out-dir "%REFERENCE_OUTPUT%\!BUILD_CFG!" --work-dir "%REFERENCE_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+if errorlevel 1 exit /b 1
 
 exit /b 0

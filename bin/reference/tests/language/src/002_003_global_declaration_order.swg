@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Top-Level Declaration Order
 

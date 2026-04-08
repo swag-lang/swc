@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Explicit Cast with 'cast'
 

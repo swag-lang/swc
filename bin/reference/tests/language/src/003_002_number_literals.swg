@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Number Representations
 

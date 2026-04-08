@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Code Inspection
 The `#message` / `@compiler` code-inspection examples are temporarily commented out

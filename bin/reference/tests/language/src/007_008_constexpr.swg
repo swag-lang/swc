@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # `Swag.ConstExpr` Functions
 Functions marked with '#[Swag.ConstExpr]' can be executed at compile time if their inputs

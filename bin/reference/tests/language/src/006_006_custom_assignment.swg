@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Custom Assignment Behavior with 'opAffect'
 

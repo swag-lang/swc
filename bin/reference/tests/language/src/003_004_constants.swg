@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Constants with 'const'
 

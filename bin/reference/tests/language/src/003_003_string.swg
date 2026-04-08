@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # UTF-8 Encoding
 

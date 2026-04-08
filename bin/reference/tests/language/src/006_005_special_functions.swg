@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 A struct in Swag can define special operations within the 'impl' block. These operations are
 predefined and recognized by the compiler. This enables the ability to overload operators and

@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 
 # Intrinsics in Swag

@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # 'compileString()' in '@compiler'
 

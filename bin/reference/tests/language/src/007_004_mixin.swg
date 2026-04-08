@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Introduction to Swag Mixins
 A mixin in Swag is declared similarly to a function but with the attribute '#[Swag.Mixin]'.

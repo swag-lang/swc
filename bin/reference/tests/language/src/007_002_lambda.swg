@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Introduction to Lambdas in Swag
 

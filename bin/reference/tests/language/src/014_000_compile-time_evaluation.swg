@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # 'Compile-Time Execution in Swag'
 

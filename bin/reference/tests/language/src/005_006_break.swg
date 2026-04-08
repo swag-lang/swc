@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Introduction to 'break' in Swag
 The 'break' statement exits the nearest enclosing control structure.

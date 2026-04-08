@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Struct Methods and Constants
 

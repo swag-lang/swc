@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # 'Safety Checks in Swag'
 

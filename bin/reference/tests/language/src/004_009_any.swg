@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # The 'any' Type in Swag
 

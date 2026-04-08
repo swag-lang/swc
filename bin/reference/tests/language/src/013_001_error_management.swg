@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Error Management
 The detailed error-management reference examples are temporarily commented out until the

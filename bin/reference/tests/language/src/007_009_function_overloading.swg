@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Function Overloading with `Swag.Overload`
 Swag allows multiple functions to share the same name when their parameter signatures differ.

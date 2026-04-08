@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Introduction to Function Declarations
 

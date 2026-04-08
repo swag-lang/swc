@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # User-Defined Literals
 

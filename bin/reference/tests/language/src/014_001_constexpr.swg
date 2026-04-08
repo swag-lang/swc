@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # 'Compile-Time Function Evaluation with #[Swag.ConstExpr]'
 

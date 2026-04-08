@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Custom Field Layout with 'Swag.Offset'
 

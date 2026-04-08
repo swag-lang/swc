@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Source Files and Workspaces
 

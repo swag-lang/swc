@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Return Value Usage
 Swag enforces that all function return values must be used.

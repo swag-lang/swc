@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # References in Swag
 

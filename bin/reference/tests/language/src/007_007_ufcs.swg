@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Introduction to Uniform Function Call Syntax (UFCS)
 *UFCS* (Uniform Function Call Syntax) allows a function to be called in the `param.func()` form

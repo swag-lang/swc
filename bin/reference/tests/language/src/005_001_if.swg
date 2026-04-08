@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Basic Usage of 'if'
 

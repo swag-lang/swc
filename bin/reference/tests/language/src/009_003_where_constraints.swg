@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Where Constraints
 `where` constraints on generic declarations are currently documented here, but the

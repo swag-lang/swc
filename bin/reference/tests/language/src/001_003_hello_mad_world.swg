@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # 'Hello World' Examples
 

@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # '@generic' Functions
 A function can be made generic by specifying type parameters after the `func` keyword.

@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # 'User Attributes in Swag'
 

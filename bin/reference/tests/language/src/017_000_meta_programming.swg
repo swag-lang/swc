@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # 'Compile-Time Source Code Generation'
 

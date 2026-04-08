@@ -1,3 +1,4 @@
+#global fileprivate
 /**
 # Introduction to 'switch' in Swag
 

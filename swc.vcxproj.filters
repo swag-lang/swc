@@ -123,55 +123,61 @@
     <ClCompile Include="src\Unittest\UnittestHelpers.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.BranchFolding.cpp">
+    <ClCompile Include="src\Unittest\Test.ABI.FFI.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
     <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.ConstantPropagation.cpp">
+    <ClCompile Include="src\Unittest\Test.Debug.DebugInfo.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.ControlFlowSimplification.cpp">
+    <ClCompile Include="src\Unittest\Test.Encoder.EncodeX64.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.CopyPropagation.cpp">
+    <ClCompile Include="src\Unittest\Test.JIT.Execution.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.DebugInfo.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.BranchFolding.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.DeadCodeElimination.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.ConstantPropagation.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.EncodeX64.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.ControlFlowSimplification.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.FFI.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.CopyPropagation.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.JIT.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.DeadCodeElimination.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.LoadStoreForwarding.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.LoadStoreForwarding.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.NativeArtifact.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.Peephole.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Peephole.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.PrologEpilogSanitize.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.PrologEpilogSanitize.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.RegAlloc.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.RegAlloc.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.StackAdjustNormalize.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.StackAdjustNormalize.cpp">
+    <ClCompile Include="src\Unittest\Test.Micro.StrengthReduction.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.StrengthReduction.cpp">
+    <ClCompile Include="src\Unittest\Test.Native.NativeArtifact.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Unittest\Test.Support.PagedStore.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
     <ClCompile Include="src\Unittest\Unittest.cpp">

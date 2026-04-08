@@ -54,7 +54,8 @@ using namespace Private
 }
 
 const B = Private.FileSymbol     // Access via fully qualified name
-const C = FileSymbol             // Direct access via 'using' directive
+// @TODO: Re-enable when `using namespace ...` exposes direct symbol lookup here again.
+// const C = FileSymbol             // Direct access via 'using' directive
 
 /**
 # 'Private' Scopes

@@ -34,20 +34,17 @@ at runtime, allowing indirect manipulation through pointers.
 A static array has a fixed size. In this example, the constant array 'a' contains
 three elements of type 's32' (signed 32-bit integers).
 */
-// @TODO: Re-enable this example when taking the address of constant array data is supported here.
-// #test
-// {
-//     const a: [3] s32 = [0, 1, 2]
-//
-//     let ptr = &a[0]
-//     @assert(ptr[0] == 0)
-//     @assert(ptr[2] == 2)
-//
-//     // Compile-time verification of array contents
-//     #assert(a[0] == 0)
-//     #assert(a[1] == 1)
-//     #assert(a[2] == 2)
-// }
+#test
+{
+    const a: [3] s32 = [0, 1, 2]
+    let ptr = &a[0]
+    @assert(ptr[0] == 0)
+    @assert(ptr[2] == 2)
+    // Compile-time verification of array contents
+    #assert(a[0] == 0)
+    #assert(a[1] == 1)
+    #assert(a[2] == 2)
+}
 
 /**
 ## Multidimensional Arrays

@@ -230,10 +230,22 @@ namespace
         return reportInvalidType(sema, expr, view);
     }
 
+    // Returns true when the operand of '&' is an index into a constant with
+    // data-segment storage (array or struct). The data has a real address even
+    // though the element value is known at compile time.
+    bool isAddressableConstantIndex(Sema& sema, const SemaNodeView& view)
+    {
+        if (!view.node() || !view.node()->is(AstNodeId::IndexExpr))
+            return false;
+        const auto&        idxExpr  = view.node()->cast<AstIndexExpr>();
+        const SemaNodeView baseView = sema.viewTypeConstant(idxExpr.nodeExprRef);
+        return baseView.hasConstant() && baseView.type() && baseView.type()->isArray();
+    }
+
     Result checkTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
         SWC_ASSERT(view.node() != nullptr);
-        if (!sema.isLValue(*view.node()))
+        if (!sema.isLValue(*view.node()) && !isAddressableConstantIndex(sema, view))
         {
             const DiagnosticId    diagId    = view.cstRef().isValid() ? DiagnosticId::sema_err_take_address_constant : DiagnosticId::sema_err_take_address_not_lvalue;
             auto                  diag      = SemaError::report(sema, diagId, node.codeRef());
@@ -404,6 +416,24 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
     // Type-check
     SWC_RESULT(check(sema, tok.id, *this, view));
+
+    // Taking the address of a constant array element: the element value was
+    // constant-folded during index resolution, but the array data lives in the
+    // data segment so the address is valid. Replace the scalar constant on the
+    // index node with its type so codegen emits the element address instead of
+    // the folded value.
+    if (tok.id == TokenId::SymAmpersand && view.cstRef().isValid() && isAddressableConstantIndex(sema, view))
+    {
+        const TypeRef childTypeRef = view.typeRef();
+        sema.setType(view.nodeRef(), childTypeRef);
+        sema.setIsLValue(sema.node(view.nodeRef()));
+
+        // The pointer is const because the underlying data belongs to a constant.
+        const TypeInfo& ty      = TypeInfo::makeBlockPointer(childTypeRef, TypeInfoFlagsE::Const);
+        const TypeRef   typeRef = sema.typeMgr().addType(ty);
+        sema.setType(sema.curNodeRef(), typeRef);
+        return Result::Continue;
+    }
 
     // Constant folding
     if (view.cstRef().isValid())

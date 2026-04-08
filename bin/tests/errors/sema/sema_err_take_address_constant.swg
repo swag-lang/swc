@@ -174,3 +174,22 @@
     var i = 1's32
     var p = &(a[i] + 1) // swc-expected-error {{sema_err_take_address_not_lvalue}}
 }
+
+// Taking the address of a constant array element is valid because the data
+// lives in the data segment.
+#test
+{
+    const a: [3] s32 = [10, 20, 30]
+    let p = &a[0]
+    #assert(#typeof(p) == const [*] s32)
+    @assert(p[0] == 10)
+    @assert(p[2] == 30)
+}
+
+#test
+{
+    const a: [4] u8 = [1, 2, 3, 4]
+    let p = &a[2]
+    #assert(#typeof(p) == const [*] u8)
+    @assert(p[0] == 3)
+}

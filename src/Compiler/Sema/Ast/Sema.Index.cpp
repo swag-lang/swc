@@ -414,8 +414,22 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
     if (nodeExprView.type()->isArray())
     {
-        const auto&    arrayDims   = nodeExprView.type()->payloadArrayDims();
-        const uint64_t numExpected = arrayDims.size();
+        // Collect all dimensions, flattening nested array types (e.g. [2][2] s32
+        // becomes dims {2, 2} with final element type s32).
+        SmallVector<uint64_t> allDims;
+        TypeRef               leafElemTypeRef = TypeRef::invalid();
+        {
+            const TypeInfo* cur = nodeExprView.type();
+            while (cur->isArray())
+            {
+                const auto& dims = cur->payloadArrayDims();
+                allDims.insert(allDims.end(), dims.begin(), dims.end());
+                leafElemTypeRef = cur->payloadArrayElemTypeRef();
+                cur             = &sema.typeMgr().get(leafElemTypeRef);
+            }
+        }
+
+        const uint64_t numExpected = allDims.size();
         const size_t   numGot      = children.size();
 
         if (numGot > numExpected)
@@ -470,15 +484,16 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
         if (numGot < numExpected)
         {
+            // Build the remaining array type from unconsumed dimensions.
             SmallVector<uint64_t> dims;
             for (size_t i = numGot; i < numExpected; i++)
-                dims.push_back(arrayDims[i]);
-            const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type()->payloadArrayElemTypeRef(), nodeExprView.type()->flags());
+                dims.push_back(allDims[i]);
+            const auto typeArray = TypeInfo::makeArray(dims, leafElemTypeRef, nodeExprView.type()->flags());
             sema.setType(sema.curNodeRef(), sema.typeMgr().addType(typeArray));
         }
         else
         {
-            sema.setType(sema.curNodeRef(), nodeExprView.type()->payloadArrayElemTypeRef());
+            sema.setType(sema.curNodeRef(), leafElemTypeRef);
         }
 
         if (sema.isLValue(nodeExprRef))

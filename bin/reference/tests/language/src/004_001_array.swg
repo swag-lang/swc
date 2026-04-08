@@ -155,15 +155,20 @@ each number represents a dimension.
 You can also declare multi-dimensional arrays using nested array syntax,
 similar to C/C++.
 */
-// @TODO: Re-enable this nested-array indexing example when the C/C++-style declaration form accepts two-dimensional indexing here.
-// #test
-// {
-//     var array: [2] [2] s32
-//     array[0, 0] = 1
-//     array[0, 1] = 2
-//     array[1, 0] = 3
-//     array[1, 1] = 4
-// }
+#test
+{
+    var array: [2, 2] s32
+    array[0, 0] = 1
+    array[0, 1] = 2
+    array[1, 0] = 3
+    array[1, 1] = 4
+
+    var array1: [2][2] s32
+    array1[0, 0] = 1
+    array1[0, 1] = 2
+    array1[1, 0] = 3
+    array1[1, 1] = 4
+}
 
 /**
 # Array Size Deduction

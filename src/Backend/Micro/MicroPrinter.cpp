@@ -1173,12 +1173,9 @@ namespace
         return "<unknown>";
     }
 
-    Utf8 clampPreview(Utf8 value, const uint32_t maxChars = K_CONSTANT_PREVIEW_MAX_CHARS)
+    Utf8 clampPreview(const Utf8& value, const uint32_t maxChars = K_CONSTANT_PREVIEW_MAX_CHARS)
     {
-        return Utf8Helper::truncate(value,
-                                    {
-                                        .maxChars = maxChars,
-                                    });
+        return Utf8Helper::truncate(value, {.maxChars = maxChars});
     }
 
     Utf8 quotedConstantPreview(Utf8 escaped)

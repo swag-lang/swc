@@ -43,20 +43,14 @@ namespace
         }
 
         out.trim();
-        return Utf8Helper::truncate(out,
-                                    {
-                                        .maxChars = K_MAX_TOKEN_TEXT,
-                                    });
+        return Utf8Helper::truncate(out, {.maxChars = K_MAX_TOKEN_TEXT});
     }
 
     Utf8 sanitizeSemaText(const Utf8& text)
     {
         Utf8 out = text;
         out.trim();
-        return Utf8Helper::truncate(out,
-                                    {
-                                        .maxChars = K_MAX_SEMA_TEXT,
-                                    });
+        return Utf8Helper::truncate(out, {.maxChars = K_MAX_SEMA_TEXT});
     }
 
     void appendSemaPayload(Utf8& out, const TaskContext& ctx, Sema& sema, AstNodeRef nodeRef)

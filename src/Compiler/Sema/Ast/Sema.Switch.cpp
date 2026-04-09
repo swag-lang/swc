@@ -78,7 +78,7 @@ namespace
     {
         const TypeRef   unwrappedTypeRef = unwrapAliasEnumTypeRef(sema, typeRef);
         const TypeInfo& typeInfo         = sema.typeMgr().get(unwrappedTypeRef);
-        return typeInfo.isInterface();
+        return typeInfo.isInterface() || typeInfo.isAny();
     }
 
     TypeRef dynamicStructSwitchExprTypeRef(Sema& sema, AstNodeRef switchRef)
@@ -271,10 +271,15 @@ namespace
             return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
 
         const TypeRef   switchTypeRef       = dynamicStructSwitchExprTypeRef(sema, switchRef);
+        const TypeRef   unwrappedSwitchRef  = unwrapAliasEnumTypeRef(sema, switchTypeRef);
+        const TypeInfo& switchType          = sema.typeMgr().get(unwrappedSwitchRef);
         const TypeRef   targetTypeRef       = typeView.typeRef();
         const TypeRef   targetStructTypeRef = unwrapAliasEnumTypeRef(sema, targetTypeRef);
         const TypeInfo& targetStructType    = sema.typeMgr().get(targetStructTypeRef);
-        if (!targetStructType.isStruct())
+
+        // For 'any', case types can be any concrete type.
+        // For interfaces, case types must be structs.
+        if (!switchType.isAny() && !targetStructType.isStruct())
             return raiseDynamicStructSwitchCaseCastError(sema, caseExprRef, switchTypeRef, targetTypeRef);
 
         registerDynamicStructSwitchCaseExpr(sema, caseRef, caseExprRef, typeExprRef);
@@ -379,7 +384,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef());
         const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeInfo& finalType = sema.typeMgr().get(ultimate);
-        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isTypeInfo() && !finalType.isInterface())
+        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isTypeInfo() && !finalType.isInterface() && !finalType.isAny())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
         auto* payload        = sema.semaPayload<SwitchPayload>(sema.curNodeRef());

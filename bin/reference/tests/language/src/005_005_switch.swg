@@ -291,18 +291,17 @@ When switching on `any` or `interface` types, cases match based on the **underly
 */
 
 // @TODO: Re-enable when `switch` accepts `any` as the switched expression again.
-// #test
-// {
-//     let x: any = "value"
-//
-//     switch x
-//     {
-//     case string:
-//         break
-//     default:
-//         @assert(false)
-//     }
-// }
+#test
+{
+    let x: any = "value"
+    switch x
+    {
+    case string:
+        break
+    default:
+        @assert(false)
+    }
+}
 
 /**
 # Switch Statement with Type Guard and Variable Binding

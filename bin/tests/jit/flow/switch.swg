@@ -257,6 +257,56 @@ enum RunSwitchEnum: s32
 
 #test
 {
+    func switchAnyString(x: any)->s32
+    {
+        switch x
+        {
+            case string:
+                return 1
+            case s32:
+                return 2
+            default:
+                return 0
+        }
+    }
+
+    var a: any = "hello"
+    @assert(switchAnyString(a) == 1)
+    a = 42
+    @assert(switchAnyString(a) == 2)
+    a = true
+    @assert(switchAnyString(a) == 0)
+}
+
+#test
+{
+    func switchAnyMultiType(x: any)->s32
+    {
+        switch x
+        {
+            case bool:
+                return 10
+            case f64:
+                return 20
+            case s32:
+                return 30
+            default:
+                return 0
+        }
+    }
+
+    var a: any = true
+    @assert(switchAnyMultiType(a) == 10)
+    a = 3.14
+    @assert(switchAnyMultiType(a) == 20)
+    a = 99
+    @assert(switchAnyMultiType(a) == 30)
+    a = "fallback"
+    @assert(switchAnyMultiType(a) == 0)
+}
+
+#test
+{
     func switchCaseMustBeConst(v: s32)->s32
     {
         switch v

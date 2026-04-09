@@ -168,7 +168,7 @@ SWC_DIAG_DEF(sema_err_continue_outside_breakable, Error, "'continue' is used out
 SWC_DIAG_DEF(sema_err_continue_not_in_loop, Error, "'continue' cannot be used inside a switch case")
 SWC_DIAG_DEF(sema_err_unknown_scope_name, Error, "cannot find an enclosing '#scope' named '{sym}'")
 SWC_DIAG_DEF(sema_err_index_outside_loop, Error, "'@index' is used outside a loop statement")
-SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "cannot switch on type '{type}': expected integer, float, bool, string, typeinfo, or interface")
+SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "cannot switch on type '{type}': expected integer, float, bool, string, typeinfo, any, or interface")
 SWC_DIAG_DEF(sema_err_switch_dynamic_case, Error, "invalid dynamic case; expected a struct type, optionally followed by 'as <identifier>'")
 SWC_DIAG_DEF(sema_err_switch_case_not_const, Error, "switch case value is not constant")
 SWC_DIAG_DEF(sema_err_switch_case_duplicate, Error, "duplicate constant case value '{value}'")

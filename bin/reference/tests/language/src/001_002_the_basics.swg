@@ -264,18 +264,16 @@ Functions encapsulate reusable blocks of logic.
 /**
 Functions can also return multiple values via tuples.
 */
-// @TODO: Re-enable when tuple-style destructuring of multi-value string returns works in all build configs again.
-// #test
-// {
-//     func splitName()->{ x: string, y: string }
-//     {
-//         return {"a", "b"}
-//     }
-//
-//     let (firstName, lastName) = splitName()
-//     @assert(firstName == "a")
-//     @assert(lastName == "b")
-// }
+#test
+{
+    func splitName()->{ x: string, y: string }
+    {
+        return {"a", "b"}
+    }
+    let (firstName, lastName) = splitName()
+    @assert(firstName == "a")
+    @assert(lastName == "b")
+}
 
 /**
 # Error Handling

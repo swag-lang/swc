@@ -138,20 +138,19 @@ its function’s scope. It behaves similarly to 'static' variables in C/C++,
 retaining its value between function calls.
 */
 // @TODO: Re-enable this example when #[Swag.Global] retains its value across calls as documented.
-// #test
-// {
-//     func toto()->s32
-//     {
-//         #[Swag.Global]
-//         var G1 = 0
-//         G1 += 1
-//         return G1
-//     }
-//
-//     @assert(toto() == 1)
-//     @assert(toto() == 2)
-//     @assert(toto() == 3)
-// }
+#test
+{
+    func toto()->s32
+    {
+        #[Swag.Global]
+        var G1 = 0
+        G1 += 1
+        return G1
+    }
+    @assert(toto() == 1)
+    @assert(toto() == 2)
+    @assert(toto() == 3)
+}
 
 /**
 ## Compile-Time Variables

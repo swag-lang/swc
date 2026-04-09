@@ -36,6 +36,9 @@ namespace
 
     bool isGlobalStorageVariable(const SymbolVariable& symVar)
     {
+        if (symVar.attributes().hasRtFlag(RtAttributeFlagsE::Global))
+            return true;
+
         const SymbolMap* const owner = symVar.ownerSymMap();
         if (!owner)
             return false;
@@ -247,7 +250,7 @@ namespace
 
             if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && needsStandaloneVariableStorage(symVar))
             {
-                if (sema.isCurrentFunction())
+                if (sema.isCurrentFunction() && !symVar.attributes().hasRtFlag(RtAttributeFlagsE::Global))
                 {
                     // Local type fields are part of the type layout and must not be rewritten as stack locals.
                     SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));

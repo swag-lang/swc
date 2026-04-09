@@ -209,6 +209,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     {
         switch (view.type()->kind())
         {
+            case TypeInfoKind::Array:
             case TypeInfoKind::ValuePointer:
             case TypeInfoKind::BlockPointer:
             case TypeInfoKind::Reference:
@@ -254,6 +255,14 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     TypeManager& typeMgr = sema.typeMgr();
     switch (view.type()->kind())
     {
+        case TypeInfoKind::Array:
+        {
+            SmallVector<uint64_t> dims;
+            for (const auto dim : view.type()->payloadArrayDims())
+                dims.push_back(dim);
+            typeRef = typeMgr.addType(TypeInfo::makeArray(dims, view.type()->payloadArrayElemTypeRef(), typeFlags));
+            break;
+        }
         case TypeInfoKind::ValuePointer:
             typeRef = typeMgr.addType(TypeInfo::makeValuePointer(view.type()->payloadTypeRef(), typeFlags));
             break;

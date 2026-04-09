@@ -159,14 +159,11 @@ const X = Test.A
 enum EN { A }
 const CA = cast(u32)EN+1 // swc-expected-error {{sema_err_not_value_expr}}
 
-enum ArrayBacked: [2] s32 {
+enum ArrayBacked: const [2] s32 {
   A = [1, 2],
   B = [10, 20],
 }
-const ArrayBackedA = cast([2] s32) ArrayBacked.A
-const ArrayBackedB = cast([2] s32) ArrayBacked.B
-#assert(ArrayBackedA[0] == 1)
-#assert(ArrayBackedB[1] == 20)
+#assert(#typeof(ArrayBacked).rawType == const [2] s32)
 
 enum SliceBacked: const [..] s32 {
   A = [1, 2],

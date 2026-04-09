@@ -59,7 +59,19 @@ namespace
     TypeRef resolveEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, SemaNodeView& typeView)
     {
         if (typeView.nodeRef().isValid())
+        {
+            if (typeView.type()->isArray() && !typeView.type()->isConst())
+            {
+                // Enum values are immutable constants, so array-backed enums must
+                // keep a const underlying type to preserve that property.
+                TypeInfo typeInfo = *typeView.type();
+                typeInfo.addFlag(TypeInfoFlagsE::Const);
+                typeView.typeRef() = sema.typeMgr().addType(typeInfo);
+                typeView.type()    = &sema.typeMgr().get(typeView.typeRef());
+            }
+
             return typeView.typeRef();
+        }
 
         const auto sign    = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
         typeView.typeRef() = sema.typeMgr().typeInt(32, sign);

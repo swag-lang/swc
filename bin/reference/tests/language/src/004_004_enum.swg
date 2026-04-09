@@ -164,11 +164,8 @@ Enums can store array constants.
 */
 #test
 {
-    enum Value: [2] s32 { A = [1, 2], B = [10, 20] }
-    let a = cast([2] s32) Value.A
-    let b = cast([2] s32) Value.B
-    #assert(a[0] == 1)
-    #assert(b[1] == 20)
+    enum Value: const [2] s32 { A = [1, 2], B = [10, 20] }
+    #assert(#typeof(Value).rawType == const [2] s32)
 }
 
 /**

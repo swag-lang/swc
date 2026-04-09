@@ -6,11 +6,29 @@ class LangSpec;
 
 namespace Utf8Helper
 {
+    enum class TruncateMode : uint8_t
+    {
+        End,
+        Start,
+        Middle,
+    };
+
+    struct TruncateOptions
+    {
+        uint32_t         maxChars       = 0;
+        TruncateMode     mode           = TruncateMode::End;
+        uint32_t         keepLeftChars  = 0;
+        uint32_t         keepRightChars = 0;
+        std::string_view ellipsis       = "...";
+        bool             forceEllipsis  = false;
+    };
+
     Runtime::String                                runtimeStringFromUtf8(const Utf8& value);
     std::tuple<const char8_t*, char32_t, uint32_t> decodeOneChar(const char8_t* cur, const char8_t* end);
     const char8_t*                                 decodeOneChar(const char8_t* cur, const char8_t* end, char32_t& c, uint32_t& offset);
     uint32_t                                       countChars(std::string_view str);
     Utf8                                           substrChars(std::string_view s, uint32_t charStart, uint32_t charEnd);
+    Utf8                                           truncate(std::string_view s, const TruncateOptions& options);
 
     Utf8 toNiceSize(size_t size);
     Utf8 toNiceBigNumber(std::size_t number);

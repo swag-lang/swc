@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
 
@@ -42,26 +43,20 @@ namespace
         }
 
         out.trim();
-        if (out.length() > K_MAX_TOKEN_TEXT)
-        {
-            out.resize(K_MAX_TOKEN_TEXT);
-            out += "...";
-        }
-
-        return out;
+        return Utf8Helper::truncate(out,
+                                    {
+                                        .maxChars = K_MAX_TOKEN_TEXT,
+                                    });
     }
 
     Utf8 sanitizeSemaText(const Utf8& text)
     {
         Utf8 out = text;
         out.trim();
-        if (out.length() > K_MAX_SEMA_TEXT)
-        {
-            out.resize(K_MAX_SEMA_TEXT);
-            out += "...";
-        }
-
-        return out;
+        return Utf8Helper::truncate(out,
+                                    {
+                                        .maxChars = K_MAX_SEMA_TEXT,
+                                    });
     }
 
     void appendSemaPayload(Utf8& out, const TaskContext& ctx, Sema& sema, AstNodeRef nodeRef)

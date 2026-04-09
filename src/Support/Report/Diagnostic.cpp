@@ -93,25 +93,27 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& c
     const Token&      token   = srcView.token(codeRef.tokRef);
     Utf8              str     = token.string(srcView);
 
-    constexpr static size_t MAX_TOKEN_STR_LEN = 40;
+    constexpr uint32_t         MAX_TOKEN_STR_LEN = 40;
+    constexpr std::string_view TOKEN_ELLIPSIS    = " ...";
     if (token.hasFlag(TokenFlagsE::EolInside))
     {
         const size_t pos = str.find_first_of("\n\r");
         if (pos != Utf8::npos)
         {
-            str = str.substr(0, std::min(pos, static_cast<size_t>(MAX_TOKEN_STR_LEN)));
-            str += " ...";
-            return str;
+            return Utf8Helper::truncate(str.substr(0, pos),
+                                        {
+                                            .maxChars      = MAX_TOKEN_STR_LEN,
+                                            .ellipsis      = TOKEN_ELLIPSIS,
+                                            .forceEllipsis = true,
+                                        });
         }
     }
 
-    if (str.length() > MAX_TOKEN_STR_LEN)
-    {
-        str = str.substr(0, MAX_TOKEN_STR_LEN);
-        str += " ...";
-    }
-
-    return str;
+    return Utf8Helper::truncate(str,
+                                {
+                                    .maxChars = MAX_TOKEN_STR_LEN,
+                                    .ellipsis = TOKEN_ELLIPSIS,
+                                });
 }
 
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)

@@ -1175,10 +1175,10 @@ namespace
 
     Utf8 clampPreview(Utf8 value, const uint32_t maxChars = K_CONSTANT_PREVIEW_MAX_CHARS)
     {
-        if (Utf8Helper::countChars(value.view()) <= maxChars)
-            return value;
-
-        return Utf8Helper::substrChars(value.view(), 0, maxChars) + "...";
+        return Utf8Helper::truncate(value,
+                                    {
+                                        .maxChars = maxChars,
+                                    });
     }
 
     Utf8 quotedConstantPreview(Utf8 escaped)

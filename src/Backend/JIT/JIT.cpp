@@ -793,7 +793,14 @@ namespace
         return {value.ptr, static_cast<size_t>(value.length)};
     }
 
-    std::string_view extractAssertConditionText(const SourceCodeRange& range)
+    uint32_t tokenByteStart(const SourceView& srcView, const Token& token)
+    {
+        if (token.id == TokenId::Identifier)
+            return srcView.identifiers()[token.byteStart].byteStart;
+        return token.byteStart;
+    }
+
+    std::string_view extractAssertConditionTextFromText(const SourceCodeRange& range)
     {
         if (!range.srcView || !range.len)
             return {};
@@ -806,12 +813,119 @@ namespace
         if (openParen == std::string_view::npos || openParen + 1 >= text.size())
             return {};
 
-        std::string_view condition  = text.substr(openParen + 1);
-        const size_t     closeParen = condition.rfind(')');
-        if (closeParen != std::string_view::npos)
-            condition = condition.substr(0, closeParen);
+        // Find the matching closing paren by tracking nesting depth
+        uint32_t depth      = 1;
+        size_t   closeParen = std::string_view::npos;
+        for (size_t i = openParen + 1; i < text.size(); ++i)
+        {
+            if (text[i] == '(')
+                ++depth;
+            else if (text[i] == ')' && --depth == 0)
+            {
+                closeParen = i;
+                break;
+            }
+        }
 
-        return Utf8Helper::trim(condition);
+        const size_t condStart = openParen + 1;
+        const size_t condEnd   = (closeParen != std::string_view::npos) ? closeParen : text.size();
+        return Utf8Helper::trim(text.substr(condStart, condEnd - condStart));
+    }
+
+    std::string_view extractAssertConditionText(const SourceCodeRange& range)
+    {
+        if (!range.srcView || !range.len)
+            return {};
+
+        const SourceView&      srcView   = *range.srcView;
+        const std::vector<Token>& tokens = srcView.tokens();
+        const uint32_t         rangeEnd  = range.offset + range.len;
+
+        TokenRef assertRef = TokenRef::invalid();
+        for (uint32_t i = 0; i < tokens.size(); ++i)
+        {
+            const Token& token      = tokens[i];
+            const auto   tokenStart = tokenByteStart(srcView, token);
+            const auto   tokenEnd   = tokenStart + token.byteLength;
+            if (tokenEnd <= range.offset)
+                continue;
+            if (tokenStart >= rangeEnd)
+                break;
+            if (token.id == TokenId::IntrinsicAssert)
+            {
+                assertRef = TokenRef(i);
+                break;
+            }
+        }
+
+        if (!assertRef.isValid())
+            return extractAssertConditionTextFromText(range);
+
+        TokenRef  openParenRef = TokenRef::invalid();
+        uint32_t  depth        = 0;
+        uint32_t  closeOffset  = 0;
+        const auto assertIndex = assertRef.get();
+
+        for (uint32_t i = assertIndex + 1; i < tokens.size(); ++i)
+        {
+            const Token& token      = tokens[i];
+            const auto   tokenStart = tokenByteStart(srcView, token);
+            if (tokenStart >= rangeEnd)
+                break;
+
+            if (token.id == TokenId::SymLeftParen)
+            {
+                openParenRef = TokenRef(i);
+                depth        = 1;
+                for (uint32_t j = i + 1; j < tokens.size(); ++j)
+                {
+                    const Token& nestedToken = tokens[j];
+                    const auto   nestedStart = tokenByteStart(srcView, nestedToken);
+                    if (nestedStart >= rangeEnd)
+                        break;
+
+                    if (nestedToken.id == TokenId::SymLeftParen)
+                        ++depth;
+                    else if (nestedToken.id == TokenId::SymRightParen)
+                    {
+                        --depth;
+                        if (!depth)
+                        {
+                            closeOffset = nestedStart;
+                            break;
+                        }
+                    }
+                }
+
+                break;
+            }
+        }
+
+        if (!openParenRef.isValid())
+            return extractAssertConditionTextFromText(range);
+
+        const Token& openParen   = srcView.token(openParenRef);
+        const auto   openOffset  = tokenByteStart(srcView, openParen) + openParen.byteLength;
+        const auto   condEnd     = closeOffset ? closeOffset : rangeEnd;
+        if (condEnd <= openOffset)
+            return {};
+
+        return Utf8Helper::trim(srcView.codeView(openOffset, condEnd - openOffset));
+    }
+
+    Utf8 formatAssertDiagnosticMessage(std::string_view message)
+    {
+        constexpr uint32_t K_ASSERT_MESSAGE_MAX_CHARS = 80;
+
+        const std::string_view trimmed = Utf8Helper::trim(message);
+        if (trimmed.empty())
+            return {};
+
+        return Utf8Helper::truncate(trimmed,
+                                    {
+                                        .maxChars = K_ASSERT_MESSAGE_MAX_CHARS,
+                                        .mode     = Utf8Helper::TruncateMode::Middle,
+                                    });
     }
 
     void decodeCompilerDiagnosticException(const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)
@@ -900,11 +1014,12 @@ namespace
             diag.last().addSpan(range, "", severity);
 
         Utf8 diagMessage = message;
-        if (diagMessage.empty() && kind == Runtime::ExceptionKind::Assert)
+        if (kind == Runtime::ExceptionKind::Assert)
         {
-            const std::string_view assertCondition = extractAssertConditionText(range);
-            if (!assertCondition.empty())
-                diagMessage = Utf8(assertCondition);
+            if (diagMessage.empty())
+                diagMessage = formatAssertDiagnosticMessage(extractAssertConditionText(range));
+            else
+                diagMessage = formatAssertDiagnosticMessage(diagMessage);
         }
 
         if (!diagMessage.empty())

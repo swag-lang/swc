@@ -5,6 +5,29 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Utf8 prefixChars(std::string_view s, const uint32_t count)
+    {
+        if (!count || s.empty())
+            return {};
+
+        return Utf8Helper::substrChars(s, 1, count);
+    }
+
+    Utf8 suffixChars(std::string_view s, const uint32_t count)
+    {
+        if (!count || s.empty())
+            return {};
+
+        const uint32_t totalChars = Utf8Helper::countChars(s);
+        if (count >= totalChars)
+            return Utf8{s};
+
+        return Utf8Helper::substrChars(s, totalChars - count + 1, totalChars);
+    }
+}
+
 Runtime::String Utf8Helper::runtimeStringFromUtf8(const Utf8& value)
 {
     if (value.empty())
@@ -366,6 +389,83 @@ Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t ch
     if (endByte == Utf8::npos)
         endByte = s.size();
     return Utf8{s.substr(startByte, endByte - startByte)};
+}
+
+Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
+{
+    if (s.empty())
+        return {};
+
+    const Utf8     ellipsis   = options.ellipsis;
+    const uint32_t totalChars = countChars(s);
+
+    if (totalChars <= options.maxChars)
+    {
+        if (!options.forceEllipsis || ellipsis.empty())
+            return Utf8{s};
+
+        if (options.mode == TruncateMode::Start)
+            return ellipsis + Utf8{s};
+
+        Utf8 result{s};
+        result += ellipsis;
+        return result;
+    }
+
+    if (!options.maxChars)
+        return ellipsis;
+
+    switch (options.mode)
+    {
+        case TruncateMode::End:
+        {
+            Utf8 result = prefixChars(s, options.maxChars);
+            result += ellipsis;
+            return result;
+        }
+
+        case TruncateMode::Start:
+        {
+            Utf8 result = ellipsis;
+            result += suffixChars(s, options.maxChars);
+            return result;
+        }
+
+        case TruncateMode::Middle:
+        {
+            uint32_t keepLeftChars  = options.keepLeftChars;
+            uint32_t keepRightChars = options.keepRightChars;
+
+            if (!keepLeftChars && !keepRightChars)
+            {
+                keepLeftChars  = (options.maxChars + 1) / 2;
+                keepRightChars = options.maxChars - keepLeftChars;
+            }
+            else if (!keepLeftChars)
+            {
+                keepRightChars = std::min(keepRightChars, options.maxChars);
+                keepLeftChars  = options.maxChars - keepRightChars;
+            }
+            else if (!keepRightChars)
+            {
+                keepLeftChars  = std::min(keepLeftChars, options.maxChars);
+                keepRightChars = options.maxChars - keepLeftChars;
+            }
+            else
+            {
+                keepLeftChars  = std::min(keepLeftChars, options.maxChars);
+                keepRightChars = std::min(keepRightChars, options.maxChars - keepLeftChars);
+            }
+
+            Utf8 result = prefixChars(s, keepLeftChars);
+            result += ellipsis;
+            result += suffixChars(s, keepRightChars);
+            return result;
+        }
+
+        default:
+            SWC_UNREACHABLE();
+    }
 }
 
 Utf8 Utf8Helper::addArticleAAn(std::string_view s)

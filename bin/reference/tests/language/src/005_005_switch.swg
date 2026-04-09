@@ -312,7 +312,6 @@ You may also use `where` for conditional refinement.
 Example 1: Simple Type Binding
 */
 
-// @TODO: Re-enable when type-binding `switch` cases work with `any` again.
 #test
 {
     let x: any = "value"
@@ -330,23 +329,21 @@ Example 1: Simple Type Binding
 Example 2: Type Binding with 'where' Clause
 */
 
-// @TODO: Re-enable when `switch` on `any` supports `as` bindings with `where` again.
-// #test
-// {
-//     let x: any = "value"
-//
-//     switch x
-//     {
-//     case string as str where str == "value":
-//         @assert(str == "value")
-//         break
-//     case string as str where str == "not_a_value":
-//         @assert(str == "not_a_value")
-//         break
-//     default:
-//         @assert(false)
-//     }
-// }
+#test
+{
+    let x: any = "value"
+    switch x
+    {
+    case string as str where str == "value":
+        @assert(str == "value")
+        break
+    case string as str where str == "not_a_value":
+        @assert(str == "not_a_value")
+        break
+    default:
+        @assert(false)
+    }
+}
 
 /**
 # Switch Without an Expression

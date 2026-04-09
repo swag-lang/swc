@@ -85,6 +85,8 @@ public:
     BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
     TypeRef             currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
     void                setCurrentLoopIndexTypeRef(TypeRef typeRef) { currentLoopIndexTypeRef_ = typeRef; }
+    AstNodeRef          currentLoopIndexOwnerRef() const { return currentLoopIndexOwnerRef_; }
+    void                setCurrentLoopIndexOwnerRef(AstNodeRef nodeRef) { currentLoopIndexOwnerRef_ = nodeRef; }
     AstNodeRef          currentSwitch() const { return currentSwitch_; }
     void                setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
     AstNodeRef          currentSwitchCase() const { return currentSwitchCase_; }
@@ -123,6 +125,7 @@ private:
     bool                          ignoreRuntimeAccess_ = false;
     BreakContext                  breakable_;
     TypeRef                       currentLoopIndexTypeRef_ = TypeRef::invalid();
+    AstNodeRef                    currentLoopIndexOwnerRef_ = AstNodeRef::invalid();
     AstNodeRef                    currentSwitch_         = AstNodeRef::invalid();
     AstNodeRef                    currentSwitchCase_     = AstNodeRef::invalid();
     AstNodeRef                    runtimeStorageNodeRef_ = AstNodeRef::invalid();

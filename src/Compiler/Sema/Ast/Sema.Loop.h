@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-struct ForStmtSemaPayload
+struct LoopSemaPayload
 {
     TypeRef     indexTypeRef  = TypeRef::invalid();
     ConstantRef countCstRef   = ConstantRef::invalid();
@@ -11,6 +11,7 @@ struct ForStmtSemaPayload
     AstNodeRef  upperBoundRef = AstNodeRef::invalid();
     bool        isRangeLoop   = false;
     bool        inclusive     = false;
+    bool usesLoopIndex = false;
 };
 
 SWC_END_NAMESPACE();

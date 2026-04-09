@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -20,6 +21,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (auto* payload = sema.semaPayload<LoopSemaPayload>(nodeRef))
+            return *payload;
+
+        auto* payload = sema.compiler().allocate<LoopSemaPayload>();
+        sema.setSemaPayload(nodeRef, payload);
+        return *payload;
+    }
+
     void markIntrinsicOperandAddressableStorage(const SemaNodeView& operandView)
     {
         if (!operandView.sym() || !operandView.sym()->isVariable() || !operandView.type() || operandView.type()->isReference() || operandView.type()->isAnyPointer())
@@ -90,6 +101,10 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
             const TypeRef indexTypeRef = sema.frame().currentLoopIndexTypeRef();
             if (!indexTypeRef.isValid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_index_outside_loop, sema.curNodeRef());
+
+            const AstNodeRef ownerRef = sema.frame().currentLoopIndexOwnerRef();
+            if (ownerRef.isValid())
+                ensureLoopSemaPayload(sema, ownerRef).usesLoopIndex = true;
 
             sema.setType(sema.curNodeRef(), indexTypeRef);
             return Result::Continue;

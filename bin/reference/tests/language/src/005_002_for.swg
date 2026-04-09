@@ -61,17 +61,16 @@ You can assign a custom name to the loop index for clarity, while `@index` remai
 
 The `for` construct can iterate over any type supporting `@countof`, such as arrays, slices, or strings.
 */
-// @TODO: Re-enable when `for` accepts inferred array literals with `@countof` again.
-// #test
-// {
-//     var arr = [10, 20, 30, 40]
-//     #assert(@countof(arr) == 4)
-//
-//     var cpt = 0
-//     for arr do
-//         cpt += arr[@index]
-//     @assert(cpt == 10 + 20 + 30 + 40)
-// }
+#test
+{
+    var arr = [10, 20, 30, 40]
+    #assert(@countof(arr) == 4)
+
+    var cpt = 0
+    for arr do
+        cpt += arr[@index]
+    @assert(cpt == 10 + 20 + 30 + 40)
+}
 
 /**
 > WARNING:
@@ -221,15 +220,14 @@ Use `#reverse` to iterate a range in reverse order.
 A `for` without an expression creates an infinite loop, similar to `while true {}`.
 Use `break` to exit.
 */
-// @TODO: Re-enable when `@index` is available inside `for { ... }` loops again.
-// #test
-// {
-//     for
-//     {
-//         if @index == 4 do
-//             break
-//     }
-// }
+#test
+{
+    for
+    {
+        if @index == 4 do
+            break
+    }
+}
 
 /**
 # Using 'where' Clause
@@ -260,51 +258,49 @@ Only iterations meeting the condition are executed.
 
 Use `where` to filter array elements during iteration.
 */
-// @TODO: Re-enable when `for ... in` with `where` works on inferred array literals again.
-// #test
-// {
-//     var arr        = [10, 21, 30, 41, 50]
-//     var sumOfEvens = 0
-//
-//     for i in arr where arr[i] % 2 == 0
-//     {
-//         sumOfEvens += arr[i]
-//     }
-//
-//     @assert(sumOfEvens == 10 + 30 + 50)
-// }
+#test
+{
+    var arr        = [10, 21, 30, 41, 50]
+    var sumOfEvens = 0
+
+    for i in arr where arr[i] % 2 == 0
+    {
+        sumOfEvens += arr[i]
+    }
+
+    @assert(sumOfEvens == 10 + 30 + 50)
+}
 
 /**
 # Complex Conditions with 'where'
 
 The `where` clause supports multiple logical conditions for advanced filtering.
 */
-// @TODO: Re-enable when complex `where` conditions work on inferred array literals again.
-// #test
-// {
-//     var arr         = [10, 15, 20, 25, 30, 35]
-//     var filteredSum = 0
-//
-//     for i in arr where arr[i] % 2 == 0 and arr[i] > 15
-//     {
-//         filteredSum += arr[i]
-//     }
-//
-//     @assert(filteredSum == 20 + 30)
-// }
-//
-// #test
-// {
-//     var arr        = [10, 25, 30, 45, 50, 65]
-//     var complexSum = 0
-//
-//     for i in arr where arr[i] % 2 == 0 or arr[i] > 40
-//     {
-//         complexSum += arr[i]
-//     }
-//
-//     @assert(complexSum == 10 + 30 + 45 + 50 + 65)
-// }
+#test
+{
+    var arr         = [10, 15, 20, 25, 30, 35]
+    var filteredSum = 0
+
+    for i in arr where arr[i] % 2 == 0 and arr[i] > 15
+    {
+        filteredSum += arr[i]
+    }
+
+    @assert(filteredSum == 20 + 30)
+}
+
+#test
+{
+    var arr        = [10, 25, 30, 45, 50, 65]
+    var complexSum = 0
+
+    for i in arr where arr[i] % 2 == 0 or arr[i] > 40
+    {
+        complexSum += arr[i]
+    }
+
+    @assert(complexSum == 10 + 30 + 45 + 50 + 65)
+}
 
 /**
 # 'where' with Ranges
@@ -328,19 +324,18 @@ The `where` clause can also be applied to ranges.
 
 You can combine `#reverse` with `where` for reverse conditional iteration.
 */
-// @TODO: Re-enable when `#reverse` plus `where` works on inferred array literals again.
-// #test
-// {
-//     var arr         = [10, 20, 30, 40, 50]
-//     var reversedSum = 0
-//
-//     for #reverse i in arr where arr[i] % 2 == 0
-//     {
-//         reversedSum += arr[i]
-//     }
-//
-//     @assert(reversedSum == 50 + 40 + 30 + 20 + 10)
-// }
+#test
+{
+    var arr         = [10, 20, 30, 40, 50]
+    var reversedSum = 0
+
+    for #reverse i in arr where arr[i] % 2 == 0
+    {
+        reversedSum += arr[i]
+    }
+
+    @assert(reversedSum == 50 + 40 + 30 + 20 + 10)
+}
 
 /**
 # C-like 'for'
@@ -369,20 +364,19 @@ Swag also supports a C-style `for` loop with initialization, condition, and incr
 
 In all `for` variants, `@index` provides the current iteration index.
 */
-// @TODO: Re-enable when `@index` is available in C-like `for` loops again.
-// #test
-// {
-//     var cpt = 0'u64
-//
-//     for var i: u32 = 10; i < 15; i += 1 do
-//         cpt += @index
-//     @assert(cpt == 0 + 1 + 2 + 3 + 4)
-//
-//     var cpt1 = 0'u64
-//     for var i = 10; i < 15; i += 1 do
-//         cpt1 += @index
-//     @assert(cpt1 == 0 + 1 + 2 + 3 + 4)
-// }
+#test
+{
+    var cpt = 0'u64
+
+    for var i: u32 = 10; i < 15; i += 1 do
+        cpt += @index
+    @assert(cpt == 0 + 1 + 2 + 3 + 4)
+
+    var cpt1 = 0'u64
+    for var i = 10; i < 15; i += 1 do
+        cpt1 += @index
+    @assert(cpt1 == 0 + 1 + 2 + 3 + 4)
+}
 
 /**
 # Using 'break' and 'continue' in 'for' Loops
@@ -416,21 +410,20 @@ In all `for` variants, `@index` provides the current iteration index.
 
 Swag supports nested loops. In nested contexts, `@index` refers to the current innermost loop.
 */
-// @TODO: Re-enable when `@index` is available inside nested C-like `for` loops again.
-// #test
-// {
-//     var result = 0'u64
-//
-//     for var i = 0; i < 5; i += 1
-//     {
-//         for var j = 0; j < 5; j += 1
-//         {
-//             result += @index
-//         }
-//     }
-//
-//     @assert(result == 10 * 5)
-// }
+#test
+{
+    var result = 0'u64
+
+    for var i = 0; i < 5; i += 1
+    {
+        for var j = 0; j < 5; j += 1
+        {
+            result += @index
+        }
+    }
+
+    @assert(result == 10 * 5)
+}
 
 /**
 # Iterating Over Arrays with 'for'
@@ -438,16 +431,15 @@ Swag supports nested loops. In nested contexts, `@index` refers to the current i
 You can also use `for` to iterate over arrays and collections.
 (Although `foreach` is generally preferred.)
 */
-// @TODO: Re-enable when inferred array literals work with `@countof` in C-like `for` loops again.
-// #test
-// {
-//     var array = [1, 2, 3, 4, 5]
-//     var sum   = 0
-//
-//     for var i = 0; i < @countof(array); i += 1
-//     {
-//         sum += array[i]
-//     }
-//
-//     @assert(sum == 1 + 2 + 3 + 4 + 5)
-// }
+#test
+{
+    var array = [1, 2, 3, 4, 5]
+    var sum   = 0
+
+    for var i = 0; i < @countof(array); i += 1
+    {
+        sum += array[i]
+    }
+
+    @assert(sum == 1 + 2 + 3 + 4 + 5)
+}

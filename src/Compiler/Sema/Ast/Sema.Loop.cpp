@@ -68,12 +68,12 @@ namespace
         return Result::Continue;
     }
 
-    ForStmtSemaPayload& ensureForStmtSemaPayload(Sema& sema, AstNodeRef nodeRef)
+    LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
-        if (auto* payload = sema.semaPayload<ForStmtSemaPayload>(nodeRef))
+        if (auto* payload = sema.semaPayload<LoopSemaPayload>(nodeRef))
             return *payload;
 
-        auto* payload = sema.compiler().allocate<ForStmtSemaPayload>();
+        auto* payload = sema.compiler().allocate<LoopSemaPayload>();
         sema.setSemaPayload(nodeRef, payload);
         return *payload;
     }
@@ -87,7 +87,7 @@ namespace
             return Result::Continue;
         }
 
-        if (const auto* payload = sema.semaPayload<ForStmtSemaPayload>(forRef))
+        if (const auto* payload = sema.semaPayload<LoopSemaPayload>(forRef))
         {
             outTypeRef = payload->indexTypeRef;
             return Result::Continue;
@@ -107,6 +107,18 @@ namespace
     }
 
     Result completeForeachInternalSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    Result completeLoopInternalSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
     {
         symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
         symVar.setTypeRef(typeRef);
@@ -183,6 +195,16 @@ namespace
 Result AstForCStyleStmt::semaPreNode(Sema& sema)
 {
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+    const auto& forNode = sema.curNode().cast<AstForCStyleStmt>();
+
+    SmallVector<Symbol*> symbols;
+    auto&                stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, forNode, "for_index_state");
+    stateSym.registerAttributes(sema);
+    stateSym.setDeclared(sema.ctx());
+    SWC_RESULT(Match::ghosting(sema, stateSym));
+    SWC_RESULT(completeLoopInternalSymbol(sema, stateSym, sema.typeMgr().typeU64()));
+    symbols.push_back(&stateSym);
+    sema.setSymbolList(sema.curNodeRef(), symbols.span());
     return Result::Continue;
 }
 
@@ -192,6 +214,8 @@ Result AstForCStyleStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     {
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopIndexTypeRef(sema.typeMgr().typeU64());
+        frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
         sema.pushFramePopOnPostNode(frame);
     }
 
@@ -232,6 +256,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         frame.setCurrentLoopIndexTypeRef(indexTypeRef);
+        frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
         sema.pushFramePopOnPostNode(frame);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         SmallVector<Symbol*> symbols;
@@ -330,6 +355,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         frame.setCurrentLoopIndexTypeRef(indexTypeRef);
+        frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
         sema.pushFramePopOnPostNode(frame);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
 
@@ -363,7 +389,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
         {
             SWC_RESULT(sema.waitSemaCompleted(symEnum, view.node()->codeRef()));
 
-            auto& payload        = ensureForStmtSemaPayload(sema, sema.curNodeRef());
+            auto& payload        = ensureLoopSemaPayload(sema, sema.curNodeRef());
             payload.indexTypeRef = sema.typeMgr().typeU64();
             payload.countCstRef  = sema.cstMgr().addInt(sema.ctx(), enumValueCount(*symEnum));
         }
@@ -374,7 +400,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
             {
                 SemaHelpers::CountOfResultInfo countResult;
                 SWC_RESULT(SemaHelpers::resolveCountOfResult(sema, countResult, nodeExprRef));
-                auto& payload        = ensureForStmtSemaPayload(sema, sema.curNodeRef());
+                auto& payload        = ensureLoopSemaPayload(sema, sema.curNodeRef());
                 payload.indexTypeRef = countResult.typeRef;
                 payload.countCstRef  = countResult.cstRef;
             }
@@ -388,7 +414,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
             else
             {
                 const auto& rangeExpr = sema.node(nodeExprRef).cast<AstRangeExpr>();
-                auto&       payload   = ensureForStmtSemaPayload(sema, sema.curNodeRef());
+                auto&       payload   = ensureLoopSemaPayload(sema, sema.curNodeRef());
                 payload.isRangeLoop   = true;
                 payload.indexTypeRef  = view.typeRef();
                 payload.inclusive     = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
@@ -429,8 +455,19 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     {
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopIndexTypeRef(sema.typeMgr().typeU64());
+        frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+
+        SmallVector<Symbol*> symbols;
+        auto&                stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "for_index_state");
+        stateSym.registerAttributes(sema);
+        stateSym.setDeclared(sema.ctx());
+        SWC_RESULT(Match::ghosting(sema, stateSym));
+        SWC_RESULT(completeLoopInternalSymbol(sema, stateSym, sema.typeMgr().typeU64()));
+        symbols.push_back(&stateSym);
+        sema.setSymbolList(sema.curNodeRef(), symbols.span());
     }
 
     return Result::Continue;

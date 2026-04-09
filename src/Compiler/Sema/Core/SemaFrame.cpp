@@ -55,7 +55,10 @@ void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind
     // Only switch frames keep exposing the enclosing loop index. Every other
     // breakable context becomes the new nearest owner and must reset it.
     if (kind != BreakContextKind::Switch)
+    {
         currentLoopIndexTypeRef_ = TypeRef::invalid();
+        currentLoopIndexOwnerRef_ = AstNodeRef::invalid();
+    }
 }
 
 SymbolMap* SemaFrame::currentSymMap(Sema& sema)

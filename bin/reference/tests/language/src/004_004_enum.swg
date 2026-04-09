@@ -92,21 +92,20 @@ After a custom value, following values auto-increment.
 
 Non-integer enums require explicit assignments.
 */
-// @TODO: Re-enable this non-integer enum example when non-integer enum values behave as documented.
-// #test
-// {
-//     enum Value1: string { A = "string 1", B = "string 2", C = "string 3" }
-//     #assert(Value1.A == "string 1")
-//
-//     enum Value2: f32
-//     {
-//         A = 1.0
-//         B = 3.14
-//         C = 6.0
-//     }
-//
-//     #assert(Value2.B == 3.14)
-// }
+
+#test
+{
+    enum Value1: string { A = "string 1", B = "string 2", C = "string 3" }
+    #assert(Value1.A == "string 1")
+    enum Value2: f32
+    {
+        A = 1.0
+        B = 3.14
+        C = 6.0
+    }
+
+    #assert(@abs(cast(f32) Value2.B - 3.14) < 0.001)
+}
 
 /**
 # Counting Enum Values
@@ -253,14 +252,14 @@ Enums can include other enums using `using`. Both must share the same base type.
 
 Swag infers enum types automatically in assignments and expressions.
 */
-// @TODO: Re-enable this enum type inference example when bare enum members infer correctly in assignments.
-// #test
-// {
-//     enum Values { A, B }
-//     let x: Values = Values.A
-//     let y: Values = A
-//     @assert(x == y)
-// }
+
+#test
+{
+    enum Values { A, B }
+    let x: Values = Values.A
+    let y: Values = .A
+    @assert(x == y)
+}
 
 /**
 # Type Inference in `switch`

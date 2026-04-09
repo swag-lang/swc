@@ -78,7 +78,7 @@ while 'const' is typically resolved at compile-time.
 
 Use the '@print' intrinsic to display output in the console.
 */
-// @TODO: Re-enable this variadic print helper when user-defined variadic calls are stable again.
+
 const CanPrint = false // Must be 'true' to show 'print' results
 func print(x: ...)
 {
@@ -116,28 +116,27 @@ Swag supports both single-line and multi-line comments.
 Semicolons are optional at the end of statements.
 They’re only needed when placing multiple statements on the same line.
 */
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     let a = 5
-//     let b = 10
-//     print(a + b, "\n") // Outputs 15
-// }
+
+#test
+{
+    let a = 5
+    let b = 10
+    print(a + b, "\n") // Outputs 15
+}
 
 /**
 # Integers and Floating-Point Numbers
 
 Swag supports both integer and floating-point numeric types.
 */
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     let maxHeight: u32 = 500        // Unsigned 32-bit integer
-//     let distance:  f64 = 42.195     // Double-precision float
-//
-//     let result = maxHeight + 50
-//     print("New height: ", result, "\n")
-// }
+
+#test
+{
+    let maxHeight: u32 = 500        // Unsigned 32-bit integer
+    let distance:  f64 = 42.195     // Double-precision float
+    let result = maxHeight + 50
+    print("New height: ", result, "\n")
+}
 
 /**
 # Strings
@@ -147,8 +146,7 @@ Strings are UTF-8 encoded and handle international text naturally.
 #test
 {
     let message = "Hello, 世界!"
-    // @TODO: Re-enable this line when the local variadic 'print' helper no longer trips codegen.
-    // print(message, "\n")
+    print(message, "\n")
 }
 
 /**
@@ -175,89 +173,86 @@ They are useful for returning multiple values or bundling related data.
 Swag uses 'if', 'for', and 'switch' for flow control.
 Curly braces '{}' are optional; you may use 'do' blocks instead.
 */
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     let temperature = 30
-//     if temperature > 25 do
-//         print("It's hot!\n")
-//     else do
-//         print("It's cool!\n")
-// }
+
+#test
+{
+    let temperature = 30
+    if temperature > 25 do
+        print("It's hot!\n")
+    else do
+        print("It's cool!\n")
+}
 
 /**
 You can also use braces for control blocks.
 */
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     let temperature = 30
-//     if temperature > 25
-//     {
-//         print("It's hot!\n")
-//     }
-//     else
-//     {
-//         print("It's cool!\n")
-//     }
-// }
+
+#test
+{
+    let temperature = 30
+    if temperature > 25
+    {
+        print("It's hot!\n")
+    }
+    else
+    {
+        print("It's cool!\n")
+    }
+}
 
 /**
 Swag supports both 'for' and 'while' loops.
 */
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     // Iterate 10 times
-//     for 10
-//     {
-//         print("Iteration: ", @index, "\n")
-//     }
-//
-//     for var i: u32 = 0; i < 10; i += 2
-//     {
-//         print("Iteration: ", i, "\n")
-//     }
-//
-//     var countdown: u32 = 5
-//     while countdown > 0
-//     {
-//         print("T-minus ", countdown, "\n")
-//         countdown -= 1
-//     }
-// }
+
+#test
+{
+    // Iterate 10 times
+    for 10
+    {
+        print("Iteration: ", @index, "\n")
+    }
+    for var i: u32 = 0; i < 10; i += 2
+    {
+        print("Iteration: ", i, "\n")
+    }
+    var countdown: u32 = 5
+    while countdown > 0
+    {
+        print("T-minus ", countdown, "\n")
+        countdown -= 1
+    }
+}
 
 /**
 # 'foreach' Loop
 
 'foreach' iterates over collections such as arrays.
 */
-// @TODO: Re-enable this foreach literal example when array literal iteration is stable in this context.
-// #test
-// {
-//     var numbers = [1, 2, 3, 4, 5]
-//     foreach num in numbers
-//     {
-//         print("Number: ", num, "\n")
-//     }
-// }
+
+#test
+{
+    var numbers = [1, 2, 3, 4, 5]
+    foreach num in numbers
+    {
+        print("Number: ", num, "\n")
+    }
+}
 
 /**
 # Functions
 
 Functions encapsulate reusable blocks of logic.
 */
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     func add(a: s32, b: s32)->s32
-//     {
-//         return a + b
-//     }
-//
-//     let result = add(10, 5)
-//     print("Result: ", result, "\n") // Outputs 15
-// }
+
+#test
+{
+    func add(a: s32, b: s32)->s32
+    {
+        return a + b
+    }
+    let result = add(10, 5)
+    print("Result: ", result, "\n") // Outputs 15
+}
 
 /**
 Functions can also return multiple values via tuples.

@@ -20,6 +20,7 @@ public:
     void          setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
     bool          isStrict() const { return attributes().hasRtFlag(RtAttributeFlagsE::Strict); }
     uint64_t      sizeOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).sizeOf(ctx); }
+    uint32_t      alignOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).alignOf(ctx); }
 
 private:
     const Symbol* aliasedSymbol_     = nullptr;

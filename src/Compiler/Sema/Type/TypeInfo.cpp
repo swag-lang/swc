@@ -925,7 +925,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::Enum:
             return payloadSymEnum().underlyingType(ctx).alignOf(ctx);
         case TypeInfoKind::Alias:
-            return payloadSymAlias().type(ctx).alignOf(ctx);
+            return payloadSymAlias().alignOf(ctx);
 
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).alignOf(ctx);

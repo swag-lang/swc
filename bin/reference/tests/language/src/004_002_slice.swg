@@ -141,7 +141,7 @@ Omitting the lower bound starts the slice from index 0.
 
 Arrays can be sliced the same way as strings.
 */
-// @TODO: Re-enable this array slicing example when slicing inferred array literals is supported here.
+
 #test
 {
     let arr   = [10, 20, 30, 40]

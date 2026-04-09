@@ -23,26 +23,36 @@ namespace
 {
     TypeRef currentLoopIndexTypeRef(Sema& sema)
     {
-        const SemaFrame::BreakContext& breakContext = sema.frame().currentBreakContext();
-        if (breakContext.kind != SemaFrame::BreakContextKind::Loop || breakContext.nodeRef.isInvalid())
-            return TypeRef::invalid();
-
-        const AstNode& breakNode = sema.node(breakContext.nodeRef);
-        if (breakNode.is(AstNodeId::ForeachStmt))
-            return sema.typeMgr().typeU64();
-
-        if (breakNode.is(AstNodeId::ForStmt))
+        // Walk the frame stack backwards to find an enclosing loop,
+        // looking through switch contexts.
+        const auto frames = sema.frames();
+        for (auto it = frames.rbegin(); it != frames.rend(); ++it)
         {
-            const auto& forNode = breakNode.cast<AstForStmt>();
-            if (sema.node(forNode.nodeExprRef).is(AstNodeId::RangeExpr))
-                return sema.viewType(forNode.nodeExprRef).typeRef();
+            const SemaFrame::BreakContext& breakContext = it->currentBreakContext();
+            if (breakContext.kind == SemaFrame::BreakContextKind::Switch)
+                continue;
+            if (breakContext.kind != SemaFrame::BreakContextKind::Loop || breakContext.nodeRef.isInvalid())
+                return TypeRef::invalid();
 
-            if (const auto* payload = sema.semaPayload<ForStmtSemaPayload>(breakContext.nodeRef))
-                return payload->indexTypeRef;
+            const AstNode& breakNode = sema.node(breakContext.nodeRef);
+            if (breakNode.is(AstNodeId::ForeachStmt))
+                return sema.typeMgr().typeU64();
 
-            SemaHelpers::CountOfResultInfo countResult;
-            if (SemaHelpers::resolveCountOfResult(sema, countResult, forNode.nodeExprRef) == Result::Continue)
-                return countResult.typeRef;
+            if (breakNode.is(AstNodeId::ForStmt))
+            {
+                const auto& forNode = breakNode.cast<AstForStmt>();
+                if (sema.node(forNode.nodeExprRef).is(AstNodeId::RangeExpr))
+                    return sema.viewType(forNode.nodeExprRef).typeRef();
+
+                if (const auto* payload = sema.semaPayload<ForStmtSemaPayload>(breakContext.nodeRef))
+                    return payload->indexTypeRef;
+
+                SemaHelpers::CountOfResultInfo countResult;
+                if (SemaHelpers::resolveCountOfResult(sema, countResult, forNode.nodeExprRef) == Result::Continue)
+                    return countResult.typeRef;
+                return TypeRef::invalid();
+            }
+
             return TypeRef::invalid();
         }
 

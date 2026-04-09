@@ -75,28 +75,26 @@ If you do not name the element or index, you can access them with the default al
 Iterate from the last element to the first by adding the '#reverse' modifier.
 '@index' still reflects the loop index within the original collection.
 */
-
-// @TODO: Re-enable when `@index` is available inside `#reverse foreach` again.
-// #test
-// {
-//     var cpt = 0
-//     foreach #reverse value in "ABC"
-//     {
-//         switch cpt
-//         {
-//         case 0:
-//             @assert(value == 'C')
-//             @assert(@index == 2)
-//         case 1:
-//             @assert(value == 'B')
-//             @assert(@index == 1)
-//         case 2:
-//             @assert(value == 'A')
-//             @assert(@index == 0)
-//         }
-//         cpt += 1
-//     }
-// }
+#test
+{
+    var cpt = 0
+    foreach #reverse value in "ABC"
+    {
+        switch cpt
+        {
+        case 0:
+            @assert(value == 'C')
+            @assert(@index == 2)
+        case 1:
+            @assert(value == 'B')
+            @assert(@index == 1)
+        case 2:
+            @assert(value == 'A')
+            @assert(@index == 0)
+        }
+        cpt += 1
+    }
+}
 
 /**
 # Visiting Arrays and Slices

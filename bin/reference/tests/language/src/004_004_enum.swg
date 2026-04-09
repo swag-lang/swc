@@ -17,34 +17,32 @@ Enums define a set of named constant values. Unlike C/C++, Swag allows enum valu
 
 By default, enums use the `s32` type for storage.
 */
-// @TODO: Re-enable this enum reflection example when the enum raw-type metadata API matches the documented shape.
-// #test
-// {
-//     enum Values { A, B }
-//     let type = #typeof(Values)
-//
-//     @assert(type.rawType == s32)
-//     #assert(#typeof(Values) == Values)
-// }
+
+#test
+{
+    enum Values { A, B }
+    let type = #typeof(Values)
+    @assert(type.rawType == s32)
+    #assert(#typeof(Values) == Values)
+}
 
 /**
 # Custom Enum Underlying Type
 
 A custom base type can be specified after the enum name.
 */
-// @TODO: Re-enable this custom enum underlying type example when the enum raw-type metadata API matches the documented shape.
-// #test
-// {
-//     enum Values1: s64
-//     {
-//         A
-//         B
-//         C
-//     }
-//
-//     #assert(#typeof(Values1).rawType == s64)
-//     #assert(#typeof(Values1.A) == Values1)
-// }
+
+#test
+{
+    enum Values1: s64
+    {
+        A
+        B
+        C
+    }
+    #assert(#typeof(Values1).rawType == s64)
+    #assert(#typeof(Values1.A) == Values1)
+}
 
 /**
 # Default and Custom Enum Values

@@ -128,3 +128,4 @@ func cloneFloat(seed: f64)->FloatRet
     @assert(g == 3.75)
     @assert(b == 4.0)
 }
+

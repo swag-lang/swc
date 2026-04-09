@@ -440,10 +440,77 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView initView = codeGen.viewType(nodeInitRef);
     SWC_ASSERT(initView.type() && (initView.type()->isStruct() || initView.type()->isAggregateStruct()));
 
-    // Aggregate struct literals are compile-time only; all decomposed symbols
-    // have their constants set by sema. Nothing to materialize at runtime.
+    // Aggregate struct literals have no runtime layout. Initialize each
+    // decomposed variable from its compile-time constant value.
     if (initView.type()->isAggregateStruct())
+    {
+        MicroBuilder&            builder = codeGen.builder();
+        const SemaNodeView       view    = codeGen.curViewSymbolList();
+        const std::span<Symbol*> symbols = view.symList();
+
+        for (Symbol* sym : symbols)
+        {
+            auto& symVar = sym->cast<SymbolVariable>();
+            if (symVar.hasGlobalStorage())
+                continue;
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
+                continue;
+
+            if (symVar.cstRef().isValid())
+            {
+                const ConstantValue& cst = codeGen.cstMgr().get(symVar.cstRef());
+
+                CodeGenNodePayload fieldPayload;
+                fieldPayload.typeRef = symVar.typeRef();
+                fieldPayload.setIsValue();
+
+                if (cst.isInt())
+                {
+                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(static_cast<uint64_t>(cst.getInt().asI64()), 64), MicroOpBits::B64);
+                }
+                else if (cst.isBool())
+                {
+                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(cst.getBool() ? 1 : 0, 64), MicroOpBits::B64);
+                }
+                else if (cst.isFloat())
+                {
+                    fieldPayload.reg = codeGen.nextVirtualFloatRegister();
+                    const auto bits  = std::bit_cast<uint64_t>(cst.getFloat().asDouble());
+                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(bits, 64), MicroOpBits::B64);
+                }
+                else if (cst.isString())
+                {
+                    const std::string_view strVal       = cst.getString();
+                    const ConstantRef      strCstRef    = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, symVar.typeRef(), strVal.data(), strVal.size());
+                    const ConstantValue&   strCst       = codeGen.cstMgr().get(strCstRef);
+                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegPtrReloc(fieldPayload.reg, reinterpret_cast<uint64_t>(strCst.getStruct().data()), strCstRef);
+                }
+                else if (cst.isValuePointer())
+                {
+                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegPtrReloc(fieldPayload.reg, cst.getValuePointer(), symVar.cstRef());
+                }
+                else
+                {
+                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                    builder.emitClearReg(fieldPayload.reg, identifierPayloadCopyBits(codeGen, symVar.typeRef()));
+                }
+
+                materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
+            }
+            else
+            {
+                materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid());
+            }
+
+            codeGen.registerImplicitDrop(symVar);
+        }
+
         return Result::Continue;
+    }
 
     const CodeGenNodePayload& initPayload = codeGen.payload(nodeInitRef);
     MicroReg                  baseAddress = MicroReg::invalid();

@@ -531,7 +531,7 @@ namespace
             Symbol* const               sym    = symbols[i];
             const SymbolVariable* const field  = fields[i];
             auto* const                 symVar = getVariableSymbol(sym);
-            if (!symVar || !field)
+            if (!symVar)
                 continue;
 
             ConstantRef fieldCstRef = ConstantRef::invalid();
@@ -540,7 +540,7 @@ namespace
                 if (i < aggregateValues->size())
                     fieldCstRef = (*aggregateValues)[i];
             }
-            else
+            else if (field)
             {
                 const TypeRef   fieldTypeRef = field->typeRef();
                 const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
@@ -1181,7 +1181,30 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         }
         else
         {
-            sym.setTypeRef((*aggregateTypes)[i]);
+            TypeRef elemTypeRef = (*aggregateTypes)[i];
+
+            // Concretize unresolved literal types using the init constant.
+            if (sema.typeMgr().get(elemTypeRef).sizeOf(sema.ctx()) == 0)
+            {
+                const SemaNodeView initCstView = sema.viewNodeTypeConstant(nodeInitRef);
+                if (initCstView.cstRef().isValid())
+                {
+                    const ConstantValue& aggCst = sema.cstMgr().get(initCstView.cstRef());
+                    if (aggCst.isAggregateStruct() && i < aggCst.getAggregateStruct().size())
+                    {
+                        const ConstantRef    elemCstRef = aggCst.getAggregateStruct()[i];
+                        const ConstantValue& elemCst    = sema.cstMgr().get(elemCstRef);
+                        if (elemCst.isInt())
+                            elemTypeRef = sema.typeMgr().typeS32();
+                        else if (elemCst.isFloat())
+                            elemTypeRef = sema.typeMgr().typeF64();
+                        else if (elemCst.isBool())
+                            elemTypeRef = sema.typeMgr().typeBool();
+                    }
+                }
+            }
+
+            sym.setTypeRef(elemTypeRef);
             fieldsForSymbols.push_back(nullptr);
         }
 

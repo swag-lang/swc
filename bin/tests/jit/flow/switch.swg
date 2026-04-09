@@ -354,6 +354,23 @@ struct SwitchAnyDerived
 
 #test
 {
+    func switchAnyStringBinding(x: any)->bool
+    {
+        switch x
+        {
+            case string as str:
+                return str == "value"
+            default:
+                return false
+        }
+    }
+
+    var a: any = "value"
+    @assert(switchAnyStringBinding(a))
+}
+
+#test
+{
     func switchCaseMustBeConst(v: s32)->s32
     {
         switch v

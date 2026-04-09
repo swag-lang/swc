@@ -203,7 +203,14 @@ namespace
         if (sema.typeMgr().get(sourceType).isConst() || sema.typeMgr().get(targetTypeRef).isConst())
             bindingFlags.add(TypeInfoFlagsE::Const);
 
-        const TypeRef bindingTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(targetTypeRef, bindingFlags));
+        const TypeRef   resolvedTargetTypeRef = unwrapAliasEnumTypeRef(sema, targetTypeRef);
+        const TypeInfo& resolvedTargetType    = sema.typeMgr().get(resolvedTargetTypeRef);
+        const bool      bindAsPointer         = !sema.typeMgr().get(sourceType).isAny() || resolvedTargetType.isStruct();
+
+        TypeRef bindingTypeRef = targetTypeRef;
+        if (bindAsPointer)
+            bindingTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(targetTypeRef, bindingFlags));
+
         sym->registerAttributes(sema);
         sym->setDeclared(ctx);
         sym->addExtraFlag(SymbolVariableFlagsE::Initialized);

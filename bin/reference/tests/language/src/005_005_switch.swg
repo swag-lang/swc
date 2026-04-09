@@ -266,7 +266,6 @@ Add a `where` clause to a `case` to refine matching conditions based on addition
 A `where` clause can also modify the `default` case for conditional fallbacks.
 */
 
-// @TODO: Re-enable when `default where ...` does not conflict with the plain `default` case anymore.
 #test
 {
     let x = 7
@@ -314,19 +313,18 @@ Example 1: Simple Type Binding
 */
 
 // @TODO: Re-enable when type-binding `switch` cases work with `any` again.
-// #test
-// {
-//     let x: any = "value"
-//
-//     switch x
-//     {
-//     case string as str:
-//         @assert(str == "value")
-//         break
-//     default:
-//         @assert(false)
-//     }
-// }
+#test
+{
+    let x: any = "value"
+    switch x
+    {
+    case string as str:
+        @assert(str == "value")
+        break
+    default:
+        @assert(false)
+    }
+}
 
 /**
 Example 2: Type Binding with 'where' Clause

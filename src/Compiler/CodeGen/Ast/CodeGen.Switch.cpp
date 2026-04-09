@@ -283,8 +283,14 @@ namespace
 
             CodeGenNodePayload boundPayload;
             boundPayload.typeRef = casePayload->bindingSymbol->typeRef();
-            boundPayload.setIsValue();
-            boundPayload.reg = resultReg;
+            boundPayload.reg     = resultReg;
+
+            const TypeInfo& bindingType = codeGen.typeMgr().get(boundPayload.typeRef);
+            if (bindingType.isAnyPointer() || bindingType.isReference() || bindingType.isMoveReference())
+                boundPayload.setIsValue();
+            else
+                boundPayload.setIsAddress();
+
             codeGen.setVariablePayload(*casePayload->bindingSymbol, boundPayload);
 
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, successLabel);

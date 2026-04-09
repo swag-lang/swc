@@ -282,3 +282,20 @@ func toto()->s32 => 1
     var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
     @assert(switchAnyUsingBaseBinding(a) == 7)
 }
+
+#test
+{
+    func switchAnyStringBinding(x: any)->bool
+    {
+        switch x
+        {
+            case string as str:
+                return str == "value"
+            default:
+                return false
+        }
+    }
+
+    var a: any = "value"
+    @assert(switchAnyStringBinding(a))
+}

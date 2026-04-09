@@ -125,22 +125,19 @@ just like accessing elements in an array.
 
 This is particularly useful when traversing arrays or buffers via pointers.
 */
-// @TODO: Re-enable when taking the address of an array element is supported here.
-// #test
-// {
-//     var arr = [1, 2, 3, 4]
-//     let ptr = &arr[0]
-//     @assert(#typeof(ptr) == [*] s32)
-//
-//     let value1 = ptr[0]
-//     @assert(value1 == 1)
-//     #assert(#typeof(value1) == s32)
-//
-//     let value2 = ptr[1]
-//     @assert(value2 == 2)
-//     #assert(#typeof(value2) == s32)
-//
-//     let value = dref ptr
-//     @assert(value == 1)
-//     #assert(#typeof(value) == s32)
-// }
+
+#test
+{
+    var arr = [1, 2, 3, 4]
+    let ptr = &arr[0]
+    @assert(#typeof(ptr) == [*] s32)
+    let value1 = ptr[0]
+    @assert(value1 == 1)
+    #assert(#typeof(value1) == s32)
+    let value2 = ptr[1]
+    @assert(value2 == 2)
+    #assert(#typeof(value2) == s32)
+    let value = dref ptr
+    @assert(value == 1)
+    #assert(#typeof(value) == s32)
+}

@@ -4,12 +4,15 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -19,6 +22,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint64_t enumValueCount(const SymbolEnum& symEnum)
+    {
+        std::vector<const Symbol*> symbols;
+        symEnum.getAllSymbols(symbols);
+
+        uint64_t result = 0;
+        for (const Symbol* symbol : symbols)
+        {
+            if (symbol && symbol->isEnumValue())
+                result += 1;
+        }
+
+        return result;
+    }
+
     CodeGenNodePayload& ensureUnreachableCodeGenPayload(Sema& sema, const AstNodeRef nodeRef)
     {
         auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
@@ -100,30 +118,60 @@ namespace
         return Result::Continue;
     }
 
+    const SymbolEnum* enumTypeExprSymbol(Sema& sema, const SemaNodeView& exprView)
+    {
+        if (exprView.type() && exprView.type()->isEnum())
+            return &exprView.type()->payloadSymEnum();
+
+        const SemaNodeView symView = sema.viewSymbol(exprView.nodeRef());
+        if (symView.sym() && symView.sym()->isEnum())
+            return &symView.sym()->cast<SymbolEnum>();
+
+        return nullptr;
+    }
+
+    bool isEnumTypeExpr(Sema& sema, const SemaNodeView& exprView)
+    {
+        return enumTypeExprSymbol(sema, exprView) != nullptr;
+    }
+
     Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef)
     {
-        if (!exprView.type())
-            return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, exprView.nodeRef());
+        bool sourceIsConst = false;
+        bool sourceIsEnum  = false;
 
-        if (exprView.type()->isArray())
-            valueTypeRef = exprView.type()->payloadArrayElemTypeRef();
-        else if (exprView.type()->isSlice())
-            valueTypeRef = exprView.type()->payloadTypeRef();
-        else if (exprView.type()->isAnyString())
-            valueTypeRef = sema.typeMgr().typeU8();
-        else if (exprView.type()->isVariadic())
-            valueTypeRef = sema.typeMgr().typeAny();
-        else if (exprView.type()->isTypedVariadic())
-            valueTypeRef = exprView.type()->payloadTypeRef();
+        if (const SymbolEnum* symEnum = enumTypeExprSymbol(sema, exprView))
+        {
+            valueTypeRef = symEnum->typeRef();
+            indexTypeRef = sema.typeMgr().typeU64();
+            sourceIsEnum = true;
+        }
         else
-            return SemaError::raiseTypeNotIndexable(sema, exprView.nodeRef(), exprView.typeRef());
+        {
+            if (!exprView.type())
+                return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, exprView.nodeRef());
 
-        indexTypeRef = sema.typeMgr().typeU64();
+            if (exprView.type()->isArray())
+                valueTypeRef = exprView.type()->payloadArrayElemTypeRef();
+            else if (exprView.type()->isSlice())
+                valueTypeRef = exprView.type()->payloadTypeRef();
+            else if (exprView.type()->isAnyString())
+                valueTypeRef = sema.typeMgr().typeU8();
+            else if (exprView.type()->isVariadic())
+                valueTypeRef = sema.typeMgr().typeAny();
+            else if (exprView.type()->isTypedVariadic())
+                valueTypeRef = exprView.type()->payloadTypeRef();
+            else
+                return SemaError::raiseTypeNotIndexable(sema, exprView.nodeRef(), exprView.typeRef());
+
+            indexTypeRef  = sema.typeMgr().typeU64();
+            sourceIsConst = exprView.type()->isConst();
+        }
 
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))
         {
             TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
-            if (exprView.type()->isConst())
+            if (sourceIsConst || sourceIsEnum)
                 typeFlags.add(TypeInfoFlagsE::Const);
             valueTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, typeFlags));
         }
@@ -253,7 +301,8 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
     if (childRef == nodeExprRef)
     {
         const SemaNodeView exprView = sema.viewType(nodeExprRef);
-        SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
+        if (!isEnumTypeExpr(sema, exprView))
+            SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
 
         TypeRef valueTypeRef = TypeRef::invalid();
         TypeRef indexTypeRef = TypeRef::invalid();
@@ -310,31 +359,42 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef == nodeExprRef)
     {
         const SemaNodeView view = sema.viewNodeType(nodeExprRef);
-        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-        if (view.node()->isNot(AstNodeId::RangeExpr))
+        if (const SymbolEnum* symEnum = enumTypeExprSymbol(sema, view))
         {
-            SemaHelpers::CountOfResultInfo countResult;
-            SWC_RESULT(SemaHelpers::resolveCountOfResult(sema, countResult, nodeExprRef));
+            SWC_RESULT(sema.waitSemaCompleted(symEnum, view.node()->codeRef()));
+
             auto& payload        = ensureForStmtSemaPayload(sema, sema.curNodeRef());
-            payload.indexTypeRef = countResult.typeRef;
-            payload.countCstRef  = countResult.cstRef;
-        }
-        else if (!view.type()->isInt())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, view.nodeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
-            diag.report(sema.ctx());
-            return Result::Error;
+            payload.indexTypeRef = sema.typeMgr().typeU64();
+            payload.countCstRef  = sema.cstMgr().addInt(sema.ctx(), enumValueCount(*symEnum));
         }
         else
         {
-            const auto& rangeExpr = sema.node(nodeExprRef).cast<AstRangeExpr>();
-            auto&       payload   = ensureForStmtSemaPayload(sema, sema.curNodeRef());
-            payload.isRangeLoop   = true;
-            payload.indexTypeRef  = view.typeRef();
-            payload.inclusive     = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
-            payload.lowerBoundRef = rangeExpr.nodeExprDownRef;
-            payload.upperBoundRef = rangeExpr.nodeExprUpRef;
+            SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+            if (view.node()->isNot(AstNodeId::RangeExpr))
+            {
+                SemaHelpers::CountOfResultInfo countResult;
+                SWC_RESULT(SemaHelpers::resolveCountOfResult(sema, countResult, nodeExprRef));
+                auto& payload        = ensureForStmtSemaPayload(sema, sema.curNodeRef());
+                payload.indexTypeRef = countResult.typeRef;
+                payload.countCstRef  = countResult.cstRef;
+            }
+            else if (!view.type()->isInt())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, view.nodeRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+            else
+            {
+                const auto& rangeExpr = sema.node(nodeExprRef).cast<AstRangeExpr>();
+                auto&       payload   = ensureForStmtSemaPayload(sema, sema.curNodeRef());
+                payload.isRangeLoop   = true;
+                payload.indexTypeRef  = view.typeRef();
+                payload.inclusive     = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
+                payload.lowerBoundRef = rangeExpr.nodeExprDownRef;
+                payload.upperBoundRef = rangeExpr.nodeExprUpRef;
+            }
         }
     }
 

@@ -5,7 +5,10 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -32,7 +35,9 @@ namespace
         SymbolVariable* stateSym         = nullptr;
         SymbolVariable* sourceSpillSym   = nullptr;
         uint64_t        elementSize      = 0;
+        uint64_t        valueSize        = 0;
         bool            reverse          = false;
+        bool            enumValues       = false;
     };
 
     ForeachStmtCodeGenPayload* foreachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -189,6 +194,39 @@ namespace
         return codeGen.viewType(exprRef);
     }
 
+    const SymbolEnum* foreachExprEnumSymbol(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        const SemaNodeView storedTypeView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
+        if (storedTypeView.type() && storedTypeView.type()->isEnum())
+            return &storedTypeView.type()->payloadSymEnum();
+
+        const SemaNodeView typeView = codeGen.viewType(exprRef);
+        if (typeView.type() && typeView.type()->isEnum())
+            return &typeView.type()->payloadSymEnum();
+
+        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
+        if (storedView.sym() && storedView.sym()->isEnum())
+            return &storedView.sym()->cast<SymbolEnum>();
+
+        const SemaNodeView symbolView = codeGen.viewSymbol(exprRef);
+        if (symbolView.sym() && symbolView.sym()->isEnum())
+            return &symbolView.sym()->cast<SymbolEnum>();
+
+        return nullptr;
+    }
+
+    Result loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)
+    {
+        ConstantRef typeInfoCstRef = ConstantRef::invalid();
+        SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, typeRef, codeGen.curNodeRef()));
+        const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
+        SWC_ASSERT(typeInfoCst.isValuePointer());
+
+        outReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(outReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
+        return Result::Continue;
+    }
+
     MicroReg emitForeachElementAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
     {
         SWC_ASSERT(loopState.baseReg.isValid());
@@ -198,6 +236,17 @@ namespace
         const MicroReg elementAddressReg = codeGen.nextVirtualIntRegister();
         codeGen.builder().emitLoadAddressAmcRegMem(elementAddressReg, MicroOpBits::B64, loopState.baseReg, loopState.indexReg, loopState.elementSize, 0, MicroOpBits::B64);
         return elementAddressReg;
+    }
+
+    MicroReg emitForeachValueAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
+    {
+        const MicroReg elementAddressReg = emitForeachElementAddress(codeGen, loopState);
+        if (!loopState.enumValues)
+            return elementAddressReg;
+
+        const MicroReg valueAddressReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(valueAddressReg, elementAddressReg, offsetof(Runtime::TypeValue, value), MicroOpBits::B64);
+        return valueAddressReg;
     }
 
     MicroReg emitForeachStateAddressReg(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
@@ -243,7 +292,7 @@ namespace
         if (!aliasCount)
             return;
 
-        const MicroReg elementAddressReg = emitForeachElementAddress(codeGen, loopState);
+        const MicroReg elementAddressReg = emitForeachValueAddress(codeGen, loopState);
         MicroBuilder&  builder           = codeGen.builder();
 
         const SymbolVariable&    valueSym     = symbols[0]->cast<SymbolVariable>();
@@ -257,15 +306,15 @@ namespace
         }
         else
         {
-            SWC_ASSERT(loopState.elementSize <= std::numeric_limits<uint32_t>::max());
+            SWC_ASSERT(loopState.valueSize <= std::numeric_limits<uint32_t>::max());
             if (valuePayload.isAddress())
             {
-                CodeGenMemoryHelpers::emitMemCopy(codeGen, valuePayload.reg, elementAddressReg, static_cast<uint32_t>(loopState.elementSize));
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, valuePayload.reg, elementAddressReg, static_cast<uint32_t>(loopState.valueSize));
             }
             else
             {
-                SWC_ASSERT(loopState.elementSize == 1 || loopState.elementSize == 2 || loopState.elementSize == 4 || loopState.elementSize == 8);
-                builder.emitLoadRegMem(valuePayload.reg, elementAddressReg, 0, microOpBitsFromChunkSize(static_cast<uint32_t>(loopState.elementSize)));
+                SWC_ASSERT(loopState.valueSize == 1 || loopState.valueSize == 2 || loopState.valueSize == 4 || loopState.valueSize == 8);
+                builder.emitLoadRegMem(valuePayload.reg, elementAddressReg, 0, microOpBitsFromChunkSize(static_cast<uint32_t>(loopState.valueSize)));
             }
         }
 
@@ -280,54 +329,76 @@ namespace
             builder.emitLoadRegReg(indexPayload.reg, loopState.indexReg, MicroOpBits::B64);
     }
 
-    void emitForeachInit(CodeGen& codeGen, const AstForeachStmt& node, ForeachStmtCodeGenPayload& loopState)
+    Result emitForeachInit(CodeGen& codeGen, const AstForeachStmt& node, ForeachStmtCodeGenPayload& loopState)
     {
-        const AstNodeRef         exprRef     = node.nodeExprRef;
-        const SemaNodeView       exprView    = foreachExprView(codeGen, exprRef);
-        const CodeGenNodePayload exprPayload = foreachExprPayload(codeGen, exprRef);
-        const TypeInfo&          exprType    = *(exprView.type());
-        MicroBuilder&            builder     = codeGen.builder();
+        const AstNodeRef exprRef  = node.nodeExprRef;
+        MicroBuilder&    builder  = codeGen.builder();
 
         loopState.baseReg  = MicroReg::invalid();
         loopState.countReg = codeGen.nextVirtualIntRegister();
         loopState.indexReg = codeGen.nextVirtualIntRegister();
+        loopState.enumValues = false;
 
-        if (exprType.isArray())
+        if (const SymbolEnum* symEnum = foreachExprEnumSymbol(codeGen, exprRef))
         {
-            const TypeInfo& elementType = codeGen.typeMgr().get(exprType.payloadArrayElemTypeRef());
-            loopState.elementSize       = elementType.sizeOf(codeGen.ctx());
-            SWC_ASSERT(loopState.elementSize > 0);
+            MicroReg typeInfoReg = MicroReg::invalid();
+            SWC_RESULT(loadTypeInfoConstantReg(typeInfoReg, codeGen, symEnum->typeRef()));
 
-            const uint64_t totalSize  = exprType.sizeOf(codeGen.ctx());
-            const uint64_t totalCount = totalSize / loopState.elementSize;
-            loopState.baseReg         = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
-            builder.emitLoadRegImm(loopState.countReg, ApInt(totalCount, 64), MicroOpBits::B64);
+            loopState.enumValues = true;
+            loopState.elementSize = sizeof(Runtime::TypeValue);
+            loopState.valueSize   = codeGen.typeMgr().get(symEnum->typeRef()).sizeOf(codeGen.ctx());
+            SWC_ASSERT(loopState.elementSize > 0);
+            SWC_ASSERT(loopState.valueSize > 0);
+
+            loopState.baseReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(loopState.baseReg, typeInfoReg, offsetof(Runtime::TypeInfoEnum, values.ptr), MicroOpBits::B64);
+            builder.emitLoadRegMem(loopState.countReg, typeInfoReg, offsetof(Runtime::TypeInfoEnum, values.count), MicroOpBits::B64);
         }
         else
         {
-            TypeRef  valueTypeRef = TypeRef::invalid();
-            uint64_t countOffset  = offsetof(Runtime::Slice<std::byte>, count);
-            if (exprType.isSlice())
-                valueTypeRef = exprType.payloadTypeRef();
-            else if (exprType.isString())
+            const SemaNodeView       exprView    = foreachExprView(codeGen, exprRef);
+            const CodeGenNodePayload exprPayload = foreachExprPayload(codeGen, exprRef);
+            const TypeInfo&          exprType    = *(exprView.type());
+
+            if (exprType.isArray())
             {
-                valueTypeRef = codeGen.typeMgr().typeU8();
-                countOffset  = offsetof(Runtime::String, length);
+                const TypeInfo& elementType = codeGen.typeMgr().get(exprType.payloadArrayElemTypeRef());
+                loopState.elementSize       = elementType.sizeOf(codeGen.ctx());
+                loopState.valueSize         = loopState.elementSize;
+                SWC_ASSERT(loopState.elementSize > 0);
+
+                const uint64_t totalSize  = exprType.sizeOf(codeGen.ctx());
+                const uint64_t totalCount = totalSize / loopState.elementSize;
+                loopState.baseReg         = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
+                builder.emitLoadRegImm(loopState.countReg, ApInt(totalCount, 64), MicroOpBits::B64);
             }
-            else if (exprType.isVariadic())
-                valueTypeRef = codeGen.typeMgr().typeAny();
-            else if (exprType.isTypedVariadic())
-                valueTypeRef = exprType.payloadTypeRef();
             else
-                SWC_UNREACHABLE();
+            {
+                TypeRef  valueTypeRef = TypeRef::invalid();
+                uint64_t countOffset  = offsetof(Runtime::Slice<std::byte>, count);
+                if (exprType.isSlice())
+                    valueTypeRef = exprType.payloadTypeRef();
+                else if (exprType.isString())
+                {
+                    valueTypeRef = codeGen.typeMgr().typeU8();
+                    countOffset  = offsetof(Runtime::String, length);
+                }
+                else if (exprType.isVariadic())
+                    valueTypeRef = codeGen.typeMgr().typeAny();
+                else if (exprType.isTypedVariadic())
+                    valueTypeRef = exprType.payloadTypeRef();
+                else
+                    SWC_UNREACHABLE();
 
-            const TypeInfo& valueType = codeGen.typeMgr().get(valueTypeRef);
-            loopState.elementSize     = valueType.sizeOf(codeGen.ctx());
+                const TypeInfo& valueType = codeGen.typeMgr().get(valueTypeRef);
+                loopState.elementSize     = valueType.sizeOf(codeGen.ctx());
+                loopState.valueSize       = loopState.elementSize;
 
-            const MicroReg sourceAddressReg = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
-            loopState.baseReg               = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegMem(loopState.baseReg, sourceAddressReg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);
-            builder.emitLoadRegMem(loopState.countReg, sourceAddressReg, countOffset, MicroOpBits::B64);
+                const MicroReg sourceAddressReg = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
+                loopState.baseReg               = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(loopState.baseReg, sourceAddressReg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);
+                builder.emitLoadRegMem(loopState.countReg, sourceAddressReg, countOffset, MicroOpBits::B64);
+            }
         }
 
         if (loopState.reverse)
@@ -336,6 +407,7 @@ namespace
             builder.emitLoadRegImm(loopState.indexReg, ApInt(0, 64), MicroOpBits::B64);
 
         emitForeachStoreLoopState(codeGen, loopState);
+        return Result::Continue;
     }
 }
 
@@ -396,7 +468,7 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
     if (childRef == exprRef)
     {
-        emitForeachInit(codeGen, *this, *loopState);
+        SWC_RESULT(emitForeachInit(codeGen, *this, *loopState));
         builder.placeLabel(loopState->loopLabel);
         // The loop head always reloads the persisted state because the previous iteration may have crossed
         // callbacks that invalidated the current virtual register assignments.

@@ -295,3 +295,15 @@
     var v1: s32
     for it in v1 {} // swc-expected-error {{sema_err_invalid_countof_type}}
 }
+
+#test
+{
+    #[Swag.EnumFlags]
+    enum Bits: u32 { A, B, C }
+
+    for idx in Bits
+    {
+        #assert(#typeof(idx) == u64)
+        var x = idx
+    }
+}

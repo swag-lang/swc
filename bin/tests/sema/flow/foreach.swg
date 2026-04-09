@@ -133,3 +133,21 @@
         }
     }
 }
+
+#test
+{
+    enum Priority: u32
+    {
+        Low    = 1
+        Normal = 5
+        High   = 10
+    }
+
+    foreach value, idx in Priority
+    {
+        #assert(#typeof(value) == Priority)
+        #assert(#typeof(idx) == u64)
+        var x = value
+        var y = idx
+    }
+}

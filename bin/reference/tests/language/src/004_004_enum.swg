@@ -321,37 +321,33 @@ This works with flags too.
 
 You can iterate over enums using `for` or `foreach`.
 */
-// @TODO: Re-enable this enum iteration example when `for .. in EnumType` is supported again.
-// #test
-// {
-//     enum RGB { R, G, B }
-//
-//     var cpt = 0
-//     for idx in RGB do
-//         cpt += 1
-//     @assert(cpt == 3)
-// }
+#test
+{
+    enum RGB { R, G, B }
+    var cpt = 0
+    for idx in RGB do
+        cpt += 1
+    @assert(cpt == 3)
+}
 
 /**
 `foreach` offers a structured way to iterate and handle specific values.
 */
-// @TODO: Re-enable this enum foreach example when `foreach .. in EnumType` is supported again.
-// #test
-// {
-//     enum RGB { R, G, B }
-//
-//     foreach val in RGB
-//     {
-//         switch val
-//         {
-//         case R:
-//             break
-//         case G:
-//             break
-//         case B:
-//             break
-//         default:
-//             @assert(false)
-//         }
-//     }
-// }
+#test
+{
+    enum RGB { R, G, B }
+    foreach val in RGB
+    {
+        switch val
+        {
+        case R:
+            break
+        case G:
+            break
+        case B:
+            break
+        default:
+            @assert(false)
+        }
+    }
+}

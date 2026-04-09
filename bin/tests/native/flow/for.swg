@@ -411,3 +411,21 @@
 
     @assert(sum == 6)
 }
+
+#test
+{
+    #[Swag.EnumFlags]
+    enum Bits: u32 { A, B, C }
+
+    var count = 0
+    var sum = 0
+    for idx in Bits
+    {
+        #assert(#typeof(idx) == u64)
+        count += 1
+        sum += cast(s32) idx
+    }
+
+    @assert(count == 3)
+    @assert(sum == 3)
+}

@@ -157,3 +157,38 @@
     }
     @assert(foreachVariadicTypedErr(5, 6) == 2)
 }
+
+#test
+{
+    enum Priority: u32
+    {
+        Low    = 1
+        Normal = 5
+        High   = 10
+    }
+
+    var sumV: u32
+    var sumI: u64
+    foreach value, idx in Priority
+    {
+        #assert(#typeof(value) == Priority)
+        #assert(#typeof(idx) == u64)
+        sumV += cast(u32) value
+        sumI += idx
+    }
+
+    @assert(sumV == 16)
+    @assert(sumI == 3)
+}
+
+#test
+{
+    #[Swag.EnumFlags]
+    enum Bits: u32 { A, B, C }
+
+    var mask: u32
+    foreach value in Bits do
+        mask |= cast(u32) value
+
+    @assert(mask == 7)
+}

@@ -267,23 +267,22 @@ A `where` clause can also modify the `default` case for conditional fallbacks.
 */
 
 // @TODO: Re-enable when `default where ...` does not conflict with the plain `default` case anymore.
-// #test
-// {
-//     let x = 7
-//     let y = 10
-//
-//     switch x
-//     {
-//     case 6 where y == 10:
-//         @assert(false)
-//     case 7 where y == 9:
-//         @assert(false)
-//     default where y == 10:
-//         break
-//     default:
-//         @assert(false)
-//     }
-// }
+#test
+{
+    let x = 7
+    let y = 10
+    switch x
+    {
+    case 6 where y == 10:
+        @assert(false)
+    case 7 where y == 9:
+        @assert(false)
+    default where y == 10:
+        break
+    default:
+        @assert(false)
+    }
+}
 
 /**
 # Switching on Type with 'any' or 'interface'

@@ -48,7 +48,9 @@ namespace
         if (!typeView.type()->isScalarNumeric() &&
             !typeView.type()->isBool() &&
             !typeView.type()->isRune() &&
-            !typeView.type()->isString())
+            !typeView.type()->isString() &&
+            !typeView.type()->isArray() &&
+            !typeView.type()->isSlice())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, typeNodeRef);
 
         return Result::Continue;
@@ -114,11 +116,32 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
     if (sym.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, SourceCodeRef{srcViewRef(), tokNameRef});
 
+    for (SymbolMap* usingSymMap : sema.curScope().usingSymMaps())
+        sym.addUsingSymMap(usingSymMap);
+
     // Runtime enum
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
 
     sym.setSemaCompleted(sema.ctx());
+    return Result::Continue;
+}
+
+Result AstUsingEnumDecl::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView usingView = sema.viewSymbol(nodeNameRef);
+    SWC_ASSERT(usingView.sym());
+    SWC_ASSERT(usingView.sym()->isEnum());
+
+    auto&       ownerEnum    = sema.curSymMap()->cast<SymbolEnum>();
+    const auto& importedEnum = usingView.sym()->cast<SymbolEnum>();
+
+    if (ownerEnum.underlyingTypeRef() != importedEnum.underlyingTypeRef())
+        return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeNameRef);
+
+    auto* const usingSymMap = const_cast<SymbolMap*>(importedEnum.asSymMap());
+    sema.curScope().addUsingSymMap(usingSymMap);
+    ownerEnum.addUsingSymMap(usingSymMap);
     return Result::Continue;
 }
 

@@ -205,7 +205,7 @@ namespace
         codeGen.setVariablePayload(symVar, symbolPayload);
     }
 
-    bool materializeAggregateSourceAddress(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef sourceTypeRef, const CodeGenNodePayload& sourcePayload, MicroReg& outAddressReg)
+    bool materializeAggregateSourceAddress(CodeGen& codeGen, AstNodeRef storageNodeRef, TypeRef sourceTypeRef, const CodeGenNodePayload& sourcePayload, MicroReg& outAddressReg)
     {
         outAddressReg = MicroReg::invalid();
         if (sourcePayload.isAddress())
@@ -218,11 +218,11 @@ namespace
         if (!sourceSize || sourceSize > std::numeric_limits<uint32_t>::max())
             return false;
 
-        const CodeGenNodePayload* sourceNodePayload = codeGen.safePayload(sourceRef);
-        if (!sourceNodePayload || sourceNodePayload->runtimeStorageSym == nullptr)
+        const CodeGenNodePayload* storagePayload = codeGen.safePayload(storageNodeRef);
+        if (!storagePayload || storagePayload->runtimeStorageSym == nullptr)
             return false;
 
-        outAddressReg = codeGen.runtimeStorageAddressReg(sourceRef);
+        outAddressReg = codeGen.runtimeStorageAddressReg(storageNodeRef);
         storePayloadToAddress(codeGen, outAddressReg, sourcePayload, static_cast<uint32_t>(sourceSize));
         return true;
     }
@@ -523,7 +523,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
     const CodeGenNodePayload& initPayload = codeGen.payload(nodeInitRef);
     MicroReg                  baseAddress = MicroReg::invalid();
-    if (!materializeAggregateSourceAddress(codeGen, nodeInitRef, initView.typeRef(), initPayload, baseAddress))
+    if (!materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress))
         return Result::Error;
 
     const auto&              fields  = initView.type()->payloadSymStruct().fields();

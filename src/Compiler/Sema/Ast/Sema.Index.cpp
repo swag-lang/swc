@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -21,6 +22,28 @@ namespace
 {
     Result          completeIndexRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     SymbolVariable& registerUniqueIndexRuntimeStorageSymbol(Sema& sema, const AstNode& node);
+
+    TypeRef resolveIndexOperandTypeRef(Sema& sema, const SemaNodeView& nodeArgView)
+    {
+        TypeRef indexTypeRef = nodeArgView.typeRef();
+        if (const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias); aliasTypeRef.isValid())
+            indexTypeRef = aliasTypeRef;
+
+        const TypeInfo& indexType = sema.typeMgr().get(indexTypeRef);
+        if (indexType.isEnum() && indexType.payloadSymEnum().attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex))
+            indexTypeRef = indexType.payloadSymEnum().underlyingTypeRef();
+
+        return indexTypeRef;
+    }
+
+    ConstantRef resolveIndexOperandConstantRef(const SemaNodeView& nodeArgView)
+    {
+        if (nodeArgView.cstRef().isInvalid())
+            return ConstantRef::invalid();
+        if (!nodeArgView.cst() || !nodeArgView.cst()->isEnumValue())
+            return nodeArgView.cstRef();
+        return nodeArgView.cst()->getEnumValue();
+    }
 
     CodeGenNodePayload& ensureIndexCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
     {
@@ -58,10 +81,7 @@ namespace
 
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
-        TypeRef indexTypeRef = nodeArgView.typeRef();
-        if (const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias); aliasTypeRef.isValid())
-            indexTypeRef = aliasTypeRef;
-
+        const TypeRef indexTypeRef = resolveIndexOperandTypeRef(sema, nodeArgView);
         const TypeInfo* indexType = &sema.typeMgr().get(indexTypeRef);
         if (indexType->isReference())
             indexType = &sema.typeMgr().get(indexType->payloadTypeRef());
@@ -76,7 +96,9 @@ namespace
 
         if (nodeArgView.cst())
         {
-            const auto& idxInt = nodeArgView.cst()->getInt();
+            const ConstantRef resolvedCstRef = resolveIndexOperandConstantRef(nodeArgView);
+            SWC_ASSERT(resolvedCstRef.isValid());
+            const auto& idxInt = sema.cstMgr().get(resolvedCstRef).getInt();
             if (!idxInt.fits64())
             {
                 return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, nodeArgRef);

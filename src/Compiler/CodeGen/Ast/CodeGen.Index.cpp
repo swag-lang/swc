@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -30,6 +31,19 @@ namespace
         return typeRef;
     }
 
+    TypeRef normalizeIndexOperandTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeRef normalizedTypeRef = unwrapAliasTypeRef(codeGen, typeRef);
+        if (!normalizedTypeRef.isValid())
+            return normalizedTypeRef;
+
+        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
+        if (normalizedType.isEnum() && normalizedType.payloadSymEnum().attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex))
+            return normalizedType.payloadSymEnum().underlyingTypeRef();
+
+        return normalizedTypeRef;
+    }
+
     MicroReg copyAddressBaseReg(CodeGen& codeGen, const MicroReg baseReg)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -42,7 +56,7 @@ namespace
 
     void normalizeIndexReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
     {
-        const TypeRef normalizedTypeRef = unwrapAliasTypeRef(codeGen, ioTypeRef);
+        const TypeRef normalizedTypeRef = normalizeIndexOperandTypeRef(codeGen, ioTypeRef);
         if (!normalizedTypeRef.isValid())
             return;
 

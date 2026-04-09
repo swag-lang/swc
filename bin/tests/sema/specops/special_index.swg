@@ -56,3 +56,18 @@ impl RefIndexBox
     let second = cbox[0]
     #assert(#typeof(second) == s32)
 }
+
+#[Swag.EnumIndex]
+enum IndexedSlot { First, Second, Third }
+
+#test
+{
+    const values = [0, 1, 2]
+    let first = values[IndexedSlot.First]
+
+    var index = IndexedSlot.Third
+    let last = values[index]
+
+    #assert(#typeof(first) == s32)
+    #assert(#typeof(last) == s32)
+}

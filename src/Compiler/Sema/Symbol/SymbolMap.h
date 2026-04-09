@@ -15,6 +15,8 @@ public:
     Symbol*  addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
     Symbol*  addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol*  addSingleSymbolOrError(Sema& sema, Symbol* symbol);
+    void     addUsingSymMap(SymbolMap* symMap);
+    void     copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
     void     lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
     void     getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     bool     empty() const noexcept;
@@ -42,6 +44,7 @@ protected:
     std::unordered_map<IdentifierRef, Symbol*> bigMap_;
     std::atomic<Shard*>                        shards_ = nullptr;
     mutable std::shared_mutex                  mutex_;
+    SmallVector<SymbolMap*>                    usingSymMaps_;
     uint32_t                                   smallSize_ = 0;
     uint32_t                                   count_     = 0;
 

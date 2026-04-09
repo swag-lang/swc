@@ -116,7 +116,13 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
         const SemaNodeView view = sema.viewSymbol(nodeRef);
         SWC_ASSERT(view.sym());
         SWC_ASSERT(view.sym()->isSymMap());
-        sema.curScope().addUsingSymMap(view.sym()->asSymMap());
+        SymbolMap* const usingSymMap = view.sym()->asSymMap();
+        sema.curScope().addUsingSymMap(usingSymMap);
+
+        // Qualified lookups (for example `Enum.Value`) do not walk transient lexical scopes,
+        // so persist `using` imports on the owning symbol map as well.
+        if (auto* const ownerSymMap = SemaFrame::currentSymMap(sema))
+            ownerSymMap->addUsingSymMap(usingSymMap);
     }
 
     return Result::Continue;

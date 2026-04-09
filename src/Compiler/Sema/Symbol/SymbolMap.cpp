@@ -44,6 +44,26 @@ SymbolMap::SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, Iden
 {
 }
 
+void SymbolMap::addUsingSymMap(SymbolMap* symMap)
+{
+    SWC_ASSERT(symMap != nullptr);
+    const std::unique_lock lk(mutex_);
+    for (const SymbolMap* existing : usingSymMaps_)
+    {
+        if (existing == symMap)
+            return;
+    }
+
+    usingSymMaps_.push_back(symMap);
+}
+
+void SymbolMap::copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const
+{
+    const std::shared_lock lk(mutex_);
+    for (const SymbolMap* symMap : usingSymMaps_)
+        out.push_back(symMap);
+}
+
 bool SymbolMap::empty() const noexcept
 {
     if (isSharded())

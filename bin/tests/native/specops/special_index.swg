@@ -92,3 +92,16 @@ struct RuntimeIndexHolder
     @assert(holder.value.reads == 1)
     @assert(holder.refs.reads == 1)
 }
+
+#[Swag.EnumIndex]
+enum RuntimeIndexedSlot { First, Second, Third }
+
+#test
+{
+    const values = [0, 1, 2]
+    const first = values[RuntimeIndexedSlot.First]
+    @assert(first == 0)
+
+    var index = RuntimeIndexedSlot.Third
+    @assert(values[index] == 2)
+}

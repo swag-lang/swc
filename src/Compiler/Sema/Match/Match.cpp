@@ -119,6 +119,16 @@ namespace
 
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
 
+            SmallVector<const SymbolMap*> usingSymMaps;
+            lookUpCxt.symMapHint->copyUsingSymMaps(usingSymMaps);
+            for (const SymbolMap* usingSymMap : usingSymMaps)
+            {
+                MatchContext::Priority usingPriority;
+                usingPriority.scopeDepth = 0;
+                usingPriority.visibility = MatchContext::VisibilityTier::UsingDirective;
+                addSymMap(lookUpCxt, usingSymMap, usingPriority);
+            }
+
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct())
             {

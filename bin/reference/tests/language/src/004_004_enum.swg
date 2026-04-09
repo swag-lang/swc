@@ -162,81 +162,81 @@ With `#[Swag.EnumFlags]`, enum values represent bit flags. They should use unsig
 
 Enums can store array constants.
 */
-// @TODO: Re-enable this enum-with-arrays example when array-backed enum values are supported again.
-// #test
-// {
-//     enum Value: const [2] s32 { A = [1, 2], B = [10, 20] }
-//     #assert(Value.A[0] == 1)
-//     #assert(Value.B[1] == 20)
-// }
+#test
+{
+    enum Value: [2] s32 { A = [1, 2], B = [10, 20] }
+    let a = cast([2] s32) Value.A
+    let b = cast([2] s32) Value.B
+    #assert(a[0] == 1)
+    #assert(b[1] == 20)
+}
 
 /**
 # Enums with Slices
 
 Enums can also store slices.
 */
-// @TODO: Re-enable this enum-with-slices example when slice-backed enum values are supported again.
-// #test
-// {
-//     enum Value: const [..] s32 { A = [1, 2], B = [10, 20, 30] }
-//     #assert(@countof(Value.A) == 2)
-//     @assert(Value.B[2] == 30)
-// }
+#test
+{
+    enum Value: const [..] s32 { A = [1, 2], B = [10, 20, 30] }
+    let a = cast(const [..] s32) Value.A
+    let b = cast(const [..] s32) Value.B
+    #assert(@countof(a) == 2)
+    #assert(@countof(b) == 3)
+    @assert(b[2] == 30)
+}
 
 /**
-# Nested Enums
+# Importing Enum Values
 
-Enums can include other enums using `using`. Both must share the same base type.
+Enums can import values from another enum using `using`. Both enums must share the same base type.
 */
-// @TODO: Re-enable this nested enum example when `using` inside enums exposes the nested scope as documented.
-// enum BasicErrors { FailedToLoad, FailedToSave }
-//
-// enum MyErrors
-// {
-//     using BasicErrors
-//     NotFound = 100
-// }
-//
-// /**
-// # Accessing Nested Enums
-//
-// Access nested values with their scoped names.
-// */
-// const MyError0 = MyErrors.BasicErrors.FailedToSave
-//
-// /**
-// # Automatic Cast with Nested Enums
-//
-// Nested enums can be automatically cast to their parent enum type.
-// */
-// #test
-// {
-//     const E0: MyErrors = MyErrors.BasicErrors.FailedToLoad
-//     const E1: BasicErrors = BasicErrors.FailedToLoad
-//
-//     func toto(err: MyErrors)
-//     {
-//         @assert(err == BasicErrors.FailedToLoad)
-//     }
-//
-//     toto(E0)
-//     toto(E1)
-// }
+enum BasicErrors { FailedToLoad, FailedToSave }
+
+enum MyErrors
+{
+    using BasicErrors
+    NotFound = 100
+}
+
+/**
+# Accessing Imported Enum Values
+
+Imported enum values are available through the parent enum scope and keep their original enum type.
+*/
+const MyError0 = MyErrors.FailedToSave
+
+#test
+{
+    const E0: BasicErrors = MyErrors.FailedToLoad
+    const E1: BasicErrors = BasicErrors.FailedToLoad
+
+    func toto(err: BasicErrors)
+    {
+        @assert(err == BasicErrors.FailedToLoad)
+    }
+
+    toto(E0)
+    toto(E1)
+}
 
 /**
 # Specific Enum Attributes
 
 `#[Swag.EnumIndex]` allows direct indexing with enum values.
 */
-// @TODO: Re-enable this enum-index attribute example when enum values can index arrays as documented.
-// #test
-// {
-//     #[Swag.EnumIndex]
-//     enum MyIndex { First, Second, Third }
-//
-//     const Array = [0, 1, 2]
-//     const Valu  = Array[MyIndex.First]
-// }
+#test
+{
+    #[Swag.EnumIndex]
+    enum MyIndex { First, Second, Third }
+
+    const Array = [0, 1, 2]
+    const Valu  = Array[MyIndex.First]
+    @assert(Valu == 0)
+
+    var index = MyIndex.Third
+    @assert(Array[index] == 2)
+}
 
 /**
 `#[Swag.NoDuplicate]` prevents duplicate values.

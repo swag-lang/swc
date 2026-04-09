@@ -155,7 +155,7 @@ Strings are UTF-8 encoded and handle international text naturally.
 Tuples group multiple values of possibly different types.
 They are useful for returning multiple values or bundling related data.
 */
-// @TODO: Re-enable this tuple unpacking example when struct literal decomposition is accepted here.
+
 #test
 {
     let person = {name: "Alice", age: 30, isActive: true}

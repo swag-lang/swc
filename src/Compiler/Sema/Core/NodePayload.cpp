@@ -166,9 +166,17 @@ uint16_t NodePayload::applySymbolPayloadFlags(uint16_t bits, std::span<const Sym
     bool isLValue = true;
     for (const Symbol* sym : symbols)
     {
-        if (!sym->isValueExpr())
+        const Symbol* effective = sym;
+        if (sym->isAlias())
+        {
+            const auto* aliased = sym->cast<SymbolAlias>().aliasedSymbol();
+            if (aliased)
+                effective = aliased;
+        }
+
+        if (!effective->isValueExpr())
             isValue = false;
-        if (!sym->isVariable() && !sym->isFunction())
+        if (!effective->isVariable() && !effective->isFunction())
             isLValue = false;
     }
 

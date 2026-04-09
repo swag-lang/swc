@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
@@ -122,6 +123,14 @@ namespace
             case SymbolKind::Namespace:
             case SymbolKind::Module:
                 return;
+
+            case SymbolKind::Alias:
+            {
+                const auto* aliased = symbol.cast<SymbolAlias>().aliasedSymbol();
+                if (aliased)
+                    codeGenIdentifierFromSymbol(codeGen, *aliased);
+                return;
+            }
 
             default:
                 if (symbol.isType())

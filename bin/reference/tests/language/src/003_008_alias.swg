@@ -72,7 +72,7 @@ namespaces. This helps simplify long names and improve code readability.
 A function can be aliased to a shorter or more convenient name, which is
 especially useful for lengthy or descriptive function names.
 */
-// @TODO: Re-enable this function alias example when aliased functions are callable as documented.
+
 #test
 {
     func thisIsABigFunctionName(x: s32) => x * x
@@ -87,11 +87,10 @@ You can alias variables or namespaces to shorter names for easier access,
 especially in large codebases with long identifiers.
 */
 // @TODO: Re-enable this variable alias example when aliased variables stay assignable.
-// #test
-// {
-//     var myLongVariableName: s32 = 0
-//     alias short = myLongVariableName
-//
-//     short += 2
-//     @assert(myLongVariableName == 2)
-// }
+#test
+{
+    var myLongVariableName: s32 = 0
+    alias short = myLongVariableName
+    short += 2
+    @assert(myLongVariableName == 2)
+}

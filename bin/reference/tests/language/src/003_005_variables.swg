@@ -137,7 +137,7 @@ A local variable can be marked with '#[Swag.Global]' to make it global within
 its function’s scope. It behaves similarly to 'static' variables in C/C++,
 retaining its value between function calls.
 */
-// @TODO: Re-enable this example when #[Swag.Global] retains its value across calls as documented.
+
 #test
 {
     func toto()->s32

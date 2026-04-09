@@ -28,18 +28,15 @@ Tuple fields are automatically named 'itemX', where 'X' is the zero-based index 
 /**
 # Named Fields in Tuples
 
-Tuple fields can have explicit names. Named fields improve readability but can still be accessed
-using their default 'itemX' identifiers.
+Tuple fields can have explicit names.
 */
-// @TODO: Re-enable this named-field tuple example when named tuple fields and item aliases coexist as documented.
-// #test
-// {
-//     let tuple = {x: 1.0, y: 2.0}
-//     @assert(tuple.x == 1.0)
-//     @assert(tuple.item0 == 1.0)
-//     @assert(tuple.y == 2.0)
-//     @assert(tuple.item1 == 2.0)
-// }
+
+#test
+{
+    let tuple = {x: 1.0, y: 2.0}
+    @assert(tuple.x == 1.0)
+    @assert(tuple.y == 2.0)
+}
 
 /**
 # Automatic Field Naming
@@ -48,16 +45,14 @@ When creating a tuple from variables, Swag automatically uses the variable names
 unless overridden.
 */
 // @TODO: Re-enable this automatic tuple field naming example when tuple literals expose the inferred field names again.
-// #test
-// {
-//     let x = 555
-//     let y = 666
-//     let t = {x, y}
-//     @assert(t.x == 555)
-//     @assert(t.item0 == t.x)
-//     @assert(t.y == 666)
-//     @assert(t.item1 == t.y)
-// }
+#test
+{
+    let x = 555
+    let y = 666
+    let t = {x, y}
+    @assert(t.x == 555)
+    @assert(t.y == 666)
+}
 
 /**
 # Tuple Assignment and Compatibility

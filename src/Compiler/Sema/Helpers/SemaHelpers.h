@@ -44,7 +44,7 @@ namespace SemaHelpers
     Result                castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind);
     Result                resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef);
     Result                intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
-    Result                finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children);
+    Result                finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
     void                  handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
     void                  ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym);
     void                  ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol*> symbols);

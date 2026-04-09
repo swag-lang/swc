@@ -679,7 +679,9 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children));
+    // Auto-name fields from identifiers only for free tuple literals (no binding type).
+    const bool autoName = sema.frame().bindingTypes().empty();
+    SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children, autoName));
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
     return attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView);
 }

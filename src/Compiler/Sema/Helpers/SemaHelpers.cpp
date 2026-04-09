@@ -576,7 +576,7 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     return Result::Continue;
 }
 
-Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children)
+Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers)
 {
     SmallVector<TypeRef>       memberTypes;
     SmallVector<IdentifierRef> memberNames;
@@ -591,6 +591,8 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
     {
         const AstNode& childNode = sema.node(child);
         if (childNode.is(AstNodeId::NamedArgument))
+            memberNames.push_back(sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef()));
+        else if (autoNameFromIdentifiers && childNode.is(AstNodeId::Identifier))
             memberNames.push_back(sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef()));
         else
             memberNames.push_back(IdentifierRef::invalid());

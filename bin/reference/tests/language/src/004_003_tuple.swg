@@ -44,7 +44,7 @@ Tuple fields can have explicit names.
 When creating a tuple from variables, Swag automatically uses the variable names as field names
 unless overridden.
 */
-// @TODO: Re-enable this automatic tuple field naming example when tuple literals expose the inferred field names again.
+
 #test
 {
     let x = 555
@@ -83,19 +83,18 @@ Tuples can be assigned to each other if their field types match, even if field n
 
 Tuples can be unpacked into separate variables, allowing easy extraction of values.
 */
-// @TODO: Re-enable this tuple unpacking example when struct literal decomposition works for tuple values here.
-// #test
-// {
-//     let tuple1 = {x: 1.0, y: 2.0}
-//     let (value0, value1) = tuple1
-//     @assert(value0 == 1.0)
-//     @assert(value1 == 2.0)
-//
-//     let tuple2 = {"name", true}
-//     let (name, value) = tuple2
-//     @assert(name == "name")
-//     @assert(value == true)
-// }
+
+#test
+{
+    let tuple1 = {x: 1.0, y: 2.0}
+    let (value0, value1) = tuple1
+    @assert(value0 == 1.0)
+    @assert(value1 == 2.0)
+    let tuple2 = {"name", true}
+    let (name, value) = tuple2
+    @assert(name == "name")
+    @assert(value == true)
+}
 
 /**
 # Ignoring Fields During Unpacking

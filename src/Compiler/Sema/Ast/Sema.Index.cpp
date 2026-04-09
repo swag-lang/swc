@@ -81,8 +81,8 @@ namespace
 
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
-        const TypeRef indexTypeRef = resolveIndexOperandTypeRef(sema, nodeArgView);
-        const TypeInfo* indexType = &sema.typeMgr().get(indexTypeRef);
+        const TypeRef   indexTypeRef = resolveIndexOperandTypeRef(sema, nodeArgView);
+        const TypeInfo* indexType    = &sema.typeMgr().get(indexTypeRef);
         if (indexType->isReference())
             indexType = &sema.typeMgr().get(indexType->payloadTypeRef());
 

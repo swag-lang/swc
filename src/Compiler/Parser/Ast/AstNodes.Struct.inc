@@ -901,7 +901,7 @@ struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
 {
     AstNodeRef nodeNameRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
     Result semaPostNode(Sema& sema) const;
 };
 

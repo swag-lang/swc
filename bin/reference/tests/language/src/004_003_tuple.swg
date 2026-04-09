@@ -102,12 +102,11 @@ Tuples can be unpacked into separate variables, allowing easy extraction of valu
 Use '?' as a placeholder to ignore specific tuple fields when unpacking.
 */
 // @TODO: Re-enable this tuple unpacking ignore example when struct literal decomposition works for tuple values here.
-// #test
-// {
-//     let tuple1 = {x: 1.0, y: 2.0}
-//     let (x, ?) = tuple1
-//     @assert(x == 1.0)
-//
-//     let (?, y) = tuple1
-//     @assert(y == 2.0)
-// }
+#test
+{
+    let tuple1 = {x: 1.0, y: 2.0}
+    let (x, ?) = tuple1
+    @assert(x == 1.0)
+    let (?, y) = tuple1
+    @assert(y == 2.0)
+}

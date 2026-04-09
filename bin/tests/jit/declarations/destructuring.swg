@@ -60,3 +60,23 @@ struct DestructPair
     a = false
     @assert(a == false)
 }
+
+#test
+{
+    let t = {x: 1.0, y: 2.0, z: 3.0}
+    let (a, ?) = {x: 10, y: 20}
+    @assert(a == 10)
+    let (?, b) = {x: 10, y: 20}
+    @assert(b == 20)
+}
+
+#test
+{
+    let t = {a: 1's32, b: 2's32, c: 3's32}
+    let (?, ?, c) = t
+    @assert(c == 3)
+    let (x, ?, ?) = t
+    @assert(x == 1)
+    let (?, y, ?) = t
+    @assert(y == 2)
+}

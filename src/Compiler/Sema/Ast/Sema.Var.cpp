@@ -513,7 +513,7 @@ namespace
         }
     }
 
-    void storeDestructuringLetConstants(Sema& sema, const std::span<Symbol*>& symbols, const std::span<const SymbolVariable*>& fields, ConstantRef cstRef)
+    void storeDestructuringLetConstants(Sema& sema, const std::span<Symbol*>& symbols, const std::span<const SymbolVariable*>& fields, const std::span<const size_t>& fieldIndices, ConstantRef cstRef)
     {
         if (symbols.empty() || symbols.size() != fields.size() || cstRef.isInvalid())
             return;
@@ -531,17 +531,18 @@ namespace
         const size_t count = symbols.size();
         for (size_t i = 0; i < count; ++i)
         {
-            Symbol* const               sym    = symbols[i];
-            const SymbolVariable* const field  = fields[i];
-            auto* const                 symVar = getVariableSymbol(sym);
+            Symbol* const               sym        = symbols[i];
+            const SymbolVariable* const field      = fields[i];
+            const size_t                fieldIndex = i < fieldIndices.size() ? fieldIndices[i] : i;
+            auto* const                 symVar     = getVariableSymbol(sym);
             if (!symVar)
                 continue;
 
             ConstantRef fieldCstRef = ConstantRef::invalid();
             if (aggregateValues)
             {
-                if (i < aggregateValues->size())
-                    fieldCstRef = (*aggregateValues)[i];
+                if (fieldIndex < aggregateValues->size())
+                    fieldCstRef = (*aggregateValues)[fieldIndex];
             }
             else if (field)
             {
@@ -1163,6 +1164,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 
     SmallVector<Symbol*>               symbols;
     SmallVector<const SymbolVariable*> fieldsForSymbols;
+    SmallVector<size_t>                fieldIndices;
     for (size_t i = 0; i < tokNames.size(); i++)
     {
         const auto& tokNameRef = tokNames[i];
@@ -1175,6 +1177,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         sym.setDeclared(sema.ctx());
 
         symbols.push_back(&sym);
+        fieldIndices.push_back(i);
 
         if (isStruct)
         {
@@ -1223,7 +1226,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 
     const SemaNodeView refreshedInitView = sema.viewNodeTypeConstant(nodeInitRef);
     SWC_RESULT(attachDestructuringRuntimeStorageIfNeeded(sema, *this, refreshedInitView.typeRef()));
-    storeDestructuringLetConstants(sema, symbols.span(), fieldsForSymbols.span(), refreshedInitView.cstRef());
+    storeDestructuringLetConstants(sema, symbols.span(), fieldsForSymbols.span(), std::span<const size_t>{fieldIndices.data(), fieldIndices.size()}, refreshedInitView.cstRef());
 
     return Result::Continue;
 }

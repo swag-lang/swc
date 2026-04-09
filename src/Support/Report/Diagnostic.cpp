@@ -18,7 +18,7 @@ namespace
     struct DiagnosticIdInfo // NOLINT(clang-diagnostic-padded)
     {
         std::string_view              name;
-        std::vector<std::string_view> msgs;
+        std::vector<std::string_view> messages;
         DiagnosticSeverity            severity;
         DiagnosticId                  id = DiagnosticId::None;
     };
@@ -41,7 +41,7 @@ namespace
                 SWC_ASSERT(info.name == name);
                 SWC_ASSERT(info.severity == severity);
             }
-            info.msgs.push_back(msg);
+            info.messages.push_back(msg);
         };
 
 #define SWC_DIAG_DEF(id, sev, msg) \
@@ -108,7 +108,7 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& c
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
 {
     SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
-    const std::vector<std::string_view>& msgs = DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msgs;
+    const std::vector<std::string_view>& msgs = DIAGNOSTIC_INFOS[static_cast<size_t>(id)].messages;
     SWC_ASSERT(!msgs.empty());
     return msgs.front();
 }
@@ -116,7 +116,7 @@ std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
 std::span<const std::string_view> Diagnostic::diagIdMessages(DiagnosticId id)
 {
     SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
-    return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msgs;
+    return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].messages;
 }
 
 std::string_view Diagnostic::diagIdName(DiagnosticId id)

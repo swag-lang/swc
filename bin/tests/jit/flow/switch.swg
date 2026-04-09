@@ -207,6 +207,56 @@ enum RunSwitchEnum: s32
 
 #test
 {
+    func switchDefaultWhere(v: s32, flag: bool)->s32
+    {
+        switch v
+        {
+            case 1:
+                return 10
+            default where flag:
+                return 20
+            default:
+                return 30
+        }
+    }
+
+    const V0 = #run switchDefaultWhere(1, true)
+    const V1 = #run switchDefaultWhere(2, true)
+    const V2 = #run switchDefaultWhere(2, false)
+    const V3 = #run switchDefaultWhere(5, false)
+    #assert(V0 == 10)
+    #assert(V1 == 20)
+    #assert(V2 == 30)
+    #assert(V3 == 30)
+}
+
+#test
+{
+    func switchMultipleDefaultWhere(v: s32, a: bool, b: bool)->s32
+    {
+        switch v
+        {
+            case 1:
+                return 10
+            default where a:
+                return 20
+            default where b:
+                return 30
+            default:
+                return 40
+        }
+    }
+
+    const V0 = #run switchMultipleDefaultWhere(2, true, true)
+    const V1 = #run switchMultipleDefaultWhere(2, false, true)
+    const V2 = #run switchMultipleDefaultWhere(2, false, false)
+    #assert(V0 == 20)
+    #assert(V1 == 30)
+    #assert(V2 == 40)
+}
+
+#test
+{
     func switchCaseMustBeConst(v: s32)->s32
     {
         switch v

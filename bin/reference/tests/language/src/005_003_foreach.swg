@@ -46,31 +46,6 @@ especially in nested loops or with complex data structures.
 }
 
 /**
-# Using Default Aliases
-If you do not name the element or index, you can access them with the default aliases:
-'#alias0' for the element and '#alias1' for the index.
-*/
-
-// @TODO: Re-enable when `foreach` exposes the default aliases again.
-// #test
-// {
-//     foreach "ABC"
-//     {
-//         let a = #alias1
-//         @assert(a == @index)
-//         switch a
-//         {
-//         case 0:
-//             @assert(#alias0 == 'A')
-//         case 1:
-//             @assert(#alias0 == 'B')
-//         case 2:
-//             @assert(#alias0 == 'C')
-//         }
-//     }
-// }
-
-/**
 # Reverse Order with '#reverse'
 Iterate from the last element to the first by adding the '#reverse' modifier.
 '@index' still reflects the loop index within the original collection.

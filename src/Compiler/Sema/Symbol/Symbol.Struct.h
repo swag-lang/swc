@@ -16,7 +16,8 @@ enum class SymbolStructFlagsE : uint8_t
     Zero            = 0,
     TypeInfo        = 1 << 0,
     GenericRoot     = 1 << 1,
-    GenericInstance = 1 << 2,
+    GenericInstance  = 1 << 2,
+    Union           = 1 << 3,
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 
@@ -68,6 +69,7 @@ public:
     bool                          isGenericRoot() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericRoot); }
     void                          setGenericRoot(bool value) noexcept;
     bool                          isGenericInstance() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericInstance); }
+    bool                          isUnion() const noexcept { return hasExtraFlag(SymbolStructFlagsE::Union); }
     void                          setGenericInstance(SymbolStruct* root) noexcept;
     SymbolStruct*                 genericRootSym() noexcept;
     const SymbolStruct*           genericRootSym() const noexcept;

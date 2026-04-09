@@ -222,11 +222,18 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         const uint32_t alignOf = type.alignOf(ctx);
         alignment_             = std::max(alignment_, alignOf);
 
-        const uint64_t padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
-        sizeInBytes_ += padding;
-
-        symVar.setOffset(static_cast<uint32_t>(sizeInBytes_));
-        sizeInBytes_ += sizeOf;
+        if (isUnion())
+        {
+            symVar.setOffset(0);
+            sizeInBytes_ = std::max(sizeInBytes_, sizeOf);
+        }
+        else
+        {
+            const uint64_t padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
+            sizeInBytes_ += padding;
+            symVar.setOffset(static_cast<uint32_t>(sizeInBytes_));
+            sizeInBytes_ += sizeOf;
+        }
     }
 
     if (alignment_ > 0)

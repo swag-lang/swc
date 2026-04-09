@@ -162,6 +162,69 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstUnionDecl::semaPreDecl(Sema& sema) const
+{
+    auto& sym = SemaHelpers::registerSymbol<SymbolStruct>(sema, *this, tokNameRef);
+    sym.setDeclNodeRef(sema.curNodeRef());
+    sym.setGenericRoot(spanGenericParamsRef.isValid());
+    sym.addExtraFlag(SymbolStructFlagsE::Union);
+    return Result::SkipChildren;
+}
+
+Result AstUnionDecl::semaPreNode(Sema& sema) const
+{
+    if (sema.enteringState())
+        SemaHelpers::declareSymbol(sema, *this);
+    const auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    SWC_RESULT(Match::ghosting(sema, sym));
+    if (sym.isGenericRoot() && !sym.isGenericInstance())
+    {
+        sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
+        return Result::SkipChildren;
+    }
+    return Result::Continue;
+}
+
+Result AstUnionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeBodyRef)
+    {
+        TaskContext& ctx = sema.ctx();
+
+        auto&          sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+        const TypeInfo structType    = TypeInfo::makeStruct(&sym);
+        const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
+        sym.setTypeRef(structTypeRef);
+        sym.setTyped(ctx);
+
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
+        sema.curScope().setSymMap(&sym);
+    }
+
+    return Result::Continue;
+}
+
+Result AstUnionDecl::semaPostNode(Sema& sema)
+{
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    if (sym.isGenericRoot() && !sym.isGenericInstance())
+        return Result::Continue;
+
+    if (sema.compiler().pendingImplRegistrations() != 0)
+        return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
+
+    sym.removeIgnoredFields();
+    SWC_RESULT(sym.canBeCompleted(sema));
+    SWC_RESULT(sym.registerSpecOps(sema));
+    SWC_RESULT(sym.computeLayout(sema.ctx()));
+
+    if (sym.isGenericInstance())
+        return Result::Continue;
+
+    sym.setSemaCompleted(sema.ctx());
+    return Result::Continue;
+}
+
 Result AstAnonymousStructDecl::semaPreDecl(Sema& sema) const
 {
     SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_struct");

@@ -1131,6 +1131,10 @@ struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 // -----------------------------------------------------------------------------
 struct AstUnionDecl : AstAggregateDeclT<AstNodeId::UnionDecl>
 {
+    Result        semaPreDecl(Sema& sema) const;
+    Result        semaPreNode(Sema& sema) const;
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

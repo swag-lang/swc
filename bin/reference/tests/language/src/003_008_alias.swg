@@ -48,7 +48,7 @@ When you need stronger type safety, you can use the '#[Swag.Strict]' attribute.
 This makes the alias a **distinct type**, disallowing implicit conversions between
 the alias and its base type. Explicit casting is still permitted.
 */
-// @TODO: Re-enable this strict alias example when #[Swag.Strict] alias no longer hangs semantic analysis.
+
  #test
  {
      #[Swag.Strict]
@@ -73,13 +73,12 @@ A function can be aliased to a shorter or more convenient name, which is
 especially useful for lengthy or descriptive function names.
 */
 // @TODO: Re-enable this function alias example when aliased functions are callable as documented.
-// #test
-// {
-//     func thisIsABigFunctionName(x: s32) => x * x
-//
-//     alias myFunc = thisIsABigFunctionName
-//     @assert(myFunc(4) == 16)
-// }
+#test
+{
+    func thisIsABigFunctionName(x: s32) => x * x
+    alias myFunc = thisIsABigFunctionName
+    @assert(myFunc(4) == 16)
+}
 
 /**
 ## Variable and Namespace Alias

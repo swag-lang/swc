@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -122,6 +123,11 @@ namespace
             return !sym.isAttribute();
         if (sym.isVariable())
             return true;
+        if (sym.isAlias())
+        {
+            const auto* aliased = sym.cast<SymbolAlias>().aliasedSymbol();
+            return aliased && aliased->isFunction();
+        }
 
         return false;
     }
@@ -1089,6 +1095,12 @@ namespace
             if (s->isFunction())
             {
                 fn = &s->cast<SymbolFunction>();
+            }
+            else if (s->isAlias())
+            {
+                const auto* aliased = s->cast<SymbolAlias>().aliasedSymbol();
+                if (aliased && aliased->isFunction())
+                    fn = &const_cast<Symbol*>(aliased)->cast<SymbolFunction>();
             }
             else if (s->isVariable())
             {

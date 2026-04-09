@@ -69,3 +69,26 @@
     const V = #run reverseRangeLoop()
     #assert(V == 4321)
 }
+
+#test
+{
+    func loopIndexVisibleThroughSwitch()->s32
+    {
+        var acc: s32 = 0
+        for i in 1 to 3
+        {
+            switch i
+            {
+                case 1:
+                    acc += cast(s32) @index
+                default:
+                    acc += cast(s32) @index
+            }
+        }
+
+        return acc
+    }
+
+    const V = #run loopIndexVisibleThroughSwitch()
+    #assert(V == 6)
+}

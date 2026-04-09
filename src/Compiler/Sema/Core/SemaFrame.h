@@ -83,6 +83,8 @@ public:
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
     BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
+    TypeRef             currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
+    void                setCurrentLoopIndexTypeRef(TypeRef typeRef) { currentLoopIndexTypeRef_ = typeRef; }
     AstNodeRef          currentSwitch() const { return currentSwitch_; }
     void                setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
     AstNodeRef          currentSwitchCase() const { return currentSwitchCase_; }
@@ -120,6 +122,7 @@ private:
     SemaScope*                    upLookupScope_       = nullptr;
     bool                          ignoreRuntimeAccess_ = false;
     BreakContext                  breakable_;
+    TypeRef                       currentLoopIndexTypeRef_ = TypeRef::invalid();
     AstNodeRef                    currentSwitch_         = AstNodeRef::invalid();
     AstNodeRef                    currentSwitchCase_     = AstNodeRef::invalid();
     AstNodeRef                    runtimeStorageNodeRef_ = AstNodeRef::invalid();

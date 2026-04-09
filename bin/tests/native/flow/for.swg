@@ -394,3 +394,20 @@
     @assert(count1 == 0)
     @assert(v1 == 0)
 }
+
+#test
+{
+    var sum = 0
+    for i in 1 to 3
+    {
+        switch i
+        {
+            case 1:
+                sum += cast(s32) @index
+            default:
+                sum += cast(s32) @index
+        }
+    }
+
+    @assert(sum == 6)
+}

@@ -283,6 +283,12 @@ void CodeGenFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind k
     breakable_.nodeRef          = nodeRef;
     breakable_.kind             = kind;
     currentLoopHasContinueJump_ = false;
+
+    if (kind != BreakContextKind::Switch)
+    {
+        currentLoopIndexReg_     = MicroReg::invalid();
+        currentLoopIndexTypeRef_ = TypeRef::invalid();
+    }
 }
 
 void CodeGenFrame::setCurrentLoopIndex(MicroReg reg, TypeRef typeRef)

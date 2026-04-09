@@ -176,8 +176,14 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
 {
     if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
     {
+        const SemaNodeView exprView = sema.viewType(nodeExprRef);
+        TypeRef            valueTypeRef = TypeRef::invalid();
+        TypeRef            indexTypeRef = TypeRef::invalid();
+        SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopIndexTypeRef(indexTypeRef);
         sema.pushFramePopOnPostNode(frame);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         SmallVector<Symbol*> symbols;
@@ -269,8 +275,12 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
     // Body has its own local scope.
     if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
     {
+        TypeRef indexTypeRef = TypeRef::invalid();
+        SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexTypeRef, sema.curNodeRef(), *this));
+
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopIndexTypeRef(indexTypeRef);
         sema.pushFramePopOnPostNode(frame);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
 

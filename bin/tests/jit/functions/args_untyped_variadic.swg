@@ -745,3 +745,45 @@ enum VariadicKind: u16
     const V0 = #run variadicAnyStressAggregates(pair, payload, arr)
     #assert(V0 == 54'u64)
 }
+
+#test
+{
+    func variadicInner(values: ...)->u64 { return @countof(values) }
+    func variadicForward(values: ...)->u64 { return variadicInner(values) }
+
+    const V0 = #run variadicForward(1, 2, 3)
+    #assert(V0 == 3)
+    const V1 = #run variadicForward()
+    #assert(V1 == 0)
+}
+
+#test
+{
+    func variadicInnerSum(values: ...)->s32
+    {
+        var acc: s32 = 0
+        foreach v in values
+        {
+            if @kindof(v) == s32
+            {
+                let p = cast(*s32) @dataof(v)
+                acc += dref p
+            }
+        }
+        return acc
+    }
+
+    func variadicForwardSum(values: ...)->s32 { return variadicInnerSum(values) }
+
+    const V0 = #run variadicForwardSum(10's32, 20's32, 30's32)
+    #assert(V0 == 60)
+}
+
+#test
+{
+    func variadicPrintLike(values: ...)->u64 { return @countof(values) }
+    func variadicPrintWrapper(x: ...)->u64 { return variadicPrintLike(x) }
+
+    const V0 = #run variadicPrintWrapper("hello", " ", "world")
+    #assert(V0 == 3)
+}

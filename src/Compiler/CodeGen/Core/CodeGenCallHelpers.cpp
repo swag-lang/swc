@@ -742,7 +742,27 @@ namespace
         SWC_ASSERT(normalizedVariadic.numBits == 64);
         SWC_ASSERT(!normalizedVariadic.isIndirect);
 
-        TaskContext&                        ctx = codeGen.ctx();
+        TaskContext& ctx = codeGen.ctx();
+
+        // Forwarding: a single argument whose type is variadic is already a packed slice.
+        // Pass it through directly without re-packing.
+        if (args.size() == 1 && args[0].argRef.isValid())
+        {
+            const SemaNodeView argView = codeGen.viewType(args[0].argRef);
+            if (argView.type() && argView.type()->isVariadic())
+            {
+                const CodeGenNodePayload& argPayload = codeGen.payload(args[0].argRef);
+                outTransientStackSize    = 0;
+                outPreparedArg.srcReg    = argPayload.reg;
+                outPreparedArg.kind      = ABICall::PreparedArgKind::Direct;
+                outPreparedArg.isFloat   = normalizedVariadic.isFloat;
+                outPreparedArg.isSigned  = normalizedVariadic.isSigned;
+                outPreparedArg.numBits   = normalizedVariadic.numBits;
+                outPreparedArg.isAddressed = argPayload.isAddress();
+                return;
+            }
+        }
+
         SmallVector<UntypedVariadicArgInfo> variadicInfos;
         variadicInfos.reserve(args.size());
 

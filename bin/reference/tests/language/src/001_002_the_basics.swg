@@ -79,21 +79,19 @@ while 'const' is typically resolved at compile-time.
 Use the '@print' intrinsic to display output in the console.
 */
 // @TODO: Re-enable this variadic print helper when user-defined variadic calls are stable again.
-// const CanPrint = false // Must be 'true' to show '@print' results
-//
-// func print(x: ...)
-// {
-//     if CanPrint do
-//         @print(x)
-// }
-//
-// #test
-// {
-//     let name = "Swag"
-//     print("Welcome to ", name, " language!\n")
-// }
+const CanPrint = false // Must be 'true' to show 'print' results
+func print(x: ...)
+{
+    if CanPrint do
+        @print(x)
+}
+#test
+{
+    let name = "Swag"
+    print("Welcome to ", name, " language!\n")
+}
 
-/**
+/*
 This prints: 'Welcome to Swag language!'
 */
 

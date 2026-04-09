@@ -156,16 +156,14 @@ Tuples group multiple values of possibly different types.
 They are useful for returning multiple values or bundling related data.
 */
 // @TODO: Re-enable this tuple unpacking example when struct literal decomposition is accepted here.
-// #test
-// {
-//     let person = {name: "Alice", age: 30, isActive: true}
-//     let (name, age, isActive) = person
-//
-//     print(name, " is ", age, " years old. Active: ", isActive, "\n")
-//
-//     // Access tuple elements by index:
-//     print(person.item0, " is ", person.item1, " years old.\n")
-// }
+#test
+{
+    let person = {name: "Alice", age: 30, isActive: true}
+    let (name, age, isActive) = person
+    print(name, " is ", age, " years old. Active: ", isActive, "\n")
+    // Access tuple elements by index:
+    //print(person.item0, " is ", person.item1, " years old.\n")
+}
 
 /**
 # Control Flow

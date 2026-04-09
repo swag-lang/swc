@@ -438,7 +438,12 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView initView = codeGen.viewType(nodeInitRef);
-    SWC_ASSERT(initView.type() && initView.type()->isStruct());
+    SWC_ASSERT(initView.type() && (initView.type()->isStruct() || initView.type()->isAggregateStruct()));
+
+    // Aggregate struct literals are compile-time only; all decomposed symbols
+    // have their constants set by sema. Nothing to materialize at runtime.
+    if (initView.type()->isAggregateStruct())
+        return Result::Continue;
 
     const CodeGenNodePayload& initPayload = codeGen.payload(nodeInitRef);
     MicroReg                  baseAddress = MicroReg::invalid();

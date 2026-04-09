@@ -1125,7 +1125,9 @@ Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeInitView = sema.viewType(nodeInitRef);
-    if (!nodeInitView.type()->isStruct())
+    const bool         isStruct     = nodeInitView.type()->isStruct();
+    const bool         isAggregate  = nodeInitView.type()->isAggregateStruct();
+    if (!isStruct && !isAggregate)
     {
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeInitView.nodeRef());
         diag.addArgument(Diagnostic::ARG_TYPE, nodeInitView.typeRef());
@@ -1133,24 +1135,25 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         return Result::Error;
     }
 
-    const SymbolStruct& symStruct = nodeInitView.type()->payloadSymStruct();
-    const auto&         fields    = symStruct.fields();
+    const auto* structFields    = isStruct ? &nodeInitView.type()->payloadSymStruct().fields() : nullptr;
+    const auto* aggregateTypes  = isAggregate ? &nodeInitView.type()->payloadAggregate().types : nullptr;
+    const size_t fieldCount     = isStruct ? structFields->size() : aggregateTypes->size();
 
     SmallVector<TokenRef> tokNames;
     sema.ast().appendTokens(tokNames, spanNamesRef);
 
-    if (tokNames.size() > fields.size())
+    if (tokNames.size() > fieldCount)
     {
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, nodeRef(sema.ast()));
-        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
+        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    if (tokNames.size() < fields.size())
+    if (tokNames.size() < fieldCount)
     {
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, nodeRef(sema.ast()));
-        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
+        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -1170,11 +1173,20 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 
         symbols.push_back(&sym);
 
-        const SymbolVariable* field = fields[i];
-        sym.setTypeRef(field->typeRef());
+        if (isStruct)
+        {
+            const SymbolVariable* field = (*structFields)[i];
+            sym.setTypeRef(field->typeRef());
+            fieldsForSymbols.push_back(field);
+        }
+        else
+        {
+            sym.setTypeRef((*aggregateTypes)[i]);
+            fieldsForSymbols.push_back(nullptr);
+        }
+
         sym.setTyped(sema.ctx());
         sym.setSemaCompleted(sema.ctx());
-        fieldsForSymbols.push_back(field);
 
         SWC_RESULT(Match::ghosting(sema, sym));
     }

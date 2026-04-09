@@ -86,7 +86,7 @@ especially useful for lengthy or descriptive function names.
 You can alias variables or namespaces to shorter names for easier access,
 especially in large codebases with long identifiers.
 */
-// @TODO: Re-enable this variable alias example when aliased variables stay assignable.
+
 #test
 {
     var myLongVariableName: s32 = 0

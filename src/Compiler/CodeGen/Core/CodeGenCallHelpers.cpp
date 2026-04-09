@@ -752,13 +752,13 @@ namespace
             if (argView.type() && argView.type()->isVariadic())
             {
                 const CodeGenNodePayload& argPayload = codeGen.payload(args[0].argRef);
-                outTransientStackSize    = 0;
-                outPreparedArg.srcReg    = argPayload.reg;
-                outPreparedArg.kind      = ABICall::PreparedArgKind::Direct;
-                outPreparedArg.isFloat   = normalizedVariadic.isFloat;
-                outPreparedArg.isSigned  = normalizedVariadic.isSigned;
-                outPreparedArg.numBits   = normalizedVariadic.numBits;
-                outPreparedArg.isAddressed = argPayload.isAddress();
+                outTransientStackSize                = 0;
+                outPreparedArg.srcReg                = argPayload.reg;
+                outPreparedArg.kind                  = ABICall::PreparedArgKind::Direct;
+                outPreparedArg.isFloat               = normalizedVariadic.isFloat;
+                outPreparedArg.isSigned              = normalizedVariadic.isSigned;
+                outPreparedArg.numBits               = normalizedVariadic.numBits;
+                outPreparedArg.isAddressed           = argPayload.isAddress();
                 return;
             }
         }

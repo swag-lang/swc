@@ -11,7 +11,7 @@ struct LoopSemaPayload
     AstNodeRef  upperBoundRef = AstNodeRef::invalid();
     bool        isRangeLoop   = false;
     bool        inclusive     = false;
-    bool usesLoopIndex = false;
+    bool        usesLoopIndex = false;
 };
 
 SWC_END_NAMESPACE();

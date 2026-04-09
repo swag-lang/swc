@@ -331,12 +331,12 @@ namespace
 
     Result emitForeachInit(CodeGen& codeGen, const AstForeachStmt& node, ForeachStmtCodeGenPayload& loopState)
     {
-        const AstNodeRef exprRef  = node.nodeExprRef;
-        MicroBuilder&    builder  = codeGen.builder();
+        const AstNodeRef exprRef = node.nodeExprRef;
+        MicroBuilder&    builder = codeGen.builder();
 
-        loopState.baseReg  = MicroReg::invalid();
-        loopState.countReg = codeGen.nextVirtualIntRegister();
-        loopState.indexReg = codeGen.nextVirtualIntRegister();
+        loopState.baseReg    = MicroReg::invalid();
+        loopState.countReg   = codeGen.nextVirtualIntRegister();
+        loopState.indexReg   = codeGen.nextVirtualIntRegister();
         loopState.enumValues = false;
 
         if (const SymbolEnum* symEnum = foreachExprEnumSymbol(codeGen, exprRef))
@@ -344,7 +344,7 @@ namespace
             MicroReg typeInfoReg = MicroReg::invalid();
             SWC_RESULT(loadTypeInfoConstantReg(typeInfoReg, codeGen, symEnum->typeRef()));
 
-            loopState.enumValues = true;
+            loopState.enumValues  = true;
             loopState.elementSize = sizeof(Runtime::TypeValue);
             loopState.valueSize   = codeGen.typeMgr().get(symEnum->typeRef()).sizeOf(codeGen.ctx());
             SWC_ASSERT(loopState.elementSize > 0);

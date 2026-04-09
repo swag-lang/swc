@@ -491,10 +491,10 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
                 }
                 else if (cst.isString())
                 {
-                    const std::string_view strVal       = cst.getString();
-                    const ConstantRef      strCstRef    = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, symVar.typeRef(), strVal.data(), strVal.size());
-                    const ConstantValue&   strCst       = codeGen.cstMgr().get(strCstRef);
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                    const std::string_view strVal    = cst.getString();
+                    const ConstantRef      strCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, symVar.typeRef(), strVal.data(), strVal.size());
+                    const ConstantValue&   strCst    = codeGen.cstMgr().get(strCstRef);
+                    fieldPayload.reg                 = codeGen.nextVirtualIntRegister();
                     builder.emitLoadRegPtrReloc(fieldPayload.reg, reinterpret_cast<uint64_t>(strCst.getStruct().data()), strCstRef);
                 }
                 else if (cst.isValuePointer())
@@ -526,10 +526,10 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     if (!materializeAggregateSourceAddress(codeGen, nodeInitRef, initView.typeRef(), initPayload, baseAddress))
         return Result::Error;
 
-    const auto&               fields  = initView.type()->payloadSymStruct().fields();
-    const SemaNodeView        view    = codeGen.curViewSymbolList();
-    const std::span<Symbol*>  symbols = view.symList();
-    SmallVector<TokenRef>     tokNames;
+    const auto&              fields  = initView.type()->payloadSymStruct().fields();
+    const SemaNodeView       view    = codeGen.curViewSymbolList();
+    const std::span<Symbol*> symbols = view.symList();
+    SmallVector<TokenRef>    tokNames;
     codeGen.ast().appendTokens(tokNames, spanNamesRef);
 
     size_t symbolIndex = 0;

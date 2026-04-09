@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -668,7 +668,7 @@ namespace
     Result castOrConcretizeInit(Sema& sema, const SemaPostVarDeclArgs& context, bool codeParameterDefault, TypeRef explicitTypeRef, SemaNodeView& nodeInitView)
     {
         SWC_UNUSED(context);
-        
+
         if (codeParameterDefault)
             return Result::Continue;
 
@@ -1139,8 +1139,8 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         return Result::Error;
     }
 
-    const auto* structFields    = isStruct ? &nodeInitView.type()->payloadSymStruct().fields() : nullptr;
-    const auto* aggregateTypes  = isAggregate ? &nodeInitView.type()->payloadAggregate().types : nullptr;
+    const auto*  structFields   = isStruct ? &nodeInitView.type()->payloadSymStruct().fields() : nullptr;
+    const auto*  aggregateTypes = isAggregate ? &nodeInitView.type()->payloadAggregate().types : nullptr;
     const size_t fieldCount     = isStruct ? structFields->size() : aggregateTypes->size();
 
     SmallVector<TokenRef> tokNames;

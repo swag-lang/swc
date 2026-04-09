@@ -17,12 +17,12 @@ namespace
 {
     struct ForCStyleStmtCodeGenPayload
     {
-        MicroLabelRef loopLabel     = MicroLabelRef::invalid();
-        MicroLabelRef bodyLabel     = MicroLabelRef::invalid();
-        MicroLabelRef postLabel     = MicroLabelRef::invalid();
-        MicroLabelRef continueLabel = MicroLabelRef::invalid();
-        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
-        SymbolVariable* indexStateSym = nullptr;
+        MicroLabelRef   loopLabel      = MicroLabelRef::invalid();
+        MicroLabelRef   bodyLabel      = MicroLabelRef::invalid();
+        MicroLabelRef   postLabel      = MicroLabelRef::invalid();
+        MicroLabelRef   continueLabel  = MicroLabelRef::invalid();
+        MicroLabelRef   doneLabel      = MicroLabelRef::invalid();
+        SymbolVariable* indexStateSym  = nullptr;
         bool            usesIndexState = false;
     };
 
@@ -318,11 +318,11 @@ Result AstForCStyleStmt::codeGenPreNode(CodeGen& codeGen)
     ForCStyleStmtCodeGenPayload loopState;
     const SemaNodeView          symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
     const auto                  symbols     = symbolsView.symList();
-    loopState.loopLabel     = builder.createLabel();
-    loopState.bodyLabel     = builder.createLabel();
-    loopState.postLabel     = builder.createLabel();
-    loopState.continueLabel = builder.createLabel();
-    loopState.doneLabel     = builder.createLabel();
+    loopState.loopLabel                     = builder.createLabel();
+    loopState.bodyLabel                     = builder.createLabel();
+    loopState.postLabel                     = builder.createLabel();
+    loopState.continueLabel                 = builder.createLabel();
+    loopState.doneLabel                     = builder.createLabel();
     if (const auto* indexUsage = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef()))
         loopState.usesIndexState = indexUsage->usesLoopIndex;
     if (!symbols.empty())

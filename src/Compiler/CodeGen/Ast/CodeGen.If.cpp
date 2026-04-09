@@ -39,11 +39,11 @@ namespace
         const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
         if (!state || !state->falseLabel.isValid())
         {
-            MicroBuilder& builder  = codeGen.builder();
-            IfStmtCodeGenPayload s = {};
-            s.falseLabel           = builder.createLabel();
-            s.doneLabel            = builder.createLabel();
-            s.hasElseBlock         = hasElseBlock;
+            MicroBuilder&        builder = codeGen.builder();
+            IfStmtCodeGenPayload s       = {};
+            s.falseLabel                 = builder.createLabel();
+            s.doneLabel                  = builder.createLabel();
+            s.hasElseBlock               = hasElseBlock;
 
             // The branch bodies are emitted in later child callbacks, so keep their labels attached to the
             // `if` node until those callbacks run.

@@ -397,7 +397,7 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
     if (childRef == nodeWhereRef)
     {
-        SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
+        SemaNodeView view   = sema.viewNodeTypeConstant(nodeWhereRef);
         const Result result = Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition);
         restoreMaskedIfVarDeclCondition(sema, sema.curNodeRef());
         return result;

@@ -56,7 +56,7 @@ void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind
     // breakable context becomes the new nearest owner and must reset it.
     if (kind != BreakContextKind::Switch)
     {
-        currentLoopIndexTypeRef_ = TypeRef::invalid();
+        currentLoopIndexTypeRef_  = TypeRef::invalid();
         currentLoopIndexOwnerRef_ = AstNodeRef::invalid();
     }
 }

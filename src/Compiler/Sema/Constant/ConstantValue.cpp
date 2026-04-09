@@ -645,7 +645,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isSlice())
     {
-        const auto*    slice       = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
+        const auto* slice = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
         if (ty.isNullable() && !slice->ptr)
         {
             ConstantValue nullValue = makeNull(ctx);

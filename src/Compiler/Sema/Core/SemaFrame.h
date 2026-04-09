@@ -124,12 +124,12 @@ private:
     SemaScope*                    upLookupScope_       = nullptr;
     bool                          ignoreRuntimeAccess_ = false;
     BreakContext                  breakable_;
-    TypeRef                       currentLoopIndexTypeRef_ = TypeRef::invalid();
+    TypeRef                       currentLoopIndexTypeRef_  = TypeRef::invalid();
     AstNodeRef                    currentLoopIndexOwnerRef_ = AstNodeRef::invalid();
-    AstNodeRef                    currentSwitch_         = AstNodeRef::invalid();
-    AstNodeRef                    currentSwitchCase_     = AstNodeRef::invalid();
-    AstNodeRef                    runtimeStorageNodeRef_ = AstNodeRef::invalid();
-    SymbolVariable*               runtimeStorageSym_     = nullptr;
+    AstNodeRef                    currentSwitch_            = AstNodeRef::invalid();
+    AstNodeRef                    currentSwitchCase_        = AstNodeRef::invalid();
+    AstNodeRef                    runtimeStorageNodeRef_    = AstNodeRef::invalid();
+    SymbolVariable*               runtimeStorageSym_        = nullptr;
     SmallVector2<TypeRef>         bindingTypes_;
     SmallVector2<SymbolVariable*> bindingVars_;
 };

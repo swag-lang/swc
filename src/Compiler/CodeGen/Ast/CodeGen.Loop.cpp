@@ -12,10 +12,10 @@ namespace
 {
     struct LoopStmtCodeGenPayload
     {
-        MicroLabelRef bodyLabel     = MicroLabelRef::invalid();
-        MicroLabelRef continueLabel = MicroLabelRef::invalid();
-        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
-        SymbolVariable* indexStateSym = nullptr;
+        MicroLabelRef   bodyLabel      = MicroLabelRef::invalid();
+        MicroLabelRef   continueLabel  = MicroLabelRef::invalid();
+        MicroLabelRef   doneLabel      = MicroLabelRef::invalid();
+        SymbolVariable* indexStateSym  = nullptr;
         bool            usesIndexState = false;
     };
 
@@ -155,9 +155,9 @@ Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
     LoopStmtCodeGenPayload loopState;
     const SemaNodeView     symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
     const auto             symbols     = symbolsView.symList();
-    loopState.bodyLabel     = builder.createLabel();
-    loopState.continueLabel = builder.createLabel();
-    loopState.doneLabel     = builder.createLabel();
+    loopState.bodyLabel                = builder.createLabel();
+    loopState.continueLabel            = builder.createLabel();
+    loopState.doneLabel                = builder.createLabel();
     if (const auto* indexUsage = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef()))
         loopState.usesIndexState = indexUsage->usesLoopIndex;
     if (!symbols.empty())

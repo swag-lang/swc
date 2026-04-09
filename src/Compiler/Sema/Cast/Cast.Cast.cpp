@@ -1467,7 +1467,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
                 sema.setType(view.nodeRef(), dstTypeRef);
             else
             {
-                const ConstantRef constRef  = view.cstRef();
+                const ConstantRef constRef   = view.cstRef();
                 const AstNodeRef  srcNodeRef = view.nodeRef();
                 SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, srcNodeRef, srcTypeRef, dstTypeRef));
                 view.nodeRef() = createCast(sema, dstTypeRef, srcNodeRef);

@@ -16,7 +16,7 @@ enum class SymbolStructFlagsE : uint8_t
     Zero            = 0,
     TypeInfo        = 1 << 0,
     GenericRoot     = 1 << 1,
-    GenericInstance  = 1 << 2,
+    GenericInstance = 1 << 2,
     Union           = 1 << 3,
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;

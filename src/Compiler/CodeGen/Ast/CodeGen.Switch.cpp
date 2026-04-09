@@ -250,7 +250,7 @@ namespace
         if (!casePayload)
             return Result::Error;
 
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&   builder   = codeGen.builder();
         SymbolFunction* runtimeFn = switchState.dynamicAsFunction;
         if (!runtimeFn)
             runtimeFn = runtimeDynamicAsFunction(codeGen);

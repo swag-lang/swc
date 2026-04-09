@@ -356,11 +356,6 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
 
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
-    const TypeRef   targetStructTypeRef = unwrapAliasEnumTypeRef(sema, nodeTypeView.typeRef());
-    const TypeInfo& targetStructType    = sema.typeMgr().get(targetStructTypeRef);
-    if (!targetStructType.isStruct())
-        return raiseDynamicStructCastError(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
-
     DynamicStructCastSemaInfo castInfo;
     if (!resolveDynamicStructCastSemaInfo(sema, nodeExprView.nodeRef(), exprTypeView.typeRef(), castInfo))
         return raiseDynamicStructCastError(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
@@ -383,11 +378,6 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
-
-    const TypeRef   targetStructTypeRef = unwrapAliasEnumTypeRef(sema, nodeTypeView.typeRef());
-    const TypeInfo& targetStructType    = sema.typeMgr().get(targetStructTypeRef);
-    if (!targetStructType.isStruct())
-        return raiseDynamicStructCastError(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
 
     DynamicStructCastSemaInfo castInfo;
     if (!resolveDynamicStructCastSemaInfo(sema, nodeExprView.nodeRef(), exprTypeView.typeRef(), castInfo))

@@ -120,16 +120,11 @@ namespace
             return Result::Continue;
 
         const bool hasDynCastSafety = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::DynCast);
-        const bool dstIsStruct      = dstType.isStruct();
-
-        // DynCast safety for non-struct types: only check value types where type mismatch is clearly wrong.
-        // Pointer-like, reference, slice, interface, variadic destinations are excluded because
-        // they have more flexible runtime semantics (null compatibility, type erasure, etc.)
-        const bool dstIsSafeCheckable = !dstType.isAnyPointer() && !dstType.isReference() && !dstType.isMoveReference() &&
-                                        !dstType.isInterface() && !dstType.isAnyVariadic();
-
-        // Nothing to set up for non-struct without safety, or non-checkable without struct @as
-        if (!dstIsStruct && (!hasDynCastSafety || !dstIsSafeCheckable))
+        const bool dstUsesTypeInfoMatch =
+            dstType.isStruct() ||
+            (!dstType.isAnyPointer() && !dstType.isReference() && !dstType.isMoveReference() &&
+             !dstType.isInterface() && !dstType.isAnyVariadic());
+        if (!dstUsesTypeInfoMatch)
             return Result::Continue;
 
         auto& payload = ensureCastCodeGenPayload(sema, nodeRef);
@@ -142,24 +137,11 @@ namespace
 
         const auto& codeRef = sema.node(nodeRef).codeRef();
 
-        // For struct destinations, use the @as mechanism for proper using-field resolution
-        if (dstIsStruct)
-        {
-            SymbolFunction* asFn = nullptr;
-            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::As, asFn, codeRef));
-            SWC_ASSERT(asFn != nullptr);
-            SemaHelpers::addCurrentFunctionCallDependency(sema, asFn);
-            payload.runtimeFunctionSymbol = asFn;
-        }
-        else
-        {
-            // For non-struct destinations with DynCast safety, use @typecmp for type verification
-            SymbolFunction* typeCmpFn = nullptr;
-            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TypeCmp, typeCmpFn, codeRef));
-            SWC_ASSERT(typeCmpFn != nullptr);
-            SemaHelpers::addCurrentFunctionCallDependency(sema, typeCmpFn);
-            payload.runtimeFunctionSymbol = typeCmpFn;
-        }
+        SymbolFunction* asFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::As, asFn, codeRef));
+        SWC_ASSERT(asFn != nullptr);
+        SemaHelpers::addCurrentFunctionCallDependency(sema, asFn);
+        payload.runtimeFunctionSymbol = asFn;
 
         // Resolve panic function when DynCast safety is enabled
         if (hasDynCastSafety)

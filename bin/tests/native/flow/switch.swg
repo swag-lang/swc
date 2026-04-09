@@ -1,5 +1,16 @@
 #global fileprivate // 
 
+struct SwitchAnyBase
+{
+    value: s32 = 10
+}
+
+struct SwitchAnyDerived
+{
+    using base: SwitchAnyBase
+    extra: s32 = 20
+}
+
 #test
 {
     var v = 2
@@ -234,4 +245,40 @@ func toto()->s32 => 1
         break
     }
     @assert(hit == 0)
+}
+
+#test
+{
+    func switchAnyUsingBase(x: any)->s32
+    {
+        switch x
+        {
+            case SwitchAnyBase:
+                return 1
+            case s32:
+                return 2
+            default:
+                return 0
+        }
+    }
+
+    var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
+    @assert(switchAnyUsingBase(a) == 1)
+}
+
+#test
+{
+    func switchAnyUsingBaseBinding(x: any)->s32
+    {
+        switch x
+        {
+            case SwitchAnyBase as ptr:
+                return ptr.value
+            default:
+                return 0
+        }
+    }
+
+    var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
+    @assert(switchAnyUsingBaseBinding(a) == 7)
 }

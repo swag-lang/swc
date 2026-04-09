@@ -218,6 +218,54 @@ namespace
         return outReg;
     }
 
+    void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
+                                 CodeGen&                           codeGen,
+                                 const CallConv&                    callConv,
+                                 TypeRef                            argTypeRef,
+                                 MicroReg                           srcReg)
+    {
+        const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
+
+        ABICall::PreparedArg arg;
+        arg.srcReg      = srcReg;
+        arg.kind        = ABICall::PreparedArgKind::Direct;
+        arg.isFloat     = normalizedArg.isFloat;
+        arg.isAddressed = false;
+        arg.numBits     = normalizedArg.numBits;
+        outArgs.push_back(arg);
+    }
+
+    Result emitIntrinsicRuntimeCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
+    {
+        codeGen.function().addCallDependency(&runtimeFunction);
+
+        const CallConvKind                callConvKind = runtimeFunction.callConvKind();
+        const CallConv&                   callConv     = CallConv::get(callConvKind);
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(argRegs.size());
+
+        const auto& params = runtimeFunction.parameters();
+        SWC_ASSERT(params.size() == argRegs.size());
+        for (size_t i = 0; i < argRegs.size(); ++i)
+        {
+            SWC_ASSERT(params[i] != nullptr);
+            appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
+        }
+
+        MicroBuilder&               builder      = codeGen.builder();
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        if (runtimeFunction.isForeign())
+            ABICall::callExtern(builder, callConvKind, &runtimeFunction, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
+
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, runtimeFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!normalizedRet.isVoid);
+        SWC_ASSERT(!normalizedRet.isIndirect);
+        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+        return Result::Continue;
+    }
+
     TypeRef intrinsicOperandTypeRef(CodeGen& codeGen, AstNodeRef nodeRef, const CodeGenNodePayload& payload)
     {
         if (payload.typeRef.isValid())
@@ -840,6 +888,45 @@ namespace
 
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, resultTypeRef);
         return Result::Continue;
+    }
+
+    Result codeGenIntrinsicIs(CodeGen& codeGen, const AstIntrinsicCall& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 2);
+
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
+
+        const MicroReg toTypeReg   = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg fromTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        const MicroReg            args[]        = {toTypeReg, fromTypeReg};
+        return emitIntrinsicRuntimeCall(codeGen, *payload->runtimeFunctionSymbol, args, resultPayload.reg);
+    }
+
+    Result codeGenIntrinsicAs(CodeGen& codeGen, const AstIntrinsicCall& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
+
+        const MicroReg toTypeReg   = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg fromTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroReg ptrReg      = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
+
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        const MicroReg            args[]        = {toTypeReg, fromTypeReg, ptrReg};
+        return emitIntrinsicRuntimeCall(codeGen, *payload->runtimeFunctionSymbol, args, resultPayload.reg);
     }
 
     MicroReg materializeCountLikeBaseReg(const CodeGen& codeGen, const CodeGenNodePayload& payload)
@@ -1798,6 +1885,10 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMakeSlice(codeGen, *this, true);
         case TokenId::IntrinsicMakeInterface:
             return codeGenMakeInterface(codeGen, *this);
+        case TokenId::IntrinsicIs:
+            return codeGenIntrinsicIs(codeGen, *this);
+        case TokenId::IntrinsicAs:
+            return codeGenIntrinsicAs(codeGen, *this);
 
         default:
             SWC_UNREACHABLE();

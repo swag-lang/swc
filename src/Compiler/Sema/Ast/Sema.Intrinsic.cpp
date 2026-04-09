@@ -57,6 +57,25 @@ namespace
         markIntrinsicOperandAddressableStorage(whatView);
         return Result::Continue;
     }
+
+    Result attachIntrinsicRuntimeFunction(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind runtimeKind, const SourceCodeRef& codeRef)
+    {
+        SymbolFunction* runtimeFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(runtimeKind, runtimeFn, codeRef));
+        SWC_ASSERT(runtimeFn != nullptr);
+
+        SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
+
+        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CodeGenNodePayload>();
+            sema.setCodeGenPayload(nodeRef, payload);
+        }
+
+        payload->runtimeFunctionSymbol = runtimeFn;
+        return Result::Continue;
+    }
 }
 
 Result AstIntrinsicValue::semaPostNode(Sema& sema)
@@ -417,6 +436,47 @@ namespace
 
         return Result::Continue;
     }
+
+    Result semaIntrinsicIs(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
+    {
+        SemaNodeView toTypeView   = sema.viewTypeConstant(children[0]);
+        SemaNodeView fromTypeView = sema.viewTypeConstant(children[1]);
+
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, toTypeView));
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, fromTypeView));
+
+        if (!isMakeInterfaceTypeInfoOperand(sema, toTypeView))
+            return SemaError::raiseRequestedTypeFam(sema, toTypeView.nodeRef(), toTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
+        if (!isMakeInterfaceTypeInfoOperand(sema, fromTypeView))
+            return SemaError::raiseRequestedTypeFam(sema, fromTypeView.nodeRef(), fromTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
+
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+        sema.setIsValue(node);
+        return attachIntrinsicRuntimeFunction(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::Is, node.codeRef());
+    }
+
+    Result semaIntrinsicAs(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
+    {
+        SemaNodeView toTypeView   = sema.viewTypeConstant(children[0]);
+        SemaNodeView fromTypeView = sema.viewTypeConstant(children[1]);
+        const auto   ptrView      = sema.viewType(children[2]);
+
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, toTypeView));
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, fromTypeView));
+        SWC_RESULT(SemaCheck::isValue(sema, ptrView.nodeRef()));
+
+        if (!isMakeInterfaceTypeInfoOperand(sema, toTypeView))
+            return SemaError::raiseRequestedTypeFam(sema, toTypeView.nodeRef(), toTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
+        if (!isMakeInterfaceTypeInfoOperand(sema, fromTypeView))
+            return SemaError::raiseRequestedTypeFam(sema, fromTypeView.nodeRef(), fromTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
+        if (!ptrView.type() || !ptrView.type()->isPointerOrReference())
+            return SemaError::raiseRequestedTypeFam(sema, ptrView.nodeRef(), ptrView.typeRef(), sema.typeMgr().typeValuePtrVoid());
+
+        const TypeRef resultTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(sema.typeMgr().typeVoid(), TypeInfoFlagsE::Nullable));
+        sema.setType(sema.curNodeRef(), resultTypeRef);
+        sema.setIsValue(node);
+        return attachIntrinsicRuntimeFunction(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::As, node.codeRef());
+    }
 }
 
 Result AstIntrinsicCall::semaPostNode(Sema& sema)
@@ -441,12 +501,14 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicMakeSlice(sema, *this, children, true);
         case TokenId::IntrinsicMakeInterface:
             return semaIntrinsicMakeInterface(sema, *this, children);
+        case TokenId::IntrinsicIs:
+            return semaIntrinsicIs(sema, *this, children);
+        case TokenId::IntrinsicAs:
+            return semaIntrinsicAs(sema, *this, children);
 
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicCVaArg:
-        case TokenId::IntrinsicIs:
-        case TokenId::IntrinsicAs:
         case TokenId::IntrinsicTableOf:
             // TODO
             SWC_INTERNAL_ERROR();

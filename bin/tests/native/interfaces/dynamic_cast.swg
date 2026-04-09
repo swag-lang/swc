@@ -31,6 +31,42 @@ impl INode for Derived
 {
 }
 
+func runIntrinsicDynamicTypeInfo()->bool
+{
+    let baseType:    typeinfo = Base
+    let midType:     typeinfo = Mid
+    let derivedType: typeinfo = Derived
+    let intType:     typeinfo = s32
+    let stringType:  typeinfo = string
+
+    var number  = 45
+    var derived = Derived{}
+
+    if !@is(baseType, derivedType) or !@is(midType, derivedType) or !@is(intType, s32) do
+        return false
+    if @is(stringType, intType) do
+        return false
+
+    let intRaw = @as(intType, s32, &number)
+    if intRaw == null do
+        return false
+
+    let baseRaw = @as(baseType, derivedType, &derived)
+    if baseRaw == null do
+        return false
+
+    let intPtr  = cast(*s32) intRaw
+    let basePtr = cast(*Base) baseRaw
+    if intPtr != &number or dref intPtr != 45 do
+        return false
+    if @as(bool, intType, &number) != null do
+        return false
+    if basePtr != &derived.mid.base do
+        return false
+
+    return true
+}
+
 #test
 {
     var derived = Derived{}
@@ -73,4 +109,9 @@ impl INode for Derived
     let notStruct: any = 33
     @assert(!notStruct is Base)
     @assert(notStruct as Base == null)
+}
+
+#test
+{
+    @assert(runIntrinsicDynamicTypeInfo())
 }

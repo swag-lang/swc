@@ -57,7 +57,11 @@ namespace
         SymbolFunction* runtimeFn = nullptr;
         SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::As, runtimeFn, codeRef));
         SWC_ASSERT(runtimeFn != nullptr);
+        SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
 
+        runtimeFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::Is, runtimeFn, codeRef));
+        SWC_ASSERT(runtimeFn != nullptr);
         SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
         return Result::Continue;
     }

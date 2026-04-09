@@ -290,7 +290,6 @@ A `where` clause can also modify the `default` case for conditional fallbacks.
 When switching on `any` or `interface` types, cases match based on the **underlying runtime type**.
 */
 
-// @TODO: Re-enable when `switch` accepts `any` as the switched expression again.
 #test
 {
     let x: any = "value"

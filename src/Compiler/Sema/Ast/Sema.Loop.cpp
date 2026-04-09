@@ -176,7 +176,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
 {
     if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
     {
-        const SemaNodeView exprView = sema.viewType(nodeExprRef);
+        const SemaNodeView exprView     = sema.viewType(nodeExprRef);
         TypeRef            valueTypeRef = TypeRef::invalid();
         TypeRef            indexTypeRef = TypeRef::invalid();
         SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
@@ -202,10 +202,10 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
                 return Result::Error;
             }
 
-            const SemaNodeView exprView     = sema.viewType(nodeExprRef);
-            TypeRef            valueTypeRef = TypeRef::invalid();
-            TypeRef            indexTypeRef = TypeRef::invalid();
-            SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+            const SemaNodeView elementView = sema.viewType(nodeExprRef);
+            TypeRef            typeRef     = TypeRef::invalid();
+            TypeRef            indexRef    = TypeRef::invalid();
+            SWC_RESULT(foreachElementTypes(sema, *this, elementView, typeRef, indexRef));
 
             const size_t count = std::min<size_t>(tokNames.size(), 2);
             for (size_t i = 0; i < count; i++)
@@ -220,7 +220,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
                 SWC_RESULT(Match::ghosting(sema, symVar));
 
                 symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-                symVar.setTypeRef(i == 0 ? valueTypeRef : indexTypeRef);
+                symVar.setTypeRef(i == 0 ? typeRef : indexRef);
                 SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
                 symVar.setTyped(sema.ctx());
                 symVar.setSemaCompleted(sema.ctx());
@@ -292,11 +292,11 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
             symVar.setDeclared(sema.ctx());
             SWC_RESULT(Match::ghosting(sema, symVar));
 
-            TypeRef indexTypeRef = TypeRef::invalid();
-            SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexTypeRef, sema.curNodeRef(), *this));
+            TypeRef indexRef = TypeRef::invalid();
+            SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexRef, sema.curNodeRef(), *this));
             symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-            symVar.setTypeRef(indexTypeRef);
-            SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, indexTypeRef));
+            symVar.setTypeRef(indexRef);
+            SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, indexRef));
             symVar.setTyped(sema.ctx());
             symVar.setSemaCompleted(sema.ctx());
         }

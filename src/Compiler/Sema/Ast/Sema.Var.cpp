@@ -663,6 +663,8 @@ namespace
 
     Result castOrConcretizeInit(Sema& sema, const SemaPostVarDeclArgs& context, bool codeParameterDefault, TypeRef explicitTypeRef, SemaNodeView& nodeInitView)
     {
+        SWC_UNUSED(context);
+        
         if (codeParameterDefault)
             return Result::Continue;
 

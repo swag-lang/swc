@@ -125,7 +125,7 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
         {
             const auto& locals = currentFn->localVariables();
-            if (std::find(locals.begin(), locals.end(), &symVar) != locals.end())
+            if (std::ranges::find(locals, &symVar) != locals.end())
                 return false;
         }
 

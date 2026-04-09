@@ -585,7 +585,7 @@ namespace
         return true;
     }
 
-    Result tryEmitRuntimeArrayFill(CodeGen& codeGen, AstNodeRef nodeRef, CodeGenNodePayload& payload, TypeRef targetTypeRef, bool& outHandled)
+    Result tryEmitRuntimeArrayFill(CodeGen& codeGen, AstNodeRef nodeRef, const CodeGenNodePayload& payload, TypeRef targetTypeRef, bool& outHandled)
     {
         outHandled = false;
         if (!payload.hasRuntimeArrayFill() || payload.runtimeStorageSym == nullptr)

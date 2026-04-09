@@ -73,7 +73,7 @@ namespace
 
     void buildReturnZeroAfter128BitStackCopy(MicroBuilder& builder, const CallConv& callConv)
     {
-        static constexpr Copy128Payload payload = {
+        static constexpr Copy128Payload PAYLOAD = {
             .lo = 0x1122334455667788ull,
             .hi = 0x99AABBCCDDEEFF00ull,
         };
@@ -90,16 +90,16 @@ namespace
 
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitLoadRegReg(rbx, callConv.stackPointer, MicroOpBits::B64);
-        builder.emitLoadRegPtrImm(r8, reinterpret_cast<uint64_t>(&payload));
+        builder.emitLoadRegPtrImm(r8, reinterpret_cast<uint64_t>(&PAYLOAD));
         builder.emitLoadRegMem(xmm3, r8, 0, MicroOpBits::B128);
         builder.emitLoadMemReg(rbx, 16, xmm3, MicroOpBits::B128);
 
         builder.emitLoadRegMem(callConv.intReturn, rbx, 16, MicroOpBits::B64);
         builder.emitLoadRegMem(r11, rbx, 24, MicroOpBits::B64);
 
-        builder.emitLoadRegImm(r9, ApInt(payload.lo, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(r9, ApInt(PAYLOAD.lo, 64), MicroOpBits::B64);
         builder.emitOpBinaryRegReg(callConv.intReturn, r9, MicroOp::Xor, MicroOpBits::B64);
-        builder.emitLoadRegImm(r10, ApInt(payload.hi, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(r10, ApInt(PAYLOAD.hi, 64), MicroOpBits::B64);
         builder.emitOpBinaryRegReg(r11, r10, MicroOp::Xor, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(callConv.intReturn, r11, MicroOp::Or, MicroOpBits::B64);
 

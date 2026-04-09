@@ -257,7 +257,7 @@ namespace
             }
         }
 
-        std::vector<ConstantRef> values(totalCount, elemRef);
+        const std::vector values(totalCount, elemRef);
         args.castRequest->outConstRef = makeArrayConstantFromValues(args, values);
         return Result::Continue;
     }

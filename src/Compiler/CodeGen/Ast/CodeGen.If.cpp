@@ -36,7 +36,7 @@ namespace
 
     void emitIfStmtCondition(CodeGen& codeGen, AstNodeRef ifRef, const CodeGenNodePayload& conditionPayload, TypeRef conditionTypeRef, bool hasElseBlock)
     {
-        IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
+        const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
         if (!state || !state->falseLabel.isValid())
         {
             MicroBuilder& builder  = codeGen.builder();

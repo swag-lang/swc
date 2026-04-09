@@ -101,15 +101,14 @@ Iterate from the last element to the first by adding the '#reverse' modifier.
 Use 'foreach' to traverse arrays or slices and process each element.
 */
 
-// @TODO: Re-enable when `foreach` accepts inferred array literals again.
-// #test
-// {
-//     var array  = [10, 20, 30]
-//     var result = 0
-//     foreach it in array do
-//         result += it
-//     @assert(result == 10 + 20 + 30)
-// }
+#test
+{
+    var array  = [10, 20, 30]
+    var result = 0
+    foreach it in array do
+        result += it
+    @assert(result == 10 + 20 + 30)
+}
 
 /**
 # Multi-dimensional Arrays

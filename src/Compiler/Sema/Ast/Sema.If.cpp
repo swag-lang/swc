@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
@@ -134,7 +133,7 @@ namespace
         return typeInfo.isPointerLike() || typeInfo.isNull();
     }
 
-    void restoreMaskedIfVarDeclCondition(Sema& sema, AstNodeRef nodeRef)
+    void restoreMaskedIfVarDeclCondition(const Sema& sema, AstNodeRef nodeRef)
     {
         auto* payload = sema.semaPayload<IfVarDeclWhereSemaPayload>(nodeRef);
         if (!payload || !payload->maskedConditionSymbol)

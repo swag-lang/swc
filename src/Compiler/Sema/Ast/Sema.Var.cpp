@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -7,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -745,10 +745,10 @@ namespace
                 }
                 // Build innermost array first, then wrap each outer dimension.
                 elemTypeRef = leafTypeRef;
-                for (auto it = innerDims.rbegin(); it != innerDims.rend(); ++it)
+                for (unsigned long long& innerDim : std::views::reverse(innerDims))
                 {
                     SmallVector4<uint64_t> d;
-                    d.push_back(*it);
+                    d.push_back(innerDim);
                     elemTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(d, elemTypeRef));
                 }
             }

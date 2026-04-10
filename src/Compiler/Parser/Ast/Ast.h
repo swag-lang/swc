@@ -136,6 +136,7 @@ private:
 
     AstNode*       nodePtr(uint32_t globalRef);
     const AstNode* nodePtr(uint32_t globalRef) const;
+    void           recordParsedNodeBoundary(AstNodeRef nodeRef);
 
     struct Shard
     {

@@ -11,6 +11,133 @@ namespace
 {
     constexpr uint32_t K_STACK_ADDRESS_ESCAPE_WINDOW_BYTES = 32;
 
+    struct RegRewrite
+    {
+        MicroReg* reg = nullptr;
+        MicroReg  oldReg;
+    };
+
+    void rollbackRegRewritesFrom(SmallVector<RegRewrite>& rewrites, size_t start)
+    {
+        for (size_t i = rewrites.size(); i > start; --i)
+        {
+            const RegRewrite& rewrite = rewrites[i - 1];
+            if (rewrite.reg)
+                *rewrite.reg = rewrite.oldReg;
+        }
+
+        rewrites.resize(start);
+    }
+
+    bool forwardCopyUses(const MicroPassContext& context, MicroStorage::Iterator copyIt, MicroStorage::Iterator endIt, MicroReg fromReg, MicroReg toReg, MicroReg stopOnDefReg, SmallVector<RegRewrite>& rewrites)
+    {
+        bool replacedUse = false;
+        for (auto scanIt = std::next(copyIt); scanIt != endIt; ++scanIt)
+        {
+            MicroInstr&              scanInst = *scanIt;
+            const MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
+            if (!scanOps)
+            {
+                rollbackRegRewritesFrom(rewrites, 0);
+                return false;
+            }
+
+            const MicroInstrUseDef               useDef = scanInst.collectUseDef(*context.operands, context.encoder);
+            SmallVector<MicroInstrRegOperandRef> refs;
+            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
+
+            bool hasFromUse   = false;
+            bool hasFromDef   = false;
+            bool hasStopOnDef = false;
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg reg = *(ref.reg);
+                if (reg == fromReg)
+                {
+                    hasFromUse |= ref.use;
+                    hasFromDef |= ref.def;
+                }
+                else if (reg == stopOnDefReg && ref.def)
+                {
+                    hasStopOnDef = true;
+                }
+            }
+
+            if (hasFromUse)
+            {
+                const size_t rewriteStart = rewrites.size();
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg || !ref.use)
+                        continue;
+
+                    MicroReg& reg = *(ref.reg);
+                    if (reg != fromReg)
+                        continue;
+
+                    rewrites.push_back({&reg, reg});
+                    reg = toReg;
+                }
+
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
+                {
+                    rollbackRegRewritesFrom(rewrites, rewriteStart);
+                    rollbackRegRewritesFrom(rewrites, 0);
+                    return false;
+                }
+
+                replacedUse = true;
+            }
+
+            if (hasFromDef ||
+                hasStopOnDef ||
+                useDef.isCall ||
+                scanInst.op == MicroInstrOpcode::JumpCond ||
+                scanInst.op == MicroInstrOpcode::Ret)
+            {
+                break;
+            }
+        }
+
+        return replacedUse;
+    }
+
+    bool isCopyDeadNoBarrierUntil(const MicroPassContext& context, MicroStorage::Iterator scanIt, MicroStorage::Iterator endIt, MicroReg reg)
+    {
+        for (; scanIt != endIt; ++scanIt)
+        {
+            const MicroInstr&                    scanInst = *scanIt;
+            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
+            SmallVector<MicroInstrRegOperandRef> refs;
+            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
+
+            bool hasUse = false;
+            bool hasDef = false;
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg || *(ref.reg) != reg)
+                    continue;
+
+                hasUse |= ref.use;
+                hasDef |= ref.def;
+            }
+
+            if (hasUse)
+                return false;
+            if (hasDef)
+                return true;
+            if (scanInst.op == MicroInstrOpcode::Ret)
+                return true;
+            if (useDef.isCall)
+                return false;
+        }
+
+        return true;
+    }
+
     bool isSingleLinearPredecessorLabel(const MicroPassContext& context, const MicroInstrRef labelRef)
     {
         if (!context.builder || labelRef.isInvalid())
@@ -1931,143 +2058,36 @@ namespace
 
         const MicroReg dstReg = copyOps[0].reg;
 
-        struct RegRewrite
+        bool                    canRetargetSetCondToDst = pass.isCopyDeadAfterInstruction(std::next(copyIt), endIt, tmpReg);
+        SmallVector<RegRewrite> tmpToDstRewrites;
+        if (!canRetargetSetCondToDst)
         {
-            MicroReg* reg = nullptr;
-            MicroReg  oldReg;
-        };
-
-        auto rollbackRewritesFrom = [](SmallVector<RegRewrite>& rewrites, const size_t start) {
-            for (size_t i = rewrites.size(); i > start; --i)
+            if (forwardCopyUses(context, copyIt, endIt, tmpReg, dstReg, dstReg, tmpToDstRewrites) && isCopyDeadNoBarrierUntil(context, std::next(copyIt), endIt, tmpReg))
             {
-                const RegRewrite& rewrite = rewrites[i - 1];
-                if (rewrite.reg)
-                    *rewrite.reg = rewrite.oldReg;
+                canRetargetSetCondToDst = true;
             }
-
-            rewrites.resize(start);
-        };
-
-        auto isCopyDeadNoBarrier = [&](MicroStorage::Iterator scanIt, const MicroReg reg) {
-            for (; scanIt != endIt; ++scanIt)
+            else
             {
-                const MicroInstr&                    scanInst = *scanIt;
-                const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
-                SmallVector<MicroInstrRegOperandRef> refs;
-                scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-                bool hasUse = false;
-                bool hasDef = false;
-                for (const MicroInstrRegOperandRef& ref : refs)
-                {
-                    if (!ref.reg || *(ref.reg) != reg)
-                        continue;
-
-                    hasUse |= ref.use;
-                    hasDef |= ref.def;
-                }
-
-                if (hasUse)
-                    return false;
-                if (hasDef)
-                    return true;
-                if (scanInst.op == MicroInstrOpcode::Ret)
-                    return true;
-                if (useDef.isCall)
-                {
-                    return false;
-                }
+                rollbackRegRewritesFrom(tmpToDstRewrites, 0);
             }
+        }
 
-            return true;
-        };
-
-        auto forwardUses = [&](const MicroReg fromReg, const MicroReg toReg, const MicroReg stopOnDefReg, SmallVector<RegRewrite>& rewrites) {
-            bool replacedUse = false;
-            for (auto scanIt = std::next(copyIt); scanIt != endIt; ++scanIt)
-            {
-                MicroInstr&              scanInst = *scanIt;
-                const MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
-                if (!scanOps)
-                {
-                    rollbackRewritesFrom(rewrites, 0);
-                    return false;
-                }
-
-                const MicroInstrUseDef               useDef = scanInst.collectUseDef(*context.operands, context.encoder);
-                SmallVector<MicroInstrRegOperandRef> refs;
-                scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-                bool hasFromUse   = false;
-                bool hasFromDef   = false;
-                bool hasStopOnDef = false;
-                for (const MicroInstrRegOperandRef& ref : refs)
-                {
-                    if (!ref.reg)
-                        continue;
-
-                    const MicroReg reg = *(ref.reg);
-                    if (reg == fromReg)
-                    {
-                        hasFromUse |= ref.use;
-                        hasFromDef |= ref.def;
-                    }
-                    else if (reg == stopOnDefReg && ref.def)
-                    {
-                        hasStopOnDef = true;
-                    }
-                }
-
-                if (hasFromUse)
-                {
-                    const size_t rewriteStart = rewrites.size();
-                    for (const MicroInstrRegOperandRef& ref : refs)
-                    {
-                        if (!ref.reg || !ref.use)
-                            continue;
-
-                        MicroReg& reg = *(ref.reg);
-                        if (reg != fromReg)
-                            continue;
-
-                        rewrites.push_back({&reg, reg});
-                        reg = toReg;
-                    }
-
-                    if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
-                    {
-                        rollbackRewritesFrom(rewrites, rewriteStart);
-                        rollbackRewritesFrom(rewrites, 0);
-                        return false;
-                    }
-
-                    replacedUse = true;
-                }
-
-                if (hasFromDef ||
-                    hasStopOnDef ||
-                    useDef.isCall ||
-                    scanInst.op == MicroInstrOpcode::JumpCond ||
-                    scanInst.op == MicroInstrOpcode::Ret)
-                {
-                    break;
-                }
-            }
-
-            return replacedUse;
-        };
-
-        auto retargetSetCondToDst = [&] {
+        if (canRetargetSetCondToDst)
+        {
             const MicroInstr*  setCondInst = context.instructions->ptr(instRef);
             MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*context.operands) : nullptr;
             if (!setCondOps)
+            {
+                rollbackRegRewritesFrom(tmpToDstRewrites, 0);
                 return false;
+            }
 
             const MicroReg originalSetCondReg = setCondOps[0].reg;
             setCondOps[0].reg                 = dstReg;
             if (MicroPassHelpers::violatesEncoderConformance(context, *setCondInst, setCondOps))
             {
                 setCondOps[0].reg = originalSetCondReg;
+                rollbackRegRewritesFrom(tmpToDstRewrites, 0);
                 return false;
             }
 
@@ -2080,31 +2100,7 @@ namespace
                 setCondOps[0].reg = originalSetCondReg;
                 zeroExtOps[0].reg = originalZeroExtDst;
                 zeroExtOps[1].reg = originalZeroExtSrc;
-                return false;
-            }
-
-            return true;
-        };
-
-        bool                    canRetargetSetCondToDst = pass.isCopyDeadAfterInstruction(std::next(copyIt), endIt, tmpReg);
-        SmallVector<RegRewrite> tmpToDstRewrites;
-        if (!canRetargetSetCondToDst)
-        {
-            if (forwardUses(tmpReg, dstReg, dstReg, tmpToDstRewrites) && isCopyDeadNoBarrier(std::next(copyIt), tmpReg))
-            {
-                canRetargetSetCondToDst = true;
-            }
-            else
-            {
-                rollbackRewritesFrom(tmpToDstRewrites, 0);
-            }
-        }
-
-        if (canRetargetSetCondToDst)
-        {
-            if (!retargetSetCondToDst())
-            {
-                rollbackRewritesFrom(tmpToDstRewrites, 0);
+                rollbackRegRewritesFrom(tmpToDstRewrites, 0);
                 return false;
             }
 
@@ -2113,10 +2109,10 @@ namespace
         }
 
         SmallVector<RegRewrite> dstToTmpRewrites;
-        const bool              replacedDstUse = forwardUses(dstReg, tmpReg, tmpReg, dstToTmpRewrites);
-        if (!replacedDstUse || !isCopyDeadNoBarrier(std::next(copyIt), dstReg))
+        const bool              replacedDstUse = forwardCopyUses(context, copyIt, endIt, dstReg, tmpReg, tmpReg, dstToTmpRewrites);
+        if (!replacedDstUse || !isCopyDeadNoBarrierUntil(context, std::next(copyIt), endIt, dstReg))
         {
-            rollbackRewritesFrom(dstToTmpRewrites, 0);
+            rollbackRegRewritesFrom(dstToTmpRewrites, 0);
             return false;
         }
 

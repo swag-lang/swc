@@ -291,14 +291,26 @@ namespace
         return Result::Continue;
     }
 
-    template<typename T>
-    Result pushLiteralChildBindingType(Sema& sema, AstNodeRef childRef, const T& resolveChildBindingType)
+    enum class LiteralChildBindingKind : uint8_t
+    {
+        StructLike,
+        ArrayLike,
+    };
+
+    Result resolveLiteralChildBindingType(Sema& sema, LiteralChildBindingKind kind, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outBindingTypeRef)
+    {
+        if (kind == LiteralChildBindingKind::StructLike)
+            return SemaHelpers::resolveStructLikeChildBindingType(sema, children, childRef, targetTypeRef, outBindingTypeRef);
+        return SemaHelpers::resolveArrayLikeChildBindingType(sema, children, childRef, targetTypeRef, outBindingTypeRef);
+    }
+
+    Result pushLiteralChildBindingType(Sema& sema, LiteralChildBindingKind kind, std::span<const AstNodeRef> children, AstNodeRef childRef)
     {
         const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
         for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
         {
             TypeRef bindingTypeRef = TypeRef::invalid();
-            SWC_RESULT(resolveChildBindingType(bindingTypes[bindingIndex - 1], bindingTypeRef));
+            SWC_RESULT(resolveLiteralChildBindingType(sema, kind, children, childRef, bindingTypes[bindingIndex - 1], bindingTypeRef));
             if (!bindingTypeRef.isValid())
                 continue;
 
@@ -710,11 +722,7 @@ Result AstStructLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    return pushLiteralChildBindingType(sema,
-                                       childRef,
-                                       [&](TypeRef targetTypeRef, TypeRef& outBindingTypeRef) {
-                                           return SemaHelpers::resolveStructLikeChildBindingType(sema, children.span(), childRef, targetTypeRef, outBindingTypeRef);
-                                       });
+    return pushLiteralChildBindingType(sema, LiteralChildBindingKind::StructLike, children.span(), childRef);
 }
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)
@@ -762,11 +770,7 @@ Result AstArrayLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    return pushLiteralChildBindingType(sema,
-                                       childRef,
-                                       [&](TypeRef targetTypeRef, TypeRef& outBindingTypeRef) {
-                                           return SemaHelpers::resolveArrayLikeChildBindingType(sema, children.span(), childRef, targetTypeRef, outBindingTypeRef);
-                                       });
+    return pushLiteralChildBindingType(sema, LiteralChildBindingKind::ArrayLike, children.span(), childRef);
 }
 
 SWC_END_NAMESPACE();

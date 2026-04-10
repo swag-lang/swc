@@ -58,6 +58,9 @@ public:
     {
     }
 
+    virtual ~Job() = default;
+
+    virtual JobResult  exec() = 0;
     TaskContext&       ctx() { return ctx_; }
     const TaskContext& ctx() const { return ctx_; }
     JobManager*        owner() const { return owner_; }
@@ -68,8 +71,6 @@ public:
     JobPriority        priority() const { return rec_ ? rec_->priority : JobPriority::Normal; }
     JobClientId        clientId() const { return rec_ ? rec_->clientId : 0; }
     static JobResult   toJobResult(const TaskContext& ctx, Result result);
-
-    std::function<JobResult()> func;
 
     template<typename T>
     const T* cast() const

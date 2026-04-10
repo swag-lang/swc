@@ -10,9 +10,9 @@ public:
 
     NativeObjJob(const TaskContext& ctx, NativeBackendBuilder& builder, uint32_t objIndex);
 
-private:
-    JobResult exec();
+    JobResult exec() override;
 
+private:
     NativeBackendBuilder* builder_  = nullptr;
     uint32_t              objIndex_ = 0;
 };

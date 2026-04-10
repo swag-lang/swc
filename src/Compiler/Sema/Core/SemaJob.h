@@ -16,7 +16,7 @@ public:
 
     SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool declPass);
     SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root);
-    JobResult exec();
+    JobResult exec() override;
 
     Sema&       sema() { return sema_; }
     const Sema& sema() const { return sema_; }

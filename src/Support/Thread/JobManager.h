@@ -34,7 +34,7 @@ private:
     JobRecord* popReadyForClientLocked(JobClientId client);
     bool       isDrainedLocked() const;
 
-    static JobResult executeJob(const Job& job);
+    static JobResult executeJob(Job& job);
     void             handleJobResult(JobRecord* rec, JobResult res);
     void             workerLoop();
 

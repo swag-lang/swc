@@ -31,17 +31,18 @@ namespace
         Constant    = 'D',
     };
 
-    uint32_t opcodeColumnWidth()
+    uint32_t computeMaxOpcodeNameLength()
     {
-        static const uint32_t WIDTH = [] {
-            uint32_t result = 0;
+        uint32_t result = 0;
 #define SWC_MICRO_INSTR_DEF(__enum, ...) result = std::max<uint32_t>(result, static_cast<uint32_t>(Utf8Helper::toLowerSnake(#__enum).size()));
 #include "Backend/Micro/MicroInstr.Def.inc"
-
 #undef SWC_MICRO_INSTR_DEF
-            return result;
-        }();
+        return result;
+    }
 
+    uint32_t opcodeColumnWidth()
+    {
+        static const uint32_t WIDTH = computeMaxOpcodeNameLength();
         return WIDTH;
     }
 

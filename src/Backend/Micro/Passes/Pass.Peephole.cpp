@@ -106,14 +106,17 @@ MicroPeepholePass::RuleDispatch MicroPeepholePass::buildRuleDispatch(const RuleL
     return dispatch;
 }
 
+MicroPeepholePass::RuleDispatch MicroPeepholePass::makeDefaultRuleDispatch()
+{
+    RuleList rules;
+    rules.reserve(48);
+    buildRules(rules);
+    return buildRuleDispatch(rules);
+}
+
 const MicroPeepholePass::RuleDispatch& MicroPeepholePass::getRuleDispatch()
 {
-    static const RuleDispatch DISPATCH = [] {
-        RuleList rules;
-        rules.reserve(48);
-        buildRules(rules);
-        return buildRuleDispatch(rules);
-    }();
+    static const RuleDispatch DISPATCH = makeDefaultRuleDispatch();
     return DISPATCH;
 }
 

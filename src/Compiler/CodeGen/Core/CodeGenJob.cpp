@@ -53,10 +53,6 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
         const FileRef semaFileRef = sema.ast().srcView().fileRef();
         nodePayloadCtx_           = &sema.compiler().file(semaFileRef).nodePayloadContext();
     }
-
-    func = [this] {
-        return exec();
-    };
 }
 
 void CodeGenJob::initSemaAndCodeGen()

@@ -9,9 +9,10 @@ public:
     static constexpr auto K = JobKind::Sema;
     ParserJob(const TaskContext& ctx, SourceFile* file);
 
+    JobResult   exec() override;
+
 private:
     SourceFile* file_ = nullptr;
-    JobResult   exec();
 };
 
 SWC_END_NAMESPACE();

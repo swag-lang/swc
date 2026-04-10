@@ -104,6 +104,7 @@ private:
     static bool                isRuleApplicableToOpcode(const Rule& rule, MicroInstrOpcode opcode);
     static void                buildRules(RuleList& outRules);
     static RuleDispatch        buildRuleDispatch(const RuleList& rules);
+    static RuleDispatch        makeDefaultRuleDispatch();
     static const RuleDispatch& getRuleDispatch();
     bool                       applyOpcodeRules(const Cursor& cursor);
     MicroStorage::Iterator     computeResumeIterator(const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt) const;

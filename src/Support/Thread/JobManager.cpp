@@ -425,14 +425,14 @@ namespace
     }
 }
 
-JobResult JobManager::executeJob(const Job& job)
+JobResult JobManager::executeJob(Job& job)
 {
     JobResult                res;
     const TaskContext* const savedContext = TaskContext::setCurrent(&job.ctx());
 
     SWC_TRY
     {
-        res = job.func();
+        res = job.exec();
     }
     SWC_EXCEPT(exceptionHandler(job, SWC_GET_EXCEPTION_INFOS()))
     {

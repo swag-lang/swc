@@ -13,7 +13,7 @@ public:
     static constexpr auto K = JobKind::CodeGen;
 
     CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root);
-    JobResult   exec();
+    JobResult   exec() override;
     Sema&       sema() { return *ownedSema_; }
     const Sema& sema() const { return *ownedSema_; }
 

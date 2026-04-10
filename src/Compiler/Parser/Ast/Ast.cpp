@@ -17,6 +17,15 @@ const AstNode& Ast::node(AstNodeRef nodeRef) const
     return *(nodePtr(g));
 }
 
+void Ast::recordParsedNodeBoundary(AstNodeRef nodeRef)
+{
+    const uint32_t globalRef = nodeRef.get();
+    const uint32_t shard     = refShard(globalRef);
+    const uint32_t local     = refLocal(globalRef);
+    SWC_ASSERT(shard < SHARD_COUNT);
+    parsedNodeBoundaryByShard_[shard] = std::max(parsedNodeBoundaryByShard_[shard], local + 1);
+}
+
 void Ast::captureParsedNodeBoundary()
 {
     std::fill_n(parsedNodeBoundaryByShard_, SHARD_COUNT, 0u);
@@ -27,11 +36,7 @@ void Ast::captureParsedNodeBoundary()
     }
 
     visit(*this, root_, [this](AstNodeRef nodeRef, const AstNode&) {
-        const uint32_t globalRef = nodeRef.get();
-        const uint32_t shard     = refShard(globalRef);
-        const uint32_t local     = refLocal(globalRef);
-        SWC_ASSERT(shard < SHARD_COUNT);
-        parsedNodeBoundaryByShard_[shard] = std::max(parsedNodeBoundaryByShard_[shard], local + 1);
+        recordParsedNodeBoundary(nodeRef);
         return VisitResult::Continue;
     });
 

@@ -13,18 +13,12 @@ SemaJob::SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool d
     Job(ctx, JobKind::Sema),
     sema_(Job::ctx(), nodePayloadContext, declPass)
 {
-    func = [this] {
-        return exec();
-    };
 }
 
 SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root) :
     Job(ctx, JobKind::Sema),
     sema_(Job::ctx(), parentSema, root)
 {
-    func = [this] {
-        return exec();
-    };
 }
 
 JobResult SemaJob::exec()

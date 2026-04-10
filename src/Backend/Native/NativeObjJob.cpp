@@ -9,9 +9,6 @@ NativeObjJob::NativeObjJob(const TaskContext& ctx, NativeBackendBuilder& builder
     builder_(&builder),
     objIndex_(objIndex)
 {
-    func = [this] {
-        return exec();
-    };
 }
 
 JobResult NativeObjJob::exec()

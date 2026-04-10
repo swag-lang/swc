@@ -512,8 +512,8 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     AttributeInstance inst;
     inst.symbol = &attrSym;
 
-    const auto& params            = attrSym.parameters();
-    const bool  hasVariadicParam  = !params.empty() && params.back()->type(sema.ctx()).isAnyVariadic();
+    const auto& params           = attrSym.parameters();
+    const bool  hasVariadicParam = !params.empty() && params.back()->type(sema.ctx()).isAnyVariadic();
     for (size_t i = 0; i < resolvedArgs.size(); ++i)
     {
         size_t paramIndex = i;
@@ -527,14 +527,14 @@ Result AstAttribute::semaPostNode(Sema& sema) const
         SWC_ASSERT(symParam);
 
         AttributeParamInstance paramInst;
-        paramInst.nameIdRef = symParam->idRef();
+        paramInst.nameIdRef       = symParam->idRef();
         const TypeInfo& paramType = symParam->type(sema.ctx());
 
         const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
         if (resolvedArg.argRef.isValid())
         {
             const SemaNodeView argView = sema.viewConstant(resolvedArg.argRef);
-            paramInst.valueCstRef = argView.cstRef();
+            paramInst.valueCstRef      = argView.cstRef();
             SWC_RESULT(normalizeAttributeParamConstantRef(sema, paramInst.valueCstRef, paramType, resolvedArg.argRef));
         }
         else if (resolvedArg.defaultCstRef.isValid())

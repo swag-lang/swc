@@ -37,8 +37,8 @@ public:
             TypeRef              rtTypeRef;
             State                state = State::CommonInit;
             SmallVector<TypeRef> deps;
-            uint32_t             enumValuesOffset = 0;
-            uint32_t             enumValuesCount  = 0;
+            uint32_t             enumValuesOffset   = 0;
+            uint32_t             enumValuesCount    = 0;
             uint32_t             structFieldsOffset = 0;
             uint32_t             structFieldsCount  = 0;
             SmallVector<TypeRef> structFieldTypes;

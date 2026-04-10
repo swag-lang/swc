@@ -837,9 +837,9 @@ namespace
         if (!range.srcView || !range.len)
             return {};
 
-        const SourceView&      srcView   = *range.srcView;
-        const std::vector<Token>& tokens = srcView.tokens();
-        const uint32_t         rangeEnd  = range.offset + range.len;
+        const SourceView&         srcView  = *range.srcView;
+        const std::vector<Token>& tokens   = srcView.tokens();
+        const uint32_t            rangeEnd = range.offset + range.len;
 
         TokenRef assertRef = TokenRef::invalid();
         for (uint32_t i = 0; i < tokens.size(); ++i)
@@ -861,10 +861,10 @@ namespace
         if (!assertRef.isValid())
             return extractAssertConditionTextFromText(range);
 
-        TokenRef  openParenRef = TokenRef::invalid();
-        uint32_t  depth        = 0;
-        uint32_t  closeOffset  = 0;
-        const auto assertIndex = assertRef.get();
+        TokenRef   openParenRef = TokenRef::invalid();
+        uint32_t   depth        = 0;
+        uint32_t   closeOffset  = 0;
+        const auto assertIndex  = assertRef.get();
 
         for (uint32_t i = assertIndex + 1; i < tokens.size(); ++i)
         {
@@ -904,9 +904,9 @@ namespace
         if (!openParenRef.isValid())
             return extractAssertConditionTextFromText(range);
 
-        const Token& openParen   = srcView.token(openParenRef);
-        const auto   openOffset  = tokenByteStart(srcView, openParen) + openParen.byteLength;
-        const auto   condEnd     = closeOffset ? closeOffset : rangeEnd;
+        const Token& openParen  = srcView.token(openParenRef);
+        const auto   openOffset = tokenByteStart(srcView, openParen) + openParen.byteLength;
+        const auto   condEnd    = closeOffset ? closeOffset : rangeEnd;
         if (condEnd <= openOffset)
             return {};
 

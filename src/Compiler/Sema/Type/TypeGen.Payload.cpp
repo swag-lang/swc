@@ -230,7 +230,7 @@ namespace
         std::vector valueBytes(valueSize, std::byte{0});
         SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, valueTypeRef) == Result::Continue);
 
-        uint32_t       valueOffset = INVALID_REF;
+        uint32_t valueOffset = INVALID_REF;
         SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(
                                valueOffset,
                                sema,
@@ -258,14 +258,14 @@ namespace
         const TaskContext& ctx = sema.ctx();
         for (uint32_t i = 0; i < attribute.params.size(); ++i)
         {
-            const AttributeParamInstance& srcParam  = attribute.params[i];
-            Runtime::AttributeParam&      dstParam  = paramsPtr[i];
+            const AttributeParamInstance& srcParam    = attribute.params[i];
+            Runtime::AttributeParam&      dstParam    = paramsPtr[i];
             const uint32_t                paramOffset = paramsOffset + static_cast<uint32_t>(i * sizeof(Runtime::AttributeParam));
 
             dstParam.value = {};
             if (srcParam.nameIdRef.isValid())
             {
-                const auto& id = ctx.idMgr().get(srcParam.nameIdRef);
+                const auto& id       = ctx.idMgr().get(srcParam.nameIdRef);
                 dstParam.name.length = storage.addString(paramOffset, offsetof(Runtime::AttributeParam, name.ptr), Utf8{id.name});
             }
 

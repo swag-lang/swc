@@ -51,7 +51,7 @@ struct AttributeParamInstance
 // One attribute
 struct AttributeInstance
 {
-    const SymbolFunction*                 symbol = nullptr;
+    const SymbolFunction*                symbol = nullptr;
     SmallVector4<AttributeParamInstance> params;
 };
 

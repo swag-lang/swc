@@ -13,6 +13,41 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr size_t K_STRUCT_FIELD_LIST_LIMIT = 8;
+
+    void appendQuotedName(Utf8& out, bool& first, std::string_view name)
+    {
+        if (!first)
+            out += ", ";
+        first = false;
+        out += '\'';
+        out += name;
+        out += '\'';
+    }
+
+    Utf8 formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct)
+    {
+        Utf8   result;
+        bool   first = true;
+        size_t count = 0;
+        for (const SymbolVariable* field : symStruct.fields())
+        {
+            if (!field)
+                continue;
+
+            if (count == K_STRUCT_FIELD_LIST_LIMIT)
+            {
+                result += ", ...";
+                break;
+            }
+
+            appendQuotedName(result, first, field->name(ctx));
+            ++count;
+        }
+
+        return result;
+    }
+
     struct CastStructArgs
     {
         Sema*           sema;
@@ -82,6 +117,15 @@ namespace
         const Result res = args.castRequest->fail(id, args.srcTypeRef, args.dstTypeRef, value);
         if (id == DiagnosticId::sema_err_unnamed_parameter && args.srcType->isAggregateStruct())
             args.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
+        if (id == DiagnosticId::sema_err_missing_struct_member)
+        {
+            const Utf8 availableFields = formatStructFieldList(args.sema->ctx(), args.dstType->payloadSymStruct());
+            if (!availableFields.empty())
+            {
+                args.castRequest->failure.noteId = DiagnosticId::sema_note_available_struct_fields;
+                args.castRequest->failure.addArgument(Diagnostic::ARG_VALUES, availableFields);
+            }
+        }
         args.castRequest->errorCodeRef = previous;
         return res;
     }

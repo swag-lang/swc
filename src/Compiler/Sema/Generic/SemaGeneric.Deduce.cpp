@@ -11,24 +11,47 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result deduceFromTypePattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, TypeRef rawArgTypeRef, CastFailure* outFailure);
+    constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
 
-    void setGenericTypeDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, TypeRef previousTypeRef, TypeRef newTypeRef)
+    Result deduceFromTypePattern(Sema& sema,
+                                 std::span<const SemaGeneric::GenericParamDesc> params,
+                                 std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
+                                 AstNodeRef                                      patternRef,
+                                 TypeRef                                         rawArgTypeRef,
+                                 AstNodeRef                                      argExprRef,
+                                 uint32_t                                        callArgIndex,
+                                 CastFailure*                                    outFailure);
+
+    void setGenericTypeDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, TypeRef newTypeRef)
     {
         outFailure            = {};
         outFailure.diagId     = DiagnosticId::sema_err_generic_type_deduction_conflict;
-        outFailure.srcTypeRef = previousTypeRef;
+        outFailure.srcTypeRef = previousArg.typeRef;
         outFailure.dstTypeRef = newTypeRef;
         outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(idRef).name});
+        if (previousArg.callArgIndex != UINT32_MAX)
+            outFailure.addArgument(K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
+        if (previousArg.diagRef.isValid())
+        {
+            outFailure.noteId  = DiagnosticId::sema_note_generic_previous_deduction;
+            outFailure.nodeRef = previousArg.diagRef;
+        }
     }
 
-    void setGenericValueDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, ConstantRef previousCstRef, ConstantRef newCstRef)
+    void setGenericValueDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, ConstantRef newCstRef)
     {
         outFailure        = {};
         outFailure.diagId = DiagnosticId::sema_err_generic_value_deduction_conflict;
         outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(idRef).name});
-        outFailure.addArgument(Diagnostic::ARG_LEFT, sema.cstMgr().get(previousCstRef).toString(sema.ctx()));
+        outFailure.addArgument(Diagnostic::ARG_LEFT, sema.cstMgr().get(previousArg.cstRef).toString(sema.ctx()));
         outFailure.addArgument(Diagnostic::ARG_RIGHT, sema.cstMgr().get(newCstRef).toString(sema.ctx()));
+        if (previousArg.callArgIndex != UINT32_MAX)
+            outFailure.addArgument(K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
+        if (previousArg.diagRef.isValid())
+        {
+            outFailure.noteId  = DiagnosticId::sema_note_generic_previous_deduction;
+            outFailure.nodeRef = previousArg.diagRef;
+        }
     }
 
     uint32_t callArgIndexFromUserIndex(uint32_t userArgIndex, AstNodeRef ufcsArg, bool prependUfcsArg)
@@ -111,7 +134,14 @@ namespace
         }
     }
 
-    bool tryBindGenericTypeParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, TypeRef typeRef, CastFailure* outFailure)
+    bool tryBindGenericTypeParam(Sema& sema,
+                                 std::span<const SemaGeneric::GenericParamDesc> params,
+                                 std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
+                                 IdentifierRef                                   idRef,
+                                 AstNodeRef                                      exprRef,
+                                 uint32_t                                        callArgIndex,
+                                 TypeRef                                         typeRef,
+                                 CastFailure*                                    outFailure)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -121,9 +151,10 @@ namespace
             SemaGeneric::GenericResolvedArg& arg = resolvedArgs[i];
             if (!arg.present)
             {
-                arg.present = true;
-                arg.exprRef = exprRef;
-                arg.typeRef = typeRef;
+                arg.present      = true;
+                arg.diagRef      = exprRef;
+                arg.typeRef      = typeRef;
+                arg.callArgIndex = callArgIndex;
                 return true;
             }
 
@@ -131,14 +162,22 @@ namespace
                 return true;
 
             if (outFailure)
-                setGenericTypeDeductionFailure(sema, *outFailure, idRef, arg.typeRef, typeRef);
+                setGenericTypeDeductionFailure(sema, *outFailure, idRef, arg, typeRef);
             return false;
         }
 
         return true;
     }
 
-    bool tryBindGenericValueParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, ConstantRef cstRef, TypeRef typeRef, CastFailure* outFailure)
+    bool tryBindGenericValueParam(Sema& sema,
+                                  std::span<const SemaGeneric::GenericParamDesc> params,
+                                  std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
+                                  IdentifierRef                                   idRef,
+                                  AstNodeRef                                      exprRef,
+                                  uint32_t                                        callArgIndex,
+                                  ConstantRef                                     cstRef,
+                                  TypeRef                                         typeRef,
+                                  CastFailure*                                    outFailure)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -148,9 +187,11 @@ namespace
             SemaGeneric::GenericResolvedArg& arg = resolvedArgs[i];
             if (!arg.present)
             {
-                arg.present = true;
-                arg.typeRef = typeRef;
-                arg.cstRef  = cstRef;
+                arg.present      = true;
+                arg.diagRef      = exprRef;
+                arg.typeRef      = typeRef;
+                arg.cstRef       = cstRef;
+                arg.callArgIndex = callArgIndex;
                 return true;
             }
 
@@ -158,7 +199,7 @@ namespace
                 return true;
 
             if (outFailure)
-                setGenericValueDeductionFailure(sema, *outFailure, idRef, arg.cstRef, cstRef);
+                setGenericValueDeductionFailure(sema, *outFailure, idRef, arg, cstRef);
             return false;
         }
 
@@ -226,7 +267,15 @@ namespace
         return outGenericRoot != nullptr || outGenericRootIdRef.isValid();
     }
 
-    Result deduceFromValuePattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, ConstantRef cstRef, TypeRef typeRef, CastFailure* outFailure)
+    Result deduceFromValuePattern(Sema& sema,
+                                  std::span<const SemaGeneric::GenericParamDesc> params,
+                                  std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
+                                  AstNodeRef                                      patternRef,
+                                  ConstantRef                                     cstRef,
+                                  TypeRef                                         typeRef,
+                                  AstNodeRef                                      argExprRef,
+                                  uint32_t                                        callArgIndex,
+                                  CastFailure*                                    outFailure)
     {
         if (patternRef.isInvalid() || !cstRef.isValid())
             return Result::Continue;
@@ -235,7 +284,7 @@ namespace
         if (const auto* ident = patternNode.safeCast<AstIdentifier>())
         {
             const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-            if (!tryBindGenericValueParam(sema, params, resolvedArgs, idRef, cstRef, typeRef, outFailure))
+            if (!tryBindGenericValueParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, typeRef, outFailure))
                 return Result::Error;
             return Result::Continue;
         }
@@ -247,7 +296,14 @@ namespace
         return Result::Continue;
     }
 
-    Result deduceFromStructPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, const AstNamedType& namedType, const TypeInfo& argType, const CastFailure* outFailure)
+    Result deduceFromStructPattern(Sema& sema,
+                                   std::span<const SemaGeneric::GenericParamDesc> params,
+                                   std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
+                                   const AstNamedType&                             namedType,
+                                   const TypeInfo&                                 argType,
+                                   AstNodeRef                                      argExprRef,
+                                   uint32_t                                        callArgIndex,
+                                   const CastFailure*                              outFailure)
     {
         if (!argType.isStruct())
             return Result::Continue;
@@ -283,9 +339,9 @@ namespace
         {
             auto result = Result::Continue;
             if (actualArgs[i].typeRef.isValid())
-                result = deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternArgs[i], actualArgs[i].typeRef, outFailure ? &trialFailure : nullptr);
+                result = deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternArgs[i], actualArgs[i].typeRef, argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr);
             else if (actualArgs[i].cstRef.isValid())
-                result = deduceFromValuePattern(sema, params, trialResolvedArgs.span(), patternArgs[i], actualArgs[i].cstRef, actualArgs[i].typeRef, outFailure ? &trialFailure : nullptr);
+                result = deduceFromValuePattern(sema, params, trialResolvedArgs.span(), patternArgs[i], actualArgs[i].cstRef, actualArgs[i].typeRef, argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr);
 
             if (result == Result::Error)
                 return Result::Continue;
@@ -295,7 +351,14 @@ namespace
         return Result::Continue;
     }
 
-    Result deduceFromTypePattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, TypeRef rawArgTypeRef, CastFailure* outFailure)
+    Result deduceFromTypePattern(Sema& sema,
+                                 std::span<const SemaGeneric::GenericParamDesc> params,
+                                 std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
+                                 AstNodeRef                                      patternRef,
+                                 TypeRef                                         rawArgTypeRef,
+                                 AstNodeRef                                      argExprRef,
+                                 uint32_t                                        callArgIndex,
+                                 CastFailure*                                    outFailure)
     {
         if (patternRef.isInvalid() || !rawArgTypeRef.isValid())
             return Result::Continue;
@@ -304,7 +367,7 @@ namespace
         if (const auto* ident = patternNode.safeCast<AstIdentifier>())
         {
             const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-            if (!tryBindGenericTypeParam(sema, params, resolvedArgs, idRef, AstNodeRef::invalid(), rawArgTypeRef, outFailure))
+            if (!tryBindGenericTypeParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, rawArgTypeRef, outFailure))
                 return Result::Error;
 
             return Result::Continue;
@@ -317,7 +380,7 @@ namespace
             if (const auto* ident = identNode.safeCast<AstIdentifier>())
             {
                 const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-                if (!tryBindGenericTypeParam(sema, params, resolvedArgs, idRef, AstNodeRef::invalid(), rawArgTypeRef, outFailure))
+                if (!tryBindGenericTypeParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, rawArgTypeRef, outFailure))
                     return Result::Error;
 
                 return Result::Continue;
@@ -329,7 +392,7 @@ namespace
         const TaskContext& ctx        = sema.ctx();
 
         if (namedType)
-            return deduceFromStructPattern(sema, params, resolvedArgs, *namedType, argType, outFailure);
+            return deduceFromStructPattern(sema, params, resolvedArgs, *namedType, argType, argExprRef, callArgIndex, outFailure);
 
         if (const auto* arrayType = patternNode.safeCast<AstArrayType>())
         {
@@ -349,57 +412,57 @@ namespace
                 {
                     const IdentifierRef idRef  = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
                     const ConstantRef   cstRef = sema.cstMgr().addInt(ctx, argDims[i]);
-                    if (!tryBindGenericValueParam(sema, params, resolvedArgs, idRef, cstRef, sema.cstMgr().get(cstRef).typeRef(), outFailure))
+                    if (!tryBindGenericValueParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, sema.cstMgr().get(cstRef).typeRef(), outFailure))
                         return Result::Error;
                 }
             }
 
-            return deduceFromTypePattern(sema, params, resolvedArgs, arrayType->nodePointeeTypeRef, argType.payloadArrayElemTypeRef(), outFailure);
+            return deduceFromTypePattern(sema, params, resolvedArgs, arrayType->nodePointeeTypeRef, argType.payloadArrayElemTypeRef(), argExprRef, callArgIndex, outFailure);
         }
 
         if (const auto* sliceType = patternNode.safeCast<AstSliceType>())
         {
             if (!argType.isSlice())
                 return Result::Continue;
-            return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, argType.payloadTypeRef(), outFailure);
+            return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure);
         }
 
         if (const auto* refType = patternNode.safeCast<AstReferenceType>())
         {
             if (!argType.isReference())
                 return Result::Continue;
-            return deduceFromTypePattern(sema, params, resolvedArgs, refType->nodePointeeTypeRef, argType.payloadTypeRef(), outFailure);
+            return deduceFromTypePattern(sema, params, resolvedArgs, refType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure);
         }
 
         if (const auto* moveRefType = patternNode.safeCast<AstMoveRefType>())
         {
             if (!argType.isMoveReference())
                 return Result::Continue;
-            return deduceFromTypePattern(sema, params, resolvedArgs, moveRefType->nodePointeeTypeRef, argType.payloadTypeRef(), outFailure);
+            return deduceFromTypePattern(sema, params, resolvedArgs, moveRefType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure);
         }
 
         if (const auto* valuePtrType = patternNode.safeCast<AstValuePointerType>())
         {
             if (!argType.isValuePointer())
                 return Result::Continue;
-            return deduceFromTypePattern(sema, params, resolvedArgs, valuePtrType->nodePointeeTypeRef, argType.payloadTypeRef(), outFailure);
+            return deduceFromTypePattern(sema, params, resolvedArgs, valuePtrType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure);
         }
 
         if (const auto* blockPtrType = patternNode.safeCast<AstBlockPointerType>())
         {
             if (!argType.isBlockPointer())
                 return Result::Continue;
-            return deduceFromTypePattern(sema, params, resolvedArgs, blockPtrType->nodePointeeTypeRef, argType.payloadTypeRef(), outFailure);
+            return deduceFromTypePattern(sema, params, resolvedArgs, blockPtrType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure);
         }
 
         if (const auto* qualifiedType = patternNode.safeCast<AstQualifiedType>())
-            return deduceFromTypePattern(sema, params, resolvedArgs, qualifiedType->nodeTypeRef, rawArgTypeRef, outFailure);
+            return deduceFromTypePattern(sema, params, resolvedArgs, qualifiedType->nodeTypeRef, rawArgTypeRef, argExprRef, callArgIndex, outFailure);
 
         if (const auto* variadicType = patternNode.safeCast<AstTypedVariadicType>())
         {
             if (!argType.isTypedVariadic())
                 return Result::Continue;
-            return deduceFromTypePattern(sema, params, resolvedArgs, variadicType->nodeTypeRef, argType.payloadTypeRef(), outFailure);
+            return deduceFromTypePattern(sema, params, resolvedArgs, variadicType->nodeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure);
         }
 
         return Result::Continue;
@@ -563,7 +626,7 @@ namespace SemaGeneric
                 }
             }
 
-            if (deduceFromTypePattern(sema, genericParams, ioResolvedArgs.span(), params[i].typeRef, argTypeRef, outFailure) == Result::Error)
+            if (deduceFromTypePattern(sema, genericParams, ioResolvedArgs.span(), params[i].typeRef, argTypeRef, valueArgRef, entry.callArgIndex, outFailure) == Result::Error)
             {
                 if (outFailureArgIndex)
                     *outFailureArgIndex = entry.callArgIndex;

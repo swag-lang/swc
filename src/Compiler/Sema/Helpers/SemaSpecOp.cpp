@@ -556,7 +556,8 @@ namespace
         diag.last().addSpan(sema.srcView(codeRef.srcViewRef).tokenCodeRange(sema.ctx(), codeRef.tokRef), "", DiagnosticSeverity::Error);
         SemaError::setReportArguments(sema, diag, codeRef);
         SemaError::setReportArguments(sema, diag, &sym);
-        diag.addArgument(Diagnostic::ARG_BECAUSE, specOpSignatureHint(kind));
+        diag.addNote(DiagnosticId::sema_note_expected_signature);
+        diag.last().addArgument(Diagnostic::ARG_VALUE, specOpSignatureHint(kind));
         diag.report(sema.ctx());
         return Result::Continue;
     }

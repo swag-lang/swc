@@ -17,6 +17,100 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr size_t K_AUTO_SCOPE_LIST_LIMIT = 8;
+
+    void appendQuotedAutoScopeName(Utf8& out, bool& first, std::string_view name)
+    {
+        if (!first)
+            out += ", ";
+        first = false;
+        out += '\'';
+        out += name;
+        out += '\'';
+    }
+
+    Utf8 formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct)
+    {
+        Utf8   result;
+        bool   first = true;
+        size_t count = 0;
+        for (const SymbolVariable* field : symStruct.fields())
+        {
+            if (!field)
+                continue;
+
+            if (count == K_AUTO_SCOPE_LIST_LIMIT)
+            {
+                result += ", ...";
+                break;
+            }
+
+            appendQuotedAutoScopeName(result, first, field->name(ctx));
+            ++count;
+        }
+
+        return result;
+    }
+
+    Utf8 formatStructMemberList(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return {};
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (typeInfo.isStruct())
+            return formatStructFieldList(sema.ctx(), typeInfo.payloadSymStruct());
+        if (!typeInfo.isAggregateStruct())
+            return {};
+
+        Utf8   result;
+        bool   first = true;
+        size_t count = 0;
+        for (const IdentifierRef idRef : typeInfo.payloadAggregate().names)
+        {
+            if (!idRef.isValid())
+                continue;
+
+            if (count == K_AUTO_SCOPE_LIST_LIMIT)
+            {
+                result += ", ...";
+                break;
+            }
+
+            appendQuotedAutoScopeName(result, first, sema.idMgr().get(idRef).name);
+            ++count;
+        }
+
+        return result;
+    }
+
+    Utf8 formatEnumValueList(TaskContext& ctx, const SymbolEnum& symEnum)
+    {
+        std::vector<const Symbol*> symbols;
+        symEnum.getAllSymbols(symbols);
+
+        Utf8   result;
+        bool   first = true;
+        size_t count = 0;
+        for (const Symbol* symbol : symbols)
+        {
+            const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
+            if (!enumValue)
+                continue;
+
+            if (count == K_AUTO_SCOPE_LIST_LIMIT)
+            {
+                result += ", ...";
+                break;
+            }
+
+            appendQuotedAutoScopeName(result, first, enumValue->name(ctx));
+            ++count;
+        }
+
+        return result;
+    }
+
     TypeRef normalizeAutoMemberBindingType(TaskContext& ctx, TypeRef typeRef)
     {
         while (typeRef.isValid())
@@ -405,6 +499,24 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             auto diag = SemaError::report(sema, diagId, sema.curNodeRef());
             diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, candidate.typeRef);
+            if (diagId == DiagnosticId::sema_err_auto_scope_missing_struct_member)
+            {
+                const Utf8 availableFields = formatStructMemberList(sema, candidate.typeRef);
+                if (!availableFields.empty())
+                {
+                    diag.addNote(DiagnosticId::sema_note_available_struct_fields);
+                    diag.last().addArgument(Diagnostic::ARG_VALUES, availableFields);
+                }
+            }
+            else if (diagId == DiagnosticId::sema_err_auto_scope_missing_enum_value)
+            {
+                const Utf8 availableValues = formatEnumValueList(sema.ctx(), typeInfo.payloadSymEnum());
+                if (!availableValues.empty())
+                {
+                    diag.addNote(DiagnosticId::sema_note_available_enum_values);
+                    diag.last().addArgument(Diagnostic::ARG_VALUES, availableValues);
+                }
+            }
             diag.report(sema.ctx());
             return Result::Error;
         }

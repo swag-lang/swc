@@ -48,11 +48,53 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
     diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(expectedTknId)));
 }
 
+Diagnostic Parser::reportExpectedDoBlock(TokenRef tknRefAfterHeader)
+{
+    Diagnostic diag = reportError(DiagnosticId::parser_err_expected_do_block, tknRefAfterHeader);
+    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_controlled_statement, DiagnosticSeverity::Note);
+    return diag;
+}
+
+void Parser::tryEnhanceUnexpectedToken(Diagnostic& diag, TokenRef tknRef) const
+{
+    TokenId expectedOpening = TokenId::Invalid;
+
+    switch (ast_->srcView().token(tknRef).id)
+    {
+        case TokenId::SymRightParen:
+            if (!depthParen_)
+                expectedOpening = TokenId::SymLeftParen;
+            break;
+
+        case TokenId::SymRightBracket:
+            if (!depthBracket_)
+                expectedOpening = TokenId::SymLeftBracket;
+            break;
+
+        case TokenId::SymRightCurly:
+            if (!depthCurly_)
+                expectedOpening = TokenId::SymLeftCurly;
+            break;
+
+        default:
+            break;
+    }
+
+    if (expectedOpening == TokenId::Invalid)
+        return;
+
+    setReportExpected(diag, expectedOpening);
+    if (diag.last().hasSpans())
+        diag.last().span(0).messageId = DiagnosticId::parser_note_no_matching_opening;
+}
+
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
     Diagnostic diag = Diagnostic::get(id, ast_->srcView().fileRef());
     setReportArguments(diag, tknRef);
     diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
+    if (id == DiagnosticId::parser_err_unexpected_token)
+        tryEnhanceUnexpectedToken(diag, tknRef);
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -81,6 +123,8 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
     setReportArguments(diag, tknRef);
     const SourceCodeRange codeRange = node.codeRangeWithChildren(*ctx_, *ast_);
     diag.last().addSpan(codeRange, "");
+    if (id == DiagnosticId::parser_err_unexpected_token)
+        tryEnhanceUnexpectedToken(diag, tknRef);
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -250,6 +294,8 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
     {
         Diagnostic diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
         setReportExpected(diag, closeId);
+        if (diag.last().hasSpans())
+            diag.last().span(0).messageId = DiagnosticId::parser_note_insert_missing_closing;
         diag.last().addSpan(tok.codeRange(*ctx_, ast_->srcView()), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
         diag.report(*ctx_);
     }

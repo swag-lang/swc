@@ -620,7 +620,7 @@ AstNodeRef Parser::parseDoCurlyBlock()
     if (is(TokenId::SymLeftCurly))
         return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
 
-    const Diagnostic diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
+    const Diagnostic diag = reportExpectedDoBlock(ref().offset(-1));
     diag.report(*ctx_);
     return AstNodeRef::invalid();
 }

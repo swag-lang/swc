@@ -73,11 +73,21 @@ namespace
         return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
     }
 
-    Result failStructMissingFieldNoDefault(const CastStructArgs& ctx, std::string_view fieldName)
+    void setStructFieldFailureNote(CastRequest& castRequest, DiagnosticId noteId, AstNodeRef noteNodeRef, std::string_view fieldName)
     {
-        const Result res = ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
+        castRequest.failure.noteId     = noteId;
+        castRequest.failure.noteNodeRef = noteNodeRef;
+        castRequest.failure.addArgument(Diagnostic::ARG_VALUE, fieldName);
+    }
+
+    Result failStructMissingFieldNoDefault(const CastStructArgs& ctx, const SymbolVariable& field)
+    {
+        const std::string_view fieldName = field.name(ctx.sema->ctx());
+        const Result           res       = ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
         if (ctx.srcType->isAggregateStruct())
             ctx.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
+        if (field.decl())
+            setStructFieldFailureNote(*ctx.castRequest, DiagnosticId::sema_note_required_struct_field_declared_here, field.decl()->nodeRef(ctx.sema->ast()), fieldName);
         return res;
     }
 
@@ -203,6 +213,7 @@ namespace
         SWC_ASSERT(srcNames.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
         std::vector dstUsed(dstFields.size(), false);
+        std::vector<AstNodeRef> dstFieldInitRefs(dstFields.size(), AstNodeRef::invalid());
 
         bool   seenNamed = false;
         size_t nextPos   = 0;
@@ -210,6 +221,7 @@ namespace
         {
             const IdentifierRef name       = srcNames[i];
             const bool          positional = name.isInvalid();
+            const AstNodeRef    fieldNodeRef = aggregateFieldNodeRef(args, i, srcTypes.size());
 
             if (positional)
             {
@@ -223,6 +235,7 @@ namespace
 
                 srcToDst[i]      = nextPos;
                 dstUsed[nextPos] = true;
+                dstFieldInitRefs[nextPos] = fieldNodeRef;
                 ++nextPos;
                 continue;
             }
@@ -244,10 +257,16 @@ namespace
             if (!found)
                 return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_missing_struct_member, args.sema->idMgr().get(name).name);
             if (dstUsed[dstIndex])
-                return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_struct_cast_duplicate_field, args.sema->idMgr().get(name).name);
+            {
+                const Result res = failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_struct_cast_duplicate_field, args.sema->idMgr().get(name).name);
+                if (dstFieldInitRefs[dstIndex].isValid())
+                    setStructFieldFailureNote(*args.castRequest, DiagnosticId::sema_note_previous_struct_field_initializer, dstFieldInitRefs[dstIndex], args.sema->idMgr().get(name).name);
+                return res;
+            }
 
             srcToDst[i]       = dstIndex;
             dstUsed[dstIndex] = true;
+            dstFieldInitRefs[dstIndex] = fieldNodeRef;
         }
 
         for (size_t i = 0; i < dstFields.size(); ++i)
@@ -257,7 +276,7 @@ namespace
             const SymbolVariable* field = dstFields[i];
             if (!field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
                 continue;
-            return failStructMissingFieldNoDefault(args, args.sema->idMgr().get(field->idRef()).name);
+            return failStructMissingFieldNoDefault(args, *field);
         }
 
         return Result::Continue;

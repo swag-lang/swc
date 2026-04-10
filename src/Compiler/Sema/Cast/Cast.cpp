@@ -178,7 +178,21 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
         }
     }
     f.applyArguments(diag);
-    diag.addNote(f.noteId);
+    if (f.noteId != DiagnosticId::None)
+    {
+        diag.addNote(f.noteId);
+        f.applyArguments(diag.last());
+
+        if (f.noteNodeRef.isValid())
+        {
+            diag.last().addSpan(sema.node(f.noteNodeRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
+        }
+        else if (f.noteCodeRef.isValid())
+        {
+            const SourceView& srcView = sema.ctx().compiler().srcView(f.noteCodeRef.srcViewRef);
+            diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), f.noteCodeRef.tokRef));
+        }
+    }
     diag.report(sema.ctx());
     return Result::Error;
 }

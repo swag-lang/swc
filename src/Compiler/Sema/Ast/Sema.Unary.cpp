@@ -247,11 +247,13 @@ namespace
         SWC_ASSERT(view.node() != nullptr);
         if (!sema.isLValue(*view.node()) && !isAddressableConstantIndex(sema, view))
         {
-            const DiagnosticId    diagId    = view.cstRef().isValid() ? DiagnosticId::sema_err_take_address_constant : DiagnosticId::sema_err_take_address_not_lvalue;
-            auto                  diag      = SemaError::report(sema, diagId, node.codeRef());
-            const SourceCodeRange codeRange = sema.node(view.nodeRef()).codeRangeWithChildren(sema.ctx(), sema.ast());
-            diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
-            diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
+            const DiagnosticId diagId = view.cstRef().isValid() ? DiagnosticId::sema_err_take_address_constant : DiagnosticId::sema_err_take_address_not_lvalue;
+            auto               diag   = SemaError::report(sema, diagId, node.codeRef());
+            if (diagId == DiagnosticId::sema_err_take_address_not_lvalue)
+            {
+                diag.addNote(DiagnosticId::sema_note_expression_not_addressable);
+                SemaError::addSpan(sema, diag.last(), view.nodeRef());
+            }
             diag.report(sema.ctx());
             return Result::Error;
         }

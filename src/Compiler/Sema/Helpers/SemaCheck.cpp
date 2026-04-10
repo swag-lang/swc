@@ -197,6 +197,9 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, nodeRef);
             SemaError::setReportArguments(sema, diag, leftView.sym());
+            diag.addNote(DiagnosticId::sema_note_let_variable_declared_here);
+            diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
+            diag.last().addSpan(leftView.sym()->codeRange(sema.ctx()));
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -205,6 +208,9 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, nodeRef);
             SemaError::setReportArguments(sema, diag, leftView.sym());
+            diag.addNote(DiagnosticId::sema_note_constant_declared_here);
+            diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
+            diag.last().addSpan(leftView.sym()->codeRange(sema.ctx()));
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -214,8 +220,8 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
     if (!sema.isLValue(leftView.nodeRef()))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, nodeRef);
-        if (leftView.typeRef().isValid())
-            diag.addArgument(Diagnostic::ARG_TYPE, leftView.typeRef());
+        diag.addNote(DiagnosticId::sema_note_expression_not_assignable);
+        SemaError::addSpan(sema, diag.last(), leftView.nodeRef());
         diag.report(sema.ctx());
         return Result::Error;
     }

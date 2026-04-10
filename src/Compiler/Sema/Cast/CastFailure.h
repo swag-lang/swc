@@ -11,6 +11,8 @@ struct CastFailure
     DiagnosticId        noteId     = DiagnosticId::None;
     AstNodeRef          nodeRef    = AstNodeRef::invalid();
     SourceCodeRef       codeRef    = SourceCodeRef::invalid();
+    AstNodeRef          noteNodeRef = AstNodeRef::invalid();
+    SourceCodeRef       noteCodeRef = SourceCodeRef::invalid();
     TypeRef             srcTypeRef = TypeRef::invalid();
     TypeRef             dstTypeRef = TypeRef::invalid();
     TypeRef             optTypeRef = TypeRef::invalid();

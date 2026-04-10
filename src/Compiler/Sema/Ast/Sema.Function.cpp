@@ -543,7 +543,12 @@ namespace
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_in_void, exprRef);
                 if (const auto* currentFn = sema.currentFunction())
+                {
                     diag.addArgument(Diagnostic::ARG_SYM, currentFn->name(sema.ctx()));
+                    diag.addNote(DiagnosticId::sema_note_function_declared_here);
+                    diag.last().addArgument(Diagnostic::ARG_SYM, currentFn->name(sema.ctx()));
+                    diag.last().addSpan(currentFn->codeRange(sema.ctx()));
+                }
                 diag.report(sema.ctx());
                 return Result::Error;
             }
@@ -557,6 +562,22 @@ namespace
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_missing_value, returnRef);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
+            if (const auto* currentFn = sema.currentFunction())
+            {
+                const auto* decl = currentFn->decl() ? currentFn->decl()->safeCast<AstFunctionDecl>() : nullptr;
+                if (decl && decl->nodeReturnTypeRef.isValid())
+                {
+                    diag.addNote(DiagnosticId::sema_note_function_return_type_declared_here);
+                    diag.last().addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
+                    SemaError::addSpan(sema, diag.last(), decl->nodeReturnTypeRef);
+                }
+                else
+                {
+                    diag.addNote(DiagnosticId::sema_note_function_declared_here);
+                    diag.last().addArgument(Diagnostic::ARG_SYM, currentFn->name(sema.ctx()));
+                    diag.last().addSpan(currentFn->codeRange(sema.ctx()));
+                }
+            }
             diag.report(sema.ctx());
             return Result::Error;
         }

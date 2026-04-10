@@ -77,19 +77,15 @@ namespace
         }
         const auto& sym = owner->cast<SymbolStruct>();
 
-        size_t      fieldIndex = 0;
-        const auto& fields     = sym.fields();
-        const auto  it         = std::ranges::find_if(fields, [&](const SymbolVariable* field) {
-            return field == &symVar;
-        });
-
+        const auto& fields = sym.fields();
+        const auto  it     = std::ranges::find(fields, &symVar);
         if (it == fields.end())
         {
             failStructMemberType(sema, symVar, nodeMemberRef);
             return;
         }
 
-        fieldIndex = static_cast<size_t>(std::distance(fields.begin(), it));
+        const auto fieldIndex = static_cast<size_t>(std::distance(fields.begin(), it));
         if (std::cmp_greater_equal(fieldIndex, values.size()))
         {
             failStructMemberType(sema, symVar, nodeMemberRef);

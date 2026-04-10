@@ -16,7 +16,24 @@ namespace
 {
     Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
-    Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr);
+
+    Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr)
+    {
+        outOffset = INVALID_REF;
+        if (!sourcePtr)
+            return Result::Continue;
+
+        uint32_t  shardIndex = 0;
+        const Ref targetRef  = sema.cstMgr().findDataSegmentRef(shardIndex, sourcePtr);
+        if (targetRef == INVALID_REF)
+            return Result::Error;
+
+        if (&segment != &sema.cstMgr().shardDataSegment(shardIndex))
+            return Result::Error;
+
+        outOffset = targetRef;
+        return Result::Continue;
+    }
 
     Result materializeStaticScalar(ByteSpanRW dstBytes, ByteSpan srcBytes)
     {
@@ -251,24 +268,6 @@ namespace
         dstPtr = ptrOffset == INVALID_REF ? 0 : reinterpret_cast<uint64_t>(segment.ptr<std::byte>(ptrOffset));
         if (ptrOffset != INVALID_REF)
             segment.addRelocation(baseOffset, ptrOffset);
-        return Result::Continue;
-    }
-
-    Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr)
-    {
-        outOffset = INVALID_REF;
-        if (!sourcePtr)
-            return Result::Continue;
-
-        uint32_t  shardIndex = 0;
-        const Ref targetRef  = sema.cstMgr().findDataSegmentRef(shardIndex, sourcePtr);
-        if (targetRef == INVALID_REF)
-            return Result::Error;
-
-        if (&segment != &sema.cstMgr().shardDataSegment(shardIndex))
-            return Result::Error;
-
-        outOffset = targetRef;
         return Result::Continue;
     }
 

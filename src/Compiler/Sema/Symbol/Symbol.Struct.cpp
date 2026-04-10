@@ -217,10 +217,7 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 
 void SymbolStruct::removeIgnoredFields()
 {
-    fields_.erase(std::ranges::remove_if(fields_, [](const Symbol* field) {
-                      return field->isIgnored();
-                  }).begin(),
-                  fields_.end());
+    std::erase_if(fields_, std::mem_fn(&Symbol::isIgnored));
 }
 
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)

@@ -884,21 +884,6 @@ namespace
         TypeRef          bindingTypeRef = TypeRef::invalid();
         TypeRef          compareTypeRef = TypeRef::invalid();
 
-        auto considerBindingType = [&](TypeRef paramTypeRef) {
-            const TypeRef resolvedTypeRef = unwrapLambdaBindingType(sema.ctx(), paramTypeRef);
-            if (!resolvedTypeRef.isValid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
-                return true;
-
-            if (compareTypeRef.isInvalid())
-            {
-                bindingTypeRef = paramTypeRef;
-                compareTypeRef = resolvedTypeRef;
-                return true;
-            }
-
-            return compareTypeRef == resolvedTypeRef;
-        };
-
         for (Symbol* const sym : symbols)
         {
             if (!sym)
@@ -921,7 +906,19 @@ namespace
             if (!param)
                 continue;
 
-            if (!considerBindingType(param->typeRef()))
+            const TypeRef paramTypeRef    = param->typeRef();
+            const TypeRef resolvedTypeRef = unwrapLambdaBindingType(sema.ctx(), paramTypeRef);
+            if (!resolvedTypeRef.isValid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
+                continue;
+
+            if (compareTypeRef.isInvalid())
+            {
+                bindingTypeRef = paramTypeRef;
+                compareTypeRef = resolvedTypeRef;
+                continue;
+            }
+
+            if (compareTypeRef != resolvedTypeRef)
                 return TypeRef::invalid();
         }
 

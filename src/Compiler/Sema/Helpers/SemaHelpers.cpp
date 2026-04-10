@@ -460,23 +460,23 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
     if (!view.type())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, view.nodeRef());
 
-    const auto setConstantResult = [&](ConstantRef cstRef) {
-        outResult.cstRef  = cstRef;
-        outResult.typeRef = sema.cstMgr().get(cstRef).typeRef();
-        return Result::Continue;
-    };
-
     if (view.cst())
     {
         if (view.cst()->isString())
-            return setConstantResult(sema.cstMgr().addInt(ctx, view.cst()->getString().length()));
+        {
+            outResult.cstRef  = sema.cstMgr().addInt(ctx, view.cst()->getString().length());
+            outResult.typeRef = sema.cstMgr().get(outResult.cstRef).typeRef();
+            return Result::Continue;
+        }
 
         if (view.cst()->isSlice())
         {
             const TypeInfo& elementType = sema.typeMgr().get(view.type()->payloadTypeRef());
             const uint64_t  elementSize = elementType.sizeOf(ctx);
             const uint64_t  count       = elementSize ? view.cst()->getSlice().size() / elementSize : 0;
-            return setConstantResult(sema.cstMgr().addInt(ctx, count));
+            outResult.cstRef            = sema.cstMgr().addInt(ctx, count);
+            outResult.typeRef           = sema.cstMgr().get(outResult.cstRef).typeRef();
+            return Result::Continue;
         }
 
         if (view.cst()->isInt())
@@ -489,9 +489,9 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
                 return Result::Error;
             }
 
-            ConstantRef newCstRef;
-            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unsigned));
-            return setConstantResult(newCstRef);
+            SWC_RESULT(Cast::concretizeConstant(sema, outResult.cstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unsigned));
+            outResult.typeRef = sema.cstMgr().get(outResult.cstRef).typeRef();
+            return Result::Continue;
         }
     }
 
@@ -522,12 +522,16 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
         const TypeInfo& ty         = sema.typeMgr().get(typeRef);
         const uint64_t  sizeOfElem = ty.sizeOf(ctx);
         SWC_ASSERT(sizeOfElem > 0);
-        return setConstantResult(sema.cstMgr().addInt(ctx, sizeOf / sizeOfElem));
+        outResult.cstRef  = sema.cstMgr().addInt(ctx, sizeOf / sizeOfElem);
+        outResult.typeRef = sema.cstMgr().get(outResult.cstRef).typeRef();
+        return Result::Continue;
     }
 
     if (view.type()->isAggregateArray())
     {
-        return setConstantResult(sema.cstMgr().addInt(ctx, view.type()->payloadAggregate().types.size()));
+        outResult.cstRef  = sema.cstMgr().addInt(ctx, view.type()->payloadAggregate().types.size());
+        outResult.typeRef = sema.cstMgr().get(outResult.cstRef).typeRef();
+        return Result::Continue;
     }
 
     if (view.type()->isSlice() || view.type()->isAnyVariadic())

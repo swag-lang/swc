@@ -364,6 +364,8 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
 
             diag.addNote(DiagnosticId::sema_note_switch_missing_enum_value);
             diag.last().addArgument(Diagnostic::ARG_VALUE, value.getFullScopedName(sema.ctx()));
+            diag.addNote(DiagnosticId::sema_note_switch_missing_enum_value_here);
+            diag.last().addSpan(sym->codeRange(sema.ctx()));
             diag.report(sema.ctx());
             return Result::Error;
         }

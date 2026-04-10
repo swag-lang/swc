@@ -40,6 +40,7 @@ private:
     LexerFlags      lexerFlags_       = LexerFlagsE::Default;
     uint32_t        startTokenOffset_ = 0;
     bool            hasTokenError_    = false;
+    bool            hasFileError_     = false;
     bool            hasUtf8Error_     = false;
 
     static bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container);

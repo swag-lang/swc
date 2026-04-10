@@ -237,6 +237,8 @@ private:
     void        setReportSymbol(Diagnostic& diag, TokenRef tokRef) const;
     Diagnostic  reportExpectedDoBlock(TokenRef tknRefAfterHeader);
     Diagnostic  reportUnexpectedDoBlock(TokenRef doTokRef);
+    Diagnostic  reportEmptySwitchCase(AstNodeRef caseRef, TokenRef boundaryRef, DiagnosticId noteId);
+    Diagnostic  reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef);
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);

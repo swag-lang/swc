@@ -84,6 +84,22 @@ Diagnostic Parser::reportUnexpectedDoBlock(TokenRef doTokRef)
     return diag;
 }
 
+Diagnostic Parser::reportEmptySwitchCase(AstNodeRef caseRef, TokenRef boundaryRef, DiagnosticId noteId)
+{
+    Diagnostic diag = reportError(DiagnosticId::parser_err_empty_case, caseRef);
+    if (boundaryRef.isValid() && ast_->srcView().token(boundaryRef).id != TokenId::EndOfFile)
+        diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, boundaryRef), noteId, DiagnosticSeverity::Note);
+    return diag;
+}
+
+Diagnostic Parser::reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef)
+{
+    Diagnostic diag = reportError(DiagnosticId::parser_err_switch_missing_case, openRef);
+    if (closeRef.isValid() && ast_->srcView().token(closeRef).id != TokenId::EndOfFile)
+        diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, closeRef), DiagnosticId::parser_note_switch_body_ends_here, DiagnosticSeverity::Note);
+    return diag;
+}
+
 Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast)
 {
     Diagnostic diag = reportError(id, errorRef);

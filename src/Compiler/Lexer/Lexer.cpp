@@ -97,6 +97,7 @@ void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     if (hasUtf8Error_)
         return;
     hasUtf8Error_ = true;
+    hasFileError_ = true;
 
     if (isRawMode())
         return;
@@ -111,6 +112,7 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     if (hasTokenError_)
         return {};
     hasTokenError_ = true;
+    hasFileError_  = true;
 
     if (isRawMode())
         return {};
@@ -1286,7 +1288,9 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     srcView_ = &srcView;
     srcView_->tokens().clear();
     srcView_->lines().clear();
-    prevToken_ = {};
+    prevToken_    = {};
+    hasFileError_ = false;
+    hasUtf8Error_ = false;
 
     langSpec_   = &ctx.global().langSpec();
     ctx_        = &ctx;
@@ -1429,6 +1433,9 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     // Compute the start trivia of each token
     if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
         buildTriviaIndex();
+
+    if (!isRawMode() && hasFileError_)
+        srcView_->setLexOnly();
 
 #if SWC_HAS_STATS
     if (!isRawMode())

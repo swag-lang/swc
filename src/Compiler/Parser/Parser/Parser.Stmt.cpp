@@ -478,6 +478,7 @@ AstNodeRef Parser::parseSwitch()
     SmallVector<AstNodeRef> nodeStmts;
     AstSwitchCaseStmt*      currentCase = nullptr;
     AstSwitchCaseBody*      currentBody = nullptr;
+    AstNodeRef              currentCaseRef;
 
     while (isNot(TokenId::SymRightCurly) && !atEnd())
     {
@@ -489,7 +490,10 @@ AstNodeRef Parser::parseSwitch()
                 if (currentCase)
                 {
                     if (nodeStmts.empty())
-                        raiseError(DiagnosticId::parser_err_empty_case, currentCase->tokRef());
+                    {
+                        const Diagnostic diag = reportEmptySwitchCase(currentCaseRef, ref(), DiagnosticId::parser_note_next_switch_section_starts_here);
+                        diag.report(*ctx_);
+                    }
                     currentBody->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
                 }
 
@@ -498,6 +502,7 @@ AstNodeRef Parser::parseSwitch()
                 const AstNodeRef caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
                 currentCase = ast_->node<AstNodeId::SwitchCaseStmt>(caseRef);
+                currentCaseRef = caseRef;
 
                 auto [bodyRef, bodyPtr]  = ast_->makeNode<AstNodeId::SwitchCaseBody>(ast_->node(caseRef).tokRef());
                 currentCase->nodeBodyRef = bodyRef;
@@ -509,7 +514,9 @@ AstNodeRef Parser::parseSwitch()
             {
                 if (!currentCase)
                 {
-                    raiseError(DiagnosticId::parser_err_switch_expected_case, ref());
+                    Diagnostic diag = reportError(DiagnosticId::parser_err_switch_expected_case, ref());
+                    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, openRef), DiagnosticId::parser_note_switch_body_starts_here, DiagnosticSeverity::Note);
+                    diag.report(*ctx_);
                     skipTo({TokenId::KwdCase, TokenId::KwdDefault, TokenId::SymRightCurly});
                     break;
                 }
@@ -524,12 +531,16 @@ AstNodeRef Parser::parseSwitch()
     if (currentCase)
     {
         if (nodeStmts.empty())
-            raiseError(DiagnosticId::parser_err_empty_case, currentCase->tokRef());
+        {
+            const Diagnostic diag = reportEmptySwitchCase(currentCaseRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid(), DiagnosticId::parser_note_switch_section_ends_here);
+            diag.report(*ctx_);
+        }
         currentBody->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
     }
     else
     {
-        raiseError(DiagnosticId::parser_err_switch_missing_case, openRef);
+        const Diagnostic diag = reportEmptySwitchBody(openRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid());
+        diag.report(*ctx_);
     }
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeChildren.span());

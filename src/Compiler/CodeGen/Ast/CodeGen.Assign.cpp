@@ -71,12 +71,6 @@ namespace
         AssignEncodingKind        encodingKind = AssignEncodingKind::EqualStore;
     };
 
-    Result emitAssignEqualStore(CodeGen& codeGen, const AssignEncodeContext& encodeCtx);
-    Result emitAssignEqualStoreBulk(CodeGen& codeGen, const AssignEncodeContext& encodeCtx);
-    Result emitAssignCompoundIntLike(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp);
-    Result emitAssignCompoundFloat(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp);
-    Result emitAssignCompoundPointer(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp);
-
     AssignEncodingKind resolveAssignEncodingKind(const TypeInfo& targetType, TokenId assignOp)
     {
         if (assignOp == TokenId::SymEqual)
@@ -436,141 +430,6 @@ namespace
         return Result::Continue;
     }
 
-    Result emitAssignEncoded(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
-    {
-        switch (encodeCtx.encodingKind)
-        {
-            case AssignEncodingKind::EqualStore:
-                return emitAssignEqualStore(codeGen, encodeCtx);
-            case AssignEncodingKind::EqualStoreBulk:
-                return emitAssignEqualStoreBulk(codeGen, encodeCtx);
-            case AssignEncodingKind::IntLikeCompound:
-                return emitAssignCompoundIntLike(codeGen, encodeCtx, assignOp);
-            case AssignEncodingKind::FloatCompound:
-                return emitAssignCompoundFloat(codeGen, encodeCtx, assignOp);
-            case AssignEncodingKind::PointerCompound:
-                return emitAssignCompoundPointer(codeGen, encodeCtx, assignOp);
-        }
-
-        SWC_UNREACHABLE();
-    }
-
-    bool canReinitializeMoveSource(CodeGen& codeGen, AstNodeRef rightRef, TypeRef originalRightTypeRef)
-    {
-        if (originalRightTypeRef.isValid() && codeGen.typeMgr().get(originalRightTypeRef).isMoveReference())
-            return true;
-        return codeGen.sema().isLValue(codeGen.node(rightRef));
-    }
-
-    Result emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
-    {
-        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid())
-            typeRef = rawTypeRef;
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (!typeInfo.isStruct())
-            return Result::Continue;
-
-        const ConstantRef defaultValueRef = typeInfo.payloadSymStruct().computeDefaultValue(codeGen.sema(), typeRef);
-        SWC_ASSERT(defaultValueRef.isValid());
-        if (defaultValueRef.isInvalid())
-            return Result::Continue;
-
-        const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, typeRef);
-        SWC_ASSERT(safeDefaultValueRef.isValid());
-        if (safeDefaultValueRef.isInvalid())
-            return Result::Continue;
-
-        const ConstantValue& defaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
-        SWC_ASSERT(defaultValue.isStruct());
-        if (!defaultValue.isStruct())
-            return Result::Continue;
-
-        const ByteSpan payloadBytes = defaultValue.getStruct();
-        SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
-        const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, payloadReg, static_cast<uint32_t>(payloadBytes.size()));
-        return Result::Continue;
-    }
-
-    Result emitAssignStructLifecycle(CodeGen&                  codeGen,
-                                     AstNodeRef                leftRef,
-                                     const CodeGenNodePayload& originalRightPayload,
-                                     TypeRef                   rightTypeRef,
-                                     TypeRef                   originalRightTypeRef,
-                                     TokenId                   assignOp,
-                                     AstModifierFlags          modifierFlags,
-                                     AstNodeRef                rightRef,
-                                     const bool                rebindReference)
-    {
-        const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp, rebindReference);
-        if (assignOp != TokenId::SymEqual)
-            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
-        if (!encodeCtx.target.opTypeRef.isValid())
-            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
-
-        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
-        if (!targetType.isStruct())
-            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
-
-        const bool                   isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw});
-        const bool                   isMoveRaw         = modifierFlags.has(AstModifierFlagsE::MoveRaw);
-        const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop);
-        const CodeGen::LifecycleKind postKind          = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
-        const bool                   hasTargetDrop     = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
-        const bool                   hasPostLifecycle  = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
-        const bool                   canResetSource    = isMove && !isMoveRaw && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
-        const bool                   shouldResetSource = canResetSource && codeGen.hasLifecycle(rightTypeRef, CodeGen::LifecycleKind::Drop);
-
-        if (!hasTargetDrop && !hasPostLifecycle && !shouldResetSource)
-            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
-
-        AssignEncodeContext lifecycleCtx = encodeCtx;
-        CodeGenNodePayload  stableRight  = originalRightPayload;
-        MicroBuilder&       builder      = codeGen.builder();
-        const MicroReg      targetReg    = lifecycleCtx.target.payload.reg;
-        if (targetReg.isValid())
-        {
-            const MicroReg stableTargetReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(stableTargetReg, targetReg, MicroOpBits::B64);
-            lifecycleCtx.target.payload.reg = stableTargetReg;
-        }
-
-        if (stableRight.isAddress())
-        {
-            const MicroReg stableSourceReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(stableSourceReg, stableRight.reg, MicroOpBits::B64);
-            stableRight.reg = stableSourceReg;
-        }
-
-        lifecycleCtx.rightPayload = &stableRight;
-
-        MicroLabelRef doneLabel = MicroLabelRef::invalid();
-        if (stableRight.isAddress() && lifecycleCtx.target.payload.isAddress())
-        {
-            doneLabel = builder.createLabel();
-            builder.emitCmpRegReg(lifecycleCtx.target.payload.reg, stableRight.reg, MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-        }
-
-        if (hasTargetDrop)
-            SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop, lifecycleCtx.target.payload.reg));
-
-        SWC_RESULT(emitAssignEncoded(codeGen, lifecycleCtx, assignOp));
-
-        if (hasPostLifecycle)
-            SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, postKind, lifecycleCtx.target.payload.reg));
-
-        if (shouldResetSource)
-            SWC_RESULT(emitStructDefaultValue(codeGen, rightTypeRef, stableRight.reg));
-
-        if (doneLabel.isValid())
-            builder.placeLabel(doneLabel);
-        return Result::Continue;
-    }
-
     Result emitAssignEqualStore(CodeGen& codeGen, const AssignEncodeContext& encodeCtx)
     {
         SWC_ASSERT(encodeCtx.rightPayload);
@@ -707,6 +566,141 @@ namespace
         const MicroReg resultReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadAddressAmcRegMem(resultReg, MicroOpBits::B64, leftReg, indexReg, stride, 0, MicroOpBits::B64);
         builder.emitLoadMemReg(encodeCtx.target.payload.reg, 0, resultReg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
+    Result emitAssignEncoded(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
+    {
+        switch (encodeCtx.encodingKind)
+        {
+            case AssignEncodingKind::EqualStore:
+                return emitAssignEqualStore(codeGen, encodeCtx);
+            case AssignEncodingKind::EqualStoreBulk:
+                return emitAssignEqualStoreBulk(codeGen, encodeCtx);
+            case AssignEncodingKind::IntLikeCompound:
+                return emitAssignCompoundIntLike(codeGen, encodeCtx, assignOp);
+            case AssignEncodingKind::FloatCompound:
+                return emitAssignCompoundFloat(codeGen, encodeCtx, assignOp);
+            case AssignEncodingKind::PointerCompound:
+                return emitAssignCompoundPointer(codeGen, encodeCtx, assignOp);
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    bool canReinitializeMoveSource(CodeGen& codeGen, AstNodeRef rightRef, TypeRef originalRightTypeRef)
+    {
+        if (originalRightTypeRef.isValid() && codeGen.typeMgr().get(originalRightTypeRef).isMoveReference())
+            return true;
+        return codeGen.sema().isLValue(codeGen.node(rightRef));
+    }
+
+    Result emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
+    {
+        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid())
+            typeRef = rawTypeRef;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isStruct())
+            return Result::Continue;
+
+        const ConstantRef defaultValueRef = typeInfo.payloadSymStruct().computeDefaultValue(codeGen.sema(), typeRef);
+        SWC_ASSERT(defaultValueRef.isValid());
+        if (defaultValueRef.isInvalid())
+            return Result::Continue;
+
+        const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, typeRef);
+        SWC_ASSERT(safeDefaultValueRef.isValid());
+        if (safeDefaultValueRef.isInvalid())
+            return Result::Continue;
+
+        const ConstantValue& defaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
+        SWC_ASSERT(defaultValue.isStruct());
+        if (!defaultValue.isStruct())
+            return Result::Continue;
+
+        const ByteSpan payloadBytes = defaultValue.getStruct();
+        SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
+        const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, payloadReg, static_cast<uint32_t>(payloadBytes.size()));
+        return Result::Continue;
+    }
+
+    Result emitAssignStructLifecycle(CodeGen&                  codeGen,
+                                     AstNodeRef                leftRef,
+                                     const CodeGenNodePayload& originalRightPayload,
+                                     TypeRef                   rightTypeRef,
+                                     TypeRef                   originalRightTypeRef,
+                                     TokenId                   assignOp,
+                                     AstModifierFlags          modifierFlags,
+                                     AstNodeRef                rightRef,
+                                     const bool                rebindReference)
+    {
+        const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp, rebindReference);
+        if (assignOp != TokenId::SymEqual)
+            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
+        if (!encodeCtx.target.opTypeRef.isValid())
+            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
+
+        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
+        if (!targetType.isStruct())
+            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
+
+        const bool                   isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw});
+        const bool                   isMoveRaw         = modifierFlags.has(AstModifierFlagsE::MoveRaw);
+        const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop);
+        const CodeGen::LifecycleKind postKind          = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        const bool                   hasTargetDrop     = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
+        const bool                   hasPostLifecycle  = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
+        const bool                   canResetSource    = isMove && !isMoveRaw && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
+        const bool                   shouldResetSource = canResetSource && codeGen.hasLifecycle(rightTypeRef, CodeGen::LifecycleKind::Drop);
+
+        if (!hasTargetDrop && !hasPostLifecycle && !shouldResetSource)
+            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
+
+        AssignEncodeContext lifecycleCtx = encodeCtx;
+        CodeGenNodePayload  stableRight  = originalRightPayload;
+        MicroBuilder&       builder      = codeGen.builder();
+        const MicroReg      targetReg    = lifecycleCtx.target.payload.reg;
+        if (targetReg.isValid())
+        {
+            const MicroReg stableTargetReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(stableTargetReg, targetReg, MicroOpBits::B64);
+            lifecycleCtx.target.payload.reg = stableTargetReg;
+        }
+
+        if (stableRight.isAddress())
+        {
+            const MicroReg stableSourceReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(stableSourceReg, stableRight.reg, MicroOpBits::B64);
+            stableRight.reg = stableSourceReg;
+        }
+
+        lifecycleCtx.rightPayload = &stableRight;
+
+        MicroLabelRef doneLabel = MicroLabelRef::invalid();
+        if (stableRight.isAddress() && lifecycleCtx.target.payload.isAddress())
+        {
+            doneLabel = builder.createLabel();
+            builder.emitCmpRegReg(lifecycleCtx.target.payload.reg, stableRight.reg, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+        }
+
+        if (hasTargetDrop)
+            SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop, lifecycleCtx.target.payload.reg));
+
+        SWC_RESULT(emitAssignEncoded(codeGen, lifecycleCtx, assignOp));
+
+        if (hasPostLifecycle)
+            SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, postKind, lifecycleCtx.target.payload.reg));
+
+        if (shouldResetSource)
+            SWC_RESULT(emitStructDefaultValue(codeGen, rightTypeRef, stableRight.reg));
+
+        if (doneLabel.isValid())
+            builder.placeLabel(doneLabel);
         return Result::Continue;
     }
 

@@ -30,9 +30,20 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_ASSERT = 3;
-    ConstantRef        makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef);
-    void               loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef);
-    void               materializeIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef);
+
+    ConstantRef makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeInfo& type   = codeGen.typeMgr().get(typeRef);
+        const uint64_t  sizeOf = type.sizeOf(codeGen.ctx());
+
+        std::vector<std::byte> bytes;
+        bytes.resize(sizeOf);
+
+        const std::string_view storedPayload(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        const std::string_view persistentStorage = codeGen.cstMgr().addPayloadBuffer(storedPayload);
+        const ByteSpan         persistentBytes{reinterpret_cast<const std::byte*>(persistentStorage.data()), persistentStorage.size()};
+        return codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, persistentBytes));
+    }
 
     CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
     {
@@ -1591,20 +1602,6 @@ namespace
             return nullptr;
 
         return codeGen.compiler().runtimeFunctionSymbol(idRef);
-    }
-
-    ConstantRef makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef)
-    {
-        const TypeInfo& type   = codeGen.typeMgr().get(typeRef);
-        const uint64_t  sizeOf = type.sizeOf(codeGen.ctx());
-
-        std::vector<std::byte> bytes;
-        bytes.resize(sizeOf);
-
-        const std::string_view storedPayload(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-        const std::string_view persistentStorage = codeGen.cstMgr().addPayloadBuffer(storedPayload);
-        const ByteSpan         persistentBytes{reinterpret_cast<const std::byte*>(persistentStorage.data()), persistentStorage.size()};
-        return codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, persistentBytes));
     }
 
     Result codeGenProcessInfos(CodeGen& codeGen)

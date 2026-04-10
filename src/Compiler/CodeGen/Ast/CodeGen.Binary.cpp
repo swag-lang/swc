@@ -242,16 +242,9 @@ namespace
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
 
-        MicroBuilder& builder         = codeGen.builder();
-        const auto    isIntLikeOrBool = [](const TypeInfo& typeInfo) {
-            return typeInfo.isIntLike() || typeInfo.isBool();
-        };
+        MicroBuilder& builder = codeGen.builder();
 
-        const auto isUnsignedLike = [](const TypeInfo& typeInfo) {
-            return typeInfo.isBool() || typeInfo.isIntLikeUnsigned();
-        };
-
-        if (isIntLikeOrBool(srcType) && isIntLikeOrBool(dstType))
+        if (srcType.isNumericIntLike() && dstType.isNumericIntLike())
         {
             if (srcBits == dstBits)
                 return;
@@ -264,7 +257,7 @@ namespace
                 return;
             }
 
-            if (isUnsignedLike(srcType))
+            if (srcType.isBoolOrIntLikeUnsigned())
                 builder.emitLoadZeroExtendRegReg(dstReg, outReg, dstBits, srcBits);
             else
                 builder.emitLoadSignedExtendRegReg(dstReg, outReg, dstBits, srcBits);
@@ -272,14 +265,14 @@ namespace
             return;
         }
 
-        if (isIntLikeOrBool(srcType) && dstType.isFloat())
+        if (srcType.isNumericIntLike() && dstType.isFloat())
         {
             MicroReg srcReg = outReg;
             if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
             {
                 srcReg                        = codeGen.nextVirtualIntRegister();
                 const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                if (!isUnsignedLike(srcType))
+                if (!srcType.isBoolOrIntLikeUnsigned())
                     builder.emitLoadSignedExtendRegReg(srcReg, outReg, widenedBits, srcBits);
                 else
                     builder.emitLoadZeroExtendRegReg(srcReg, outReg, widenedBits, srcBits);
@@ -304,7 +297,7 @@ namespace
             return;
         }
 
-        if (srcType.isFloat() && isIntLikeOrBool(dstType))
+        if (srcType.isFloat() && dstType.isNumericIntLike())
         {
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstReg, dstBits);

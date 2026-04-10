@@ -104,6 +104,18 @@ namespace
         return outBits != MicroOpBits::Zero;
     }
 
+    MicroReg narrowF64ToFloatBits(CodeGen& codeGen, MicroReg f64Reg, MicroOpBits dstBits, TypeRef dstTypeRef)
+    {
+        if (dstBits == MicroOpBits::B64)
+            return f64Reg;
+
+        MicroBuilder&  builder = codeGen.builder();
+        const MicroReg dstReg  = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        builder.emitClearReg(dstReg, dstBits);
+        builder.emitOpBinaryRegReg(dstReg, f64Reg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
+        return dstReg;
+    }
+
     MicroReg emitUnsignedIntToFloatReg(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, TypeRef dstTypeRef)
     {
         MicroBuilder&     builder = codeGen.builder();
@@ -114,16 +126,6 @@ namespace
         SWC_ASSERT(dstType.isFloat());
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits == MicroOpBits::B32 || dstBits == MicroOpBits::B64);
-
-        const auto finishFromF64 = [&](MicroReg f64Reg) {
-            if (dstBits == MicroOpBits::B64)
-                return f64Reg;
-
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
-            builder.emitClearReg(dstReg, dstBits);
-            builder.emitOpBinaryRegReg(dstReg, f64Reg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
-            return dstReg;
-        };
 
         if (srcBits == MicroOpBits::B64)
         {
@@ -152,7 +154,7 @@ namespace
             builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
             builder.emitOpBinaryRegReg(dstF64Reg, srcReg, MicroOp::ConvertIntToFloat, MicroOpBits::B64);
             builder.placeLabel(doneLabel);
-            return finishFromF64(dstF64Reg);
+            return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
         }
 
         MicroReg    convertReg  = srcReg;
@@ -171,7 +173,7 @@ namespace
             const MicroReg dstF64Reg = codeGen.nextVirtualFloatRegister();
             builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
             builder.emitOpBinaryRegReg(dstF64Reg, convertReg, MicroOp::ConvertIntToFloat, MicroOpBits::B64);
-            return finishFromF64(dstF64Reg);
+            return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
         }
 
         const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);

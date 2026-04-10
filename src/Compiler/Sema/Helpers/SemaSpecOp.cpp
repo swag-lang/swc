@@ -25,9 +25,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result validateSpecOpSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind);
-    Result collectSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates);
-
     std::string_view specOpSignatureHint(SpecOpKind kind)
     {
         switch (kind)
@@ -367,70 +364,6 @@ namespace
         return &type.payloadSymStruct();
     }
 
-    Result collectAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, SmallVector<Symbol*>& outCandidates)
-    {
-        outCandidates.clear();
-        if (!isSupportedAssignSpecOp(tokId))
-            return Result::Continue;
-
-        const bool          isSimpleAssign = tokId == TokenId::SymEqual;
-        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAssign);
-        AstNodeRef          genericArg     = AstNodeRef::invalid();
-        if (!isSimpleAssign)
-        {
-            const std::string_view opString = assignGenericOpString(tokId);
-            SWC_ASSERT(!opString.empty());
-            genericArg = makeSyntheticStringConstantArg(sema, codeRef, opString);
-        }
-
-        if (genericArg.isValid())
-            return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
-        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
-    }
-
-    void splitMutableReceiverCandidates(Sema& sema, std::span<Symbol*> inCandidates, SmallVector<Symbol*>& outMutableCandidates, SmallVector<Symbol*>& outConstCandidates)
-    {
-        outMutableCandidates.clear();
-        outConstCandidates.clear();
-
-        for (Symbol* sym : inCandidates)
-        {
-            auto* const symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr;
-            if (!symFunc || symFunc->parameters().empty())
-            {
-                outConstCandidates.push_back(sym);
-                continue;
-            }
-
-            const SymbolVariable* const receiver = symFunc->parameters().front();
-            if (receiver && !sema.typeMgr().get(receiver->typeRef()).isConst())
-                outMutableCandidates.push_back(sym);
-            else
-                outConstCandidates.push_back(sym);
-        }
-    }
-
-    Result collectIndexAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, SmallVector<Symbol*>& outCandidates)
-    {
-        outCandidates.clear();
-        if (!isSupportedAssignSpecOp(tokId))
-            return Result::Continue;
-
-        const bool          isSimpleAssign = tokId == TokenId::SymEqual;
-        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAffect) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAssign);
-        AstNodeRef          genericArg     = AstNodeRef::invalid();
-        if (!isSimpleAssign)
-        {
-            const std::string_view opString = assignGenericOpString(tokId);
-            SWC_ASSERT(!opString.empty());
-            genericArg = makeSyntheticStringConstantArg(sema, codeRef, opString);
-        }
-
-        if (genericArg.isValid())
-            return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
-        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
-    }
-
     bool canExplicitlySpecializeSpecOp(Sema& sema, const SymbolFunction& symFunc, std::span<const AstNodeRef> genericArgNodes)
     {
         if (!symFunc.isGenericRoot() || genericArgNodes.empty())
@@ -452,101 +385,6 @@ namespace
         }
 
         return true;
-    }
-
-    Result collectSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
-    {
-        outCandidates.clear();
-
-        for (const SymbolImpl* symImpl : ownerStruct.impls())
-        {
-            if (!symImpl || symImpl->isIgnored())
-                continue;
-
-            for (SymbolFunction* symFunc : symImpl->specOps())
-            {
-                if (!symFunc || symFunc->idRef() != idRef)
-                    continue;
-
-                // Parallel sema can expose special operator methods before their signature is typed.
-                // Wait for concrete overloads here so operator resolution never ranks half-built methods.
-                if (!symFunc->isGenericRoot())
-                    SWC_RESULT(sema.waitTyped(symFunc, symFunc->codeRef()));
-
-                if (!canExplicitlySpecializeSpecOp(sema, *symFunc, genericArgNodes))
-                {
-                    outCandidates.push_back(symFunc);
-                    continue;
-                }
-
-                // When specializing overloaded operators, a failed specialization (e.g. an #error
-                // directive for an unsupported operation) means this overload does not handle the
-                // requested operator.  Suppress diagnostics and skip the candidate instead of
-                // aborting the entire resolution.
-                SymbolFunction* specialized = nullptr;
-                const bool      savedSilent = sema.ctx().silentDiagnostic();
-                sema.ctx().setSilentDiagnostic(true);
-                const Result specResult = SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized);
-                sema.ctx().setSilentDiagnostic(savedSilent);
-                if (specResult == Result::Pause)
-                    return Result::Pause;
-                if (specResult != Result::Continue)
-                    continue;
-                if (specialized)
-                {
-                    SWC_RESULT(sema.waitSemaCompleted(specialized, specialized->codeRef()));
-                    SWC_RESULT(validateSpecOpSignature(sema, ownerStruct, *specialized, specialized->specOpKind()));
-                    outCandidates.push_back(specialized);
-                }
-            }
-        }
-
-        return Result::Continue;
-    }
-
-    Result resolveSyntheticCall(Sema&                 sema,
-                                const AstNode&        node,
-                                std::span<Symbol*>    candidates,
-                                std::span<AstNodeRef> args,
-                                AstNodeRef            ufcsArg,
-                                bool                  allowNoMatch = false,
-                                bool*                 outMatched   = nullptr)
-    {
-        if (outMatched)
-            *outMatched = false;
-
-        SmallVector<ResolvedCallArgument> resolvedArgs;
-        const SemaNodeView                calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
-        if (allowNoMatch)
-        {
-            const bool savedSilent = sema.ctx().silentDiagnostic();
-            sema.ctx().setSilentDiagnostic(true);
-            const Result matchResult = Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs);
-            sema.ctx().setSilentDiagnostic(savedSilent);
-            if (matchResult == Result::Pause)
-                return Result::Pause;
-            if (matchResult != Result::Continue)
-                return Result::Continue;
-        }
-        else
-        {
-            SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs));
-        }
-
-        if (outMatched)
-            *outMatched = true;
-        sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
-
-        auto& calledFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-        SemaHelpers::addCurrentFunctionCallDependency(sema, &calledFn);
-
-        SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
-        if (sema.viewConstant(sema.curNodeRef()).hasConstant())
-            return Result::Continue;
-
-        SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
-        SWC_RESULT(attachRuntimeStorageIfNeeded(sema, node, syntheticCallRuntimeStorageTypeRef(sema, calledFn)));
-        return Result::Continue;
     }
 
     Result reportSpecOpError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
@@ -681,6 +519,165 @@ namespace
                 break;
         }
 
+        return Result::Continue;
+    }
+
+    Result collectSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
+    {
+        outCandidates.clear();
+
+        for (const SymbolImpl* symImpl : ownerStruct.impls())
+        {
+            if (!symImpl || symImpl->isIgnored())
+                continue;
+
+            for (SymbolFunction* symFunc : symImpl->specOps())
+            {
+                if (!symFunc || symFunc->idRef() != idRef)
+                    continue;
+
+                // Parallel sema can expose special operator methods before their signature is typed.
+                // Wait for concrete overloads here so operator resolution never ranks half-built methods.
+                if (!symFunc->isGenericRoot())
+                    SWC_RESULT(sema.waitTyped(symFunc, symFunc->codeRef()));
+
+                if (!canExplicitlySpecializeSpecOp(sema, *symFunc, genericArgNodes))
+                {
+                    outCandidates.push_back(symFunc);
+                    continue;
+                }
+
+                // When specializing overloaded operators, a failed specialization (e.g. an #error
+                // directive for an unsupported operation) means this overload does not handle the
+                // requested operator.  Suppress diagnostics and skip the candidate instead of
+                // aborting the entire resolution.
+                SymbolFunction* specialized = nullptr;
+                const bool      savedSilent = sema.ctx().silentDiagnostic();
+                sema.ctx().setSilentDiagnostic(true);
+                const Result specResult = SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized);
+                sema.ctx().setSilentDiagnostic(savedSilent);
+                if (specResult == Result::Pause)
+                    return Result::Pause;
+                if (specResult != Result::Continue)
+                    continue;
+                if (specialized)
+                {
+                    SWC_RESULT(sema.waitSemaCompleted(specialized, specialized->codeRef()));
+                    SWC_RESULT(validateSpecOpSignature(sema, ownerStruct, *specialized, specialized->specOpKind()));
+                    outCandidates.push_back(specialized);
+                }
+            }
+        }
+
+        return Result::Continue;
+    }
+
+    Result collectAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, SmallVector<Symbol*>& outCandidates)
+    {
+        outCandidates.clear();
+        if (!isSupportedAssignSpecOp(tokId))
+            return Result::Continue;
+
+        const bool          isSimpleAssign = tokId == TokenId::SymEqual;
+        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAssign);
+        AstNodeRef          genericArg     = AstNodeRef::invalid();
+        if (!isSimpleAssign)
+        {
+            const std::string_view opString = assignGenericOpString(tokId);
+            SWC_ASSERT(!opString.empty());
+            genericArg = makeSyntheticStringConstantArg(sema, codeRef, opString);
+        }
+
+        if (genericArg.isValid())
+            return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
+        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
+    }
+
+    void splitMutableReceiverCandidates(Sema& sema, std::span<Symbol*> inCandidates, SmallVector<Symbol*>& outMutableCandidates, SmallVector<Symbol*>& outConstCandidates)
+    {
+        outMutableCandidates.clear();
+        outConstCandidates.clear();
+
+        for (Symbol* sym : inCandidates)
+        {
+            auto* const symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr;
+            if (!symFunc || symFunc->parameters().empty())
+            {
+                outConstCandidates.push_back(sym);
+                continue;
+            }
+
+            const SymbolVariable* const receiver = symFunc->parameters().front();
+            if (receiver && !sema.typeMgr().get(receiver->typeRef()).isConst())
+                outMutableCandidates.push_back(sym);
+            else
+                outConstCandidates.push_back(sym);
+        }
+    }
+
+    Result collectIndexAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, SmallVector<Symbol*>& outCandidates)
+    {
+        outCandidates.clear();
+        if (!isSupportedAssignSpecOp(tokId))
+            return Result::Continue;
+
+        const bool          isSimpleAssign = tokId == TokenId::SymEqual;
+        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAffect) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAssign);
+        AstNodeRef          genericArg     = AstNodeRef::invalid();
+        if (!isSimpleAssign)
+        {
+            const std::string_view opString = assignGenericOpString(tokId);
+            SWC_ASSERT(!opString.empty());
+            genericArg = makeSyntheticStringConstantArg(sema, codeRef, opString);
+        }
+
+        if (genericArg.isValid())
+            return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
+        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
+    }
+
+    Result resolveSyntheticCall(Sema&                 sema,
+                                const AstNode&        node,
+                                std::span<Symbol*>    candidates,
+                                std::span<AstNodeRef> args,
+                                AstNodeRef            ufcsArg,
+                                bool                  allowNoMatch = false,
+                                bool*                 outMatched   = nullptr)
+    {
+        if (outMatched)
+            *outMatched = false;
+
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        const SemaNodeView                calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
+        if (allowNoMatch)
+        {
+            const bool savedSilent = sema.ctx().silentDiagnostic();
+            sema.ctx().setSilentDiagnostic(true);
+            const Result matchResult = Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs);
+            sema.ctx().setSilentDiagnostic(savedSilent);
+            if (matchResult == Result::Pause)
+                return Result::Pause;
+            if (matchResult != Result::Continue)
+                return Result::Continue;
+        }
+        else
+        {
+            SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs));
+        }
+
+        if (outMatched)
+            *outMatched = true;
+        sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
+
+        auto& calledFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        SemaHelpers::addCurrentFunctionCallDependency(sema, &calledFn);
+
+        SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
+        if (sema.viewConstant(sema.curNodeRef()).hasConstant())
+            return Result::Continue;
+
+        SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
+        SWC_RESULT(attachRuntimeStorageIfNeeded(sema, node, syntheticCallRuntimeStorageTypeRef(sema, calledFn)));
         return Result::Continue;
     }
 

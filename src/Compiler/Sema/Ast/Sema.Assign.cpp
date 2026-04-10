@@ -17,8 +17,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef      assignmentTargetTypeRef(const SemaNodeView& leftView, bool rebindReference);
-    SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView, bool rebindReference);
+    TypeRef assignmentTargetTypeRef(const SemaNodeView& leftView, const bool rebindReference)
+    {
+        if (!rebindReference && leftView.type() && leftView.type()->isReference())
+            return leftView.type()->payloadTypeRef();
+        return leftView.typeRef();
+    }
+
+    SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView, const bool rebindReference)
+    {
+        SemaNodeView  targetView    = leftView;
+        const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView, rebindReference);
+        if (targetTypeRef != leftView.typeRef())
+        {
+            targetView.typeRef() = targetTypeRef;
+            targetView.type()    = &sema.typeMgr().get(targetTypeRef);
+        }
+        return targetView;
+    }
 
     bool hasReferenceRebindModifier(const AstModifierFlags modifierFlags)
     {
@@ -161,25 +177,6 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
             symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
             symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
-    }
-
-    TypeRef assignmentTargetTypeRef(const SemaNodeView& leftView, const bool rebindReference)
-    {
-        if (!rebindReference && leftView.type() && leftView.type()->isReference())
-            return leftView.type()->payloadTypeRef();
-        return leftView.typeRef();
-    }
-
-    SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView, const bool rebindReference)
-    {
-        SemaNodeView  targetView    = leftView;
-        const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView, rebindReference);
-        if (targetTypeRef != leftView.typeRef())
-        {
-            targetView.typeRef() = targetTypeRef;
-            targetView.type()    = &sema.typeMgr().get(targetTypeRef);
-        }
-        return targetView;
     }
 
     void applyMoveAssignmentModifiers(Sema& sema, AstModifierFlags modifierFlags, SemaNodeView& rightView)

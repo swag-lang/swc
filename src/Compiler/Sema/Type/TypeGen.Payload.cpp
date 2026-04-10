@@ -34,34 +34,6 @@ namespace
         *ptrField             = storage.ptr<Runtime::TypeInfo>(targetOffset);
     }
 
-    TypeRef resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType)
-    {
-        SWC_ASSERT(arrayType.isArray());
-        const auto& dims = arrayType.payloadArrayDims();
-        SWC_ASSERT(!dims.empty());
-
-        if (dims.size() == 1)
-            return arrayType.payloadArrayElemTypeRef();
-
-        SmallVector<uint64_t> remainingDims;
-        remainingDims.reserve(dims.size() - 1);
-        for (size_t i = 1; i < dims.size(); ++i)
-            remainingDims.push_back(dims[i]);
-
-        return tm.addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
-    }
-
-    TypeRef resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
-    {
-        SWC_ASSERT(arrayType.isArray());
-
-        TypeRef finalTypeRef = arrayType.payloadArrayElemTypeRef();
-        while (tm.get(finalTypeRef).isArray())
-            finalTypeRef = tm.get(finalTypeRef).payloadArrayElemTypeRef();
-
-        return tm.get(finalTypeRef).unwrap(ctx, finalTypeRef, TypeExpandE::Alias);
-    }
-
     template<typename T>
     std::pair<uint32_t, Runtime::TypeInfo*> reservePayload(DataSegment& storage, Runtime::TypeInfoKind kind)
     {
@@ -292,10 +264,7 @@ namespace
             Runtime::Attribute&      rtAttr     = attrsPtr[i];
             const uint32_t           attrOffset = attrsOffset + static_cast<uint32_t>(i * sizeof(Runtime::Attribute));
 
-            rtAttr.type         = nullptr;
-            rtAttr.params.ptr   = nullptr;
-            rtAttr.params.count = 0;
-
+            rtAttr.type = nullptr;
             if (attribute.symbol)
             {
                 const TypeRef attributeTypeRef = attribute.symbol->typeRef();
@@ -391,71 +360,67 @@ namespace
         if (fields.empty())
         {
             rtType.fields.ptr        = nullptr;
+            rtType.usingFields.ptr   = nullptr;
             entry.structFieldsOffset = 0;
-        }
-        else
-        {
-            const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
-            entry.structFieldsOffset             = fieldsOffset;
-            rtType.fields.ptr                    = fieldsPtr;
-            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
-
-            Runtime::TypeValue* usingFieldsPtr    = nullptr;
-            uint32_t            usingFieldsOffset = 0;
-            if (usingCount)
-            {
-                const auto usingStorage = storage.reserveSpan<Runtime::TypeValue>(usingCount);
-                usingFieldsOffset       = usingStorage.first;
-                usingFieldsPtr          = usingStorage.second;
-                entry.usingFieldsOffset = usingFieldsOffset;
-                rtType.usingFields.ptr  = usingFieldsPtr;
-                storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, usingFields.ptr), usingFieldsOffset);
-            }
-            else
-            {
-                entry.usingFieldsOffset = 0;
-                rtType.usingFields.ptr  = nullptr;
-            }
-
-            uint32_t usingIndex = 0;
-            for (uint32_t i = 0; i < fields.size(); ++i)
-            {
-                const SymbolVariable* symField = fields[i];
-                SWC_ASSERT(symField);
-
-                Runtime::TypeValue& tv = fieldsPtr[i];
-
-                const auto&    id = ctx.idMgr().get(symField->idRef());
-                const Utf8     fName{id.name};
-                const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
-                tv.offset                 = symField->offset();
-                if (symField->isUsingField())
-                    tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
-
-                entry.structFieldTypes.push_back(symField->typeRef());
-
-                if (!symField->isUsingField())
-                    continue;
-
-                SWC_ASSERT(usingFieldsPtr != nullptr);
-                SWC_ASSERT(usingIndex < usingCount);
-
-                Runtime::TypeValue& usingTv = usingFieldsPtr[usingIndex];
-                const uint32_t      usingElemOffset =
-                    usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
-                usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
-                usingTv.offset      = symField->offset();
-                usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
-                entry.usingFieldTypes.push_back(symField->typeRef());
-                ++usingIndex;
-            }
-
+            entry.usingFieldsOffset  = 0;
             return;
         }
 
-        rtType.usingFields.ptr  = nullptr;
-        entry.usingFieldsOffset = 0;
+        const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
+        entry.structFieldsOffset             = fieldsOffset;
+        rtType.fields.ptr                    = fieldsPtr;
+        storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
+
+        Runtime::TypeValue* usingFieldsPtr    = nullptr;
+        uint32_t            usingFieldsOffset = 0;
+        if (usingCount)
+        {
+            const auto usingStorage = storage.reserveSpan<Runtime::TypeValue>(usingCount);
+            usingFieldsOffset       = usingStorage.first;
+            usingFieldsPtr          = usingStorage.second;
+            entry.usingFieldsOffset = usingFieldsOffset;
+            rtType.usingFields.ptr  = usingFieldsPtr;
+            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, usingFields.ptr), usingFieldsOffset);
+        }
+        else
+        {
+            entry.usingFieldsOffset = 0;
+            rtType.usingFields.ptr  = nullptr;
+        }
+
+        uint32_t usingIndex = 0;
+        for (uint32_t i = 0; i < fields.size(); ++i)
+        {
+            const SymbolVariable* symField = fields[i];
+            SWC_ASSERT(symField);
+
+            Runtime::TypeValue& tv = fieldsPtr[i];
+
+            const auto&    id = ctx.idMgr().get(symField->idRef());
+            const Utf8     fName{id.name};
+            const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+            tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+            tv.offset                 = symField->offset();
+            if (symField->isUsingField())
+                tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
+
+            entry.structFieldTypes.push_back(symField->typeRef());
+
+            if (!symField->isUsingField())
+                continue;
+
+            SWC_ASSERT(usingFieldsPtr != nullptr);
+            SWC_ASSERT(usingIndex < usingCount);
+
+            Runtime::TypeValue& usingTv = usingFieldsPtr[usingIndex];
+            const uint32_t      usingElemOffset =
+                usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
+            usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+            usingTv.offset      = symField->offset();
+            usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
+            entry.usingFieldTypes.push_back(symField->typeRef());
+            ++usingIndex;
+        }
     }
 
     void initFunc(Sema& sema, DataSegment& storage, Runtime::TypeInfoFunc& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry)
@@ -477,11 +442,7 @@ namespace
         entry.funcParamTypes.clear();
         entry.funcReturnTypeRef = TypeRef::invalid();
 
-        if (parameters.empty())
-        {
-            rtType.parameters.ptr = nullptr;
-        }
-        else
+        if (!parameters.empty())
         {
             const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.funcParamsCount);
             entry.funcParamsOffset               = paramsOffset;

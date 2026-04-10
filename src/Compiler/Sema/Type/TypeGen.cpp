@@ -1,8 +1,37 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
+
+TypeRef TypeGen::resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType)
+{
+    SWC_ASSERT(arrayType.isArray());
+    const auto& dims = arrayType.payloadArrayDims();
+    SWC_ASSERT(!dims.empty());
+
+    if (dims.size() == 1)
+        return arrayType.payloadArrayElemTypeRef();
+
+    SmallVector<uint64_t> remainingDims;
+    remainingDims.reserve(dims.size() - 1);
+    for (size_t i = 1; i < dims.size(); ++i)
+        remainingDims.push_back(dims[i]);
+
+    return tm.addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+}
+
+TypeRef TypeGen::resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
+{
+    SWC_ASSERT(arrayType.isArray());
+
+    TypeRef finalTypeRef = arrayType.payloadArrayElemTypeRef();
+    while (tm.get(finalTypeRef).isArray())
+        finalTypeRef = tm.get(finalTypeRef).payloadArrayElemTypeRef();
+
+    return tm.get(finalTypeRef).unwrap(ctx, finalTypeRef, TypeExpandE::Alias);
+}
 
 TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 {

@@ -92,42 +92,29 @@ bool SemaHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typ
     if (!typeRef.isValid())
         return false;
 
-    const auto needsPersistent = [&](auto&& self, TypeRef rawTypeRef) -> bool {
-        if (!rawTypeRef.isValid())
-            return false;
+    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+    if (typeInfo.isAlias())
+        return needsPersistentCompilerRunReturn(sema, typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias));
 
-        const TypeInfo& typeInfo = sema.typeMgr().get(rawTypeRef);
-        if (typeInfo.isAlias())
+    if (typeInfo.isEnum())
+        return needsPersistentCompilerRunReturn(sema, typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Enum));
+
+    if (typeInfo.isString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface() || typeInfo.isCString())
+        return true;
+
+    if (typeInfo.isArray())
+        return needsPersistentCompilerRunReturn(sema, typeInfo.payloadArrayElemTypeRef());
+
+    if (typeInfo.isStruct())
+    {
+        for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
         {
-            return self(self, typeInfo.unwrap(sema.ctx(), rawTypeRef, TypeExpandE::Alias));
+            if (field && needsPersistentCompilerRunReturn(sema, field->typeRef()))
+                return true;
         }
+    }
 
-        if (typeInfo.isEnum())
-        {
-            return self(self, typeInfo.unwrap(sema.ctx(), rawTypeRef, TypeExpandE::Enum));
-        }
-
-        if (typeInfo.isString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface() || typeInfo.isCString())
-            return true;
-
-        if (typeInfo.isArray())
-        {
-            return self(self, typeInfo.payloadArrayElemTypeRef());
-        }
-
-        if (typeInfo.isStruct())
-        {
-            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
-            {
-                if (field && self(self, field->typeRef()))
-                    return true;
-            }
-        }
-
-        return false;
-    };
-
-    return needsPersistent(needsPersistent, typeRef);
+    return false;
 }
 
 bool SemaHelpers::functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function)
@@ -612,7 +599,7 @@ namespace
     }
 
     template<typename T>
-    bool resolveAggregateChildIndex(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, T&& resolveNamedIndex, size_t& outIndex)
+    bool resolveAggregateChildIndex(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, const T& resolveNamedIndex, size_t& outIndex)
     {
         outIndex = 0;
         if (!memberCount)

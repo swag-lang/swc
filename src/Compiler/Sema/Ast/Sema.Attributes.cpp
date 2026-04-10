@@ -519,7 +519,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
         size_t paramIndex = i;
         if (paramIndex >= params.size())
         {
-            SWC_ASSERT(hasVariadicParam && !params.empty());
+            SWC_ASSERT(hasVariadicParam);
             paramIndex = params.size() - 1;
         }
 

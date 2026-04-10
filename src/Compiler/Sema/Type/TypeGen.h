@@ -83,6 +83,8 @@ private:
     static SmallVector<TypeRef>                    computeDeps(TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind);
     static void                                    wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGenCache::Entry& entry, LayoutKind kind);
     static std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind);
+    static TypeRef                                 resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType);
+    static TypeRef                                 resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType);
 
     static Result processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache);
 

@@ -31,11 +31,9 @@ namespace
 
                 const ConstantValue& cst          = ctx.cstMgr().get(param.valueCstRef);
                 const TypeRef        valueTypeRef = cst.typeRef();
-                if (valueTypeRef.isValid())
-                    deps.push_back(valueTypeRef);
-
                 if (!valueTypeRef.isValid())
                     continue;
+                deps.push_back(valueTypeRef);
 
                 const TypeInfo& valueType = ctx.typeMgr().get(valueTypeRef);
                 if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
@@ -49,33 +47,6 @@ namespace
         }
     }
 
-    TypeRef resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType)
-    {
-        SWC_ASSERT(arrayType.isArray());
-        const auto& dims = arrayType.payloadArrayDims();
-        SWC_ASSERT(!dims.empty());
-
-        if (dims.size() == 1)
-            return arrayType.payloadArrayElemTypeRef();
-
-        SmallVector<uint64_t> remainingDims;
-        remainingDims.reserve(dims.size() - 1);
-        for (size_t i = 1; i < dims.size(); ++i)
-            remainingDims.push_back(dims[i]);
-
-        return tm.addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
-    }
-
-    TypeRef resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
-    {
-        SWC_ASSERT(arrayType.isArray());
-
-        TypeRef finalTypeRef = arrayType.payloadArrayElemTypeRef();
-        while (tm.get(finalTypeRef).isArray())
-            finalTypeRef = tm.get(finalTypeRef).payloadArrayElemTypeRef();
-
-        return tm.get(finalTypeRef).unwrap(ctx, finalTypeRef, TypeExpandE::Alias);
-    }
 }
 
 SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind)
@@ -104,6 +75,9 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
 
         case LayoutKind::Pointer:
         case LayoutKind::Slice:
+        case LayoutKind::Alias:
+        case LayoutKind::TypedVariadic:
+        case LayoutKind::CodeBlock:
             deps.push_back(type.payloadTypeRef());
             break;
 
@@ -117,15 +91,6 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                 deps.push_back(finalTypeRef);
             break;
         }
-
-        case LayoutKind::Alias:
-            deps.push_back(type.payloadTypeRef());
-            break;
-
-        case LayoutKind::TypedVariadic:
-        case LayoutKind::CodeBlock:
-            deps.push_back(type.payloadTypeRef());
-            break;
 
         case LayoutKind::Struct:
         {
@@ -205,20 +170,15 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
         const LayoutKind kind = layoutKindOf(type);
         if (type.isFunction())
         {
+            // Attribute reflection only needs the typed function signature: waiting on
+            // full sema here can deadlock while user attributes are themselves being
+            // reflected during sema. Anonymous '#type func(...)' signatures use a
+            // synthetic SymbolFunction that never goes through full declaration/body
+            // sema, so runtime type info only depends on completed parameter and
+            // return types -- which means we still need to wait for non-attributes.
             const Symbol* sym = type.getSymbol();
-            if (sym && sym->isAttribute())
-            {
-                // Attribute reflection only needs the typed function signature.
-                // Waiting for full sema completion here can deadlock while user
-                // attributes are themselves being reflected during sema.
-            }
-            else
-            {
-                // Anonymous '#type func(...)' signatures use a synthetic SymbolFunction that
-                // never goes through full declaration/body sema. Runtime type info only
-                // depends on the completed parameter and return types.
+            if (!sym || !sym->isAttribute())
                 SWC_RESULT(sema.waitSemaCompleted(&type, ownerNodeRef));
-            }
         }
         else if (const Symbol* sym = type.getSymbol())
         {

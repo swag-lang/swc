@@ -23,6 +23,9 @@ struct LambdaResult
 alias LambdaAggregate = func(LambdaPayload, [4] s32, any)->LambdaResult
 alias LambdaTypedVariadic = func(LambdaPair, [2] u16, LambdaPayload...)->u64
 alias LambdaUntypedVariadic = func(bool, ...)->s32
+alias LambdaUnary = func(s32)->s32
+alias LambdaBinaryPredicate = func(s32, s32)->bool
+alias LambdaDefaultBool = func(bool)->bool
 
 struct LambdaHolder
 {
@@ -32,6 +35,11 @@ struct LambdaHolder
 func invokeAggregate(cb: LambdaAggregate, payload: LambdaPayload, values: [4] s32, boxed: any)->LambdaResult
 {
     return cb(payload, values, boxed)
+}
+
+func invokeUnary(cb: LambdaUnary, value: s32)->s32
+{
+    return cb(value)
 }
 
 #test
@@ -108,4 +116,54 @@ func invokeAggregate(cb: LambdaAggregate, payload: LambdaPayload, values: [4] s3
 
     let result = cb(true, 4, 7, "AZ")
     #assert(#typeof(result) == s32)
+}
+
+#test
+{
+    let direct = invokeUnary(func(value)
+    {
+        #assert(#typeof(value) == s32)
+        return value * value
+    }, 4)
+
+    let named = invokeUnary(value: 3, cb: func(value)
+    {
+        #assert(#typeof(value) == s32)
+        return value + value
+    })
+
+    #assert(#typeof(direct) == s32)
+    #assert(#typeof(named) == s32)
+}
+
+#test
+{
+    var predicate: LambdaBinaryPredicate
+
+    predicate = func(left, right) => left == right
+    #assert(#typeof(predicate) == LambdaBinaryPredicate)
+
+    predicate = func(left, right)
+    {
+        #assert(#typeof(left) == s32)
+        #assert(#typeof(right) == s32)
+        return left != right
+    }
+
+    #assert(#typeof(predicate) == LambdaBinaryPredicate)
+}
+
+#test
+{
+    let local = func(flag = true) => flag
+
+    var bound: func(flag: bool = true)->bool
+    bound = func(flag)
+    {
+        #assert(#typeof(flag) == bool)
+        return flag
+    }
+
+    #assert(#typeof(local) == LambdaDefaultBool)
+    #assert(#typeof(bound) == LambdaDefaultBool)
 }

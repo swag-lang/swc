@@ -23,6 +23,51 @@ namespace
                inlinePayload->sourceFunction &&
                inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
     }
+
+    Result finalizeLambdaTypeParameterDefault(Sema& sema, const AstLambdaParam& param, SymbolVariable& symVar)
+    {
+        if (param.nodeDefaultValueRef.isInvalid())
+            return Result::Continue;
+
+        SemaNodeView defaultView = sema.viewNodeTypeConstant(param.nodeDefaultValueRef);
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
+
+        const TypeInfo& paramType = sema.typeMgr().get(symVar.typeRef());
+        if (!paramType.isCodeBlock())
+        {
+            if (defaultView.typeRef().isValid())
+            {
+                SWC_RESULT(Cast::cast(sema, defaultView, symVar.typeRef(), CastKind::Initialization));
+            }
+            else if (defaultView.cstRef().isValid())
+            {
+                ConstantRef newCstRef;
+                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, defaultView.nodeRef(), defaultView.cstRef(), TypeInfo::Sign::Unknown));
+                sema.setConstant(defaultView.nodeRef(), newCstRef);
+                defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
+                if (defaultView.type() && defaultView.type()->isInt())
+                {
+                    const TypeRef promotedTypeRef = sema.typeMgr().promote(defaultView.typeRef(), defaultView.typeRef(), false);
+                    SWC_RESULT(Cast::cast(sema, defaultView, promotedTypeRef, CastKind::Implicit));
+                }
+            }
+        }
+
+        bool isCallerLocation = false;
+        if (const AstNode& initNode = sema.node(param.nodeDefaultValueRef); initNode.is(AstNodeId::CompilerLiteral))
+        {
+            const Token& tok = sema.token(initNode.codeRef());
+            isCallerLocation = tok.id == TokenId::CompilerCallerLocation;
+        }
+
+        if (defaultView.cstRef().isValid())
+            symVar.setDefaultValueRef(defaultView.cstRef());
+        if (isCallerLocation)
+            symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        return Result::Continue;
+    }
 }
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
@@ -489,6 +534,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
         auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
         symVar->setTypeRef(paramTypeRef);
+        SWC_RESULT(finalizeLambdaTypeParameterDefault(sema, param, *symVar));
 
         symFunc->addParameter(symVar);
         if (idRef.isValid())

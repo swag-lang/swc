@@ -761,7 +761,7 @@ namespace
     }
 
     template<typename T>
-    const SymbolVariable* mappedCodeParameter(Sema& sema, const T& call, const SymbolFunction& fn, AstNodeRef childRef)
+    const SymbolVariable* mappedCallParameter(Sema& sema, const T& call, const SymbolFunction& fn, AstNodeRef childRef, AstNodeRef ufcsArg)
     {
         SmallVector<AstNodeRef> args;
         call.collectArguments(args, sema.ast());
@@ -770,20 +770,29 @@ namespace
         if (params.empty())
             return nullptr;
 
+        uint32_t paramStart = 0;
+        if (ufcsArg.isValid())
+        {
+            if (childRef == ufcsArg)
+                return params[0];
+            paramStart = 1;
+        }
+
         const AstNode& childNode = sema.node(childRef);
         if (childNode.is(AstNodeId::NamedArgument))
         {
             const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
-            for (const SymbolVariable* param : params)
+            for (uint32_t i = paramStart; i < params.size(); ++i)
             {
+                const SymbolVariable* param = params[i];
                 if (param && param->idRef() == idRef)
-                    return param->type(sema.ctx()).isCodeBlock() ? param : nullptr;
+                    return param;
             }
 
             return nullptr;
         }
 
-        uint32_t positionalIndex = 0;
+        uint32_t positionalIndex = paramStart;
         bool     seenNamed       = false;
         for (const AstNodeRef argRef : args)
         {
@@ -806,11 +815,168 @@ namespace
             if (positionalIndex >= params.size())
                 return nullptr;
 
-            const SymbolVariable* param = params[positionalIndex];
-            return param && param->type(sema.ctx()).isCodeBlock() ? param : nullptr;
+            return params[positionalIndex];
         }
 
         return nullptr;
+    }
+
+    template<typename T>
+    const SymbolVariable* mappedCodeParameter(Sema& sema, const T& call, const SymbolFunction& fn, AstNodeRef childRef)
+    {
+        const AstNodeRef      ufcsArg = resolveUfcsReceiverArg(sema, call.nodeExprRef);
+        const SymbolVariable* param   = mappedCallParameter(sema, call, fn, childRef, ufcsArg);
+        return param && param->type(sema.ctx()).isCodeBlock() ? param : nullptr;
+    }
+
+    bool childCanConsumeLambdaBinding(const AstNode& node)
+    {
+        if (node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+            return true;
+
+        if (node.is(AstNodeId::ParenExpr))
+            return true;
+
+        if (node.is(AstNodeId::NamedArgument))
+            return true;
+
+        return false;
+    }
+
+    template<typename T>
+    TypeRef resolveCallArgumentLambdaBindingType(Sema& sema, const T& call, AstNodeRef childRef)
+    {
+        const AstNode& childNode = sema.node(childRef);
+        if (!childCanConsumeLambdaBinding(childNode))
+            return TypeRef::invalid();
+
+        const SemaNodeView nodeCallee = sema.view(call.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        SmallVector<Symbol*> symbols;
+        nodeCallee.getSymbols(symbols);
+        if (symbols.empty() && sema.isValue(nodeCallee.nodeRef()))
+        {
+            if (auto* symFunc = callableTypeFunction(sema, nodeCallee.typeRef()))
+                symbols.push_back(symFunc);
+        }
+
+        const AstNodeRef ufcsArg        = resolveUfcsReceiverArg(sema, call.nodeExprRef);
+        TypeRef          bindingTypeRef = TypeRef::invalid();
+        TypeRef          compareTypeRef = TypeRef::invalid();
+
+        auto considerBindingType = [&](TypeRef paramTypeRef) {
+            const TypeRef resolvedTypeRef = unwrapLambdaBindingType(sema.ctx(), paramTypeRef);
+            if (!resolvedTypeRef.isValid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
+                return true;
+
+            if (compareTypeRef.isInvalid())
+            {
+                bindingTypeRef = paramTypeRef;
+                compareTypeRef = resolvedTypeRef;
+                return true;
+            }
+
+            return compareTypeRef == resolvedTypeRef;
+        };
+
+        for (Symbol* const sym : symbols)
+        {
+            if (!sym)
+                continue;
+
+            const SymbolFunction* fn = nullptr;
+            if (sym->isFunction())
+            {
+                fn = &sym->cast<SymbolFunction>();
+            }
+            else if (sym->isVariable())
+            {
+                fn = callableTypeFunction(sema, sym->typeRef());
+            }
+
+            if (!fn)
+                continue;
+
+            const SymbolVariable* param = mappedCallParameter(sema, call, *fn, childRef, ufcsArg);
+            if (!param)
+                continue;
+
+            if (!considerBindingType(param->typeRef()))
+                return TypeRef::invalid();
+        }
+
+        return bindingTypeRef;
+    }
+
+    Result deduceLambdaParameterTypeFromDefault(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef)
+    {
+        outTypeRef = TypeRef::invalid();
+        if (defaultValueRef.isInvalid())
+            return Result::Continue;
+
+        SemaNodeView defaultView = sema.viewNodeTypeConstant(defaultValueRef);
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
+
+        if (defaultView.typeRef().isInvalid() && defaultView.cstRef().isValid())
+        {
+            ConstantRef newCstRef;
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, defaultView.nodeRef(), defaultView.cstRef(), TypeInfo::Sign::Unknown));
+            sema.setConstant(defaultView.nodeRef(), newCstRef);
+            defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
+
+        if (defaultView.type() && defaultView.type()->isInt())
+        {
+            const TypeRef promotedTypeRef = sema.typeMgr().promote(defaultView.typeRef(), defaultView.typeRef(), false);
+            SWC_RESULT(Cast::cast(sema, defaultView, promotedTypeRef, CastKind::Implicit));
+        }
+
+        outTypeRef = defaultView.typeRef();
+        return Result::Continue;
+    }
+
+    Result finalizeLambdaParameterDefault(Sema& sema, const AstLambdaParam& param, SymbolVariable& symVar)
+    {
+        if (param.nodeDefaultValueRef.isInvalid())
+            return Result::Continue;
+
+        SemaNodeView defaultView = sema.viewNodeTypeConstant(param.nodeDefaultValueRef);
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
+
+        const TypeInfo& paramType = sema.typeMgr().get(symVar.typeRef());
+        if (!paramType.isCodeBlock())
+        {
+            if (defaultView.typeRef().isValid())
+            {
+                SWC_RESULT(Cast::cast(sema, defaultView, symVar.typeRef(), CastKind::Initialization));
+            }
+            else if (defaultView.cstRef().isValid())
+            {
+                ConstantRef newCstRef;
+                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, defaultView.nodeRef(), defaultView.cstRef(), TypeInfo::Sign::Unknown));
+                sema.setConstant(defaultView.nodeRef(), newCstRef);
+                defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
+                if (defaultView.type() && defaultView.type()->isInt())
+                {
+                    const TypeRef promotedTypeRef = sema.typeMgr().promote(defaultView.typeRef(), defaultView.typeRef(), false);
+                    SWC_RESULT(Cast::cast(sema, defaultView, promotedTypeRef, CastKind::Implicit));
+                }
+            }
+        }
+
+        bool isCallerLocation = false;
+        if (const AstNode& initNode = sema.node(param.nodeDefaultValueRef); initNode.is(AstNodeId::CompilerLiteral))
+        {
+            const Token& tok = sema.token(initNode.codeRef());
+            isCallerLocation = tok.id == TokenId::CompilerCallerLocation;
+        }
+
+        if (defaultView.cstRef().isValid())
+            symVar.setDefaultValueRef(defaultView.cstRef());
+        if (isCallerLocation)
+            symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        return Result::Continue;
     }
 
     bool isCallAliasChild(const AstCallExpr&, const Ast&, AstNodeRef)
@@ -847,6 +1013,13 @@ namespace
         if (isAttributeContextCall(node))
             SemaHelpers::pushConstExprRequirement(sema, childRef);
 
+        if (const TypeRef bindingTypeRef = resolveCallArgumentLambdaBindingType(sema, node, childRef); bindingTypeRef.isValid())
+        {
+            auto frame = sema.frame();
+            frame.pushBindingType(bindingTypeRef);
+            sema.pushFramePopOnPostChild(frame, childRef);
+        }
+
         return Result::Continue;
     }
 
@@ -875,6 +1048,8 @@ namespace
                 paramType = sema.viewType(param.nodeTypeRef).typeRef();
             else if (bindingFunction && paramIndex < bindingFunction->parameters().size())
                 paramType = bindingFunction->parameters()[paramIndex]->typeRef();
+            else if (param.nodeDefaultValueRef.isValid())
+                SWC_RESULT(deduceLambdaParameterTypeFromDefault(sema, param.nodeDefaultValueRef, paramType));
 
             SWC_ASSERT(paramType.isValid());
 
@@ -889,6 +1064,7 @@ namespace
             auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
             symVar->setTypeRef(paramType);
             symVar->addExtraFlag(SymbolVariableFlagsE::Parameter);
+            SWC_RESULT(finalizeLambdaParameterDefault(sema, param, *symVar));
 
             sym.addParameter(symVar);
             if (idRef.isValid())

@@ -14,6 +14,21 @@ namespace
             out += ".lib";
         return out;
     }
+
+    void collectForeignLibrariesFromCode(std::set<Utf8>& out, const MachineCode& code)
+    {
+        for (const auto& relocation : code.codeRelocations)
+        {
+            if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress || !relocation.targetSymbol)
+                continue;
+            const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
+            if (!function)
+                continue;
+            const std::string_view libraryName = function->foreignLinkModuleName().empty() ? function->foreignModuleName() : function->foreignLinkModuleName();
+            if (!libraryName.empty())
+                out.emplace(normalizeLibraryFileName(libraryName));
+        }
+    }
 }
 
 NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
@@ -164,24 +179,10 @@ void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
     for (const Utf8& library : builder_.compiler().foreignLibs())
         out.emplace(normalizeLibraryFileName(library));
 
-    const auto collectFromCode = [&](const MachineCode& code) {
-        for (const auto& relocation : code.codeRelocations)
-        {
-            if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress || !relocation.targetSymbol)
-                continue;
-            const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
-            if (!function)
-                continue;
-            const std::string_view libraryName = function->foreignLinkModuleName().empty() ? function->foreignModuleName() : function->foreignLinkModuleName();
-            if (!libraryName.empty())
-                out.emplace(normalizeLibraryFileName(libraryName));
-        }
-    };
-
     for (const auto& info : builder_.functionInfos)
-        collectFromCode(*info.machineCode);
+        collectForeignLibrariesFromCode(out, *info.machineCode);
     if (builder_.startup)
-        collectFromCode(builder_.startup->code);
+        collectForeignLibrariesFromCode(out, builder_.startup->code);
 }
 
 void NativeLinkerCoff::appendUserLinkerArgs(std::vector<Utf8>& args) const

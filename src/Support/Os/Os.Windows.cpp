@@ -902,6 +902,66 @@ namespace Os
         return ProcessRunResult::Ok;
     }
 
+    void appendVisualStudioToolchainRoots(std::vector<fs::path>& candidates, const fs::path& basePath)
+    {
+        std::error_code ec;
+        if (!fs::exists(basePath, ec))
+            return;
+
+        std::vector<fs::path> versionRoots;
+        for (fs::directory_iterator it(basePath, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+            {
+                ec.clear();
+                continue;
+            }
+
+            if (!it->is_directory(ec))
+            {
+                ec.clear();
+                continue;
+            }
+
+            for (fs::directory_iterator skuIt(it->path(), fs::directory_options::skip_permission_denied, ec), skuEnd; skuIt != skuEnd; skuIt.increment(ec))
+            {
+                if (ec)
+                {
+                    ec.clear();
+                    continue;
+                }
+
+                if (!skuIt->is_directory(ec))
+                {
+                    ec.clear();
+                    continue;
+                }
+
+                const fs::path toolsDir = skuIt->path() / "VC" / "Tools" / "MSVC";
+                if (!fs::exists(toolsDir, ec))
+                    continue;
+
+                for (fs::directory_iterator toolIt(toolsDir, fs::directory_options::skip_permission_denied, ec), toolEnd; toolIt != toolEnd; toolIt.increment(ec))
+                {
+                    if (ec)
+                    {
+                        ec.clear();
+                        continue;
+                    }
+
+                    if (toolIt->is_directory(ec))
+                        versionRoots.push_back(toolIt->path());
+                }
+            }
+        }
+
+        std::ranges::sort(versionRoots, std::greater{}, [](const fs::path& path) {
+            return path.filename().generic_string();
+        });
+        for (const auto& root : versionRoots)
+            candidates.push_back(root);
+    }
+
     WindowsToolchainDiscoveryResult discoverWindowsToolchainPaths(WindowsToolchainPaths& outToolchain)
     {
         outToolchain = {};
@@ -910,67 +970,8 @@ namespace Os
         if (const auto vctools = readEnvUtf8("VCToolsInstallDir"))
             candidates.emplace_back(std::string(*vctools));
 
-        const auto appendRoots = [&](const fs::path& basePath) {
-            std::error_code ec;
-            if (!fs::exists(basePath, ec))
-                return;
-
-            std::vector<fs::path> versionRoots;
-            for (fs::directory_iterator it(basePath, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-            {
-                if (ec)
-                {
-                    ec.clear();
-                    continue;
-                }
-
-                if (!it->is_directory(ec))
-                {
-                    ec.clear();
-                    continue;
-                }
-
-                for (fs::directory_iterator skuIt(it->path(), fs::directory_options::skip_permission_denied, ec), skuEnd; skuIt != skuEnd; skuIt.increment(ec))
-                {
-                    if (ec)
-                    {
-                        ec.clear();
-                        continue;
-                    }
-
-                    if (!skuIt->is_directory(ec))
-                    {
-                        ec.clear();
-                        continue;
-                    }
-
-                    const fs::path toolsDir = skuIt->path() / "VC" / "Tools" / "MSVC";
-                    if (!fs::exists(toolsDir, ec))
-                        continue;
-
-                    for (fs::directory_iterator toolIt(toolsDir, fs::directory_options::skip_permission_denied, ec), toolEnd; toolIt != toolEnd; toolIt.increment(ec))
-                    {
-                        if (ec)
-                        {
-                            ec.clear();
-                            continue;
-                        }
-
-                        if (toolIt->is_directory(ec))
-                            versionRoots.push_back(toolIt->path());
-                    }
-                }
-            }
-
-            std::ranges::sort(versionRoots, std::greater{}, [](const fs::path& path) {
-                return path.filename().generic_string();
-            });
-            for (const auto& root : versionRoots)
-                candidates.push_back(root);
-        };
-
-        appendRoots("C:\\Program Files\\Microsoft Visual Studio");
-        appendRoots("C:\\Program Files (x86)\\Microsoft Visual Studio");
+        appendVisualStudioToolchainRoots(candidates, "C:\\Program Files\\Microsoft Visual Studio");
+        appendVisualStudioToolchainRoots(candidates, "C:\\Program Files (x86)\\Microsoft Visual Studio");
 
         for (const auto& root : candidates)
         {

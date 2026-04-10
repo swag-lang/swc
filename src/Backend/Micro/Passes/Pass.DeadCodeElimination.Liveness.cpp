@@ -20,6 +20,20 @@ namespace
     }
 }
 
+void MicroDeadCodeEliminationPass::gatherCfgLiveOut(const MicroControlFlowGraph& controlFlowGraph, uint32_t instructionIdx, uint32_t instructionCount, uint32_t rowWordCount)
+{
+    for (uint64_t& wordBits : cfgTempOut_)
+        wordBits = 0;
+    for (const uint32_t successorIdx : controlFlowGraph.successors(instructionIdx))
+    {
+        if (successorIdx >= instructionCount)
+            continue;
+        const std::span<const uint64_t> successorLiveIn = DenseBits::row(cfgLiveInBits_, successorIdx, rowWordCount);
+        for (size_t wordIndex = 0; wordIndex < cfgTempOut_.size(); ++wordIndex)
+            cfgTempOut_[wordIndex] |= successorLiveIn[wordIndex];
+    }
+}
+
 bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(const MicroControlFlowGraph& controlFlowGraph)
 {
     SWC_ASSERT(storage_ != nullptr);
@@ -127,19 +141,6 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
     cfgTempOut_.assign(rowWordCount, 0);
     cfgTempIn_.assign(rowWordCount, 0);
 
-    const auto computeLiveOut = [&](uint32_t instructionIdx) {
-        for (uint64_t& wordBits : cfgTempOut_)
-            wordBits = 0;
-        for (const uint32_t successorIdx : controlFlowGraph.successors(instructionIdx))
-        {
-            if (successorIdx >= instructionCount)
-                continue;
-            const std::span<const uint64_t> successorLiveIn = DenseBits::row(cfgLiveInBits_, successorIdx, rowWordCount);
-            for (size_t wordIndex = 0; wordIndex < cfgTempOut_.size(); ++wordIndex)
-                cfgTempOut_[wordIndex] |= successorLiveIn[wordIndex];
-        }
-    };
-
     while (!cfgWorklist_.empty())
     {
         const uint32_t idx = cfgWorklist_.back();
@@ -149,7 +150,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
         if (!cfgInstructionPtrs_[idx])
             continue;
 
-        computeLiveOut(idx);
+        gatherCfgLiveOut(controlFlowGraph, idx, instructionCount, rowWordCount);
 
         cfgTempIn_ = cfgTempOut_;
         for (const uint32_t bitIndex : cfgKillDenseIndices_[idx])
@@ -177,7 +178,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
         if (!cfgInstructionPtrs_[idx] || !cfgPureDefCandidateFlags_[idx])
             continue;
 
-        computeLiveOut(idx);
+        gatherCfgLiveOut(controlFlowGraph, idx, instructionCount, rowWordCount);
 
         const uint32_t defDenseIndex = cfgPureDefDenseDefIndex_[idx];
         SWC_ASSERT(defDenseIndex != K_INVALID_DENSE_INDEX);

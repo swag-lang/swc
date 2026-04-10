@@ -1144,11 +1144,6 @@ namespace
         bool                         replacedAny = false;
         bool                         failed      = false;
 
-        const auto rollback = [&rewrites] {
-            for (const auto& rewrite : std::ranges::reverse_view(rewrites))
-                (rewrite.reg)->packed = rewrite.original.packed;
-        };
-
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
         {
             const MicroInstr&      scanInst = *scanIt;
@@ -1223,15 +1218,11 @@ namespace
             }
         }
 
-        if (!reachedRet || failed || rewrites.empty())
+        const bool shouldRollback = !reachedRet || failed || rewrites.empty() || !replacedAny;
+        if (shouldRollback)
         {
-            rollback();
-            return false;
-        }
-
-        if (!replacedAny)
-        {
-            rollback();
+            for (const auto& rewrite : std::ranges::reverse_view(rewrites))
+                rewrite.reg->packed = rewrite.original.packed;
             return false;
         }
 

@@ -335,20 +335,21 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     return flushCoffFile(description.objPath, sections, symbols, symbolIndices);
 }
 
+void NativeObjFileWriterCoff::appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const std::vector<std::byte>& bytes)
+{
+    const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), 16);
+    if (textSection.data.bytes.size() < alignedOffset)
+        textSection.data.bytes.resize(alignedOffset, std::byte{0});
+    outOffset = alignedOffset;
+    textSection.data.bytes.insert(textSection.data.bytes.end(), bytes.begin(), bytes.end());
+}
+
 Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
-    const auto appendCode = [&](uint32_t& outOffset, const std::vector<std::byte>& bytes) {
-        const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), 16);
-        if (textSection.data.bytes.size() < alignedOffset)
-            textSection.data.bytes.resize(alignedOffset, std::byte{0});
-        outOffset = alignedOffset;
-        textSection.data.bytes.insert(textSection.data.bytes.end(), bytes.begin(), bytes.end());
-    };
-
     if (description.startup)
-        appendCode(description.startup->textOffset, description.startup->code.bytes);
+        appendAlignedCodeBytes(textSection, description.startup->textOffset, description.startup->code.bytes);
     for (NativeFunctionInfo* info : description.functions)
-        appendCode(info->textOffset, info->machineCode->bytes);
+        appendAlignedCodeBytes(textSection, info->textOffset, info->machineCode->bytes);
 
     if (description.startup)
         SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols));

@@ -4,6 +4,15 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    uint32_t spanFootprintBytes(uint32_t hdrOffset, uint32_t hdrSize, uint32_t elemAlign, uint32_t bytes)
+    {
+        const uint32_t dataOffset = Math::alignUpU32(hdrOffset + hdrSize, elemAlign);
+        return dataOffset + bytes - hdrOffset;
+    }
+}
+
 PagedStore::PagedStore(uint32_t pageSize) :
     pageSizeValue_(pageSize)
 {
@@ -268,16 +277,11 @@ SpanRef PagedStore::pushSpanContiguousRaw(const void* data, uint32_t elemSize, u
     constexpr uint32_t hdrSize = sizeof(SpanHdrRaw);
     const uint32_t     bytes   = count * elemSize;
 
-    const auto requiredBytes = [&](uint32_t hdrOffset) {
-        const uint32_t dataOffset = Math::alignUpU32(hdrOffset + hdrSize, elemAlign);
-        return dataOffset + bytes - hdrOffset;
-    };
-
-    SWC_ASSERT(requiredBytes(0) <= pageSizeValue_);
+    SWC_ASSERT(spanFootprintBytes(0, hdrSize, elemAlign, bytes) <= pageSizeValue_);
 
     Page*    page     = curPage_ ? curPage_ : newPage();
     uint32_t pageUsed = page->used.load(std::memory_order_relaxed);
-    if (requiredBytes(pageUsed) > pageSizeValue_ - pageUsed)
+    if (spanFootprintBytes(pageUsed, hdrSize, elemAlign, bytes) > pageSizeValue_ - pageUsed)
     {
         page     = newPage();
         pageUsed = 0;

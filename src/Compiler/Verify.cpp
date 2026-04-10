@@ -251,12 +251,6 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
 {
     const LangSpec& langSpec = ctx.global().langSpec();
 
-    auto emitDirective = [](std::vector<VerifyDirective>& directives, const VerifyDirective& directive, std::string_view match) {
-        VerifyDirective dir = directive;
-        dir.match           = match;
-        directives.emplace_back(std::move(dir));
-    };
-
     size_t pos = 0;
     while (true)
     {
@@ -314,7 +308,10 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
                 break;
 
             const Utf8 match = Utf8Helper::trim(comment.substr(open + 2, close - (open + 2)));
-            emitDirective(directives_, directive, match);
+
+            VerifyDirective dir = directive;
+            dir.match           = match;
+            directives_.emplace_back(std::move(dir));
 
             i = close + 2;
         }

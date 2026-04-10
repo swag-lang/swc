@@ -114,16 +114,17 @@ namespace
     {
         SWC_ASSERT(virtualReg.isVirtual());
 
-        const auto checkAndForbid = [&](MicroReg reg) {
-            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
-                addVirtualForbiddenReg(context, virtualReg, reg);
-        };
-
         const CallConv& conv = CallConv::get(context.callConvKind);
         for (const MicroReg reg : conv.intRegs)
-            checkAndForbid(reg);
+        {
+            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
+                addVirtualForbiddenReg(context, virtualReg, reg);
+        }
         for (const MicroReg reg : conv.floatRegs)
-            checkAndForbid(reg);
+        {
+            if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
+                addVirtualForbiddenReg(context, virtualReg, reg);
+        }
     }
 
     uint32_t computeNextVirtualRegIndex(const MicroPassContext& context, bool isFloat, uint32_t nextIndex)

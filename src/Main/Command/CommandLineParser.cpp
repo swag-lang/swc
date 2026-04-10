@@ -22,28 +22,38 @@ namespace
 {
     bool validateStageSelection(TaskContext& ctx, const CommandLine& cmdLine)
     {
-        std::string_view selectedArg;
+        struct StageOption
+        {
+            bool             enabled;
+            std::string_view name;
+        };
 
-        const auto checkArg = [&](const bool enabled, const std::string_view argName) -> bool {
-            if (!enabled)
-                return true;
+        const StageOption options[] = {
+            {cmdLine.lexOnly, "--lex-only"},
+            {cmdLine.syntaxOnly, "--syntax-only"},
+            {cmdLine.semaOnly, "--sema-only"},
+        };
+
+        std::string_view selectedArg;
+        for (const auto& option : options)
+        {
+            if (!option.enabled)
+                continue;
 
             if (selectedArg.empty())
             {
-                selectedArg = argName;
-                return true;
+                selectedArg = option.name;
+                continue;
             }
 
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
-            diag.addArgument(Diagnostic::ARG_ARG, argName);
+            diag.addArgument(Diagnostic::ARG_ARG, option.name);
             diag.addArgument(Diagnostic::ARG_VALUE, selectedArg);
             diag.report(ctx);
             return false;
-        };
+        }
 
-        return checkArg(cmdLine.lexOnly, "--lex-only") &&
-               checkArg(cmdLine.syntaxOnly, "--syntax-only") &&
-               checkArg(cmdLine.semaOnly, "--sema-only");
+        return true;
     }
 
     std::string_view registeredBuildCfgsView(const Runtime::BuildCfg& buildCfg)

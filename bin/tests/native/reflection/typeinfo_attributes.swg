@@ -43,17 +43,20 @@ func reflectedFunction(#[ParamReflectionAttr("payload")] value: s32)
 {
 }
 
+const REFLECTED_FUNCTION_INFO = cast(const *Swag.TypeInfoFunc) #typeof(reflectedFunction)
+const REFLECTED_STRUCT_INFO   = cast(const *Swag.TypeInfoStruct) #typeof(ReflectedStruct)
+const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(ReflectedEnum)
+
 #test
 {
-    let type = cast(const *Swag.TypeInfoFunc) #typeof(reflectedFunction)
-    @assert(@countof(type.attributes) == 4)
+    @assert(@countof(REFLECTED_FUNCTION_INFO.attributes) == 4)
 
     var foundTyped     = false
     var foundMarker    = false
     var foundDefaulted = false
     var foundVariadic  = false
 
-    foreach attribute in type.attributes
+    foreach attribute in REFLECTED_FUNCTION_INFO.attributes
     {
         if attribute.type == #typeof(ReflectionTypeAttr)
         {
@@ -105,11 +108,10 @@ func reflectedFunction(#[ParamReflectionAttr("payload")] value: s32)
 
 #test
 {
-    let type = cast(const *Swag.TypeInfoFunc) #typeof(reflectedFunction)
-    @assert(@countof(type.parameters) == 1)
+    @assert(@countof(REFLECTED_FUNCTION_INFO.parameters) == 1)
 
     var foundParamAttribute = false
-    foreach attribute in type.parameters[0].attributes
+    foreach attribute in REFLECTED_FUNCTION_INFO.parameters[0].attributes
     {
         if attribute.type != #typeof(ParamReflectionAttr) do
             continue
@@ -125,19 +127,18 @@ func reflectedFunction(#[ParamReflectionAttr("payload")] value: s32)
 
 #test
 {
-    let type = cast(const *Swag.TypeInfoStruct) #typeof(ReflectedStruct)
-    @assert(@countof(type.attributes) == 1)
+    @assert(@countof(REFLECTED_STRUCT_INFO.attributes) == 1)
 
-    let attribute = type.attributes[0]
+    let attribute = REFLECTED_STRUCT_INFO.attributes[0]
     @assert(attribute.type == #typeof(StructReflectionAttr))
     @assert(@countof(attribute.params) == 1)
     @assert(attribute.params[0].name == "name")
     @assert(cast(string) attribute.params[0].value == "demo")
 
-    @assert(@countof(type.fields) == 1)
+    @assert(@countof(REFLECTED_STRUCT_INFO.fields) == 1)
 
     var foundFieldAttribute = false
-    foreach fieldAttribute in type.fields[0].attributes
+    foreach fieldAttribute in REFLECTED_STRUCT_INFO.fields[0].attributes
     {
         if fieldAttribute.type != #typeof(FieldReflectionAttr) do
             continue
@@ -153,11 +154,10 @@ func reflectedFunction(#[ParamReflectionAttr("payload")] value: s32)
 
 #test
 {
-    let type = cast(const *Swag.TypeInfoEnum) #typeof(ReflectedEnum)
-    @assert(@countof(type.attributes) == 1)
-    @assert(@countof(type.values) == 2)
+    @assert(@countof(REFLECTED_ENUM_INFO.attributes) == 1)
+    @assert(@countof(REFLECTED_ENUM_INFO.values) == 2)
 
-    let enumAttribute = type.attributes[0]
+    let enumAttribute = REFLECTED_ENUM_INFO.attributes[0]
     @assert(enumAttribute.type == #typeof(EnumReflectionAttr))
     @assert(@countof(enumAttribute.params) == 1)
     @assert(enumAttribute.params[0].name == "label")
@@ -165,7 +165,7 @@ func reflectedFunction(#[ParamReflectionAttr("payload")] value: s32)
 
     var foundFirstValueAttribute  = false
     var foundSecondValueAttribute = false
-    foreach enumValue in type.values
+    foreach enumValue in REFLECTED_ENUM_INFO.values
     {
         foreach enumValueAttribute in enumValue.attributes
         {

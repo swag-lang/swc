@@ -67,6 +67,20 @@ func writeScalarRef(target: &s32, value: s32)
 
 #test
 {
+    var left: s32 = 10
+    var right: s32 = 20
+    var valueRef: &s32 = &left
+
+    valueRef = #ref &right
+    @assert(valueRef == 20)
+
+    valueRef = 77
+    @assert(left == 10)
+    @assert(right == 77)
+}
+
+#test
+{
     func getPtr(x: &Vec2)->*Vec2 { return &x; }
     func writeThrough(p: *Vec2)
     {
@@ -102,6 +116,24 @@ func writeVecRef(target: &Vec2, value: Vec2)
     @assert(valueRef.y == 12)
     @assert(value.x == -5)
     @assert(value.y == 12)
+}
+
+#test
+{
+    var left: Vec2 = {x: 1, y: 2}
+    var right: Vec2 = {x: 10, y: 20}
+    var valueRef: &Vec2 = &left
+
+    valueRef = #ref &right
+    @assert(valueRef.x == 10)
+    @assert(valueRef.y == 20)
+
+    valueRef.x = -7
+    valueRef.y = 99
+    @assert(left.x == 1)
+    @assert(left.y == 2)
+    @assert(right.x == -7)
+    @assert(right.y == 99)
 }
 
 #test

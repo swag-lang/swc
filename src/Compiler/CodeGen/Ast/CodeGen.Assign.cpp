@@ -341,7 +341,25 @@ namespace
         ioPayload.setIsAddress();
     }
 
-    AssignTarget resolveAssignTarget(CodeGen& codeGen, AstNodeRef leftRef)
+    bool hasReferenceRebindModifier(const AstModifierFlags modifierFlags)
+    {
+        return modifierFlags.hasAny({AstModifierFlagsE::Ref, AstModifierFlagsE::ConstRef});
+    }
+
+    bool isReferenceRebindAssignment(CodeGen& codeGen, AstNodeRef leftRef)
+    {
+        const auto& assignNode = codeGen.node(codeGen.curNodeRef()).cast<AstAssignStmt>();
+        if (codeGen.token(assignNode.codeRef()).id != TokenId::SymEqual)
+            return false;
+
+        const SemaNodeView leftView = codeGen.viewType(leftRef);
+        if (!leftView.type() || !leftView.type()->isReference())
+            return false;
+
+        return hasReferenceRebindModifier(assignNode.modifierFlags);
+    }
+
+    AssignTarget resolveAssignTarget(CodeGen& codeGen, AstNodeRef leftRef, const bool rebindReference)
     {
         AssignTarget target;
         target.payload = codeGen.payload(leftRef);
@@ -351,8 +369,10 @@ namespace
         SWC_ASSERT(leftTypeRef.isValid());
 
         TypeRef         targetTypeRef = leftTypeRef;
-        normalizeReferenceAssignTarget(codeGen, target.payload, targetTypeRef);
-        if (!codeGen.typeMgr().get(leftTypeRef).isReference())
+        if (!rebindReference)
+            normalizeReferenceAssignTarget(codeGen, target.payload, targetTypeRef);
+
+        if (rebindReference || !codeGen.typeMgr().get(leftTypeRef).isReference())
             SWC_ASSERT(target.payload.isAddress());
 
         const TypeRef opTypeRef = codeGen.typeMgr().get(targetTypeRef).unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
@@ -361,10 +381,10 @@ namespace
         return target;
     }
 
-    AssignEncodeContext buildAssignEncodeContext(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, TokenId assignOp)
+    AssignEncodeContext buildAssignEncodeContext(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, TokenId assignOp, const bool rebindReference)
     {
         AssignEncodeContext encodeCtx;
-        encodeCtx.target = resolveAssignTarget(codeGen, leftRef);
+        encodeCtx.target = resolveAssignTarget(codeGen, leftRef, rebindReference);
         SWC_ASSERT(encodeCtx.target.typeRef.isValid());
         SWC_ASSERT(encodeCtx.target.opTypeRef.isValid());
 
@@ -482,9 +502,10 @@ namespace
                                      TypeRef                   originalRightTypeRef,
                                      TokenId                   assignOp,
                                      AstModifierFlags          modifierFlags,
-                                     AstNodeRef                rightRef)
+                                     AstNodeRef                rightRef,
+                                     const bool                rebindReference)
     {
-        const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp);
+        const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp, rebindReference);
         if (assignOp != TokenId::SymEqual)
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
         if (!encodeCtx.target.opTypeRef.isValid())
@@ -689,9 +710,9 @@ namespace
         return Result::Continue;
     }
 
-    Result emitAssign(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, TokenId assignOp)
+    Result emitAssign(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, TokenId assignOp, const bool rebindReference)
     {
-        const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, rightPayload, rightTypeRef, assignOp);
+        const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, rightPayload, rightTypeRef, assignOp, rebindReference);
         return emitAssignEncoded(codeGen, encodeCtx, assignOp);
     }
 
@@ -707,7 +728,7 @@ namespace
             if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            SWC_RESULT(emitAssign(codeGen, leftRef, rightPayload, rightTypeRef, assignOp));
+            SWC_RESULT(emitAssign(codeGen, leftRef, rightPayload, rightTypeRef, assignOp, isReferenceRebindAssignment(codeGen, leftRef)));
         }
 
         return Result::Continue;
@@ -741,7 +762,7 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
         return emitAssignList(codeGen, assignList, rightPayload, rightTypeRef, tok.id);
     }
 
-    return emitAssignStructLifecycle(codeGen, nodeLeftRef, rightPayload, rightTypeRef, originalRightTypeRef, tok.id, modifierFlags, nodeRightRef);
+    return emitAssignStructLifecycle(codeGen, nodeLeftRef, rightPayload, rightTypeRef, originalRightTypeRef, tok.id, modifierFlags, nodeRightRef, isReferenceRebindAssignment(codeGen, nodeLeftRef));
 }
 
 SWC_END_NAMESPACE();

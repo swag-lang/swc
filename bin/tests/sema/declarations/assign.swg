@@ -65,6 +65,15 @@ enum R { A, B }
     valueRef += 1
 }
 
+#test
+{
+    var left: s32
+    var right: s32
+    var valueRef: &s32 = &left
+    valueRef = #ref &right
+    valueRef = 42
+}
+
 struct AssignRefValue
 {
     x: s32
@@ -77,6 +86,15 @@ struct AssignRefValue
     var valueRef: &AssignRefValue = &value
     let other: AssignRefValue = {x: 4, y: 5}
     valueRef = other
+}
+
+#test
+{
+    var left: AssignRefValue
+    var right: AssignRefValue
+    var valueRef: &AssignRefValue = &left
+    valueRef = #ref &right
+    valueRef = {x: 4, y: 5}
 }
 
 #test

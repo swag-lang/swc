@@ -5,18 +5,15 @@
 Swag supports **references**, which behave like pointers but act syntactically like values.
 References offer a safer and more convenient way to work with memory addresses, eliminating the need for explicit pointer dereferencing in most cases.
 */
-// @TODO: Re-enable when comparing a reference directly with its pointee value works again.
-// #test
-// {
-//     var x = 42
-//
-//     // Declare a constant reference to 'x'.
-//     // Unlike C++, you must explicitly take the address of 'x' to create the reference.
-//     let myRef: const &s32 = &x
-//
-//     // References behave like aliases - no explicit dereferencing is needed.
-//     @assert(myRef == 42)
-// }
+#test
+{
+    var x = 42
+    // Declare a constant reference to 'x'.
+    // Unlike C++, you must explicitly take the address of 'x' to create the reference.
+    let myRef: const &s32 = &x
+    // References behave like aliases - no explicit dereferencing is needed.
+    @assert(myRef == 42)
+}
 
 /**
 # Assigning Through References

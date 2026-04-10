@@ -89,6 +89,65 @@ func touch(flag: bool, delta: s32)->bool
     @assert(p2 != null)
 }
 
+func matchReferenceValue(value: const &s32)->bool
+{
+    return value == 4 and value != 5 and value < 5 and value <= 4 and value > 3 and value >= 4 and
+           (value <=> 4) == 0 and (value <=> 5) == -1 and (value <=> 3) == 1
+}
+
+// Scalar references compare like their pointee values
+#test
+{
+    var x: s32 = 42
+    var y: s32 = 42
+    var z: s32 = 7
+
+    var refX: &s32 = &x
+    let refY: const &s32 = &y
+    let refZ: const &s32 = &z
+
+    @assert(refX == 42)
+    @assert(42 == refX)
+    @assert(refX != 7)
+    @assert(7 != refX)
+    @assert(refX < 50)
+    @assert(41 < refX)
+    @assert(refX <= 42)
+    @assert(42 <= refX)
+    @assert(refX > 10)
+    @assert(50 > refX)
+    @assert(refX >= 42)
+    @assert(42 >= refX)
+    @assert((refX <=> 42) == 0)
+    @assert((refX <=> 50) == -1)
+    @assert((50 <=> refX) == 1)
+    @assert(refX == refY)
+    @assert(refX != refZ)
+}
+
+// Const-reference parameters keep value-style comparisons
+#test
+{
+    var value: s32 = 4
+    let valueRef: const &s32 = &value
+    @assert(matchReferenceValue(valueRef))
+}
+
+// Float references use the same comparison pipeline
+#test
+{
+    var value: f32 = 1.5
+    let valueRef: const &f32 = &value
+
+    @assert(valueRef == 1.5)
+    @assert(valueRef != 2.5)
+    @assert(valueRef < 2.5)
+    @assert(valueRef <= 1.5)
+    @assert(valueRef > 1.0)
+    @assert(valueRef >= 1.5)
+    @assert((valueRef <=> 1.5) == 0)
+}
+
 // Short-circuit evaluation with side effects
 #test
 {

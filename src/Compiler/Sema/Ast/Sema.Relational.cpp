@@ -350,19 +350,21 @@ namespace
 
     Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.typeRef() == nodeRightView.typeRef())
+        const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
+        const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+        if (compareLeftView.typeRef() == compareRightView.typeRef())
             return Result::Continue;
-        if (nodeLeftView.type()->isScalarNumeric() && nodeRightView.type()->isScalarNumeric())
+        if (compareLeftView.type()->isScalarNumeric() && compareRightView.type()->isScalarNumeric())
             return Result::Continue;
-        if (nodeLeftView.type()->isType() && nodeRightView.type()->isType())
+        if (compareLeftView.type()->isType() && compareRightView.type()->isType())
             return Result::Continue;
-        if (nodeLeftView.type()->isNull() && nodeRightView.type()->isPointerLike())
+        if (compareLeftView.type()->isNull() && compareRightView.type()->isPointerLike())
             return Result::Continue;
-        if (nodeLeftView.type()->isPointerLike() && nodeRightView.type()->isNull())
+        if (compareLeftView.type()->isPointerLike() && compareRightView.type()->isNull())
             return Result::Continue;
-        if (nodeLeftView.type()->isAnyPointer() && nodeRightView.type()->isAnyPointer())
+        if (compareLeftView.type()->isAnyPointer() && compareRightView.type()->isAnyPointer())
             return Result::Continue;
-        if (nodeLeftView.type()->isAnyTypeInfo(sema.ctx()) && nodeRightView.type()->isAnyTypeInfo(sema.ctx()))
+        if (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());

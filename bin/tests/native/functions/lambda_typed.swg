@@ -25,10 +25,19 @@ alias LambdaTypedVariadic = func(LambdaPair, [2] u16, LambdaPayload...)->u64
 alias LambdaUntypedVariadic = func(bool, ...)->s32
 alias LambdaUnary = func(s32)->s32
 alias LambdaBinaryPredicate = func(s32, s32)->bool
+alias LambdaDefaultUnary = func(value: s32 = 11)->s32
+alias LambdaDefaultBool = func(flag: bool = true)->bool
 
 struct LambdaHolder
 {
     cb: LambdaAggregate
+}
+
+struct LambdaRuntimeHolder
+{
+    unary:     LambdaUnary
+    predicate: LambdaBinaryPredicate
+    defaulted: LambdaDefaultUnary
 }
 
 func invokeAggregate(cb: LambdaAggregate, payload: LambdaPayload, values: [4] s32, boxed: any)->LambdaResult
@@ -40,6 +49,24 @@ func invokeUnary(cb: LambdaUnary, value: s32)->s32
 {
     return cb(value)
 }
+
+func invokeBinary(cb: LambdaBinaryPredicate, left: s32, right: s32)->bool
+{
+    return cb(left, right)
+}
+
+func invokeDefaulted(cb: LambdaDefaultUnary)->s32
+{
+    return cb() * 100 + cb(4) * 10 + cb(value: 2)
+}
+
+func relayUnary(cb: LambdaUnary)->LambdaUnary
+{
+    return cb
+}
+
+func plusTen(value: s32)->s32 => value + 10
+func squareValue(value: s32)->s32 => value * value
 
 #test
 {
@@ -141,8 +168,24 @@ func invokeUnary(cb: LambdaUnary, value: s32)->s32
 
 #test
 {
+    var cb: LambdaUnary
+    @assert(cb == null)
+
+    cb = &plusTen
+    @assert(cb(5) == 15)
+
+    cb = func(value) => value - 3
+    @assert(cb(9) == 6)
+    @assert(cb != null)
+}
+
+#test
+{
     @assert(invokeUnary(func(value) => value * value, 4) == 16)
     @assert(invokeUnary(value: 5, cb: func(value) { return value + value }) == 10)
+    @assert(invokeUnary(func(value: s32)->s32 { return value - 1 }, 8) == 7)
+    @assert(invokeBinary(func(left, right) => left <= right, 4, 4))
+    @assert(!invokeBinary(func(left: s32, right: s32)->bool { return left > right }, 4, 9))
 }
 
 #test
@@ -164,6 +207,13 @@ func invokeUnary(cb: LambdaUnary, value: s32)->s32
 
 #test
 {
+    let relayed = relayUnary(func(value) => value * 3)
+
+    @assert(relayed(6) == 18)
+}
+
+#test
+{
     let local = func(flag = true) => flag
 
     @assert(local())
@@ -181,4 +231,71 @@ func invokeUnary(cb: LambdaUnary, value: s32)->s32
     @assert(bound())
     @assert(!bound(false))
     @assert(bound(true))
+    @assert(!bound(flag: false))
+}
+
+#test
+{
+    let increment: LambdaDefaultUnary = func(value) => value + 1
+    let invert: LambdaDefaultBool = func(flag) => !flag
+
+    @assert(increment() == 12)
+    @assert(increment(8) == 9)
+    @assert(increment(value: 3) == 4)
+    @assert(invokeDefaulted(increment) == 1253)
+
+    @assert(!invert())
+    @assert(invert(false))
+    @assert(!invert(flag: true))
+}
+
+#test
+{
+    let cb: LambdaDefaultUnary = func(value) => value * 2
+    @assert(cb() == 22)
+    @assert(cb(6) == 12)
+    @assert(cb(value: 3) == 6)
+    @assert(invokeDefaulted(cb) == 2284)
+}
+
+#test
+{
+    let seedDefaulted: LambdaDefaultUnary = func(value) => value + 1
+    var holder: LambdaRuntimeHolder = {
+        unary: &plusTen,
+        predicate: func(left: s32, right: s32)->bool { return left == right },
+        defaulted: seedDefaulted,
+    }
+
+    holder.unary = func(value) => value * 5
+    holder.predicate = func(left, right) => left >= right
+    holder.defaulted = func(value) => value - 1
+
+    @assert(holder.unary(4) == 20)
+    @assert(holder.predicate(9, 9))
+    @assert(!holder.predicate(2, 7))
+    @assert(holder.defaulted() == 10)
+    @assert(holder.defaulted(8) == 7)
+    @assert(holder.defaulted(value: 6) == 5)
+}
+
+#test
+{
+    var callbacks: [3] LambdaUnary = [&plusTen, &plusTen, &squareValue]
+    callbacks[0] = func(value) => value + 1
+    callbacks[1] = func(value)
+    {
+        return value * 2
+    }
+    callbacks[2] = &squareValue
+
+    @assert(callbacks[0](4) == 5)
+    @assert(callbacks[1](4) == 8)
+    @assert(callbacks[2](5) == 25)
+}
+
+#test
+{
+    let direct = invokeDefaulted(func(value) => value + 2)
+    @assert(direct == 1364)
 }

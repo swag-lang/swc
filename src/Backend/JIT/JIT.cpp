@@ -915,17 +915,13 @@ namespace
 
     Utf8 formatAssertDiagnosticMessage(std::string_view message)
     {
-        constexpr uint32_t K_ASSERT_MESSAGE_MAX_CHARS = 80;
+        constexpr uint32_t kAssertMessageMaxChars = 80;
 
         const std::string_view trimmed = Utf8Helper::trim(message);
         if (trimmed.empty())
             return {};
 
-        return Utf8Helper::truncate(trimmed,
-                                    {
-                                        .maxChars = K_ASSERT_MESSAGE_MAX_CHARS,
-                                        .mode     = Utf8Helper::TruncateMode::Middle,
-                                    });
+        return Utf8Helper::truncate(trimmed, {.maxChars = kAssertMessageMaxChars, .mode = Utf8Helper::TruncateMode::Middle});
     }
 
     void decodeCompilerDiagnosticException(const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)

@@ -1182,7 +1182,7 @@ namespace
     {
         constexpr uint32_t kQuotedPreviewMaxContentChars = K_CONSTANT_PREVIEW_MAX_CHARS > 5 ? K_CONSTANT_PREVIEW_MAX_CHARS - 5 : 1;
         if (Utf8Helper::countChars(escaped.view()) > kQuotedPreviewMaxContentChars)
-            escaped = clampPreview(std::move(escaped), kQuotedPreviewMaxContentChars);
+            escaped = clampPreview(escaped, kQuotedPreviewMaxContentChars);
 
         Utf8 preview;
         preview += '"';

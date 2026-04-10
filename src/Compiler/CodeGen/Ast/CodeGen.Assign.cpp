@@ -368,7 +368,7 @@ namespace
         const TypeRef      leftTypeRef  = target.payload.effectiveTypeRef(leftTypeView.typeRef());
         SWC_ASSERT(leftTypeRef.isValid());
 
-        TypeRef         targetTypeRef = leftTypeRef;
+        TypeRef targetTypeRef = leftTypeRef;
         if (!rebindReference)
             normalizeReferenceAssignTarget(codeGen, target.payload, targetTypeRef);
 

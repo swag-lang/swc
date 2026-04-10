@@ -350,7 +350,7 @@ namespace
             if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
+            const SemaNodeView leftView        = sema.viewNodeTypeSymbol(leftRef);
             const bool         rebindReference = isReferenceRebindAssignment(sema, tok.id, leftView);
             SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
             markAssignmentTargetAddressableStorage(leftView, rebindReference);

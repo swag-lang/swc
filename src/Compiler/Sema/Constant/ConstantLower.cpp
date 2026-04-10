@@ -627,7 +627,7 @@ namespace
 
                         const std::string_view rawValueView(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());
                         const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(rawValueView);
-                        ptr                               = reinterpret_cast<uint64_t>(rawValueData.data());
+                        ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
                     }
                 }
             }

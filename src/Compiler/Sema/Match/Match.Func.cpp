@@ -59,9 +59,9 @@ namespace
         if (!sourceTypeRef.isValid())
             return pointeeTypeRef;
 
-        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeRef resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
-        const TypeInfo& sourceType           = sema.typeMgr().get(resolvedSourceTypeRef);
+        const TypeRef   unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
+        const TypeInfo& sourceType             = sema.typeMgr().get(resolvedSourceTypeRef);
         if (sourceType.isPointerOrReference())
             return TypeRef::invalid();
 

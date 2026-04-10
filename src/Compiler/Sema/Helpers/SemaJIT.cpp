@@ -512,12 +512,12 @@ namespace
                     return Result::Continue;
 
                 auto& pointeeStorage = outArgStorage.emplace_back();
-                pointeeStorage.resize(static_cast<size_t>(pointeeByteSize));
+                pointeeStorage.resize(pointeeByteSize);
                 std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
                 SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, ByteSpanRW{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
-                argStorage.resize(static_cast<size_t>(argStorageSize));
+                argStorage.resize(argStorageSize);
                 std::memset(argStorage.data(), 0, argStorage.size());
                 const uint64_t ptr = reinterpret_cast<uint64_t>(pointeeStorage.data());
                 std::memcpy(argStorage.data(), &ptr, sizeof(ptr));

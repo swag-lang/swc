@@ -57,7 +57,7 @@ Use the `#ref` modifier to perform this operation safely.
 Normally, you take the address of a variable to create a reference.
 However, when passing a **const reference** to a function, Swag automatically takes the address - even for literals.
 */
-// @TODO: Re-enable when const-reference parameters can be compared like the referenced value.
+
 #test
 {
     // Passing a literal directly is allowed for const references

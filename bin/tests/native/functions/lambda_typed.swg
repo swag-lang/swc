@@ -40,6 +40,11 @@ struct LambdaRuntimeHolder
     defaulted: LambdaDefaultUnary
 }
 
+struct LambdaArrayHolder
+{
+    callbacks: [2] LambdaUnary
+}
+
 func invokeAggregate(cb: LambdaAggregate, payload: LambdaPayload, values: [4] s32, boxed: any)->LambdaResult
 {
     return cb(payload, values, boxed)
@@ -63,6 +68,35 @@ func invokeDefaulted(cb: LambdaDefaultUnary)->s32
 func relayUnary(cb: LambdaUnary)->LambdaUnary
 {
     return cb
+}
+
+func makeDouble()->LambdaUnary
+{
+    return func(value) => value + value
+}
+
+func makeDefaulted()->LambdaDefaultUnary
+{
+    return func(value) => value * 3
+}
+
+func makeRuntimeHolder()->LambdaRuntimeHolder
+{
+    return {
+        unary: func(value) => value + 4,
+        predicate: func(left, right) => left < right,
+        defaulted: func(value) => value + 2,
+    }
+}
+
+func makeArrayHolder()->LambdaArrayHolder
+{
+    return {
+        callbacks: [
+            func(value) => value + 1,
+            func(value) => value * 2,
+        ],
+    }
 }
 
 func plusTen(value: s32)->s32 => value + 10
@@ -262,8 +296,14 @@ func squareValue(value: s32)->s32 => value * value
 {
     let seedDefaulted: LambdaDefaultUnary = func(value) => value + 1
     var holder: LambdaRuntimeHolder = {
-        unary: &plusTen,
-        predicate: func(left: s32, right: s32)->bool { return left == right },
+        unary: func(value) => value + 4,
+        predicate: func(left, right) => left == right,
+        defaulted: func(value) => value + 5,
+    }
+
+    let explicit = LambdaRuntimeHolder{
+        unary: func(value) => value - 2,
+        predicate: func(left, right) => left < right,
         defaulted: seedDefaulted,
     }
 
@@ -277,20 +317,27 @@ func squareValue(value: s32)->s32 => value * value
     @assert(holder.defaulted() == 10)
     @assert(holder.defaulted(8) == 7)
     @assert(holder.defaulted(value: 6) == 5)
+    @assert(explicit.unary(7) == 5)
+    @assert(explicit.predicate(3, 8))
+    @assert(!explicit.predicate(8, 3))
+    @assert(explicit.defaulted() == 12)
 }
 
 #test
 {
-    var callbacks: [3] LambdaUnary = [&plusTen, &plusTen, &squareValue]
-    callbacks[0] = func(value) => value + 1
+    var callbacks: [3] LambdaUnary = [
+        func(value) => value + 1,
+        func(value) => value * 2,
+        func(value) => value - 3,
+    ]
     callbacks[1] = func(value)
     {
-        return value * 2
+        return value * 4
     }
     callbacks[2] = &squareValue
 
     @assert(callbacks[0](4) == 5)
-    @assert(callbacks[1](4) == 8)
+    @assert(callbacks[1](4) == 16)
     @assert(callbacks[2](5) == 25)
 }
 
@@ -298,4 +345,29 @@ func squareValue(value: s32)->s32 => value * value
 {
     let direct = invokeDefaulted(func(value) => value + 2)
     @assert(direct == 1364)
+}
+
+#test
+{
+    let doubled = makeDouble()
+    let defaulted = makeDefaulted()
+
+    @assert(doubled(7) == 14)
+    @assert(defaulted() == 33)
+    @assert(defaulted(5) == 15)
+}
+
+#test
+{
+    let holder = makeRuntimeHolder()
+    let nested = makeArrayHolder()
+
+    @assert(holder.unary(3) == 7)
+    @assert(holder.predicate(2, 5))
+    @assert(!holder.predicate(8, 1))
+    @assert(holder.defaulted() == 13)
+    @assert(holder.defaulted(6) == 8)
+
+    @assert(nested.callbacks[0](5) == 6)
+    @assert(nested.callbacks[1](5) == 10)
 }

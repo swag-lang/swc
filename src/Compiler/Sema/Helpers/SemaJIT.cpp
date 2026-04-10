@@ -385,6 +385,8 @@ namespace
                 return true;
             if (typeInfo.isReference())
                 return true;
+            if (typeInfo.isFunction() && !typeInfo.isLambdaClosure())
+                return true;
 
             if (typeInfo.isArray())
                 return self(self, typeInfo.payloadArrayElemTypeRef());

@@ -25,11 +25,24 @@ alias LambdaTypedVariadic = func(LambdaPair, [2] u16, LambdaPayload...)->u64
 alias LambdaUntypedVariadic = func(bool, ...)->s32
 alias LambdaUnary = func(s32)->s32
 alias LambdaBinaryPredicate = func(s32, s32)->bool
+alias LambdaDefaultUnary = func(value: s32 = 11)->s32
 alias LambdaDefaultBool = func(bool)->bool
 
 struct LambdaHolder
 {
     cb: LambdaAggregate
+}
+
+struct LambdaRuntimeHolder
+{
+    unary:     LambdaUnary
+    predicate: LambdaBinaryPredicate
+    defaulted: LambdaDefaultUnary
+}
+
+struct LambdaArrayHolder
+{
+    callbacks: [2] LambdaUnary
 }
 
 func invokeAggregate(cb: LambdaAggregate, payload: LambdaPayload, values: [4] s32, boxed: any)->LambdaResult
@@ -40,6 +53,35 @@ func invokeAggregate(cb: LambdaAggregate, payload: LambdaPayload, values: [4] s3
 func invokeUnary(cb: LambdaUnary, value: s32)->s32
 {
     return cb(value)
+}
+
+func makeDouble()->LambdaUnary
+{
+    return func(value) => value + value
+}
+
+func makeDefaulted()->LambdaDefaultUnary
+{
+    return func(value) => value * 3
+}
+
+func makeRuntimeHolder()->LambdaRuntimeHolder
+{
+    return {
+        unary: func(value) => value + 4,
+        predicate: func(left, right) => left < right,
+        defaulted: func(value) => value + 2,
+    }
+}
+
+func makeArrayHolder()->LambdaArrayHolder
+{
+    return {
+        callbacks: [
+            func(value) => value + 1,
+            func(value) => value * 2,
+        ],
+    }
 }
 
 #test
@@ -166,4 +208,54 @@ func invokeUnary(cb: LambdaUnary, value: s32)->s32
 
     #assert(#typeof(local) == LambdaDefaultBool)
     #assert(#typeof(bound) == LambdaDefaultBool)
+}
+
+#test
+{
+    let doubled = makeDouble()
+    let defaulted = makeDefaulted()
+
+    #assert(#typeof(doubled) == LambdaUnary)
+    #assert(#typeof(defaulted) == LambdaDefaultUnary)
+}
+
+#test
+{
+    var holder: LambdaRuntimeHolder = {
+        unary: func(value) => value - 2,
+        predicate: func(left, right) => left >= right,
+        defaulted: func(value) => value + 5,
+    }
+
+    let explicit = LambdaRuntimeHolder{
+        unary: func(value) => value * 3,
+        predicate: func(left, right) => left == right,
+        defaulted: func(value) => value - 1,
+    }
+
+    #assert(#typeof(holder.unary) == LambdaUnary)
+    #assert(#typeof(holder.predicate) == LambdaBinaryPredicate)
+    #assert(#typeof(holder.defaulted) == LambdaDefaultUnary)
+    #assert(#typeof(explicit.unary) == LambdaUnary)
+    #assert(#typeof(explicit.defaulted) == LambdaDefaultUnary)
+}
+
+#test
+{
+    var callbacks: [3] LambdaUnary = [
+        func(value) => value + 1,
+        func(value) => value * 2,
+        func(value) => value - 3,
+    ]
+
+    let nested = makeArrayHolder()
+
+    #assert(#typeof(callbacks) == [3] LambdaUnary)
+    #assert(#typeof(nested.callbacks) == [2] LambdaUnary)
+}
+
+#test
+{
+    let holder = makeRuntimeHolder()
+    #assert(#typeof(holder) == LambdaRuntimeHolder)
 }

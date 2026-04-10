@@ -576,6 +576,97 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     return Result::Continue;
 }
 
+namespace
+{
+    TypeRef normalizeBindingType(TaskContext& ctx, TypeRef typeRef)
+    {
+        while (typeRef.isValid())
+        {
+            const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
+            const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
+            if (unwrapped.isValid())
+            {
+                typeRef = unwrapped;
+                continue;
+            }
+
+            if (typeInfo.isReference())
+            {
+                typeRef = typeInfo.payloadTypeRef();
+                continue;
+            }
+
+            break;
+        }
+
+        return typeRef;
+    }
+
+    IdentifierRef namedArgumentIdentifier(Sema& sema, AstNodeRef childRef)
+    {
+        const AstNode& childNode = sema.node(childRef);
+        if (childNode.isNot(AstNodeId::NamedArgument))
+            return IdentifierRef::invalid();
+
+        return sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
+    }
+
+    template<typename ResolveNamedIndexFunc>
+    bool resolveAggregateChildIndex(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, ResolveNamedIndexFunc&& resolveNamedIndex, size_t& outIndex)
+    {
+        outIndex = 0;
+        if (!memberCount)
+            return false;
+
+        std::vector<uint8_t> assigned(memberCount, 0);
+        size_t               nextPos = 0;
+
+        for (const AstNodeRef currentChildRef : children)
+        {
+            const IdentifierRef namedIdRef = namedArgumentIdentifier(sema, currentChildRef);
+            if (namedIdRef.isValid())
+            {
+                size_t namedIndex = 0;
+                if (!resolveNamedIndex(namedIdRef, namedIndex) || namedIndex >= memberCount)
+                {
+                    if (currentChildRef == childRef)
+                        return false;
+                    continue;
+                }
+
+                if (currentChildRef == childRef)
+                {
+                    outIndex = namedIndex;
+                    return true;
+                }
+
+                assigned[namedIndex] = 1;
+                continue;
+            }
+
+            while (nextPos < memberCount && assigned[nextPos])
+                ++nextPos;
+
+            if (currentChildRef == childRef)
+            {
+                if (nextPos >= memberCount)
+                    return false;
+
+                outIndex = nextPos;
+                return true;
+            }
+
+            if (nextPos < memberCount)
+            {
+                assigned[nextPos] = 1;
+                ++nextPos;
+            }
+        }
+
+        return false;
+    }
+}
+
 Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers)
 {
     SmallVector<TypeRef>       memberTypes;
@@ -616,6 +707,112 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
     }
 
     sema.setIsValue(sema.curNodeRef());
+    return Result::Continue;
+}
+
+Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef)
+{
+    outTypeRef              = TypeRef::invalid();
+    const TypeRef targetRef = normalizeBindingType(sema.ctx(), targetTypeRef);
+    if (!targetRef.isValid())
+        return Result::Continue;
+
+    const TypeInfo& targetType = sema.typeMgr().get(targetRef);
+    size_t          fieldIndex = 0;
+
+    if (targetType.isStruct())
+    {
+        SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
+        const auto& fields = targetType.payloadSymStruct().fields();
+        const bool found   = resolveAggregateChildIndex(
+            sema,
+            children,
+            childRef,
+            fields.size(),
+            [&](IdentifierRef idRef, size_t& outIndex) {
+                for (size_t i = 0; i < fields.size(); ++i)
+                {
+                    if (fields[i] && fields[i]->idRef() == idRef)
+                    {
+                        outIndex = i;
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+            fieldIndex);
+        if (!found || fieldIndex >= fields.size() || !fields[fieldIndex])
+            return Result::Continue;
+
+        outTypeRef = fields[fieldIndex]->typeRef();
+        return Result::Continue;
+    }
+
+    if (!targetType.isAggregateStruct())
+        return Result::Continue;
+
+    const auto& aggregate = targetType.payloadAggregate();
+    const bool  found     = resolveAggregateChildIndex(
+        sema,
+        children,
+        childRef,
+        aggregate.types.size(),
+        [&](IdentifierRef idRef, size_t& outIndex) {
+            return resolveAggregateMemberIndex(sema, targetType, idRef, outIndex);
+        },
+        fieldIndex);
+    if (!found || fieldIndex >= aggregate.types.size())
+        return Result::Continue;
+
+    outTypeRef = aggregate.types[fieldIndex];
+    return Result::Continue;
+}
+
+Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef)
+{
+    outTypeRef              = TypeRef::invalid();
+    const TypeRef targetRef = normalizeBindingType(sema.ctx(), targetTypeRef);
+    if (!targetRef.isValid())
+        return Result::Continue;
+
+    size_t childIndex = 0;
+    bool   found      = false;
+    for (const AstNodeRef currentChildRef : children)
+    {
+        if (currentChildRef == childRef)
+        {
+            found = true;
+            break;
+        }
+
+        ++childIndex;
+    }
+
+    if (!found)
+        return Result::Continue;
+
+    const TypeInfo& targetType = sema.typeMgr().get(targetRef);
+    if (targetType.isArray())
+    {
+        outTypeRef = targetType.payloadArrayElemTypeRef();
+        return Result::Continue;
+    }
+
+    if (targetType.isSlice() || targetType.isTypedVariadic())
+    {
+        outTypeRef = targetType.payloadTypeRef();
+        return Result::Continue;
+    }
+
+    if (!targetType.isAggregateArray())
+        return Result::Continue;
+
+    const auto& elementTypes = targetType.payloadAggregate().types;
+    if (childIndex >= elementTypes.size())
+        return Result::Continue;
+
+    outTypeRef = elementTypes[childIndex];
     return Result::Continue;
 }
 

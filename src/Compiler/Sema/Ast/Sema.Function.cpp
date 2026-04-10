@@ -1911,6 +1911,31 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
     return validateReturnStatementValue(sema, sema.curNodeRef(), nodeExprRef, returnTypeRef);
 }
 
+Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeExprRef || childRef.isInvalid())
+        return Result::Continue;
+
+    TypeRef returnTypeRef = TypeRef::invalid();
+    if (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        inlinePayload && !inlineReturnTargetsCaller(inlinePayload))
+    {
+        returnTypeRef = inlinePayload->returnTypeRef;
+    }
+    else if (const SymbolFunction* currentFn = sema.currentFunction())
+    {
+        returnTypeRef = currentFn->returnTypeRef();
+    }
+
+    if (!returnTypeRef.isValid())
+        return Result::Continue;
+
+    auto frame = sema.frame();
+    frame.pushBindingType(returnTypeRef);
+    sema.pushFramePopOnPostChild(frame, childRef);
+    return Result::Continue;
+}
+
 Result AstDiscardExpr::semaPostNode(Sema& sema)
 {
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());

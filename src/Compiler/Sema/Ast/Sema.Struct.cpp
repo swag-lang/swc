@@ -86,6 +86,22 @@ namespace
         payload->runtimeStorageSym = &storageSym;
         return Result::Continue;
     }
+
+    Result pushStructInitializerChildBindingType(Sema& sema, AstNodeRef childRef, TypeRef targetTypeRef, SpanRef spanArgsRef)
+    {
+        SmallVector<AstNodeRef> children;
+        AstNode::collectChildren(children, sema.ast(), spanArgsRef);
+
+        TypeRef bindingTypeRef = TypeRef::invalid();
+        SWC_RESULT(SemaHelpers::resolveStructLikeChildBindingType(sema, children.span(), childRef, targetTypeRef, bindingTypeRef));
+        if (!bindingTypeRef.isValid())
+            return Result::Continue;
+
+        auto frame = sema.frame();
+        frame.pushBindingType(bindingTypeRef);
+        sema.pushFramePopOnPostChild(frame, childRef);
+        return Result::Continue;
+    }
 }
 
 Result AstStructDecl::semaPreDecl(Sema& sema) const
@@ -289,6 +305,18 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
     SWC_RESULT(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));
 
     return Result::Continue;
+}
+
+Result AstStructInitializerList::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeWhatRef)
+        return Result::Continue;
+
+    const TypeRef targetTypeRef = sema.viewType(nodeWhatRef).typeRef();
+    if (!targetTypeRef.isValid())
+        return Result::Continue;
+
+    return pushStructInitializerChildBindingType(sema, childRef, targetTypeRef, spanArgsRef);
 }
 
 SWC_END_NAMESPACE();

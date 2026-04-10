@@ -45,6 +45,8 @@ namespace SemaHelpers
     Result                resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef);
     Result                intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
     Result                finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
+    Result                resolveStructLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef);
+    Result                resolveArrayLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef);
     void                  handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
     void                  ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym);
     void                  ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol*> symbols);

@@ -614,7 +614,24 @@ namespace
                 ptr = cst.getValuePointer();
             else if (cst.isBlockPointer())
                 ptr = cst.getBlockPointer();
-            SWC_ASSERT(cst.isNull() || cst.isValuePointer() || cst.isBlockPointer());
+            else if (dstType.isReference())
+            {
+                const TypeRef pointeeTypeRef = dstType.payloadTypeRef();
+                if (pointeeTypeRef.isValid())
+                {
+                    const uint64_t valueSize = sema.typeMgr().get(pointeeTypeRef).sizeOf(sema.ctx());
+                    if (valueSize)
+                    {
+                        std::vector valueBytes(valueSize, std::byte{0});
+                        SWC_RESULT(lowerConstantToBytes(sema, valueBytes, pointeeTypeRef, cstRef));
+
+                        const std::string_view rawValueView(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());
+                        const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(rawValueView);
+                        ptr                               = reinterpret_cast<uint64_t>(rawValueData.data());
+                    }
+                }
+            }
+            SWC_ASSERT(cst.isNull() || cst.isValuePointer() || cst.isBlockPointer() || (dstType.isReference() && ptr != 0) || (dstType.isReference() && sema.typeMgr().get(dstType.payloadTypeRef()).sizeOf(sema.ctx()) == 0));
             std::memcpy(dstBytes.data(), &ptr, sizeof(ptr));
             return Result::Continue;
         }

@@ -167,6 +167,7 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
 
     const p: AbiPair = {a: 6, b: 7}
     @assert(passConstRef(p) == 13)
+    @assert(passConstRef({a: 8, b: 9}) == 17)
     @assert(passScalars(-5's8, -123's16, 77's32, 5000's64, 9'u8, 10'u16, 11'u32, 12'u64, 1.25'f32, 2.5'f64, true, 'R') == 5077)
     @assert(passBoolRunePositions(true, 3, 'Q', 4, true, 'W') == 177)
     @assert(passBoolRunePositions(false, 30, 'Q', 40, false, 'W') == 238)

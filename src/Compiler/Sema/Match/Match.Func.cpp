@@ -43,6 +43,31 @@ namespace
         sema.inheritPayload(sema.node(rawArgRef), valueNodeRef);
     }
 
+    TypeRef implicitConstReferenceBindingValueTypeRef(Sema& sema, TypeRef paramTypeRef, TypeRef sourceTypeRef)
+    {
+        if (!paramTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        if (!paramType.isReference() || !paramType.isConst())
+            return TypeRef::invalid();
+
+        const TypeRef pointeeTypeRef = paramType.payloadTypeRef();
+        if (!pointeeTypeRef.isValid())
+            return TypeRef::invalid();
+
+        if (!sourceTypeRef.isValid())
+            return pointeeTypeRef;
+
+        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
+        const TypeInfo& sourceType           = sema.typeMgr().get(resolvedSourceTypeRef);
+        if (sourceType.isPointerOrReference())
+            return TypeRef::invalid();
+
+        return pointeeTypeRef;
+    }
+
     SymbolFunction* callableTypeFunction(TaskContext& ctx, TypeRef typeRef)
     {
         while (typeRef.isValid())
@@ -621,7 +646,10 @@ namespace
         castRequest.setConstantFoldingSrc(argNodeView.cstRef());
         if (isUfcsArgument)
             castRequest.flags.add(CastFlagsE::UfcsArgument);
-        const Result castResult = Cast::castAllowed(sema, castRequest, from, to);
+
+        const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, to, from);
+        const TypeRef castToTypeRef    = bindValueTypeRef.isValid() ? bindValueTypeRef : to;
+        const Result  castResult       = Cast::castAllowed(sema, castRequest, from, castToTypeRef);
         if (castResult == Result::Pause)
             return Result::Pause;
         if (castResult == Result::Continue)
@@ -631,6 +659,8 @@ namespace
         }
 
         outCastFailure = castRequest.failure;
+        if (bindValueTypeRef.isValid())
+            outCastFailure.dstTypeRef = to;
         return Result::Continue;
     }
 
@@ -1303,11 +1333,16 @@ namespace
 
             const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            CastFlags        flags = CastFlagsE::Zero;
-            if (allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
+            const TypeRef    paramTypeRef = params[i]->typeRef();
+            TypeRef          castTypeRef  = paramTypeRef;
+            if (const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, paramTypeRef, argView.typeRef()); bindValueTypeRef.isValid())
+                castTypeRef = bindValueTypeRef;
+
+            CastFlags flags = CastFlagsE::Zero;
+            if (castTypeRef == paramTypeRef && allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
                 flags.add(CastFlagsE::UfcsArgument);
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, mapping.paramArgs[i].callArgIndex, sema.ctx());
-            SWC_RESULT(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags, &errorArguments));
+            SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
         }
 

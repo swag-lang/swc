@@ -139,7 +139,7 @@ namespace
     Result codeGenUnaryTakeAddress(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
         const SemaNodeView        view              = codeGen.curViewType();
-        const SemaNodeView        childView         = codeGen.viewSymbol(nodeExprRef);
+        const SemaNodeView        childView         = codeGen.viewTypeSymbol(nodeExprRef);
         const CodeGenNodePayload& payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
         const CodeGenNodePayload* childPayloadMaybe = codeGen.safePayload(nodeExprRef);
         if (childView.sym() && childView.sym()->isFunction() && (!childPayloadMaybe || !childPayloadMaybe->reg.isValid()))
@@ -152,7 +152,14 @@ namespace
         }
 
         const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
-        if (childPayload.isAddress())
+        if (childView.type() && childView.type()->isReference())
+        {
+            if (childPayload.isAddress())
+                codeGen.builder().emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
+            else
+                codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
+        }
+        else if (childPayload.isAddress())
             codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         else
             codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);

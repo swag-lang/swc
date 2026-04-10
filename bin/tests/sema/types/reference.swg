@@ -57,3 +57,39 @@ func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
     #assert(#typeof(valueRef) == const &ConstAddrValue)
     #assert(#typeof(result) == s32)
 }
+
+func inspectConstScalar(value: const &s32)
+{
+    let ptr = &value
+    #assert(#typeof(ptr) == const *s32)
+}
+
+func sumConstAnon(value: const &{ x: s32, y: s32 })->s32
+{
+    return value.x + value.y
+}
+
+struct RefPair
+{
+    x: s32
+    y: s32
+}
+
+func sumConstPair(value: const &RefPair)->s32 { return value.x + value.y }
+
+#test
+{
+    var value: s32 = 41
+    inspectConstScalar(value)
+    inspectConstScalar(4)
+    inspectConstScalar(value + 1)
+}
+
+#test
+{
+    let tupleSum = sumConstAnon({1, 2})
+    let pairSum = sumConstPair({x: 3, y: 4})
+
+    #assert(#typeof(tupleSum) == s32)
+    #assert(#typeof(pairSum) == s32)
+}

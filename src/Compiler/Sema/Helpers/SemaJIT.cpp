@@ -454,7 +454,7 @@ namespace
         outArgStorage.clear();
         outJitArgs.clear();
 
-        outArgStorage.reserve(resolvedArgs.size());
+        outArgStorage.reserve(resolvedArgs.size() * 2);
         outJitArgs.reserve(resolvedArgs.size());
 
         for (size_t i = 0; i < resolvedArgs.size(); ++i)
@@ -492,8 +492,44 @@ namespace
             if (!argCstRef.isValid())
                 return Result::Continue;
 
-            const TypeInfo& argValueType   = sema.typeMgr().get(argValueTypeRef);
-            const uint64_t  argStorageSize = argValueType.sizeOf(ctx);
+            const TypeInfo&     argValueType     = sema.typeMgr().get(argValueTypeRef);
+            const ConstantValue argConstantValue = sema.cstMgr().get(argCstRef);
+            if (argValueType.isReference() &&
+                !argConstantValue.isNull() &&
+                !argConstantValue.isValuePointer() &&
+                !argConstantValue.isBlockPointer())
+            {
+                const TypeRef pointeeTypeRef = argValueType.payloadTypeRef();
+                if (!pointeeTypeRef.isValid())
+                    return Result::Continue;
+
+                const TypeInfo& pointeeType     = sema.typeMgr().get(pointeeTypeRef);
+                const uint64_t  pointeeByteSize = pointeeType.sizeOf(ctx);
+                const uint64_t  argStorageSize  = argValueType.sizeOf(ctx);
+                if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
+                    return Result::Continue;
+                if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
+                    return Result::Continue;
+
+                auto& pointeeStorage = outArgStorage.emplace_back();
+                pointeeStorage.resize(static_cast<size_t>(pointeeByteSize));
+                std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, ByteSpanRW{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
+
+                auto& argStorage = outArgStorage.emplace_back();
+                argStorage.resize(static_cast<size_t>(argStorageSize));
+                std::memset(argStorage.data(), 0, argStorage.size());
+                const uint64_t ptr = reinterpret_cast<uint64_t>(pointeeStorage.data());
+                std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
+
+                JITArgument arg;
+                arg.typeRef  = argValueTypeRef;
+                arg.valuePtr = argStorage.data();
+                outJitArgs.push_back(arg);
+                continue;
+            }
+
+            const uint64_t argStorageSize = argValueType.sizeOf(ctx);
             if (!argStorageSize)
                 return Result::Continue;
             SWC_ASSERT(argStorageSize <= std::numeric_limits<uint32_t>::max());

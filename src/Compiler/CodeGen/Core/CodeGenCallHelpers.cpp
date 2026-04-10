@@ -80,6 +80,23 @@ namespace
         return normalizedTypeRef;
     }
 
+    TypeRef resolveConstantMaterializationTypeRef(CodeGen& codeGen, TypeRef normalizedTypeRef, ConstantRef cstRef)
+    {
+        if (!normalizedTypeRef.isValid() || !cstRef.isValid())
+            return normalizedTypeRef;
+
+        const TypeInfo& normalizedType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isReference())
+            return normalizedTypeRef;
+
+        const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
+        if (cst.isNull() || cst.isValuePointer() || cst.isBlockPointer())
+            return normalizedTypeRef;
+
+        const TypeRef pointeeTypeRef = normalizedType.payloadTypeRef();
+        return pointeeTypeRef.isValid() ? pointeeTypeRef : normalizedTypeRef;
+    }
+
     bool emitMaterializedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef cstRef)
     {
         if (!cstRef.isValid())
@@ -264,6 +281,10 @@ namespace
             storageTypeRef = unaliasedTypeRef;
 
         const ConstantValue& defaultCst = codeGen.cstMgr().get(defaultCstRef);
+        if ((defaultCst.isNull() || defaultCst.isValuePointer() || defaultCst.isBlockPointer()) &&
+            emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, defaultCstRef))
+            return true;
+
         if (defaultCst.typeRef().isValid())
         {
             const TypeRef defaultTypeRef = ctx.typeMgr().get(defaultCst.typeRef()).unwrap(ctx, defaultCst.typeRef(), TypeExpandE::Alias);
@@ -424,13 +445,16 @@ namespace
         if (!normalizedType.isReference())
             return;
 
-        if (argPayload.isAddress() || !resolvedArg.bindsReferenceToValue)
+        if (argPayload.isAddress())
             return;
 
         const SemaNodeView argView = codeGen.viewType(argRef);
         SWC_ASSERT(argView.type());
         const TypeRef sourceTypeRef = argPayload.effectiveTypeRef(argView.typeRef());
         SWC_ASSERT(sourceTypeRef.isValid());
+        const TypeInfo& sourceType = ctx.typeMgr().get(sourceTypeRef);
+        if (!resolvedArg.bindsReferenceToValue && sourceType.isPointerOrReference())
+            return;
 
         const CallConv&                        callConv         = CallConv::get(codeGen.function().callConvKind());
         const ABITypeNormalize::NormalizedType normalizedSource = ABITypeNormalize::normalize(ctx, callConv, sourceTypeRef, ABITypeNormalize::Usage::Argument);
@@ -521,17 +545,18 @@ namespace
             const SemaNodeView argView           = codeGen.viewType(argRef);
             normalizedTypeRef                    = resolveNormalizedArgTypeRef(codeGen, param, argView);
             const SemaNodeView argConstView      = codeGen.viewTypeConstant(argRef);
+            const TypeRef      constantTypeRef   = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argConstView.cstRef());
             const bool         isNullConstantArg = argConstView.cst() && argConstView.cst()->isNull();
 
             if (const CodeGenNodePayload* payload = codeGen.safePayload(argRef); payload && payload->reg.isValid())
             {
                 argPayload = *payload;
 
-                bool requiresTypedConstMaterialization = normalizedTypeRef.isValid() && isNullConstantArg;
-                if (!requiresTypedConstMaterialization && normalizedTypeRef.isValid())
+                bool requiresTypedConstMaterialization = constantTypeRef.isValid() && isNullConstantArg;
+                if (!requiresTypedConstMaterialization && constantTypeRef.isValid())
                 {
                     const TaskContext& ctx             = codeGen.ctx();
-                    const TypeRef      expectedTypeRef = ctx.typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
+                    const TypeRef      expectedTypeRef = ctx.typeMgr().get(constantTypeRef).unwrap(ctx, constantTypeRef, TypeExpandE::Alias);
                     const TypeRef      payloadTypeRef  = argPayload.typeRef.isValid() ? ctx.typeMgr().get(argPayload.typeRef).unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias) : TypeRef::invalid();
                     requiresTypedConstMaterialization  = expectedTypeRef.isValid() && (payloadTypeRef.isInvalid() || expectedTypeRef != payloadTypeRef);
                 }
@@ -539,13 +564,13 @@ namespace
                 if (requiresTypedConstMaterialization)
                 {
                     if (argConstView.cstRef().isValid())
-                        SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()));
+                        SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, constantTypeRef, argConstView.cstRef()));
                 }
             }
             else
             {
                 SWC_ASSERT(argConstView.cstRef().isValid());
-                SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, argConstView.cstRef()));
+                SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, constantTypeRef, argConstView.cstRef()));
             }
         }
         else
@@ -555,7 +580,8 @@ namespace
             ConstantRef defaultCstRef = ConstantRef::invalid();
             SWC_RESULT(defaultArgumentConstantRef(codeGen, defaultCstRef, callRef, arg));
             SWC_ASSERT(defaultCstRef.isValid());
-            SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, normalizedTypeRef, defaultCstRef));
+            const TypeRef constantTypeRef = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, defaultCstRef);
+            SWC_INTERNAL_CHECK(materializeDefaultConstantPayload(codeGen, argPayload, constantTypeRef, defaultCstRef));
         }
 
         ABICall::PreparedArg preparedArg;

@@ -58,20 +58,19 @@ Normally, you take the address of a variable to create a reference.
 However, when passing a **const reference** to a function, Swag automatically takes the address - even for literals.
 */
 // @TODO: Re-enable when const-reference parameters can be compared like the referenced value.
-// #test
-// {
-//     // Passing a literal directly is allowed for const references
-//     toto(4)
-// }
-//
-// func toto(x: const &s32)
-// {
-//     @assert(x == 4)
-//
-//     // A reference is still an address internally
-//     let ptr = &x
-//     @assert(dref ptr == 4)
-// }
+#test
+{
+    // Passing a literal directly is allowed for const references
+    toto(4)
+}
+
+func toto(x: const &s32)
+{
+    @assert(x == 4)
+    // A reference is still an address internally
+    let ptr = &x
+    @assert(dref ptr == 4)
+}
 
 /**
 # Using References with Structs
@@ -85,19 +84,16 @@ struct MyStruct { x: s32, y: s32 }
 
 #test
 {
-    // @TODO: Re-enable when tuple literals bind correctly to const anonymous-struct references.
-    // titi0({1, 2})
+    titi0({1, 2})
     titi1({3, 4})
     titi2({5, 6})
 }
 
-// @TODO: Re-enable when anonymous-struct reference parameters expose tuple item access again.
-// func titi0(param: const &{ x: s32, y: s32 })
-// {
-//     // Tuples can be accessed by item index
-//     @assert(param.item0 == 1)
-//     @assert(param.item1 == 2)
-// }
+func titi0(param: const &{ x: s32, y: s32 })
+{
+    @assert(param.x == 1)
+    @assert(param.y == 2)
+}
 
 /**
 # Equivalent Reference Passing

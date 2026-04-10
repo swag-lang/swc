@@ -148,6 +148,40 @@
     @assert(y == &x)
 }
 
+#test
+{
+    func mutateThroughRefPtr(x: &s32)
+    {
+        let p = &x
+        #assert(#typeof(p) == *s32)
+        dref p = 55
+    }
+
+    func inspectConstRefPtr(x: const &s32, expected: s32)
+    {
+        let p = &x
+        #assert(#typeof(p) == const *s32)
+        @assert(dref p == expected)
+    }
+
+    var x: s32 = 10
+    mutateThroughRefPtr(&x)
+    @assert(x == 55)
+
+    inspectConstRefPtr(x, 55)
+    inspectConstRefPtr(4, 4)
+    inspectConstRefPtr(2 + 5, 7)
+
+    var y: s32 = 91
+    var r: &s32 = &x
+    r = #ref &y
+    let rebound = &r
+    #assert(#typeof(rebound) == *s32)
+    dref rebound = 123
+    @assert(x == 55)
+    @assert(y == 123)
+}
+
 
 #test
 {

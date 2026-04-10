@@ -279,6 +279,10 @@ namespace
                 symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
         }
 
+        TypeRef pointeeTypeRef = view.typeRef();
+        if (view.type()->isReference())
+            pointeeTypeRef = view.type()->payloadTypeRef();
+
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
         if (view.type()->isConst() ||
             (view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant())) ||
@@ -286,7 +290,7 @@ namespace
             flags.add(TypeInfoFlagsE::Const);
 
         bool blockPointer = false;
-        if (view.type()->isArray())
+        if (pointeeTypeRef.isValid() && sema.typeMgr().get(pointeeTypeRef).isArray())
             blockPointer = true;
 
         // TODO @legacy &arr[0] should be a value pointer, not a block pointer
@@ -299,7 +303,7 @@ namespace
                 blockPointer = true;
         }
 
-        const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(view.typeRef(), flags) : TypeInfo::makeValuePointer(view.typeRef(), flags);
+        const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(pointeeTypeRef, flags) : TypeInfo::makeValuePointer(pointeeTypeRef, flags);
         const TypeRef   typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);
 

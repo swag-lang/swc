@@ -1103,6 +1103,10 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         typeInfo = &sema.typeMgr().get(typeInfo->payloadTypeRef());
     }
 
+    // Aggregate struct through pointer/reference
+    if (typeInfo->isAggregateStruct())
+        return memberAggregateStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, *typeInfo);
+
     // Struct
     if (typeInfo->isStruct())
         return memberStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, *typeInfo);

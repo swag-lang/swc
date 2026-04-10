@@ -156,6 +156,30 @@
 
 #test
 {
+    func refPtr(x: &s32)->*s32
+    {
+        let p = &x
+        #assert(#typeof(p) == *s32)
+        return p
+    }
+
+    func constRefPtr(x: const &s32)->const *s32
+    {
+        let p = &x
+        #assert(#typeof(p) == const *s32)
+        return p
+    }
+
+    var x: s32
+    var y: s32
+    var r: &s32 = &x
+    r = #ref &y
+    let p = &r
+    #assert(#typeof(p) == *s32)
+}
+
+#test
+{
     var x: s32
     var y = &(x + x) // swc-expected-error {{sema_err_take_address_not_lvalue}}
 }

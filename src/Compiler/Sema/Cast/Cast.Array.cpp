@@ -50,11 +50,17 @@ namespace
         return args.castRequest->fail(diagnosticId, args.srcTypeRef, args.dstTypeRef);
     }
 
-    Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType)
+    CastRequest makeElemCastRequest(const CastArrayArgs& args)
     {
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
         elemCtx.errorNodeRef = args.castRequest->errorNodeRef;
+        return elemCtx;
+    }
+
+    Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType)
+    {
+        CastRequest  elemCtx = makeElemCastRequest(args);
         const Result res     = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
             args.castRequest->failure = elemCtx.failure;
@@ -63,9 +69,7 @@ namespace
 
     Result foldElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, ConstantRef valueRef, ConstantRef& outRef)
     {
-        CastRequest elemCtx(args.castRequest->kind);
-        elemCtx.flags        = args.castRequest->flags;
-        elemCtx.errorNodeRef = args.castRequest->errorNodeRef;
+        CastRequest elemCtx = makeElemCastRequest(args);
         elemCtx.setConstantFoldingSrc(valueRef);
         const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)

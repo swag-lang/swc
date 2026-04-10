@@ -7,6 +7,28 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    AstNodeRef findLowestNonConstantChild(Sema& sema, AstNodeRef rootRef)
+    {
+        AstNodeRef lowest = AstNodeRef::invalid();
+        Ast::visit(sema.ast(), rootRef, [&](AstNodeRef childRef, const AstNode&) {
+            if (childRef == rootRef)
+                return Ast::VisitResult::Continue;
+
+            const SemaNodeView view{sema, childRef, SemaNodeViewPartE::Constant};
+            if (view.cstRef().isInvalid())
+            {
+                lowest = childRef;
+                return Ast::VisitResult::Continue;
+            }
+
+            return Ast::VisitResult::Skip;
+        });
+        return lowest;
+    }
+}
+
 Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
     TaskContext& ctx  = sema.ctx();
@@ -79,21 +101,7 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_expr_not_const, atNodeRef, ReportLocation::Children);
 
-    AstNodeRef lowest = AstNodeRef::invalid();
-    Ast::visit(sema.ast(), atNodeRef, [&](AstNodeRef childRef, const AstNode&) {
-        if (childRef == atNodeRef)
-            return Ast::VisitResult::Continue;
-
-        const SemaNodeView view{sema, childRef, SemaNodeViewPartE::Constant};
-        if (view.cstRef().isInvalid())
-        {
-            lowest = childRef;
-            return Ast::VisitResult::Continue;
-        }
-
-        return Ast::VisitResult::Skip;
-    });
-
+    const AstNodeRef lowest = findLowestNonConstantChild(sema, atNodeRef);
     if (lowest.isValid())
     {
         diag.addNote(DiagnosticId::sema_note_not_constant);

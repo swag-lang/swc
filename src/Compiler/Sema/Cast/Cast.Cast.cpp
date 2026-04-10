@@ -19,15 +19,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    CodeGenNodePayload& ensureCastCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
+    CastRequest makeNestedCastRequest(const CastRequest& parent)
     {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
+        CastRequest nested(parent.kind);
+        nested.flags        = parent.flags;
+        nested.errorNodeRef = parent.errorNodeRef;
+        nested.errorCodeRef = parent.errorCodeRef;
+        return nested;
     }
 
     TypeRef unwrapCastOverflowTypeRef(Sema& sema, TypeRef typeRef)
@@ -87,7 +85,7 @@ namespace
         if (!castNeedsOverflowRuntimeSafety(sema, srcTypeRef, dstTypeRef, castFlags))
             return Result::Continue;
 
-        auto& payload = ensureCastCodeGenPayload(sema, nodeRef);
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
         payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
 
         if (!sema.isCurrentFunction())
@@ -127,7 +125,7 @@ namespace
         if (!dstUsesTypeInfoMatch)
             return Result::Continue;
 
-        auto& payload = ensureCastCodeGenPayload(sema, nodeRef);
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
 
         if (hasDynCastSafety)
             payload.addRuntimeSafety(Runtime::SafetyWhat::DynCast);
@@ -248,7 +246,7 @@ namespace
         if (fillCstRef.isInvalid())
             return Result::Continue;
 
-        auto& payload                   = ensureCastCodeGenPayload(sema, nodeRef);
+        auto& payload                   = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
         payload.runtimeArrayFillTypeRef = fillTypeRef;
         payload.runtimeArrayFillCstRef  = fillCstRef;
         outNeedsRuntimeStorage          = true;
@@ -959,10 +957,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const auto& srcElemTypes = srcType.payloadAggregate().types;
         for (const TypeRef srcElemTypeRef : srcElemTypes)
         {
-            CastRequest elemRequest(castRequest.kind);
-            elemRequest.flags        = castRequest.flags;
-            elemRequest.errorNodeRef = castRequest.errorNodeRef;
-            elemRequest.errorCodeRef = castRequest.errorCodeRef;
+            CastRequest  elemRequest = makeNestedCastRequest(castRequest);
             const Result res         = castAllowed(sema, elemRequest, srcElemTypeRef, dstElemTypeRef);
             if (res != Result::Continue)
             {
@@ -984,10 +979,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         castedValues.reserve(srcValues.size());
         for (size_t i = 0; i < srcValues.size(); ++i)
         {
-            CastRequest elemRequest(castRequest.kind);
-            elemRequest.flags        = castRequest.flags;
-            elemRequest.errorNodeRef = castRequest.errorNodeRef;
-            elemRequest.errorCodeRef = castRequest.errorCodeRef;
+            CastRequest elemRequest = makeNestedCastRequest(castRequest);
             elemRequest.setConstantFoldingSrc(srcValues[i]);
             const Result res = castAllowed(sema, elemRequest, srcElemTypes[i], dstElemTypeRef);
             if (res != Result::Continue)

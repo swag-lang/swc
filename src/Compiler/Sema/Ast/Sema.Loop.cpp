@@ -36,23 +36,12 @@ namespace
         return result;
     }
 
-    CodeGenNodePayload& ensureUnreachableCodeGenPayload(Sema& sema, const AstNodeRef nodeRef)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
-    }
-
     Result setupUnreachableRuntimeSafety(Sema& sema, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
     {
         if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Unreachable))
             return Result::Continue;
 
-        auto& payload = ensureUnreachableCodeGenPayload(sema, nodeRef);
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
         payload.addRuntimeSafety(Runtime::SafetyWhat::Unreachable);
 
         if (!sema.isCurrentFunction())

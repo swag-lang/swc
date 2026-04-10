@@ -9,6 +9,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+struct CodeGenNodePayload;
 
 namespace SemaHelpers
 {
@@ -18,6 +19,8 @@ namespace SemaHelpers
         ConstantRef cstRef  = ConstantRef::invalid();
     };
 
+    CodeGenNodePayload&   ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef);
+    Result                completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     SymbolVariable*       currentRuntimeStorage(Sema& sema);
     void                  addCurrentFunctionCallDependency(Sema& sema, SymbolFunction* calleeSym);
     Result                addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);

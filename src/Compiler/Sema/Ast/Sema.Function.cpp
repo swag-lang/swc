@@ -86,17 +86,6 @@ namespace
                inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
     }
 
-    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
-    }
-
     bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -1220,7 +1209,7 @@ namespace
 
         if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
         {
-            ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
+            SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
             return Result::Continue;
         }
 
@@ -1230,7 +1219,7 @@ namespace
         SWC_RESULT(Match::ghosting(sema, storageSym));
         SWC_RESULT(completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef, ownerFunction));
 
-        ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
+        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
         return Result::Continue;
     }
 

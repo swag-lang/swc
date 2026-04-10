@@ -11,6 +11,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result tryImplicitBranchCast(Sema& sema, const SemaNodeView& branchView, TypeRef bindingTypeRef)
+    {
+        CastRequest castRequest(CastKind::Implicit);
+        castRequest.errorNodeRef = branchView.nodeRef();
+        return Cast::castAllowed(sema, castRequest, branchView.typeRef(), bindingTypeRef);
+    }
+
     Result resolveConditionalResultType(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& nodeTrueView, const SemaNodeView& nodeFalseView)
     {
         outTypeRef = TypeRef::invalid();
@@ -25,17 +32,13 @@ namespace
                 if (!bindingTypeRef.isValid())
                     continue;
 
-                CastRequest trueCastRequest(CastKind::Implicit);
-                trueCastRequest.errorNodeRef = nodeTrueView.nodeRef();
-                const Result trueCastResult  = Cast::castAllowed(sema, trueCastRequest, nodeTrueView.typeRef(), bindingTypeRef);
+                const Result trueCastResult = tryImplicitBranchCast(sema, nodeTrueView, bindingTypeRef);
                 if (trueCastResult == Result::Pause)
                     return Result::Pause;
                 if (trueCastResult != Result::Continue)
                     continue;
 
-                CastRequest falseCastRequest(CastKind::Implicit);
-                falseCastRequest.errorNodeRef = nodeFalseView.nodeRef();
-                const Result falseCastResult  = Cast::castAllowed(sema, falseCastRequest, nodeFalseView.typeRef(), bindingTypeRef);
+                const Result falseCastResult = tryImplicitBranchCast(sema, nodeFalseView, bindingTypeRef);
                 if (falseCastResult == Result::Pause)
                     return Result::Pause;
                 if (falseCastResult != Result::Continue)

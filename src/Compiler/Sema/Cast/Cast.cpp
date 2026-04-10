@@ -28,29 +28,6 @@ namespace
         return sema.curNodeRef();
     }
 
-    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
-    }
-
-    Result completeCastRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        symVar.setTypeRef(typeRef);
-
-        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
-
-        symVar.setTyped(sema.ctx());
-        symVar.setSemaCompleted(sema.ctx());
-        return Result::Continue;
-    }
-
     TypeRef castRuntimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
     {
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
@@ -124,7 +101,7 @@ namespace
         if (storageTypeRef.isInvalid())
             return Result::Continue;
 
-        auto& payload = ensureCodeGenNodePayload(sema, castNodeRef);
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, castNodeRef);
         if (payload.runtimeStorageSym == nullptr)
         {
             if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
@@ -148,7 +125,7 @@ namespace
         if (!storageSym.isSemaCompleted())
         {
             SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(completeCastRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+            SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
         }
 
         return Result::Continue;

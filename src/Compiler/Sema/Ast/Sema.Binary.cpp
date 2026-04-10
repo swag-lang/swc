@@ -21,23 +21,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    CodeGenNodePayload& ensureBinaryCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
-    }
-
     Result setupBinaryOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
     {
         if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
             return Result::Continue;
 
-        auto& payload = ensureBinaryCodeGenPayload(sema, nodeRef);
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
         payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
 
         if (!sema.isCurrentFunction())

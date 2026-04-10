@@ -24,6 +24,29 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+{
+    symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+    symVar.setTypeRef(typeRef);
+
+    SWC_RESULT(addCurrentFunctionLocalVariable(sema, symVar, typeRef));
+
+    symVar.setTyped(sema.ctx());
+    symVar.setSemaCompleted(sema.ctx());
+    return Result::Continue;
+}
+
+CodeGenNodePayload& SemaHelpers::ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
+{
+    auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+    if (payload)
+        return *payload;
+
+    payload = sema.compiler().allocate<CodeGenNodePayload>();
+    sema.setCodeGenPayload(nodeRef, payload);
+    return *payload;
+}
+
 SymbolVariable* SemaHelpers::currentRuntimeStorage(Sema& sema)
 {
     SymbolVariable* const sym     = sema.frame().currentRuntimeStorageSym();

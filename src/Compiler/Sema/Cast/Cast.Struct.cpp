@@ -151,15 +151,19 @@ namespace
         return res;
     }
 
-    Result checkElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
+    CastRequest makeFieldCastRequest(const CastStructArgs& args, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
     {
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
         elemCtx.errorNodeRef = fieldNodeRef.isValid() ? fieldNodeRef : args.castRequest->errorNodeRef;
-        elemCtx.errorCodeRef = args.castRequest->errorCodeRef;
-        if (fieldRef.isValid())
-            elemCtx.errorCodeRef = fieldRef;
-        const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
+        elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
+        return elemCtx;
+    }
+
+    Result checkElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
+    {
+        CastRequest  elemCtx = makeFieldCastRequest(args, fieldNodeRef, fieldRef);
+        const Result res     = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
             args.castRequest->failure = elemCtx.failure;
         return res;
@@ -167,12 +171,7 @@ namespace
 
     Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef, ConstantRef valueRef, ConstantRef& outRef)
     {
-        CastRequest elemCtx(args.castRequest->kind);
-        elemCtx.flags        = args.castRequest->flags;
-        elemCtx.errorNodeRef = fieldNodeRef.isValid() ? fieldNodeRef : args.castRequest->errorNodeRef;
-        elemCtx.errorCodeRef = args.castRequest->errorCodeRef;
-        if (fieldRef.isValid())
-            elemCtx.errorCodeRef = fieldRef;
+        CastRequest elemCtx = makeFieldCastRequest(args, fieldNodeRef, fieldRef);
         elemCtx.setConstantFoldingSrc(valueRef);
         const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)

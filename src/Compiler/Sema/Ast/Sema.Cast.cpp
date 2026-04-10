@@ -18,20 +18,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
-    }
-
     SymbolVariable& getOrCreateCastRuntimeStorageSymbol(Sema& sema, const AstNode& node)
     {
-        auto& payload = ensureCodeGenNodePayload(sema, sema.curNodeRef());
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
         if (payload.runtimeStorageSym != nullptr)
             return *payload.runtimeStorageSym;
 
@@ -60,18 +49,6 @@ namespace
 
         payload.runtimeStorageSym = sym;
         return *sym;
-    }
-
-    Result completeCastRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        symVar.setTypeRef(typeRef);
-
-        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
-
-        symVar.setTyped(sema.ctx());
-        symVar.setSemaCompleted(sema.ctx());
-        return Result::Continue;
     }
 
     TypeRef castRuntimeStorageTypeRef(Sema& sema, const SemaNodeView& srcView, const SemaNodeView& dstView)
@@ -215,7 +192,7 @@ namespace
         SWC_ASSERT(runtimeFn != nullptr);
 
         SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
-        ensureCodeGenNodePayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
+        SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
         return Result::Continue;
     }
 
@@ -335,7 +312,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         if (!storageSym.isSemaCompleted())
         {
             SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(completeCastRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
+            SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
         }
     }
 

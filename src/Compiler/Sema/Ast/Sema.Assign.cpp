@@ -54,23 +54,12 @@ namespace
         return hasReferenceRebindModifier(assignNode.modifierFlags);
     }
 
-    CodeGenNodePayload& ensureAssignCodeGenPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
-    }
-
     Result setupAssignOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
     {
         if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
             return Result::Continue;
 
-        auto& payload = ensureAssignCodeGenPayload(sema, nodeRef);
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
         payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
 
         if (!sema.isCurrentFunction())
@@ -177,6 +166,16 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
             symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
             symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+    }
+
+    Result tryAssignmentCast(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView, TypeRef srcTypeRef, bool rebindReference)
+    {
+        CastRequest castRequest(CastKind::Assignment);
+        castRequest.errorNodeRef    = leftRef;
+        const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView, rebindReference);
+        if (Cast::castAllowed(sema, castRequest, srcTypeRef, targetTypeRef) != Result::Continue)
+            return Cast::emitCastFailure(sema, castRequest.failure);
+        return Result::Continue;
     }
 
     void applyMoveAssignmentModifiers(Sema& sema, AstModifierFlags modifierFlags, SemaNodeView& rightView)
@@ -313,11 +312,7 @@ namespace
             SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
             markAssignmentTargetAddressableStorage(leftView, false);
 
-            CastRequest castRequest(CastKind::Assignment);
-            castRequest.errorNodeRef    = leftRef;
-            const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView, false);
-            if (Cast::castAllowed(sema, castRequest, fields[i]->typeRef(), targetTypeRef) != Result::Continue)
-                return Cast::emitCastFailure(sema, castRequest.failure);
+            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fields[i]->typeRef(), false));
         }
 
         return Result::Continue;
@@ -359,11 +354,7 @@ namespace
                 SWC_RESULT(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef(), targetLeftView, nodeRightView));
             }
 
-            CastRequest castRequest(CastKind::Assignment);
-            castRequest.errorNodeRef    = leftRef;
-            const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView, rebindReference);
-            if (Cast::castAllowed(sema, castRequest, nodeRightView.typeRef(), targetTypeRef) != Result::Continue)
-                return Cast::emitCastFailure(sema, castRequest.failure);
+            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), rebindReference));
         }
 
         return Result::Continue;

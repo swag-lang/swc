@@ -61,17 +61,6 @@ namespace
         return result;
     }
 
-    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
-    }
-
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)
     {
         if (rawArgRef.isInvalid() || valueNodeRef.isInvalid())
@@ -1817,7 +1806,7 @@ namespace
 
         if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
         {
-            ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = boundStorage;
+            SemaHelpers::ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = boundStorage;
             return Result::Continue;
         }
 
@@ -1840,7 +1829,7 @@ namespace
         symVariable->setDeclared(sema.ctx());
         SWC_RESULT(Match::ghosting(sema, *symVariable));
         SWC_RESULT(completeReferenceBindingRuntimeStorageSymbol(sema, *symVariable, storageTypeRef));
-        ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = symVariable;
+        SemaHelpers::ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = symVariable;
         return Result::Continue;
     }
 

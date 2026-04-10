@@ -201,34 +201,6 @@ namespace
         return true;
     }
 
-    CodeGenNodePayload& ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(nodeRef, payload);
-        return *payload;
-    }
-
-    Result completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        symVar.setTypeRef(typeRef);
-
-        if (auto* ownerFunction = sema.currentFunction(); ownerFunction && typeRef.isValid())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            ownerFunction->addLocalVariable(sema.ctx(), &symVar);
-        }
-
-        symVar.setTyped(sema.ctx());
-        symVar.setSemaCompleted(sema.ctx());
-        return Result::Continue;
-    }
-
     SymbolVariable& registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName)
     {
         TaskContext&        ctx         = sema.ctx();
@@ -260,7 +232,7 @@ namespace
 
         if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
         {
-            ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
+            SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
             return Result::Continue;
         }
 
@@ -268,9 +240,9 @@ namespace
         storageSym.registerAttributes(sema);
         storageSym.setDeclared(sema.ctx());
         SWC_RESULT(Match::ghosting(sema, storageSym));
-        SWC_RESULT(completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+        SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
 
-        ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
+        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
         return Result::Continue;
     }
 

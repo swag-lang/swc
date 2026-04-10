@@ -12,6 +12,73 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    uint32_t editDistance(const std::string_view lhs, const std::string_view rhs)
+    {
+        std::vector<uint32_t> prev(rhs.size() + 1);
+        std::vector<uint32_t> curr(rhs.size() + 1);
+
+        for (size_t j = 0; j <= rhs.size(); ++j)
+            prev[j] = static_cast<uint32_t>(j);
+
+        for (size_t i = 0; i < lhs.size(); ++i)
+        {
+            curr[0] = static_cast<uint32_t>(i + 1);
+            for (size_t j = 0; j < rhs.size(); ++j)
+            {
+                const uint32_t cost = lhs[i] == rhs[j] ? 0u : 1u;
+                curr[j + 1]         = std::min({prev[j + 1] + 1, curr[j] + 1, prev[j] + cost});
+            }
+
+            std::swap(prev, curr);
+        }
+
+        return prev[rhs.size()];
+    }
+
+    std::optional<std::string_view> findClosestTokenName(const std::string_view name, const bool compilerKind)
+    {
+        std::optional<std::string_view> bestCandidate;
+        uint32_t                        bestDistance = UINT32_MAX;
+
+        for (uint32_t i = 0; i < static_cast<uint32_t>(TokenId::Count); ++i)
+        {
+            const auto tokenId = static_cast<TokenId>(i);
+            if (compilerKind)
+            {
+                if (!Token::isCompiler(tokenId) || Token::isCompilerAlias(tokenId) || Token::isCompilerUniq(tokenId))
+                    continue;
+            }
+            else if (!Token::isIntrinsic(tokenId))
+            {
+                continue;
+            }
+
+            const std::string_view candidate = Token::toName(tokenId);
+            if (candidate.empty())
+                continue;
+
+            const uint32_t distance = editDistance(name, candidate);
+            if (distance >= bestDistance)
+                continue;
+
+            bestDistance  = distance;
+            bestCandidate = candidate;
+        }
+
+        if (!bestCandidate.has_value())
+            return std::nullopt;
+
+        const size_t candidateLen = std::max(name.size(), bestCandidate->size());
+        const auto   maxDistance  = static_cast<uint32_t>(candidateLen <= 5 ? 1 : candidateLen <= 8 ? 2 : 3);
+        if (bestDistance > maxDistance)
+            return std::nullopt;
+
+        return bestCandidate;
+    }
+}
+
 // Helper: does the next char after the 'x'/'u'/'U' count as a hard terminator
 // for an escape in the given container token?
 bool Lexer::isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
@@ -56,6 +123,17 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     {
         const std::string_view tkn = srcView_->codeView(offset, len);
         diag.addArgument(Diagnostic::ARG_TOK, tkn);
+
+        if (id == DiagnosticId::parser_err_invalid_compiler)
+        {
+            if (const auto suggestion = findClosestTokenName(tkn, true); suggestion.has_value())
+                diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
+        }
+        else if (id == DiagnosticId::parser_err_invalid_intrinsic)
+        {
+            if (const auto suggestion = findClosestTokenName(tkn, false); suggestion.has_value())
+                diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
+        }
     }
 
     return diag;

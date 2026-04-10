@@ -5,6 +5,8 @@ SWC_DIAG_DEF(parser_note_gen_param_type)
 SWC_DIAG_DEF(parser_note_insert_missing_closing)
 SWC_DIAG_DEF(parser_note_controlled_statement)
 SWC_DIAG_DEF(parser_note_no_matching_opening)
+SWC_DIAG_DEF(parser_note_next_statement)
+SWC_DIAG_DEF(parser_note_block_starts_here)
 
 SWC_DIAG_DEF(parser_help_empty_array_dim)
 SWC_DIAG_DEF(parser_help_gen_param_type)

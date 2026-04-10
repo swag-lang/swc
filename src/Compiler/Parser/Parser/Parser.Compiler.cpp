@@ -5,15 +5,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasInjectReplacement(const SourceView& srcView, const std::span<const TokenRef>& replacementInstructionRefs, TokenId tokenId)
+    TokenRef findInjectReplacement(const SourceView& srcView, const std::span<const TokenRef>& replacementInstructionRefs, TokenId tokenId)
     {
         for (const TokenRef instructionRef : replacementInstructionRefs)
         {
             if (srcView.token(instructionRef).id == tokenId)
-                return true;
+                return instructionRef;
         }
 
-        return false;
+        return TokenRef::invalid();
     }
 }
 
@@ -38,7 +38,8 @@ AstNodeRef Parser::parseCompilerDiagnostic()
 
 AstNodeRef Parser::parseCompilerTypeOf()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(consume());
+    const TokenRef          tokRef = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(tokRef);
 
     const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
@@ -64,16 +65,12 @@ AstNodeRef Parser::parseCompilerTypeOf()
 
     if (nodeArgs.empty())
     {
-        Diagnostic diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
-        diag.addArgument(Diagnostic::ARG_COUNT, 1);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), 1, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > 1)
     {
-        Diagnostic diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[1]);
-        diag.addArgument(Diagnostic::ARG_COUNT, 1);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[1], 1, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
 
@@ -87,8 +84,9 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
     if (numParams == 1)
         return parseCompilerCallOne();
 
-    const TokenId tokenId   = tok().id;
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
+    const TokenRef tokRef            = consume();
+    const TokenId  tokenId           = ast_->srcView().token(tokRef).id;
+    auto [nodeRef, nodePtr]          = ast_->makeNode<AstNodeId::CompilerCall>(tokRef);
 
     const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
@@ -116,16 +114,12 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
 
     if (nodeArgs.size() < numParams)
     {
-        Diagnostic diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
-        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), numParams, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > numParams)
     {
-        Diagnostic diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
-        diag.addArgument(Diagnostic::ARG_COUNT, numParams);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[numParams], numParams, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
 
@@ -136,8 +130,9 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
 
 AstNodeRef Parser::parseCompilerCallOne()
 {
-    const TokenId tokenId   = tok().id;
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(consume());
+    const TokenRef tokRef   = consume();
+    const TokenId  tokenId  = ast_->srcView().token(tokRef).id;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(tokRef);
 
     const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
@@ -165,16 +160,12 @@ AstNodeRef Parser::parseCompilerCallOne()
 
     if (nodeArgs.empty())
     {
-        Diagnostic diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
-        diag.addArgument(Diagnostic::ARG_COUNT, 1);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), 1, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > 1)
     {
-        Diagnostic diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[1]);
-        diag.addArgument(Diagnostic::ARG_COUNT, 1);
-        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
+        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[1], 1, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
 
@@ -262,7 +253,8 @@ AstNodeRef Parser::parseCompilerIfStmt()
     {
         if (is(TokenId::SymLeftCurly))
         {
-            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref().offset(-1));
+            const Diagnostic diag = reportUnexpectedDoBlock(ref().offset(-1));
+            diag.report(*ctx_);
             return parseCompound<ID>(TokenId::SymLeftCurly);
         }
 
@@ -467,9 +459,13 @@ AstNodeRef Parser::parseCompilerInject()
         {
             const TokenId  replacementId  = id();
             const TokenRef instructionRef = consume();
-            if (hasInjectReplacement(ast_->srcView(), replacementInstructionRefs.span(), replacementId))
+            const TokenRef previousInstructionRef = findInjectReplacement(ast_->srcView(), replacementInstructionRefs.span(), replacementId);
+            if (previousInstructionRef.isValid())
             {
-                raiseError(DiagnosticId::parser_err_inject_instruction_done, ref());
+                Diagnostic diag = reportError(DiagnosticId::parser_err_inject_instruction_done, instructionRef);
+                diag.addArgument(Diagnostic::ARG_SYM, Token::toName(replacementId));
+                diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, previousInstructionRef), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+                diag.report(*ctx_);
                 skipTo({TokenId::SymRightParen, TokenId::SymLeftParen});
                 continue;
             }

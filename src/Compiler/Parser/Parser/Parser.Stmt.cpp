@@ -14,16 +14,21 @@ AstNodeRef Parser::parseTopLevelCall()
 
 AstNodeRef Parser::parseAccessModifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(consume());
+    const TokenRef          tokModifier = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(tokModifier);
 
     switch (id())
     {
         case TokenId::KwdPublic:
         case TokenId::KwdModulePrivate:
         case TokenId::KwdFilePrivate:
-            raiseError(DiagnosticId::parser_err_duplicate_modifier, ref());
+        {
+            Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
+            diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+            diag.report(*ctx_);
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
+        }
         default:
             break;
     }
@@ -610,7 +615,8 @@ AstNodeRef Parser::parseDoCurlyBlock()
     {
         if (is(TokenId::SymLeftCurly))
         {
-            raiseError(DiagnosticId::parser_err_unexpected_do_block, ref().offset(-1));
+            const Diagnostic diag = reportUnexpectedDoBlock(ref().offset(-1));
+            diag.report(*ctx_);
             return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
         }
 

@@ -7,6 +7,20 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Utf8 makeArgumentCountText(uint32_t count, bool atLeast)
+    {
+        Utf8 result;
+        if (atLeast)
+            result += "at least ";
+
+        result += std::to_string(count);
+        result += count == 1 ? " argument" : " arguments";
+        return result;
+    }
+}
+
 void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
 {
     const Token& token = ast_->srcView().token(tokRef);
@@ -48,10 +62,45 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
     diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(expectedTknId)));
 }
 
+void Parser::setReportSymbol(Diagnostic& diag, TokenRef tokRef) const
+{
+    if (!tokRef.isValid())
+        return;
+
+    diag.addArgument(Diagnostic::ARG_SYM, Diagnostic::tokenErrorString(*ctx_, SourceCodeRef{ast_->srcView().ref(), tokRef}));
+}
+
 Diagnostic Parser::reportExpectedDoBlock(TokenRef tknRefAfterHeader)
 {
     Diagnostic diag = reportError(DiagnosticId::parser_err_expected_do_block, tknRefAfterHeader);
     diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_controlled_statement, DiagnosticSeverity::Note);
+    return diag;
+}
+
+Diagnostic Parser::reportUnexpectedDoBlock(TokenRef doTokRef)
+{
+    Diagnostic diag = reportError(DiagnosticId::parser_err_unexpected_do_block, doTokRef);
+    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_block_starts_here, DiagnosticSeverity::Note);
+    return diag;
+}
+
+Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast)
+{
+    Diagnostic diag = reportError(id, errorRef);
+    setReportSymbol(diag, calleeRef);
+    diag.addArgument(Diagnostic::ARG_COUNT, expectedCount);
+    diag.addArgument(Diagnostic::ARG_VALUE, actualCount);
+    diag.addArgument(Diagnostic::ARG_WHAT, makeArgumentCountText(expectedCount, atLeast));
+    return diag;
+}
+
+Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast)
+{
+    Diagnostic diag = reportError(id, errorRef);
+    setReportSymbol(diag, calleeRef);
+    diag.addArgument(Diagnostic::ARG_COUNT, expectedCount);
+    diag.addArgument(Diagnostic::ARG_VALUE, actualCount);
+    diag.addArgument(Diagnostic::ARG_WHAT, makeArgumentCountText(expectedCount, atLeast));
     return diag;
 }
 
@@ -95,6 +144,13 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
     diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
     if (id == DiagnosticId::parser_err_unexpected_token)
         tryEnhanceUnexpectedToken(diag, tknRef);
+    else if (id == DiagnosticId::parser_err_unexpected_and_or)
+    {
+        if (ast_->srcView().token(tknRef).id == TokenId::SymAmpersandAmpersand)
+            diag.addArgument(Diagnostic::ARG_VALUE, "and");
+        else if (ast_->srcView().token(tknRef).id == TokenId::SymPipePipe)
+            diag.addArgument(Diagnostic::ARG_VALUE, "or");
+    }
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -125,6 +181,13 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
     diag.last().addSpan(codeRange, "");
     if (id == DiagnosticId::parser_err_unexpected_token)
         tryEnhanceUnexpectedToken(diag, tknRef);
+    else if (id == DiagnosticId::parser_err_unexpected_and_or)
+    {
+        if (ast_->srcView().token(tknRef).id == TokenId::SymAmpersandAmpersand)
+            diag.addArgument(Diagnostic::ARG_VALUE, "and");
+        else if (ast_->srcView().token(tknRef).id == TokenId::SymPipePipe)
+            diag.addArgument(Diagnostic::ARG_VALUE, "or");
+    }
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -143,6 +206,8 @@ void Parser::raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected
 {
     Diagnostic diag = reportError(id, tknRef);
     setReportExpected(diag, tknExpected);
+    if (id == DiagnosticId::parser_err_expected_closing && diag.last().hasSpans())
+        diag.last().span(0).messageId = DiagnosticId::parser_note_opening;
     diag.report(*ctx_);
 }
 
@@ -329,6 +394,7 @@ void Parser::expectEndStatement()
     codeRange.offset += codeRange.len;
     codeRange.len = 1;
     diag.last().addSpan(codeRange, "");
+    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_next_statement, DiagnosticSeverity::Note);
     diag.report(*ctx_);
     skipTo({TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket, TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
 }

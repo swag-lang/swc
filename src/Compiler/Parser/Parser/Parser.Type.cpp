@@ -104,9 +104,12 @@ namespace
 
 AstNodeRef Parser::parseSubType()
 {
-    EnumFlags      qualifiers  = AstQualifiedTypeFlagsE::Zero;
-    uint8_t        lastOrder   = 0;
-    const TokenRef firstTokRef = ref();
+    EnumFlags                        qualifiers  = AstQualifiedTypeFlagsE::Zero;
+    uint8_t                          lastOrder   = 0;
+    const TokenRef                   firstTokRef = ref();
+    std::array<TokenRef, std::size(G_QUALIFIER_TABLE)> qualifierRefs{};
+    qualifierRefs.fill(TokenRef::invalid());
+    TokenRef lastQualifierRef = TokenRef::invalid();
 
     // Consume all leading qualifiers in order, diagnose duplicates / mis-ordering.
     for (;;)
@@ -120,7 +123,10 @@ AstNodeRef Parser::parseSubType()
         // Duplicate?
         if (qualifiers.has(qd->flag))
         {
-            raiseError(DiagnosticId::parser_err_duplicate_type_qualifier, tokRef);
+            Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_type_qualifier, tokRef);
+            if (qualifierRefs[qd->order].isValid())
+                diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, qualifierRefs[qd->order]), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+            diag.report(*ctx_);
             consume();
             continue;
         }
@@ -128,13 +134,18 @@ AstNodeRef Parser::parseSubType()
         // Misplaced (violates canonical order)?
         if (std::cmp_less(qd->order, lastOrder))
         {
-            raiseError(DiagnosticId::parser_err_misplace_type_qualifier, tokRef);
+            Diagnostic diag = reportError(DiagnosticId::parser_err_misplace_type_qualifier, tokRef);
+            if (lastQualifierRef.isValid())
+                diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, lastQualifierRef), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+            diag.report(*ctx_);
             consume();
             continue;
         }
 
         qualifiers.add(qd->flag);
         lastOrder = qd->order;
+        qualifierRefs[qd->order] = tokRef;
+        lastQualifierRef         = tokRef;
         consume();
     }
 

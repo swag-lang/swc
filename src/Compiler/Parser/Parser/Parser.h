@@ -234,7 +234,11 @@ private:
 
     void        setReportArguments(Diagnostic& diag, TokenRef tokRef) const;
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
+    void        setReportSymbol(Diagnostic& diag, TokenRef tokRef) const;
     Diagnostic  reportExpectedDoBlock(TokenRef tknRefAfterHeader);
+    Diagnostic  reportUnexpectedDoBlock(TokenRef doTokRef);
+    Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
+    Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     Diagnostic  reportError(DiagnosticId id, AstNodeRef nodeRef);
     void        raiseError(DiagnosticId id, TokenRef tknRef);

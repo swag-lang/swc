@@ -5,6 +5,54 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Utf8 replaceOutsideQuotes(std::string_view input, std::string_view from, std::string_view to)
+    {
+        Utf8 result;
+        result.reserve(input.size());
+
+        bool inSingleQuote = false;
+        bool inDoubleQuote = false;
+
+        for (size_t i = 0; i < input.size();)
+        {
+            const char ch = input[i];
+
+            // Toggle quote states
+            if (ch == '\'' && !inDoubleQuote)
+            {
+                inSingleQuote = !inSingleQuote;
+                result += ch;
+                ++i;
+                continue;
+            }
+
+            if (ch == '"' && !inSingleQuote)
+            {
+                inDoubleQuote = !inDoubleQuote;
+                result += ch;
+                ++i;
+                continue;
+            }
+
+            // If not inside quotes, check for substring match
+            if (!inSingleQuote && !inDoubleQuote && input.compare(i, from.size(), from) == 0)
+            {
+                result += to;
+                i += from.size();
+            }
+            else
+            {
+                result += ch;
+                ++i;
+            }
+        }
+
+        return result;
+    }
+}
+
 Utf8::Utf8(const fs::path& path) :
     std::string(path.generic_string())
 {
@@ -51,52 +99,8 @@ void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopRep
     if (from.empty())
         return;
 
-    auto doReplace = [&](std::string_view input) -> Utf8 {
-        Utf8 result;
-        result.reserve(input.size());
-
-        bool inSingleQuote = false;
-        bool inDoubleQuote = false;
-
-        for (size_t i = 0; i < input.size();)
-        {
-            const char ch = input[i];
-
-            // Toggle quote states
-            if (ch == '\'' && !inDoubleQuote)
-            {
-                inSingleQuote = !inSingleQuote;
-                result += ch;
-                ++i;
-                continue;
-            }
-
-            if (ch == '"' && !inSingleQuote)
-            {
-                inDoubleQuote = !inDoubleQuote;
-                result += ch;
-                ++i;
-                continue;
-            }
-
-            // If not inside quotes, check for substring match
-            if (!inSingleQuote && !inDoubleQuote && input.compare(i, from.size(), from) == 0)
-            {
-                result += to;
-                i += from.size();
-            }
-            else
-            {
-                result += ch;
-                ++i;
-            }
-        }
-
-        return result;
-    };
-
     Utf8 current = *this;
-    Utf8 next    = doReplace(current);
+    Utf8 next    = replaceOutsideQuotes(current, from, to);
 
     // Loop until no more changes if requested
     if (loopReplace)
@@ -104,7 +108,7 @@ void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopRep
         while (next != current)
         {
             current.swap(next);
-            next = doReplace(current);
+            next = replaceOutsideQuotes(current, from, to);
         }
     }
 

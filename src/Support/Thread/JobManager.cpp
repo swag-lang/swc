@@ -470,25 +470,27 @@ void JobManager::handleJobResult(JobRecord* rec, const JobResult res)
         }
     }
 }
-void JobManager::workerLoop()
+JobRecord* JobManager::popReadyAndMarkRunningLocked()
 {
-    auto popReadyAndMarkRunningLocked = [this]() -> JobRecord* {
-        JobRecord* rec = popReadyLocked();
-        if (!rec)
-            return nullptr;
-        if (rec->state == JobRecord::State::Done)
-            return nullptr;
-        rec->state = JobRecord::State::Running;
-        activeWorkers_.fetch_add(1, std::memory_order_acq_rel);
-        return rec;
-    };
+    JobRecord* rec = popReadyLocked();
+    if (!rec)
+        return nullptr;
+    if (rec->state == JobRecord::State::Done)
+        return nullptr;
+    rec->state = JobRecord::State::Running;
+    activeWorkers_.fetch_add(1, std::memory_order_acq_rel);
+    return rec;
+}
 
+bool JobManager::isDrainedLocked() const
+{
     // Once we stop accepting, threads should exit as soon as the READY queues are empty.
     // A currently running worker will finish and either requeue or also exit.
-    auto maybeExitIfDrainedLocked = [this]() -> bool {
-        return !accepting_ && readyCount_.load(std::memory_order_acquire) == 0;
-    };
+    return !accepting_ && readyCount_.load(std::memory_order_acquire) == 0;
+}
 
+void JobManager::workerLoop()
+{
     while (true)
     {
         JobRecord* rec = nullptr;
@@ -511,7 +513,7 @@ void JobManager::workerLoop()
                     return readyCount_.load(std::memory_order_acquire) > 0 || !accepting_;
                 });
 
-                if (maybeExitIfDrainedLocked())
+                if (isDrainedLocked())
                     return;
                 rec = popReadyAndMarkRunningLocked();
             }
@@ -523,7 +525,7 @@ void JobManager::workerLoop()
         if (!rec)
         {
             const std::unique_lock lk(mtx_);
-            if (maybeExitIfDrainedLocked())
+            if (isDrainedLocked())
                 return;
             rec = popReadyAndMarkRunningLocked();
         }

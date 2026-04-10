@@ -691,29 +691,30 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     out_ += partStyle(DiagPart::Reset);
 }
 
+void DiagnosticBuilder::replaceArgsInString(Utf8& result, const DiagnosticArguments& arguments) const
+{
+    for (const auto& arg : arguments)
+    {
+        const Utf8 raw = argumentToString(arg);
+        size_t     pos = 0;
+        while ((pos = result.find(arg.name, pos)) != Utf8::npos)
+        {
+            result.replace(pos, arg.name.length(), raw);
+            pos += raw.length();
+        }
+    }
+}
+
 Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* el) const
 {
     Utf8 result = msg;
 
-    auto replaceArgs = [&](const DiagnosticArguments& arguments) {
-        for (const auto& arg : arguments)
-        {
-            const Utf8 raw = argumentToString(arg);
-            size_t     pos = 0;
-            while ((pos = result.find(arg.name, pos)) != Utf8::npos)
-            {
-                result.replace(pos, arg.name.length(), raw);
-                pos += raw.length();
-            }
-        }
-    };
-
     // Replace placeholders from the element first
     if (el)
-        replaceArgs(el->arguments());
+        replaceArgsInString(result, el->arguments());
 
     // Then from the diagnostic
-    replaceArgs(diag_->arguments());
+    replaceArgsInString(result, diag_->arguments());
 
     // Clean some stuff
     result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
@@ -724,23 +725,24 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
     return result;
 }
 
+void DiagnosticBuilder::collectUniqueArgNames(std::vector<std::string_view>& argNames, const DiagnosticArguments& args)
+{
+    for (const auto& arg : args)
+    {
+        const std::string_view name = arg.name;
+        if (std::ranges::find(argNames, name) == argNames.end())
+            argNames.push_back(name);
+    }
+}
+
 uint32_t DiagnosticBuilder::countReplacedArgs(std::string_view msg, const DiagnosticElement* el) const
 {
     std::vector<std::string_view> argNames;
     argNames.reserve(diag_->arguments().size() + (el ? el->arguments().size() : 0));
 
-    auto addArgs = [&](const DiagnosticArguments& args) {
-        for (const auto& arg : args)
-        {
-            const std::string_view name = arg.name;
-            if (std::ranges::find(argNames, name) == argNames.end())
-                argNames.push_back(name);
-        }
-    };
-
     if (el)
-        addArgs(el->arguments());
-    addArgs(diag_->arguments());
+        collectUniqueArgNames(argNames, el->arguments());
+    collectUniqueArgNames(argNames, diag_->arguments());
 
     uint32_t count = 0;
     for (const std::string_view name : argNames)

@@ -26,6 +26,21 @@ namespace
         return (sizeMask & sizeBit) != 0;
     }
 
+    MicroReg pickIntScratchReg(const CallConv& conv, MicroRegSpan regs, MicroRegSpan forbidden, MicroReg avoid)
+    {
+        for (const auto reg : regs)
+        {
+            if (reg == avoid)
+                continue;
+            if (!reg.isValid() || reg == conv.stackPointer || reg == conv.framePointer || reg == conv.intReturn || conv.isIntArgReg(reg))
+                continue;
+            if (microRegSpanContains(forbidden, reg))
+                continue;
+            return reg;
+        }
+        return MicroReg::invalid();
+    }
+
     void setupCallConvWindowsX64(CallConv& conv)
     {
         // Windows x64 ABI model used by both compiled calls and JIT bridge calls.
@@ -212,56 +227,25 @@ MicroReg CallConv::preferredLocalStackBaseReg() const
 bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, MicroRegSpan forbidden) const
 {
     // Scratch regs are needed for ABI shuffles; avoid reserved/argument registers first.
-    auto isForbidden = [&](MicroReg reg) {
-        if (!reg.isValid() || reg == stackPointer || reg == framePointer || reg == intReturn || isIntArgReg(reg))
-            return true;
-        return microRegSpanContains(forbidden, reg);
-    };
-
-    outReg0 = MicroReg::invalid();
-    outReg1 = MicroReg::invalid();
-
-    auto pickFrom = [&](MicroRegSpan regs) {
-        for (const auto reg : regs)
-        {
-            if (isForbidden(reg))
-                continue;
-
-            outReg0 = reg;
-            break;
-        }
-    };
-
-    auto pickSecondFrom = [&](MicroRegSpan regs) {
-        for (const auto reg : regs)
-        {
-            if (reg == outReg0 || isForbidden(reg))
-                continue;
-
-            outReg1 = reg;
-            break;
-        }
-    };
-
-    pickFrom(intTransientRegs);
+    outReg0 = pickIntScratchReg(*this, intTransientRegs, forbidden, MicroReg::invalid());
     if (!outReg0.isValid())
-        pickFrom(intPersistentRegs);
+        outReg0 = pickIntScratchReg(*this, intPersistentRegs, forbidden, MicroReg::invalid());
     if (!outReg0.isValid())
-        pickFrom(intRegs);
-
+        outReg0 = pickIntScratchReg(*this, intRegs, forbidden, MicroReg::invalid());
     if (!outReg0.isValid())
+    {
+        outReg1 = MicroReg::invalid();
         return false;
+    }
 
-    pickSecondFrom(intTransientRegs);
+    outReg1 = pickIntScratchReg(*this, intTransientRegs, forbidden, outReg0);
     if (!outReg1.isValid())
-        pickSecondFrom(intPersistentRegs);
+        outReg1 = pickIntScratchReg(*this, intPersistentRegs, forbidden, outReg0);
     if (!outReg1.isValid())
-        pickSecondFrom(intRegs);
-
+        outReg1 = pickIntScratchReg(*this, intRegs, forbidden, outReg0);
     if (!outReg1.isValid())
     {
         outReg0 = MicroReg::invalid();
-        outReg1 = MicroReg::invalid();
         return false;
     }
 

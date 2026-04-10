@@ -293,6 +293,18 @@ namespace
         return std::format("reg#{}", reg.packed);
     }
 
+    void classifyRegToken(std::unordered_set<Utf8>& concreteRegs, std::unordered_set<Utf8>& virtualRegs, MicroReg reg, MicroRegPrintMode regPrintMode, const Encoder* encoder)
+    {
+        if (!reg.isValid() || reg.isNoBase())
+            return;
+
+        const auto regToken = regName(reg, regPrintMode, encoder);
+        if (reg.isVirtual())
+            virtualRegs.insert(regToken);
+        else
+            concreteRegs.insert(regToken);
+    }
+
     bool hasVirtualRegisterToken(const LangSpec& langSpec, std::string_view value)
     {
         for (size_t i = 0; i < value.size(); ++i)
@@ -1406,23 +1418,10 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         if (inst.numOperands)
         {
             const auto useDef = inst.collectUseDef(storeOps, encoder);
-            auto       addReg = [&](MicroReg reg) {
-                if (!reg.isValid() || reg.isNoBase())
-                    return;
-
-                const auto regToken = regName(reg, regPrintMode, encoder);
-                if (reg.isVirtual())
-                    virtualRegs.insert(regToken);
-                else
-                    concreteRegs.insert(regToken);
-            };
-
             for (const auto reg : useDef.uses)
-                addReg(reg);
+                classifyRegToken(concreteRegs, virtualRegs, reg, regPrintMode, encoder);
             for (const auto reg : useDef.defs)
-            {
-                addReg(reg);
-            }
+                classifyRegToken(concreteRegs, virtualRegs, reg, regPrintMode, encoder);
         }
 
         if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)

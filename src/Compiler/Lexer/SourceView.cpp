@@ -91,25 +91,27 @@ SourceCodeRange SourceView::tokenCodeRange(const TaskContext& ctx, TokenRef tokR
     return token(tokRef).codeRange(ctx, *this);
 }
 
+uint32_t SourceView::clampLine(uint32_t line) const
+{
+    if (!line)
+        return 1;
+    return std::min(line, static_cast<uint32_t>(lines_.size()));
+}
+
+std::pair<uint32_t, uint32_t> SourceView::lineBounds(uint32_t line) const
+{
+    const uint32_t start = lines_[line - 1];
+    uint32_t       end   = static_cast<uint32_t>(stringView_.size());
+    if (line < lines_.size())
+        end = lines_[line];
+    return {start, std::max(start, end)};
+}
+
 void SourceView::codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runtime::SourceCodeLocation& location, SourceCodeRange& outCodeRange) const
 {
     outCodeRange = {};
     SWC_ASSERT(!stringView_.empty());
     SWC_ASSERT(!lines_.empty());
-
-    auto clampLine = [this](uint32_t line) -> uint32_t {
-        if (!line)
-            return 1;
-        return std::min(line, static_cast<uint32_t>(lines_.size()));
-    };
-
-    auto lineBounds = [this](uint32_t line) -> std::pair<uint32_t, uint32_t> {
-        const uint32_t start = lines_[line - 1];
-        uint32_t       end   = static_cast<uint32_t>(stringView_.size());
-        if (line < lines_.size())
-            end = lines_[line];
-        return {start, std::max(start, end)};
-    };
 
     const uint32_t startLine = clampLine(location.lineStart);
     uint32_t       endLine   = clampLine(location.lineEnd);

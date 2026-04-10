@@ -88,6 +88,16 @@ namespace
         return makeSymbolLocationSortKey(builder, symbol);
     }
 
+    void sortAndUniqueByLocation(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& values)
+    {
+        sortAndUnique(values, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(builder, symbol); });
+    }
+
+    void sortAndUniqueByLocation(const NativeBackendBuilder& builder, std::vector<SymbolVariable*>& values)
+    {
+        sortAndUnique(values, [&](const SymbolVariable& symbol) { return makeVariableSortKey(builder, symbol); });
+    }
+
     template<typename T>
     const SourceFile* sourceFileForSymbol(const NativeBackendBuilder& builder, const T& symbol)
     {
@@ -408,12 +418,12 @@ Result NativeBackendBuilder::prepare()
 
     auto functions = compiler_.nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
-    sortAndUnique(testFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
-    sortAndUnique(initFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
-    sortAndUnique(preMainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
-    sortAndUnique(dropFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
-    sortAndUnique(mainFunctions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
-    sortAndUnique(regularGlobals, [&](const SymbolVariable& symbol) { return makeVariableSortKey(*this, symbol); });
+    sortAndUniqueByLocation(*this, testFunctions);
+    sortAndUniqueByLocation(*this, initFunctions);
+    sortAndUniqueByLocation(*this, preMainFunctions);
+    sortAndUniqueByLocation(*this, dropFunctions);
+    sortAndUniqueByLocation(*this, mainFunctions);
+    sortAndUniqueByLocation(*this, regularGlobals);
     appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
 
     std::optional<TimedActionLog::ScopedStage> microStage;
@@ -429,7 +439,7 @@ Result NativeBackendBuilder::prepare()
     while (true)
     {
         appendCodeGenDependencies(*this, functions);
-        sortAndUnique(functions, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(*this, symbol); });
+        sortAndUniqueByLocation(*this, functions);
         rebuildFunctionInfos(*this, functions);
         SWC_RESULT(scheduleCodeGen(*this));
 

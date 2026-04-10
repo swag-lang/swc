@@ -429,31 +429,26 @@ namespace
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
         materializeArithmeticOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, encodeCtx.operationTypeRef);
 
-        auto finalizeIntLikeResult = [&] {
-            convertArithmeticOperand(nodePayload.reg, codeGen, encodeCtx.operationTypeRef, encodeCtx.resultTypeRef);
-            return Result::Continue;
-        };
-
         MicroReg rightReg;
         materializeArithmeticOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, encodeCtx.operationTypeRef);
 
         if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
         {
             SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, nodePayload.reg, rightReg, operationType, opBits, tokId, node.modifierFlags.has(AstModifierFlagsE::Wrap)));
-            return finalizeIntLikeResult();
         }
-
-        if (isSigned && (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent))
+        else if (isSigned && (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent))
         {
             SWC_RESULT(CodeGenSafety::emitSignedDivOrModIntLike(codeGen, node, nodePayload.reg, rightReg, op, opBits, tokId == TokenId::SymPercent));
-            return finalizeIntLikeResult();
+        }
+        else
+        {
+            codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
+            if (hasSafety)
+                SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, tokId, isSigned));
         }
 
-        codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
-        if (hasSafety)
-            SWC_RESULT(CodeGenSafety::emitIntArithmeticOverflowCheck(codeGen, node, tokId, isSigned));
-
-        return finalizeIntLikeResult();
+        convertArithmeticOperand(nodePayload.reg, codeGen, encodeCtx.operationTypeRef, encodeCtx.resultTypeRef);
+        return Result::Continue;
     }
 
     Result emitBinaryFloat(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)

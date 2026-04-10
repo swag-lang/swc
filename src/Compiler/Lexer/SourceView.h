@@ -81,6 +81,9 @@ public:
     TokenRef                      findLeftFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const;
 
 private:
+    uint32_t                      clampLine(uint32_t line) const;
+    std::pair<uint32_t, uint32_t> lineBounds(uint32_t line) const;
+
     SourceViewRef                 ref_     = SourceViewRef::invalid();
     const SourceFile*             file_    = nullptr;
     FileRef                       fileRef_ = FileRef::invalid();

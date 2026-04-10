@@ -201,6 +201,14 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
     return removedAny;
 }
 
+void MicroDeadCodeEliminationPass::applyLinearLiveness(const MicroInstrUseDef& useDef)
+{
+    for (const MicroReg defReg : useDef.defs)
+        linearLiveRegs_.erase(defReg);
+    for (const MicroReg useReg : useDef.uses)
+        linearLiveRegs_.insert(useReg);
+}
+
 bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinearTail()
 {
     SWC_ASSERT(storage_ != nullptr);
@@ -209,13 +217,6 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
     bool removedAny = false;
     linearLiveRegs_.clear();
     linearLiveRegs_.reserve(64);
-
-    const auto applyLiveness = [&](const MicroInstrUseDef& ud) {
-        for (const MicroReg defReg : ud.defs)
-            linearLiveRegs_.erase(defReg);
-        for (const MicroReg useReg : ud.uses)
-            linearLiveRegs_.insert(useReg);
-    };
 
     linearEraseList_.clear();
 
@@ -265,7 +266,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
         if (!isBackwardDeadDefRemovableInstruction(inst) ||
             !isPureDefCandidate(inst, useDef, encoder_, callConvKind_))
         {
-            applyLiveness(useDef);
+            applyLinearLiveness(useDef);
             continue;
         }
 
@@ -274,7 +275,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
         {
             if (MicroInstrInfo::definesCpuFlags(inst) && !areCpuFlagsDeadAfterInstruction(instRef))
             {
-                applyLiveness(useDef);
+                applyLinearLiveness(useDef);
                 continue;
             }
 
@@ -283,7 +284,7 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
             continue;
         }
 
-        applyLiveness(useDef);
+        applyLinearLiveness(useDef);
     }
 
     for (const MicroInstrRef ref : linearEraseList_)

@@ -30,7 +30,9 @@ public:
 private:
     void       pushReady(JobRecord* rec, JobPriority priority);
     JobRecord* popReadyLocked();
+    JobRecord* popReadyAndMarkRunningLocked();
     JobRecord* popReadyForClientLocked(JobClientId client);
+    bool       isDrainedLocked() const;
 
     static JobResult executeJob(const Job& job);
     void             handleJobResult(JobRecord* rec, JobResult res);

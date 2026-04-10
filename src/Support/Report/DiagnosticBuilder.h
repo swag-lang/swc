@@ -74,6 +74,8 @@ private:
     uint32_t         countReplacedArgs(std::string_view msg, const DiagnosticElement* el) const;
     static uint32_t  countMessagePlaceholders(std::string_view msg);
     Utf8             buildMessage(const Utf8& msg, const DiagnosticElement* el = nullptr) const;
+    void             replaceArgsInString(Utf8& result, const DiagnosticArguments& arguments) const;
+    static void      collectUniqueArgNames(std::vector<std::string_view>& argNames, const DiagnosticArguments& args);
     Utf8             argumentToString(const DiagnosticArgument& arg) const;
     void             expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 };

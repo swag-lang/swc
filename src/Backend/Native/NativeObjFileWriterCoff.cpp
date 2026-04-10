@@ -503,16 +503,17 @@ void NativeObjFileWriterCoff::writeU64(std::vector<std::byte>& bytes, const uint
     std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
 
+void NativeObjFileWriterCoff::addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices, CoffSymbolRecord record)
+{
+    symbolIndices.emplace(record.name, static_cast<uint32_t>(symbols.size()));
+    symbols.push_back(std::move(record));
+}
+
 void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices)
 {
-    const auto add = [&](CoffSymbolRecord record) {
-        symbolIndices.emplace(record.name, static_cast<uint32_t>(symbols.size()));
-        symbols.push_back(std::move(record));
-    };
-
     if (description.startup)
     {
-        add({
+        addSymbolRecord(symbols, symbolIndices, {
             .name          = description.startup->symbolName,
             .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
             .value         = description.startup->textOffset,
@@ -525,7 +526,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
     {
         if (!info)
             continue;
-        add({
+        addSymbolRecord(symbols, symbolIndices, {
             .name          = info->symbolName,
             .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
             .value         = info->textOffset,
@@ -550,7 +551,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         if (sectionNumber == 0)
             continue;
 
-        add({
+        addSymbolRecord(symbols, symbolIndices, {
             .name          = extraSymbol.name,
             .sectionNumber = sectionNumber,
             .value         = extraSymbol.value,
@@ -566,7 +567,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
     {
         if (section.data.name == ".rdata")
         {
-            add({
+            addSymbolRecord(symbols, symbolIndices, {
                 .name          = K_R_DATA_BASE_SYMBOL,
                 .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                 .value         = 0,
@@ -576,7 +577,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         }
         else if (section.data.name == ".data")
         {
-            add({
+            addSymbolRecord(symbols, symbolIndices, {
                 .name          = K_DATA_BASE_SYMBOL,
                 .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                 .value         = 0,
@@ -586,7 +587,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         }
         else if (section.data.name == ".bss")
         {
-            add({
+            addSymbolRecord(symbols, symbolIndices, {
                 .name          = K_BSS_BASE_SYMBOL,
                 .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                 .value         = 0,

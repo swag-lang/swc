@@ -335,14 +335,44 @@ namespace
         bool     seenNamed = false;
         uint32_t nextPos   = paramStart;
 
-        const auto setFailure = [&](uint32_t userArgIndex, DiagnosticId diagId, IdentifierRef idRef = IdentifierRef::invalid()) {
+        const auto formatNamedParameters = [&]() -> Utf8 {
+            Utf8 result;
+            bool first = true;
+            for (uint32_t i = paramStart; i < numParams; ++i)
+            {
+                const SymbolVariable* param = params[i];
+                if (!param || !param->idRef().isValid())
+                    continue;
+
+                if (!first)
+                    result += ", ";
+                first = false;
+                result += '\'';
+                result += param->name(sema.ctx());
+                result += '\'';
+            }
+
+            return result;
+        };
+
+        const auto setFailure = [&](uint32_t      userArgIndex,
+                                    DiagnosticId  diagId,
+                                    IdentifierRef idRef       = IdentifierRef::invalid(),
+                                    uint32_t      paramIndex  = UINT32_MAX,
+                                    DiagnosticId  noteId      = DiagnosticId::None,
+                                    AstNodeRef    noteNodeRef = AstNodeRef::invalid(),
+                                    Utf8          noteValues  = {}) {
             CastFailure cf{};
             cf.diagId = diagId;
             if (idRef.isValid())
                 cf.valueStr = Utf8{sema.idMgr().get(idRef).name};
+            cf.noteId  = noteId;
+            cf.nodeRef = noteNodeRef;
+            if (!noteValues.empty())
+                cf.addArgument(Diagnostic::ARG_VALUES, std::move(noteValues));
             cf.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
             const uint32_t callArgIndex = callArgIndexFromUserIndex(userArgIndex, ufcsArg);
-            failBadType(outFail, callArgIndex, callArgIndex, cf);
+            failBadType(outFail, callArgIndex, paramIndex == UINT32_MAX ? callArgIndex : paramIndex, cf);
         };
 
         for (uint32_t userIndex = 0; userIndex < args.size(); ++userIndex)
@@ -369,13 +399,20 @@ namespace
 
                 if (found < 0)
                 {
-                    setFailure(userIndex, DiagnosticId::sema_err_named_argument_unknown, idRef);
+                    const Utf8 namedParams = formatNamedParameters();
+                    setFailure(userIndex,
+                               DiagnosticId::sema_err_named_argument_unknown,
+                               idRef,
+                               UINT32_MAX,
+                               namedParams.empty() ? DiagnosticId::sema_note_call_has_no_named_arguments : DiagnosticId::sema_note_available_named_arguments,
+                               AstNodeRef::invalid(),
+                               namedParams);
                     return false;
                 }
 
                 if (outMapping.paramArgs[found].argRef.isValid())
                 {
-                    setFailure(userIndex, DiagnosticId::sema_err_named_argument_duplicate, idRef);
+                    setFailure(userIndex, DiagnosticId::sema_err_named_argument_duplicate, idRef, static_cast<uint32_t>(found), DiagnosticId::sema_note_previous_named_argument, outMapping.paramArgs[found].argRef);
                     return false;
                 }
 
@@ -414,6 +451,29 @@ namespace
     {
         cf.applyArguments(e);
         return cf.noteId;
+    }
+
+    void addCastFailureNote(Sema& sema, Diagnostic& diag, const CastFailure& cf)
+    {
+        if (cf.noteId == DiagnosticId::None)
+            return;
+
+        TaskContext& ctx = sema.ctx();
+        diag.addNote(cf.noteId);
+        cf.applyArguments(diag.last());
+
+        if (cf.nodeRef.isValid())
+        {
+            diag.last().addSpan(sema.node(cf.nodeRef).codeRangeWithChildren(ctx, sema.ast()));
+            return;
+        }
+
+        if (cf.codeRef.isValid())
+        {
+            const SourceView& srcView = ctx.compiler().srcView(cf.codeRef.srcViewRef);
+            const Token&      tok     = srcView.token(cf.codeRef.tokRef);
+            diag.last().addSpan(tok.codeRange(ctx, srcView));
+        }
     }
 
     const SymbolVariable* failedParameter(const SymbolFunction& fn, const MatchFailure& fail)
@@ -531,8 +591,8 @@ namespace
 
     void fillMatchDiagnostic(Sema& sema, DiagnosticElement& diagElement, Diagnostic& diag, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool isNote)
     {
-        TaskContext&  ctx     = sema.ctx();
-        const uint32_t numArgs = countCallArgs(args, ufcsArg);
+        const TaskContext& ctx     = sema.ctx();
+        const uint32_t     numArgs = countCallArgs(args, ufcsArg);
 
         switch (fail.kind)
         {
@@ -568,8 +628,8 @@ namespace
                             diagElement.addArgument(Diagnostic::ARG_WHAT, makeCandidateFailureText(fn, fail, ctx));
                         }
                     }
-                    if (const DiagnosticId nid = addCastFailureArgs(diagElement, fail.castFailure); nid != DiagnosticId::None)
-                        diag.addNote(nid);
+                    (void) addCastFailureArgs(diagElement, fail.castFailure);
+                    addCastFailureNote(sema, diag, fail.castFailure);
                     if (!isNote)
                         setCallArgumentFailureArgs(diagElement, fn, fail, ctx);
                 }

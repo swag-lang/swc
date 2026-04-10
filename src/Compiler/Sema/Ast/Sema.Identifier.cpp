@@ -321,7 +321,18 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
     if (const Symbol* sym = sema.curViewSymbol().sym(); sym && requiresExplicitClosureCapture(sema, *sym))
-        return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_missing, sema.curNodeRef());
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_missing, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_SYM, sym->name(sema.ctx()));
+        if (sym->decl())
+        {
+            diag.addNote(DiagnosticId::sema_note_capture_source_declared_here);
+            diag.last().addArgument(Diagnostic::ARG_SYM, sym->name(sema.ctx()));
+            diag.last().addSpan(sym->codeRange(sema.ctx()));
+        }
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
     return Result::Continue;
 }
 

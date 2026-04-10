@@ -32,38 +32,35 @@ struct representations. Below are examples demonstrating different levels of pac
 */
 #test
 {
-    // @TODO: Re-enable when `#[Swag.Pack(1)]` matches the documented field offsets again.
-    // #[Swag.Pack(1)]
-    // struct MyStruct1
-    // {
-    //     x:     bool     // offset 0: 1 byte (no padding)
-    //     y:     s32      // offset 1: 4 bytes (no padding)
-    // }
-    // #assert(#offsetof(MyStruct1.x) == 0)
-    // #assert(#offsetof(MyStruct1.y) == 1)
-    // #assert(#sizeof(MyStruct1) == 5)
+    #[Swag.Pack(1)]
+    struct MyStruct1
+    {
+        x:     bool     // offset 0: 1 byte (no padding)
+        y:     s32      // offset 1: 4 bytes (no padding)
+    }
+    #assert(#offsetof(MyStruct1.x) == 0)
+    #assert(#offsetof(MyStruct1.y) == 1)
+    #assert(#sizeof(MyStruct1) == 5)
 
-    // @TODO: Re-enable when `#[Swag.Pack(2)]` matches the documented field offsets again.
-    // #[Swag.Pack(2)]
-    // struct MyStruct2
-    // {
-    //     x:     bool     // offset 0: 1 byte
-    //     y:     s32      // offset 2: 4 bytes (1 byte of padding before y)
-    // }
-    // #assert(#offsetof(MyStruct2.x) == 0)
-    // #assert(#offsetof(MyStruct2.y) == 2)
-    // #assert(#sizeof(MyStruct2) == 6)
+    #[Swag.Pack(2)]
+    struct MyStruct2
+    {
+        x:     bool     // offset 0: 1 byte
+        y:     s32      // offset 2: 4 bytes (1 byte of padding before y)
+    }
+    #assert(#offsetof(MyStruct2.x) == 0)
+    #assert(#offsetof(MyStruct2.y) == 2)
+    #assert(#sizeof(MyStruct2) == 6)
 
-    // @TODO: Re-enable when `#[Swag.Pack(4)]` matches the documented field offsets again.
-    // #[Swag.Pack(4)]
-    // struct MyStruct3
-    // {
-    //     x:     bool     // offset 0: 1 byte
-    //     y:     s64      // offset 4: 8 bytes (3 bytes of padding before y)
-    // }
-    // #assert(#offsetof(MyStruct3.x) == 0)
-    // #assert(#offsetof(MyStruct3.y) == 4)
-    // #assert(#sizeof(MyStruct3) == 12)
+    #[Swag.Pack(4)]
+    struct MyStruct3
+    {
+        x:     bool     // offset 0: 1 byte
+        y:     s64      // offset 4: 8 bytes (3 bytes of padding before y)
+    }
+    #assert(#offsetof(MyStruct3.x) == 0)
+    #assert(#offsetof(MyStruct3.y) == 4)
+    #assert(#sizeof(MyStruct3) == 12)
 }
 
 /**
@@ -102,17 +99,16 @@ an entire struct. Use it to meet hardware or performance requirements.
     #assert(#offsetof(MyStruct1.y) == 1)
     #assert(#sizeof(MyStruct1) == 2)
 
-    // @TODO: Re-enable when struct-level `#[Swag.Align(8)]` yields the documented size again.
-    // #[Swag.Align(8)]
-    // struct MyStruct2
-    // {
-    //     x:     bool     // 1 byte
-    //     y:     bool     // 1 byte
-    //     // 6 bytes of padding to align struct size to 8
-    // }
-    // #assert(#offsetof(MyStruct2.x) == 0)
-    // #assert(#offsetof(MyStruct2.y) == 1)
-    // #assert(#sizeof(MyStruct2) == 8)
+    #[Swag.Align(8)]
+    struct MyStruct2
+    {
+        x:     bool     // 1 byte
+        y:     bool     // 1 byte
+        // 6 bytes of padding to align struct size to 8
+    }
+    #assert(#offsetof(MyStruct2.x) == 0)
+    #assert(#offsetof(MyStruct2.y) == 1)
+    #assert(#sizeof(MyStruct2) == 8)
 }
 
 /**
@@ -123,23 +119,25 @@ This provides fine-grained control over memory layout for low-level optimization
 */
 #test
 {
-    // @TODO: Re-enable when field-level `#[Swag.Align(8)]` yields the documented size again.
-    // struct MyStruct1
-    // {
-    //     x:   bool // offset 0: 1 byte
-    //     #[Swag.Align(8)]
-    //     y:   bool // offset 8: aligned to 8 bytes (7 bytes of padding before y)
-    // }
-    // #assert(#sizeof(MyStruct1) == 9)
+    struct MyStruct1
+    {
+        x:   bool // offset 0: 1 byte
+        #[Swag.Align(8)]
+        y:   bool // offset 8: aligned to 8 bytes (7 bytes of padding before y)
+    }
+    #assert(#offsetof(MyStruct1.x) == 0)
+    #assert(#offsetof(MyStruct1.y) == 8)
+    #assert(#sizeof(MyStruct1) == 16)
 
-    // @TODO: Re-enable when combined struct/field alignment yields the documented size again.
-    // #[Swag.Align(8)]
-    // struct MyStruct2
-    // {
-    //     x:   bool // offset 0: 1 byte
-    //     #[Swag.Align(4)]
-    //     y:   bool // offset 4: aligned to 4 bytes (3 bytes of padding before y)
-    //     // 3 bytes of padding to align struct size to 8
-    // }
-    // #assert(#sizeof(MyStruct2) == 8)
+    #[Swag.Align(8)]
+    struct MyStruct2
+    {
+        x:   bool // offset 0: 1 byte
+        #[Swag.Align(4)]
+        y:   bool // offset 4: aligned to 4 bytes (3 bytes of padding before y)
+        // 3 bytes of padding to align struct size to 8
+    }
+    #assert(#offsetof(MyStruct2.x) == 0)
+    #assert(#offsetof(MyStruct2.y) == 4)
+    #assert(#sizeof(MyStruct2) == 8)
 }

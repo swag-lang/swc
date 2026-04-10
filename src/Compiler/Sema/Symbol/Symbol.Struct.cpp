@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -13,6 +14,105 @@
 #include "Support/Memory/Heap.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    bool sameAttributeInstance(const AttributeInstance& lhs, const AttributeInstance& rhs)
+    {
+        if (lhs.symbol != rhs.symbol || lhs.params.size() != rhs.params.size())
+            return false;
+
+        for (size_t i = 0; i < lhs.params.size(); ++i)
+        {
+            const auto& lhsParam = lhs.params[i];
+            const auto& rhsParam = rhs.params[i];
+            if (lhsParam.nameIdRef != rhsParam.nameIdRef || lhsParam.valueCstRef != rhsParam.valueCstRef)
+                return false;
+        }
+
+        return true;
+    }
+
+    size_t inheritedAttributePrefixCount(const AttributeList& attributes, const AttributeList& inheritedAttributes)
+    {
+        const size_t inheritedCount = std::min(attributes.attributes.size(), inheritedAttributes.attributes.size());
+        size_t       prefixCount    = 0;
+        while (prefixCount < inheritedCount && sameAttributeInstance(attributes.attributes[prefixCount], inheritedAttributes.attributes[prefixCount]))
+            prefixCount++;
+
+        return prefixCount;
+    }
+
+    bool tryGetSwagLayoutAttributeValue(uint32_t& outValue, TaskContext& ctx, const AttributeList& attributes, const std::string_view attrName)
+    {
+        outValue = 0;
+        for (const AttributeInstance& attribute : attributes.attributes)
+        {
+            if (!attribute.symbol || !attribute.symbol->inSwagNamespace(ctx) || attribute.symbol->name(ctx) != attrName)
+                continue;
+
+            for (const AttributeParamInstance& param : attribute.params)
+            {
+                if (!param.valueCstRef.isValid())
+                    continue;
+
+                const ConstantValue& cst = ctx.cstMgr().get(param.valueCstRef);
+                if (!cst.isInt())
+                    continue;
+
+                outValue = static_cast<uint32_t>(cst.getInt().as64());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool tryGetFieldAlignAttributeValue(uint32_t& outValue, TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field)
+    {
+        outValue = 0;
+        const AttributeList& fieldAttributes = field.attributes();
+        const AttributeList& ownerAttributes = owner.attributes();
+        const size_t         startIndex      = inheritedAttributePrefixCount(fieldAttributes, ownerAttributes);
+
+        for (size_t i = startIndex; i < fieldAttributes.attributes.size(); ++i)
+        {
+            const AttributeInstance& attribute = fieldAttributes.attributes[i];
+            if (!attribute.symbol || !attribute.symbol->inSwagNamespace(ctx) || attribute.symbol->name(ctx) != "Align")
+                continue;
+
+            for (const AttributeParamInstance& param : attribute.params)
+            {
+                if (!param.valueCstRef.isValid())
+                    continue;
+
+                const ConstantValue& cst = ctx.cstMgr().get(param.valueCstRef);
+                if (!cst.isInt())
+                    continue;
+
+                outValue = static_cast<uint32_t>(cst.getInt().as64());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    uint32_t effectiveFieldAlignment(TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field, const uint32_t structPack)
+    {
+        const TypeInfo& fieldType = field.typeInfo(ctx);
+        uint32_t        alignOf   = std::max<uint32_t>(fieldType.alignOf(ctx), 1);
+
+        if (structPack != 0)
+            alignOf = std::min(alignOf, structPack);
+
+        uint32_t fieldAlign = 0;
+        if (tryGetFieldAlignAttributeValue(fieldAlign, ctx, owner, field) && fieldAlign != 0)
+            alignOf = std::max(alignOf, fieldAlign);
+
+        return std::max<uint32_t>(alignOf, 1);
+    }
+}
 
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
@@ -212,6 +312,10 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
 {
     sizeInBytes_ = 0;
     alignment_   = 1;
+    uint32_t structPack  = 0;
+    uint32_t structAlign = 0;
+    tryGetSwagLayoutAttributeValue(structPack, ctx, attributes(), "Pack");
+    tryGetSwagLayoutAttributeValue(structAlign, ctx, attributes(), "Align");
 
     for (SymbolVariable* field : fields_)
     {
@@ -219,7 +323,7 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         const auto& type   = symVar.typeInfo(ctx);
 
         const uint64_t sizeOf  = type.sizeOf(ctx);
-        const uint32_t alignOf = type.alignOf(ctx);
+        const uint32_t alignOf = effectiveFieldAlignment(ctx, *this, symVar, structPack);
         alignment_             = std::max(alignment_, alignOf);
 
         if (isUnion())
@@ -235,6 +339,9 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
             sizeInBytes_ += sizeOf;
         }
     }
+
+    if (structAlign != 0)
+        alignment_ = std::max(alignment_, structAlign);
 
     if (alignment_ > 0)
     {

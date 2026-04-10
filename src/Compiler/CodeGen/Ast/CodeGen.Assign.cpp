@@ -318,6 +318,29 @@ namespace
         return resultReg;
     }
 
+    void normalizeReferenceAssignTarget(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
+    {
+        if (!ioTypeRef.isValid())
+            return;
+
+        const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(ioTypeRef);
+        if (!leftTypeInfo.isReference())
+            return;
+
+        ioTypeRef         = leftTypeInfo.payloadTypeRef();
+        ioPayload.typeRef = ioTypeRef;
+        if (ioPayload.isValue())
+        {
+            ioPayload.setIsAddress();
+            return;
+        }
+
+        const MicroReg referenceSlotReg = ioPayload.reg;
+        ioPayload.reg                   = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
+        ioPayload.setIsAddress();
+    }
+
     AssignTarget resolveAssignTarget(CodeGen& codeGen, AstNodeRef leftRef)
     {
         AssignTarget target;
@@ -327,20 +350,10 @@ namespace
         const TypeRef      leftTypeRef  = target.payload.effectiveTypeRef(leftTypeView.typeRef());
         SWC_ASSERT(leftTypeRef.isValid());
 
-        const TypeInfo& leftTypeInfo  = codeGen.typeMgr().get(leftTypeRef);
         TypeRef         targetTypeRef = leftTypeRef;
-        if (leftTypeInfo.isReference())
-        {
-            // All assignment encodings store through an address, so references are normalized to the
-            // address of their referent before the actual store logic runs.
-            SWC_ASSERT(!target.payload.isAddress());
-            target.payload.setIsAddress();
-            targetTypeRef = leftTypeInfo.payloadTypeRef();
-        }
-        else
-        {
+        normalizeReferenceAssignTarget(codeGen, target.payload, targetTypeRef);
+        if (!codeGen.typeMgr().get(leftTypeRef).isReference())
             SWC_ASSERT(target.payload.isAddress());
-        }
 
         const TypeRef opTypeRef = codeGen.typeMgr().get(targetTypeRef).unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
         target.typeRef          = targetTypeRef;

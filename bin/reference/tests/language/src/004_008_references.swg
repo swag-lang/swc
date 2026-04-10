@@ -5,6 +5,7 @@
 Swag supports **references**, which behave like pointers but act syntactically like values.
 References offer a safer and more convenient way to work with memory addresses, eliminating the need for explicit pointer dereferencing in most cases.
 */
+
 #test
 {
     var x = 42
@@ -20,18 +21,16 @@ References offer a safer and more convenient way to work with memory addresses, 
 
 Assigning a value to a reference (after initialization) updates the **referenced variable**, not the reference itself.
 */
-// @TODO: Re-enable when assigning through a reference preserves value-style comparisons.
-// #test
-// {
-//     var x      = 42
-//     var myRef: &s32 = &x
-//     @assert(myRef == 42)
-//
-//     // Change the value of 'x' through the reference
-//     myRef = 66
-//     @assert(myRef == 66)
-//     @assert(x == 66) // 'x' is updated as well
-// }
+#test
+{
+    var x      = 42
+    var myRef: &s32 = &x
+    @assert(myRef == 42)
+    // Change the value of 'x' through the reference
+    myRef = 66
+    @assert(myRef == 66)
+    @assert(x == 66) // 'x' is updated as well
+}
 
 /**
 # Reassigning References

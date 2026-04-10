@@ -42,6 +42,29 @@ struct Vec2
     @assert(v == 42)
 }
 
+func writeScalarRef(target: &s32, value: s32)
+{
+    target = value
+}
+
+#test
+{
+    var value: s32 = 10
+    var valueRef: &s32 = &value
+
+    valueRef = 42
+    @assert(valueRef == 42)
+    @assert(value == 42)
+
+    valueRef += 8
+    @assert(valueRef == 50)
+    @assert(value == 50)
+
+    writeScalarRef(&value, 99)
+    @assert(valueRef == 99)
+    @assert(value == 99)
+}
+
 #test
 {
     func getPtr(x: &Vec2)->*Vec2 { return &x; }
@@ -55,6 +78,30 @@ struct Vec2
     writeThrough(p)
     @assert(v.x == -3)
     @assert(v.y == 99)
+}
+
+func writeVecRef(target: &Vec2, value: Vec2)
+{
+    target = value
+}
+
+#test
+{
+    var value: Vec2 = {x: 1, y: 2}
+    var valueRef: &Vec2 = &value
+    let other: Vec2 = {x: 30, y: 40}
+
+    valueRef = other
+    @assert(valueRef.x == 30)
+    @assert(valueRef.y == 40)
+    @assert(value.x == 30)
+    @assert(value.y == 40)
+
+    writeVecRef(&value, {x: -5, y: 12})
+    @assert(valueRef.x == -5)
+    @assert(valueRef.y == 12)
+    @assert(value.x == -5)
+    @assert(value.y == 12)
 }
 
 #test

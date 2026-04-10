@@ -8,6 +8,23 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Symbol* typeBlockingSymbol(TaskContext& ctx, TypeRef tr)
+    {
+        if (!tr.isValid())
+            return nullptr;
+        return ctx.typeMgr().get(tr).getNotCompletedSymbol(ctx);
+    }
+
+    Symbol* directBlockingSymbol(Symbol* sym)
+    {
+        if (!sym || sym->isSemaCompleted())
+            return nullptr;
+        return sym;
+    }
+}
+
 TypeInfo::~TypeInfo()
 {
     switch (kind_)
@@ -1001,56 +1018,43 @@ Symbol* TypeInfo::getSymbol() const
 
 Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
 {
-    const auto getTypeBlockingSymbol = [&](const TypeRef tr) -> Symbol* {
-        if (!tr.isValid())
-            return nullptr;
-        return ctx.typeMgr().get(tr).getNotCompletedSymbol(ctx);
-    };
-
-    const auto getDirectBlockingSymbol = [](Symbol* sym) -> Symbol* {
-        if (!sym || sym->isSemaCompleted())
-            return nullptr;
-        return sym;
-    };
-
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return getDirectBlockingSymbol(&payloadSymStruct());
+            return directBlockingSymbol(&payloadSymStruct());
         case TypeInfoKind::Enum:
-            return getDirectBlockingSymbol(&payloadSymEnum());
+            return directBlockingSymbol(&payloadSymEnum());
         case TypeInfoKind::Interface:
-            return getDirectBlockingSymbol(&payloadSymInterface());
+            return directBlockingSymbol(&payloadSymInterface());
         case TypeInfoKind::Alias:
-            return getDirectBlockingSymbol(&payloadSymAlias());
+            return directBlockingSymbol(&payloadSymAlias());
 
         case TypeInfoKind::Function:
         {
-            if (Symbol* sym = getTypeBlockingSymbol(payloadFunction_.sym->returnTypeRef()))
+            if (Symbol* sym = typeBlockingSymbol(ctx, payloadFunction_.sym->returnTypeRef()))
                 return sym;
 
             for (const auto& param : payloadFunction_.sym->parameters())
             {
-                if (Symbol* sym = getTypeBlockingSymbol(param->typeRef()))
+                if (Symbol* sym = typeBlockingSymbol(ctx, param->typeRef()))
                     return sym;
             }
 
-            return getDirectBlockingSymbol(&payloadSymFunction());
+            return directBlockingSymbol(&payloadSymFunction());
         }
 
         case TypeInfoKind::Array:
-            return getTypeBlockingSymbol(payloadArray_.typeRef);
+            return typeBlockingSymbol(ctx, payloadArray_.typeRef);
 
         case TypeInfoKind::TypeValue:
-            return getTypeBlockingSymbol(payloadTypeRef_.typeRef);
         case TypeInfoKind::TypedVariadic:
-            return getTypeBlockingSymbol(payloadTypeRef_.typeRef);
         case TypeInfoKind::CodeBlock:
-            return getTypeBlockingSymbol(payloadTypeRef_.typeRef);
+            return typeBlockingSymbol(ctx, payloadTypeRef_.typeRef);
+
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
             for (const TypeRef tr : payloadAggregate_.types)
-                if (Symbol* sym = getTypeBlockingSymbol(tr))
+                if (Symbol* sym = typeBlockingSymbol(ctx, tr))
                     return sym;
             return nullptr;
         default:

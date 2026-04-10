@@ -353,6 +353,30 @@ namespace
         f.active      = true;
     }
 
+    Utf8 formatNamedParameters(const Sema&                                sema,
+                               std::span<SymbolVariable* const>           params,
+                               uint32_t                                   paramStart,
+                               uint32_t                                   numParams)
+    {
+        Utf8 result;
+        bool first = true;
+        for (uint32_t i = paramStart; i < numParams; ++i)
+        {
+            const SymbolVariable* param = params[i];
+            if (!param || !param->idRef().isValid())
+                continue;
+
+            if (!first)
+                result += ", ";
+            first = false;
+            result += '\'';
+            result += param->name(sema.ctx());
+            result += '\'';
+        }
+
+        return result;
+    }
+
     bool buildCallArgMapping(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CallArgMapping& outMapping, MatchFailure& outFail)
     {
         outMapping = {};
@@ -373,26 +397,6 @@ namespace
 
         bool     seenNamed = false;
         uint32_t nextPos   = paramStart;
-
-        const auto formatNamedParameters = [&]() -> Utf8 {
-            Utf8 result;
-            bool first = true;
-            for (uint32_t i = paramStart; i < numParams; ++i)
-            {
-                const SymbolVariable* param = params[i];
-                if (!param || !param->idRef().isValid())
-                    continue;
-
-                if (!first)
-                    result += ", ";
-                first = false;
-                result += '\'';
-                result += param->name(sema.ctx());
-                result += '\'';
-            }
-
-            return result;
-        };
 
         const auto setFailure = [&](uint32_t      userArgIndex,
                                     DiagnosticId  diagId,
@@ -438,7 +442,7 @@ namespace
 
                 if (found < 0)
                 {
-                    const Utf8 namedParams = formatNamedParameters();
+                    const Utf8 namedParams = formatNamedParameters(sema, params, paramStart, numParams);
                     setFailure(userIndex,
                                DiagnosticId::sema_err_named_argument_unknown,
                                idRef,

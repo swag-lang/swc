@@ -26,6 +26,22 @@ namespace
         return symbol != nullptr && symbol->isIgnored();
     }
 
+    SemaScope* remapScopeFromParent(const std::vector<std::unique_ptr<SemaScope>>& parentScopes,
+                                    const std::vector<std::unique_ptr<SemaScope>>& childScopes,
+                                    const SemaScope*                               oldScope)
+    {
+        if (!oldScope)
+            return nullptr;
+
+        for (size_t i = 0; i < parentScopes.size(); ++i)
+        {
+            if (parentScopes[i].get() == oldScope)
+                return childScopes[i].get();
+        }
+
+        return nullptr;
+    }
+
     void cleanupPendingImplRegistrations(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -96,28 +112,15 @@ Sema::Sema(TaskContext& ctx, Sema& parent, AstNodeRef root, bool declPass) :
             scopes_.back()->setParent(nullptr);
     }
 
-    const auto remapScope = [&](const SemaScope* oldScope) -> SemaScope* {
-        if (!oldScope)
-            return nullptr;
-
-        for (size_t i = 0; i < parent.scopes_.size(); ++i)
-        {
-            if (parent.scopes_[i].get() == oldScope)
-                return scopes_[i].get();
-        }
-
-        return nullptr;
-    };
-
     for (size_t i = 0; i < parent.scopes_.size(); ++i)
-        scopes_[i]->setLookupParent(remapScope(parent.scopes_[i]->lookupParent()));
+        scopes_[i]->setLookupParent(remapScopeFromParent(parent.scopes_, scopes_, parent.scopes_[i]->lookupParent()));
 
     curScope_ = scopes_.empty() ? nullptr : scopes_.back().get();
     if (curScope_ && curScope_->isTopLevel())
         curScope_->setSymMap(startSymMap_);
 
-    frame().setLookupScope(remapScope(parent.frame().lookupScope()));
-    frame().setUpLookupScope(remapScope(parent.frame().upLookupScope()));
+    frame().setLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().lookupScope()));
+    frame().setUpLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().upLookupScope()));
 }
 
 Sema::~Sema() = default;

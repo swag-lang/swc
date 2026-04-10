@@ -871,7 +871,7 @@ namespace
         if (!childCanConsumeLambdaBinding(childNode))
             return TypeRef::invalid();
 
-        const SemaNodeView nodeCallee = sema.view(call.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        const SemaNodeView   nodeCallee = sema.view(call.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
         SmallVector<Symbol*> symbols;
         nodeCallee.getSymbols(symbols);
         if (symbols.empty() && sema.isValue(nodeCallee.nodeRef()))

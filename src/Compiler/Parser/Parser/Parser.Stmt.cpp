@@ -14,8 +14,8 @@ AstNodeRef Parser::parseTopLevelCall()
 
 AstNodeRef Parser::parseAccessModifier()
 {
-    const TokenRef          tokModifier = consume();
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(tokModifier);
+    const TokenRef tokModifier = consume();
+    auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::AccessModifier>(tokModifier);
 
     switch (id())
     {
@@ -501,7 +501,7 @@ AstNodeRef Parser::parseSwitch()
 
                 const AstNodeRef caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
-                currentCase = ast_->node<AstNodeId::SwitchCaseStmt>(caseRef);
+                currentCase    = ast_->node<AstNodeId::SwitchCaseStmt>(caseRef);
                 currentCaseRef = caseRef;
 
                 auto [bodyRef, bodyPtr]  = ast_->makeNode<AstNodeId::SwitchCaseBody>(ast_->node(caseRef).tokRef());

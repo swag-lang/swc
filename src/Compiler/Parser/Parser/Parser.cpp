@@ -122,7 +122,7 @@ Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef,
 
 void Parser::tryEnhanceUnexpectedToken(Diagnostic& diag, TokenRef tknRef) const
 {
-    TokenId expectedOpening = TokenId::Invalid;
+    auto expectedOpening = TokenId::Invalid;
 
     switch (ast_->srcView().token(tknRef).id)
     {

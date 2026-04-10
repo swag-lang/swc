@@ -75,7 +75,7 @@ namespace
 
     void setStructFieldFailureNote(CastRequest& castRequest, DiagnosticId noteId, AstNodeRef noteNodeRef, std::string_view fieldName)
     {
-        castRequest.failure.noteId     = noteId;
+        castRequest.failure.noteId      = noteId;
         castRequest.failure.noteNodeRef = noteNodeRef;
         castRequest.failure.addArgument(Diagnostic::ARG_VALUE, fieldName);
     }
@@ -212,15 +212,15 @@ namespace
 
         SWC_ASSERT(srcNames.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
-        std::vector dstUsed(dstFields.size(), false);
+        std::vector             dstUsed(dstFields.size(), false);
         std::vector<AstNodeRef> dstFieldInitRefs(dstFields.size(), AstNodeRef::invalid());
 
         bool   seenNamed = false;
         size_t nextPos   = 0;
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
-            const IdentifierRef name       = srcNames[i];
-            const bool          positional = name.isInvalid();
+            const IdentifierRef name         = srcNames[i];
+            const bool          positional   = name.isInvalid();
             const AstNodeRef    fieldNodeRef = aggregateFieldNodeRef(args, i, srcTypes.size());
 
             if (positional)
@@ -233,8 +233,8 @@ namespace
                 if (nextPos >= dstFields.size())
                     return failStructFieldCountAt(args, i, srcTypes.size(), srcTypes.size(), dstFields.size());
 
-                srcToDst[i]      = nextPos;
-                dstUsed[nextPos] = true;
+                srcToDst[i]               = nextPos;
+                dstUsed[nextPos]          = true;
                 dstFieldInitRefs[nextPos] = fieldNodeRef;
                 ++nextPos;
                 continue;
@@ -264,8 +264,8 @@ namespace
                 return res;
             }
 
-            srcToDst[i]       = dstIndex;
-            dstUsed[dstIndex] = true;
+            srcToDst[i]                = dstIndex;
+            dstUsed[dstIndex]          = true;
             dstFieldInitRefs[dstIndex] = fieldNodeRef;
         }
 

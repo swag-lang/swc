@@ -2,8 +2,8 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -70,7 +70,7 @@ namespace
 
     bool tryGetFieldAlignAttributeValue(uint32_t& outValue, TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field)
     {
-        outValue = 0;
+        outValue                             = 0;
         const AttributeList& fieldAttributes = field.attributes();
         const AttributeList& ownerAttributes = owner.attributes();
         const size_t         startIndex      = inheritedAttributePrefixCount(fieldAttributes, ownerAttributes);
@@ -100,7 +100,7 @@ namespace
 
     bool tryGetFieldOffsetAttributeValue(std::string_view& outValue, TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field)
     {
-        outValue = {};
+        outValue                             = {};
         const AttributeList& fieldAttributes = field.attributes();
         const AttributeList& ownerAttributes = owner.attributes();
         const size_t         startIndex      = inheritedAttributePrefixCount(fieldAttributes, ownerAttributes);
@@ -355,8 +355,8 @@ void SymbolStruct::addField(SymbolVariable* sym)
 
 Result SymbolStruct::computeLayout(TaskContext& ctx)
 {
-    sizeInBytes_ = 0;
-    alignment_   = 1;
+    sizeInBytes_         = 0;
+    alignment_           = 1;
     uint32_t structPack  = 0;
     uint32_t structAlign = 0;
     tryGetSwagLayoutAttributeValue(structPack, ctx, attributes(), "Pack");
@@ -378,9 +378,9 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         }
         else
         {
-            std::string_view         offsetTargetName;
-            const SymbolVariable*    offsetTarget = nullptr;
-            uint64_t                 fieldOffset  = sizeInBytes_;
+            std::string_view      offsetTargetName;
+            const SymbolVariable* offsetTarget = nullptr;
+            uint64_t              fieldOffset  = sizeInBytes_;
             if (tryGetFieldOffsetAttributeValue(offsetTargetName, ctx, *this, symVar))
             {
                 offsetTarget = findOffsetTargetField(ctx, *this, symVar, offsetTargetName);

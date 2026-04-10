@@ -724,7 +724,7 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     {
         SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
         const auto& fields = targetType.payloadSymStruct().fields();
-        const bool found   = resolveAggregateChildIndex(
+        const bool  found  = resolveAggregateChildIndex(
             sema,
             children,
             childRef,

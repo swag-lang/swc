@@ -7,15 +7,15 @@ class Diagnostic;
 
 struct CastFailure
 {
-    DiagnosticId        diagId     = DiagnosticId::None;
-    DiagnosticId        noteId     = DiagnosticId::None;
-    AstNodeRef          nodeRef    = AstNodeRef::invalid();
-    SourceCodeRef       codeRef    = SourceCodeRef::invalid();
+    DiagnosticId        diagId      = DiagnosticId::None;
+    DiagnosticId        noteId      = DiagnosticId::None;
+    AstNodeRef          nodeRef     = AstNodeRef::invalid();
+    SourceCodeRef       codeRef     = SourceCodeRef::invalid();
     AstNodeRef          noteNodeRef = AstNodeRef::invalid();
     SourceCodeRef       noteCodeRef = SourceCodeRef::invalid();
-    TypeRef             srcTypeRef = TypeRef::invalid();
-    TypeRef             dstTypeRef = TypeRef::invalid();
-    TypeRef             optTypeRef = TypeRef::invalid();
+    TypeRef             srcTypeRef  = TypeRef::invalid();
+    TypeRef             dstTypeRef  = TypeRef::invalid();
+    TypeRef             optTypeRef  = TypeRef::invalid();
     Utf8                valueStr{};
     DiagnosticArguments arguments{};
 

@@ -38,7 +38,7 @@ AstNodeRef Parser::parseCompilerDiagnostic()
 
 AstNodeRef Parser::parseCompilerTypeOf()
 {
-    const TokenRef          tokRef = consume();
+    const TokenRef tokRef   = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(tokRef);
 
     const TokenRef          openRef = ref();
@@ -84,9 +84,9 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
     if (numParams == 1)
         return parseCompilerCallOne();
 
-    const TokenRef tokRef            = consume();
-    const TokenId  tokenId           = ast_->srcView().token(tokRef).id;
-    auto [nodeRef, nodePtr]          = ast_->makeNode<AstNodeId::CompilerCall>(tokRef);
+    const TokenRef tokRef   = consume();
+    const TokenId  tokenId  = ast_->srcView().token(tokRef).id;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(tokRef);
 
     const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
@@ -457,8 +457,8 @@ AstNodeRef Parser::parseCompilerInject()
     {
         if (isAny(TokenId::KwdBreak, TokenId::KwdContinue))
         {
-            const TokenId  replacementId  = id();
-            const TokenRef instructionRef = consume();
+            const TokenId  replacementId          = id();
+            const TokenRef instructionRef         = consume();
             const TokenRef previousInstructionRef = findInjectReplacement(ast_->srcView(), replacementInstructionRefs.span(), replacementId);
             if (previousInstructionRef.isValid())
             {

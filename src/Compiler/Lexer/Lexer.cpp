@@ -71,7 +71,8 @@ namespace
             return std::nullopt;
 
         const size_t candidateLen = std::max(name.size(), bestCandidate->size());
-        const auto   maxDistance  = static_cast<uint32_t>(candidateLen <= 5 ? 1 : candidateLen <= 8 ? 2 : 3);
+        const auto   maxDistance  = static_cast<uint32_t>(candidateLen <= 5 ? 1 : candidateLen <= 8 ? 2
+                                                                                                    : 3);
         if (bestDistance > maxDistance)
             return std::nullopt;
 

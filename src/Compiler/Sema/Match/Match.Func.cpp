@@ -880,10 +880,10 @@ namespace
         }
         else
         {
-            cf.diagId     = DiagnosticId::sema_err_auto_scope_missing_enum_value;
-            cf.srcTypeRef = TypeRef::invalid();
-            cf.dstTypeRef = paramTy;
-            cf.valueStr   = Utf8{sema.idMgr().get(idRef).name};
+            cf.diagId                  = DiagnosticId::sema_err_auto_scope_missing_enum_value;
+            cf.srcTypeRef              = TypeRef::invalid();
+            cf.dstTypeRef              = paramTy;
+            cf.valueStr                = Utf8{sema.idMgr().get(idRef).name};
             const Utf8 availableValues = formatEnumValueList(sema.ctx(), enumSym);
             if (!availableValues.empty())
             {

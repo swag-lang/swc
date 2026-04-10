@@ -26,12 +26,12 @@ namespace SemaGeneric
 
     struct GenericResolvedArg
     {
-        AstNodeRef  exprRef = AstNodeRef::invalid();
-        AstNodeRef  diagRef = AstNodeRef::invalid();
-        TypeRef     typeRef = TypeRef::invalid();
-        ConstantRef cstRef  = ConstantRef::invalid();
+        AstNodeRef  exprRef      = AstNodeRef::invalid();
+        AstNodeRef  diagRef      = AstNodeRef::invalid();
+        TypeRef     typeRef      = TypeRef::invalid();
+        ConstantRef cstRef       = ConstantRef::invalid();
         uint32_t    callArgIndex = UINT32_MAX;
-        bool        present = false;
+        bool        present      = false;
     };
 
     struct GenericFunctionParamDesc

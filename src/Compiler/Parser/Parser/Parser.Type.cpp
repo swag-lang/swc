@@ -104,9 +104,9 @@ namespace
 
 AstNodeRef Parser::parseSubType()
 {
-    EnumFlags                        qualifiers  = AstQualifiedTypeFlagsE::Zero;
-    uint8_t                          lastOrder   = 0;
-    const TokenRef                   firstTokRef = ref();
+    EnumFlags                                          qualifiers  = AstQualifiedTypeFlagsE::Zero;
+    uint8_t                                            lastOrder   = 0;
+    const TokenRef                                     firstTokRef = ref();
     std::array<TokenRef, std::size(G_QUALIFIER_TABLE)> qualifierRefs{};
     qualifierRefs.fill(TokenRef::invalid());
     TokenRef lastQualifierRef = TokenRef::invalid();
@@ -143,7 +143,7 @@ AstNodeRef Parser::parseSubType()
         }
 
         qualifiers.add(qd->flag);
-        lastOrder = qd->order;
+        lastOrder                = qd->order;
         qualifierRefs[qd->order] = tokRef;
         lastQualifierRef         = tokRef;
         consume();

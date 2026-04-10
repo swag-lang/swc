@@ -13,14 +13,14 @@ namespace
 {
     constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
 
-    Result deduceFromTypePattern(Sema& sema,
+    Result deduceFromTypePattern(Sema&                                          sema,
                                  std::span<const SemaGeneric::GenericParamDesc> params,
-                                 std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
-                                 AstNodeRef                                      patternRef,
-                                 TypeRef                                         rawArgTypeRef,
-                                 AstNodeRef                                      argExprRef,
-                                 uint32_t                                        callArgIndex,
-                                 CastFailure*                                    outFailure);
+                                 std::span<SemaGeneric::GenericResolvedArg>     resolvedArgs,
+                                 AstNodeRef                                     patternRef,
+                                 TypeRef                                        rawArgTypeRef,
+                                 AstNodeRef                                     argExprRef,
+                                 uint32_t                                       callArgIndex,
+                                 CastFailure*                                   outFailure);
 
     void setGenericTypeDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, TypeRef newTypeRef)
     {
@@ -134,14 +134,14 @@ namespace
         }
     }
 
-    bool tryBindGenericTypeParam(Sema& sema,
+    bool tryBindGenericTypeParam(Sema&                                          sema,
                                  std::span<const SemaGeneric::GenericParamDesc> params,
-                                 std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
-                                 IdentifierRef                                   idRef,
-                                 AstNodeRef                                      exprRef,
-                                 uint32_t                                        callArgIndex,
-                                 TypeRef                                         typeRef,
-                                 CastFailure*                                    outFailure)
+                                 std::span<SemaGeneric::GenericResolvedArg>     resolvedArgs,
+                                 IdentifierRef                                  idRef,
+                                 AstNodeRef                                     exprRef,
+                                 uint32_t                                       callArgIndex,
+                                 TypeRef                                        typeRef,
+                                 CastFailure*                                   outFailure)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -169,15 +169,15 @@ namespace
         return true;
     }
 
-    bool tryBindGenericValueParam(Sema& sema,
+    bool tryBindGenericValueParam(Sema&                                          sema,
                                   std::span<const SemaGeneric::GenericParamDesc> params,
-                                  std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
-                                  IdentifierRef                                   idRef,
-                                  AstNodeRef                                      exprRef,
-                                  uint32_t                                        callArgIndex,
-                                  ConstantRef                                     cstRef,
-                                  TypeRef                                         typeRef,
-                                  CastFailure*                                    outFailure)
+                                  std::span<SemaGeneric::GenericResolvedArg>     resolvedArgs,
+                                  IdentifierRef                                  idRef,
+                                  AstNodeRef                                     exprRef,
+                                  uint32_t                                       callArgIndex,
+                                  ConstantRef                                    cstRef,
+                                  TypeRef                                        typeRef,
+                                  CastFailure*                                   outFailure)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -267,15 +267,15 @@ namespace
         return outGenericRoot != nullptr || outGenericRootIdRef.isValid();
     }
 
-    Result deduceFromValuePattern(Sema& sema,
+    Result deduceFromValuePattern(Sema&                                          sema,
                                   std::span<const SemaGeneric::GenericParamDesc> params,
-                                  std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
-                                  AstNodeRef                                      patternRef,
-                                  ConstantRef                                     cstRef,
-                                  TypeRef                                         typeRef,
-                                  AstNodeRef                                      argExprRef,
-                                  uint32_t                                        callArgIndex,
-                                  CastFailure*                                    outFailure)
+                                  std::span<SemaGeneric::GenericResolvedArg>     resolvedArgs,
+                                  AstNodeRef                                     patternRef,
+                                  ConstantRef                                    cstRef,
+                                  TypeRef                                        typeRef,
+                                  AstNodeRef                                     argExprRef,
+                                  uint32_t                                       callArgIndex,
+                                  CastFailure*                                   outFailure)
     {
         if (patternRef.isInvalid() || !cstRef.isValid())
             return Result::Continue;
@@ -296,14 +296,14 @@ namespace
         return Result::Continue;
     }
 
-    Result deduceFromStructPattern(Sema& sema,
+    Result deduceFromStructPattern(Sema&                                          sema,
                                    std::span<const SemaGeneric::GenericParamDesc> params,
-                                   std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
-                                   const AstNamedType&                             namedType,
-                                   const TypeInfo&                                 argType,
-                                   AstNodeRef                                      argExprRef,
-                                   uint32_t                                        callArgIndex,
-                                   const CastFailure*                              outFailure)
+                                   std::span<SemaGeneric::GenericResolvedArg>     resolvedArgs,
+                                   const AstNamedType&                            namedType,
+                                   const TypeInfo&                                argType,
+                                   AstNodeRef                                     argExprRef,
+                                   uint32_t                                       callArgIndex,
+                                   const CastFailure*                             outFailure)
     {
         if (!argType.isStruct())
             return Result::Continue;
@@ -351,14 +351,14 @@ namespace
         return Result::Continue;
     }
 
-    Result deduceFromTypePattern(Sema& sema,
+    Result deduceFromTypePattern(Sema&                                          sema,
                                  std::span<const SemaGeneric::GenericParamDesc> params,
-                                 std::span<SemaGeneric::GenericResolvedArg>      resolvedArgs,
-                                 AstNodeRef                                      patternRef,
-                                 TypeRef                                         rawArgTypeRef,
-                                 AstNodeRef                                      argExprRef,
-                                 uint32_t                                        callArgIndex,
-                                 CastFailure*                                    outFailure)
+                                 std::span<SemaGeneric::GenericResolvedArg>     resolvedArgs,
+                                 AstNodeRef                                     patternRef,
+                                 TypeRef                                        rawArgTypeRef,
+                                 AstNodeRef                                     argExprRef,
+                                 uint32_t                                       callArgIndex,
+                                 CastFailure*                                   outFailure)
     {
         if (patternRef.isInvalid() || !rawArgTypeRef.isValid())
             return Result::Continue;

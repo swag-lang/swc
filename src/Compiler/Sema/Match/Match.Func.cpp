@@ -34,7 +34,7 @@ namespace
         out += '\'';
     }
 
-    Utf8 formatEnumValueList(TaskContext& ctx, const SymbolEnum& symEnum)
+    Utf8 formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum)
     {
         std::vector<const Symbol*> symbols;
         symEnum.getAllSymbols(symbols);

@@ -51,7 +51,7 @@ namespace
         return tok.byteStart - *std::prev(it) + stringDelimiterSize(tok.id);
     }
 
-    // Trim continuation-line indentation up to the opening delimiter column,
+    // Trim continuation-line indentation up to the opening delimiter column
     // but never invent padding when a line starts earlier on purpose.
     Utf8 normalizeMultilineLiteral(std::string_view str, uint32_t alignColumn, const LangSpec& langSpec)
     {
@@ -291,8 +291,8 @@ namespace
         return Result::Continue;
     }
 
-    template<typename ResolveChildBindingTypeFunc>
-    Result pushLiteralChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, ResolveChildBindingTypeFunc&& resolveChildBindingType)
+    template<typename T>
+    Result pushLiteralChildBindingType(Sema& sema, AstNodeRef childRef, const T& resolveChildBindingType)
     {
         const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
         for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
@@ -710,13 +710,11 @@ Result AstStructLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    return pushLiteralChildBindingType(
-        sema,
-        children.span(),
-        childRef,
-        [&](TypeRef targetTypeRef, TypeRef& outBindingTypeRef) {
-            return SemaHelpers::resolveStructLikeChildBindingType(sema, children.span(), childRef, targetTypeRef, outBindingTypeRef);
-        });
+    return pushLiteralChildBindingType(sema,
+                                       childRef,
+                                       [&](TypeRef targetTypeRef, TypeRef& outBindingTypeRef) {
+                                           return SemaHelpers::resolveStructLikeChildBindingType(sema, children.span(), childRef, targetTypeRef, outBindingTypeRef);
+                                       });
 }
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)
@@ -764,13 +762,11 @@ Result AstArrayLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    return pushLiteralChildBindingType(
-        sema,
-        children.span(),
-        childRef,
-        [&](TypeRef targetTypeRef, TypeRef& outBindingTypeRef) {
-            return SemaHelpers::resolveArrayLikeChildBindingType(sema, children.span(), childRef, targetTypeRef, outBindingTypeRef);
-        });
+    return pushLiteralChildBindingType(sema,
+                                       childRef,
+                                       [&](TypeRef targetTypeRef, TypeRef& outBindingTypeRef) {
+                                           return SemaHelpers::resolveArrayLikeChildBindingType(sema, children.span(), childRef, targetTypeRef, outBindingTypeRef);
+                                       });
 }
 
 SWC_END_NAMESPACE();

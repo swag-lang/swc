@@ -611,8 +611,8 @@ namespace
         return sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
     }
 
-    template<typename ResolveNamedIndexFunc>
-    bool resolveAggregateChildIndex(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, ResolveNamedIndexFunc&& resolveNamedIndex, size_t& outIndex)
+    template<typename T>
+    bool resolveAggregateChildIndex(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, T&& resolveNamedIndex, size_t& outIndex)
     {
         outIndex = 0;
         if (!memberCount)

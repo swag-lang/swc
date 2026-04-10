@@ -23,7 +23,7 @@ AstNodeRef Parser::parseAccessModifier()
         case TokenId::KwdModulePrivate:
         case TokenId::KwdFilePrivate:
         {
-            Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
             diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);

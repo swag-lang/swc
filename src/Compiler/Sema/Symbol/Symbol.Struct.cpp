@@ -128,7 +128,7 @@ namespace
         return false;
     }
 
-    const SymbolVariable* findOffsetTargetField(TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field, std::string_view targetName)
+    const SymbolVariable* findOffsetTargetField(const TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field, std::string_view targetName)
     {
         for (const SymbolVariable* candidate : owner.fields())
         {

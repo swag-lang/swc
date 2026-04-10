@@ -65,12 +65,12 @@ AstNodeRef Parser::parseCompilerTypeOf()
 
     if (nodeArgs.empty())
     {
-        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), 1, static_cast<uint32_t>(nodeArgs.size()));
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), 1, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > 1)
     {
-        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[1], 1, static_cast<uint32_t>(nodeArgs.size()));
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[1], 1, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
 
@@ -114,12 +114,12 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
 
     if (nodeArgs.size() < numParams)
     {
-        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), numParams, static_cast<uint32_t>(nodeArgs.size()));
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), numParams, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > numParams)
     {
-        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[numParams], numParams, static_cast<uint32_t>(nodeArgs.size()));
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[numParams], numParams, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
 
@@ -160,12 +160,12 @@ AstNodeRef Parser::parseCompilerCallOne()
 
     if (nodeArgs.empty())
     {
-        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), 1, static_cast<uint32_t>(nodeArgs.size()));
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), 1, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > 1)
     {
-        Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[1], 1, static_cast<uint32_t>(nodeArgs.size()));
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[1], 1, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
 

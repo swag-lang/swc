@@ -161,6 +161,30 @@ struct MixedAlign
 #assert(#offsetof(MixedAlign.b) == 4)
 #assert(#sizeof(MixedAlign) == 8)
 
+struct OverlayScalar
+{
+    x: s32
+    #[Swag.Offset("x")]
+    y: s32
+}
+
+#assert(#offsetof(OverlayScalar.x) == 0)
+#assert(#offsetof(OverlayScalar.y) == 0)
+#assert(#sizeof(OverlayScalar) == 4)
+
+struct OverlayArray
+{
+    x, y, z: f32
+    #[Swag.Offset("x")]
+    idx: [3] f32
+}
+
+#assert(#offsetof(OverlayArray.x) == 0)
+#assert(#offsetof(OverlayArray.y) == 4)
+#assert(#offsetof(OverlayArray.z) == 8)
+#assert(#offsetof(OverlayArray.idx) == 0)
+#assert(#sizeof(OverlayArray) == 12)
+
 struct CC
 {
     a: *CC

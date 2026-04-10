@@ -43,6 +43,20 @@ struct MixedAlign
     b: bool
 }
 
+struct OverlayScalar
+{
+    x: s32
+    #[Swag.Offset("x")]
+    y: s32
+}
+
+struct OverlayArray
+{
+    x, y, z: f32
+    #[Swag.Offset("x")]
+    idx: [3] f32
+}
+
 #test
 {
     #assert(#offsetof(Packed1.a) == 0)
@@ -68,4 +82,30 @@ struct MixedAlign
     #assert(#offsetof(MixedAlign.a) == 0)
     #assert(#offsetof(MixedAlign.b) == 4)
     #assert(#sizeof(MixedAlign) == 8)
+
+    #assert(#offsetof(OverlayScalar.x) == 0)
+    #assert(#offsetof(OverlayScalar.y) == 0)
+    #assert(#sizeof(OverlayScalar) == 4)
+
+    #assert(#offsetof(OverlayArray.x) == 0)
+    #assert(#offsetof(OverlayArray.y) == 4)
+    #assert(#offsetof(OverlayArray.z) == 8)
+    #assert(#offsetof(OverlayArray.idx) == 0)
+    #assert(#sizeof(OverlayArray) == 12)
+
+    var overlay = OverlayScalar{}
+    overlay.x = 666
+    @assert(overlay.y == 666)
+    overlay.y = 42
+    @assert(overlay.x == 42)
+
+    var indexed: OverlayArray
+    indexed.x = 10
+    indexed.y = 20
+    indexed.z = 30
+    @assert(indexed.idx[0] == indexed.x)
+    @assert(indexed.idx[1] == indexed.y)
+    @assert(indexed.idx[2] == indexed.z)
+    indexed.idx[1] = 77
+    @assert(indexed.y == 77)
 }

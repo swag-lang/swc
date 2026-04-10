@@ -98,6 +98,51 @@ namespace
         return false;
     }
 
+    bool tryGetFieldOffsetAttributeValue(std::string_view& outValue, TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field)
+    {
+        outValue = {};
+        const AttributeList& fieldAttributes = field.attributes();
+        const AttributeList& ownerAttributes = owner.attributes();
+        const size_t         startIndex      = inheritedAttributePrefixCount(fieldAttributes, ownerAttributes);
+
+        for (size_t i = startIndex; i < fieldAttributes.attributes.size(); ++i)
+        {
+            const AttributeInstance& attribute = fieldAttributes.attributes[i];
+            if (!attribute.symbol || !attribute.symbol->inSwagNamespace(ctx) || attribute.symbol->name(ctx) != "Offset")
+                continue;
+
+            for (const AttributeParamInstance& param : attribute.params)
+            {
+                if (!param.valueCstRef.isValid())
+                    continue;
+
+                const ConstantValue& cst = ctx.cstMgr().get(param.valueCstRef);
+                if (!cst.isString())
+                    continue;
+
+                outValue = cst.getString();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    const SymbolVariable* findOffsetTargetField(TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field, std::string_view targetName)
+    {
+        for (const SymbolVariable* candidate : owner.fields())
+        {
+            if (!candidate)
+                continue;
+            if (candidate == &field)
+                break;
+            if (candidate->name(ctx) == targetName)
+                return candidate;
+        }
+
+        return nullptr;
+    }
+
     uint32_t effectiveFieldAlignment(TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field, const uint32_t structPack)
     {
         const TypeInfo& fieldType = field.typeInfo(ctx);
@@ -333,10 +378,24 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         }
         else
         {
-            const uint64_t padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
-            sizeInBytes_ += padding;
-            symVar.setOffset(static_cast<uint32_t>(sizeInBytes_));
-            sizeInBytes_ += sizeOf;
+            std::string_view         offsetTargetName;
+            const SymbolVariable*    offsetTarget = nullptr;
+            uint64_t                 fieldOffset  = sizeInBytes_;
+            if (tryGetFieldOffsetAttributeValue(offsetTargetName, ctx, *this, symVar))
+            {
+                offsetTarget = findOffsetTargetField(ctx, *this, symVar, offsetTargetName);
+                SWC_ASSERT(offsetTarget != nullptr);
+                if (offsetTarget)
+                    fieldOffset = offsetTarget->offset();
+            }
+            else
+            {
+                const uint64_t padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
+                fieldOffset            = sizeInBytes_ + padding;
+            }
+
+            symVar.setOffset(static_cast<uint32_t>(fieldOffset));
+            sizeInBytes_ = std::max(sizeInBytes_, fieldOffset + sizeOf);
         }
     }
 

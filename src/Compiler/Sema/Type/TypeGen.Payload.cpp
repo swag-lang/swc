@@ -200,7 +200,117 @@ namespace
         return result;
     }
 
-    void initEnum(Sema& sema, DataSegment& storage, Runtime::TypeInfoEnum& rtType, uint32_t offset, const TypeInfo& type)
+    const TypeGen::TypeGenCache::Entry& requireCacheEntry(const TypeGen::TypeGenCache& cache, TypeRef depKey)
+    {
+        const auto it = cache.entries.find(depKey);
+        SWC_ASSERT(it != cache.entries.end() && "Missing TypeInfo dependency in cache");
+        return it->second;
+    }
+
+    void materializeInlineAny(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, ConstantRef valueCstRef)
+    {
+        Runtime::Any* const dstAny = storage.ptr<Runtime::Any>(baseOffset + fieldOffset);
+        *dstAny                    = {};
+
+        const ConstantValue& cst = sema.ctx().cstMgr().get(valueCstRef);
+        if (cst.isNull())
+            return;
+
+        const TypeRef valueTypeRef = cst.typeRef();
+        SWC_ASSERT(valueTypeRef.isValid());
+
+        const auto& typeEntry = requireCacheEntry(cache, valueTypeRef);
+        storage.addRelocation(baseOffset + fieldOffset + offsetof(Runtime::Any, type), typeEntry.offset);
+        dstAny->type = storage.ptr<Runtime::TypeInfo>(typeEntry.offset);
+
+        const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(sema.ctx());
+        if (!valueSize)
+            return;
+
+        std::vector valueBytes(valueSize, std::byte{0});
+        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, valueTypeRef) == Result::Continue);
+
+        uint32_t       valueOffset = INVALID_REF;
+        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(
+                               valueOffset,
+                               sema,
+                               storage,
+                               valueTypeRef,
+                               ByteSpan{valueBytes.data(), valueBytes.size()}) ==
+                           Result::Continue);
+        SWC_ASSERT(valueOffset != INVALID_REF);
+
+        storage.addRelocation(baseOffset + fieldOffset + offsetof(Runtime::Any, value), valueOffset);
+        dstAny->value = storage.ptr<std::byte>(valueOffset);
+    }
+
+    void exportAttributeParams(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t attributeOffset, Runtime::Attribute& rtAttribute, const AttributeInstance& attribute)
+    {
+        rtAttribute.params.ptr   = nullptr;
+        rtAttribute.params.count = attribute.params.size();
+        if (attribute.params.empty())
+            return;
+
+        const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::AttributeParam>(static_cast<uint32_t>(attribute.params.size()));
+        rtAttribute.params.ptr               = paramsPtr;
+        storage.addRelocation(attributeOffset + offsetof(Runtime::Attribute, params.ptr), paramsOffset);
+
+        const TaskContext& ctx = sema.ctx();
+        for (uint32_t i = 0; i < attribute.params.size(); ++i)
+        {
+            const AttributeParamInstance& srcParam  = attribute.params[i];
+            Runtime::AttributeParam&      dstParam  = paramsPtr[i];
+            const uint32_t                paramOffset = paramsOffset + static_cast<uint32_t>(i * sizeof(Runtime::AttributeParam));
+
+            dstParam.value = {};
+            if (srcParam.nameIdRef.isValid())
+            {
+                const auto& id = ctx.idMgr().get(srcParam.nameIdRef);
+                dstParam.name.length = storage.addString(paramOffset, offsetof(Runtime::AttributeParam, name.ptr), Utf8{id.name});
+            }
+
+            if (srcParam.valueCstRef.isValid())
+                materializeInlineAny(sema, cache, storage, paramOffset, offsetof(Runtime::AttributeParam, value), srcParam.valueCstRef);
+        }
+    }
+
+    void exportAttributes(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t ownerOffset, uint32_t attributesFieldOffset, const AttributeList& attributes)
+    {
+        auto* const attrsSlice = storage.ptr<Runtime::Slice<Runtime::Attribute>>(ownerOffset + attributesFieldOffset);
+        attrsSlice->ptr        = nullptr;
+        attrsSlice->count      = attributes.attributes.size();
+        if (attributes.attributes.empty())
+            return;
+
+        const auto [attrsOffset, attrsPtr] = storage.reserveSpan<Runtime::Attribute>(static_cast<uint32_t>(attributes.attributes.size()));
+        attrsSlice->ptr                    = attrsPtr;
+        storage.addRelocation(ownerOffset + attributesFieldOffset + offsetof(Runtime::Slice<Runtime::Attribute>, ptr), attrsOffset);
+
+        for (uint32_t i = 0; i < attributes.attributes.size(); ++i)
+        {
+            const AttributeInstance& attribute  = attributes.attributes[i];
+            Runtime::Attribute&      rtAttr     = attrsPtr[i];
+            const uint32_t           attrOffset = attrsOffset + static_cast<uint32_t>(i * sizeof(Runtime::Attribute));
+
+            rtAttr.type         = nullptr;
+            rtAttr.params.ptr   = nullptr;
+            rtAttr.params.count = 0;
+
+            if (attribute.symbol)
+            {
+                const TypeRef attributeTypeRef = attribute.symbol->typeRef();
+                SWC_ASSERT(attributeTypeRef.isValid());
+
+                const auto& typeEntry = requireCacheEntry(cache, attributeTypeRef);
+                storage.addRelocation(attrOffset + offsetof(Runtime::Attribute, type), typeEntry.offset);
+                rtAttr.type = storage.ptr<Runtime::TypeInfo>(typeEntry.offset);
+            }
+
+            exportAttributeParams(sema, cache, storage, attrOffset, rtAttr, attribute);
+        }
+    }
+
+    void initEnum(Sema& sema, DataSegment& storage, Runtime::TypeInfoEnum& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry)
     {
         TaskContext&      ctx        = sema.ctx();
         const SymbolEnum& symEnum    = type.payloadSymEnum();
@@ -212,12 +322,15 @@ namespace
         rtType.rawType          = nullptr;
         rtType.attributes.ptr   = nullptr;
         rtType.attributes.count = 0;
+        entry.enumValuesOffset  = 0;
+        entry.enumValuesCount   = static_cast<uint32_t>(values.size());
 
         if (values.empty())
             return;
 
         const auto [valuesOffset, valuesPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(values.size()));
         rtType.values.ptr                    = valuesPtr;
+        entry.enumValuesOffset               = valuesOffset;
         storage.addRelocation(offset + offsetof(Runtime::TypeInfoEnum, values.ptr), valuesOffset);
 
         const uint64_t valueSize = ctx.typeMgr().get(rawTypeRef).sizeOf(ctx);
@@ -417,7 +530,7 @@ void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::Typ
             break;
 
         case LayoutKind::Enum:
-            initEnum(sema, storage, *reinterpret_cast<Runtime::TypeInfoEnum*>(&rtType), offset, type);
+            initEnum(sema, storage, *reinterpret_cast<Runtime::TypeInfoEnum*>(&rtType), offset, type, entry);
             break;
 
         case LayoutKind::Array:
@@ -495,26 +608,36 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
     const TaskContext& ctx     = sema.ctx();
     TypeManager&       typeMgr = sema.typeMgr();
 
-    const auto requireEntry = [&cache](TypeRef depKey) -> const TypeGenCache::Entry& {
-        const auto it = cache.entries.find(depKey);
-        SWC_ASSERT(it != cache.entries.end() && "Missing TypeInfo dependency in cache");
-        return it->second;
-    };
-
     switch (kind)
     {
         case LayoutKind::Enum:
         {
-            const TypeRef depKey = typeMgr.get(key).payloadSymEnum().underlyingTypeRef();
-            const auto&   dep    = requireEntry(depKey);
+            const SymbolEnum& symEnum = typeMgr.get(key).payloadSymEnum();
+            const TypeRef     depKey  = symEnum.underlyingTypeRef();
+            const auto&       dep     = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoEnum, rawType), dep.offset);
+
+            exportAttributes(sema, cache, storage, entry.offset, offsetof(Runtime::TypeInfoEnum, attributes), symEnum.attributes());
+
+            if (entry.enumValuesCount && entry.enumValuesOffset)
+            {
+                const auto values = collectEnumValues(symEnum);
+                SWC_ASSERT(values.size() == entry.enumValuesCount);
+
+                for (uint32_t i = 0; i < entry.enumValuesCount; ++i)
+                {
+                    const uint32_t elemOffset = entry.enumValuesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                    exportAttributes(sema, cache, storage, elemOffset, offsetof(Runtime::TypeValue, attributes), values[i]->attributes());
+                }
+            }
+
             break;
         }
 
         case LayoutKind::Pointer:
         {
             const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireEntry(depKey);
+            const auto&   dep    = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
             break;
         }
@@ -522,7 +645,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         case LayoutKind::Slice:
         {
             const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireEntry(depKey);
+            const auto&   dep    = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), dep.offset);
             break;
         }
@@ -531,11 +654,11 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         {
             const TypeInfo& type           = typeMgr.get(key);
             const TypeRef   pointedTypeRef = resolveArrayPointedTypeRef(typeMgr, type);
-            const auto&     dep            = requireEntry(pointedTypeRef);
+            const auto&     dep            = requireCacheEntry(cache, pointedTypeRef);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
             const TypeRef finalTypeRef = resolveArrayFinalTypeRef(typeMgr, ctx, type);
-            const auto&   fin          = requireEntry(finalTypeRef);
+            const auto&   fin          = requireCacheEntry(cache, finalTypeRef);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), fin.offset);
             break;
         }
@@ -543,7 +666,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         case LayoutKind::Alias:
         {
             const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireEntry(depKey);
+            const auto&   dep    = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), dep.offset);
             break;
         }
@@ -551,7 +674,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         case LayoutKind::TypedVariadic:
         {
             const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireEntry(depKey);
+            const auto&   dep    = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), dep.offset);
             break;
         }
@@ -559,7 +682,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         case LayoutKind::CodeBlock:
         {
             const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireEntry(depKey);
+            const auto&   dep    = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoCodeBlock, rawType), dep.offset);
             break;
         }
@@ -573,7 +696,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 for (uint32_t i = 0; i < entry.structFieldsCount; ++i)
                 {
                     const TypeRef  depKey     = entry.structFieldTypes[i];
-                    const auto&    dep        = requireEntry(depKey);
+                    const auto&    dep        = requireCacheEntry(cache, depKey);
                     const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                     addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
                 }
@@ -585,10 +708,31 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 for (uint32_t i = 0; i < entry.usingFieldsCount; ++i)
                 {
                     const TypeRef  depKey     = entry.usingFieldTypes[i];
-                    const auto&    dep        = requireEntry(depKey);
+                    const auto&    dep        = requireCacheEntry(cache, depKey);
                     const uint32_t elemOffset = entry.usingFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                     addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
                 }
+            }
+
+            const SymbolStruct& symStruct = typeMgr.get(key).payloadSymStruct();
+            exportAttributes(sema, cache, storage, entry.offset, offsetof(Runtime::TypeInfoStruct, attributes), symStruct.attributes());
+
+            uint32_t usingIndex = 0;
+            for (uint32_t i = 0; i < symStruct.fields().size(); ++i)
+            {
+                const SymbolVariable* field = symStruct.fields()[i];
+                SWC_ASSERT(field);
+
+                const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                exportAttributes(sema, cache, storage, elemOffset, offsetof(Runtime::TypeValue, attributes), field->attributes());
+
+                if (!field->isUsingField())
+                    continue;
+
+                SWC_ASSERT(usingIndex < entry.usingFieldsCount);
+                const uint32_t usingElemOffset = entry.usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
+                exportAttributes(sema, cache, storage, usingElemOffset, offsetof(Runtime::TypeValue, attributes), field->attributes());
+                ++usingIndex;
             }
 
             break;
@@ -602,7 +746,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 for (uint32_t i = 0; i < entry.funcParamsCount; ++i)
                 {
                     const TypeRef  depKey     = entry.funcParamTypes[i];
-                    const auto&    dep        = requireEntry(depKey);
+                    const auto&    dep        = requireCacheEntry(cache, depKey);
                     const uint32_t elemOffset = entry.funcParamsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                     addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
                 }
@@ -610,8 +754,21 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
             if (entry.funcReturnTypeRef.isValid())
             {
-                const auto& dep = requireEntry(entry.funcReturnTypeRef);
+                const auto& dep = requireCacheEntry(cache, entry.funcReturnTypeRef);
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoFunc, returnType), dep.offset);
+            }
+
+            const SymbolFunction& symFunc = typeMgr.get(key).payloadSymFunction();
+            if (!symFunc.isAttribute())
+                exportAttributes(sema, cache, storage, entry.offset, offsetof(Runtime::TypeInfoFunc, attributes), symFunc.attributes());
+
+            for (uint32_t i = 0; i < symFunc.parameters().size(); ++i)
+            {
+                const SymbolVariable* param = symFunc.parameters()[i];
+                SWC_ASSERT(param);
+
+                const uint32_t elemOffset = entry.funcParamsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                exportAttributes(sema, cache, storage, elemOffset, offsetof(Runtime::TypeValue, attributes), param->attributes());
             }
 
             break;

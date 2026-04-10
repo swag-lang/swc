@@ -220,6 +220,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     const IdentifierRef   idRef    = sema.idMgr().addIdentifier(ctx, codeRef());
     constexpr SymbolFlags flags    = SymbolFlagsE::Declared | SymbolFlagsE::SemaCompleted;
     auto*                 symValue = Symbol::make<SymbolEnumValue>(ctx, this, tokRef(), idRef, flags);
+    symValue->registerAttributes(sema);
     symValue->registerCompilerIf(sema);
 
     const ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());

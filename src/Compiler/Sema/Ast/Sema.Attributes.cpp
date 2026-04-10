@@ -298,6 +298,24 @@ namespace
         return Result::Continue;
     }
 
+    Result normalizeAttributeParamConstantRef(Sema& sema, ConstantRef& ioCstRef, const TypeInfo& paramType, AstNodeRef ownerNodeRef)
+    {
+        if (!ioCstRef.isValid())
+            return Result::Continue;
+        if (!paramType.isAnyTypeInfo(sema.ctx()))
+            return Result::Continue;
+
+        const TypeRef valueTypeRef = sema.cstMgr().makeTypeValue(sema, ioCstRef);
+        if (valueTypeRef.isInvalid())
+            return Result::Continue;
+
+        ConstantRef typeInfoCstRef = ConstantRef::invalid();
+        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, ownerNodeRef));
+        SWC_ASSERT(typeInfoCstRef.isValid());
+        ioCstRef = typeInfoCstRef;
+        return Result::Continue;
+    }
+
     Result collectPredefinedAttributeData(Sema& sema, std::span<const AstNodeRef> args, std::span<const ResolvedCallArgument> resolvedArgs, const SymbolFunction& attrSym, AttributeList& outAttributes)
     {
         if (!attrSym.inSwagNamespace(sema.ctx()))
@@ -493,6 +511,41 @@ Result AstAttribute::semaPostNode(Sema& sema) const
 
     AttributeInstance inst;
     inst.symbol = &attrSym;
+
+    const auto& params            = attrSym.parameters();
+    const bool  hasVariadicParam  = !params.empty() && params.back()->type(sema.ctx()).isAnyVariadic();
+    for (size_t i = 0; i < resolvedArgs.size(); ++i)
+    {
+        size_t paramIndex = i;
+        if (paramIndex >= params.size())
+        {
+            SWC_ASSERT(hasVariadicParam && !params.empty());
+            paramIndex = params.size() - 1;
+        }
+
+        const SymbolVariable* symParam = params[paramIndex];
+        SWC_ASSERT(symParam);
+
+        AttributeParamInstance paramInst;
+        paramInst.nameIdRef = symParam->idRef();
+        const TypeInfo& paramType = symParam->type(sema.ctx());
+
+        const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
+        if (resolvedArg.argRef.isValid())
+        {
+            const SemaNodeView argView = sema.viewConstant(resolvedArg.argRef);
+            paramInst.valueCstRef = argView.cstRef();
+            SWC_RESULT(normalizeAttributeParamConstantRef(sema, paramInst.valueCstRef, paramType, resolvedArg.argRef));
+        }
+        else if (resolvedArg.defaultCstRef.isValid())
+        {
+            paramInst.valueCstRef = resolvedArg.defaultCstRef;
+            SWC_RESULT(normalizeAttributeParamConstantRef(sema, paramInst.valueCstRef, paramType, nodeCallRef));
+        }
+
+        inst.params.push_back(paramInst);
+    }
+
     sema.frame().currentAttributes().attributes.push_back(inst);
 
     return Result::Continue;

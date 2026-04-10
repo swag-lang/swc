@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Helpers/SemaSafety.h"
+#include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -41,10 +42,17 @@ enum class RtAttributeFlagsE : uint64_t
 };
 using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 
+struct AttributeParamInstance
+{
+    IdentifierRef nameIdRef   = IdentifierRef::invalid();
+    ConstantRef   valueCstRef = ConstantRef::invalid();
+};
+
 // One attribute
 struct AttributeInstance
 {
-    const SymbolFunction* symbol = nullptr;
+    const SymbolFunction*                 symbol = nullptr;
+    SmallVector4<AttributeParamInstance> params;
 };
 
 struct RuntimeSafetyOverride

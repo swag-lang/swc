@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -12,6 +13,42 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void appendAttributeDeps(SmallVector<TypeRef>& deps, const TaskContext& ctx, const AttributeList& attributes)
+    {
+        for (const AttributeInstance& attribute : attributes.attributes)
+        {
+            if (attribute.symbol)
+            {
+                const TypeRef attributeTypeRef = attribute.symbol->typeRef();
+                if (attributeTypeRef.isValid())
+                    deps.push_back(attributeTypeRef);
+            }
+
+            for (const AttributeParamInstance& param : attribute.params)
+            {
+                if (!param.valueCstRef.isValid())
+                    continue;
+
+                const ConstantValue& cst          = ctx.cstMgr().get(param.valueCstRef);
+                const TypeRef        valueTypeRef = cst.typeRef();
+                if (valueTypeRef.isValid())
+                    deps.push_back(valueTypeRef);
+
+                if (!valueTypeRef.isValid())
+                    continue;
+
+                const TypeInfo& valueType = ctx.typeMgr().get(valueTypeRef);
+                if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
+                    continue;
+
+                const auto* const typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
+                const TypeRef     pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
+                if (pointedTypeRef.isValid())
+                    deps.push_back(pointedTypeRef);
+            }
+        }
+    }
+
     TypeRef resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType)
     {
         SWC_ASSERT(arrayType.isArray());
@@ -48,8 +85,22 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
     switch (kind)
     {
         case LayoutKind::Enum:
-            deps.push_back(type.payloadSymEnum().underlyingTypeRef());
+        {
+            const SymbolEnum& symEnum = type.payloadSymEnum();
+            deps.push_back(symEnum.underlyingTypeRef());
+            appendAttributeDeps(deps, ctx, symEnum.attributes());
+
+            std::vector<const Symbol*> symbols;
+            symEnum.getAllSymbols(symbols);
+            for (const Symbol* symbol : symbols)
+            {
+                const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
+                if (enumValue)
+                    appendAttributeDeps(deps, ctx, enumValue->attributes());
+            }
+
             break;
+        }
 
         case LayoutKind::Pointer:
         case LayoutKind::Slice:
@@ -78,11 +129,15 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
 
         case LayoutKind::Struct:
         {
-            for (const SymbolVariable* field : type.payloadSymStruct().fields())
+            const SymbolStruct& symStruct = type.payloadSymStruct();
+            appendAttributeDeps(deps, ctx, symStruct.attributes());
+
+            for (const SymbolVariable* field : symStruct.fields())
             {
                 if (!field)
                     continue;
                 deps.push_back(field->typeRef());
+                appendAttributeDeps(deps, ctx, field->attributes());
             }
             break;
         }
@@ -90,6 +145,9 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
         case LayoutKind::Func:
         {
             const SymbolFunction& symFunc = type.payloadSymFunction();
+            if (!symFunc.isAttribute())
+                appendAttributeDeps(deps, ctx, symFunc.attributes());
+
             if (symFunc.returnTypeRef().isValid())
             {
                 const TypeRef returnTypeRef = symFunc.returnTypeRef();
@@ -102,6 +160,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                 if (!param)
                     continue;
                 deps.push_back(param->typeRef());
+                appendAttributeDeps(deps, ctx, param->attributes());
             }
 
             break;
@@ -146,10 +205,20 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
         const LayoutKind kind = layoutKindOf(type);
         if (type.isFunction())
         {
-            // Anonymous '#type func(...)' signatures use a synthetic SymbolFunction that
-            // never goes through full declaration/body sema. Runtime type info only
-            // depends on the completed parameter and return types.
-            SWC_RESULT(sema.waitSemaCompleted(&type, ownerNodeRef));
+            const Symbol* sym = type.getSymbol();
+            if (sym && sym->isAttribute())
+            {
+                // Attribute reflection only needs the typed function signature.
+                // Waiting for full sema completion here can deadlock while user
+                // attributes are themselves being reflected during sema.
+            }
+            else
+            {
+                // Anonymous '#type func(...)' signatures use a synthetic SymbolFunction that
+                // never goes through full declaration/body sema. Runtime type info only
+                // depends on the completed parameter and return types.
+                SWC_RESULT(sema.waitSemaCompleted(&type, ownerNodeRef));
+            }
         }
         else if (const Symbol* sym = type.getSymbol())
         {

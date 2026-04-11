@@ -25,36 +25,7 @@ namespace
         return Cast::runtimeStorageTypeRef(sema, srcView.typeRef(), dstView.typeRef(), ConstantRef::invalid());
     }
 
-    Result retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef)
-    {
-        if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
-            return Result::Continue;
 
-        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-        const bool      needsRetarget =
-            (srcType.isAggregateArray() && dstType.isArray()) ||
-            (srcType.isAggregateStruct() && dstType.isStruct());
-        if (!needsRetarget)
-            return Result::Continue;
-
-        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (!payload || payload->runtimeStorageSym == nullptr)
-            return Result::Continue;
-
-        SWC_RESULT(sema.waitSemaCompleted(&dstType, nodeRef));
-        payload->runtimeStorageSym->setTypeRef(dstTypeRef);
-        return Result::Continue;
-    }
-
-    Result raiseDynamicStructCastError(Sema& sema, AstNodeRef nodeRef, TypeRef sourceTypeRef, TypeRef targetTypeRef)
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast, nodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, sourceTypeRef);
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
 }
 
 Result AstAsCastExpr::semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const
@@ -148,7 +119,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
 
     const SemaNodeView dstTypeView = sema.curViewType();
-    SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, nodeExprView.nodeRef(), srcTypeView.typeRef(), dstTypeView.typeRef()));
+    SWC_RESULT(Cast::retargetLiteralRuntimeStorageIfNeeded(sema, nodeExprView.nodeRef(), srcTypeView.typeRef(), dstTypeView.typeRef()));
     const TypeRef runtimeStorageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeView, dstTypeView);
     if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
     {
@@ -175,7 +146,7 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
 
     DynamicStructCastSourceInfo castInfo;
     if (!resolveDynamicStructCastSourceInfo(sema, nodeExprView.nodeRef(), exprTypeView.typeRef(), castInfo))
-        return raiseDynamicStructCastError(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
+        return SemaError::raiseCannotCast(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
 
     TypeInfoFlags resultFlags = TypeInfoFlagsE::Nullable;
     if (castInfo.sourceIsConst || nodeTypeView.type()->isConst())
@@ -198,7 +169,7 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
 
     DynamicStructCastSourceInfo castInfo;
     if (!resolveDynamicStructCastSourceInfo(sema, nodeExprView.nodeRef(), exprTypeView.typeRef(), castInfo))
-        return raiseDynamicStructCastError(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
+        return SemaError::raiseCannotCast(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
 
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
     sema.setIsValue(*this);

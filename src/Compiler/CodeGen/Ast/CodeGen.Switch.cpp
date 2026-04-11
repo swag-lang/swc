@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -87,16 +88,7 @@ namespace
         return CodeGenTypeHelpers::conditionBits(typeInfo, ctx);
     }
 
-    void loadPayloadToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits)
-    {
-        outReg = codeGen.nextVirtualRegisterForType(regTypeRef);
-
-        MicroBuilder& builder = codeGen.builder();
-        if (payload.isAddress())
-            builder.emitLoadRegMem(outReg, payload.reg, 0, opBits);
-        else
-            builder.emitLoadRegReg(outReg, payload.reg, opBits);
-    }
+    using CodeGenMemoryHelpers::loadOperandToRegister;
 
     void emitConditionTrueJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef trueLabel)
     {
@@ -286,7 +278,7 @@ namespace
             return emitStringCompareEqualsJump(codeGen, switchState, casePayload, successLabel);
 
         MicroReg caseReg = MicroReg::invalid();
-        loadPayloadToRegister(caseReg, codeGen, casePayload, switchState.compareTypeRef, switchState.compareOpBits);
+        loadOperandToRegister(caseReg, codeGen, casePayload, switchState.compareTypeRef, switchState.compareOpBits);
 
         MicroBuilder& builder = codeGen.builder();
         builder.emitCmpRegReg(switchState.switchValueReg, caseReg, switchState.compareOpBits);
@@ -307,7 +299,7 @@ namespace
         {
             const CodeGenNodePayload& lowerPayload = codeGen.payload(rangeExpr.nodeExprDownRef);
             MicroReg                  lowerReg     = MicroReg::invalid();
-            loadPayloadToRegister(lowerReg, codeGen, lowerPayload, switchState.compareTypeRef, switchState.compareOpBits);
+            loadOperandToRegister(lowerReg, codeGen, lowerPayload, switchState.compareTypeRef, switchState.compareOpBits);
 
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, lowerReg, switchState.compareOpBits);
             CodeGenCompareHelpers::emitConditionJump(codeGen,
@@ -322,7 +314,7 @@ namespace
         {
             const CodeGenNodePayload& upperPayload = codeGen.payload(rangeExpr.nodeExprUpRef);
             MicroReg                  upperReg     = MicroReg::invalid();
-            loadPayloadToRegister(upperReg, codeGen, upperPayload, switchState.compareTypeRef, switchState.compareOpBits);
+            loadOperandToRegister(upperReg, codeGen, upperPayload, switchState.compareTypeRef, switchState.compareOpBits);
 
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, upperReg, switchState.compareOpBits);
             const MicroCond failCond = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive) ? CodeGenCompareHelpers::greaterCond(unsignedOrFloat) : CodeGenCompareHelpers::greaterEqualCond(unsignedOrFloat);

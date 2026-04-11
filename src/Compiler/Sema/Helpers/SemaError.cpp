@@ -230,4 +230,36 @@ Utf8 SemaError::formatStructFieldList(const TaskContext& ctx, const SymbolStruct
     return result;
 }
 
+Utf8 SemaError::formatStructMemberList(Sema& sema, TypeRef typeRef)
+{
+    if (!typeRef.isValid())
+        return {};
+
+    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+    if (typeInfo.isStruct())
+        return formatStructFieldList(sema.ctx(), typeInfo.payloadSymStruct());
+    if (!typeInfo.isAggregateStruct())
+        return {};
+
+    Utf8   result;
+    bool   first = true;
+    size_t count = 0;
+    for (const IdentifierRef idRef : typeInfo.payloadAggregate().names)
+    {
+        if (!idRef.isValid())
+            continue;
+
+        if (count == K_FORMAT_LIST_LIMIT)
+        {
+            result += ", ...";
+            break;
+        }
+
+        appendQuotedListItem(result, first, sema.idMgr().get(idRef).name);
+        ++count;
+    }
+
+    return result;
+}
+
 SWC_END_NAMESPACE();

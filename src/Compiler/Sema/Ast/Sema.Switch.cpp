@@ -37,12 +37,6 @@ namespace
     }
 
 
-    Result setupDynamicStructSwitchRuntimeCall(Sema& sema, const SourceCodeRef& codeRef)
-    {
-        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::As, codeRef));
-        return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::Is, codeRef);
-    }
-
     bool isDynamicStructSwitchType(Sema& sema, TypeRef typeRef)
     {
         const TypeRef   unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
@@ -98,14 +92,6 @@ namespace
         return SemaError::raise(sema, DiagnosticId::sema_err_switch_dynamic_case, nodeRef);
     }
 
-    Result raiseDynamicStructSwitchCaseCastError(Sema& sema, AstNodeRef nodeRef, TypeRef sourceTypeRef, TypeRef targetTypeRef)
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast, nodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, sourceTypeRef);
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
 
     AstNodeRef dynamicStructSwitchBindingIdentRef(Sema& sema, AstNodeRef nodeRef)
     {
@@ -256,14 +242,16 @@ namespace
         // For 'any', case types can be any concrete type.
         // For interfaces, case types must be structs.
         if (!switchType.isAny() && !targetStructType.isStruct())
-            return raiseDynamicStructSwitchCaseCastError(sema, caseExprRef, switchTypeRef, targetTypeRef);
+            return SemaError::raiseCannotCast(sema, caseExprRef, switchTypeRef, targetTypeRef);
 
         registerDynamicStructSwitchCaseExpr(sema, caseRef, caseExprRef, typeExprRef);
         if (bindingIdentRef.isValid())
             SWC_RESULT(registerDynamicStructSwitchBinding(sema, caseRef, caseExprRef, bindingIdentRef, switchTypeRef, targetTypeRef));
 
         SWC_RESULT(checkDuplicateDynamicCaseType(sema, switchRef, targetStructTypeRef, caseExprRef, caseStmt.nodeWhereRef));
-        return setupDynamicStructSwitchRuntimeCall(sema, sema.node(caseExprRef).codeRef());
+        const SourceCodeRef caseExprCodeRef = sema.node(caseExprRef).codeRef();
+        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::As, caseExprCodeRef));
+        return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::Is, caseExprCodeRef);
     }
 }
 

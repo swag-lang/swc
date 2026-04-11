@@ -579,7 +579,7 @@ namespace
             return Result::Continue;
 
         SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
-        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, calledFn), "__spec_op_runtime_storage"));
+        SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__spec_op_runtime_storage"));
         return Result::Continue;
     }
 
@@ -914,7 +914,7 @@ Result SemaSpecOp::tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunct
         if (!sema.viewConstant(sema.curNodeRef()).hasConstant())
         {
             SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), *calledFn, args.span(), exprRef));
-            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.node(sema.curNodeRef()), SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, *calledFn), "__spec_op_runtime_storage"));
+            SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, sema.node(sema.curNodeRef()), *calledFn, "__spec_op_runtime_storage"));
         }
 
         outCalledFn = calledFn;

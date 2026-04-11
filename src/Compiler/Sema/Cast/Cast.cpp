@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Support/Report/Diagnostic.h"
@@ -120,6 +122,28 @@ Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef
 
     auto& storageSym = SemaHelpers::getOrCreateRuntimeStorageSymbol(sema, castNodeRef, sema.node(castNodeRef), "__cast_runtime_storage");
     return SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, storageTypeRef);
+}
+
+Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
+        return Result::Continue;
+
+    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    const bool      needsRetarget =
+        (srcType.isAggregateArray() && dstType.isArray()) ||
+        (srcType.isAggregateStruct() && dstType.isStruct());
+    if (!needsRetarget)
+        return Result::Continue;
+
+    const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+    if (!payload || payload->runtimeStorageSym == nullptr)
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(&dstType, nodeRef));
+    payload->runtimeStorageSym->setTypeRef(dstTypeRef);
+    return Result::Continue;
 }
 
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)

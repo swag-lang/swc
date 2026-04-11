@@ -17,49 +17,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr size_t K_AUTO_SCOPE_LIST_LIMIT = 8;
-
-    void appendQuotedAutoScopeName(Utf8& out, bool& first, std::string_view name)
-    {
-        if (!first)
-            out += ", ";
-        first = false;
-        out += '\'';
-        out += name;
-        out += '\'';
-    }
-
-    Utf8 formatStructMemberList(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return {};
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        if (typeInfo.isStruct())
-            return SemaError::formatStructFieldList(sema.ctx(), typeInfo.payloadSymStruct());
-        if (!typeInfo.isAggregateStruct())
-            return {};
-
-        Utf8   result;
-        bool   first = true;
-        size_t count = 0;
-        for (const IdentifierRef idRef : typeInfo.payloadAggregate().names)
-        {
-            if (!idRef.isValid())
-                continue;
-
-            if (count == K_AUTO_SCOPE_LIST_LIMIT)
-            {
-                result += ", ...";
-                break;
-            }
-
-            appendQuotedAutoScopeName(result, first, sema.idMgr().get(idRef).name);
-            ++count;
-        }
-
-        return result;
-    }
+    using SemaError::formatStructMemberList;
 
     TypeRef normalizeAutoMemberBindingType(TaskContext& ctx, TypeRef typeRef)
     {

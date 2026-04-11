@@ -1404,7 +1404,7 @@ namespace
             if (sema.viewConstant(sema.curNodeRef()).hasConstant())
                 return Result::Continue;
             SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
-            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, calledFn), "__call_runtime_storage"));
+            SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__call_runtime_storage"));
         }
 
         return Result::Continue;

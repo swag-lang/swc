@@ -57,6 +57,13 @@ Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef
     return diag;
 }
 
+Result SemaError::raiseCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+{
+    auto diag = reportCannotCast(sema, atNodeRef, srcTypeRef, targetTypeRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     TaskContext& ctx  = sema.ctx();

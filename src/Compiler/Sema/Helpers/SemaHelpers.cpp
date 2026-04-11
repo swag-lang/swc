@@ -26,6 +26,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SymbolFunction& calledFn, std::string_view privateName)
+{
+    return attachRuntimeStorageIfNeeded(sema, node, indirectReturnRuntimeStorageTypeRef(sema, calledFn), privateName);
+}
+
 TypeRef SemaHelpers::indirectReturnRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
 {
     if (sema.isGlobalScope())

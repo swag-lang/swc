@@ -871,41 +871,7 @@ namespace
         return payload.reg;
     }
 
-    CodeGenNodePayload resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        if (symVar.isClosureCapture())
-            return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
-
-        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
-            return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
-
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-        {
-            const SymbolFunction& symbolFunc = codeGen.function();
-            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
-        }
-
-        if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
-            return *symbolPayload;
-
-        if (symVar.hasGlobalStorage())
-        {
-            CodeGenNodePayload globalPayload;
-            globalPayload.typeRef = symVar.typeRef();
-            globalPayload.setIsAddress();
-            globalPayload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, symVar.globalStorageKind(), symVar.offset());
-            return globalPayload;
-        }
-
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
-            return codeGen.resolveLocalStackPayload(symVar);
-
-        if (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
-            return codeGen.resolveLocalStackPayload(symVar);
-
-        SWC_UNREACHABLE();
-    }
+    using CodeGenFunctionHelpers::resolveStoredVariablePayload;
 
     CodeGenNodePayload countOfExprPayload(CodeGen& codeGen, AstNodeRef exprRef)
     {

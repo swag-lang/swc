@@ -164,27 +164,6 @@ namespace
         return true;
     }
 
-    Result retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef)
-    {
-        if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
-            return Result::Continue;
-
-        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-        const bool      needsRetarget =
-            (srcType.isAggregateArray() && dstType.isArray()) ||
-            (srcType.isAggregateStruct() && dstType.isStruct());
-        if (!needsRetarget)
-            return Result::Continue;
-
-        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
-        if (!payload || payload->runtimeStorageSym == nullptr)
-            return Result::Continue;
-
-        SWC_RESULT(sema.waitSemaCompleted(&dstType, nodeRef));
-        payload->runtimeStorageSym->setTypeRef(dstTypeRef);
-        return Result::Continue;
-    }
 
     bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
 
@@ -1455,7 +1434,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             {
                 const ConstantRef constRef   = view.cstRef();
                 const AstNodeRef  srcNodeRef = view.nodeRef();
-                SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, srcNodeRef, srcTypeRef, dstTypeRef));
+                SWC_RESULT(Cast::retargetLiteralRuntimeStorageIfNeeded(sema, srcNodeRef, srcTypeRef, dstTypeRef));
                 view.nodeRef() = createCast(sema, dstTypeRef, srcNodeRef);
                 SWC_RESULT(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, constRef));
                 runtimeCastNodeRef = view.nodeRef();

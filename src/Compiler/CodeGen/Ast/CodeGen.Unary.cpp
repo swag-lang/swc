@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -21,15 +22,7 @@ namespace
         return codeGen.typeMgr().get(operandTypeRef).dereferenceTypeRef(codeGen.ctx());
     }
 
-    void materializeUnaryOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
-    {
-        MicroBuilder& builder = codeGen.builder();
-        outReg                = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        if (operandPayload.isAddress())
-            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
-        else
-            builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
-    }
+    using CodeGenMemoryHelpers::loadOperandToRegister;
 
     struct UnaryOperandInfo
     {
@@ -58,7 +51,7 @@ namespace
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
         return Result::Continue;
     }
 
@@ -68,7 +61,7 @@ namespace
         const UnaryOperandInfo info    = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
 
         if (info.operandTypeInfo->isFloat())
         {
@@ -95,7 +88,7 @@ namespace
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         MicroReg operandReg;
-        materializeUnaryOperand(operandReg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        loadOperandToRegister(operandReg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder       = codeGen.builder();
@@ -110,7 +103,7 @@ namespace
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
         codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::BitwiseNot, info.opBits);
         return Result::Continue;
     }

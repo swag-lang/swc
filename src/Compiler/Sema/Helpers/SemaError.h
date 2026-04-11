@@ -20,6 +20,7 @@ namespace SemaError
     SourceCodeRange getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location);
     Utf8            formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
     Utf8            formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
+    Utf8            formatStructMemberList(Sema& sema, TypeRef typeRef);
     void            setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange);
     void            setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym);
     void            setReportArguments(Sema& sema, Diagnostic& diag, const TypeInfo* type);
@@ -36,6 +37,7 @@ namespace SemaError
     Result     raise(Sema& sema, DiagnosticId id, const Symbol& atSymbol);
 
     Diagnostic reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    Result     raiseCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     Result     raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     Result     raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef);
     Result     raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);

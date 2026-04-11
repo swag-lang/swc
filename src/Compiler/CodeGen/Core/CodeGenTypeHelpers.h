@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroTypes.h"
+#include "Compiler/Lexer/Token.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
 
@@ -82,6 +83,54 @@ namespace CodeGenTypeHelpers
         const TypeRef   unwrappedTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, typeRef);
         const TypeInfo& typeInfo         = ctx.typeMgr().get(unwrappedTypeRef);
         return typeInfo.isString();
+    }
+
+    inline MicroOp intBinaryMicroOp(TokenId tokId, bool isSigned)
+    {
+        switch (tokId)
+        {
+            case TokenId::SymPlus:
+                return MicroOp::Add;
+            case TokenId::SymMinus:
+                return MicroOp::Subtract;
+            case TokenId::SymAsterisk:
+                return isSigned ? MicroOp::MultiplySigned : MicroOp::MultiplyUnsigned;
+            case TokenId::SymSlash:
+                return isSigned ? MicroOp::DivideSigned : MicroOp::DivideUnsigned;
+            case TokenId::SymPercent:
+                return isSigned ? MicroOp::ModuloSigned : MicroOp::ModuloUnsigned;
+            case TokenId::SymAmpersand:
+                return MicroOp::And;
+            case TokenId::SymPipe:
+                return MicroOp::Or;
+            case TokenId::SymCircumflex:
+                return MicroOp::Xor;
+            case TokenId::SymLowerLower:
+                return MicroOp::ShiftLeft;
+            case TokenId::SymGreaterGreater:
+                return isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight;
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    inline MicroOp floatBinaryMicroOp(TokenId tokId)
+    {
+        switch (tokId)
+        {
+            case TokenId::SymPlus:
+                return MicroOp::FloatAdd;
+            case TokenId::SymMinus:
+                return MicroOp::FloatSubtract;
+            case TokenId::SymAsterisk:
+                return MicroOp::FloatMultiply;
+            case TokenId::SymSlash:
+                return MicroOp::FloatDivide;
+
+            default:
+                SWC_UNREACHABLE();
+        }
     }
 }
 

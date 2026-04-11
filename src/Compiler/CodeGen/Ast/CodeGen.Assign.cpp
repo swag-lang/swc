@@ -94,73 +94,21 @@ namespace
         return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx()) != MicroOpBits::Zero;
     }
 
-    MicroOp intBinaryMicroOp(TokenId tokId, bool isSigned)
-    {
-        switch (tokId)
-        {
-            case TokenId::SymPlus:
-                return MicroOp::Add;
-            case TokenId::SymMinus:
-                return MicroOp::Subtract;
-            case TokenId::SymAsterisk:
-                return isSigned ? MicroOp::MultiplySigned : MicroOp::MultiplyUnsigned;
-            case TokenId::SymSlash:
-                return isSigned ? MicroOp::DivideSigned : MicroOp::DivideUnsigned;
-            case TokenId::SymPercent:
-                return isSigned ? MicroOp::ModuloSigned : MicroOp::ModuloUnsigned;
-            case TokenId::SymAmpersand:
-                return MicroOp::And;
-            case TokenId::SymPipe:
-                return MicroOp::Or;
-            case TokenId::SymCircumflex:
-                return MicroOp::Xor;
-            case TokenId::SymLowerLower:
-                return MicroOp::ShiftLeft;
-            case TokenId::SymGreaterGreater:
-                return isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight;
-
-            default:
-                SWC_UNREACHABLE();
-        }
-    }
-
-    MicroOp floatBinaryMicroOp(TokenId tokId)
-    {
-        switch (tokId)
-        {
-            case TokenId::SymPlus:
-                return MicroOp::FloatAdd;
-            case TokenId::SymMinus:
-                return MicroOp::FloatSubtract;
-            case TokenId::SymAsterisk:
-                return MicroOp::FloatMultiply;
-            case TokenId::SymSlash:
-                return MicroOp::FloatDivide;
-
-            default:
-                SWC_UNREACHABLE();
-        }
-    }
+    using CodeGenTypeHelpers::floatBinaryMicroOp;
+    using CodeGenTypeHelpers::intBinaryMicroOp;
 
     TypeRef unwrapAssignScalarTypeRef(CodeGen& codeGen, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
             return typeRef;
-
-        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
-        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+        return codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
     }
 
     MicroReg loadAssignOperand(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
     {
         SWC_ASSERT(opBits != MicroOpBits::Zero);
-
-        const MicroReg operandReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        if (operandPayload.isAddress())
-            codeGen.builder().emitLoadRegMem(operandReg, operandPayload.reg, 0, opBits);
-        else
-            codeGen.builder().emitLoadRegReg(operandReg, operandPayload.reg, opBits);
-
+        MicroReg operandReg;
+        CodeGenMemoryHelpers::loadOperandToRegister(operandReg, codeGen, operandPayload, operandTypeRef, opBits);
         return operandReg;
     }
 

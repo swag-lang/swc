@@ -432,6 +432,16 @@ namespace
     }
 }
 
+void CodeGenMemoryHelpers::loadOperandToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits)
+{
+    outReg                = codeGen.nextVirtualRegisterForType(regTypeRef);
+    MicroBuilder& builder = codeGen.builder();
+    if (payload.isAddress())
+        builder.emitLoadRegMem(outReg, payload.reg, 0, opBits);
+    else
+        builder.emitLoadRegReg(outReg, payload.reg, opBits);
+}
+
 void CodeGenMemoryHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes)
 {
     if (!sizeInBytes)

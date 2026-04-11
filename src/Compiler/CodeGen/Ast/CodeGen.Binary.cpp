@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -157,15 +158,7 @@ namespace
         return ctx;
     }
 
-    void materializeBinaryOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
-    {
-        MicroBuilder& builder = codeGen.builder();
-        outReg                = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        if (operandPayload.isAddress())
-            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
-        else
-            builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
-    }
+    using CodeGenMemoryHelpers::loadOperandToRegister;
 
     bool isFloatRegClass(const MicroReg reg)
     {
@@ -287,7 +280,7 @@ namespace
         const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
 
-        materializeBinaryOperand(outReg, codeGen, operandPayload, srcTypeRef, srcBits);
+        loadOperandToRegister(outReg, codeGen, operandPayload, srcTypeRef, srcBits);
         convertArithmeticOperand(outReg, codeGen, srcTypeRef, dstTypeRef);
     }
 
@@ -332,53 +325,8 @@ namespace
         return resultReg;
     }
 
-    MicroOp intBinaryMicroOp(TokenId tokId, bool isSigned)
-    {
-        switch (tokId)
-        {
-            case TokenId::SymPlus:
-                return MicroOp::Add;
-            case TokenId::SymMinus:
-                return MicroOp::Subtract;
-            case TokenId::SymAsterisk:
-                return isSigned ? MicroOp::MultiplySigned : MicroOp::MultiplyUnsigned;
-            case TokenId::SymSlash:
-                return isSigned ? MicroOp::DivideSigned : MicroOp::DivideUnsigned;
-            case TokenId::SymPercent:
-                return isSigned ? MicroOp::ModuloSigned : MicroOp::ModuloUnsigned;
-            case TokenId::SymAmpersand:
-                return MicroOp::And;
-            case TokenId::SymPipe:
-                return MicroOp::Or;
-            case TokenId::SymCircumflex:
-                return MicroOp::Xor;
-            case TokenId::SymLowerLower:
-                return MicroOp::ShiftLeft;
-            case TokenId::SymGreaterGreater:
-                return isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight;
-
-            default:
-                SWC_UNREACHABLE();
-        }
-    }
-
-    MicroOp floatBinaryMicroOp(TokenId tokId)
-    {
-        switch (tokId)
-        {
-            case TokenId::SymPlus:
-                return MicroOp::FloatAdd;
-            case TokenId::SymMinus:
-                return MicroOp::FloatSubtract;
-            case TokenId::SymAsterisk:
-                return MicroOp::FloatMultiply;
-            case TokenId::SymSlash:
-                return MicroOp::FloatDivide;
-
-            default:
-                SWC_UNREACHABLE();
-        }
-    }
+    using CodeGenTypeHelpers::floatBinaryMicroOp;
+    using CodeGenTypeHelpers::intBinaryMicroOp;
 
     Result emitBinaryIntLike(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
     {

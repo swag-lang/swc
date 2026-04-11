@@ -29,6 +29,7 @@ namespace CodeGenFunctionHelpers
     bool                  usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar);
     CodeGenNodePayload    resolveCallerReturnStoragePayload(CodeGen& codeGen, const SymbolVariable& symVar);
     CodeGenNodePayload    resolveClosureCapturePayload(CodeGen& codeGen, const SymbolVariable& symVar);
+    CodeGenNodePayload    resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg, bool hasClosureContextArg);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);

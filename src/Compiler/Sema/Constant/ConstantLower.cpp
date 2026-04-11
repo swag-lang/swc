@@ -3,7 +3,6 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -16,7 +15,14 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
-    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
+    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, struct StaticPayload payload);
+
+    struct StaticPayload
+    {
+        uint32_t   baseOffset = 0;
+        ByteSpanRW dstBytes;
+        ByteSpan   srcBytes;
+    };
 
     size_t narrowByteCount(const uint64_t value)
     {
@@ -82,106 +88,60 @@ namespace
         return reinterpret_cast<T*>(value);
     }
 
-    Result copyBytes(ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    void copyBytes(ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
-        if (dstBytes.size() != srcBytes.size())
-            return Result::Error;
-
         if (!dstBytes.empty())
             std::memcpy(dstBytes.data(), srcBytes.data(), dstBytes.size());
-        return Result::Continue;
     }
 
-    Result zeroBytes(ByteSpanRW dstBytes)
+    void zeroBytes(ByteSpanRW dstBytes)
     {
         if (!dstBytes.empty())
             std::memset(dstBytes.data(), 0, dstBytes.size());
-        return Result::Continue;
     }
 
     template<typename T>
-    Result writeValue(ByteSpanRW dstBytes, const T& value)
+    void writeValue(ByteSpanRW dstBytes, const T& value)
     {
         SWC_ASSERT(dstBytes.size() == sizeof(T));
-        if (dstBytes.size() != sizeof(T))
-            return Result::Error;
-
         std::memcpy(dstBytes.data(), &value, sizeof(T));
-        return Result::Continue;
     }
 
     template<typename T>
-    Result validateRuntimePayloadSize(const ByteSpan bytes)
+    void assertRuntimePayloadSize(const ByteSpan bytes)
     {
         SWC_ASSERT(bytes.size() == sizeof(T));
-        if (bytes.size() != sizeof(T))
-            return Result::Error;
-        return Result::Continue;
     }
 
-    Result validateByteRange(const uint64_t offset, const uint64_t size, const uint64_t totalSize)
+    void assertByteRange(const uint64_t offset, const uint64_t size, const uint64_t totalSize)
     {
-        const bool inRange = offset <= totalSize && size <= totalSize - offset;
-        SWC_ASSERT(inRange);
-        if (!inRange)
-            return Result::Error;
-        return Result::Continue;
+        SWC_ASSERT(offset <= totalSize && size <= totalSize - offset);
+    }
+
+    StaticPayload subPayload(const StaticPayload payload, const uint64_t offset, const uint64_t size)
+    {
+        assertByteRange(offset, size, payload.dstBytes.size());
+        assertByteRange(offset, size, payload.srcBytes.size());
+
+        return {
+            .baseOffset = addByteOffset(payload.baseOffset, offset),
+            .dstBytes   = subBytes(payload.dstBytes, offset, size),
+            .srcBytes   = subBytes(payload.srcBytes, offset, size),
+        };
     }
 
     Result materializeStaticSubPayload(Sema&            sema,
                                        DataSegment&     segment,
                                        const TypeRef    typeRef,
-                                       const uint32_t   baseOffset,
-                                       const ByteSpanRW dstBytes,
-                                       const ByteSpan   srcBytes,
+                                       const StaticPayload payload,
                                        const uint64_t   offset,
                                        const uint64_t   size)
     {
-        return materializeStaticPayloadInPlace(sema,
-                                               segment,
-                                               typeRef,
-                                               addByteOffset(baseOffset, offset),
-                                               subBytes(dstBytes, offset, size),
-                                               subBytes(srcBytes, offset, size));
+        return materializeStaticPayloadInPlace(sema, segment, typeRef, subPayload(payload, offset, size));
     }
 
-    AstNodeRef fallbackConstantLowerNodeRef(Sema& sema)
-    {
-        const AstNodeRef stateNodeRef = sema.ctx().state().nodeRef;
-        if (stateNodeRef.isValid())
-            return stateNodeRef;
-        return sema.curNodeRef();
-    }
-
-    Result reportConstantLowerFailure(Sema& sema, const std::string_view because)
-    {
-        TaskContext& ctx = sema.ctx();
-        if (ctx.hasError())
-            return Result::Error;
-
-        const AstNodeRef nodeRef = fallbackConstantLowerNodeRef(sema);
-        if (nodeRef.isValid())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, nodeRef, SemaError::ReportLocation::Token);
-            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        if (ctx.state().codeRef.isValid())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, ctx.state().codeRef);
-            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        SWC_ASSERT(false && "constant lowering failure without source location");
-        ctx.setHasError();
-        return Result::Error;
-    }
-
+    // Static fixups only make sense for addresses already backed by compiler constant storage.
     Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr)
     {
         outOffset = INVALID_REF;
@@ -190,11 +150,8 @@ namespace
 
         uint32_t  shardIndex = 0;
         const Ref targetRef  = sema.cstMgr().findDataSegmentRef(shardIndex, sourcePtr);
-        if (targetRef == INVALID_REF)
-            return reportConstantLowerFailure(sema, "cannot materialize static data from a pointer outside compiler constant storage");
-
-        if (&segment != &sema.cstMgr().shardDataSegment(shardIndex))
-            return reportConstantLowerFailure(sema, "cannot materialize static data that spans multiple compiler constant-storage shards");
+        SWC_INTERNAL_CHECK(targetRef != INVALID_REF);
+        SWC_INTERNAL_CHECK(&segment == &sema.cstMgr().shardDataSegment(shardIndex));
 
         outOffset = targetRef;
         return Result::Continue;
@@ -243,78 +200,71 @@ namespace
 
     Result materializeStaticScalar(ByteSpanRW dstBytes, ByteSpan srcBytes)
     {
-        return copyBytes(dstBytes, srcBytes);
+        copyBytes(dstBytes, srcBytes);
+        return Result::Continue;
     }
 
-    Result materializeStaticString(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticString(Sema& sema, DataSegment& segment, const StaticPayload payload)
     {
-        SWC_RESULT(validateRuntimePayloadSize<Runtime::String>(srcBytes));
+        assertRuntimePayloadSize<Runtime::String>(payload.srcBytes);
 
-        auto&       dstString = writable<Runtime::String>(dstBytes);
-        const auto& srcString = readable<Runtime::String>(srcBytes);
+        auto&       dstString = writable<Runtime::String>(payload.dstBytes);
+        const auto& srcString = readable<Runtime::String>(payload.srcBytes);
         if (!srcString.ptr)
         {
-            SWC_ASSERT(srcString.length == 0);
-            if (srcString.length != 0)
-                return Result::Error;
-
+            SWC_INTERNAL_CHECK(srcString.length == 0);
             dstString.ptr    = nullptr;
             dstString.length = 0;
             return Result::Continue;
         }
 
-        dstString.length = segment.addString(baseOffset, offsetof(Runtime::String, ptr), std::string_view(srcString.ptr, srcString.length));
+        dstString.length = segment.addString(payload.baseOffset, offsetof(Runtime::String, ptr), std::string_view(srcString.ptr, srcString.length));
         return Result::Continue;
     }
 
-    Result materializeStaticAny(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticAny(Sema& sema, DataSegment& segment, const StaticPayload payload)
     {
         TaskContext& ctx = sema.ctx();
-        SWC_RESULT(validateRuntimePayloadSize<Runtime::Any>(srcBytes));
+        assertRuntimePayloadSize<Runtime::Any>(payload.srcBytes);
 
-        auto&       dstAny = writable<Runtime::Any>(dstBytes);
-        const auto& srcAny = readable<Runtime::Any>(srcBytes);
+        auto&       dstAny = writable<Runtime::Any>(payload.dstBytes);
+        const auto& srcAny = readable<Runtime::Any>(payload.srcBytes);
         if (!srcAny.type)
         {
-            SWC_ASSERT(srcAny.value == nullptr);
-            if (srcAny.value != nullptr)
-                return Result::Error;
-
+            SWC_INTERNAL_CHECK(srcAny.value == nullptr);
             dstAny.value = nullptr;
             dstAny.type  = nullptr;
             return Result::Continue;
         }
 
-        SWC_RESULT(relocateSegmentPointer<Runtime::TypeInfo>(dstAny.type, sema, segment, baseOffset + offsetof(Runtime::Any, type), srcAny.type));
+        SWC_RESULT(relocateSegmentPointer<Runtime::TypeInfo>(dstAny.type, sema, segment, payload.baseOffset + offsetof(Runtime::Any, type), srcAny.type));
         if (!srcAny.value)
             return Result::Continue;
 
         const TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(srcAny.type);
-        SWC_ASSERT(valueTypeRef.isValid());
-        if (valueTypeRef.isInvalid())
-            return Result::Error;
-
+        SWC_INTERNAL_CHECK(valueTypeRef.isValid());
         const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(ctx);
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
 
         uint32_t valueOffset = INVALID_REF;
+        // Nested `any` values get their own static storage so relocations can target them.
         SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset,
                                                            sema,
                                                            segment,
                                                            valueTypeRef,
                                                            rawBytes(srcAny.value, valueSize)));
         dstAny.value = segment.ptr<std::byte>(valueOffset);
-        segment.addRelocation(baseOffset + offsetof(Runtime::Any, value), valueOffset);
+        segment.addRelocation(payload.baseOffset + offsetof(Runtime::Any, value), valueOffset);
         return Result::Continue;
     }
 
-    Result materializeStaticSlice(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticSlice(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload payload)
     {
         TaskContext& ctx = sema.ctx();
-        SWC_RESULT(validateRuntimePayloadSize<Runtime::Slice<std::byte>>(srcBytes));
+        assertRuntimePayloadSize<Runtime::Slice<std::byte>>(payload.srcBytes);
 
-        auto&           dstSlice       = writable<Runtime::Slice<std::byte>>(dstBytes);
-        const auto&     srcSlice       = readable<Runtime::Slice<std::byte>>(srcBytes);
+        auto&           dstSlice       = writable<Runtime::Slice<std::byte>>(payload.dstBytes);
+        const auto&     srcSlice       = readable<Runtime::Slice<std::byte>>(payload.srcBytes);
         const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
         const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
         const uint64_t  elementSize    = elementType.sizeOf(ctx);
@@ -325,39 +275,40 @@ namespace
             return Result::Continue;
         }
 
-        SWC_ASSERT(srcSlice.ptr != nullptr);
-        if (!srcSlice.ptr)
-            return Result::Error;
+        SWC_INTERNAL_CHECK(srcSlice.ptr != nullptr);
+        SWC_INTERNAL_CHECK(elementSize != 0);
 
-        SWC_ASSERT(elementSize != 0);
-        if (!elementSize)
-            return Result::Error;
-
+        SWC_ASSERT(srcSlice.count <= std::numeric_limits<uint64_t>::max() / elementSize);
         const uint64_t byteCount = srcSlice.count * elementSize;
         SWC_ASSERT(byteCount <= std::numeric_limits<uint32_t>::max());
         const auto [dataOffset, dataStorage] = segment.reserveBytes(static_cast<uint32_t>(byteCount), elementType.alignOf(ctx), true);
-        const ByteSpanRW dstSliceBytes = rawBytes(dataStorage, byteCount);
-        const ByteSpan   srcSliceBytes = rawBytes(srcSlice.ptr, byteCount);
+        const StaticPayload slicePayload{
+            .baseOffset = dataOffset,
+            .dstBytes   = rawBytes(dataStorage, byteCount),
+            .srcBytes   = rawBytes(srcSlice.ptr, byteCount),
+        };
+
+        // Each element is materialized separately so nested pointers are fixed up recursively.
         for (uint64_t idx = 0; idx < srcSlice.count; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
-            SWC_RESULT(materializeStaticSubPayload(sema, segment, elementTypeRef, dataOffset, dstSliceBytes, srcSliceBytes, elementOffset, elementSize));
+            SWC_RESULT(materializeStaticSubPayload(sema, segment, elementTypeRef, slicePayload, elementOffset, elementSize));
         }
 
         dstSlice.ptr   = dataStorage;
         dstSlice.count = srcSlice.count;
-        segment.addRelocation(baseOffset + offsetof(Runtime::Slice<std::byte>, ptr), dataOffset);
+        segment.addRelocation(payload.baseOffset + offsetof(Runtime::Slice<std::byte>, ptr), dataOffset);
         return Result::Continue;
     }
 
-    Result materializeStaticArray(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticArray(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload payload)
     {
         TaskContext&    ctx            = sema.ctx();
         const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
         const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
         const uint64_t  elementSize    = elementType.sizeOf(ctx);
         if (!elementSize)
-            return reportConstantLowerFailure(sema, "cannot materialize a static array of a zero-sized element type");
+            return Result::Continue;
 
         uint64_t totalCount = 1;
         for (const uint64_t dim : typeInfo.payloadArrayDims())
@@ -366,13 +317,13 @@ namespace
         for (uint64_t idx = 0; idx < totalCount; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
-            SWC_RESULT(materializeStaticSubPayload(sema, segment, elementTypeRef, baseOffset, dstBytes, srcBytes, elementOffset, elementSize));
+            SWC_RESULT(materializeStaticSubPayload(sema, segment, elementTypeRef, payload, elementOffset, elementSize));
         }
 
         return Result::Continue;
     }
 
-    Result materializeStaticStruct(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticStruct(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload payload)
     {
         TaskContext& ctx = sema.ctx();
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
@@ -384,35 +335,36 @@ namespace
             const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
             const uint64_t  fieldSize    = fieldType.sizeOf(ctx);
             const uint64_t  fieldOffset  = field->offset();
-            SWC_RESULT(validateByteRange(fieldOffset, fieldSize, srcBytes.size()));
+            assertByteRange(fieldOffset, fieldSize, payload.srcBytes.size());
 
-            SWC_RESULT(materializeStaticSubPayload(sema, segment, fieldTypeRef, baseOffset, dstBytes, srcBytes, fieldOffset, fieldSize));
+            SWC_RESULT(materializeStaticSubPayload(sema, segment, fieldTypeRef, payload, fieldOffset, fieldSize));
         }
 
         return Result::Continue;
     }
 
-    Result materializeStaticInterface(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticInterface(Sema& sema, DataSegment& segment, const StaticPayload payload)
     {
-        SWC_RESULT(validateRuntimePayloadSize<Runtime::Interface>(srcBytes));
+        assertRuntimePayloadSize<Runtime::Interface>(payload.srcBytes);
 
-        auto&       dstInterface = writable<Runtime::Interface>(dstBytes);
-        const auto& srcInterface = readable<Runtime::Interface>(srcBytes);
-        SWC_RESULT(relocateSegmentPointer<std::byte>(dstInterface.obj, sema, segment, baseOffset + offsetof(Runtime::Interface, obj), srcInterface.obj));
-        SWC_RESULT(relocateSegmentPointer<void*>(dstInterface.itable, sema, segment, baseOffset + offsetof(Runtime::Interface, itable), srcInterface.itable));
+        auto&       dstInterface = writable<Runtime::Interface>(payload.dstBytes);
+        const auto& srcInterface = readable<Runtime::Interface>(payload.srcBytes);
+        SWC_RESULT(relocateSegmentPointer<std::byte>(dstInterface.obj, sema, segment, payload.baseOffset + offsetof(Runtime::Interface, obj), srcInterface.obj));
+        SWC_RESULT(relocateSegmentPointer<void*>(dstInterface.itable, sema, segment, payload.baseOffset + offsetof(Runtime::Interface, itable), srcInterface.itable));
         return Result::Continue;
     }
 
-    Result materializeStaticClosure(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticClosure(Sema& sema, DataSegment& segment, const StaticPayload payload)
     {
-        SWC_RESULT(validateRuntimePayloadSize<Runtime::ClosureValue>(srcBytes));
+        assertRuntimePayloadSize<Runtime::ClosureValue>(payload.srcBytes);
 
-        auto&       dstClosure = writable<Runtime::ClosureValue>(dstBytes);
-        const auto& srcClosure = readable<Runtime::ClosureValue>(srcBytes);
+        auto&       dstClosure = writable<Runtime::ClosureValue>(payload.dstBytes);
+        const auto& srcClosure = readable<Runtime::ClosureValue>(payload.srcBytes);
 
-        SWC_RESULT(relocateSegmentPointer<std::byte>(dstClosure.invoke, sema, segment, baseOffset + offsetof(Runtime::ClosureValue, invoke), srcClosure.invoke));
-        SWC_RESULT(copyBytes(rawBytes(dstClosure.capture, sizeof(dstClosure.capture)), rawBytes(srcClosure.capture, sizeof(srcClosure.capture))));
+        SWC_RESULT(relocateSegmentPointer<std::byte>(dstClosure.invoke, sema, segment, payload.baseOffset + offsetof(Runtime::ClosureValue, invoke), srcClosure.invoke));
+        copyBytes(rawBytes(dstClosure.capture, sizeof(dstClosure.capture)), rawBytes(srcClosure.capture, sizeof(srcClosure.capture)));
 
+        // The first bytes of the capture buffer store the captured object pointer when one exists.
         const uint64_t capturedTarget = readable<uint64_t>(rawBytes(srcClosure.capture, sizeof(uint64_t)));
         if (capturedTarget)
         {
@@ -420,7 +372,7 @@ namespace
             SWC_RESULT(relocateSegmentAddress(relocatedTarget,
                                               sema,
                                               segment,
-                                              baseOffset + offsetof(Runtime::ClosureValue, capture),
+                                              payload.baseOffset + offsetof(Runtime::ClosureValue, capture),
                                               pointerFromRawAddress<const void>(capturedTarget)));
             writable<uint64_t>(rawBytes(dstClosure.capture, sizeof(uint64_t))) = relocatedTarget;
         }
@@ -428,13 +380,13 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticPointer(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticPointer(Sema& sema, DataSegment& segment, const StaticPayload payload)
     {
-        SWC_RESULT(validateRuntimePayloadSize<uint64_t>(srcBytes));
+        assertRuntimePayloadSize<uint64_t>(payload.srcBytes);
 
-        auto&      dstPtr    = writable<uint64_t>(dstBytes);
-        const auto srcPtr    = pointerFromRawAddress<const void>(readable<uint64_t>(srcBytes));
-        return relocateSegmentAddress(dstPtr, sema, segment, baseOffset, srcPtr);
+        auto&      dstPtr = writable<uint64_t>(payload.dstBytes);
+        const auto srcPtr = pointerFromRawAddress<const void>(readable<uint64_t>(payload.srcBytes));
+        return relocateSegmentAddress(dstPtr, sema, segment, payload.baseOffset, srcPtr);
     }
 
     // These helpers keep `lowerConstantToBytes` focused on dispatching by runtime shape.
@@ -442,7 +394,10 @@ namespace
     {
         SWC_ASSERT((cst.isNull() || cst.isString() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::String));
         if (cst.isStruct(dstTypeRef))
-            return copyBytes(dstBytes, cst.getStruct());
+        {
+            copyBytes(dstBytes, cst.getStruct());
+            return Result::Continue;
+        }
 
         Runtime::String runtimeValue = {};
         if (cst.isString())
@@ -452,14 +407,18 @@ namespace
             runtimeValue.length        = str.size();
         }
 
-        return writeValue(dstBytes, runtimeValue);
+        writeValue(dstBytes, runtimeValue);
+        return Result::Continue;
     }
 
     Result lowerSliceConstantToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeRef dstTypeRef, const ConstantValue& cst)
     {
         SWC_ASSERT((cst.isNull() || cst.isSlice() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
         if (cst.isStruct(dstTypeRef))
-            return copyBytes(dstBytes, cst.getStruct());
+        {
+            copyBytes(dstBytes, cst.getStruct());
+            return Result::Continue;
+        }
 
         Runtime::Slice<uint8_t> runtimeValue = {};
         if (cst.isSlice())
@@ -471,59 +430,76 @@ namespace
             runtimeValue.ptr            = runtimeValue.count ? reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())) : nullptr;
         }
 
-        return writeValue(dstBytes, runtimeValue);
+        writeValue(dstBytes, runtimeValue);
+        return Result::Continue;
     }
 
     Result lowerInterfaceConstantToBytes(ByteSpanRW dstBytes, const TypeRef dstTypeRef, const ConstantValue& cst)
     {
         SWC_ASSERT((cst.isNull() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::Interface));
         if (cst.isStruct(dstTypeRef))
-            return copyBytes(dstBytes, cst.getStruct());
+        {
+            copyBytes(dstBytes, cst.getStruct());
+            return Result::Continue;
+        }
 
         constexpr Runtime::Interface runtimeValue = {};
-        return writeValue(dstBytes, runtimeValue);
+        writeValue(dstBytes, runtimeValue);
+        return Result::Continue;
     }
 
     Result lowerAnyConstantToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeRef dstTypeRef, ConstantRef cstRef, const ConstantValue& cst)
     {
         SWC_ASSERT(dstBytes.size() == sizeof(Runtime::Any));
         if (cst.isNull())
-            return zeroBytes(dstBytes);
+        {
+            zeroBytes(dstBytes);
+            return Result::Continue;
+        }
 
         if (cst.isStruct())
-            return copyBytes(dstBytes, cst.getStruct());
+        {
+            copyBytes(dstBytes, cst.getStruct());
+            return Result::Continue;
+        }
 
         Runtime::Any anyValue = {};
 
         const TypeRef valueTypeRef = cst.typeRef();
-        SWC_ASSERT(valueTypeRef.isValid());
-        SWC_ASSERT(valueTypeRef != dstTypeRef);
+        SWC_INTERNAL_CHECK(valueTypeRef.isValid());
+        SWC_INTERNAL_CHECK(valueTypeRef != dstTypeRef);
 
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
         SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, sema.ctx().state().nodeRef));
-        SWC_ASSERT(typeInfoCstRef.isValid());
+        SWC_INTERNAL_CHECK(typeInfoCstRef.isValid());
 
         const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
-        SWC_ASSERT(typeInfoCst.isValuePointer());
+        SWC_INTERNAL_CHECK(typeInfoCst.isValuePointer());
         anyValue.type = pointerFromRawAddress<const Runtime::TypeInfo>(typeInfoCst.getValuePointer());
 
         const char* loweredValueData = nullptr;
         SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, cstRef, valueTypeRef));
         anyValue.value = const_cast<char*>(loweredValueData);
-        return writeValue(dstBytes, anyValue);
+        writeValue(dstBytes, anyValue);
+        return Result::Continue;
     }
 
     Result lowerClosureConstantToBytes(ByteSpanRW dstBytes, const ConstantValue& cst)
     {
         SWC_ASSERT(dstBytes.size() == sizeof(Runtime::ClosureValue));
         if (cst.isNull())
-            return zeroBytes(dstBytes);
+        {
+            zeroBytes(dstBytes);
+            return Result::Continue;
+        }
 
         if (cst.isStruct())
-            return copyBytes(dstBytes, cst.getStruct());
+        {
+            copyBytes(dstBytes, cst.getStruct());
+            return Result::Continue;
+        }
 
-        SWC_ASSERT(cst.isNull() || cst.isStruct());
-        return Result::Continue;
+        SWC_UNREACHABLE();
     }
 
     Result lowerPointerLikeConstantToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, ConstantRef cstRef, const ConstantValue& cst)
@@ -550,9 +526,10 @@ namespace
             }
         }
 
-        SWC_ASSERT(cst.isNull() || cst.isValuePointer() || cst.isBlockPointer() || (dstType.isReference() && ptr != 0) ||
-                   (dstType.isReference() && sema.typeMgr().get(dstType.payloadTypeRef()).sizeOf(sema.ctx()) == 0));
-        return writeValue(dstBytes, ptr);
+        SWC_INTERNAL_CHECK(cst.isNull() || cst.isValuePointer() || cst.isBlockPointer() || (dstType.isReference() && ptr != 0) ||
+                           (dstType.isReference() && sema.typeMgr().get(dstType.payloadTypeRef()).sizeOf(sema.ctx()) == 0));
+        writeValue(dstBytes, ptr);
+        return Result::Continue;
     }
 
     Result lowerAggregateArrayToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
@@ -567,7 +544,7 @@ namespace
         for (const auto dim : dims)
             totalCount *= dim;
 
-        SWC_ASSERT(!elemSize || elemSize * totalCount <= dstBytes.size());
+        SWC_ASSERT(!elemSize || totalCount <= dstBytes.size() / elemSize);
 
         const uint64_t maxCount = std::min<uint64_t>(values.size(), totalCount);
         for (uint64_t i = 0; i < maxCount; ++i)
@@ -596,7 +573,7 @@ namespace
                 continue;
 
             offset = Math::alignUpU64(offset, align);
-            SWC_RESULT(validateByteRange(offset, elemSize, dstBytes.size()));
+            assertByteRange(offset, elemSize, dstBytes.size());
 
             if (index < values.size())
                 SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, offset, elemSize), elemTypeRef, values[index]));
@@ -634,7 +611,10 @@ namespace
         if (dstType.isStruct())
         {
             if (cst.isStruct())
-                return copyBytes(dstBytes, cst.getStruct());
+            {
+                copyBytes(dstBytes, cst.getStruct());
+                return Result::Continue;
+            }
 
             if (cst.isAggregateStruct())
             {
@@ -642,34 +622,42 @@ namespace
                 return Result::Continue;
             }
 
-            SWC_ASSERT(cst.isStruct() || cst.isAggregateStruct());
-            return Result::Continue;
+            SWC_UNREACHABLE();
         }
 
         if (dstType.isArray())
         {
             if (cst.isArray())
-                return copyBytes(dstBytes, cst.getArray());
+            {
+                copyBytes(dstBytes, cst.getArray());
+                return Result::Continue;
+            }
 
-            SWC_ASSERT(cst.isAggregateArray());
+            SWC_INTERNAL_CHECK(cst.isAggregateArray());
             return lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, cst.getAggregateArray());
         }
 
         if (dstType.isAggregateStruct())
         {
             if (cst.isStruct())
-                return copyBytes(dstBytes, cst.getStruct());
+            {
+                copyBytes(dstBytes, cst.getStruct());
+                return Result::Continue;
+            }
 
-            SWC_ASSERT(cst.isAggregateStruct());
+            SWC_INTERNAL_CHECK(cst.isAggregateStruct());
             return lowerAggregateTupleToBytesInternal(sema, dstBytes, dstType, cst.getAggregateStruct());
         }
 
         if (dstType.isAggregateArray())
         {
             if (cst.isStruct())
-                return copyBytes(dstBytes, cst.getStruct());
+            {
+                copyBytes(dstBytes, cst.getStruct());
+                return Result::Continue;
+            }
 
-            SWC_ASSERT(cst.isAggregateArray());
+            SWC_INTERNAL_CHECK(cst.isAggregateArray());
             return lowerAggregateTupleToBytesInternal(sema, dstBytes, dstType, cst.getAggregateArray());
         }
 
@@ -677,21 +665,24 @@ namespace
         {
             SWC_ASSERT(cst.isBool() && dstBytes.size() == 1);
             const uint8_t v = cst.getBool() ? 1 : 0;
-            return writeValue(dstBytes, v);
+            writeValue(dstBytes, v);
+            return Result::Continue;
         }
 
         if (dstType.isChar())
         {
             SWC_ASSERT(cst.isChar() && dstBytes.size() == sizeof(char32_t));
             const char32_t v = cst.getChar();
-            return writeValue(dstBytes, v);
+            writeValue(dstBytes, v);
+            return Result::Continue;
         }
 
         if (dstType.isRune())
         {
             SWC_ASSERT(cst.isRune() && dstBytes.size() == sizeof(char32_t));
             const char32_t v = cst.getRune();
-            return writeValue(dstBytes, v);
+            writeValue(dstBytes, v);
+            return Result::Continue;
         }
 
         if (dstType.isInt())
@@ -709,17 +700,18 @@ namespace
             if (dstType.payloadFloatBits() == 32)
             {
                 const float v = cst.getFloat().asFloat();
-                return writeValue(dstBytes, v);
+                writeValue(dstBytes, v);
+                return Result::Continue;
             }
 
             if (dstType.payloadFloatBits() == 64)
             {
                 const double v = cst.getFloat().asDouble();
-                return writeValue(dstBytes, v);
+                writeValue(dstBytes, v);
+                return Result::Continue;
             }
 
-            SWC_ASSERT(dstType.payloadFloatBits() == 32 || dstType.payloadFloatBits() == 64);
-            return Result::Continue;
+            SWC_UNREACHABLE();
         }
 
         if (dstType.isString())
@@ -740,14 +732,11 @@ namespace
         if (dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction())
             return lowerPointerLikeConstantToBytes(sema, dstBytes, dstType, cstRef, cst);
 
-        SWC_ASSERT(dstType.isEnum() || dstType.isStruct() || dstType.isArray() || dstType.isBool() || dstType.isChar() ||
-                   dstType.isRune() || dstType.isInt() || dstType.isFloat() || dstType.isString() || dstType.isSlice() ||
-                   dstType.isAny() || dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction());
-        return Result::Continue;
+        SWC_UNREACHABLE();
     }
 
     // Aggregate layouts are reconstructed here so nested payloads reuse the same offset rules as lowering.
-    Result materializeStaticAggregate(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticAggregate(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload payload)
     {
         TaskContext& ctx    = sema.ctx();
         uint64_t     offset = 0;
@@ -764,69 +753,64 @@ namespace
                 continue;
 
             offset = Math::alignUpU64(offset, align);
-            SWC_RESULT(validateByteRange(offset, elemSize, dstBytes.size()));
-            SWC_RESULT(materializeStaticSubPayload(sema, segment, elemTypeRef, baseOffset, dstBytes, srcBytes, offset, elemSize));
+            assertByteRange(offset, elemSize, payload.dstBytes.size());
+            SWC_RESULT(materializeStaticSubPayload(sema, segment, elemTypeRef, payload, offset, elemSize));
             offset += elemSize;
         }
 
         return Result::Continue;
     }
 
-    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const StaticPayload payload)
     {
-        SWC_ASSERT(typeRef.isValid());
-        if (typeRef.isInvalid())
-            return Result::Error;
+        SWC_INTERNAL_CHECK(typeRef.isValid());
 
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         if (typeInfo.isAlias())
         {
             const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            SWC_ASSERT(unwrappedTypeRef.isValid());
-            if (unwrappedTypeRef.isInvalid())
-                return Result::Error;
-            return materializeStaticPayloadInPlace(sema, segment, unwrappedTypeRef, baseOffset, dstBytes, srcBytes);
+            SWC_INTERNAL_CHECK(unwrappedTypeRef.isValid());
+            return materializeStaticPayloadInPlace(sema, segment, unwrappedTypeRef, payload);
         }
 
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);
-        SWC_ASSERT(sizeOf == dstBytes.size() && sizeOf == srcBytes.size());
-        if (sizeOf != dstBytes.size() || sizeOf != srcBytes.size())
-            return Result::Error;
+        SWC_INTERNAL_CHECK(sizeOf == payload.dstBytes.size());
+        SWC_INTERNAL_CHECK(sizeOf == payload.srcBytes.size());
 
         switch (typeInfo.kind())
         {
             case TypeInfoKind::Enum:
-                return materializeStaticPayloadInPlace(sema, segment, typeInfo.payloadSymEnum().underlyingTypeRef(), baseOffset, dstBytes, srcBytes);
+                return materializeStaticPayloadInPlace(sema, segment, typeInfo.payloadSymEnum().underlyingTypeRef(), payload);
 
             case TypeInfoKind::Bool:
             case TypeInfoKind::Char:
             case TypeInfoKind::Rune:
             case TypeInfoKind::Int:
             case TypeInfoKind::Float:
-                return materializeStaticScalar(dstBytes, srcBytes);
+                return materializeStaticScalar(payload.dstBytes, payload.srcBytes);
 
             case TypeInfoKind::String:
-                return materializeStaticString(sema, segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticString(sema, segment, payload);
 
             case TypeInfoKind::Any:
-                return materializeStaticAny(sema, segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticAny(sema, segment, payload);
 
             case TypeInfoKind::Slice:
-                return materializeStaticSlice(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
+                return materializeStaticSlice(sema, segment, typeInfo, payload);
 
             case TypeInfoKind::Array:
-                return materializeStaticArray(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
+                return materializeStaticArray(sema, segment, typeInfo, payload);
 
             case TypeInfoKind::Struct:
-                return materializeStaticStruct(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
+                return materializeStaticStruct(sema, segment, typeInfo, payload);
 
             case TypeInfoKind::AggregateStruct:
             case TypeInfoKind::AggregateArray:
-                return materializeStaticAggregate(sema, segment, typeInfo, baseOffset, dstBytes, srcBytes);
+                return materializeStaticAggregate(sema, segment, typeInfo, payload);
 
             case TypeInfoKind::Interface:
-                return materializeStaticInterface(sema, segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticInterface(sema, segment, payload);
 
             case TypeInfoKind::ValuePointer:
             case TypeInfoKind::BlockPointer:
@@ -835,18 +819,17 @@ namespace
             case TypeInfoKind::CString:
             case TypeInfoKind::Function:
                 if (typeInfo.isLambdaClosure())
-                    return materializeStaticClosure(sema, segment, baseOffset, dstBytes, srcBytes);
-                return materializeStaticPointer(sema, segment, baseOffset, dstBytes, srcBytes);
+                    return materializeStaticClosure(sema, segment, payload);
+                return materializeStaticPointer(sema, segment, payload);
 
             case TypeInfoKind::TypeInfo:
-                return materializeStaticPointer(sema, segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticPointer(sema, segment, payload);
 
             default:
                 break;
         }
 
-        SWC_ASSERT(false);
-        return Result::Error;
+        SWC_UNREACHABLE();
     }
 }
 
@@ -874,7 +857,7 @@ Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstByte
         const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
         const uint64_t  fieldSize    = fieldType.sizeOf(sema.ctx());
         const uint64_t  fieldOffset  = field->offset();
-        SWC_RESULT(validateByteRange(fieldOffset, fieldSize, dstBytes.size()));
+        assertByteRange(fieldOffset, fieldSize, dstBytes.size());
 
         ConstantRef valueRef = ConstantRef::invalid();
         if (valueIdx < values.size())
@@ -890,7 +873,7 @@ Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstByte
         if (valueRef.isValid())
             SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, fieldOffset, fieldSize), fieldTypeRef, valueRef));
         else if (fieldSize)
-            SWC_RESULT(zeroBytes(subBytes(dstBytes, fieldOffset, fieldSize)));
+            zeroBytes(subBytes(dstBytes, fieldOffset, fieldSize));
     }
 
     return Result::Continue;
@@ -899,19 +882,24 @@ Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstByte
 Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)
 {
     outOffset = INVALID_REF;
-    SWC_ASSERT(typeRef.isValid());
-    if (typeRef.isInvalid())
-        return Result::Error;
+    SWC_INTERNAL_CHECK(typeRef.isValid());
 
     const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
     const uint64_t  sizeOf   = typeInfo.sizeOf(sema.ctx());
     const uint32_t  alignOf  = typeInfo.alignOf(sema.ctx());
     SWC_ASSERT(sizeOf <= std::numeric_limits<uint32_t>::max());
-    SWC_ASSERT(sizeOf == srcBytes.size());
+    SWC_INTERNAL_CHECK(sizeOf == srcBytes.size());
 
     const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
     outOffset                    = offset;
-    return materializeStaticPayloadInPlace(sema, segment, typeRef, offset, rawBytes(storage, sizeOf), srcBytes);
+    return materializeStaticPayloadInPlace(sema,
+                                           segment,
+                                           typeRef,
+                                           {
+                                               .baseOffset = offset,
+                                               .dstBytes   = rawBytes(storage, sizeOf),
+                                               .srcBytes   = srcBytes,
+                                           });
 }
 
 SWC_END_NAMESPACE();

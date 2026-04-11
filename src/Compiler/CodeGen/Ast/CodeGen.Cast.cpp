@@ -5,6 +5,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
@@ -196,24 +197,6 @@ namespace
     }
 
 
-    void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
-                                 CodeGen&                           codeGen,
-                                 const CallConv&                    callConv,
-                                 TypeRef                            argTypeRef,
-                                 MicroReg                           srcReg)
-    {
-        const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
-
-        ABICall::PreparedArg arg;
-        arg.srcReg      = srcReg;
-        arg.kind        = ABICall::PreparedArgKind::Direct;
-        arg.isFloat     = normalizedArg.isFloat;
-        arg.isSigned    = normalizedArg.isSigned;
-        arg.isAddressed = false;
-        arg.numBits     = normalizedArg.numBits;
-        outArgs.push_back(arg);
-    }
-
     Result emitDynamicStructRuntimeCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
     {
         codeGen.function().addCallDependency(&runtimeFunction);
@@ -228,7 +211,7 @@ namespace
         for (size_t i = 0; i < argRegs.size(); ++i)
         {
             SWC_ASSERT(params[i] != nullptr);
-            appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
+            CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
         }
 
         MicroBuilder&               builder      = codeGen.builder();

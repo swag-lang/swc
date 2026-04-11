@@ -38,32 +38,32 @@ void CastFailure::mergeArguments(const DiagnosticArguments& other)
     }
 }
 
+namespace
+{
+    template<typename T>
+    void applyArgumentsTo(const CastFailure& failure, T& target)
+    {
+        if (failure.srcTypeRef.isValid())
+            target.addArgument(Diagnostic::ARG_TYPE, failure.srcTypeRef);
+        if (failure.dstTypeRef.isValid())
+            target.addArgument(Diagnostic::ARG_REQUESTED_TYPE, failure.dstTypeRef);
+        if (failure.optTypeRef.isValid())
+            target.addArgument(Diagnostic::ARG_OPT_TYPE, failure.optTypeRef);
+        if (!failure.valueStr.empty() && !failure.hasArgument(Diagnostic::ARG_VALUE))
+            target.addArgument(Diagnostic::ARG_VALUE, failure.valueStr);
+        for (const auto& arg : failure.arguments)
+            target.addArgument(arg.name, arg.val);
+    }
+}
+
 void CastFailure::applyArguments(Diagnostic& diag) const
 {
-    if (srcTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
-    if (dstTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, dstTypeRef);
-    if (optTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_OPT_TYPE, optTypeRef);
-    if (!valueStr.empty() && !hasArgument(Diagnostic::ARG_VALUE))
-        diag.addArgument(Diagnostic::ARG_VALUE, valueStr);
-    for (const auto& arg : arguments)
-        diag.addArgument(arg.name, arg.val);
+    applyArgumentsTo(*this, diag);
 }
 
 void CastFailure::applyArguments(DiagnosticElement& element) const
 {
-    if (srcTypeRef.isValid())
-        element.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
-    if (dstTypeRef.isValid())
-        element.addArgument(Diagnostic::ARG_REQUESTED_TYPE, dstTypeRef);
-    if (optTypeRef.isValid())
-        element.addArgument(Diagnostic::ARG_OPT_TYPE, optTypeRef);
-    if (!valueStr.empty() && !hasArgument(Diagnostic::ARG_VALUE))
-        element.addArgument(Diagnostic::ARG_VALUE, valueStr);
-    for (const auto& arg : arguments)
-        element.addArgument(arg.name, arg.val);
+    applyArgumentsTo(*this, element);
 }
 
 SWC_END_NAMESPACE();

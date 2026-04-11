@@ -1005,7 +1005,8 @@ namespace
         if (isAttributeContextCall(node))
             SemaHelpers::pushConstExprRequirement(sema, childRef);
 
-        if (const TypeRef bindingTypeRef = resolveCallArgumentLambdaBindingType(sema, node, childRef); bindingTypeRef.isValid())
+        const TypeRef bindingTypeRef = resolveCallArgumentLambdaBindingType(sema, node, childRef);
+        if (bindingTypeRef.isValid())
         {
             auto frame = sema.frame();
             frame.pushBindingType(bindingTypeRef);
@@ -1361,38 +1362,16 @@ namespace
     {
         if (sema.isNativeBuild())
         {
-            SymbolFunction* tlsAllocFn  = nullptr;
-            SymbolFunction* tlsGetPtrFn = nullptr;
-            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsAlloc, tlsAllocFn, node.codeRef()));
-            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetPtr, tlsGetPtrFn, node.codeRef()));
-            SWC_ASSERT(tlsAllocFn != nullptr);
-            SWC_ASSERT(tlsGetPtrFn != nullptr);
-
-            SemaHelpers::addCurrentFunctionCallDependency(sema, tlsAllocFn);
-            SemaHelpers::addCurrentFunctionCallDependency(sema, tlsGetPtrFn);
-
-            return Result::Continue;
+            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::TlsAlloc, node.codeRef()));
+            return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::TlsGetPtr, node.codeRef());
         }
 
-        SymbolFunction* tlsGetValueFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue, tlsGetValueFn, node.codeRef()));
-        SWC_ASSERT(tlsGetValueFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, tlsGetValueFn);
-
-        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeFunctionSymbol = tlsGetValueFn;
-        return Result::Continue;
+        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::TlsGetValue, node.codeRef());
     }
 
     Result setupIntrinsicAssertRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
-        SymbolFunction* raiseExceptionFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::RaiseException, raiseExceptionFn, node.codeRef()));
-        SWC_ASSERT(raiseExceptionFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, raiseExceptionFn);
-        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeFunctionSymbol = raiseExceptionFn;
-        return Result::Continue;
+        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef());
     }
 
     bool intrinsicNeedsMathRuntimeSafety(const TokenId tokenId)
@@ -1417,32 +1396,9 @@ namespace
     {
         if (sema.viewConstant(sema.curNodeRef()).hasConstant())
             return Result::Continue;
-
-        const TokenId tokenId = sema.token(node.codeRef()).id;
-        if (!intrinsicNeedsMathRuntimeSafety(tokenId))
+        if (!intrinsicNeedsMathRuntimeSafety(sema.token(node.codeRef()).id))
             return Result::Continue;
-
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Math))
-            return Result::Continue;
-
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
-        payload.addRuntimeSafety(Runtime::SafetyWhat::Math);
-
-        if (!sema.isCurrentFunction())
-            return Result::Continue;
-
-        SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, node.codeRef()));
-        SWC_ASSERT(panicFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        payload.runtimeFunctionSymbol = panicFn;
-        return Result::Continue;
-    }
-
-    Result attachCallExprRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SymbolFunction& calledFn)
-    {
-        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, calledFn), "__call_runtime_storage");
+        return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Math, node.codeRef());
     }
 
     template<typename T>
@@ -1506,7 +1462,7 @@ namespace
             if (sema.viewConstant(sema.curNodeRef()).hasConstant())
                 return Result::Continue;
             SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
-            SWC_RESULT(attachCallExprRuntimeStorageIfNeeded(sema, node, calledFn));
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, calledFn), "__call_runtime_storage"));
         }
 
         return Result::Continue;

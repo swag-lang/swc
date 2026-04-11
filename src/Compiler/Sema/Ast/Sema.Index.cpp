@@ -21,8 +21,9 @@ namespace
 {
     TypeRef resolveIndexOperandTypeRef(Sema& sema, const SemaNodeView& nodeArgView)
     {
-        TypeRef indexTypeRef = nodeArgView.typeRef();
-        if (const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias); aliasTypeRef.isValid())
+        TypeRef       indexTypeRef = nodeArgView.typeRef();
+        const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias);
+        if (aliasTypeRef.isValid())
             indexTypeRef = aliasTypeRef;
 
         const TypeInfo& indexType = sema.typeMgr().get(indexTypeRef);
@@ -45,23 +46,7 @@ namespace
     {
         if (!indexedType.isIndexable())
             return Result::Continue;
-
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::BoundCheck))
-            return Result::Continue;
-
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
-        payload.addRuntimeSafety(Runtime::SafetyWhat::BoundCheck);
-
-        if (!sema.isCurrentFunction())
-            return Result::Continue;
-
-        SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
-        SWC_ASSERT(panicFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        payload.runtimeFunctionSymbol = panicFn;
-        return Result::Continue;
+        return SemaHelpers::setupRuntimeSafetyPanic(sema, nodeRef, Runtime::SafetyWhat::BoundCheck, codeRef);
     }
 
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)

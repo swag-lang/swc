@@ -46,18 +46,6 @@ namespace
         return payload;
     }
 
-    void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, TypeRef argTypeRef, MicroReg srcReg)
-    {
-        const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
-
-        ABICall::PreparedArg arg;
-        arg.srcReg      = srcReg;
-        arg.kind        = ABICall::PreparedArgKind::Direct;
-        arg.isFloat     = normalizedArg.isFloat;
-        arg.isAddressed = false;
-        arg.numBits     = normalizedArg.numBits;
-        outArgs.push_back(arg);
-    }
 
     SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen)
     {
@@ -90,13 +78,13 @@ namespace
         const ConstantRef    messageCstRef    = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, codeGen.typeMgr().typeString(), messageTextCst.getString().data(), messageTextCst.getString().size());
         SWC_ASSERT(messageCstRef.isValid());
         const auto messageArg = makeAddressPayloadFromConstant(codeGen, messageCstRef);
-        appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[0]->typeRef(), messageArg.reg);
+        CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[0]->typeRef(), messageArg.reg);
 
         ConstantRef sourceLocCstRef = ConstantRef::invalid();
         SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, node));
         SWC_ASSERT(sourceLocCstRef.isValid());
         const auto sourceLocArg = makeAddressPayloadFromConstant(codeGen, sourceLocCstRef);
-        appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[1]->typeRef(), sourceLocArg.reg);
+        CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[1]->typeRef(), sourceLocArg.reg);
 
         MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());

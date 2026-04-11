@@ -1028,6 +1028,24 @@ namespace
     }
 }
 
+void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
+                                                 CodeGen&                           codeGen,
+                                                 const CallConv&                    callConv,
+                                                 TypeRef                            argTypeRef,
+                                                 MicroReg                           srcReg)
+{
+    const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
+
+    ABICall::PreparedArg arg;
+    arg.srcReg      = srcReg;
+    arg.kind        = ABICall::PreparedArgKind::Direct;
+    arg.isFloat     = normalizedArg.isFloat;
+    arg.isSigned    = normalizedArg.isSigned;
+    arg.isAddressed = false;
+    arg.numBits     = normalizedArg.numBits;
+    outArgs.push_back(arg);
+}
+
 void CodeGenCallHelpers::appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs,
                                                         CodeGen&                           codeGen,
                                                         const CallConv&                    callConv,

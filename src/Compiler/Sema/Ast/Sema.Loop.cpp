@@ -35,25 +35,6 @@ namespace
         return result;
     }
 
-    Result setupUnreachableRuntimeSafety(Sema& sema, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
-    {
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Unreachable))
-            return Result::Continue;
-
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
-        payload.addRuntimeSafety(Runtime::SafetyWhat::Unreachable);
-
-        if (!sema.isCurrentFunction())
-            return Result::Continue;
-
-        SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
-        SWC_ASSERT(panicFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        payload.runtimeFunctionSymbol = panicFn;
-        return Result::Continue;
-    }
 
     LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
@@ -443,7 +424,7 @@ Result AstBreakStmt::semaPreNode(Sema& sema)
 
 Result AstUnreachableStmt::semaPreNode(Sema& sema)
 {
-    return setupUnreachableRuntimeSafety(sema, sema.curNodeRef(), sema.curNode().codeRef());
+    return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Unreachable, sema.curNode().codeRef());
 }
 
 Result AstContinueStmt::semaPreNode(Sema& sema)

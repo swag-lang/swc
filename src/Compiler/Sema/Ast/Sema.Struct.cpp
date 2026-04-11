@@ -13,20 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView)
-    {
-        if (!literalView.type())
-            return Result::Continue;
-        if (literalView.hasConstant())
-            return Result::Continue;
-        if (!literalView.type()->isAggregateStruct() && !literalView.type()->isAggregateArray())
-            return Result::Continue;
-        if (sema.isGlobalScope())
-            return Result::Continue;
-
-        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, literalView.typeRef(), "__literal_runtime_storage");
-    }
-
     Result pushStructInitializerChildBindingType(Sema& sema, AstNodeRef childRef, TypeRef targetTypeRef, SpanRef spanArgsRef)
     {
         SmallVector<AstNodeRef> children;
@@ -239,7 +225,7 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
 
     SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children));
     SemaNodeView initView = sema.curViewNodeTypeConstant();
-    SWC_RESULT(attachLiteralRuntimeStorageIfNeeded(sema, *this, initView));
+    SWC_RESULT(SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, initView));
 
     const SemaNodeView nodeWhatView = sema.viewType(nodeWhatRef);
     SWC_RESULT(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));

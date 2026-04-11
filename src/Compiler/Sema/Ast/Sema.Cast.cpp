@@ -47,17 +47,6 @@ namespace
         return Result::Continue;
     }
 
-    Result attachDynamicStructCastRuntimeFunction(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind runtimeKind, const SourceCodeRef& codeRef)
-    {
-        SymbolFunction* runtimeFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(runtimeKind, runtimeFn, codeRef));
-        SWC_ASSERT(runtimeFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
-        SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
-        return Result::Continue;
-    }
-
     Result raiseDynamicStructCastError(Sema& sema, AstNodeRef nodeRef, TypeRef sourceTypeRef, TypeRef targetTypeRef)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast, nodeRef);
@@ -196,7 +185,7 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
     sema.setType(sema.curNodeRef(), resultTypeRef);
     sema.setIsValue(*this);
 
-    return attachDynamicStructCastRuntimeFunction(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::As, codeRef());
+    return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::As, codeRef());
 }
 
 Result AstIsTypeExpr::semaPostNode(Sema& sema)
@@ -214,7 +203,7 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
     sema.setIsValue(*this);
 
-    return attachDynamicStructCastRuntimeFunction(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::Is, codeRef());
+    return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::Is, codeRef());
 }
 
 Result AstAutoCastExpr::semaPostNode(Sema& sema)

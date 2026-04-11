@@ -208,24 +208,6 @@ namespace
         }
     }
 
-    TypeRef literalRuntimeStorageTypeRef(const SemaNodeView& view)
-    {
-        if (!view.type())
-            return TypeRef::invalid();
-        if (view.hasConstant())
-            return TypeRef::invalid();
-        if (!view.type()->isAggregateStruct() && !view.type()->isAggregateArray())
-            return TypeRef::invalid();
-        return view.typeRef();
-    }
-
-    Result attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView)
-    {
-        if (sema.isGlobalScope())
-            return Result::Continue;
-        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, literalRuntimeStorageTypeRef(literalView), "__literal_runtime_storage");
-    }
-
     enum class LiteralChildBindingKind : uint8_t
     {
         StructLike,
@@ -650,7 +632,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
     const bool autoName = sema.frame().bindingTypes().empty();
     SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children, autoName));
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
-    return attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView);
+    return SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView);
 }
 
 Result AstStructLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -697,7 +679,7 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
 
     sema.setIsValue(*this);
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
-    SWC_RESULT(attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView));
+    SWC_RESULT(SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView));
     return Result::Continue;
 }
 

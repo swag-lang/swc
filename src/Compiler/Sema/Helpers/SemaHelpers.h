@@ -27,6 +27,12 @@ namespace SemaHelpers
     SymbolVariable&       registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName);
     SymbolVariable&       getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, std::string_view privateName);
     Result                attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName);
+    Result                attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName);
+    Result                attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView);
+    Result                setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef);
+    Result                attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
+    Result                requireRuntimeFunctionDependency(Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
+    Result                requireRuntimeFunctionDependency(SymbolFunction*& outRuntimeFn, Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
     TypeRef               indirectReturnRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn);
     SymbolVariable*       currentRuntimeStorage(Sema& sema);
     void                  addCurrentFunctionCallDependency(Sema& sema, SymbolFunction* calleeSym);

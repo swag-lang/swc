@@ -96,20 +96,7 @@ namespace
     {
         if (!castNeedsOverflowRuntimeSafety(sema, srcTypeRef, dstTypeRef, castFlags))
             return Result::Continue;
-
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
-        payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
-
-        if (!sema.isCurrentFunction())
-            return Result::Continue;
-
-        SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, sema.node(nodeRef).codeRef()));
-        SWC_ASSERT(panicFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        payload.runtimeFunctionSymbol = panicFn;
-        return Result::Continue;
+        return SemaHelpers::setupRuntimeSafetyPanic(sema, nodeRef, Runtime::SafetyWhat::Overflow, sema.node(nodeRef).codeRef());
     }
 
     Result setupCastFromAnyRuntime(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
@@ -146,21 +133,11 @@ namespace
             return Result::Continue;
 
         const auto& codeRef = sema.node(nodeRef).codeRef();
-
-        SymbolFunction* asFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::As, asFn, codeRef));
-        SWC_ASSERT(asFn != nullptr);
-        SemaHelpers::addCurrentFunctionCallDependency(sema, asFn);
-        payload.runtimeFunctionSymbol = asFn;
+        SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::As, codeRef));
 
         // Resolve panic function when DynCast safety is enabled
         if (hasDynCastSafety)
-        {
-            SymbolFunction* panicFn = nullptr;
-            SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
-            SWC_ASSERT(panicFn != nullptr);
-            SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        }
+            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef));
 
         return Result::Continue;
     }

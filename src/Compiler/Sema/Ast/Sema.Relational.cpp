@@ -133,16 +133,6 @@ namespace
         return false;
     }
 
-    Result setupStringCompareRuntimeCall(Sema& sema, const AstRelationalExpr& node)
-    {
-        SymbolFunction* stringCmpFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::StringCmp, stringCmpFn, node.codeRef()));
-        SWC_ASSERT(stringCmpFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, stringCmpFn);
-        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeFunctionSymbol = stringCmpFn;
-        return Result::Continue;
-    }
 
     Result constantFoldEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
@@ -481,7 +471,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
         (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual) &&
         isStringCompareOperands(sema, nodeLeftView, nodeRightView) &&
         !hasNullComparableOperandConstant(sema, nodeLeftView, nodeRightView))
-        SWC_RESULT(setupStringCompareRuntimeCall(sema, *this));
+        SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::StringCmp, codeRef()));
 
     return Result::Continue;
 }

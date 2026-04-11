@@ -21,26 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result setupBinaryOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
-    {
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
-            return Result::Continue;
-
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
-        payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
-
-        if (!sema.isCurrentFunction())
-            return Result::Continue;
-
-        SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
-        SWC_ASSERT(panicFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        payload.runtimeFunctionSymbol = panicFn;
-        return Result::Continue;
-    }
-
     Result checkIntegerModifiers(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView)
     {
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
@@ -544,7 +524,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SWC_RESULT(check(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(castAndResultType(sema, op, *this, nodeLeftView, nodeRightView));
     if (needsBinaryOverflowRuntimeSafety(*this, op, nodeLeftView, nodeRightView))
-        SWC_RESULT(setupBinaryOverflowRuntimeSafety(sema, sema.curNodeRef(), codeRef()));
+        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
 
     return Result::Continue;
 }

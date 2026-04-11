@@ -68,16 +68,6 @@ namespace
         return Result::Continue;
     }
 
-    Result attachIntrinsicRuntimeFunction(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind runtimeKind, const SourceCodeRef& codeRef)
-    {
-        SymbolFunction* runtimeFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(runtimeKind, runtimeFn, codeRef));
-        SWC_ASSERT(runtimeFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
-        SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
-        return Result::Continue;
-    }
 }
 
 Result AstIntrinsicValue::semaPostNode(Sema& sema)
@@ -383,7 +373,7 @@ namespace
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
         sema.setIsValue(node);
-        return attachIntrinsicRuntimeFunction(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::Is, node.codeRef());
+        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::Is, node.codeRef());
     }
 
     Result semaIntrinsicAs(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
@@ -406,7 +396,7 @@ namespace
         const TypeRef resultTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(sema.typeMgr().typeVoid(), TypeInfoFlagsE::Nullable));
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsValue(node);
-        return attachIntrinsicRuntimeFunction(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::As, node.codeRef());
+        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::As, node.codeRef());
     }
 }
 

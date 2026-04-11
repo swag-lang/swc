@@ -200,7 +200,8 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
     // Expose the interface implementation scope under the struct symbol map so we can resolve
     // `StructName.InterfaceName.Symbol`.
-    if (const Symbol* inserted = addSingleSymbol(sema.ctx(), &symImpl); inserted != &symImpl)
+    const Symbol* inserted = addSingleSymbol(sema.ctx(), &symImpl);
+    if (inserted != &symImpl)
         return SemaError::raiseAlreadyDefined(sema, &symImpl, inserted);
 
     symImpl.setSymStruct(this);

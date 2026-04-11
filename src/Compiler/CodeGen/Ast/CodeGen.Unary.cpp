@@ -31,50 +31,58 @@ namespace
             builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
     }
 
+    struct UnaryOperandInfo
+    {
+        const CodeGenNodePayload* childPayload    = nullptr;
+        TypeRef                   operandTypeRef  = TypeRef::invalid();
+        TypeRef                   resultTypeRef   = TypeRef::invalid();
+        const TypeInfo*           operandTypeInfo = nullptr;
+        MicroOpBits               opBits          = MicroOpBits::Zero;
+    };
+
+    UnaryOperandInfo collectUnaryOperandInfo(CodeGen& codeGen, AstNodeRef nodeExprRef)
+    {
+        UnaryOperandInfo info;
+        info.childPayload    = &codeGen.payload(nodeExprRef);
+        const SemaNodeView childView = codeGen.viewType(nodeExprRef);
+        info.operandTypeRef  = info.childPayload->effectiveTypeRef(childView.typeRef());
+        info.resultTypeRef   = codeGen.curViewType().typeRef();
+        info.operandTypeInfo = &codeGen.typeMgr().get(info.operandTypeRef);
+        info.opBits          = CodeGenTypeHelpers::compareBits(*info.operandTypeInfo, codeGen.ctx());
+        SWC_ASSERT(info.opBits != MicroOpBits::Zero);
+        return info;
+    }
+
     Result codeGenUnaryPlus(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
+        const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
-        const SemaNodeView childView       = codeGen.viewType(nodeExprRef);
-        const TypeRef      operandTypeRef  = childPayload.effectiveTypeRef(childView.typeRef());
-        const TypeRef      resultTypeRef   = codeGen.curViewType().typeRef();
-        const TypeInfo&    operandTypeInfo = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits  opBits          = CodeGenTypeHelpers::compareBits(operandTypeInfo, codeGen.ctx());
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
-
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, childPayload, operandTypeRef, opBits);
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
+        materializeUnaryOperand(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
         return Result::Continue;
     }
 
     Result codeGenUnaryMinus(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        MicroBuilder&             builder      = codeGen.builder();
-        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
+        MicroBuilder&          builder = codeGen.builder();
+        const UnaryOperandInfo info    = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
-        const SemaNodeView childView       = codeGen.viewType(nodeExprRef);
-        const TypeRef      operandTypeRef  = childPayload.effectiveTypeRef(childView.typeRef());
-        const TypeRef      resultTypeRef   = codeGen.curViewType().typeRef();
-        const TypeInfo&    operandTypeInfo = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits  opBits          = CodeGenTypeHelpers::compareBits(operandTypeInfo, codeGen.ctx());
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
+        materializeUnaryOperand(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
 
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, childPayload, operandTypeRef, opBits);
-
-        if (operandTypeInfo.isFloat())
+        if (info.operandTypeInfo->isFloat())
         {
             // The micro layer exposes float subtraction but no dedicated float negate, so lower `-x` as
             // `0 - x`.
-            const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
-            builder.emitClearReg(zeroReg, opBits);
-            builder.emitOpBinaryRegReg(zeroReg, resultPayload.reg, MicroOp::FloatSubtract, opBits);
+            const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(info.operandTypeRef);
+            builder.emitClearReg(zeroReg, info.opBits);
+            builder.emitOpBinaryRegReg(zeroReg, resultPayload.reg, MicroOp::FloatSubtract, info.opBits);
             resultPayload.reg = zeroReg;
             return Result::Continue;
         }
 
-        builder.emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, opBits);
-        if (CodeGenSafety::hasOverflowRuntimeSafety(codeGen) && operandTypeInfo.isIntSigned())
+        builder.emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, info.opBits);
+        if (CodeGenSafety::hasOverflowRuntimeSafety(codeGen) && info.operandTypeInfo->isIntSigned())
         {
             const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstUnaryExpr>();
             SWC_RESULT(CodeGenSafety::emitOverflowTrapOnFailure(codeGen, node, MicroCond::NotOverflow));
@@ -84,20 +92,14 @@ namespace
 
     Result codeGenUnaryBang(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
-
-        const SemaNodeView childView      = codeGen.viewType(nodeExprRef);
-        const TypeRef      operandTypeRef = childPayload.effectiveTypeRef(childView.typeRef());
-        const TypeInfo&    operandType    = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits  opBits         = CodeGenTypeHelpers::compareBits(operandType, codeGen.ctx());
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
+        const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         MicroReg operandReg;
-        materializeUnaryOperand(operandReg, codeGen, childPayload, operandTypeRef, opBits);
+        materializeUnaryOperand(operandReg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder       = codeGen.builder();
-        builder.emitCmpRegImm(operandReg, ApInt(0, 64), opBits);
+        builder.emitCmpRegImm(operandReg, ApInt(0, 64), info.opBits);
         builder.emitSetCondReg(resultPayload.reg, MicroCond::Equal);
         builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
         return Result::Continue;
@@ -105,18 +107,11 @@ namespace
 
     Result codeGenUnaryBitwiseNot(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
+        const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
-        const SemaNodeView childView       = codeGen.viewType(nodeExprRef);
-        const TypeRef      operandTypeRef  = childPayload.effectiveTypeRef(childView.typeRef());
-        const TypeRef      resultTypeRef   = codeGen.curViewType().typeRef();
-        const TypeInfo&    operandTypeInfo = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits  opBits          = CodeGenTypeHelpers::compareBits(operandTypeInfo, codeGen.ctx());
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
-
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, childPayload, operandTypeRef, opBits);
-        codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::BitwiseNot, opBits);
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
+        materializeUnaryOperand(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::BitwiseNot, info.opBits);
         return Result::Continue;
     }
 

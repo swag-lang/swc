@@ -54,25 +54,6 @@ namespace
         return hasReferenceRebindModifier(assignNode.modifierFlags);
     }
 
-    Result setupAssignOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
-    {
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
-            return Result::Continue;
-
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
-        payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
-
-        if (!sema.isCurrentFunction())
-            return Result::Continue;
-
-        SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
-        SWC_ASSERT(panicFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        payload.runtimeFunctionSymbol = panicFn;
-        return Result::Continue;
-    }
 
     Result checkAssignModifiers(Sema& sema, const AstAssignStmt& node)
     {
@@ -430,7 +411,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     SWC_RESULT(checkIntegerModifiers(sema, *this, nodeLeftView));
     SWC_RESULT(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView, rebindReference));
     if (needsAssignOverflowRuntimeSafety(*this, tok.id, nodeLeftView, nodeRightView, sema))
-        SWC_RESULT(setupAssignOverflowRuntimeSafety(sema, sema.curNodeRef(), codeRef()));
+        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
     return Result::Continue;
 }
 

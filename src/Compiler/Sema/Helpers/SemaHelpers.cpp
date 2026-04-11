@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -50,25 +51,91 @@ TypeRef SemaHelpers::indirectReturnRuntimeStorageTypeRef(Sema& sema, const Symbo
     return returnTypeRef;
 }
 
-Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName)
+Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName)
 {
-    const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-    if (payload && payload->runtimeStorageSym != nullptr)
-        return Result::Continue;
     if (storageTypeRef.isInvalid())
+        return Result::Continue;
+
+    const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(payloadNodeRef);
+    if (payload && payload->runtimeStorageSym != nullptr)
         return Result::Continue;
 
     if (SymbolVariable* const boundStorage = currentRuntimeStorage(sema))
     {
-        ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
+        ensureCodeGenNodePayload(sema, payloadNodeRef).runtimeStorageSym = boundStorage;
         return Result::Continue;
     }
 
-    auto& storageSym = registerUniqueRuntimeStorageSymbol(sema, node, privateName);
+    auto& storageSym = registerUniqueRuntimeStorageSymbol(sema, storageNode, privateName);
     SWC_RESULT(declareGhostAndCompleteStorage(sema, storageSym, storageTypeRef));
 
-    ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
+    ensureCodeGenNodePayload(sema, payloadNodeRef).runtimeStorageSym = &storageSym;
     return Result::Continue;
+}
+
+Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName)
+{
+    return attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), node, storageTypeRef, privateName);
+}
+
+Result SemaHelpers::requireRuntimeFunctionDependency(SymbolFunction*& outRuntimeFn, Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef)
+{
+    outRuntimeFn = nullptr;
+    SWC_RESULT(sema.waitRuntimeFunction(kind, outRuntimeFn, codeRef));
+    SWC_ASSERT(outRuntimeFn != nullptr);
+    addCurrentFunctionCallDependency(sema, outRuntimeFn);
+    return Result::Continue;
+}
+
+Result SemaHelpers::requireRuntimeFunctionDependency(Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef)
+{
+    SymbolFunction* runtimeFn = nullptr;
+    return requireRuntimeFunctionDependency(runtimeFn, sema, kind, codeRef);
+}
+
+Result SemaHelpers::attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef)
+{
+    SymbolFunction* runtimeFn = nullptr;
+    SWC_RESULT(sema.waitRuntimeFunction(kind, runtimeFn, codeRef));
+    SWC_ASSERT(runtimeFn != nullptr);
+
+    addCurrentFunctionCallDependency(sema, runtimeFn);
+    ensureCodeGenNodePayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
+    return Result::Continue;
+}
+
+Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef)
+{
+    if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, safetyKind))
+        return Result::Continue;
+
+    auto& payload = ensureCodeGenNodePayload(sema, nodeRef);
+    payload.addRuntimeSafety(safetyKind);
+
+    if (!sema.isCurrentFunction())
+        return Result::Continue;
+
+    SymbolFunction* panicFn = nullptr;
+    SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
+    SWC_ASSERT(panicFn != nullptr);
+
+    addCurrentFunctionCallDependency(sema, panicFn);
+    payload.runtimeFunctionSymbol = panicFn;
+    return Result::Continue;
+}
+
+Result SemaHelpers::attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView)
+{
+    if (sema.isGlobalScope())
+        return Result::Continue;
+    if (!literalView.type())
+        return Result::Continue;
+    if (literalView.hasConstant())
+        return Result::Continue;
+    if (!literalView.type()->isAggregateStruct() && !literalView.type()->isAggregateArray())
+        return Result::Continue;
+
+    return attachRuntimeStorageIfNeeded(sema, node, literalView.typeRef(), "__literal_runtime_storage");
 }
 
 SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, std::string_view privateName)

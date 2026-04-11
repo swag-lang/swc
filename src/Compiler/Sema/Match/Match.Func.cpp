@@ -1528,7 +1528,8 @@ namespace
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             const TypeRef    paramTypeRef = params[i]->typeRef();
             TypeRef          castTypeRef  = paramTypeRef;
-            if (const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, paramTypeRef, argView.typeRef()); bindValueTypeRef.isValid())
+            const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, paramTypeRef, argView.typeRef());
+            if (bindValueTypeRef.isValid())
                 castTypeRef = bindValueTypeRef;
 
             CastFlags flags = CastFlagsE::Zero;
@@ -1780,23 +1781,7 @@ namespace
             return Result::Continue;
 
         const TypeRef storageTypeRef = referenceBindingStorageTypeRef(sema, paramTypeRef, argRef);
-        if (storageTypeRef.isInvalid())
-            return Result::Continue;
-
-        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(argRef);
-        if (payload && payload->runtimeStorageSym != nullptr)
-            return Result::Continue;
-
-        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-        {
-            SemaHelpers::ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = boundStorage;
-            return Result::Continue;
-        }
-
-        auto& storageSym = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, sema.node(argRef), "__call_arg_ref_storage");
-        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, storageSym, storageTypeRef));
-        SemaHelpers::ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = &storageSym;
-        return Result::Continue;
+        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_ref_storage");
     }
 
     Result buildResolvedCallArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)

@@ -19,26 +19,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result setupUnaryOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
-    {
-        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Overflow))
-            return Result::Continue;
-
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
-        payload.addRuntimeSafety(Runtime::SafetyWhat::Overflow);
-
-        if (!sema.isCurrentFunction())
-            return Result::Continue;
-
-        SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
-        SWC_ASSERT(panicFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        payload.runtimeFunctionSymbol = panicFn;
-        return Result::Continue;
-    }
-
     ConstantRef makeFoldedIntConstant(Sema& sema, const ApsInt& foldedValue, const TypeInfo& type, TypeInfo::Sign sign)
     {
         return sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, type.payloadIntBits(), sign));
@@ -452,7 +432,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     }
 
     if (tok.id == TokenId::SymMinus && view.type()->isIntSigned())
-        SWC_RESULT(setupUnaryOverflowRuntimeSafety(sema, sema.curNodeRef(), codeRef()));
+        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
     return Result::Continue;
 }
 

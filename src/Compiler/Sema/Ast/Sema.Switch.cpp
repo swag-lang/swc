@@ -33,37 +33,14 @@ namespace
         if (payload.runtimePanicSymbol != nullptr)
             return Result::Continue;
 
-        SymbolFunction* panicFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
-        SWC_ASSERT(panicFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, panicFn);
-        payload.runtimePanicSymbol = panicFn;
-        return Result::Continue;
+        return SemaHelpers::requireRuntimeFunctionDependency(payload.runtimePanicSymbol, sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef);
     }
 
-    Result setupStringCompareRuntimeCall(Sema& sema)
-    {
-        SymbolFunction* stringCmpFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::StringCmp, stringCmpFn, sema.node(sema.curNodeRef()).codeRef()));
-        SWC_ASSERT(stringCmpFn != nullptr);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, stringCmpFn);
-        return Result::Continue;
-    }
 
     Result setupDynamicStructSwitchRuntimeCall(Sema& sema, const SourceCodeRef& codeRef)
     {
-        SymbolFunction* runtimeFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::As, runtimeFn, codeRef));
-        SWC_ASSERT(runtimeFn != nullptr);
-        SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
-
-        runtimeFn = nullptr;
-        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::Is, runtimeFn, codeRef));
-        SWC_ASSERT(runtimeFn != nullptr);
-        SemaHelpers::addCurrentFunctionCallDependency(sema, runtimeFn);
-        return Result::Continue;
+        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::As, codeRef));
+        return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::Is, codeRef);
     }
 
     bool isDynamicStructSwitchType(Sema& sema, TypeRef typeRef)
@@ -392,7 +369,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         payload->exprTypeRef = exprView.typeRef();
 
         if (finalType.isString())
-            SWC_RESULT(setupStringCompareRuntimeCall(sema));
+            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::StringCmp, sema.node(sema.curNodeRef()).codeRef()));
 
         SWC_RESULT(setupSwitchRuntimeSafety(sema, *payload, codeRef()));
 

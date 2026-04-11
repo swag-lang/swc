@@ -1444,6 +1444,9 @@ struct AstIntrinsicInit : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicInit
         AstIntrinsicInitDropCopyMoveT::collectChildren(out, ast);
         AstNode::collectChildren(out, ast, spanArgsRef);
     }
+
+    Result codeGenPostNode(CodeGen& codeGen) const;
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

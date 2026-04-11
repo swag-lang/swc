@@ -20,6 +20,63 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef normalizeIntrinsicInitTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef rawTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid())
+            return rawTypeRef;
+        return typeRef;
+    }
+
+    TypeRef intrinsicInitFillTypeRef(Sema& sema, TypeRef whatTypeRef)
+    {
+        whatTypeRef = normalizeIntrinsicInitTypeRef(sema, whatTypeRef);
+        if (!whatTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& whatType = sema.typeMgr().get(whatTypeRef);
+        if (whatType.isReference() || whatType.isAnyPointer())
+            whatTypeRef = normalizeIntrinsicInitTypeRef(sema, whatType.payloadTypeRef());
+
+        while (whatTypeRef.isValid())
+        {
+            const TypeInfo& currentType = sema.typeMgr().get(whatTypeRef);
+            if (!currentType.isArray())
+                break;
+            whatTypeRef = normalizeIntrinsicInitTypeRef(sema, currentType.payloadArrayElemTypeRef());
+        }
+
+        return whatTypeRef;
+    }
+
+    void collectIntrinsicInitArgs(SmallVector<AstNodeRef>& outArgs, const Ast& ast, const AstIntrinsicInit& node)
+    {
+        ast.appendNodes(outArgs, node.spanArgsRef);
+    }
+
+    bool intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args)
+    {
+        if (args.empty() || !fillTypeRef.isValid())
+            return false;
+
+        const TypeInfo& fillType = sema.typeMgr().get(fillTypeRef);
+        if (!fillType.isStruct())
+            return false;
+        if (args.size() != 1)
+            return true;
+
+        const SemaNodeView argView = sema.viewType(args.front());
+        if (!argView.type())
+            return true;
+        if (argView.typeRef() == fillTypeRef)
+            return false;
+
+        return !argView.type()->isStruct() && !argView.type()->isAggregateStruct();
+    }
+
     LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<LoopSemaPayload>(nodeRef))
@@ -68,6 +125,49 @@ namespace
         return Result::Continue;
     }
 
+}
+
+Result AstIntrinsicInit::semaPostNode(Sema& sema) const
+{
+    SWC_RESULT(semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef));
+
+    const TypeRef fillTypeRef = intrinsicInitFillTypeRef(sema, sema.viewType(nodeWhatRef).typeRef());
+    SWC_ASSERT(fillTypeRef.isValid());
+    if (fillTypeRef.isInvalid())
+        return Result::Error;
+
+    SmallVector<AstNodeRef> args;
+    collectIntrinsicInitArgs(args, sema.ast(), *this);
+    if (args.empty())
+        return Result::Continue;
+
+    if (intrinsicInitTreatsArgsAsStructTuple(sema, fillTypeRef, args))
+    {
+        const TypeInfo& fillType = sema.typeMgr().get(fillTypeRef);
+        SWC_ASSERT(fillType.isStruct());
+        SWC_RESULT(sema.waitSemaCompleted(&fillType, nodeWhatRef));
+
+        const auto& fields = fillType.payloadSymStruct().fields();
+        if (args.size() > fields.size())
+            return SemaError::raise(sema, DiagnosticId::sema_err_too_many_arguments, sema.curNodeRef());
+
+        for (size_t i = 0; i < args.size(); ++i)
+        {
+            SWC_ASSERT(fields[i] != nullptr);
+            SemaNodeView argView = sema.viewNodeTypeConstant(args[i]);
+            SWC_RESULT(Cast::cast(sema, argView, fields[i]->typeRef(), CastKind::Initialization));
+        }
+
+        if (sema.isCurrentFunction())
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, fillTypeRef, "__intrinsic_runtime_storage"));
+        return Result::Continue;
+    }
+
+    if (args.size() != 1)
+        return SemaError::raise(sema, DiagnosticId::sema_err_too_many_arguments, sema.curNodeRef());
+
+    SemaNodeView argView = sema.viewNodeTypeConstant(args.front());
+    return Cast::cast(sema, argView, fillTypeRef, CastKind::Initialization);
 }
 
 Result AstIntrinsicValue::semaPostNode(Sema& sema)

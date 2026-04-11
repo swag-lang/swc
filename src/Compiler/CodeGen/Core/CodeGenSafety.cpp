@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Backend/ABI/ABICall.h"
-#include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"

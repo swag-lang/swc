@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"

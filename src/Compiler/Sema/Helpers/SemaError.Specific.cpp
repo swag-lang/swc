@@ -59,7 +59,7 @@ Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef
 
 Result SemaError::raiseCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    auto diag = reportCannotCast(sema, atNodeRef, srcTypeRef, targetTypeRef);
+    const auto diag = reportCannotCast(sema, atNodeRef, srcTypeRef, targetTypeRef);
     diag.report(sema.ctx());
     return Result::Error;
 }

@@ -786,6 +786,62 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     return Result::Continue;
 }
 
+Result SemaSpecOp::tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled)
+{
+    outHandled = false;
+
+    const SemaNodeView receiverView(sema, receiverRef, SemaNodeViewPartE::Type);
+    const SymbolStruct* ownerStruct = structSpecOpOwner(sema, receiverView);
+    if (!ownerStruct)
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(ownerStruct, sema.node(valueRef).codeRef()));
+
+    SmallVector<Symbol*> candidates;
+    SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, sema.node(valueRef).codeRef(), TokenId::SymEqual, candidates));
+    if (candidates.empty())
+        return Result::Continue;
+
+    SmallVector<AstNodeRef> args;
+    args.push_back(valueRef);
+
+    Symbol* const savedSymbol = sema.curViewSymbol().sym();
+    const bool    savedLValue = sema.isLValue(sema.curNodeRef());
+
+    bool matched = false;
+    SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args.span(), receiverRef, true, &matched));
+
+    SymbolFunction* calledFn = nullptr;
+    if (matched)
+    {
+        const SemaNodeView currentSymView = sema.curViewSymbol();
+        if (currentSymView.sym() && currentSymView.sym()->isFunction())
+            calledFn = &currentSymView.sym()->cast<SymbolFunction>();
+    }
+
+    if (savedSymbol)
+        sema.setSymbol(sema.curNodeRef(), savedSymbol);
+    if (savedLValue)
+        sema.setIsLValue(sema.curNodeRef());
+    else
+        sema.unsetIsLValue(sema.curNodeRef());
+
+    if (!matched)
+        return Result::Continue;
+
+    auto* payload = sema.semaPayload<VarInitSpecOpPayload>(sema.curNodeRef());
+    if (!payload)
+    {
+        payload = sema.compiler().allocate<VarInitSpecOpPayload>();
+        sema.setSemaPayload(sema.curNodeRef(), payload);
+    }
+
+    payload->calledFn = calledFn;
+
+    outHandled = payload->calledFn != nullptr;
+    return Result::Continue;
+}
+
 Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)
 {
     outHandled = false;

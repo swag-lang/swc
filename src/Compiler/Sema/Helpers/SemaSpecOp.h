@@ -17,6 +17,11 @@ struct AssignSpecOpPayload
     SymbolFunction* calledFn = nullptr;
 };
 
+struct VarInitSpecOpPayload
+{
+    SymbolFunction* calledFn = nullptr;
+};
+
 struct RelationalSpecOpPayload
 {
     SymbolFunction* calledFn = nullptr;
@@ -59,6 +64,7 @@ namespace SemaSpecOp
     SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     Result     validateSymbol(Sema& sema, SymbolFunction& sym);
     Result     registerSymbol(Sema& sema, SymbolFunction& sym);
+    Result     tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
     Result     tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result     tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
     Result     tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);

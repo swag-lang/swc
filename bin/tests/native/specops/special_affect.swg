@@ -10,6 +10,7 @@ struct RuntimeAffectTarget
     value: s32
     tag: s32
     calls: s32
+    sentinel: s32 = 1234
 }
 
 impl RuntimeAffectTarget
@@ -53,6 +54,7 @@ struct RuntimeAffectHolder
     @assert(target.value == 42)
     @assert(target.tag == 10)
     @assert(target.calls == 1)
+    @assert(target.sentinel == 1234)
 }
 
 #test
@@ -63,6 +65,7 @@ struct RuntimeAffectHolder
     @assert(target.value == 6)
     @assert(target.tag == 20)
     @assert(target.calls == 1)
+    @assert(target.sentinel == 1234)
 }
 
 #test
@@ -74,6 +77,38 @@ struct RuntimeAffectHolder
     @assert(target.value == 42)
     @assert(target.tag == 30)
     @assert(target.calls == 1)
+    @assert(target.sentinel == 1234)
+}
+
+#test
+{
+    let target: RuntimeAffectTarget = 42's32
+
+    @assert(target.value == 42)
+    @assert(target.tag == 10)
+    @assert(target.calls == 1)
+    @assert(target.sentinel == 1234)
+}
+
+#test
+{
+    let target: RuntimeAffectTarget = 3.5'f32
+
+    @assert(target.value == 6)
+    @assert(target.tag == 20)
+    @assert(target.calls == 1)
+    @assert(target.sentinel == 1234)
+}
+
+#test
+{
+    let source = RuntimeAffectSource{value: 37}
+    let target: RuntimeAffectTarget = source
+
+    @assert(target.value == 42)
+    @assert(target.tag == 30)
+    @assert(target.calls == 1)
+    @assert(target.sentinel == 1234)
 }
 
 #test
@@ -84,6 +119,7 @@ struct RuntimeAffectHolder
     @assert(holder.target.value == 77)
     @assert(holder.target.tag == 10)
     @assert(holder.target.calls == 1)
+    @assert(holder.target.sentinel == 1234)
 }
 
 #test
@@ -95,6 +131,7 @@ struct RuntimeAffectHolder
     @assert(target.value == 12)
     @assert(target.tag == 10)
     @assert(target.calls == 1)
+    @assert(target.sentinel == 1234)
 }
 
 #test
@@ -106,4 +143,5 @@ struct RuntimeAffectHolder
     @assert(lhs.value == 9)
     @assert(lhs.tag == 11)
     @assert(lhs.calls == 13)
+    @assert(lhs.sentinel == 1234)
 }

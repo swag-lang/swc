@@ -9,6 +9,7 @@ struct AffectTarget
 {
     value: s32
     tag: s32
+    sentinel: s32 = 1234
 }
 
 impl AffectTarget
@@ -49,6 +50,18 @@ struct AffectHolder
     target = source
 
     #assert(#typeof(target) == AffectTarget)
+}
+
+#test
+{
+    let fromInt: AffectTarget = 42's32
+    var fromFloat: AffectTarget = 3.5'f32
+    let source = AffectSource{value: 8}
+    let fromSource: AffectTarget = source
+
+    #assert(#typeof(fromInt) == AffectTarget)
+    #assert(#typeof(fromFloat) == AffectTarget)
+    #assert(#typeof(fromSource) == AffectTarget)
 }
 
 #test

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -9,7 +10,9 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
@@ -368,6 +371,24 @@ namespace
 
         codeGen.setVariablePayload(symVar, symbolPayload);
     }
+
+    Result emitVarInitSpecOp(CodeGen& codeGen, const SymbolVariable& symVar, SymbolFunction& calledFn)
+    {
+        materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid());
+
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
+        SWC_ASSERT(!resolvedArgs.empty() && resolvedArgs[0].argRef.isValid());
+
+        const CodeGenNodePayload receiverPayload = resolveIdentifierVariablePayload(codeGen, symVar);
+        CodeGenNodePayload&      receiverArg     = codeGen.setPayload(resolvedArgs[0].argRef, symVar.typeRef());
+        receiverArg.reg                         = receiverPayload.reg;
+        receiverArg.typeRef                     = receiverPayload.typeRef;
+        receiverArg.storageKind                 = receiverPayload.storageKind;
+
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), &calledFn);
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
 }
 
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
@@ -403,7 +424,15 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
+        if (const auto* initPayload = codeGen.sema().semaPayload<VarInitSpecOpPayload>(codeGen.curNodeRef());
+            initPayload && initPayload->calledFn != nullptr)
+        {
+            SWC_RESULT(emitVarInitSpecOp(codeGen, symVar, *initPayload->calledFn));
+        }
+        else
+        {
+            materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
+        }
         codeGen.registerImplicitDrop(symVar);
     }
 

@@ -29,22 +29,19 @@ impl Struct
     }
 }
 
-// @TODO: Re-enable when struct initialization through `opAffect` works for scalar assignments again.
-// #test
-// {
-//     let v: Struct = 4's32
-//     @assert(v.x == 4)
-//     @assert(v.y == 4)
-//     @assert(v.z == 666)
-//
-//     var v1: Struct = true
-//     @assert(v1.x == 1)
-//     @assert(v1.y == 1)
-//
-//     v1 = false
-//     @assert(v1.x == 0)
-//     @assert(v1.y == 0)
-// }
+#test
+{
+    let v: Struct = 4's32
+    @assert(v.x == 4)
+    @assert(v.y == 4)
+    @assert(v.z == 666)
+    var v1: Struct = true
+    @assert(v1.x == 1)
+    @assert(v1.y == 1)
+    v1 = false
+    @assert(v1.x == 0)
+    @assert(v1.y == 0)
+}
 
 /**
 # Optimizing Initialization with 'Swag.Complete'
@@ -68,14 +65,13 @@ impl Struct
     }
 }
 
-// @TODO: Re-enable when `#[Swag.Complete] opAffect` initializes structs from scalars again.
-// #test
-// {
-//     let v: Struct = 2'u64
-//     @assert(v.x == 2)
-//     @assert(v.y == 2)
-//     @assert(v.z == 2)
-// }
+#test
+{
+    let v: Struct = 2'u64
+    @assert(v.x == 2)
+    @assert(v.y == 2)
+    @assert(v.z == 2)
+}
 
 /**
 # Handling Function Arguments and Automatic Conversion

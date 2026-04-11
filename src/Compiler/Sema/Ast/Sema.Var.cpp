@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Support/Report/DiagnosticDef.h"
@@ -122,6 +123,12 @@ namespace
         return nodeTypeRef.isValid() && sema.node(nodeTypeRef).is(AstNodeId::RetValType);
     }
 
+    struct VarDeclAffectInitInfo
+    {
+        bool        handled            = false;
+        ConstantRef defaultValueCstRef = ConstantRef::invalid();
+    };
+
     void markRetValVariables(std::span<Symbol*> symbols)
     {
         for (Symbol* s : symbols)
@@ -129,6 +136,17 @@ namespace
             if (auto* const symVar = getVariableSymbol(s))
                 symVar->addExtraFlag(SymbolVariableFlagsE::RetVal);
         }
+    }
+
+    AstNodeRef makeVarInitReceiverRef(Sema& sema, SymbolVariable& symVar, TypeRef typeRef, AstNodeRef valueRef)
+    {
+        const TokenRef tokRef = valueRef.isValid() ? sema.node(valueRef).tokRef() : sema.curNode().tokRef();
+        auto [receiverRef, receiverNode] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+        sema.setSymbol(receiverRef, &symVar);
+        sema.setType(receiverRef, typeRef);
+        sema.setIsValue(*receiverNode);
+        sema.setIsLValue(*receiverNode);
+        return receiverRef;
     }
 
     Result allocateGlobalStorage(Sema& sema, SymbolVariable& symVar)
@@ -562,6 +580,64 @@ namespace
         EnumFlags<AstVarDeclFlagsE> flags;
     };
 
+    Result tryResolveVarDeclAffectInit(Sema&                     sema,
+                                       const SemaPostVarDeclArgs& context,
+                                       const std::span<Symbol*>&  symbols,
+                                       bool                       isConst,
+                                       bool                       isParameter,
+                                       TypeRef                    explicitTypeRef,
+                                       const TypeInfo*            explicitType,
+                                       SemaNodeView&              nodeInitView,
+                                       VarDeclAffectInitInfo&     outInfo)
+    {
+        outInfo = {};
+
+        if (isConst || isParameter)
+            return Result::Continue;
+        if (!sema.curScope().isLocal())
+            return Result::Continue;
+        if (symbols.size() != 1 || context.nodeInitRef.isInvalid())
+            return Result::Continue;
+        if (!explicitTypeRef.isValid() || !explicitType || !explicitType->isStruct())
+            return Result::Continue;
+        if (!nodeInitView.typeRef().isValid())
+            return Result::Continue;
+
+        CastRequest castRequest(CastKind::Initialization);
+        castRequest.errorNodeRef = nodeInitView.nodeRef();
+        castRequest.setConstantFoldingSrc(nodeInitView.cstRef());
+        const Result castAllowedResult = Cast::castAllowed(sema, castRequest, nodeInitView.typeRef(), explicitTypeRef);
+        if (castAllowedResult == Result::Pause)
+            return Result::Pause;
+        if (castAllowedResult == Result::Continue)
+            return Result::Continue;
+
+        auto* const symVar = getVariableSymbol(symbols.front());
+        if (!symVar)
+            return Result::Continue;
+
+        const AstNodeRef receiverRef = makeVarInitReceiverRef(sema, *symVar, explicitTypeRef, context.nodeInitRef);
+        bool             handled     = false;
+        SWC_RESULT(SemaSpecOp::tryResolveVarInitAffect(sema, receiverRef, context.nodeInitRef, handled));
+        if (!handled)
+            return Result::Continue;
+
+        symVar->addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+        outInfo.handled = true;
+
+        const auto* payload = sema.semaPayload<VarInitSpecOpPayload>(sema.curNodeRef());
+        if (payload &&
+            payload->calledFn &&
+            !payload->calledFn->attributes().hasRtFlag(RtAttributeFlagsE::Complete))
+        {
+            SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
+            outInfo.defaultValueCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
+        }
+
+        nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        return Result::Continue;
+    }
+
     Result reportMissingInitializer(Sema& sema, DiagnosticId id, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
         const SourceCodeRef where{context.owner->srcViewRef(), context.tokDiag};
@@ -775,11 +851,14 @@ namespace
         const bool      codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
         bool            isExplicitUndefinedInit = false;
         SymbolFunction* globalFunctionInit      = nullptr;
+        VarDeclAffectInitInfo affectInitInfo;
 
         SWC_RESULT(checkUndefinedInit(sema, context, symbols, isConst, isLet, isParameter, explicitTypeRef, explicitType, nodeInitView, isExplicitUndefinedInit));
-        SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView));
+        SWC_RESULT(tryResolveVarDeclAffectInit(sema, context, symbols, isConst, isParameter, explicitTypeRef, explicitType, nodeInitView, affectInitInfo));
+        if (!affectInitInfo.handled)
+            SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView));
 
-        if (context.nodeInitRef.isValid())
+        if (context.nodeInitRef.isValid() && !affectInitInfo.handled)
             storeFieldDefaultConstants(symbols, nodeInitView.cstRef());
 
         const bool allowGlobalFunctionAddressInit = !sema.curScope().isLocal() &&
@@ -839,10 +918,12 @@ namespace
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 
-        storeLetConstants(symbols, isLet, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
-        storeGlobalVariableConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
-        storeParameterDefaultConstants(symbols, isParameter, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : ConstantRef::invalid());
-        storeVariableDefaultConstants(symbols, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
+        const ConstantRef initCstRef        = affectInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
+        const ConstantRef variableDefaultCf = affectInitInfo.handled ? affectInitInfo.defaultValueCstRef : initCstRef;
+        storeLetConstants(symbols, isLet, initCstRef);
+        storeGlobalVariableConstants(symbols, initCstRef);
+        storeParameterDefaultConstants(symbols, isParameter, context.nodeInitRef.isValid() ? initCstRef : ConstantRef::invalid());
+        storeVariableDefaultConstants(symbols, variableDefaultCf);
 
         if (allowGlobalFunctionAddressInit)
         {

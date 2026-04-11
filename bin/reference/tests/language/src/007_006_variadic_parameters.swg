@@ -18,27 +18,24 @@ They allow flexibility in cases where the number of arguments is not known in ad
 # Working with Variadic Parameters as Slices
 Variadic parameters are treated as slices of type 'any', allowing you to process mixed argument types dynamically.
 */
-// @TODO: Re-enable when mixed variadic parameters preserve the documented runtime kinds again.
-// #test
-// {
-//     func myFunction(parameters: ...)
-//     {
-//         // Check the number of arguments
-//         @assert(@countof(parameters) == 3)
-//
-//         // Initially, each parameter is of type 'any'
-//         #assert(#typeof(parameters[0]) == any)
-//         #assert(#typeof(parameters[1]) == any)
-//         #assert(#typeof(parameters[2]) == any)
-//
-//         // Determine actual runtime types
-//         @assert(@kindof(parameters[0]) == s32)
-//         @assert(@kindof(parameters[1]) == string)
-//         @assert(@kindof(parameters[2]) == f32)
-//     }
-//
-//     myFunction(4, "true", 5.6)
-// }
+
+#test
+{
+    func myFunction(parameters: ...)
+    {
+        // Check the number of arguments
+        @assert(@countof(parameters) == 3)
+        // Initially, each parameter is of type 'any'
+        #assert(#typeof(parameters[0]) == any)
+        #assert(#typeof(parameters[1]) == any)
+        #assert(#typeof(parameters[2]) == any)
+        // Determine actual runtime types
+        @assert(@kindof(parameters[0]) == s32)
+        @assert(@kindof(parameters[1]) == string)
+        @assert(@kindof(parameters[2]) == f32)
+    }
+    myFunction(4, "true", 5.6'f32)
+}
 
 /**
 # Forcing Variadic Parameters to a Specific Type

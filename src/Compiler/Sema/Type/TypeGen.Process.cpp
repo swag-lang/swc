@@ -94,6 +94,13 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
 
         case LayoutKind::Struct:
         {
+            if (type.isAggregateStruct())
+            {
+                for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
+                    deps.push_back(fieldTypeRef);
+                break;
+            }
+
             const SymbolStruct& symStruct = type.payloadSymStruct();
             appendAttributeDeps(deps, ctx, symStruct.attributes());
 

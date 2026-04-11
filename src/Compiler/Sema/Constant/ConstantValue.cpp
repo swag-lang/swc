@@ -675,6 +675,17 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
         return value;
     }
 
+    if (ty.isAnyTypeInfo(ctx))
+    {
+        const uint64_t val = *static_cast<const uint64_t*>(valuePtr);
+        if (ty.isValuePointer())
+            return makeValuePointer(ctx, ty.payloadTypeRef(), val, ty.flags());
+
+        ConstantValue value = makeValuePointer(ctx, ctx.typeMgr().structTypeInfo(), val, TypeInfoFlagsE::Const);
+        value.setTypeRef(typeRef);
+        return value;
+    }
+
     if (ty.isValuePointer())
     {
         const uint64_t val = *static_cast<const uint64_t*>(valuePtr);

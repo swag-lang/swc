@@ -166,6 +166,60 @@ namespace
         it->second = result;
         return addCstFinalize(manager, result);
     }
+
+    TypeRef normalizeTypeInfoTargetArray(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        TypeManager&    typeMgr = sema.typeMgr();
+        const TypeInfo& type    = typeMgr.get(typeRef);
+        if (type.isArray())
+            return typeRef;
+        if (!type.isAggregateArray())
+            return TypeRef::invalid();
+
+        const auto& elemTypes = type.payloadAggregate().types;
+        if (elemTypes.empty())
+            return TypeRef::invalid();
+
+        TypeRef concreteElemTypeRef = TypeRef::invalid();
+        for (TypeRef elemTypeRef : elemTypes)
+        {
+            const TypeInfo& elemType = typeMgr.get(elemTypeRef);
+            if (elemType.isAggregateArray())
+                elemTypeRef = normalizeTypeInfoTargetArray(sema, elemTypeRef);
+
+            if (!elemTypeRef.isValid())
+                return TypeRef::invalid();
+
+            if (!concreteElemTypeRef.isValid())
+                concreteElemTypeRef = elemTypeRef;
+            else if (concreteElemTypeRef != elemTypeRef)
+                return TypeRef::invalid();
+        }
+
+        SmallVector<uint64_t> dims;
+        dims.push_back(elemTypes.size());
+        if (typeMgr.get(concreteElemTypeRef).isArray())
+        {
+            const TypeInfo& concreteElemType = typeMgr.get(concreteElemTypeRef);
+            const auto&     childDims        = concreteElemType.payloadArrayDims();
+            dims.insert(dims.end(), childDims.begin(), childDims.end());
+            concreteElemTypeRef = concreteElemType.payloadArrayElemTypeRef();
+        }
+
+        return typeMgr.addType(TypeInfo::makeArray(dims.span(), concreteElemTypeRef, type.flags()));
+    }
+
+    TypeRef normalizeTypeInfoTarget(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef normalizedArray = normalizeTypeInfoTargetArray(sema, typeRef);
+        if (normalizedArray.isValid())
+            return normalizedArray;
+
+        return typeRef;
+    }
 }
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
@@ -244,6 +298,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
     TaskContext&   ctx        = sema.ctx();
+    typeRef                   = normalizeTypeInfoTarget(sema, typeRef);
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
@@ -256,10 +311,9 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
         SWC_ASSERT(infoResult.span.data());
     }
 
-    // 'typeinfo(T)' produces a value of the built-in 'TypeInfo' type.
-    // That type is a pointer to the runtime typeinfo payload stored in the 'DataSegment'.
+    // Keep the precise generated runtime payload type (TypeInfoNative, TypeInfoArray, ...).
     const uint64_t      ptrValue = reinterpret_cast<uint64_t>(infoResult.span.data());
-    const ConstantValue value    = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
+    const ConstantValue value    = ConstantValue::makeValuePointer(ctx, infoResult.rtTypeRef, ptrValue, TypeInfoFlagsE::Const);
     outRef                       = addConstant(sema.ctx(), value);
     return Result::Continue;
 }

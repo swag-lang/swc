@@ -29,7 +29,7 @@ TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
         return LayoutKind::Interface;
     if (type.isPointerLike())
         return LayoutKind::Pointer;
-    if (type.isStruct())
+    if (type.isStruct() || type.isAggregateStruct())
         return LayoutKind::Struct;
 
     return LayoutKind::Base;

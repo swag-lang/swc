@@ -696,6 +696,7 @@ namespace
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
+        const AstNode&   child    = sema.node(childRef);
         SemaNodeView     view     = sema.viewTypeConstant(childRef);
         SWC_ASSERT(view.typeRef().isValid());
 
@@ -707,11 +708,25 @@ namespace
             view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
 
-        TypeRef typeRef = view.typeRef();
         if (view.type() && view.type()->isTypeValue())
-            typeRef = view.type()->payloadTypeRef();
+        {
+            if (child.is(AstNodeId::CompilerTypeExpr))
+            {
+                const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), view.type()->payloadTypeRef()));
+                sema.setConstant(sema.curNodeRef(), cstRef);
+                return Result::Continue;
+            }
 
-        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
+            ConstantRef typeInfoCstRef = ConstantRef::invalid();
+            SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, view.type()->payloadTypeRef(), view.nodeRef()));
+
+            const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
+            const ConstantRef    cstRef      = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeInfoCst.typeRef()));
+            sema.setConstant(sema.curNodeRef(), cstRef);
+            return Result::Continue;
+        }
+
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), view.typeRef()));
         sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }
@@ -748,7 +763,18 @@ namespace
             view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
 
-        sema.setType(sema.curNodeRef(), view.typeRef());
+        TypeRef typeRef = view.typeRef();
+        if (view.type() && view.type()->isTypeValue())
+            typeRef = view.type()->payloadTypeRef();
+        else if (view.type() && view.type()->isAnyTypeInfo(sema.ctx()))
+        {
+            const TypeRef resolvedTypeRef = sema.cstMgr().makeTypeValue(sema, view.cstRef());
+            if (!resolvedTypeRef.isValid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
+            typeRef = resolvedTypeRef;
+        }
+
+        sema.setType(sema.curNodeRef(), typeRef);
         return Result::Continue;
     }
 
@@ -1024,7 +1050,9 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
         return Result::Continue;
 
     const Token& tok = sema.token(codeRef());
-    if (tok.id == TokenId::CompilerForeignLib || tok.id == TokenId::CompilerInclude)
+    if (tok.id == TokenId::CompilerForeignLib ||
+        tok.id == TokenId::CompilerInclude ||
+        tok.id == TokenId::CompilerDeclType)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
 
     return Result::Continue;

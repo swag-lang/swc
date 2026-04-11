@@ -336,10 +336,59 @@ namespace
 
     void initStruct(Sema& sema, DataSegment& storage, Runtime::TypeInfoStruct& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry)
     {
-        const TaskContext& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
 
         const Utf8 name          = type.toName(ctx);
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
+
+        if (type.isAggregateStruct())
+        {
+            const auto& aggregate = type.payloadAggregate();
+            rtType.fields.count   = aggregate.types.size();
+            rtType.usingFields.ptr = nullptr;
+            rtType.usingFields.count = 0;
+
+            entry.structFieldsCount = static_cast<uint32_t>(aggregate.types.size());
+            entry.structFieldTypes.clear();
+            entry.usingFieldsCount  = 0;
+            entry.usingFieldTypes.clear();
+            entry.usingFieldsOffset = 0;
+
+            if (aggregate.types.empty())
+            {
+                rtType.fields.ptr        = nullptr;
+                entry.structFieldsOffset = 0;
+                return;
+            }
+
+            const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structFieldsCount);
+            entry.structFieldsOffset             = fieldsOffset;
+            rtType.fields.ptr                    = fieldsPtr;
+            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
+
+            uint64_t curOffset = 0;
+            for (uint32_t i = 0; i < entry.structFieldsCount; ++i)
+            {
+                const TypeRef fieldTypeRef = aggregate.types[i];
+                entry.structFieldTypes.push_back(fieldTypeRef);
+
+                Runtime::TypeValue& tv         = fieldsPtr[i];
+                const uint32_t      elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                if (aggregate.names.size() > i && aggregate.names[i].isValid())
+                {
+                    const auto& id = ctx.idMgr().get(aggregate.names[i]);
+                    tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
+                }
+
+                const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
+                const uint32_t  align     = std::max<uint32_t>(fieldType.alignOf(ctx), 1);
+                curOffset                 = ((curOffset + align - 1) / align) * align;
+                tv.offset                 = static_cast<uint32_t>(curOffset);
+                curOffset += fieldType.sizeOf(ctx);
+            }
+
+            return;
+        }
 
         const auto& fields     = type.payloadSymStruct().fields();
         uint32_t    usingCount = 0;
@@ -675,7 +724,11 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 }
             }
 
-            const SymbolStruct& symStruct = typeMgr.get(key).payloadSymStruct();
+            const TypeInfo& keyType = typeMgr.get(key);
+            if (keyType.isAggregateStruct())
+                break;
+
+            const SymbolStruct& symStruct = keyType.payloadSymStruct();
             exportAttributes(sema, cache, storage, entry.offset, offsetof(Runtime::TypeInfoStruct, attributes), symStruct.attributes());
 
             uint32_t usingIndex = 0;

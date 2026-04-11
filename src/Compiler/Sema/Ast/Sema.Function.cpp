@@ -541,6 +541,8 @@ namespace
             }
 
             SemaNodeView view = sema.viewNodeTypeConstant(exprRef);
+            if (returnType.isAnyTypeInfo(sema.ctx()))
+                SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, view));
             SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
             return Result::Continue;
         }

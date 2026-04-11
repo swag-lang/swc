@@ -1065,12 +1065,15 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToFromTypeInfo(const Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToFromTypeInfo(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     SWC_UNUSED(sema);
-    SWC_UNUSED(castRequest);
     SWC_UNUSED(srcTypeRef);
     SWC_UNUSED(dstTypeRef);
+
+    if (castRequest.isConstantFolding())
+        castRequest.outConstRef = castRequest.srcConstRef;
+
     return Result::Continue;
 }
 

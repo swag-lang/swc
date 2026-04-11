@@ -13,6 +13,22 @@
 struct A { R, G, B: s32 }
 #assert(@countof((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields) == 3)
 
+#test
+{
+    using Swag
+
+    let nativeInfo = bool
+    #assert(#typeof(nativeInfo) == #typeof(const *TypeInfoNative))
+
+    let arrayInfo = #type [2] s32
+    #assert(#typeof(arrayInfo) == #typeof(const *TypeInfoArray))
+
+    let literalArrayInfo = #typeof([1, 2, 3])
+    #assert(#typeof(literalArrayInfo) == #typeof(const *TypeInfoArray))
+    #assert(literalArrayInfo.kind == TypeInfoKind.Array)
+    #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct)
+}
+
 const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 #assert(PA.fields[0].name == "R")
 #assert(PA.fields[1].name == "G")

@@ -8,44 +8,11 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result completeLiteralRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        symVar.setTypeRef(typeRef);
-
-        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
-
-        symVar.setTyped(sema.ctx());
-        symVar.setSemaCompleted(sema.ctx());
-        return Result::Continue;
-    }
-
-    SymbolVariable& registerUniqueLiteralRuntimeStorageSymbol(Sema& sema, const AstNode& node)
-    {
-        TaskContext&        ctx         = sema.ctx();
-        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, "__literal_runtime_storage");
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
-        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
-        {
-            sema.curScope().addSymbol(symVariable);
-        }
-        else
-        {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-            SWC_ASSERT(symMap != nullptr);
-            symMap->addSymbol(ctx, symVariable, true);
-        }
-
-        return *(symVariable);
-    }
-
     Result attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView)
     {
         if (!literalView.type())
@@ -57,34 +24,7 @@ namespace
         if (sema.isGlobalScope())
             return Result::Continue;
 
-        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-        {
-            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-            if (!payload)
-            {
-                payload = sema.compiler().allocate<CodeGenNodePayload>();
-                sema.setCodeGenPayload(sema.curNodeRef(), payload);
-            }
-
-            payload->runtimeStorageSym = boundStorage;
-            return Result::Continue;
-        }
-
-        auto& storageSym = registerUniqueLiteralRuntimeStorageSymbol(sema, node);
-        storageSym.registerAttributes(sema);
-        storageSym.setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, storageSym));
-        SWC_RESULT(completeLiteralRuntimeStorageSymbol(sema, storageSym, literalView.typeRef()));
-
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CodeGenNodePayload>();
-            sema.setCodeGenPayload(sema.curNodeRef(), payload);
-        }
-
-        payload->runtimeStorageSym = &storageSym;
-        return Result::Continue;
+        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, literalView.typeRef(), "__literal_runtime_storage");
     }
 
     Result pushStructInitializerChildBindingType(Sema& sema, AstNodeRef childRef, TypeRef targetTypeRef, SpanRef spanArgsRef)

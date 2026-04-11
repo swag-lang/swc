@@ -552,50 +552,6 @@ namespace
         }
     }
 
-    SymbolVariable& registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName)
-    {
-        TaskContext&        ctx         = sema.ctx();
-        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
-        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
-
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
-        {
-            sema.curScope().addSymbol(symVariable);
-        }
-        else
-        {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-            SWC_ASSERT(symMap != nullptr);
-            symMap->addSymbol(ctx, symVariable, true);
-        }
-
-        return *symVariable;
-    }
-
-    Result attachDestructuringRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef)
-    {
-        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (payload && payload->runtimeStorageSym != nullptr)
-            return Result::Continue;
-        if (storageTypeRef.isInvalid())
-            return Result::Continue;
-
-        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-        {
-            SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
-            return Result::Continue;
-        }
-
-        auto& storageSym = registerUniqueRuntimeStorageSymbol(sema, node, "__decomp_runtime_storage");
-        storageSym.registerAttributes(sema);
-        storageSym.setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, storageSym));
-        SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
-
-        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
-        return Result::Continue;
-    }
 
     struct SemaPostVarDeclArgs
     {
@@ -1198,7 +1154,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     SWC_RESULT(semaPostVarDeclCommon(sema, context, symbols.span()));
 
     const SemaNodeView refreshedInitView = sema.viewNodeTypeConstant(nodeInitRef);
-    SWC_RESULT(attachDestructuringRuntimeStorageIfNeeded(sema, *this, refreshedInitView.typeRef()));
+    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, refreshedInitView.typeRef(), "__decomp_runtime_storage"));
     storeDestructuringLetConstants(sema, symbols.span(), fieldsForSymbols.span(), std::span<const size_t>{fieldIndices.data(), fieldIndices.size()}, refreshedInitView.cstRef());
 
     return Result::Continue;

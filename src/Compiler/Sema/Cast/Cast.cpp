@@ -7,9 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -70,66 +68,7 @@ namespace
         return TypeRef::invalid();
     }
 
-    SymbolVariable& registerUniqueCastRuntimeStorageSymbol(Sema& sema, const AstNode& node)
-    {
-        TaskContext&        ctx         = sema.ctx();
-        const auto          privateName = Utf8("__cast_runtime_storage");
-        const IdentifierRef idRef       = sema.idMgr().addIdentifierOwned(std::format("{}_{}", privateName, sema.compiler().atomicId().fetch_add(1)));
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
 
-        auto* sym = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
-        {
-            sema.curScope().addSymbol(sym);
-        }
-        else
-        {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-            SWC_ASSERT(symMap != nullptr);
-            symMap->addSymbol(ctx, sym, true);
-        }
-
-        return *(sym);
-    }
-
-    Result attachCastRuntimeStorageIfNeededImpl(Sema& sema, AstNodeRef castNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
-    {
-        if (sema.isGlobalScope())
-            return Result::Continue;
-
-        const TypeRef storageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);
-        if (storageTypeRef.isInvalid())
-            return Result::Continue;
-
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, castNodeRef);
-        if (payload.runtimeStorageSym == nullptr)
-        {
-            if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-                payload.runtimeStorageSym = boundStorage;
-            else
-            {
-                auto& storageSym          = registerUniqueCastRuntimeStorageSymbol(sema, sema.node(castNodeRef));
-                payload.runtimeStorageSym = &storageSym;
-            }
-        }
-
-        auto& storageSym = *payload.runtimeStorageSym;
-        if (&storageSym == SemaHelpers::currentRuntimeStorage(sema))
-            return Result::Continue;
-        if (!storageSym.isDeclared())
-        {
-            storageSym.registerAttributes(sema);
-            storageSym.setDeclared(sema.ctx());
-        }
-
-        if (!storageSym.isSemaCompleted())
-        {
-            SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
-        }
-
-        return Result::Continue;
-    }
 }
 
 Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
@@ -176,7 +115,41 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
 
 Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
 {
-    return attachCastRuntimeStorageIfNeededImpl(sema, castNodeRef, srcTypeRef, dstTypeRef, srcConstRef);
+    if (sema.isGlobalScope())
+        return Result::Continue;
+
+    const TypeRef storageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);
+    if (storageTypeRef.isInvalid())
+        return Result::Continue;
+
+    auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, castNodeRef);
+    if (payload.runtimeStorageSym == nullptr)
+    {
+        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+            payload.runtimeStorageSym = boundStorage;
+        else
+        {
+            auto& storageSym          = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, sema.node(castNodeRef), "__cast_runtime_storage");
+            payload.runtimeStorageSym = &storageSym;
+        }
+    }
+
+    auto& storageSym = *payload.runtimeStorageSym;
+    if (&storageSym == SemaHelpers::currentRuntimeStorage(sema))
+        return Result::Continue;
+    if (!storageSym.isDeclared())
+    {
+        storageSym.registerAttributes(sema);
+        storageSym.setDeclared(sema.ctx());
+    }
+
+    if (!storageSym.isSemaCompleted())
+    {
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+    }
+
+    return Result::Continue;
 }
 
 AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags)

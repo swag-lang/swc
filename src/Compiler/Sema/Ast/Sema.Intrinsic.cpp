@@ -11,7 +11,6 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -132,38 +131,6 @@ Result AstIntrinsicPostMove::semaPostNode(Sema& sema) const
 
 namespace
 {
-    SymbolVariable& registerUniqueIntrinsicRuntimeStorageSymbol(Sema& sema, const AstNode& node, const Utf8& privateName)
-    {
-        TaskContext&        ctx         = sema.ctx();
-        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
-        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
-        {
-            sema.curScope().addSymbol(symVariable);
-        }
-        else
-        {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-            SWC_ASSERT(symMap != nullptr);
-            symMap->addSymbol(ctx, symVariable, true);
-        }
-
-        return *symVariable;
-    }
-
-    Result completeIntrinsicRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        symVar.setTypeRef(typeRef);
-
-        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
-
-        symVar.setTyped(sema.ctx());
-        symVar.setSemaCompleted(sema.ctx());
-        return Result::Continue;
-    }
-
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         SemaNodeView view = sema.viewNodeTypeConstantSymbol(children[0]);
@@ -271,22 +238,7 @@ namespace
         sema.setIsValue(node);
 
         if (sema.isCurrentFunction())
-        {
-            auto& storageSym = registerUniqueIntrinsicRuntimeStorageSymbol(sema, node, Utf8("__intrinsic_runtime_storage"));
-            storageSym.registerAttributes(sema);
-            storageSym.setDeclared(sema.ctx());
-            SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
-
-            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-            if (!payload)
-            {
-                payload = sema.compiler().allocate<CodeGenNodePayload>();
-                sema.setCodeGenPayload(sema.curNodeRef(), payload);
-            }
-
-            payload->runtimeStorageSym = &storageSym;
-        }
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, typeRef, "__intrinsic_runtime_storage"));
 
         return Result::Continue;
     }
@@ -322,22 +274,7 @@ namespace
         sema.setIsValue(node);
 
         if (sema.isCurrentFunction())
-        {
-            auto& storageSym = registerUniqueIntrinsicRuntimeStorageSymbol(sema, node, Utf8("__intrinsic_runtime_storage"));
-            storageSym.registerAttributes(sema);
-            storageSym.setDeclared(sema.ctx());
-            SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
-
-            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-            if (!payload)
-            {
-                payload = sema.compiler().allocate<CodeGenNodePayload>();
-                sema.setCodeGenPayload(sema.curNodeRef(), payload);
-            }
-
-            payload->runtimeStorageSym = &storageSym;
-        }
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, typeRef, "__intrinsic_runtime_storage"));
 
         return Result::Continue;
     }
@@ -433,20 +370,7 @@ namespace
         if (sema.isCurrentFunction())
         {
             const TypeRef storageTypeRef = intrinsicMakeInterfaceRuntimeStorageTypeRef(sema, objectView.typeRef(), interfaceTypeRef);
-            auto&         storageSym     = registerUniqueIntrinsicRuntimeStorageSymbol(sema, node, Utf8("__intrinsic_runtime_storage"));
-            storageSym.registerAttributes(sema);
-            storageSym.setDeclared(sema.ctx());
-            SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
-
-            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-            if (!payload)
-            {
-                payload = sema.compiler().allocate<CodeGenNodePayload>();
-                sema.setCodeGenPayload(sema.curNodeRef(), payload);
-            }
-
-            payload->runtimeStorageSym = &storageSym;
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, storageTypeRef, "__intrinsic_runtime_storage"));
         }
 
         return Result::Continue;

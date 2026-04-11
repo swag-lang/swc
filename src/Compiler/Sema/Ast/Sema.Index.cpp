@@ -9,7 +9,6 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
-#include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -146,61 +145,11 @@ namespace
         return TypeRef::invalid();
     }
 
-    SymbolVariable& registerUniqueIndexRuntimeStorageSymbol(Sema& sema, const AstNode& node)
-    {
-        TaskContext&        ctx         = sema.ctx();
-        const auto          privateName = Utf8("__index_runtime_storage");
-        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
-
-        auto* sym = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
-        {
-            sema.curScope().addSymbol(sym);
-        }
-        else
-        {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-            SWC_ASSERT(symMap != nullptr);
-            symMap->addSymbol(ctx, sym, true);
-        }
-
-        return *(sym);
-    }
-
     Result completeSliceRuntimeStorage(Sema& sema, TypeRef storageTypeRef)
     {
-        if (storageTypeRef.isInvalid() || sema.isGlobalScope())
+        if (sema.isGlobalScope())
             return Result::Continue;
-
-        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-        {
-            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-            if (!payload)
-            {
-                payload = sema.compiler().allocate<CodeGenNodePayload>();
-                sema.setCodeGenPayload(sema.curNodeRef(), payload);
-            }
-
-            payload->runtimeStorageSym = boundStorage;
-            return Result::Continue;
-        }
-
-        auto& storageSym = registerUniqueIndexRuntimeStorageSymbol(sema, sema.node(sema.curNodeRef()));
-        storageSym.registerAttributes(sema);
-        storageSym.setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, storageSym));
-        SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
-
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CodeGenNodePayload>();
-            sema.setCodeGenPayload(sema.curNodeRef(), payload);
-        }
-
-        payload->runtimeStorageSym = &storageSym;
-        return Result::Continue;
+        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.node(sema.curNodeRef()), storageTypeRef, "__index_runtime_storage");
     }
 
     Result semaSliceIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& nodeExprView)
@@ -380,23 +329,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     const TypeRef runtimeStorageTypeRef = indexRuntimeStorageTypeRef(sema, nodeExprView, nodeExprRef);
     if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
-    {
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
-
-        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-        {
-            payload.runtimeStorageSym = boundStorage;
-        }
-        else
-        {
-            auto& storageSym = registerUniqueIndexRuntimeStorageSymbol(sema, *this);
-            storageSym.registerAttributes(sema);
-            storageSym.setDeclared(sema.ctx());
-            SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
-            payload.runtimeStorageSym = &storageSym;
-        }
-    }
+        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, runtimeStorageTypeRef, "__index_runtime_storage"));
 
     return Result::Continue;
 }

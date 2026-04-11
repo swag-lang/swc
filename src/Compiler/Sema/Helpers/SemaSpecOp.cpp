@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
@@ -199,51 +198,6 @@ namespace
         }
 
         return true;
-    }
-
-    SymbolVariable& registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName)
-    {
-        TaskContext&        ctx         = sema.ctx();
-        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
-        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
-
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
-        {
-            sema.curScope().addSymbol(symVariable);
-        }
-        else
-        {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-            SWC_ASSERT(symMap != nullptr);
-            symMap->addSymbol(ctx, symVariable, true);
-        }
-
-        return *symVariable;
-    }
-
-    Result attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef)
-    {
-        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (payload && payload->runtimeStorageSym != nullptr)
-            return Result::Continue;
-        if (storageTypeRef.isInvalid())
-            return Result::Continue;
-
-        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-        {
-            SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
-            return Result::Continue;
-        }
-
-        auto& storageSym = registerUniqueRuntimeStorageSymbol(sema, node, "__spec_op_runtime_storage");
-        storageSym.registerAttributes(sema);
-        storageSym.setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, storageSym));
-        SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
-
-        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
-        return Result::Continue;
     }
 
     TypeRef syntheticCallRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
@@ -649,7 +603,7 @@ namespace
             return Result::Continue;
 
         SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
-        SWC_RESULT(attachRuntimeStorageIfNeeded(sema, node, syntheticCallRuntimeStorageTypeRef(sema, calledFn)));
+        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, syntheticCallRuntimeStorageTypeRef(sema, calledFn), "__spec_op_runtime_storage"));
         return Result::Continue;
     }
 

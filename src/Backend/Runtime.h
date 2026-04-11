@@ -1,7 +1,7 @@
 #pragma once
 
 // WARNING!
-// WARNING! This file must be in sync with "bootstrap.swg"
+// WARNING! This file must be in sync with "bin/runtime/api.swg"
 // WARNING!
 
 SWC_BEGIN_NAMESPACE();

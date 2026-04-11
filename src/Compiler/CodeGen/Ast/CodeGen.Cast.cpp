@@ -7,6 +7,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -31,13 +32,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct InterfaceCastInfo
-    {
-        const SymbolStruct*   objectStruct        = nullptr;
-        const SymbolImpl*     implSym             = nullptr;
-        const SymbolVariable* usingField          = nullptr;
-        bool                  usingFieldIsPointer = false;
-    };
+    using CodeGenInterfaceHelpers::InterfaceCastInfo;
 
     uint64_t sliceCountFromArrayCast(CodeGen& codeGen, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
     {
@@ -51,66 +46,8 @@ namespace
         return totalCount;
     }
 
-    bool resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo)
-    {
-        if (const SymbolImpl* implSym = srcStruct.findInterfaceImpl(dstItf.idRef()))
-        {
-            outInfo.objectStruct = &srcStruct;
-            outInfo.implSym      = implSym;
-            outInfo.usingField   = nullptr;
-            return true;
-        }
-
-        for (const SymbolVariable* field : srcStruct.fields())
-        {
-            SWC_ASSERT(field != nullptr);
-            if (!field->isUsingField())
-                continue;
-
-            bool                usingFieldIsPointer = false;
-            const SymbolStruct* targetStruct        = field->usingTargetStruct(codeGen.ctx(), usingFieldIsPointer);
-            if (!targetStruct)
-                continue;
-
-            // Interface implementation can come from a `using` field, but the runtime object pointer must
-            // still be adjusted to the embedded object before building the interface pair.
-            if (const SymbolImpl* implSym = targetStruct->findInterfaceImpl(dstItf.idRef()))
-            {
-                outInfo.objectStruct        = targetStruct;
-                outInfo.implSym             = implSym;
-                outInfo.usingField          = field;
-                outInfo.usingFieldIsPointer = usingFieldIsPointer;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    Result loadInterfaceMethodTableAddress(MicroReg& outReg, CodeGen& codeGen, const InterfaceCastInfo& castInfo)
-    {
-        SWC_ASSERT(castInfo.implSym != nullptr);
-        ConstantRef tableCstRef = ConstantRef::invalid();
-        SWC_RESULT(castInfo.implSym->ensureInterfaceMethodTable(codeGen.sema(), tableCstRef));
-        SWC_ASSERT(tableCstRef.isValid());
-
-        if (const SymbolInterface* interfaceSym = castInfo.implSym->symInterface())
-        {
-            for (const SymbolFunction* interfaceMethod : interfaceSym->functions())
-            {
-                SWC_ASSERT(interfaceMethod != nullptr);
-                const SymbolFunction* implMethod = castInfo.implSym->resolveInterfaceMethodTarget(*interfaceMethod);
-                SWC_ASSERT(implMethod != nullptr);
-                codeGen.function().addCallDependency(const_cast<SymbolFunction*>(implMethod));
-            }
-        }
-
-        const ConstantValue& tableCst = codeGen.cstMgr().get(tableCstRef);
-        SWC_ASSERT(tableCst.isArray());
-        outReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(outReg, reinterpret_cast<uint64_t>(tableCst.getArray().data()), tableCstRef);
-        return Result::Continue;
-    }
+    using CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress;
+    using CodeGenInterfaceHelpers::resolveInterfaceCastInfo;
 
     bool anyCastAsValueBits(CodeGen& codeGen, const TypeInfo& dstType, MicroOpBits& outBits)
     {
@@ -197,36 +134,6 @@ namespace
     }
 
 
-    Result emitDynamicStructRuntimeCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
-    {
-        codeGen.function().addCallDependency(&runtimeFunction);
-
-        const CallConvKind                callConvKind = runtimeFunction.callConvKind();
-        const CallConv&                   callConv     = CallConv::get(callConvKind);
-        SmallVector<ABICall::PreparedArg> preparedArgs;
-        preparedArgs.reserve(argRegs.size());
-
-        const auto& params = runtimeFunction.parameters();
-        SWC_ASSERT(params.size() == argRegs.size());
-        for (size_t i = 0; i < argRegs.size(); ++i)
-        {
-            SWC_ASSERT(params[i] != nullptr);
-            CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
-        }
-
-        MicroBuilder&               builder      = codeGen.builder();
-        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
-        if (runtimeFunction.isForeign())
-            ABICall::callExtern(builder, callConvKind, &runtimeFunction, preparedCall);
-        else
-            ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
-
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, runtimeFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
-        SWC_ASSERT(!normalizedRet.isVoid);
-        SWC_ASSERT(!normalizedRet.isIndirect);
-        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
-        return Result::Continue;
-    }
 
     Result emitDynamicStructCast(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef targetTypeRef, bool checkOnly)
     {
@@ -314,11 +221,11 @@ namespace
         if (checkOnly)
         {
             const MicroReg args[] = {targetTypeReg, sourceTypeReg};
-            return emitDynamicStructRuntimeCall(codeGen, runtimeFunction, args, resultPayload.reg);
+            return CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, runtimeFunction, args, resultPayload.reg);
         }
 
         const MicroReg args[] = {targetTypeReg, sourceTypeReg, sourcePtrReg};
-        return emitDynamicStructRuntimeCall(codeGen, runtimeFunction, args, resultPayload.reg);
+        return CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, runtimeFunction, args, resultPayload.reg);
     }
 
     Result emitArrayToStringCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType)
@@ -474,7 +381,7 @@ namespace
             builder.emitLoadRegImm(asResultReg, ApInt(0, 64), MicroOpBits::B64);
 
             const MicroReg args[] = {targetTypeReg, sourceTypeReg, valueAddrReg};
-            SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, asFn, args, asResultReg));
+            SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, asFn, args, asResultReg));
 
             if (hasDynCastSafety)
             {

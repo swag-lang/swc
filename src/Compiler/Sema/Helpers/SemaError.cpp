@@ -3,7 +3,10 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -11,6 +14,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr size_t K_FORMAT_LIST_LIMIT = 8;
+
+    void appendQuotedListItem(Utf8& out, bool& first, std::string_view name)
+    {
+        if (!first)
+            out += ", ";
+        first = false;
+        out += '\'';
+        out += name;
+        out += '\'';
+    }
+
     void ignoreCurrentFunctionOnError(Sema& sema, const DiagnosticId id)
     {
         if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
@@ -163,6 +178,56 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
     diag.last().addSpan(symbol.codeRange(sema.ctx()));
     diag.report(sema.ctx());
     return Result::Error;
+}
+
+Utf8 SemaError::formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum)
+{
+    std::vector<const Symbol*> symbols;
+    symEnum.getAllSymbols(symbols);
+
+    Utf8   result;
+    bool   first = true;
+    size_t count = 0;
+    for (const Symbol* symbol : symbols)
+    {
+        const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
+        if (!enumValue)
+            continue;
+
+        if (count == K_FORMAT_LIST_LIMIT)
+        {
+            result += ", ...";
+            break;
+        }
+
+        appendQuotedListItem(result, first, enumValue->name(ctx));
+        ++count;
+    }
+
+    return result;
+}
+
+Utf8 SemaError::formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct)
+{
+    Utf8   result;
+    bool   first = true;
+    size_t count = 0;
+    for (const SymbolVariable* field : symStruct.fields())
+    {
+        if (!field)
+            continue;
+
+        if (count == K_FORMAT_LIST_LIMIT)
+        {
+            result += ", ...";
+            break;
+        }
+
+        appendQuotedListItem(result, first, field->name(ctx));
+        ++count;
+    }
+
+    return result;
 }
 
 SWC_END_NAMESPACE();

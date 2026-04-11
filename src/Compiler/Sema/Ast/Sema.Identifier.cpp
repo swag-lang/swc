@@ -44,46 +44,8 @@ namespace
         return false;
     }
 
-    TypeRef unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
-    {
-        while (typeRef.isValid())
-        {
-            const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
-            const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
-            if (unwrapped.isValid())
-            {
-                typeRef = unwrapped;
-                continue;
-            }
-
-            if (typeInfo.isReference())
-            {
-                typeRef = typeInfo.payloadTypeRef();
-                continue;
-            }
-
-            break;
-        }
-
-        return typeRef;
-    }
-
-    const SymbolFunction* resolveLambdaBindingFunction(Sema& sema)
-    {
-        const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
-        for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
-        {
-            const TypeRef bindingTypeRef = unwrapLambdaBindingType(sema.ctx(), bindingTypes[bindingIndex - 1]);
-            if (!bindingTypeRef.isValid())
-                continue;
-
-            const TypeInfo& bindingType = sema.typeMgr().get(bindingTypeRef);
-            if (bindingType.isFunction())
-                return &bindingType.payloadSymFunction();
-        }
-
-        return nullptr;
-    }
+    using SemaHelpers::resolveLambdaBindingFunction;
+    using SemaHelpers::unwrapLambdaBindingType;
 
     bool requiresExplicitCaptureList(Sema& sema, const SymbolFunction& function)
     {

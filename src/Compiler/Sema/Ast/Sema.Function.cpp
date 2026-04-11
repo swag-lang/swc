@@ -268,13 +268,6 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
 
 namespace
 {
-    Result reportCodeTypeRestricted(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_code_type_restricted, nodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
 
     SymbolFunction& functionExprSymbol(Sema& sema, AstNodeRef nodeRef)
     {
@@ -304,46 +297,8 @@ namespace
         sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
     }
 
-    TypeRef unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
-    {
-        while (typeRef.isValid())
-        {
-            const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
-            const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
-            if (unwrapped.isValid())
-            {
-                typeRef = unwrapped;
-                continue;
-            }
-
-            if (typeInfo.isReference())
-            {
-                typeRef = typeInfo.payloadTypeRef();
-                continue;
-            }
-
-            break;
-        }
-
-        return typeRef;
-    }
-
-    const SymbolFunction* resolveLambdaBindingFunction(Sema& sema)
-    {
-        const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
-        for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
-        {
-            const TypeRef bindingTypeRef = unwrapLambdaBindingType(sema.ctx(), bindingTypes[bindingIndex - 1]);
-            if (!bindingTypeRef.isValid())
-                continue;
-
-            const TypeInfo& bindingType = sema.typeMgr().get(bindingTypeRef);
-            if (bindingType.isFunction())
-                return &bindingType.payloadSymFunction();
-        }
-
-        return nullptr;
-    }
+    using SemaHelpers::resolveLambdaBindingFunction;
+    using SemaHelpers::unwrapLambdaBindingType;
 
     Result findCompatibleReturnBindingType(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
     {
@@ -574,19 +529,6 @@ namespace
         return Result::Continue;
     }
 
-    SymbolFunction* callableTypeFunction(Sema& sema, TypeRef typeRef)
-    {
-        typeRef = unwrapLambdaBindingType(sema.ctx(), typeRef);
-        if (!typeRef.isValid())
-            return nullptr;
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        if (!typeInfo.isFunction())
-            return nullptr;
-
-        return &typeInfo.payloadSymFunction();
-    }
-
     const SymbolFunction* resolveCalledFunction(Sema& sema, Symbol* sym)
     {
         if (!sym)
@@ -594,7 +536,7 @@ namespace
         if (sym->isFunction())
             return &sym->cast<SymbolFunction>();
         if (sym->isVariable())
-            return callableTypeFunction(sema, sym->typeRef());
+            return SemaHelpers::callableTypeFunction(sema.ctx(), sym->typeRef());
         return nullptr;
     }
 
@@ -603,7 +545,7 @@ namespace
         nodeCallee.getSymbols(outSymbols);
         if (outSymbols.empty() && sema.isValue(nodeCallee.nodeRef()))
         {
-            if (auto* symFunc = callableTypeFunction(sema, nodeCallee.typeRef()))
+            if (auto* symFunc = SemaHelpers::callableTypeFunction(sema.ctx(), nodeCallee.typeRef()))
                 outSymbols.push_back(symFunc);
         }
     }
@@ -742,7 +684,7 @@ namespace
 
         if (symbols.empty() && sema.isValue(nodeCallee.nodeRef()))
         {
-            const auto* fn = callableTypeFunction(sema, nodeCallee.typeRef());
+            const auto* fn = SemaHelpers::callableTypeFunction(sema.ctx(), nodeCallee.typeRef());
             if (fn && canConsumeTrailingCodeBlock(sema, *fn, args, ufcsArg))
                 return makeTrailingCodeBlockArgument(sema, outSiblingRef, *fn->parameters().back());
         }
@@ -1600,7 +1542,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     if (setIsTyped)
     {
         if (sym.returnTypeRef().isValid() && sema.typeMgr().get(sym.returnTypeRef()).isCodeBlock())
-            return reportCodeTypeRestricted(sema, nodeReturnTypeRef.isValid() ? nodeReturnTypeRef : childRef, sym.returnTypeRef());
+            return SemaError::raiseCodeTypeRestricted(sema, nodeReturnTypeRef.isValid() ? nodeReturnTypeRef : childRef, sym.returnTypeRef());
 
         sym.setVariadicParamFlag(sema.ctx());
 

@@ -174,7 +174,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
 
             // Stop if the intervening instruction touches our target register.
             const MicroInstrUseDef useDef = candidate.collectUseDef(operands, context.encoder);
-            if (microRegSpanContains(useDef.uses, targetReg) || microRegSpanContains(useDef.defs, targetReg))
+            if (MicroPassHelpers::touchesReg(useDef, targetReg))
                 break;
 
             // Stop at control flow barriers.

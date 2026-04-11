@@ -18,20 +18,7 @@ namespace
         bool        unknown = false;
     };
 
-    bool touchesReg(const MicroInstrUseDef& useDef, const MicroReg reg)
-    {
-        return microRegSpanContains(useDef.uses, reg) || microRegSpanContains(useDef.defs, reg);
-    }
-
-    bool survivesCall(const MicroPassContext& context, const MicroReg reg)
-    {
-        const CallConv& conv = CallConv::get(context.callConvKind);
-        if (reg.isInt())
-            return conv.isIntPersistentReg(reg);
-        if (reg.isFloat())
-            return conv.isFloatPersistentReg(reg);
-        return false;
-    }
+    using MicroPassHelpers::touchesReg;
 
     template<size_t N>
     bool wouldConformEncoder(const MicroPassContext& context, MicroInstrOpcode opcode, const std::array<MicroInstrOperand, N>& ops)
@@ -1195,7 +1182,7 @@ namespace
             {
                 if (useDef.isCall)
                 {
-                    if (!survivesCall(context, baseReg))
+                    if (!MicroPassHelpers::isRegPersistentAcrossCalls(context, baseReg))
                         return false;
                     continue;
                 }
@@ -1413,7 +1400,7 @@ namespace
 
             if (useDef.isCall)
             {
-                if (!survivesCall(context, baseReg))
+                if (!MicroPassHelpers::isRegPersistentAcrossCalls(context, baseReg))
                     return false;
             }
         }

@@ -747,45 +747,6 @@ namespace
         return true;
     }
 
-    bool isFloatArgRegForCopyFold(const CallConv& conv, const MicroReg reg)
-    {
-        if (!reg.isFloat())
-            return false;
-
-        for (const MicroReg argReg : conv.floatArgRegs)
-        {
-            if (argReg == reg)
-                return true;
-        }
-
-        return false;
-    }
-
-    bool isRegCallArgumentForCopyFold(const CallConv& conv, const MicroReg reg)
-    {
-        if (!reg.isValid() || reg.isNoBase())
-            return false;
-
-        if (reg.isInt())
-            return conv.isIntArgReg(reg);
-        if (reg.isFloat())
-            return isFloatArgRegForCopyFold(conv, reg);
-
-        return false;
-    }
-
-    bool isRegPersistentAcrossCallsForCopyFold(const MicroPassContext& context, const MicroReg reg)
-    {
-        if (!reg.isValid() || reg.isNoBase())
-            return false;
-
-        const CallConv& conv = CallConv::get(context.callConvKind);
-        if (reg.isInt())
-            return conv.isIntPersistentReg(reg);
-        if (reg.isFloat())
-            return conv.isFloatPersistentReg(reg);
-        return false;
-    }
 
     MicroInstrRef nextInstructionRefForCopyFold(const MicroPassContext& context, const MicroInstrRef ref)
     {
@@ -898,11 +859,11 @@ namespace
             if (useDef.isCall)
             {
                 const CallConv& callConv = CallConv::get(useDef.callConv);
-                if (isRegCallArgumentForCopyFold(callConv, reg))
+                if (MicroPassHelpers::isRegCallArgument(callConv, reg))
                 {
                     result = false;
                 }
-                else if (!isRegPersistentAcrossCallsForCopyFold(*context, reg))
+                else if (!MicroPassHelpers::isRegPersistentAcrossCalls(*context, reg))
                 {
                     result = true;
                 }

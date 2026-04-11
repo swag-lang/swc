@@ -117,23 +117,7 @@ namespace
             return false;
         if (!targetLeftView.type()->isIntLike() || !nodeRightView.type()->isIntLike())
             return false;
-
-        switch (op)
-        {
-            case TokenId::SymPlusEqual:
-            case TokenId::SymMinusEqual:
-            case TokenId::SymAsteriskEqual:
-            case TokenId::SymSlashEqual:
-            case TokenId::SymPercentEqual:
-                return !node.modifierFlags.has(AstModifierFlagsE::Wrap);
-
-            case TokenId::SymLowerLowerEqual:
-            case TokenId::SymGreaterGreaterEqual:
-                return true;
-
-            default:
-                return false;
-        }
+        return SemaHelpers::binaryOpNeedsOverflowSafety(Token::canonicalBinary(op), node.modifierFlags);
     }
 
     void markAssignmentTargetAddressableStorage(const SemaNodeView& leftView, const bool rebindReference)

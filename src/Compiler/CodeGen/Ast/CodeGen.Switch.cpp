@@ -87,13 +87,6 @@ namespace
         return CodeGenTypeHelpers::conditionBits(typeInfo, ctx);
     }
 
-    bool isStringCompareType(CodeGen& codeGen, TypeRef typeRef)
-    {
-        const TypeRef   unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
-        const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
-        return typeInfo.isString();
-    }
-
     void loadPayloadToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits)
     {
         outReg = codeGen.nextVirtualRegisterForType(regTypeRef);
@@ -158,36 +151,6 @@ namespace
 
 
 
-    Result emitDynamicStructRuntimeCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
-    {
-        codeGen.function().addCallDependency(&runtimeFunction);
-
-        const CallConvKind                callConvKind = runtimeFunction.callConvKind();
-        const CallConv&                   callConv     = CallConv::get(callConvKind);
-        SmallVector<ABICall::PreparedArg> preparedArgs;
-        preparedArgs.reserve(argRegs.size());
-
-        const auto& params = runtimeFunction.parameters();
-        SWC_ASSERT(params.size() == argRegs.size());
-        for (size_t i = 0; i < argRegs.size(); ++i)
-        {
-            SWC_ASSERT(params[i] != nullptr);
-            CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
-        }
-
-        MicroBuilder&               builder      = codeGen.builder();
-        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
-        if (runtimeFunction.isForeign())
-            ABICall::callExtern(builder, callConvKind, &runtimeFunction, preparedCall);
-        else
-            ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
-
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, runtimeFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
-        SWC_ASSERT(!normalizedRet.isVoid);
-        SWC_ASSERT(!normalizedRet.isIndirect);
-        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
-        return Result::Continue;
-    }
 
     Result emitDynamicStructSwitchCaseTests(CodeGen&                        codeGen,
                                             const SwitchStmtCodeGenPayload& switchState,
@@ -225,7 +188,7 @@ namespace
 
             const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
             const MicroReg resultReg = codeGen.nextVirtualIntRegister();
-            SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, *runtimeFn, args, resultReg));
+            SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *runtimeFn, args, resultReg));
             builder.emitCmpRegImm(resultReg, ApInt(0, 64), MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, failLabel);
 
@@ -253,7 +216,7 @@ namespace
 
             const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg};
             const MicroReg resultReg = codeGen.nextVirtualIntRegister();
-            SWC_RESULT(emitDynamicStructRuntimeCall(codeGen, *runtimeIsFn, args, resultReg));
+            SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *runtimeIsFn, args, resultReg));
             builder.emitCmpRegImm(resultReg, ApInt(0, 64), MicroOpBits::B8);
             builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, successLabel);
         }
@@ -535,7 +498,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         }
 
         const MicroOpBits compareBits      = switchCompareOpBits(compareType, codeGen.ctx());
-        const bool        useStringCompare = isStringCompareType(codeGen, compareTypeRef);
+        const bool        useStringCompare = CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef);
         MicroBuilder&     builder          = codeGen.builder();
 
         const MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef);

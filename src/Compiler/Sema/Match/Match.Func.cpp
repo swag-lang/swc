@@ -22,45 +22,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr size_t K_ENUM_VALUE_LIST_LIMIT = 8;
-
-    void appendQuotedEnumValue(Utf8& out, bool& first, std::string_view name)
-    {
-        if (!first)
-            out += ", ";
-        first = false;
-        out += '\'';
-        out += name;
-        out += '\'';
-    }
-
-    Utf8 formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum)
-    {
-        std::vector<const Symbol*> symbols;
-        symEnum.getAllSymbols(symbols);
-
-        Utf8   result;
-        bool   first = true;
-        size_t count = 0;
-        for (const Symbol* symbol : symbols)
-        {
-            const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
-            if (!enumValue)
-                continue;
-
-            if (count == K_ENUM_VALUE_LIST_LIMIT)
-            {
-                result += ", ...";
-                break;
-            }
-
-            appendQuotedEnumValue(result, first, enumValue->name(ctx));
-            ++count;
-        }
-
-        return result;
-    }
-
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)
     {
         if (rawArgRef.isInvalid() || valueNodeRef.isInvalid())
@@ -96,32 +57,7 @@ namespace
         return pointeeTypeRef;
     }
 
-    SymbolFunction* callableTypeFunction(TaskContext& ctx, TypeRef typeRef)
-    {
-        while (typeRef.isValid())
-        {
-            const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-            if (typeInfo.isFunction())
-                return &typeInfo.payloadSymFunction();
-
-            const TypeRef unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
-            if (unwrapped.isValid())
-            {
-                typeRef = unwrapped;
-                continue;
-            }
-
-            if (typeInfo.isReference())
-            {
-                typeRef = typeInfo.payloadTypeRef();
-                continue;
-            }
-
-            break;
-        }
-
-        return nullptr;
-    }
+    using SemaHelpers::callableTypeFunction;
 
     bool hasConcreteFunctionCandidate(std::span<Symbol*> symbols)
     {
@@ -886,7 +822,7 @@ namespace
             cf.srcTypeRef              = TypeRef::invalid();
             cf.dstTypeRef              = paramTy;
             cf.valueStr                = Utf8{sema.idMgr().get(idRef).name};
-            const Utf8 availableValues = formatEnumValueList(sema.ctx(), enumSym);
+            const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), enumSym);
             if (!availableValues.empty())
             {
                 cf.noteId = DiagnosticId::sema_note_available_enum_values;
@@ -928,7 +864,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_auto_scope_missing_enum_value, argRef);
             diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, paramTy);
-            const Utf8 availableValues = formatEnumValueList(sema.ctx(), enumSym);
+            const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), enumSym);
             if (!availableValues.empty())
             {
                 diag.addNote(DiagnosticId::sema_note_available_enum_values);

@@ -76,6 +76,13 @@ namespace CodeGenTypeHelpers
     {
         return blockPointerStride(ctx, ctx.typeMgr().get(pointerTypeRef));
     }
+
+    inline bool isStringCompareType(TaskContext& ctx, TypeRef typeRef)
+    {
+        const TypeRef   unwrappedTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, typeRef);
+        const TypeInfo& typeInfo         = ctx.typeMgr().get(unwrappedTypeRef);
+        return typeInfo.isString();
+    }
 }
 
 SWC_END_NAMESPACE();

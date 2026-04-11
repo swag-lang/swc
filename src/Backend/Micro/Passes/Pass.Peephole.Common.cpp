@@ -1,51 +1,15 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isFloatArgReg(const CallConv& conv, const MicroReg reg)
-    {
-        if (!reg.isFloat())
-            return false;
-
-        for (const MicroReg argReg : conv.floatArgRegs)
-        {
-            if (argReg == reg)
-                return true;
-        }
-
-        return false;
-    }
-
-    bool isRegCallArgument(const CallConv& conv, const MicroReg reg)
-    {
-        if (!reg.isValid() || reg.isNoBase())
-            return false;
-
-        if (reg.isInt())
-            return conv.isIntArgReg(reg);
-        if (reg.isFloat())
-            return isFloatArgReg(conv, reg);
-
-        return false;
-    }
-
-    bool isRegPersistentAcrossCalls(const MicroPassContext& context, const MicroReg reg)
-    {
-        if (!reg.isValid() || reg.isNoBase())
-            return false;
-
-        const CallConv& conv = CallConv::get(context.callConvKind);
-        if (reg.isInt())
-            return conv.isIntPersistentReg(reg);
-        if (reg.isFloat())
-            return conv.isFloatPersistentReg(reg);
-        return false;
-    }
+    using MicroPassHelpers::isRegCallArgument;
+    using MicroPassHelpers::isRegPersistentAcrossCalls;
 }
 
 bool MicroPeepholePass::isCopyDeadAfterInstruction(MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, const MicroReg reg) const

@@ -447,6 +447,12 @@
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenLoopHelpers.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
@@ -1047,6 +1053,12 @@
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenLoopHelpers.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.h">

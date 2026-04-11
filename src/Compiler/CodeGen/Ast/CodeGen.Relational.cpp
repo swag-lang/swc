@@ -26,13 +26,6 @@ namespace
         return payload && payload->runtimeFunctionSymbol != nullptr;
     }
 
-    bool isStringCompareType(CodeGen& codeGen, TypeRef typeRef)
-    {
-        const TypeRef   unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
-        const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
-        return typeInfo.isString();
-    }
-
     bool shouldReadScalarReference(CodeGen& codeGen, TypeRef typeRef)
     {
         const TypeRef normalizedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
@@ -439,7 +432,7 @@ namespace
 
         const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
-            isStringCompareType(codeGen, compareTypeRef) &&
+            CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef) &&
             hasPreparedRuntimeStringCompare(codeGen))
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
 

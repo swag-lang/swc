@@ -897,21 +897,8 @@ Result SemaSpecOp::tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunct
 
             if (needsRuntimeStorage)
             {
-                const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(exprRef);
-                if (!payload || payload->runtimeStorageSym == nullptr)
-                {
-                    if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-                    {
-                        SemaHelpers::ensureCodeGenNodePayload(sema, exprRef).runtimeStorageSym = boundStorage;
-                    }
-                    else
-                    {
-                        auto&         storageSym     = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, sema.node(exprRef), "__call_arg_ref_storage");
-                        const TypeRef storageTypeRef = sema.typeMgr().get(receiver->typeRef()).payloadTypeRef();
-                        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, storageSym, storageTypeRef));
-                        SemaHelpers::ensureCodeGenNodePayload(sema, exprRef).runtimeStorageSym = &storageSym;
-                    }
-                }
+                const TypeRef storageTypeRef = sema.typeMgr().get(receiver->typeRef()).payloadTypeRef();
+                SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, exprRef, sema.node(exprRef), storageTypeRef, "__call_arg_ref_storage"));
             }
         }
 

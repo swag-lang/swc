@@ -43,23 +43,7 @@ namespace
             return false;
         if (!nodeLeftView.type()->isIntLike() || !nodeRightView.type()->isIntLike())
             return false;
-
-        switch (op)
-        {
-            case TokenId::SymPlus:
-            case TokenId::SymMinus:
-            case TokenId::SymAsterisk:
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-                return !node.modifierFlags.has(AstModifierFlagsE::Wrap);
-
-            case TokenId::SymLowerLower:
-            case TokenId::SymGreaterGreater:
-                return true;
-
-            default:
-                return false;
-        }
+        return SemaHelpers::binaryOpNeedsOverflowSafety(op, node.modifierFlags);
     }
 
     bool mapTokenToFoldBinaryOp(Math::FoldBinaryOp& outOp, TokenId op)

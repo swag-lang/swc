@@ -3,6 +3,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenLoopHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
@@ -235,39 +236,9 @@ namespace
         codeGen.builder().emitLoadRegMem(valueReg, storagePayload.reg, 0, opBits);
     }
 
-    MicroReg materializeLoopIndexStateAddress(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        SWC_ASSERT(symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
-        return codeGen.resolveLocalStackPayload(symVar).reg;
-    }
-
-    void emitInitializeLoopIndexState(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        MicroBuilder&  builder      = codeGen.builder();
-        const MicroReg stateAddrReg = materializeLoopIndexStateAddress(codeGen, symVar);
-        const MicroReg zeroReg      = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegImm(zeroReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitLoadMemReg(stateAddrReg, 0, zeroReg, MicroOpBits::B64);
-    }
-
-    MicroReg emitLoadLoopIndexState(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        MicroBuilder&  builder      = codeGen.builder();
-        const MicroReg stateAddrReg = materializeLoopIndexStateAddress(codeGen, symVar);
-        const MicroReg indexReg     = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(indexReg, stateAddrReg, 0, MicroOpBits::B64);
-        return indexReg;
-    }
-
-    void emitAdvanceLoopIndexState(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        MicroBuilder&  builder      = codeGen.builder();
-        const MicroReg stateAddrReg = materializeLoopIndexStateAddress(codeGen, symVar);
-        const MicroReg indexReg     = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(indexReg, stateAddrReg, 0, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(indexReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitLoadMemReg(stateAddrReg, 0, indexReg, MicroOpBits::B64);
-    }
+    using CodeGenLoopHelpers::emitAdvanceLoopIndexState;
+    using CodeGenLoopHelpers::emitInitializeLoopIndexState;
+    using CodeGenLoopHelpers::emitLoadLoopIndexState;
 
     Result emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)
     {

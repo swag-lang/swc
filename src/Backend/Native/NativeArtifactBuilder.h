@@ -38,6 +38,7 @@ private:
     Result          createBuildDir(const fs::path& buildDir) const;
 
     Result prepareDataSections() const;
+    Result resolveFunctionRelocationName(Utf8& outName, const SymbolFunction* targetFunction) const;
     Result partitionObjects() const;
     Result buildStartup() const;
 

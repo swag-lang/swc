@@ -18,6 +18,8 @@ namespace SemaError
     };
 
     SourceCodeRange getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location);
+    Utf8            formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
+    Utf8            formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
     void            setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange);
     void            setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym);
     void            setReportArguments(Sema& sema, Diagnostic& diag, const TypeInfo* type);
@@ -53,6 +55,9 @@ namespace SemaError
     Result     raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result     raiseInvalidOpEnum(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result     raiseTypeNotIndexable(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
+    Result     raiseCodeTypeRestricted(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef);
+    Result     raiseCodeTypeRestricted(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
+    Result     raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, const SourceCodeRef& codeRef, TypeRef typeRef);
     Result     raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t index, size_t maxCount);
 }
 

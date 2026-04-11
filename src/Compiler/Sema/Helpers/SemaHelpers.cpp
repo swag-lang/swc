@@ -104,6 +104,80 @@ Result SemaHelpers::attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, 
     return Result::Continue;
 }
 
+TypeRef SemaHelpers::unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
+{
+    while (typeRef.isValid())
+    {
+        const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
+        const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
+        if (unwrapped.isValid())
+        {
+            typeRef = unwrapped;
+            continue;
+        }
+
+        if (typeInfo.isReference())
+        {
+            typeRef = typeInfo.payloadTypeRef();
+            continue;
+        }
+
+        break;
+    }
+
+    return typeRef;
+}
+
+SymbolFunction* SemaHelpers::callableTypeFunction(TaskContext& ctx, TypeRef typeRef)
+{
+    typeRef = unwrapLambdaBindingType(ctx, typeRef);
+    if (!typeRef.isValid())
+        return nullptr;
+
+    const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+    if (!typeInfo.isFunction())
+        return nullptr;
+
+    return &typeInfo.payloadSymFunction();
+}
+
+const SymbolFunction* SemaHelpers::resolveLambdaBindingFunction(Sema& sema)
+{
+    const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
+    for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
+    {
+        const TypeRef bindingTypeRef = unwrapLambdaBindingType(sema.ctx(), bindingTypes[bindingIndex - 1]);
+        if (!bindingTypeRef.isValid())
+            continue;
+
+        const TypeInfo& bindingType = sema.typeMgr().get(bindingTypeRef);
+        if (bindingType.isFunction())
+            return &bindingType.payloadSymFunction();
+    }
+
+    return nullptr;
+}
+
+bool SemaHelpers::binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags)
+{
+    switch (canonicalOp)
+    {
+        case TokenId::SymPlus:
+        case TokenId::SymMinus:
+        case TokenId::SymAsterisk:
+        case TokenId::SymSlash:
+        case TokenId::SymPercent:
+            return !modifierFlags.has(AstModifierFlagsE::Wrap);
+
+        case TokenId::SymLowerLower:
+        case TokenId::SymGreaterGreater:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef)
 {
     if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, safetyKind))

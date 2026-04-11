@@ -24,6 +24,7 @@ namespace CodeGenCallHelpers
                                    const CallConv&                    callConv,
                                    TypeRef                            argTypeRef,
                                    MicroReg                           srcReg);
+    Result emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg);
 }
 
 SWC_END_NAMESPACE();

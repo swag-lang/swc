@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
@@ -12,6 +13,51 @@
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
+
+bool MicroPassHelpers::isFloatArgReg(const CallConv& conv, const MicroReg reg)
+{
+    if (!reg.isFloat())
+        return false;
+
+    for (const MicroReg argReg : conv.floatArgRegs)
+    {
+        if (argReg == reg)
+            return true;
+    }
+
+    return false;
+}
+
+bool MicroPassHelpers::isRegCallArgument(const CallConv& conv, const MicroReg reg)
+{
+    if (!reg.isValid() || reg.isNoBase())
+        return false;
+
+    if (reg.isInt())
+        return conv.isIntArgReg(reg);
+    if (reg.isFloat())
+        return isFloatArgReg(conv, reg);
+
+    return false;
+}
+
+bool MicroPassHelpers::isRegPersistentAcrossCalls(const MicroPassContext& context, const MicroReg reg)
+{
+    if (!reg.isValid() || reg.isNoBase())
+        return false;
+
+    const CallConv& conv = CallConv::get(context.callConvKind);
+    if (reg.isInt())
+        return conv.isIntPersistentReg(reg);
+    if (reg.isFloat())
+        return conv.isFloatPersistentReg(reg);
+    return false;
+}
+
+bool MicroPassHelpers::touchesReg(const MicroInstrUseDef& useDef, const MicroReg reg)
+{
+    return microRegSpanContains(useDef.uses, reg) || microRegSpanContains(useDef.defs, reg);
+}
 
 uint64_t MicroPassHelpers::normalizeToOpBits(uint64_t value, MicroOpBits opBits)
 {

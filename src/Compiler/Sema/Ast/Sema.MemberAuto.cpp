@@ -29,29 +29,6 @@ namespace
         out += '\'';
     }
 
-    Utf8 formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct)
-    {
-        Utf8   result;
-        bool   first = true;
-        size_t count = 0;
-        for (const SymbolVariable* field : symStruct.fields())
-        {
-            if (!field)
-                continue;
-
-            if (count == K_AUTO_SCOPE_LIST_LIMIT)
-            {
-                result += ", ...";
-                break;
-            }
-
-            appendQuotedAutoScopeName(result, first, field->name(ctx));
-            ++count;
-        }
-
-        return result;
-    }
-
     Utf8 formatStructMemberList(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -59,7 +36,7 @@ namespace
 
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         if (typeInfo.isStruct())
-            return formatStructFieldList(sema.ctx(), typeInfo.payloadSymStruct());
+            return SemaError::formatStructFieldList(sema.ctx(), typeInfo.payloadSymStruct());
         if (!typeInfo.isAggregateStruct())
             return {};
 
@@ -78,33 +55,6 @@ namespace
             }
 
             appendQuotedAutoScopeName(result, first, sema.idMgr().get(idRef).name);
-            ++count;
-        }
-
-        return result;
-    }
-
-    Utf8 formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum)
-    {
-        std::vector<const Symbol*> symbols;
-        symEnum.getAllSymbols(symbols);
-
-        Utf8   result;
-        bool   first = true;
-        size_t count = 0;
-        for (const Symbol* symbol : symbols)
-        {
-            const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
-            if (!enumValue)
-                continue;
-
-            if (count == K_AUTO_SCOPE_LIST_LIMIT)
-            {
-                result += ", ...";
-                break;
-            }
-
-            appendQuotedAutoScopeName(result, first, enumValue->name(ctx));
             ++count;
         }
 
@@ -510,7 +460,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             }
             else if (diagId == DiagnosticId::sema_err_auto_scope_missing_enum_value)
             {
-                const Utf8 availableValues = formatEnumValueList(sema.ctx(), typeInfo.payloadSymEnum());
+                const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), typeInfo.payloadSymEnum());
                 if (!availableValues.empty())
                 {
                     diag.addNote(DiagnosticId::sema_note_available_enum_values);

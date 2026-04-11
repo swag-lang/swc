@@ -258,6 +258,8 @@
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenLoopHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenSafety.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp"/>
@@ -474,6 +476,8 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenLoopHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenSafety.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>

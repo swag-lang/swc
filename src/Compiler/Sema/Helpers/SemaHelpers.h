@@ -30,6 +30,10 @@ namespace SemaHelpers
     Result                attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName);
     Result                attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView);
     Result                setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef);
+    bool                  binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
+    TypeRef               unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef);
+    const SymbolFunction* resolveLambdaBindingFunction(Sema& sema);
+    SymbolFunction*       callableTypeFunction(TaskContext& ctx, TypeRef typeRef);
     Result                attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
     Result                requireRuntimeFunctionDependency(Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
     Result                requireRuntimeFunctionDependency(SymbolFunction*& outRuntimeFn, Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);

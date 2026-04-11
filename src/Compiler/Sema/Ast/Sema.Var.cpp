@@ -94,28 +94,14 @@ namespace
         return true;
     }
 
-    Result reportCodeTypeRestricted(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_code_type_restricted, codeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
     Result reportConstRefType(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_const_ref_type, codeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_const_ref_type, codeRef, typeRef);
     }
 
     Result reportRefMissingInit(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_ref_missing_init, codeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_ref_missing_init, codeRef, typeRef);
     }
 
     bool isRetValTypeNode(const Sema& sema, AstNodeRef nodeTypeRef)
@@ -800,7 +786,7 @@ namespace
             if (!allowedCodeParam)
             {
                 const SourceCodeRef errorRef = context.nodeTypeRef.isValid() ? sema.node(context.nodeTypeRef).codeRef() : sema.node(context.nodeInitRef).codeRef();
-                return reportCodeTypeRestricted(sema, errorRef, finalTypeRef);
+                return SemaError::raiseCodeTypeRestricted(sema, errorRef, finalTypeRef);
             }
         }
 

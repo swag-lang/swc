@@ -188,36 +188,57 @@ Result SemaError::raiseDivZero(Sema& sema, AstNodeRef atNodeRef, AstNodeRef node
     return raiseFoldSafety(sema, Math::FoldStatus::DivisionByZero, atNodeRef, nodeValueRef, ReportLocation::Token);
 }
 
+namespace
+{
+    Result raiseTypeWithValueNote(Sema& sema, DiagnosticId diagId, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+    {
+        auto diag = SemaError::report(sema, diagId, atNodeRef, SemaError::ReportLocation::Token);
+        diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+        SemaError::addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+}
+
 Result SemaError::raisePointerArithmeticValuePointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_pointer_arithmetic_value_ptr, atNodeRef, ReportLocation::Token);
-    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-    addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
-    diag.report(sema.ctx());
-    return Result::Error;
+    return raiseTypeWithValueNote(sema, DiagnosticId::sema_err_pointer_arithmetic_value_ptr, atNodeRef, nodeValueRef, targetTypeRef);
 }
 
 Result SemaError::raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_pointer_arithmetic_void_ptr, atNodeRef, ReportLocation::Token);
-    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-    addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
-    diag.report(sema.ctx());
-    return Result::Error;
+    return raiseTypeWithValueNote(sema, DiagnosticId::sema_err_pointer_arithmetic_void_ptr, atNodeRef, nodeValueRef, targetTypeRef);
 }
 
 Result SemaError::raiseInvalidOpEnum(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_invalid_op_enum, atNodeRef, ReportLocation::Token);
-    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-    addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
-    diag.report(sema.ctx());
-    return Result::Error;
+    return raiseTypeWithValueNote(sema, DiagnosticId::sema_err_invalid_op_enum, atNodeRef, nodeValueRef, targetTypeRef);
 }
 
 Result SemaError::raiseTypeNotIndexable(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_type_not_indexable, atNodeRef, ReportLocation::Children);
+    diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
+Result SemaError::raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, const SourceCodeRef& codeRef, TypeRef typeRef)
+{
+    auto diag = report(sema, diagId, codeRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
+Result SemaError::raiseCodeTypeRestricted(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
+{
+    return raiseTypeArgumentError(sema, DiagnosticId::sema_err_code_type_restricted, codeRef, typeRef);
+}
+
+Result SemaError::raiseCodeTypeRestricted(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_code_type_restricted, atNodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
     diag.report(sema.ctx());
     return Result::Error;

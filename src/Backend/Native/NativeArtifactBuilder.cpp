@@ -313,6 +313,26 @@ Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const
     return Result::Continue;
 }
 
+Result NativeArtifactBuilder::resolveFunctionRelocationName(Utf8& outName, const SymbolFunction* targetFunction) const
+{
+    SWC_ASSERT(targetFunction != nullptr);
+    if (!targetFunction)
+        return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+
+    if (targetFunction->isForeign())
+    {
+        outName = targetFunction->resolveForeignFunctionName(builder_->ctx());
+        return Result::Continue;
+    }
+
+    const auto it = builder_->functionBySymbol.find(targetFunction);
+    if (it == builder_->functionBySymbol.end())
+        return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+
+    outName = it->second->symbolName;
+    return Result::Continue;
+}
+
 Result NativeArtifactBuilder::prepareDataSections() const
 {
     builder_->mergedRData.name            = ".rdata";
@@ -356,24 +376,7 @@ Result NativeArtifactBuilder::prepareDataSections() const
             else
             {
                 SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
-                const SymbolFunction* const targetFunction = relocation.targetSymbol;
-                SWC_ASSERT(targetFunction != nullptr);
-                if (!targetFunction)
-                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
-
-                if (targetFunction->isForeign())
-                {
-                    record.symbolName = targetFunction->resolveForeignFunctionName(builder_->ctx());
-                }
-                else if (const auto it = builder_->functionBySymbol.find(targetFunction); it != builder_->functionBySymbol.end())
-                {
-                    record.symbolName = it->second->symbolName;
-                }
-                else
-                {
-                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
-                }
-
+                SWC_RESULT(resolveFunctionRelocationName(record.symbolName, relocation.targetSymbol));
                 record.addend = 0;
             }
 
@@ -398,19 +401,7 @@ Result NativeArtifactBuilder::prepareDataSections() const
 
             NativeSectionRelocation record;
             record.offset = symbol->offset();
-            if (targetFunction->isForeign())
-            {
-                record.symbolName = targetFunction->resolveForeignFunctionName(builder_->ctx());
-            }
-            else if (const auto it = builder_->functionBySymbol.find(targetFunction); it != builder_->functionBySymbol.end())
-            {
-                record.symbolName = it->second->symbolName;
-            }
-            else
-            {
-                return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
-            }
-
+            SWC_RESULT(resolveFunctionRelocationName(record.symbolName, targetFunction));
             record.addend = 0;
             builder_->mergedData.relocations.push_back(record);
         }

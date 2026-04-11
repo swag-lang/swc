@@ -5,12 +5,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct CallConv;
 struct MicroPassContext;
 class MicroStorage;
 class MicroOperandStorage;
 
 namespace MicroPassHelpers
 {
+    bool                isFloatArgReg(const CallConv& conv, MicroReg reg);
+    bool                isRegCallArgument(const CallConv& conv, MicroReg reg);
+    bool                isRegPersistentAcrossCalls(const MicroPassContext& context, MicroReg reg);
+    bool                touchesReg(const MicroInstrUseDef& useDef, MicroReg reg);
     uint64_t            normalizeToOpBits(uint64_t value, MicroOpBits opBits);
     int64_t             toSignedValue(uint64_t value, MicroOpBits opBits);
     bool                tryInvertCondition(MicroCond& outCond, MicroCond cond);

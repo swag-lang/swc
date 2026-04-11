@@ -3,6 +3,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -17,6 +18,123 @@ namespace
     Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, uint32_t baseOffset, ByteSpanRW dstBytes, ByteSpan srcBytes);
 
+    size_t narrowByteCount(const uint64_t value)
+    {
+        SWC_ASSERT(value <= std::numeric_limits<size_t>::max());
+        return value;
+    }
+
+    uint32_t narrowByteOffset(const uint64_t value)
+    {
+        SWC_ASSERT(value <= std::numeric_limits<uint32_t>::max());
+        return static_cast<uint32_t>(value);
+    }
+
+    uint32_t addByteOffset(const uint32_t baseOffset, const uint64_t relOffset)
+    {
+        const uint32_t offset = narrowByteOffset(relOffset);
+        SWC_ASSERT(baseOffset <= std::numeric_limits<uint32_t>::max() - offset);
+        return baseOffset + offset;
+    }
+
+    ByteSpanRW rawBytes(void* data, const uint64_t size)
+    {
+        return {static_cast<std::byte*>(data), narrowByteCount(size)};
+    }
+
+    ByteSpan rawBytes(const void* data, const uint64_t size)
+    {
+        return {static_cast<const std::byte*>(data), narrowByteCount(size)};
+    }
+
+    ByteSpanRW subBytes(const ByteSpanRW bytes, const uint64_t offset, const uint64_t size)
+    {
+        return bytes.subspan(narrowByteCount(offset), narrowByteCount(size));
+    }
+
+    ByteSpan subBytes(const ByteSpan bytes, const uint64_t offset, const uint64_t size)
+    {
+        return bytes.subspan(narrowByteCount(offset), narrowByteCount(size));
+    }
+
+    template<typename T>
+    T& writable(ByteSpanRW bytes)
+    {
+        SWC_ASSERT(bytes.size() == sizeof(T));
+        return *reinterpret_cast<T*>(bytes.data());
+    }
+
+    template<typename T>
+    const T& readable(const ByteSpan bytes)
+    {
+        SWC_ASSERT(bytes.size() == sizeof(T));
+        return *reinterpret_cast<const T*>(bytes.data());
+    }
+
+    uint64_t rawAddress(const void* ptr)
+    {
+        return reinterpret_cast<uint64_t>(ptr);
+    }
+
+    template<typename T>
+    T* pointerFromRawAddress(const uint64_t value)
+    {
+        return reinterpret_cast<T*>(value);
+    }
+
+    Result materializeStaticSubPayload(Sema&            sema,
+                                       DataSegment&     segment,
+                                       const TypeRef    typeRef,
+                                       const uint32_t   baseOffset,
+                                       const ByteSpanRW dstBytes,
+                                       const ByteSpan   srcBytes,
+                                       const uint64_t   offset,
+                                       const uint64_t   size)
+    {
+        return materializeStaticPayloadInPlace(sema,
+                                               segment,
+                                               typeRef,
+                                               addByteOffset(baseOffset, offset),
+                                               subBytes(dstBytes, offset, size),
+                                               subBytes(srcBytes, offset, size));
+    }
+
+    AstNodeRef fallbackConstantLowerNodeRef(Sema& sema)
+    {
+        const AstNodeRef stateNodeRef = sema.ctx().state().nodeRef;
+        if (stateNodeRef.isValid())
+            return stateNodeRef;
+        return sema.curNodeRef();
+    }
+
+    Result reportConstantLowerFailure(Sema& sema, const std::string_view because)
+    {
+        TaskContext& ctx = sema.ctx();
+        if (ctx.hasError())
+            return Result::Error;
+
+        const AstNodeRef nodeRef = fallbackConstantLowerNodeRef(sema);
+        if (nodeRef.isValid())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, nodeRef, SemaError::ReportLocation::Token);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        if (ctx.state().codeRef.isValid())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, ctx.state().codeRef);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        SWC_ASSERT(false && "constant lowering failure without source location");
+        ctx.setHasError();
+        return Result::Error;
+    }
+
     Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr)
     {
         outOffset = INVALID_REF;
@@ -26,10 +144,10 @@ namespace
         uint32_t  shardIndex = 0;
         const Ref targetRef  = sema.cstMgr().findDataSegmentRef(shardIndex, sourcePtr);
         if (targetRef == INVALID_REF)
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize static data from a pointer outside compiler constant storage");
 
         if (&segment != &sema.cstMgr().shardDataSegment(shardIndex))
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize static data that spans multiple compiler constant-storage shards");
 
         outOffset = targetRef;
         return Result::Continue;
@@ -42,24 +160,24 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticString(DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    Result materializeStaticString(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (srcBytes.size() != sizeof(Runtime::String))
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static string from an invalid runtime payload size");
 
-        auto* const       dstString = reinterpret_cast<Runtime::String*>(dstBytes.data());
-        const auto* const srcString = reinterpret_cast<const Runtime::String*>(srcBytes.data());
-        if (!srcString->ptr)
+        auto&       dstString = writable<Runtime::String>(dstBytes);
+        const auto& srcString = readable<Runtime::String>(srcBytes);
+        if (!srcString.ptr)
         {
-            if (srcString->length != 0)
-                return Result::Error;
+            if (srcString.length != 0)
+                return reportConstantLowerFailure(sema, "cannot materialize a static string with a null pointer and a non-zero length");
 
-            dstString->ptr    = nullptr;
-            dstString->length = 0;
+            dstString.ptr    = nullptr;
+            dstString.length = 0;
             return Result::Continue;
         }
 
-        dstString->length = segment.addString(baseOffset, offsetof(Runtime::String, ptr), std::string_view(srcString->ptr, srcString->length));
+        dstString.length = segment.addString(baseOffset, offsetof(Runtime::String, ptr), std::string_view(srcString.ptr, srcString.length));
         return Result::Continue;
     }
 
@@ -67,31 +185,31 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
         if (srcBytes.size() != sizeof(Runtime::Any))
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static any from an invalid runtime payload size");
 
-        auto* const       dstAny = reinterpret_cast<Runtime::Any*>(dstBytes.data());
-        const auto* const srcAny = reinterpret_cast<const Runtime::Any*>(srcBytes.data());
-        if (!srcAny->type)
+        auto&       dstAny = writable<Runtime::Any>(dstBytes);
+        const auto& srcAny = readable<Runtime::Any>(srcBytes);
+        if (!srcAny.type)
         {
-            if (srcAny->value != nullptr)
-                return Result::Error;
+            if (srcAny.value != nullptr)
+                return reportConstantLowerFailure(sema, "cannot materialize a static any with a value but no runtime type");
 
-            dstAny->value = nullptr;
-            dstAny->type  = nullptr;
+            dstAny.value = nullptr;
+            dstAny.type  = nullptr;
             return Result::Continue;
         }
 
         uint32_t typeOffset = INVALID_REF;
-        SWC_RESULT(resolveSegmentOffset(typeOffset, sema, segment, srcAny->type));
-        dstAny->type = typeOffset == INVALID_REF ? nullptr : segment.ptr<Runtime::TypeInfo>(typeOffset);
+        SWC_RESULT(resolveSegmentOffset(typeOffset, sema, segment, srcAny.type));
+        dstAny.type = typeOffset == INVALID_REF ? nullptr : segment.ptr<Runtime::TypeInfo>(typeOffset);
         if (typeOffset != INVALID_REF)
             segment.addRelocation(baseOffset + offsetof(Runtime::Any, type), typeOffset);
-        if (!srcAny->value)
+        if (!srcAny.value)
             return Result::Continue;
 
-        const TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(srcAny->type);
+        const TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(srcAny.type);
         if (valueTypeRef.isInvalid())
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static any with an unknown runtime type");
 
         const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(ctx);
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
@@ -101,8 +219,8 @@ namespace
                                                            sema,
                                                            segment,
                                                            valueTypeRef,
-                                                           ByteSpan{static_cast<const std::byte*>(srcAny->value), static_cast<size_t>(valueSize)}));
-        dstAny->value = segment.ptr<std::byte>(valueOffset);
+                                                           rawBytes(srcAny.value, valueSize)));
+        dstAny.value = segment.ptr<std::byte>(valueOffset);
         segment.addRelocation(baseOffset + offsetof(Runtime::Any, value), valueOffset);
         return Result::Continue;
     }
@@ -111,44 +229,36 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
         if (srcBytes.size() != sizeof(Runtime::Slice<std::byte>))
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static slice from an invalid runtime payload size");
 
-        auto* const       dstSlice       = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
-        const auto* const srcSlice       = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
-        const TypeRef     elementTypeRef = typeInfo.payloadTypeRef();
-        const TypeInfo&   elementType    = sema.typeMgr().get(elementTypeRef);
-        const uint64_t    elementSize    = elementType.sizeOf(ctx);
-        if (srcSlice->count == 0)
+        auto&           dstSlice       = writable<Runtime::Slice<std::byte>>(dstBytes);
+        const auto&     srcSlice       = readable<Runtime::Slice<std::byte>>(srcBytes);
+        const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
+        const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
+        const uint64_t  elementSize    = elementType.sizeOf(ctx);
+        if (srcSlice.count == 0)
         {
-            dstSlice->ptr   = nullptr;
-            dstSlice->count = 0;
+            dstSlice.ptr   = nullptr;
+            dstSlice.count = 0;
             return Result::Continue;
         }
 
-        if (!srcSlice->ptr)
-        {
-            return Result::Error;
-        }
-
+        if (!srcSlice.ptr)
+            return reportConstantLowerFailure(sema, "cannot materialize a non-empty static slice without backing data");
         if (!elementSize)
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static slice of a zero-sized element type");
 
-        const uint64_t byteCount = srcSlice->count * elementSize;
+        const uint64_t byteCount = srcSlice.count * elementSize;
         SWC_ASSERT(byteCount <= std::numeric_limits<uint32_t>::max());
         const auto [dataOffset, dataStorage] = segment.reserveBytes(static_cast<uint32_t>(byteCount), elementType.alignOf(ctx), true);
-        for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
+        for (uint64_t idx = 0; idx < srcSlice.count; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
-            SWC_RESULT(materializeStaticPayloadInPlace(sema,
-                                                       segment,
-                                                       elementTypeRef,
-                                                       dataOffset + static_cast<uint32_t>(elementOffset),
-                                                       ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
-                                                       ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}));
+            SWC_RESULT(materializeStaticSubPayload(sema, segment, elementTypeRef, dataOffset, rawBytes(dataStorage, byteCount), rawBytes(srcSlice.ptr, byteCount), elementOffset, elementSize));
         }
 
-        dstSlice->ptr   = dataStorage;
-        dstSlice->count = srcSlice->count;
+        dstSlice.ptr   = dataStorage;
+        dstSlice.count = srcSlice.count;
         segment.addRelocation(baseOffset + offsetof(Runtime::Slice<std::byte>, ptr), dataOffset);
         return Result::Continue;
     }
@@ -160,7 +270,7 @@ namespace
         const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
         const uint64_t  elementSize    = elementType.sizeOf(ctx);
         if (!elementSize)
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static array of a zero-sized element type");
 
         uint64_t totalCount = 1;
         for (const uint64_t dim : typeInfo.payloadArrayDims())
@@ -169,12 +279,7 @@ namespace
         for (uint64_t idx = 0; idx < totalCount; ++idx)
         {
             const uint64_t elementOffset = idx * elementSize;
-            SWC_RESULT(materializeStaticPayloadInPlace(sema,
-                                                       segment,
-                                                       elementTypeRef,
-                                                       baseOffset + static_cast<uint32_t>(elementOffset),
-                                                       ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
-                                                       ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}));
+            SWC_RESULT(materializeStaticSubPayload(sema, segment, elementTypeRef, baseOffset, dstBytes, srcBytes, elementOffset, elementSize));
         }
 
         return Result::Continue;
@@ -193,14 +298,9 @@ namespace
             const uint64_t  fieldSize    = fieldType.sizeOf(ctx);
             const uint64_t  fieldOffset  = field->offset();
             if (fieldOffset + fieldSize > srcBytes.size())
-                return Result::Error;
+                return reportConstantLowerFailure(sema, "cannot materialize a static struct because a field extends past the payload buffer");
 
-            SWC_RESULT(materializeStaticPayloadInPlace(sema,
-                                                       segment,
-                                                       fieldTypeRef,
-                                                       baseOffset + static_cast<uint32_t>(fieldOffset),
-                                                       ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
-                                                       ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}));
+            SWC_RESULT(materializeStaticSubPayload(sema, segment, fieldTypeRef, baseOffset, dstBytes, srcBytes, fieldOffset, fieldSize));
         }
 
         return Result::Continue;
@@ -209,19 +309,19 @@ namespace
     Result materializeStaticInterface(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (srcBytes.size() != sizeof(Runtime::Interface))
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static interface from an invalid runtime payload size");
 
-        const auto dstInterface = reinterpret_cast<Runtime::Interface*>(dstBytes.data());
-        const auto srcInterface = reinterpret_cast<const Runtime::Interface*>(srcBytes.data());
-        uint32_t   objOffset    = INVALID_REF;
-        SWC_RESULT(resolveSegmentOffset(objOffset, sema, segment, srcInterface->obj));
-        dstInterface->obj = objOffset == INVALID_REF ? nullptr : segment.ptr<std::byte>(objOffset);
+        auto&       dstInterface = writable<Runtime::Interface>(dstBytes);
+        const auto& srcInterface = readable<Runtime::Interface>(srcBytes);
+        uint32_t    objOffset    = INVALID_REF;
+        SWC_RESULT(resolveSegmentOffset(objOffset, sema, segment, srcInterface.obj));
+        dstInterface.obj = objOffset == INVALID_REF ? nullptr : segment.ptr<std::byte>(objOffset);
         if (objOffset != INVALID_REF)
             segment.addRelocation(baseOffset + offsetof(Runtime::Interface, obj), objOffset);
 
         uint32_t itableOffset = INVALID_REF;
-        SWC_RESULT(resolveSegmentOffset(itableOffset, sema, segment, srcInterface->itable));
-        dstInterface->itable = itableOffset == INVALID_REF ? nullptr : segment.ptr<void*>(itableOffset);
+        SWC_RESULT(resolveSegmentOffset(itableOffset, sema, segment, srcInterface.itable));
+        dstInterface.itable = itableOffset == INVALID_REF ? nullptr : segment.ptr<void*>(itableOffset);
         if (itableOffset != INVALID_REF)
             segment.addRelocation(baseOffset + offsetof(Runtime::Interface, itable), itableOffset);
         return Result::Continue;
@@ -230,25 +330,25 @@ namespace
     Result materializeStaticClosure(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (srcBytes.size() != sizeof(Runtime::ClosureValue))
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static closure from an invalid runtime payload size");
 
-        auto* const       dstClosure = reinterpret_cast<Runtime::ClosureValue*>(dstBytes.data());
-        const auto* const srcClosure = reinterpret_cast<const Runtime::ClosureValue*>(srcBytes.data());
+        auto&       dstClosure = writable<Runtime::ClosureValue>(dstBytes);
+        const auto& srcClosure = readable<Runtime::ClosureValue>(srcBytes);
 
         uint32_t invokeOffset = INVALID_REF;
-        SWC_RESULT(resolveSegmentOffset(invokeOffset, sema, segment, srcClosure->invoke));
-        dstClosure->invoke = invokeOffset == INVALID_REF ? nullptr : segment.ptr<std::byte>(invokeOffset);
+        SWC_RESULT(resolveSegmentOffset(invokeOffset, sema, segment, srcClosure.invoke));
+        dstClosure.invoke = invokeOffset == INVALID_REF ? nullptr : segment.ptr<std::byte>(invokeOffset);
         if (invokeOffset != INVALID_REF)
             segment.addRelocation(baseOffset + offsetof(Runtime::ClosureValue, invoke), invokeOffset);
 
-        std::memcpy(dstClosure->capture, srcClosure->capture, sizeof(dstClosure->capture));
+        std::memcpy(dstClosure.capture, srcClosure.capture, sizeof(dstClosure.capture));
 
-        const auto capturedTarget = *reinterpret_cast<const uint64_t*>(srcClosure->capture);
+        const uint64_t capturedTarget = readable<uint64_t>(rawBytes(srcClosure.capture, sizeof(uint64_t)));
         if (capturedTarget)
         {
             uint32_t targetOffset = INVALID_REF;
-            SWC_RESULT(resolveSegmentOffset(targetOffset, sema, segment, reinterpret_cast<const void*>(capturedTarget)));
-            *reinterpret_cast<uint64_t*>(dstClosure->capture) = targetOffset == INVALID_REF ? 0 : reinterpret_cast<uint64_t>(segment.ptr<std::byte>(targetOffset));
+            SWC_RESULT(resolveSegmentOffset(targetOffset, sema, segment, pointerFromRawAddress<const void>(capturedTarget)));
+            writable<uint64_t>(rawBytes(dstClosure.capture, sizeof(uint64_t))) = targetOffset == INVALID_REF ? 0 : rawAddress(segment.ptr<std::byte>(targetOffset));
             if (targetOffset != INVALID_REF)
                 segment.addRelocation(baseOffset + offsetof(Runtime::ClosureValue, capture), targetOffset);
         }
@@ -259,13 +359,13 @@ namespace
     Result materializeStaticPointer(Sema& sema, DataSegment& segment, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (srcBytes.size() != sizeof(uint64_t))
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize a static pointer from an invalid runtime payload size");
 
-        auto&      dstPtr    = *reinterpret_cast<uint64_t*>(dstBytes.data());
-        const auto srcPtr    = reinterpret_cast<const void*>(*reinterpret_cast<const uint64_t*>(srcBytes.data()));
+        auto&      dstPtr    = writable<uint64_t>(dstBytes);
+        const auto srcPtr    = pointerFromRawAddress<const void>(readable<uint64_t>(srcBytes));
         uint32_t   ptrOffset = INVALID_REF;
         SWC_RESULT(resolveSegmentOffset(ptrOffset, sema, segment, srcPtr));
-        dstPtr = ptrOffset == INVALID_REF ? 0 : reinterpret_cast<uint64_t>(segment.ptr<std::byte>(ptrOffset));
+        dstPtr = ptrOffset == INVALID_REF ? 0 : rawAddress(segment.ptr<std::byte>(ptrOffset));
         if (ptrOffset != INVALID_REF)
             segment.addRelocation(baseOffset, ptrOffset);
         return Result::Continue;
@@ -288,7 +388,7 @@ namespace
         const uint64_t maxCount = std::min<uint64_t>(values.size(), totalCount);
         for (uint64_t i = 0; i < maxCount; ++i)
         {
-            SWC_RESULT(lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + (i * elemSize), elemSize}, elemTypeRef, values[i]));
+            SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, i * elemSize, elemSize), elemTypeRef, values[i]));
         }
 
         return Result::Continue;
@@ -315,7 +415,7 @@ namespace
             SWC_ASSERT(offset + elemSize <= dstBytes.size());
 
             if (index < values.size())
-                SWC_RESULT(lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + offset, static_cast<size_t>(elemSize)}, elemTypeRef, values[index]));
+                SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, offset, elemSize), elemTypeRef, values[index]));
 
             offset += elemSize;
             ++index;
@@ -510,7 +610,7 @@ namespace
                 const TypeInfo& elementType = sema.typeMgr().get(dstType.payloadTypeRef());
                 const uint64_t  elementSize = elementType.sizeOf(sema.ctx());
                 rt.count                    = elementSize ? bytes.size() / elementSize : 0;
-                rt.ptr                      = rt.count ? const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(bytes.data())) : nullptr;
+                rt.ptr                      = rt.count ? reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())) : nullptr;
             }
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
             return Result::Continue;
@@ -563,16 +663,15 @@ namespace
             SWC_ASSERT(typeInfoCstRef.isValid());
             const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
             SWC_ASSERT(typeInfoCst.isValuePointer());
-            anyValue.type = reinterpret_cast<const Runtime::TypeInfo*>(typeInfoCst.getValuePointer());
+            anyValue.type = pointerFromRawAddress<const Runtime::TypeInfo>(typeInfoCst.getValuePointer());
 
             const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(sema.ctx());
             if (valueSize)
             {
                 std::vector valueBytes(valueSize, std::byte{0});
-                SWC_RESULT(lowerConstantToBytes(sema, valueBytes, valueTypeRef, cstRef));
+                SWC_RESULT(lowerConstantToBytes(sema, asByteSpan(valueBytes), valueTypeRef, cstRef));
 
-                const std::string_view rawValueView(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());
-                const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(rawValueView);
+                const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(valueBytes)));
                 anyValue.value                      = const_cast<char*>(rawValueData.data());
             }
 
@@ -622,11 +721,10 @@ namespace
                     if (valueSize)
                     {
                         std::vector valueBytes(valueSize, std::byte{0});
-                        SWC_RESULT(lowerConstantToBytes(sema, valueBytes, pointeeTypeRef, cstRef));
+                        SWC_RESULT(lowerConstantToBytes(sema, asByteSpan(valueBytes), pointeeTypeRef, cstRef));
 
-                        const std::string_view rawValueView(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());
-                        const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(rawValueView);
-                        ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
+                        const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(valueBytes)));
+                        ptr                                 = rawAddress(rawValueData.data());
                     }
                 }
             }
@@ -644,19 +742,21 @@ namespace
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const uint32_t baseOffset, const ByteSpanRW dstBytes, const ByteSpan srcBytes)
     {
         if (typeRef.isInvalid())
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize static data for an invalid type");
 
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         if (typeInfo.isAlias())
         {
             const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
-            return unwrappedTypeRef.isValid() ? materializeStaticPayloadInPlace(sema, segment, unwrappedTypeRef, baseOffset, dstBytes, srcBytes) : Result::Error;
+            if (unwrappedTypeRef.isInvalid())
+                return reportConstantLowerFailure(sema, "cannot materialize static data for an alias with no storage type");
+            return materializeStaticPayloadInPlace(sema, segment, unwrappedTypeRef, baseOffset, dstBytes, srcBytes);
         }
 
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);
         if (sizeOf != dstBytes.size() || sizeOf != srcBytes.size())
-            return Result::Error;
+            return reportConstantLowerFailure(sema, "cannot materialize static data because the payload size does not match the target storage size");
 
         switch (typeInfo.kind())
         {
@@ -671,7 +771,7 @@ namespace
                 return materializeStaticScalar(dstBytes, srcBytes);
 
             case TypeInfoKind::String:
-                return materializeStaticString(segment, baseOffset, dstBytes, srcBytes);
+                return materializeStaticString(sema, segment, baseOffset, dstBytes, srcBytes);
 
             case TypeInfoKind::Any:
                 return materializeStaticAny(sema, segment, baseOffset, dstBytes, srcBytes);
@@ -704,14 +804,9 @@ namespace
 
                     offset = Math::alignUpU64(offset, align);
                     if (offset + elemSize > dstBytes.size())
-                        return Result::Error;
+                        return reportConstantLowerFailure(sema, "cannot materialize aggregate static data because an element extends past the payload buffer");
 
-                    SWC_RESULT(materializeStaticPayloadInPlace(sema,
-                                                               segment,
-                                                               elemTypeRef,
-                                                               baseOffset + static_cast<uint32_t>(offset),
-                                                               ByteSpanRW{dstBytes.data() + offset, static_cast<size_t>(elemSize)},
-                                                               ByteSpan{srcBytes.data() + offset, static_cast<size_t>(elemSize)}));
+                    SWC_RESULT(materializeStaticSubPayload(sema, segment, elemTypeRef, baseOffset, dstBytes, srcBytes, offset, elemSize));
                     offset += elemSize;
                 }
 
@@ -738,7 +833,7 @@ namespace
                 break;
         }
 
-        return Result::Error;
+        return reportConstantLowerFailure(sema, "cannot materialize static data for an unsupported runtime type");
     }
 }
 
@@ -780,7 +875,7 @@ Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstByte
         }
 
         if (valueRef.isValid())
-            SWC_RESULT(lowerConstantToBytes(sema, ByteSpanRW{dstBytes.data() + fieldOffset, fieldSize}, fieldTypeRef, valueRef));
+            SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, fieldOffset, fieldSize), fieldTypeRef, valueRef));
         else if (fieldSize)
             std::memset(dstBytes.data() + fieldOffset, 0, fieldSize);
     }
@@ -792,7 +887,7 @@ Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, 
 {
     outOffset = INVALID_REF;
     if (typeRef.isInvalid())
-        return Result::Error;
+        return reportConstantLowerFailure(sema, "cannot allocate static payload storage for an invalid type");
 
     const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
     const uint64_t  sizeOf   = typeInfo.sizeOf(sema.ctx());
@@ -802,7 +897,7 @@ Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, 
 
     const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
     outOffset                    = offset;
-    return materializeStaticPayloadInPlace(sema, segment, typeRef, offset, ByteSpanRW{storage, static_cast<size_t>(sizeOf)}, srcBytes);
+    return materializeStaticPayloadInPlace(sema, segment, typeRef, offset, rawBytes(storage, sizeOf), srcBytes);
 }
 
 SWC_END_NAMESPACE();

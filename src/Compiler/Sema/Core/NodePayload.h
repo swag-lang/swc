@@ -51,6 +51,7 @@ struct ResolvedCallArgument
     CallArgumentPassKind    passKind              = CallArgumentPassKind::Direct;
     CallArgumentDefaultKind defaultKind           = CallArgumentDefaultKind::None;
     bool                    bindsReferenceToValue = false;
+    bool                    passUfcsAddressAsPointer = false;
     ConstantRef             typeInfoCstRef        = ConstantRef::invalid();
     ConstantRef             defaultCstRef         = ConstantRef::invalid();
 };

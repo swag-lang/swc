@@ -91,3 +91,63 @@ impl Direction
     #assert(#typeof(opposite) == Direction)
     #assert(#typeof(vertical) == bool)
 }
+
+func invertUfcs(value: bool)->bool => !value
+
+struct UfcsPoint
+{
+    x, y: s32
+}
+
+func setUfcsPoint(pt: *UfcsPoint, value: s32)
+{
+    pt.x, pt.y = value
+}
+
+func addUfcsPoint(pt: *UfcsPoint, dx: s32, dy: s32)
+{
+    pt.x += dx
+    pt.y += dy
+}
+
+struct UfcsComplex
+{
+    real, imag: f32
+}
+
+#[Swag.Overload]
+func multiplyUfcs(c: *UfcsComplex, scalar: f32)
+{
+    c.real *= scalar
+    c.imag *= scalar
+}
+
+#[Swag.Overload]
+func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
+{
+    let r = (c.real * other.real) - (c.imag * other.imag)
+    let i = (c.real * other.imag) + (c.imag * other.real)
+    c.real = r
+    c.imag = i
+}
+
+#test
+{
+    let value = false
+    #assert(#typeof(value.invertUfcs()) == bool)
+}
+
+#test
+{
+    var pt: UfcsPoint
+    pt.setUfcsPoint(10)
+    pt.addUfcsPoint(1, 2)
+}
+
+#test
+{
+    var c1 = UfcsComplex{2.0, 3.0}
+    var c2 = UfcsComplex{4.0, 5.0}
+    c1.multiplyUfcs(2.0)
+    c1.multiplyUfcs(&c2)
+}

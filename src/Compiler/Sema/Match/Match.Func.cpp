@@ -1689,6 +1689,34 @@ namespace
         return !sourceType.isPointerOrReference();
     }
 
+    bool passUfcsAddressAsPointer(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef, AstNodeRef appliedUfcsArg)
+    {
+        if (argRef.isInvalid() || appliedUfcsArg.isInvalid())
+            return false;
+
+        if (Match::resolveCallArgumentValueRef(sema, argRef) != Match::resolveCallArgumentValueRef(sema, appliedUfcsArg))
+            return false;
+
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        if (!paramType.isAnyPointer())
+            return false;
+
+        const AstNodeRef sourceRef     = resolveResolvedArgSourceRef(sema, argRef);
+        const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
+        if (!sourceTypeRef.isValid())
+            return false;
+
+        const TypeRef   resolvedSourceTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sourceTypeRef);
+        const TypeRef   resolvedPointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), paramType.payloadTypeRef());
+        const TypeRef   sourceTypeToCheck      = resolvedSourceTypeRef.isValid() ? resolvedSourceTypeRef : sourceTypeRef;
+        const TypeRef   pointeeTypeToCheck     = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : paramType.payloadTypeRef();
+        const TypeInfo& sourceType             = sema.typeMgr().get(sourceTypeToCheck);
+        if (sourceType.isPointerOrReference())
+            return false;
+
+        return pointeeTypeToCheck == sourceTypeToCheck;
+    }
+
     TypeRef referenceBindingStorageTypeRef(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
     {
         if (argRef.isInvalid() || paramTypeRef.isInvalid())
@@ -1786,6 +1814,7 @@ namespace
                 .argRef                = finalArgRef,
                 .passKind              = passKind,
                 .bindsReferenceToValue = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
+                .passUfcsAddressAsPointer = i < numParams && passUfcsAddressAsPointer(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef, appliedUfcsArg),
             };
 
             if (resolvedArg.bindsReferenceToValue)

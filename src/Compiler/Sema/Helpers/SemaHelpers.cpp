@@ -1330,6 +1330,34 @@ namespace
         return Result::Continue;
     }
 
+    Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{node.srcViewRef(), tokNameRef});
+        diag.addArgument(Diagnostic::ARG_SYM, idRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result tryBindUfcsFreeFunctions(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef, bool allowOverloadSet, bool& outHandled)
+    {
+        outHandled = false;
+        if (!allowOverloadSet)
+            return Result::Continue;
+
+        MatchContext lookUpCxt;
+        lookUpCxt.codeRef       = SourceCodeRef{node.srcViewRef(), tokNameRef};
+        lookUpCxt.noWaitOnEmpty = true;
+        SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+
+        SmallVector<const Symbol*> callableSymbols;
+        if (!SemaSymbolLookup::filterCallCalleeCandidates(lookUpCxt.symbols().span(), callableSymbols))
+            return Result::Continue;
+
+        SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, true, callableSymbols.span()));
+        outHandled = true;
+        return Result::SkipChildren;
+    }
+
     Result lookupScopedMember(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SymbolMap& symMap, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         MatchContext lookUpCxt;
@@ -1369,10 +1397,19 @@ namespace
         SWC_RESULT(sema.waitSemaCompleted(&symStruct, {node.srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
-        lookUpCxt.codeRef    = SourceCodeRef{node.srcViewRef(), tokNameRef};
-        lookUpCxt.symMapHint = &symStruct;
+        lookUpCxt.codeRef       = SourceCodeRef{node.srcViewRef(), tokNameRef};
+        lookUpCxt.symMapHint    = &symStruct;
+        lookUpCxt.noWaitOnEmpty = true;
 
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        if (lookUpCxt.empty())
+        {
+            bool handled = false;
+            SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
+            if (handled)
+                return Result::SkipChildren;
+            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+        }
 
         // Bind member-access node (curNodeRef) and RHS identifier.
         SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
@@ -1412,7 +1449,7 @@ namespace
         return Result::SkipChildren;
     }
 
-    Result memberAggregateStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, IdentifierRef idRef, TokenRef tokNameRef, const TypeInfo& typeInfo)
+    Result memberAggregateStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, IdentifierRef idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo& typeInfo)
     {
         const auto& aggregate = typeInfo.payloadAggregate();
         const auto& types     = aggregate.types;
@@ -1421,10 +1458,11 @@ namespace
         size_t memberIndex = 0;
         if (!SemaHelpers::resolveAggregateMemberIndex(sema, typeInfo, idRef, memberIndex))
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{node.srcViewRef(), tokNameRef});
-            diag.addArgument(Diagnostic::ARG_SYM, idRef);
-            diag.report(sema.ctx());
-            return Result::SkipChildren;
+            bool handled = false;
+            SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
+            if (handled)
+                return Result::SkipChildren;
+            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
         }
 
         const TypeRef memberTypeRef = types[memberIndex];
@@ -1515,7 +1553,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
 
     // Aggregate struct
     if (nodeLeftView.type()->isAggregateStruct())
-        return memberAggregateStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, *nodeLeftView.type());
+        return memberAggregateStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, *nodeLeftView.type());
 
     // Dereference pointer
     const TypeInfo* typeInfo = nodeLeftView.type();
@@ -1561,7 +1599,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
 
     // Aggregate struct through pointer/reference
     if (typeInfo->isAggregateStruct())
-        return memberAggregateStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, *typeInfo);
+        return memberAggregateStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, *typeInfo);
 
     // Struct
     if (typeInfo->isStruct())
@@ -1575,7 +1613,12 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         return Result::SkipChildren;
     }
 
-    SWC_INTERNAL_ERROR();
+    bool ufcsHandled = false;
+    SWC_RESULT(tryBindUfcsFreeFunctions(sema, memberRef, node, idRef, tokNameRef, allowOverloadSet, ufcsHandled));
+    if (ufcsHandled)
+        return Result::SkipChildren;
+
+    return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
 }
 
 SWC_END_NAMESPACE();

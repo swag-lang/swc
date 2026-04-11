@@ -586,6 +586,12 @@ namespace
         ABICall::PreparedArg preparedArg;
         if (normalizedTypeRef.isValid())
         {
+            if (arg.passUfcsAddressAsPointer && argPayload.isAddress())
+            {
+                argPayload.typeRef = normalizedTypeRef;
+                argPayload.setIsValue();
+            }
+
             materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);

@@ -803,8 +803,10 @@ namespace
 
     Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view     = sema.viewSymbol(childRef);
+        const AstNodeRef childRef = node.nodeArgRef;
+        const SemaNodeView view = sema.viewNodeTypeConstantSymbol(childRef);
+        if (!view.hasSymbol() && !view.hasType() && !view.hasConstant())
+            return Result::Error;
         if (!view.sym() || !view.sym()->isVariable())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
 

@@ -11,6 +11,12 @@ func macroCompute(a: s32, b: s32 = 1, c: s32 = 1)->s32
     return tmp + c
 }
 
+#[Swag.Macro]
+func macroBumpCaller()
+{
+    #up total += 1
+}
+
 // Macro add and compute with defaults
 #test
 {
@@ -19,4 +25,13 @@ func macroCompute(a: s32, b: s32 = 1, c: s32 = 1)->s32
     @assert(macroAdd(base, 2) == 42)
     @assert(macroCompute(40) == 42)
     @assert(macroCompute(a: 20, c: 20, b: 2) == 42)
+}
+
+// Macro #up resolves caller locals at expansion time
+#test
+{
+    var total = 0
+    macroBumpCaller()
+    macroBumpCaller()
+    @assert(total == 2)
 }

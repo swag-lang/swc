@@ -1423,18 +1423,9 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        auto& sym          = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-        bool  hasCodeParam = false;
-        for (const SymbolVariable* param : sym.parameters())
-        {
-            if (param && param->type(sema.ctx()).isCodeBlock())
-            {
-                hasCodeParam = true;
-                break;
-            }
-        }
-
-        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) || (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && hasCodeParam))
+        auto&      sym                 = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        const bool deferInlineBodySema = sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+        if (deferInlineBodySema)
         {
             const bool shortWithoutExplicitReturnType = hasFlag(AstFunctionFlagsE::Short) && nodeReturnTypeRef.isInvalid();
             if (!shortWithoutExplicitReturnType)

@@ -66,25 +66,23 @@ This prevents parameters from defaulting to 'any'.
 # Passing Variadic Parameters Between Functions
 Variadic parameters can be forwarded between functions while preserving their types and values.
 */
-// @TODO: Re-enable when variadic argument packs can be forwarded safely between functions again.
-// #test
-// {
-//     func A(params: ...)
-//     {
-//         @assert(@countof(params) == 2)
-//         @assert(@kindof(params[0]) == string)
-//         @assert(@kindof(params[1]) == bool)
-//         @assert(cast(string) params[0] == "value")
-//         @assert(cast(bool) params[1] == true)
-//     }
-//
-//     func B(params: ...)
-//     {
-//         A(params) // Forward the parameters
-//     }
-//
-//     B("value", true)
-// }
+
+#test
+{
+    func A(params: ...)
+    {
+        @assert(@countof(params) == 2)
+        @assert(@kindof(params[0]) == string)
+        @assert(@kindof(params[1]) == bool)
+        @assert(cast(string) params[0] == "value")
+        @assert(cast(bool) params[1] == true)
+    }
+    func B(params: ...)
+    {
+        A(params) // Forward the parameters
+    }
+    B("value", true)
+}
 
 /**
 # Combining Fixed and Variadic Parameters

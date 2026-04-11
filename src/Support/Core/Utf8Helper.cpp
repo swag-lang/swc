@@ -396,7 +396,7 @@ Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
     if (s.empty())
         return {};
 
-    const Utf8     ellipsis   = options.ellipsis;
+    Utf8           ellipsis   = options.ellipsis;
     const uint32_t totalChars = countChars(s);
 
     if (totalChars <= options.maxChars)

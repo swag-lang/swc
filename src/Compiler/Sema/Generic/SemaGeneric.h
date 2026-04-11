@@ -1,10 +1,14 @@
 #pragma once
 #include "Compiler/Sema/Helpers/SemaClone.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class SymbolMap;
+class SymbolImpl;
+class SymbolInterface;
+class SymbolFunction;
+class SymbolStruct;
+struct AttributeList;
 struct CastFailure;
 
 namespace SemaGeneric

@@ -29,7 +29,7 @@ namespace
         rewrites.resize(start);
     }
 
-    bool forwardCopyUses(const MicroPassContext& context, MicroStorage::Iterator copyIt, MicroStorage::Iterator endIt, MicroReg fromReg, MicroReg toReg, MicroReg stopOnDefReg, SmallVector<RegRewrite>& rewrites)
+    bool forwardCopyUses(const MicroPassContext& context, const MicroStorage::Iterator& copyIt, const MicroStorage::Iterator& endIt, MicroReg fromReg, MicroReg toReg, MicroReg stopOnDefReg, SmallVector<RegRewrite>& rewrites)
     {
         bool replacedUse = false;
         for (auto scanIt = std::next(copyIt); scanIt != endIt; ++scanIt)
@@ -105,7 +105,7 @@ namespace
         return replacedUse;
     }
 
-    bool isCopyDeadNoBarrierUntil(const MicroPassContext& context, MicroStorage::Iterator scanIt, MicroStorage::Iterator endIt, MicroReg reg)
+    bool isCopyDeadNoBarrierUntil(const MicroPassContext& context, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg reg)
     {
         for (; scanIt != endIt; ++scanIt)
         {

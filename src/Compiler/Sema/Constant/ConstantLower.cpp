@@ -152,13 +152,13 @@ namespace
         return Result::Continue;
     }
 
-    template<typename StorageT, typename PointerT>
-    Result relocateSegmentPointer(PointerT*& outPtr, Sema& sema, DataSegment& segment, const uint32_t relocationOffset, const void* sourcePtr)
+    template<typename ST, typename PT>
+    Result relocateSegmentPointer(PT*& outPtr, Sema& sema, DataSegment& segment, const uint32_t relocationOffset, const void* sourcePtr)
     {
         uint32_t targetOffset = INVALID_REF;
         SWC_RESULT(resolveSegmentOffset(targetOffset, sema, segment, sourcePtr));
 
-        outPtr = targetOffset == INVALID_REF ? nullptr : static_cast<PointerT*>(segment.ptr<StorageT>(targetOffset));
+        outPtr = targetOffset == INVALID_REF ? nullptr : static_cast<PT*>(segment.ptr<ST>(targetOffset));
         if (targetOffset != INVALID_REF)
             segment.addRelocation(relocationOffset, targetOffset);
         return Result::Continue;
@@ -199,8 +199,9 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticString(Sema& sema, DataSegment& segment, const StaticPayload& payload)
+    Result materializeStaticString(const Sema& sema, DataSegment& segment, const StaticPayload& payload)
     {
+        SWC_UNUSED(sema);
         assertRuntimePayloadSize<Runtime::String>(payload.srcBytes);
 
         auto&       dstString = writable<Runtime::String>(payload.dstBytes);
@@ -413,9 +414,10 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerSliceConstantToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeRef dstTypeRef, const ConstantValue& cst)
+    Result lowerSliceConstantToBytes(const Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeRef dstTypeRef, const ConstantValue& cst)
     {
         SWC_ASSERT((cst.isNull() || cst.isSlice() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
+        SWC_UNUSED(sema);
         SWC_UNUSED(dstType);
         if (cst.isStruct(dstTypeRef))
         {

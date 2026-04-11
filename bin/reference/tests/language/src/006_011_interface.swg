@@ -14,8 +14,7 @@ struct Point3 { x, y, z: f32 }
 # Interface Declaration
 Declare interface 'IReset' with two functions 'set' and 'reset'.
 */
-// @TODO: restore this interface example when interface declarations accept the
-// original reference form again.
+
 interface IReset
 {
     // First parameter must be 'me' when using 'func'
@@ -23,6 +22,7 @@ interface IReset
     // 'mtd' avoids specifying 'me'
     mtd reset();
 }
+
 /**
 # Implementing an Interface
 Implement interface 'IReset' for 'Point2'.
@@ -44,6 +44,7 @@ impl IReset for Point2
     // Regular methods may also appear in this 'impl'
     mtd myOtherMethod() {}
 }
+
 /**
 # Implementing the Interface for Another Struct
 Implement 'IReset' for 'Point3'.
@@ -61,6 +62,7 @@ impl IReset for Point3
         me.x, me.y, me.z = 0
     }
 }
+
 /**
 # Using the Interface
 Cast to the interface and call its methods.
@@ -81,6 +83,7 @@ Cast to the interface and call its methods.
     itf.reset()
     @assert(pt3.x == 0 and pt3.y == 0 and pt3.z == 0)
 }
+
 /**
 # Accessing Interface Methods Directly
 Implementation functions live under a scope named after the interface.
@@ -94,6 +97,7 @@ Implementation functions live under a scope named after the interface.
     pt3.IReset.set(10)
     pt3.IReset.reset()
 }
+
 /**
 # Interface as a Type
 An interface occupies two pointers: object pointer + virtual table pointer.

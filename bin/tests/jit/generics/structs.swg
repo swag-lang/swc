@@ -53,3 +53,32 @@ func sumFour(buffer: Buffer'(s32, 4))->s32
     @assert(partial.values[0] == 10'u16)
     @assert(partial.values[1] == 20'u16)
 }
+
+#test
+{
+    {
+        struct(T) LocalBox
+        {
+            value: T
+        }
+
+        let intBox: LocalBox's32 = {value: 42}
+        let boolBox: LocalBox'bool = {value: true}
+
+        #assert(#typeof(intBox.value) == s32)
+        #assert(#typeof(boolBox.value) == bool)
+        @assert(intBox.value == 42)
+        @assert(boolBox.value == true)
+    }
+    {
+        struct(T, N: s32) LocalBuffer
+        {
+            values: [N] T
+        }
+
+        let buffer: LocalBuffer'(u16, 3) = {values: [1'u16, 2, 3]}
+        #assert(#typeof(buffer.values) == #type [3] u16)
+        @assert(buffer.values[0] == 1'u16)
+        @assert(buffer.values[2] == 3'u16)
+    }
+}

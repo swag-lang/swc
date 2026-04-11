@@ -391,6 +391,24 @@ namespace
     }
 }
 
+Result AstStructDecl::codeGenPreNode(const CodeGen& codeGen)
+{
+    SWC_UNUSED(codeGen);
+    return Result::SkipChildren;
+}
+
+Result AstUnionDecl::codeGenPreNode(const CodeGen& codeGen)
+{
+    SWC_UNUSED(codeGen);
+    return Result::SkipChildren;
+}
+
+Result AstAnonymousStructDecl::codeGenPreNode(const CodeGen& codeGen)
+{
+    SWC_UNUSED(codeGen);
+    return Result::SkipChildren;
+}
+
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView view = codeGen.curViewSymbol();
@@ -400,8 +418,7 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
         if (parentRef.isValid() &&
             (codeGen.node(parentRef).is(AstNodeId::NamedType) ||
              codeGen.node(parentRef).is(AstNodeId::QuotedExpr) ||
-             codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)) &&
-            codeGen.curViewType().typeRef().isValid())
+             codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)))
             return Result::Continue;
 
         SWC_ASSERT(view.sym());

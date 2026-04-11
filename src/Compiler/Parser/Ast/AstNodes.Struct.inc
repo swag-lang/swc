@@ -1126,6 +1126,7 @@ struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 // -----------------------------------------------------------------------------
 struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 {
+    static Result codeGenPreNode(const CodeGen& codeGen);
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1136,6 +1137,7 @@ struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 // -----------------------------------------------------------------------------
 struct AstUnionDecl : AstAggregateDeclT<AstNodeId::UnionDecl>
 {
+    static Result codeGenPreNode(const CodeGen& codeGen);
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1145,6 +1147,7 @@ struct AstUnionDecl : AstAggregateDeclT<AstNodeId::UnionDecl>
 // -----------------------------------------------------------------------------
 struct AstAnonymousStructDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousStructDecl>
 {
+    static Result codeGenPreNode(const CodeGen& codeGen);
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;

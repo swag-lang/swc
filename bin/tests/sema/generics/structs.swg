@@ -41,3 +41,28 @@ struct(T, N: s32 = 2) DefaultBuffer
     #assert(#typeof(doubled.second.values) == #type [4] u8)
     #assert(#typeof(partial.values) == #type [2] u16)
 }
+
+#test
+{
+    {
+        struct(T) LocalBox
+        {
+            value: T
+        }
+
+        let intBox: LocalBox's32
+        let boolBox: LocalBox'bool
+
+        #assert(#typeof(intBox.value) == s32)
+        #assert(#typeof(boolBox.value) == bool)
+    }
+    {
+        struct(T, N: s32) LocalBuffer
+        {
+            values: [N] T
+        }
+
+        let buffer: LocalBuffer'(u16, 3)
+        #assert(#typeof(buffer.values) == #type [3] u16)
+    }
+}

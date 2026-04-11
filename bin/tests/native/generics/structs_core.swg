@@ -76,3 +76,29 @@ func(T) boxValue(box: Box'T)->T => box.value
     @assert(unbox(s) == "works")
     @assert(boxValue(s) == "works")
 }
+
+#test
+{
+    {
+        struct(T) LocalBox
+        {
+            value: T
+        }
+
+        let intBox: LocalBox's32 = {value: 11}
+        let boolBox: LocalBox'bool = {value: false}
+
+        @assert(intBox.value == 11)
+        @assert(boolBox.value == false)
+    }
+    {
+        struct(T, N: s32) LocalBuffer
+        {
+            values: [N] T
+        }
+
+        let buffer: LocalBuffer'(u16, 2) = {values: [5'u16, 9]}
+        @assert(buffer.values[0] == 5'u16)
+        @assert(buffer.values[1] == 9'u16)
+    }
+}

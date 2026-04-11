@@ -48,7 +48,8 @@ Result AstStructDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
     const auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
-    SWC_RESULT(Match::ghosting(sema, sym));
+    if (!sym.isGenericInstance())
+        SWC_RESULT(Match::ghosting(sema, sym));
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
         sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
@@ -118,7 +119,8 @@ Result AstUnionDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
     const auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
-    SWC_RESULT(Match::ghosting(sema, sym));
+    if (!sym.isGenericInstance())
+        SWC_RESULT(Match::ghosting(sema, sym));
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
         sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());

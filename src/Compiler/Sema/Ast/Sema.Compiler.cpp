@@ -240,7 +240,18 @@ namespace
         if (rawRef.isInvalid())
             return Result::Error;
 
-        const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}, replacements};
+        std::span<const SemaClone::ParamBinding> bindings;
+        if (const auto* inlinePayload = sema.frame().currentInlinePayload();
+            inlinePayload &&
+            inlinePayload->sourceFunction &&
+            inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        {
+            // Mixin code arguments are re-cloned during #inject, so keep the active
+            // inline bindings alive for that clone to preserve access to mixin params.
+            bindings = inlinePayload->argMappings.span();
+        }
+
+        const SemaClone::CloneContext cloneContext{bindings, replacements};
         const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
         if (clonedRef.isInvalid())
             return Result::Error;

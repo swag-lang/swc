@@ -78,29 +78,25 @@ The mixin can execute this block multiple times using '#inject'.
 # Passing Code Blocks in Separate Statements
 When the last parameter is of type 'code', the code can be provided in a separate block after the call.
 */
-// @TODO: Re-enable when mixin-injected code can reference the callee parameters again.
-// #test
-// {
-//     #[Swag.Mixin]
-//     func doItTwice(value: s32, what: #code void)
-//     {
-//         #inject(what)
-//         #inject(what)
-//     }
-//
-//     var a = 0
-//
-//     // Inline code argument
-//     doItTwice(4, #code { a += value; })
-//
-//     // Separate trailing block
-//     doItTwice(2)
-//     {
-//         a += value
-//     }
-//
-//     @assert(a == 12)
-// }
+
+#test
+{
+    #[Swag.Mixin]
+    func doItTwice(value: s32, what: #code void)
+    {
+        #inject(what)
+        #inject(what)
+    }
+    var a = 0
+    // Inline code argument
+    doItTwice(4, #code { a += value; })
+    // Separate trailing block
+    doItTwice(2)
+    {
+        a += value
+    }
+    @assert(a == 12)
+}
 
 /**
 # Creating Aliases with Mixins

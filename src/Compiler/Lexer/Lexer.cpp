@@ -279,7 +279,7 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
             expectedDigits = 8;
             break;
         default:
-            SWC_ASSERT(false);
+            SWC_UNREACHABLE();
     }
 
     // Check if we have the required number of hex digits

@@ -404,6 +404,17 @@ namespace
                     SWC_RESULT(Cast::castIfNeeded(sema, nodeRightView, promotedTypeRef, CastKind::Promotion));
                     resultTypeRef = promotedTypeRef;
                 }
+                else if (nodeLeftView.type()->isScalarNumeric() &&
+                         nodeRightView.type()->isScalarNumeric() &&
+                         nodeLeftView.typeRef() != nodeRightView.typeRef() &&
+                         (nodeLeftView.type()->isScalarUnsized() ||
+                          nodeRightView.type()->isScalarUnsized() ||
+                          nodeLeftView.type()->isFloat() ||
+                          nodeRightView.type()->isFloat()))
+                {
+                    SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
+                    resultTypeRef = nodeLeftView.typeRef();
+                }
                 else
                 {
                     SWC_RESULT(SemaHelpers::castBinaryRightToLeft(sema, op, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Implicit));

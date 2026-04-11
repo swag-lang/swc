@@ -398,8 +398,7 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
             }
             else
             {
-                SWC_ASSERT(false);
-                return builder_.reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+                SWC_UNREACHABLE();
             }
             record.addend = 0;
             writeU64(textSection.data.bytes, patchOffset, 0);

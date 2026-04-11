@@ -130,8 +130,7 @@ void NativeValidate::validateRelocations(const SymbolFunction& owner, const Mach
         switch (relocation.kind)
         {
             case MicroRelocation::Kind::CompilerAddress:
-                SWC_ASSERT(false);
-                break;
+                SWC_UNREACHABLE();
 
             case MicroRelocation::Kind::LocalFunctionAddress:
             {
@@ -460,7 +459,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         return;
     }
 
-    SWC_ASSERT(false);
+    SWC_UNREACHABLE();
 }
 
 bool NativeValidate::findDataSegmentRelocation(uint32_t& outTargetOffset, const uint32_t shardIndex, const uint32_t offset) const

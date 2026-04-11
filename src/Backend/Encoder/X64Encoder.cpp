@@ -131,8 +131,7 @@ namespace
             case X64Reg::Rip:
                 return MicroReg::instructionPointer();
             default:
-                SWC_ASSERT(false);
-                return MicroReg::invalid();
+                SWC_UNREACHABLE();
         }
     }
 
@@ -204,8 +203,7 @@ namespace
             return K_FLOAT_REG_MAP[reg.index()];
         }
 
-        SWC_ASSERT(false);
-        return X64Reg::Rax;
+        SWC_UNREACHABLE();
     }
 
     bool isExtendedReg(X64Reg reg)
@@ -643,8 +641,7 @@ namespace
             case MicroOp::MultiplyAdd:
                 return 0xFC;
             default:
-                SWC_ASSERT(false);
-                return 0;
+                SWC_UNREACHABLE();
         }
     }
 
@@ -662,8 +659,7 @@ namespace
             case MicroOp::Move:
                 return getX64OpCode(op) - 2;
             default:
-                SWC_ASSERT(false);
-                return 0;
+                SWC_UNREACHABLE();
         }
     }
 
@@ -1599,8 +1595,7 @@ namespace
                 }
                 break;
             default:
-                SWC_ASSERT(false);
-                break;
+                SWC_UNREACHABLE();
         }
 
         const bool needsForcedDisplacement = !baseIsNoBase && (baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp);
@@ -1776,8 +1771,7 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
             emitCpuOp(store_, 0x9B);
             break;
         default:
-            SWC_ASSERT(false);
-            break;
+            SWC_UNREACHABLE();
     }
 
     emitModRm(store_, MODRM_REG_0, reg);
@@ -1810,8 +1804,7 @@ void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCon
             emitCpuOp(store_, 0x4D);
             break;
         default:
-            SWC_ASSERT(false);
-            break;
+            SWC_UNREACHABLE();
     }
 
     emitModRm(store_, regDst, regSrc);
@@ -3058,8 +3051,7 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
                 emitCpuOp(store_, 0xEB);
                 break;
             default:
-                SWC_ASSERT(false);
-                break;
+                SWC_UNREACHABLE();
         }
 
         store_.pushU8(0);
@@ -3140,8 +3132,7 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
             emitCpuOp(store_, 0xE9);
             break;
         default:
-            SWC_ASSERT(false);
-            break;
+            SWC_UNREACHABLE();
     }
 
     store_.pushU32(0);

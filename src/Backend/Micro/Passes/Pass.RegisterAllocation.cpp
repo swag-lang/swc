@@ -138,8 +138,7 @@ bool MicroRegisterAllocationPass::isPersistentPhysReg(MicroReg reg) const
     if (reg.isFloat())
         return containsKey(floatPersistentRegs_, reg);
 
-    SWC_ASSERT(false);
-    return false;
+    SWC_UNREACHABLE();
 }
 
 bool MicroRegisterAllocationPass::isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const
@@ -247,7 +246,7 @@ void MicroRegisterAllocationPass::returnToFreePool(MicroReg reg)
         return;
     }
 
-    SWC_ASSERT(false);
+    SWC_UNREACHABLE();
 }
 
 uint32_t MicroRegisterAllocationPass::distanceToNextUse(MicroReg key, uint32_t instructionIndex) const

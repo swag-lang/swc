@@ -144,8 +144,7 @@ AstNodeRef Ast::findNodeRef(const AstNode* node) const
             return AstNodeRef{packRef(i, local)};
     }
 
-    SWC_ASSERT(false);
-    return AstNodeRef::invalid();
+    SWC_UNREACHABLE();
 }
 
 void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)

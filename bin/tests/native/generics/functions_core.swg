@@ -1,6 +1,8 @@
 #global fileprivate
 
 func(T) echo(value: T)->T => value
+func(T) doubleLeftLiteral(value: T) => 2 * value
+func(T = s32, V = s32) mixedMultiply(a: T, b: V) => a * b
 func(T = s32) defaultValue()->T => 11
 func(N: s32 = 3) bias(value: s32)->s32 => value + N
 func(T, N: s32) arrayCount(values: [N] T)->s32 => N
@@ -35,6 +37,9 @@ func(A, B) makePairSecond(a: A, b: B)->B => b
     @assert(echo(true) == true)
     @assert(echo(3.14) == 3.14)
     @assert(echo'(u8)(255'u8) == 255'u8)
+    @assert(doubleLeftLiteral'(s32)(21) == 42)
+    @assert(doubleLeftLiteral(2.5'f32) == 5.0'f32)
+    @assert(mixedMultiply(1's32, 2'f32) == 2.0'f32)
     @assert(defaultValue() == 11)
     @assert(defaultValue'(f64)() == 11.0)
     @assert(bias(7) == 10)
@@ -43,6 +48,16 @@ func(A, B) makePairSecond(a: A, b: B)->B => b
     @assert(arrayCount'(u16, 4)(values) == 4)
     @assert(arrayCount(values) == 4)
     @assert(partialCount'(s32)(pair) == 2)
+}
+
+#test
+{
+    func(T) localDouble(value: T) => 2 * value
+    func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
+
+    @assert(localDouble'(s32)(21) == 42)
+    @assert(localDouble(2.5'f32) == 5.0'f32)
+    @assert(localMixedMultiply(1's32, 2'f32) == 2.0'f32)
 }
 
 #test

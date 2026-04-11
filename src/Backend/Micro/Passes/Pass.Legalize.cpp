@@ -898,13 +898,13 @@ namespace
                 else if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg)
                     applyRewriteTernaryOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 else
-                    SWC_ASSERT(false);
+                    SWC_UNREACHABLE();
                 return;
             case MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg:
                 applyRewriteRegRegOperandAwayFromFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 return;
             default:
-                SWC_ASSERT(false);
+                SWC_UNREACHABLE();
         }
     }
 }

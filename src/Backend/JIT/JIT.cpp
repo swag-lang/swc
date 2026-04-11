@@ -203,7 +203,7 @@ namespace
                 return outArg;
             }
 
-            SWC_ASSERT(false);
+            SWC_UNREACHABLE();
             return outArg;
         }
 
@@ -222,7 +222,7 @@ namespace
                 std::memcpy(&outArg.value, valuePtr, sizeof(uint64_t));
                 return outArg;
             default:
-                SWC_ASSERT(false);
+                SWC_UNREACHABLE();
                 return outArg;
         }
     }

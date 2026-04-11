@@ -20,43 +20,6 @@ namespace
         std::vector<DebugInfoConstantRecord> constants;
     };
 
-    DebugInfoLocalRecord makeDebugLocalRecord(const Utf8& name, const Utf8& linkageName, const TypeRef typeRef, const bool isConst, const uint32_t offset, const MicroReg baseReg)
-    {
-        DebugInfoLocalRecord record;
-        record.name        = name;
-        record.linkageName = linkageName;
-        record.typeRef     = typeRef;
-        record.isConst     = isConst;
-        record.offset      = offset;
-        record.baseReg     = baseReg;
-        return record;
-    }
-
-    DebugInfoDataRecord makeDebugDataRecord(const Utf8& name, const Utf8& linkageName, const TypeRef typeRef, const bool isConst, const Utf8& symbolName, const Utf8& sectionName, const uint32_t symbolOffset, const bool isGlobal)
-    {
-        DebugInfoDataRecord record;
-        record.name         = name;
-        record.linkageName  = linkageName;
-        record.typeRef      = typeRef;
-        record.isConst      = isConst;
-        record.symbolName   = symbolName;
-        record.sectionName  = sectionName;
-        record.symbolOffset = symbolOffset;
-        record.isGlobal     = isGlobal;
-        return record;
-    }
-
-    DebugInfoConstantRecord makeDebugConstantRecord(const Utf8& name, const Utf8& linkageName, const TypeRef typeRef, const bool isConst, const ConstantRef valueRef)
-    {
-        DebugInfoConstantRecord record;
-        record.name        = name;
-        record.linkageName = linkageName;
-        record.typeRef     = typeRef;
-        record.isConst     = isConst;
-        record.valueRef    = valueRef;
-        return record;
-    }
-
     Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
     {
         Utf8 key = function.getFullScopedName(ctx);
@@ -109,7 +72,7 @@ namespace
         if (!shouldEmitDebugConstant(ctx, symbol))
             return;
 
-        out.push_back(makeDebugConstantRecord(Utf8(symbol.name(ctx)), symbol.getFullScopedName(ctx), symbol.typeRef(), true, symbol.cstRef()));
+        out.push_back(DebugInfoConstantRecord{{Utf8(symbol.name(ctx)), symbol.getFullScopedName(ctx), symbol.typeRef(), true}, symbol.cstRef()});
     }
 
     void collectGlobalDebugConstantsRec(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const SymbolMap& symbolMap)
@@ -235,12 +198,10 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
                 if (!shouldEmitDebugVariable(builder_.ctx(), *symVar))
                     continue;
 
-                debugStorage.parameters.push_back(makeDebugLocalRecord(Utf8(symVar->name(builder_.ctx())),
-                                                                       symVar->getFullScopedName(builder_.ctx()),
-                                                                       symVar->typeRef(),
-                                                                       symVar->hasExtraFlag(SymbolVariableFlagsE::Let),
-                                                                       symVar->debugStackSlotOffset(),
-                                                                       parameterBaseReg));
+                debugStorage.parameters.push_back(DebugInfoLocalRecord{
+                    {Utf8(symVar->name(builder_.ctx())), symVar->getFullScopedName(builder_.ctx()), symVar->typeRef(), symVar->hasExtraFlag(SymbolVariableFlagsE::Let)},
+                    symVar->debugStackSlotOffset(),
+                    parameterBaseReg});
             }
 
             for (const SymbolVariable* symVar : info->symbol->localVariables())
@@ -251,12 +212,10 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
                 if (!shouldEmitDebugVariable(builder_.ctx(), *symVar))
                     continue;
 
-                debugStorage.locals.push_back(makeDebugLocalRecord(Utf8(symVar->name(builder_.ctx())),
-                                                                   symVar->getFullScopedName(builder_.ctx()),
-                                                                   symVar->typeRef(),
-                                                                   symVar->hasExtraFlag(SymbolVariableFlagsE::Let),
-                                                                   symVar->offset(),
-                                                                   localBaseReg));
+                debugStorage.locals.push_back(DebugInfoLocalRecord{
+                    {Utf8(symVar->name(builder_.ctx())), symVar->getFullScopedName(builder_.ctx()), symVar->typeRef(), symVar->hasExtraFlag(SymbolVariableFlagsE::Let)},
+                    symVar->offset(),
+                    localBaseReg});
             }
 
             collectFunctionDebugConstants(debugStorage.constants, builder_.ctx(), *info->symbol);
@@ -292,14 +251,12 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
             if (sectionName.empty())
                 continue;
 
-            debugGlobals.push_back(makeDebugDataRecord(Utf8(symbol->name(builder_.ctx())),
-                                                       symbol->getFullScopedName(builder_.ctx()),
-                                                       symbol->typeRef(),
-                                                       symbol->hasExtraFlag(SymbolVariableFlagsE::Let),
-                                                       debugDataSymbolName(builder_.ctx(), *symbol),
-                                                       sectionName,
-                                                       symbol->offset(),
-                                                       symbol->isPublic()));
+            debugGlobals.push_back(DebugInfoDataRecord{
+                {Utf8(symbol->name(builder_.ctx())), symbol->getFullScopedName(builder_.ctx()), symbol->typeRef(), symbol->hasExtraFlag(SymbolVariableFlagsE::Let)},
+                debugDataSymbolName(builder_.ctx(), *symbol),
+                sectionName,
+                symbol->offset(),
+                symbol->isPublic()});
         }
 
         collectGlobalDebugConstants(debugConstants, builder_.ctx(), builder_.compiler());

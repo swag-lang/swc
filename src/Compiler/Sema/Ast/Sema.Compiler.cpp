@@ -157,11 +157,6 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef makeCodeType(Sema& sema, TypeRef payloadTypeRef)
-    {
-        return sema.typeMgr().addType(TypeInfo::makeCodeBlock(payloadTypeRef));
-    }
-
     AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef)
     {
         AstNodeRef       resultRef   = nodeRef;
@@ -310,7 +305,7 @@ Result AstCompilerCodeBlock::semaPreNodeChild(const Sema& sema, const AstNodeRef
 Result AstCompilerCodeBlock::semaPostNode(Sema& sema) const
 {
     const TypeRef payload = this->payloadTypeRef.isValid() ? payloadTypeRef : sema.typeMgr().typeVoid();
-    sema.setType(sema.curNodeRef(), makeCodeType(sema, payload));
+    sema.setType(sema.curNodeRef(), sema.typeMgr().addType(TypeInfo::makeCodeBlock(payload)));
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;
@@ -325,7 +320,7 @@ Result AstCompilerCodeExpr::semaPreNodeChild(const Sema& sema, const AstNodeRef&
 Result AstCompilerCodeExpr::semaPostNode(Sema& sema) const
 {
     const TypeRef payload = this->payloadTypeRef.isValid() ? payloadTypeRef : sema.typeMgr().typeAny();
-    sema.setType(sema.curNodeRef(), makeCodeType(sema, payload));
+    sema.setType(sema.curNodeRef(), sema.typeMgr().addType(TypeInfo::makeCodeBlock(payload)));
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;

@@ -182,49 +182,14 @@ namespace
     {
         SWC_ASSERT(valuePtr != nullptr);
         SWC_ASSERT(!argType.isIndirect);
+        SWC_ASSERT(argType.numBits == 8 || argType.numBits == 16 || argType.numBits == 32 || argType.numBits == 64);
 
         ABICall::Arg outArg;
         outArg.isFloat = argType.isFloat;
         outArg.numBits = argType.numBits;
-
-        if (argType.isFloat)
-        {
-            if (argType.numBits == 32)
-            {
-                const float value = *static_cast<const float*>(valuePtr);
-                std::memcpy(&outArg.value, &value, sizeof(float));
-                return outArg;
-            }
-
-            if (argType.numBits == 64)
-            {
-                const double value = *static_cast<const double*>(valuePtr);
-                std::memcpy(&outArg.value, &value, sizeof(double));
-                return outArg;
-            }
-
-            SWC_UNREACHABLE();
-            return outArg;
-        }
-
-        switch (argType.numBits)
-        {
-            case 8:
-                outArg.value = *static_cast<const uint8_t*>(valuePtr);
-                return outArg;
-            case 16:
-                outArg.value = *static_cast<const uint16_t*>(valuePtr);
-                return outArg;
-            case 32:
-                outArg.value = *static_cast<const uint32_t*>(valuePtr);
-                return outArg;
-            case 64:
-                std::memcpy(&outArg.value, valuePtr, sizeof(uint64_t));
-                return outArg;
-            default:
-                SWC_UNREACHABLE();
-                return outArg;
-        }
+        outArg.value   = 0;
+        std::memcpy(&outArg.value, valuePtr, argType.numBits / 8);
+        return outArg;
     }
 
     Result resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure)

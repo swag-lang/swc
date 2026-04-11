@@ -371,16 +371,6 @@ namespace
         return tagNaturalToken(NaturalTagKind::Instruction, token);
     }
 
-    Utf8 tagFunctionToken(std::string_view token)
-    {
-        return tagNaturalToken(NaturalTagKind::Function, token);
-    }
-
-    Utf8 tagConstantToken(std::string_view token)
-    {
-        return tagNaturalToken(NaturalTagKind::Constant, token);
-    }
-
     bool isNaturalLogicToken(std::string_view token)
     {
         return token == "=" ||
@@ -609,7 +599,7 @@ namespace
             case MicroInstrOpcode::LoadRegPtrImm:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::LoadRegPtrReloc:
-                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), relocValue.empty() ? "<reloc>" : tagConstantToken(relocValue));
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), relocValue.empty() ? "<reloc>" : tagNaturalToken(NaturalTagKind::Constant, relocValue));
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadSignedExtRegMem:
@@ -701,7 +691,7 @@ namespace
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
-                return std::format("{} {}", tagInstructionToken("call"), relocValue.empty() ? "<reloc>" : tagFunctionToken(relocValue));
+                return std::format("{} {}", tagInstructionToken("call"), relocValue.empty() ? "<reloc>" : tagNaturalToken(NaturalTagKind::Function, relocValue));
             case MicroInstrOpcode::CallIndirect:
                 return std::format("{} {}", tagInstructionToken("call"), regName(ops[0].reg, regPrintMode, encoder));
 

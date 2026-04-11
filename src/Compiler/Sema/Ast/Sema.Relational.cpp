@@ -190,7 +190,12 @@ namespace
             return Result::Continue;
         }
 
-        if (compareLeftView.type()->isAny() && compareRightView.type()->isAnyTypeInfo(sema.ctx()))
+        const bool leftIsAny       = compareLeftView.type()->isAny();
+        const bool rightIsAny      = compareRightView.type()->isAny();
+        const bool leftIsTypeLike  = compareLeftView.type()->isAnyTypeInfo(sema.ctx()) || compareLeftView.type()->isTypeValue();
+        const bool rightIsTypeLike = compareRightView.type()->isAnyTypeInfo(sema.ctx()) || compareRightView.type()->isTypeValue();
+
+        if (leftIsAny && rightIsTypeLike)
         {
             const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareLeftView.cstRef());
             if (anyTypeCstRef.isValid())
@@ -200,27 +205,7 @@ namespace
             }
         }
 
-        if (compareLeftView.type()->isAny() && compareRightView.type()->isTypeValue())
-        {
-            const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareLeftView.cstRef());
-            if (anyTypeCstRef.isValid())
-            {
-                result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, anyTypeCstRef, compareRightView.cstRef()));
-                return Result::Continue;
-            }
-        }
-
-        if (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAny())
-        {
-            const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareRightView.cstRef());
-            if (anyTypeCstRef.isValid())
-            {
-                result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, compareLeftView.cstRef(), anyTypeCstRef));
-                return Result::Continue;
-            }
-        }
-
-        if (compareLeftView.type()->isTypeValue() && compareRightView.type()->isAny())
+        if (rightIsAny && leftIsTypeLike)
         {
             const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareRightView.cstRef());
             if (anyTypeCstRef.isValid())

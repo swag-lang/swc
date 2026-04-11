@@ -77,44 +77,27 @@ namespace
         return cstRef;
     }
 
-    ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstSpanPayload(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
     {
-        SWC_UNUSED(ctx);
         ConstantValue stored = value;
 
         const std::unique_lock lk(shard.mutex);
-        const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
-        stored.setPayloadStruct(view);
-
-        const uint32_t localIndex = shard.dataSegment.add(stored);
-        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-        return addCstFinalize(manager, result);
-    }
-
-    ConstantRef addCstArray(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
-    {
-        SWC_UNUSED(ctx);
-        ConstantValue stored = value;
-
-        const std::unique_lock lk(shard.mutex);
-        const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
-        stored.setPayloadArray(view);
-
-        const uint32_t localIndex = shard.dataSegment.add(stored);
-        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-        return addCstFinalize(manager, result);
-    }
-
-    ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
-    {
-        SWC_UNUSED(ctx);
-        ConstantValue stored = value;
-
-        const std::unique_lock lk(shard.mutex);
-        const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
-        stored.setPayloadSlice(view, value.getSliceCount());
+        if (value.isStruct())
+        {
+            const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
+            stored.setPayloadStruct(view);
+        }
+        else if (value.isArray())
+        {
+            const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
+            stored.setPayloadArray(view);
+        }
+        else
+        {
+            SWC_ASSERT(value.isSlice());
+            const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
+            stored.setPayloadSlice(view, value.getSliceCount());
+        }
 
         const uint32_t localIndex = shard.dataSegment.add(stored);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
@@ -225,36 +208,26 @@ namespace
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
     uint32_t   shardIndex          = value.hash() & (SHARD_COUNT - 1);
-    const bool keepBorrowedPayload = (value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed() && isBorrowedPayloadBackedByDataSegment(*this, value);
-    if ((value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed())
+    const bool isSpanValue         = value.isStruct() || value.isArray() || value.isSlice();
+    bool       keepBorrowedPayload = false;
+    if (isSpanValue && value.isPayloadBorrowed())
     {
         const uint32_t payloadShardIndex = resolveBorrowedPayloadShardIndex(*this, value);
         if (payloadShardIndex < SHARD_COUNT)
-            shardIndex = payloadShardIndex;
+        {
+            shardIndex          = payloadShardIndex;
+            keepBorrowedPayload = true;
+        }
     }
 
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
 
-    if (value.isStruct())
+    if (isSpanValue)
     {
         if (keepBorrowedPayload)
             return addCstOther(*this, shard, shardIndex, ctx, value);
-        return addCstStruct(*this, shard, shardIndex, ctx, value);
-    }
-
-    if (value.isArray())
-    {
-        if (keepBorrowedPayload)
-            return addCstOther(*this, shard, shardIndex, ctx, value);
-        return addCstArray(*this, shard, shardIndex, ctx, value);
-    }
-
-    if (value.isSlice())
-    {
-        if (keepBorrowedPayload)
-            return addCstOther(*this, shard, shardIndex, ctx, value);
-        return addCstSlice(*this, shard, shardIndex, ctx, value);
+        return addCstSpanPayload(*this, shard, shardIndex, value);
     }
 
     if (value.isString())

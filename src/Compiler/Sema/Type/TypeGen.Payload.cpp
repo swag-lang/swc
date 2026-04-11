@@ -95,40 +95,12 @@ namespace
             return;
         }
 
-        if (type.isString())
-        {
-            rtType.nativeKind = Runtime::TypeInfoNativeKind::String;
-            return;
-        }
-
-        if (type.isCString())
-        {
-            rtType.nativeKind = Runtime::TypeInfoNativeKind::CString;
-            return;
-        }
-
-        if (type.isRune())
-        {
-            rtType.nativeKind = Runtime::TypeInfoNativeKind::Rune;
-            return;
-        }
-
-        if (type.isAny())
-        {
-            rtType.nativeKind = Runtime::TypeInfoNativeKind::Any;
-            return;
-        }
-
-        if (type.isVoid())
-        {
-            rtType.nativeKind = Runtime::TypeInfoNativeKind::Void;
-            return;
-        }
-
-        if (type.isUndefined())
-        {
-            rtType.nativeKind = Runtime::TypeInfoNativeKind::Undefined;
-        }
+        if (type.isString())   { rtType.nativeKind = Runtime::TypeInfoNativeKind::String;    return; }
+        if (type.isCString())  { rtType.nativeKind = Runtime::TypeInfoNativeKind::CString;   return; }
+        if (type.isRune())     { rtType.nativeKind = Runtime::TypeInfoNativeKind::Rune;      return; }
+        if (type.isAny())      { rtType.nativeKind = Runtime::TypeInfoNativeKind::Any;       return; }
+        if (type.isVoid())     { rtType.nativeKind = Runtime::TypeInfoNativeKind::Void;      return; }
+        if (type.isUndefined()){ rtType.nativeKind = Runtime::TypeInfoNativeKind::Undefined; }
     }
 
     void initArray(Runtime::TypeInfoArray& rtType, const TypeInfo& type)
@@ -177,6 +149,21 @@ namespace
         const auto it = cache.entries.find(depKey);
         SWC_ASSERT(it != cache.entries.end() && "Missing TypeInfo dependency in cache");
         return it->second;
+    }
+
+    const TypeGen::TypeGenCache::Entry& payloadDepEntry(TypeManager& typeMgr, const TypeGen::TypeGenCache& cache, TypeRef key)
+    {
+        return requireCacheEntry(cache, typeMgr.get(key).payloadTypeRef());
+    }
+
+    void wireTypeValueArrayPointedRelocations(const TypeGen::TypeGenCache& cache, DataSegment& storage, const SmallVector<TypeRef>& types, uint32_t baseOffset)
+    {
+        for (uint32_t i = 0; i < types.size(); ++i)
+        {
+            const auto&    dep        = requireCacheEntry(cache, types[i]);
+            const uint32_t elemOffset = baseOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+            addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
+        }
     }
 
     void materializeInlineAny(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, ConstantRef valueCstRef)
@@ -645,20 +632,12 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         }
 
         case LayoutKind::Pointer:
-        {
-            const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireCacheEntry(cache, depKey);
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), payloadDepEntry(typeMgr, cache, key).offset);
             break;
-        }
 
         case LayoutKind::Slice:
-        {
-            const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireCacheEntry(cache, depKey);
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), dep.offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), payloadDepEntry(typeMgr, cache, key).offset);
             break;
-        }
 
         case LayoutKind::Array:
         {
@@ -674,55 +653,24 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         }
 
         case LayoutKind::Alias:
-        {
-            const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireCacheEntry(cache, depKey);
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), dep.offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoAlias, rawType), payloadDepEntry(typeMgr, cache, key).offset);
             break;
-        }
 
         case LayoutKind::TypedVariadic:
-        {
-            const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireCacheEntry(cache, depKey);
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), dep.offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoVariadic, rawType), payloadDepEntry(typeMgr, cache, key).offset);
             break;
-        }
 
         case LayoutKind::CodeBlock:
-        {
-            const TypeRef depKey = typeMgr.get(key).payloadTypeRef();
-            const auto&   dep    = requireCacheEntry(cache, depKey);
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoCodeBlock, rawType), dep.offset);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoCodeBlock, rawType), payloadDepEntry(typeMgr, cache, key).offset);
             break;
-        }
 
         case LayoutKind::Struct:
         {
-            if (entry.structFieldsCount && entry.structFieldsOffset)
-            {
-                // Wire each 'TypeValue.pointedType' of 'fields'.
-                SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
-                for (uint32_t i = 0; i < entry.structFieldsCount; ++i)
-                {
-                    const TypeRef  depKey     = entry.structFieldTypes[i];
-                    const auto&    dep        = requireCacheEntry(cache, depKey);
-                    const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                    addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
-                }
-            }
-
-            if (entry.usingFieldsCount && entry.usingFieldsOffset)
-            {
-                SWC_ASSERT(entry.usingFieldTypes.size() == entry.usingFieldsCount);
-                for (uint32_t i = 0; i < entry.usingFieldsCount; ++i)
-                {
-                    const TypeRef  depKey     = entry.usingFieldTypes[i];
-                    const auto&    dep        = requireCacheEntry(cache, depKey);
-                    const uint32_t elemOffset = entry.usingFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                    addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
-                }
-            }
+            // Wire each 'TypeValue.pointedType' of 'fields' and 'usingFields'.
+            SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
+            SWC_ASSERT(entry.usingFieldTypes.size() == entry.usingFieldsCount);
+            wireTypeValueArrayPointedRelocations(cache, storage, entry.structFieldTypes, entry.structFieldsOffset);
+            wireTypeValueArrayPointedRelocations(cache, storage, entry.usingFieldTypes, entry.usingFieldsOffset);
 
             const TypeInfo& keyType = typeMgr.get(key);
             if (keyType.isAggregateStruct())
@@ -754,17 +702,8 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Func:
         {
-            if (entry.funcParamsCount && entry.funcParamsOffset)
-            {
-                SWC_ASSERT(entry.funcParamTypes.size() == entry.funcParamsCount);
-                for (uint32_t i = 0; i < entry.funcParamsCount; ++i)
-                {
-                    const TypeRef  depKey     = entry.funcParamTypes[i];
-                    const auto&    dep        = requireCacheEntry(cache, depKey);
-                    const uint32_t elemOffset = entry.funcParamsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                    addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
-                }
-            }
+            SWC_ASSERT(entry.funcParamTypes.size() == entry.funcParamsCount);
+            wireTypeValueArrayPointedRelocations(cache, storage, entry.funcParamTypes, entry.funcParamsOffset);
 
             if (entry.funcReturnTypeRef.isValid())
             {

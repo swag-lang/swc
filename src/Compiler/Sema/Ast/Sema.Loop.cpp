@@ -342,6 +342,19 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
                 auto& payload        = ensureLoopSemaPayload(sema, sema.curNodeRef());
                 payload.indexTypeRef = countResult.typeRef;
                 payload.countCstRef  = countResult.cstRef;
+                payload.countFn      = countResult.calledFn;
+                if (countResult.calledFn != nullptr)
+                {
+                    payload.countResolvedArgs.clear();
+                    sema.appendResolvedCallArguments(sema.curNodeRef(), payload.countResolvedArgs);
+
+                    // A loop statement is not the count expression itself. Restore it to statement
+                    // semantics after borrowing the synthetic call metadata for `opCount`.
+                    sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
+                    sema.unsetIsValue(sema.curNodeRef());
+                    sema.unsetIsLValue(sema.curNodeRef());
+                    sema.unsetFoldedTypedConst(sema.curNodeRef());
+                }
             }
             else if (!view.type()->isInt())
             {

@@ -114,7 +114,7 @@ namespace
 
         const std::unique_lock lk(shard.mutex);
         const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
-        stored.setPayloadSlice(view);
+        stored.setPayloadSlice(view, value.getSliceCount());
 
         const uint32_t localIndex = shard.dataSegment.add(stored);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);

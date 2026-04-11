@@ -211,7 +211,7 @@ namespace
 
         SWC_ASSERT(srcNames.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
-        std::vector             dstUsed(dstFields.size(), false);
+        std::vector dstUsed(dstFields.size(), false);
         std::vector dstFieldInitRefs(dstFields.size(), AstNodeRef::invalid());
 
         bool   seenNamed = false;

@@ -8,6 +8,20 @@ enum Color
     Alpha
 }
 
+struct CountedRuntime
+{
+    count: u64
+}
+
+struct ZeroSized
+{
+}
+
+impl CountedRuntime
+{
+    mtd opCount() => me.count
+}
+
 #test
 {
     func countEnum()->u64 { return @countof(Color) }
@@ -80,4 +94,26 @@ enum Color
     func countAny(values: ...)->u64 { return @countof(values) }
     const V0 = #run countAny(1, "ab", true, 4.0'f64)
     #assert(V0 == 4'u64)
+}
+
+#test
+{
+    func countStruct(value: CountedRuntime)->u64 { return @countof(value) }
+    const V0 = #run countStruct({7})
+    const V1 = #run countStruct({0})
+    #assert(V0 == 7'u64)
+    #assert(V1 == 0'u64)
+}
+
+#test
+{
+    func countZeroSizedSlice()->u64
+    {
+        var values: [3] ZeroSized
+        let slice = cast([..] ZeroSized) values
+        return @countof(slice)
+    }
+
+    const V0 = #run countZeroSizedSlice()
+    #assert(V0 == 3'u64)
 }

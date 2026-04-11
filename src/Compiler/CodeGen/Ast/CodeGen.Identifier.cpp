@@ -382,9 +382,9 @@ namespace
 
         const CodeGenNodePayload receiverPayload = resolveIdentifierVariablePayload(codeGen, symVar);
         CodeGenNodePayload&      receiverArg     = codeGen.setPayload(resolvedArgs[0].argRef, symVar.typeRef());
-        receiverArg.reg                         = receiverPayload.reg;
-        receiverArg.typeRef                     = receiverPayload.typeRef;
-        receiverArg.storageKind                 = receiverPayload.storageKind;
+        receiverArg.reg                          = receiverPayload.reg;
+        receiverArg.typeRef                      = receiverPayload.typeRef;
+        receiverArg.storageKind                  = receiverPayload.storageKind;
 
         codeGen.sema().setSymbol(codeGen.curNodeRef(), &calledFn);
         return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());

@@ -14,6 +14,20 @@ enum Direction { N, S, E, W }
 enum Single { Only }
 #assert(@countof(Single) == 1)
 
+struct CountedRuntime
+{
+    count: u64
+}
+
+struct ZeroSized
+{
+}
+
+impl CountedRuntime
+{
+    mtd opCount() => me.count
+}
+
 // ============================================================
 // Compile-time — string literals
 // ============================================================
@@ -111,6 +125,27 @@ namespace NS {}
     const b = @countof(a)
     #assert(b == 1)
     @assert(b == 1)
+}
+
+#test
+{
+    let value0 = CountedRuntime{count: 7}
+    let value1 = CountedRuntime{count: 0}
+    const c0 = @countof(value0)
+    const c1 = @countof(value1)
+    #assert(c0 == 7)
+    #assert(c1 == 0)
+    @assert(c0 == 7)
+    @assert(c1 == 0)
+}
+
+#test
+{
+    var values: [3] ZeroSized
+    let slice = cast([..] ZeroSized) values
+    let count = @countof(slice)
+    #assert(#typeof(count) == u64)
+    @assert(count == 3)
 }
 
 // ============================================================

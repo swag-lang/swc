@@ -8,6 +8,25 @@ enum A { R, G, B }
 const B = "XYZ"
 #assert(@countof(B) == 3)
 
+struct CountedBySpecOp
+{
+}
+
+struct ZeroSized
+{
+}
+
+impl CountedBySpecOp
+{
+    mtd opCount() => 9'u64
+}
+
+#assert(@countof(CountedBySpecOp{}) == 9)
+
+const ZERO_SIZED_VALUES: [3] ZeroSized = [{}, {}, {}]
+const ZERO_SIZED_SLICE = cast([..] ZeroSized) ZERO_SIZED_VALUES
+#assert(@countof(ZERO_SIZED_SLICE) == 3)
+
 #test
 {
     const a = @countof(3)
@@ -46,4 +65,12 @@ namespace NS {}
     var a: [7] bool
     const b = @countof(a)
     #assert(b == 7)
+}
+
+#test
+{
+    let value = CountedBySpecOp{}
+    const count = @countof(value)
+    #assert(#typeof(count) == u64)
+    #assert(count == 9)
 }

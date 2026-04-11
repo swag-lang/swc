@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -8,6 +9,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -111,15 +113,43 @@ namespace
         return outReg;
     }
 
-    MicroReg materializeLoopCountOfReg(CodeGen& codeGen, AstNodeRef exprRef, TypeRef resultTypeRef)
+    Result materializeLoopCountOfReg(MicroReg& outReg, CodeGen& codeGen, AstNodeRef exprRef, TypeRef resultTypeRef)
     {
+        outReg = MicroReg::invalid();
+
+        if (const auto* loopPayload = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef());
+            loopPayload && loopPayload->countFn != nullptr)
+        {
+            auto* savedLoopStatePtr = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+            SWC_ASSERT(savedLoopStatePtr != nullptr);
+            const ForStmtCodeGenPayload savedLoopState = *savedLoopStatePtr;
+            auto*                       callPayload    = codeGen.compiler().allocate<CodeGenNodePayload>();
+            *callPayload                               = {};
+            codeGen.sema().setCodeGenPayload(codeGen.curNodeRef(), callPayload);
+
+            codeGen.sema().setResolvedCallArguments(codeGen.curNodeRef(), loopPayload->countResolvedArgs);
+            codeGen.sema().setSymbol(codeGen.curNodeRef(), loopPayload->countFn);
+            codeGen.sema().setIsValue(codeGen.curNodeRef());
+            SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+            const CodeGenNodePayload countPayload = *callPayload;
+
+            *savedLoopStatePtr = savedLoopState;
+            codeGen.sema().setCodeGenPayload(codeGen.curNodeRef(), savedLoopStatePtr);
+
+            outReg = materializeLoopValueReg(codeGen, countPayload, resultTypeRef);
+            return Result::Continue;
+        }
+
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
         const SemaNodeView        exprView    = codeGen.viewType(exprRef);
         const TypeInfo&           exprType    = *exprView.type();
         MicroBuilder&             builder     = codeGen.builder();
 
         if (exprType.isIntUnsigned())
-            return materializeLoopValueReg(codeGen, exprPayload, resultTypeRef);
+        {
+            outReg = materializeLoopValueReg(codeGen, exprPayload, resultTypeRef);
+            return Result::Continue;
+        }
 
         const MicroReg baseReg   = exprPayload.reg;
         const MicroReg resultReg = codeGen.nextVirtualIntRegister();
@@ -150,19 +180,22 @@ namespace
             builder.emitOpBinaryRegImm(resultReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
             builder.placeLabel(doneLabel);
-            return resultReg;
+            outReg = resultReg;
+            return Result::Continue;
         }
 
         if (exprType.isString())
         {
             builder.emitLoadRegMem(resultReg, baseReg, offsetof(Runtime::String, length), MicroOpBits::B64);
-            return resultReg;
+            outReg = resultReg;
+            return Result::Continue;
         }
 
         if (exprType.isSlice() || exprType.isAnyVariadic())
         {
             builder.emitLoadRegMem(resultReg, baseReg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);
-            return resultReg;
+            outReg = resultReg;
+            return Result::Continue;
         }
 
         SWC_UNREACHABLE();
@@ -270,7 +303,7 @@ namespace
             if (semaPayload->countCstRef.isValid())
                 upperReg = materializeLoopConstantReg(codeGen, semaPayload->countCstRef, loopState.indexTypeRef);
             else
-                upperReg = materializeLoopCountOfReg(codeGen, exprRef, loopState.indexTypeRef);
+                SWC_RESULT(materializeLoopCountOfReg(upperReg, codeGen, exprRef, loopState.indexTypeRef));
         }
 
         const TypeInfo&   indexType = codeGen.typeMgr().get(loopState.indexTypeRef);

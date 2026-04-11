@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -1019,6 +1020,13 @@ namespace
 
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)
     {
+        if (const auto* countPayload = codeGen.sema().semaPayload<CountOfSpecOpPayload>(codeGen.curNodeRef());
+            countPayload && countPayload->calledFn != nullptr)
+        {
+            codeGen.sema().setSymbol(codeGen.curNodeRef(), countPayload->calledFn);
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        }
+
         MicroBuilder&             builder       = codeGen.builder();
         const SemaNodeView        exprView      = countOfExprView(codeGen, exprRef);
         const CodeGenNodePayload& exprPayload   = countOfExprPayload(codeGen, exprRef);

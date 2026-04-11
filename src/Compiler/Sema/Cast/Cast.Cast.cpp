@@ -19,6 +19,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint64_t sliceCountFromArrayCast(TaskContext& ctx, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
+    {
+        const uint64_t dstElementSize = dstElementType.sizeOf(ctx);
+        if (dstElementSize)
+            return srcArrayType.sizeOf(ctx) / dstElementSize;
+
+        uint64_t totalCount = 1;
+        for (const uint64_t dim : srcArrayType.payloadArrayDims())
+            totalCount *= dim;
+        return totalCount;
+    }
+
     CastRequest makeNestedCastRequest(const CastRequest& parent)
     {
         CastRequest nested(parent.kind);
@@ -940,8 +952,10 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isArray());
-                const ConstantValue sliceCst = ConstantValue::makeSlice(ctx, dstElemTypeRef, srcCst.getArray(), dstType.flags());
-                castRequest.outConstRef      = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
+                const TypeInfo&     dstElemType = sema.typeMgr().get(dstElemTypeRef);
+                const uint64_t      sliceCount  = sliceCountFromArrayCast(ctx, srcType, dstElemType);
+                const ConstantValue sliceCst    = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, srcCst.getArray(), sliceCount, dstType.flags());
+                castRequest.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
             }
 
             return Result::Continue;
@@ -1004,7 +1018,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const ByteSpanRW       arraySpan = asByteSpan(arrayData);
         SWC_RESULT(ConstantLower::lowerAggregateArrayToBytes(sema, arraySpan, arrayType, castedValues));
 
-        const ConstantValue sliceCst = ConstantValue::makeSlice(ctx, dstElemTypeRef, arraySpan, dstType.flags());
+        const ConstantValue sliceCst = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, arraySpan, srcValues.size(), dstType.flags());
         castRequest.outConstRef      = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
         return Result::Continue;
     }

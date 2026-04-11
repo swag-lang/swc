@@ -367,10 +367,10 @@ namespace
         failBadType(outFail, callArgIndex, paramIndex == UINT32_MAX ? callArgIndex : paramIndex, cf);
     }
 
-    Utf8 formatNamedParameters(const Sema&                                sema,
-                               std::span<SymbolVariable* const>           params,
-                               uint32_t                                   paramStart,
-                               uint32_t                                   numParams)
+    Utf8 formatNamedParameters(const Sema&                      sema,
+                               std::span<SymbolVariable* const> params,
+                               uint32_t                         paramStart,
+                               uint32_t                         numParams)
     {
         Utf8 result;
         bool first = true;

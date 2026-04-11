@@ -21,16 +21,12 @@ just like arrays or other iterable types. The loop executes the number
 of times returned by 'opCount'.
 */
 
-// @TODO: Re-enable when `opCount` makes structs loopable via `@countof` and `for v do` again.
-// #test
-// {
-//     let v = MyStruct{}
-//
-//     @assert(@countof(v) == 4)
-//
-//     var cpt = 0
-//     for v do
-//         cpt += 1
-//
-//     @assert(cpt == 4)
-// }
+#test
+{
+    let v = MyStruct{}
+    @assert(@countof(v) == 4)
+    var cpt = 0
+    for v do
+        cpt += 1
+    @assert(cpt == 4)
+}

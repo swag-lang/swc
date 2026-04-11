@@ -17,6 +17,34 @@ namespace
         Eq,
     };
 
+    uint64_t sliceCountFromBytes(TaskContext& ctx, const TypeRef elementTypeRef, const ByteSpan bytes)
+    {
+        const TypeInfo& elementType = ctx.typeMgr().get(elementTypeRef);
+        const uint64_t  elementSize = elementType.sizeOf(ctx);
+        if (!elementSize)
+        {
+            SWC_ASSERT(bytes.empty());
+            return 0;
+        }
+
+        SWC_ASSERT(bytes.size() % elementSize == 0);
+        return bytes.size() / elementSize;
+    }
+
+    void validateSlicePayload(TaskContext& ctx, const TypeRef elementTypeRef, const ByteSpan bytes, const uint64_t count)
+    {
+        const TypeInfo& elementType = ctx.typeMgr().get(elementTypeRef);
+        const uint64_t  elementSize = elementType.sizeOf(ctx);
+        if (!elementSize)
+        {
+            SWC_ASSERT(bytes.empty());
+            return;
+        }
+
+        SWC_ASSERT(count <= std::numeric_limits<uint64_t>::max() / elementSize);
+        SWC_ASSERT(bytes.size() == count * elementSize);
+    }
+
     bool compareSameKind(const ConstantValue& lhs, const ConstantValue& rhs, NumericCmp numericCmp) noexcept
     {
         SWC_ASSERT(lhs.kind() == rhs.kind());
@@ -50,7 +78,7 @@ namespace
             case ConstantKind::BlockPointer:
                 return lhs.getBlockPointer() == rhs.getBlockPointer();
             case ConstantKind::Slice:
-                return lhs.getSlice().data() == rhs.getSlice().data();
+                return lhs.getSlice().data() == rhs.getSlice().data() && lhs.getSliceCount() == rhs.getSliceCount();
             case ConstantKind::Null:
                 return true;
             case ConstantKind::Undefined:
@@ -542,24 +570,40 @@ ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef,
 
 ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags)
 {
-    ConstantValue  cv;
-    const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
-    cv.typeRef_          = ctx.typeMgr().addType(ty);
-    cv.kind_             = ConstantKind::Slice;
-    cv.payloadSlice_.val = normalizePayloadBytes(bytes);
-    cv.payloadBorrowed_  = false;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return cv;
+    return makeSliceCounted(ctx, typeRef, bytes, sliceCountFromBytes(ctx, typeRef, bytes), flags);
 }
 
 ConstantValue ConstantValue::makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags)
 {
+    return makeSliceBorrowedCounted(ctx, typeRef, bytes, sliceCountFromBytes(ctx, typeRef, bytes), flags);
+}
+
+ConstantValue ConstantValue::makeSliceCounted(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, uint64_t count, TypeInfoFlags flags)
+{
+    validateSlicePayload(ctx, typeRef, bytes, count);
+
     ConstantValue  cv;
-    const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
-    cv.typeRef_          = ctx.typeMgr().addType(ty);
-    cv.kind_             = ConstantKind::Slice;
-    cv.payloadSlice_.val = normalizePayloadBytes(bytes);
-    cv.payloadBorrowed_  = true;
+    const TypeInfo ty      = TypeInfo::makeSlice(typeRef, flags);
+    cv.typeRef_            = ctx.typeMgr().addType(ty);
+    cv.kind_               = ConstantKind::Slice;
+    cv.payloadSlice_.val   = normalizePayloadBytes(bytes);
+    cv.payloadSlice_.count = count;
+    cv.payloadBorrowed_    = false;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeSliceBorrowedCounted(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, uint64_t count, TypeInfoFlags flags)
+{
+    validateSlicePayload(ctx, typeRef, bytes, count);
+
+    ConstantValue  cv;
+    const TypeInfo ty      = TypeInfo::makeSlice(typeRef, flags);
+    cv.typeRef_            = ctx.typeMgr().addType(ty);
+    cv.kind_               = ConstantKind::Slice;
+    cv.payloadSlice_.val   = normalizePayloadBytes(bytes);
+    cv.payloadSlice_.count = count;
+    cv.payloadBorrowed_    = true;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -655,12 +699,12 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
         const TypeInfo elementType = ctx.typeMgr().get(ty.payloadTypeRef());
         const uint64_t elementSize = elementType.sizeOf(ctx);
-        SWC_ASSERT(elementSize != 0);
+        SWC_ASSERT(!elementSize || slice->count <= std::numeric_limits<uint64_t>::max() / elementSize);
         const uint64_t byteCount = elementSize ? slice->count * elementSize : 0;
-        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), byteCount};
+        const ByteSpan span{reinterpret_cast<const std::byte*>(slice->ptr), byteCount};
         if (ownership == PayloadOwnership::Borrowed)
-            return makeSliceBorrowed(ctx, ty.payloadTypeRef(), span, ty.flags());
-        return makeSlice(ctx, ty.payloadTypeRef(), span, ty.flags());
+            return makeSliceBorrowedCounted(ctx, ty.payloadTypeRef(), span, slice->count, ty.flags());
+        return makeSliceCounted(ctx, ty.payloadTypeRef(), span, slice->count, ty.flags());
     }
 
     return ConstantValue{};
@@ -690,6 +734,7 @@ uint32_t ConstantValue::hash() const noexcept
             break;
         case ConstantKind::Slice:
             h = Math::hashCombine(h, Math::hash(payloadSlice_.val));
+            h = Math::hashCombine(h, payloadSlice_.count);
             break;
         case ConstantKind::AggregateStruct:
         case ConstantKind::AggregateArray:
@@ -806,7 +851,7 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return std::format("[*] 0x{:016X}", getBlockPointer());
 
         case ConstantKind::Slice:
-            return std::format("[..] (0x{:016X}, {})", reinterpret_cast<uintptr_t>(getSlice().data()), getSlice().size());
+            return std::format("[..] (0x{:016X}, {})", reinterpret_cast<uintptr_t>(getSlice().data()), getSliceCount());
 
         case ConstantKind::Null:
             return "null";

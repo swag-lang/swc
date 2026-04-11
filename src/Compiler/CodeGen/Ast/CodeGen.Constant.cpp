@@ -20,6 +20,18 @@ namespace
         uint32_t   offset   = 0;
     };
 
+    uint64_t sliceCountFromArrayCast(CodeGen& codeGen, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
+    {
+        const uint64_t dstElementSize = dstElementType.sizeOf(codeGen.ctx());
+        if (dstElementSize)
+            return srcArrayType.sizeOf(codeGen.ctx()) / dstElementSize;
+
+        uint64_t totalCount = 1;
+        for (const uint64_t dim : srcArrayType.payloadArrayDims())
+            totalCount *= dim;
+        return totalCount;
+    }
+
     uint64_t alignUpTo(uint64_t value, uint32_t alignment)
     {
         SWC_ASSERT(alignment != 0);
@@ -486,14 +498,14 @@ namespace
                     if (targetType.isSlice())
                     {
                         const TypeInfo&   elementType     = codeGen.typeMgr().get(targetType.payloadTypeRef());
-                        const uint64_t    elementSize     = elementType.sizeOf(codeGen.ctx());
+                        const TypeInfo&   sourceArrayType = cst.type(codeGen.ctx());
                         const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
                         SWC_ASSERT(safeArrayCstRef.isValid());
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
                         const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen,
                                                                                                                            targetTypeRef,
                                                                                                                            safeArrayCst.getArray().data(),
-                                                                                                                        elementSize ? safeArrayCst.getArray().size() / elementSize : 0);
+                                                                                                                           sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
@@ -518,9 +530,7 @@ namespace
                 const ByteSpan  sliceBytes = cst.getSlice();
                 const TypeInfo& sliceType  = cst.type(codeGen.ctx());
                 SWC_ASSERT(sliceType.isSlice());
-                const TypeInfo&   elementType     = codeGen.typeMgr().get(sliceType.payloadTypeRef());
-                const uint64_t    elementSize     = elementType.sizeOf(codeGen.ctx());
-                const uint64_t    elementCount    = elementSize ? sliceBytes.size() / elementSize : 0;
+                const uint64_t    elementCount    = cst.getSliceCount();
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
                 SWC_ASSERT(safeArrayCstRef.isValid());
                 const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);

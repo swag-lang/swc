@@ -9,7 +9,7 @@ public:
     static constexpr auto K = JobKind::Sema;
     ParserJob(const TaskContext& ctx, SourceFile* file);
 
-    JobResult   exec() override;
+    JobResult exec() override;
 
 private:
     SourceFile* file_ = nullptr;

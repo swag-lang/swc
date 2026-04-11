@@ -189,9 +189,7 @@ namespace
     {
         const TypeInfo& typeInfo  = sema.typeMgr().get(cst.typeRef());
         const ByteSpan  bytes     = cst.getSlice();
-        const TypeInfo& elemType  = sema.typeMgr().get(typeInfo.payloadTypeRef());
-        const uint64_t  elemSize  = elemType.sizeOf(sema.ctx());
-        const uint64_t  elemCount = elemSize ? bytes.size() / elemSize : 0;
+        const uint64_t  elemCount = cst.getSliceCount();
         return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, elemCount, nodeArgRef);
     }
 

@@ -140,6 +140,12 @@ public:
         return payloadSlice_.val;
     }
 
+    uint64_t getSliceCount() const
+    {
+        SWC_ASSERT(isSlice());
+        return payloadSlice_.count;
+    }
+
     TypeRef getTypeValue() const
     {
         SWC_ASSERT(isTypeValue());
@@ -214,6 +220,8 @@ public:
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSliceCounted(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, uint64_t count, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSliceBorrowedCounted(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, uint64_t count, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef);
     static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef, PayloadOwnership ownership);
@@ -231,7 +239,11 @@ public:
     bool     ge(const ConstantValue& rhs) const noexcept;
     Utf8     toString(const TaskContext& ctx) const;
 
-    void setPayloadSlice(ByteSpan bytes) { payloadSlice_.val = normalizePayloadBytes(bytes); }
+    void setPayloadSlice(ByteSpan bytes, uint64_t count)
+    {
+        payloadSlice_.val   = normalizePayloadBytes(bytes);
+        payloadSlice_.count = count;
+    }
     void setPayloadStruct(ByteSpan bytes) { payloadStruct_.val = normalizePayloadBytes(bytes); }
     void setPayloadArray(ByteSpan bytes) { payloadArray_.val = normalizePayloadBytes(bytes); }
 
@@ -290,6 +302,7 @@ private:
         struct
         {
             ByteSpan val;
+            uint64_t count;
         } payloadSlice_;
 
         struct

@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -609,11 +610,9 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
 
         if (view.cst()->isSlice())
         {
-            const TypeInfo& elementType = sema.typeMgr().get(view.type()->payloadTypeRef());
-            const uint64_t  elementSize = elementType.sizeOf(ctx);
-            const uint64_t  count       = elementSize ? view.cst()->getSlice().size() / elementSize : 0;
-            outResult.cstRef            = sema.cstMgr().addInt(ctx, count);
-            outResult.typeRef           = sema.cstMgr().get(outResult.cstRef).typeRef();
+            const uint64_t count = view.cst()->getSliceCount();
+            outResult.cstRef     = sema.cstMgr().addInt(ctx, count);
+            outResult.typeRef    = sema.cstMgr().get(outResult.cstRef).typeRef();
             return Result::Continue;
         }
 
@@ -684,6 +683,18 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
         return Result::Continue;
     }
 
+    bool            handledSpecOp = false;
+    SymbolFunction* calledFn      = nullptr;
+    SWC_RESULT(SemaSpecOp::tryResolveCountOf(sema, exprRef, calledFn, handledSpecOp));
+    if (handledSpecOp)
+    {
+        const SemaNodeView resultView = sema.viewNodeTypeConstant(sema.curNodeRef());
+        outResult.typeRef             = resultView.typeRef();
+        outResult.cstRef              = resultView.cstRef();
+        outResult.calledFn            = calledFn;
+        return Result::Continue;
+    }
+
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, view.nodeRef());
     diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
     diag.report(ctx);
@@ -694,6 +705,18 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
 {
     CountOfResultInfo result;
     SWC_RESULT(resolveCountOfResult(sema, result, exprRef));
+    if (result.calledFn != nullptr)
+    {
+        auto* payload = sema.semaPayload<CountOfSpecOpPayload>(targetRef);
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CountOfSpecOpPayload>();
+            sema.setSemaPayload(targetRef, payload);
+        }
+
+        payload->calledFn = result.calledFn;
+    }
+
     if (result.cstRef.isValid())
     {
         sema.setConstant(targetRef, result.cstRef);

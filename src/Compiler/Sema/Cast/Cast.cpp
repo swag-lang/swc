@@ -117,7 +117,7 @@ Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef
     if (sema.isGlobalScope())
         return Result::Continue;
 
-    const TypeRef storageTypeRef = Cast::runtimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);
+    const TypeRef storageTypeRef = runtimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);
     if (storageTypeRef.isInvalid())
         return Result::Continue;
 

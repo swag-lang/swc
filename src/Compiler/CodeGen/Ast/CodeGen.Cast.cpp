@@ -37,6 +37,18 @@ namespace
         bool                  usingFieldIsPointer = false;
     };
 
+    uint64_t sliceCountFromArrayCast(CodeGen& codeGen, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
+    {
+        const uint64_t dstElementSize = dstElementType.sizeOf(codeGen.ctx());
+        if (dstElementSize)
+            return srcArrayType.sizeOf(codeGen.ctx()) / dstElementSize;
+
+        uint64_t totalCount = 1;
+        for (const uint64_t dim : srcArrayType.payloadArrayDims())
+            totalCount *= dim;
+        return totalCount;
+    }
+
     bool resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo)
     {
         if (const SymbolImpl* implSym = srcStruct.findInterfaceImpl(dstItf.idRef()))
@@ -196,7 +208,6 @@ namespace
         DynamicStructCastSourceKind kind          = DynamicStructCastSourceKind::Invalid;
         TypeRef                     structTypeRef = TypeRef::invalid();
     };
-
 
     bool resolveDynamicStructCastSourceInfo(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)
     {
@@ -445,9 +456,7 @@ namespace
         SWC_ASSERT(dstType.isSlice());
 
         const TypeInfo& dstElementType = codeGen.typeMgr().get(dstType.payloadTypeRef());
-        const uint64_t  totalSize      = srcType.sizeOf(codeGen.ctx());
-        const uint64_t  elementSize    = dstElementType.sizeOf(codeGen.ctx());
-        const uint64_t  elementCount   = elementSize ? totalSize / elementSize : 0;
+        const uint64_t  elementCount   = sliceCountFromArrayCast(codeGen, srcType, dstElementType);
 
         MicroBuilder&             builder    = codeGen.builder();
         const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);

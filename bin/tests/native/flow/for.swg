@@ -1,5 +1,24 @@
 #global fileprivate // 
 
+struct CountedLoop
+{
+    count: u64
+}
+
+struct FixedCountedLoop
+{
+}
+
+impl CountedLoop
+{
+    mtd opCount() => me.count
+}
+
+impl FixedCountedLoop
+{
+    mtd opCount() => 4'u64
+}
+
 #test
 {
     var count = 0
@@ -159,6 +178,39 @@
     }
     @assert(count == 6)
     @assert(sum == 39)
+}
+
+#test
+{
+    let value0 = CountedLoop{count: 4}
+    let value1 = CountedLoop{count: 0}
+    var count0 = 0
+    var count1 = 0
+
+    for value0 do
+        count0 += 1
+
+    for value1 do
+        count1 += 1
+
+    @assert(count0 == 4)
+    @assert(count1 == 0)
+}
+
+#test
+{
+    let value = FixedCountedLoop{}
+    var count = 0
+    var sum = 0
+
+    for value do
+        count += 1
+
+    for i in value do
+        sum += cast(s32) i
+
+    @assert(count == 4)
+    @assert(sum == 6)
 }
 
 #test

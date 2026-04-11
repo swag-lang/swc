@@ -15,8 +15,9 @@ namespace SemaHelpers
 {
     struct CountOfResultInfo
     {
-        TypeRef     typeRef = TypeRef::invalid();
-        ConstantRef cstRef  = ConstantRef::invalid();
+        TypeRef         typeRef  = TypeRef::invalid();
+        ConstantRef     cstRef   = ConstantRef::invalid();
+        SymbolFunction* calledFn = nullptr;
     };
 
     CodeGenNodePayload&   ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef);

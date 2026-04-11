@@ -270,8 +270,15 @@ namespace
             return Result::Continue;
         }
 
+        if (elementSize == 0)
+        {
+            // Zero-sized slice elements carry length without backing storage.
+            dstSlice.ptr   = nullptr;
+            dstSlice.count = srcSlice.count;
+            return Result::Continue;
+        }
+
         SWC_INTERNAL_CHECK(srcSlice.ptr != nullptr);
-        SWC_INTERNAL_CHECK(elementSize != 0);
 
         SWC_ASSERT(srcSlice.count <= std::numeric_limits<uint64_t>::max() / elementSize);
         const uint64_t byteCount = srcSlice.count * elementSize;
@@ -409,6 +416,7 @@ namespace
     Result lowerSliceConstantToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeRef dstTypeRef, const ConstantValue& cst)
     {
         SWC_ASSERT((cst.isNull() || cst.isSlice() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
+        SWC_UNUSED(dstType);
         if (cst.isStruct(dstTypeRef))
         {
             copyBytes(dstBytes, cst.getStruct());
@@ -418,11 +426,9 @@ namespace
         Runtime::Slice<uint8_t> runtimeValue = {};
         if (cst.isSlice())
         {
-            const ByteSpan  bytes       = cst.getSlice();
-            const TypeInfo& elementType = sema.typeMgr().get(dstType.payloadTypeRef());
-            const uint64_t  elementSize = elementType.sizeOf(sema.ctx());
-            runtimeValue.count          = elementSize ? bytes.size() / elementSize : 0;
-            runtimeValue.ptr            = runtimeValue.count ? reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())) : nullptr;
+            const ByteSpan bytes = cst.getSlice();
+            runtimeValue.count   = cst.getSliceCount();
+            runtimeValue.ptr     = bytes.empty() ? nullptr : reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data()));
         }
 
         writeValue(dstBytes, runtimeValue);

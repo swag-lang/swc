@@ -140,7 +140,7 @@ namespace
 
     AstNodeRef makeVarInitReceiverRef(Sema& sema, SymbolVariable& symVar, TypeRef typeRef, AstNodeRef valueRef)
     {
-        const TokenRef tokRef = valueRef.isValid() ? sema.node(valueRef).tokRef() : sema.curNode().tokRef();
+        const TokenRef tokRef            = valueRef.isValid() ? sema.node(valueRef).tokRef() : sema.curNode().tokRef();
         auto [receiverRef, receiverNode] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
         sema.setSymbol(receiverRef, &symVar);
         sema.setType(receiverRef, typeRef);
@@ -570,7 +570,6 @@ namespace
         }
     }
 
-
     struct SemaPostVarDeclArgs
     {
         const AstNode*              owner;
@@ -580,7 +579,7 @@ namespace
         EnumFlags<AstVarDeclFlagsE> flags;
     };
 
-    Result tryResolveVarDeclAffectInit(Sema&                     sema,
+    Result tryResolveVarDeclAffectInit(Sema&                      sema,
                                        const SemaPostVarDeclArgs& context,
                                        const std::span<Symbol*>&  symbols,
                                        bool                       isConst,
@@ -844,13 +843,13 @@ namespace
 
         const TypeInfo* explicitType = explicitTypeRef.isValid() ? &sema.typeMgr().get(explicitTypeRef) : nullptr;
 
-        const bool      isConst                 = context.flags.has(AstVarDeclFlagsE::Const);
-        const bool      isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
-        const bool      isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
-        const bool      isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
-        const bool      codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
-        bool            isExplicitUndefinedInit = false;
-        SymbolFunction* globalFunctionInit      = nullptr;
+        const bool            isConst                 = context.flags.has(AstVarDeclFlagsE::Const);
+        const bool            isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
+        const bool            isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
+        const bool            isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
+        const bool            codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
+        bool                  isExplicitUndefinedInit = false;
+        SymbolFunction*       globalFunctionInit      = nullptr;
         VarDeclAffectInitInfo affectInitInfo;
 
         SWC_RESULT(checkUndefinedInit(sema, context, symbols, isConst, isLet, isParameter, explicitTypeRef, explicitType, nodeInitView, isExplicitUndefinedInit));

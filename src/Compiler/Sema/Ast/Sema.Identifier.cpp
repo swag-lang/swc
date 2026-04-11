@@ -45,7 +45,6 @@ namespace
     }
 
     using SemaHelpers::resolveLambdaBindingFunction;
-    using SemaHelpers::unwrapLambdaBindingType;
 
     bool requiresExplicitCaptureList(Sema& sema, const SymbolFunction& function)
     {

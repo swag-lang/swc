@@ -1636,8 +1636,6 @@ namespace
         constexpr uint32_t entriesOffset    = (sizeof(Runtime::Slice<Runtime::Gvtd>) + alignof(Runtime::Gvtd) - 1) & ~(alignof(Runtime::Gvtd) - 1);
 
         SWC_ASSERT(codeGen.hasGvtdScratchLayout());
-        if (!codeGen.hasGvtdScratchLayout())
-            return Result::Error;
 
         // Rebuild the returned slice in frame-local scratch storage on each call so both the slice header
         // and the entry array stay valid for the duration of the current function.

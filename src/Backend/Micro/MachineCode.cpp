@@ -37,9 +37,9 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     Stats::get().numMicroInstrFinal.fetch_add(numMicroInstrFinal, std::memory_order_relaxed);
 #endif
 
-    const auto codeSize = encoder.size();
     // Diagnostics can abort lowering before any encodable instruction is produced.
     // Propagate the existing failure instead of crashing in the test runner.
+    const auto codeSize = encoder.size();
     if (codeSize == 0)
         return Result::Error;
 

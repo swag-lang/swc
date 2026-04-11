@@ -1394,14 +1394,7 @@ namespace
 
         SemaHelpers::addCurrentFunctionCallDependency(sema, tlsGetValueFn);
 
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CodeGenNodePayload>();
-            sema.setCodeGenPayload(sema.curNodeRef(), payload);
-        }
-
-        payload->runtimeFunctionSymbol = tlsGetValueFn;
+        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeFunctionSymbol = tlsGetValueFn;
         return Result::Continue;
     }
 
@@ -1412,15 +1405,7 @@ namespace
         SWC_ASSERT(raiseExceptionFn != nullptr);
 
         SemaHelpers::addCurrentFunctionCallDependency(sema, raiseExceptionFn);
-
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CodeGenNodePayload>();
-            sema.setCodeGenPayload(sema.curNodeRef(), payload);
-        }
-
-        payload->runtimeFunctionSymbol = raiseExceptionFn;
+        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeFunctionSymbol = raiseExceptionFn;
         return Result::Continue;
     }
 
@@ -1442,16 +1427,6 @@ namespace
         }
     }
 
-    CodeGenNodePayload& ensureIntrinsicCallCodeGenPayload(Sema& sema)
-    {
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<CodeGenNodePayload>();
-        sema.setCodeGenPayload(sema.curNodeRef(), payload);
-        return *payload;
-    }
 
     Result setupIntrinsicMathRuntimeSafety(Sema& sema, const AstIntrinsicCallExpr& node)
     {
@@ -1465,7 +1440,7 @@ namespace
         if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Math))
             return Result::Continue;
 
-        auto& payload = ensureIntrinsicCallCodeGenPayload(sema);
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
         payload.addRuntimeSafety(Runtime::SafetyWhat::Math);
 
         if (!sema.isCurrentFunction())
@@ -1480,35 +1455,9 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef callExprRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
-    {
-        if (sema.isGlobalScope())
-            return TypeRef::invalid();
-
-        const TypeRef returnTypeRef = calledFn.returnTypeRef();
-        if (!returnTypeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
-        if (returnType.isVoid())
-            return TypeRef::invalid();
-
-        const CallConv&                        callConv      = CallConv::get(calledFn.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        if (!normalizedRet.isIndirect)
-            return TypeRef::invalid();
-
-        const TypeRef storageTypeRef = returnType.unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (storageTypeRef.isValid())
-            return storageTypeRef;
-
-        return returnTypeRef;
-    }
-
     Result attachCallExprRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SymbolFunction& calledFn)
     {
-        const TypeRef storageTypeRef = callExprRuntimeStorageTypeRef(sema, calledFn);
-        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, storageTypeRef, "__call_runtime_storage");
+        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, calledFn), "__call_runtime_storage");
     }
 
     template<typename T>

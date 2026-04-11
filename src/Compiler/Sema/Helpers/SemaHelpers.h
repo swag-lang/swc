@@ -20,9 +20,13 @@ namespace SemaHelpers
     };
 
     CodeGenNodePayload&   ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef);
+    Result                declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
+    Result                ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolVariable& storageSym, TypeRef storageTypeRef);
     Result                completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     SymbolVariable&       registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName);
+    SymbolVariable&       getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, std::string_view privateName);
     Result                attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName);
+    TypeRef               indirectReturnRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn);
     SymbolVariable*       currentRuntimeStorage(Sema& sema);
     void                  addCurrentFunctionCallDependency(Sema& sema, SymbolFunction* calleeSym);
     Result                addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);

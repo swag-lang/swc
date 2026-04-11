@@ -24,6 +24,31 @@
 
 SWC_BEGIN_NAMESPACE();
 
+TypeRef SemaHelpers::indirectReturnRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
+{
+    if (sema.isGlobalScope())
+        return TypeRef::invalid();
+
+    const TypeRef returnTypeRef = calledFn.returnTypeRef();
+    if (!returnTypeRef.isValid())
+        return TypeRef::invalid();
+
+    const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
+    if (returnType.isVoid())
+        return TypeRef::invalid();
+
+    const CallConv&                        callConv      = CallConv::get(calledFn.callConvKind());
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+    if (!normalizedRet.isIndirect)
+        return TypeRef::invalid();
+
+    const TypeRef storageTypeRef = returnType.unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    if (storageTypeRef.isValid())
+        return storageTypeRef;
+
+    return returnTypeRef;
+}
+
 Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName)
 {
     const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
@@ -39,13 +64,27 @@ Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node
     }
 
     auto& storageSym = registerUniqueRuntimeStorageSymbol(sema, node, privateName);
-    storageSym.registerAttributes(sema);
-    storageSym.setDeclared(sema.ctx());
-    SWC_RESULT(Match::ghosting(sema, storageSym));
-    SWC_RESULT(completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+    SWC_RESULT(declareGhostAndCompleteStorage(sema, storageSym, storageTypeRef));
 
     ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
     return Result::Continue;
+}
+
+SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, std::string_view privateName)
+{
+    auto& payload = ensureCodeGenNodePayload(sema, payloadNodeRef);
+    if (payload.runtimeStorageSym != nullptr)
+        return *payload.runtimeStorageSym;
+
+    if (SymbolVariable* const boundStorage = currentRuntimeStorage(sema))
+    {
+        payload.runtimeStorageSym = boundStorage;
+        return *boundStorage;
+    }
+
+    auto& sym                 = registerUniqueRuntimeStorageSymbol(sema, storageNode, privateName);
+    payload.runtimeStorageSym = &sym;
+    return sym;
 }
 
 SymbolVariable& SemaHelpers::registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName)
@@ -67,6 +106,37 @@ SymbolVariable& SemaHelpers::registerUniqueRuntimeStorageSymbol(Sema& sema, cons
     }
 
     return *symVariable;
+}
+
+Result SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolVariable& storageSym, TypeRef storageTypeRef)
+{
+    // Skip when this storage is the implicit binding the caller passed in: it's already
+    // owned and finalized by the surrounding context, so re-declaring would double-register.
+    if (&storageSym == currentRuntimeStorage(sema))
+        return Result::Continue;
+
+    if (!storageSym.isDeclared())
+    {
+        storageSym.registerAttributes(sema);
+        storageSym.setDeclared(sema.ctx());
+    }
+
+    if (!storageSym.isSemaCompleted())
+    {
+        SWC_RESULT(Match::ghosting(sema, storageSym));
+        SWC_RESULT(completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
+    }
+
+    return Result::Continue;
+}
+
+Result SemaHelpers::declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+{
+    symVar.registerAttributes(sema);
+    symVar.setDeclared(sema.ctx());
+    SWC_RESULT(Match::ghosting(sema, symVar));
+    SWC_RESULT(completeRuntimeStorageSymbol(sema, symVar, typeRef));
+    return Result::Continue;
 }
 
 Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
@@ -1154,16 +1224,10 @@ namespace
 
         if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, node, nodeLeftView))
         {
-            auto* payload = sema.codeGenPayload<CodeGenNodePayload>(targetNodeRef);
-            if (!payload)
-            {
-                payload = sema.compiler().allocate<CodeGenNodePayload>();
-                sema.setCodeGenPayload(targetNodeRef, payload);
-            }
-
+            auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, targetNodeRef);
             if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
             {
-                payload->runtimeStorageSym = boundStorage;
+                payload.runtimeStorageSym = boundStorage;
             }
             else
             {
@@ -1172,7 +1236,7 @@ namespace
                 storageSym.setDeclared(sema.ctx());
                 SWC_RESULT(Match::ghosting(sema, storageSym));
                 SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, memberRuntimeStorageTypeRef(sema)));
-                payload->runtimeStorageSym = &storageSym;
+                payload.runtimeStorageSym = &storageSym;
             }
         }
 

@@ -499,8 +499,6 @@ namespace
             SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
             const SymbolFunction* const targetFunction = relocation.targetSymbol;
             SWC_ASSERT(targetFunction != nullptr);
-            if (!targetFunction)
-                return Result::Error;
 
             MicroRelocation reloc;
             reloc.kind         = targetFunction->isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;

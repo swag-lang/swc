@@ -324,8 +324,6 @@ namespace
         DynamicStructCastSourceInfo sourceInfo;
         const bool                  hasSourceInfo = resolveDynamicStructCastSourceInfo(codeGen, sourceRef, sourceTypeRef, sourceInfo);
         SWC_ASSERT(hasSourceInfo);
-        if (!hasSourceInfo)
-            return Result::Error;
 
         const TypeRef targetResolvedTypeRef = unwrapAliasEnumTypeRef(codeGen, targetTypeRef);
 

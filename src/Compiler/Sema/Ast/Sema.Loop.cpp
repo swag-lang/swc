@@ -94,30 +94,6 @@ namespace
         return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), elemTypeRef));
     }
 
-    Result completeForeachInternalSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        symVar.setTypeRef(typeRef);
-
-        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
-
-        symVar.setTyped(sema.ctx());
-        symVar.setSemaCompleted(sema.ctx());
-        return Result::Continue;
-    }
-
-    Result completeLoopInternalSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        symVar.setTypeRef(typeRef);
-
-        SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, typeRef));
-
-        symVar.setTyped(sema.ctx());
-        symVar.setSemaCompleted(sema.ctx());
-        return Result::Continue;
-    }
-
     const SymbolEnum* enumTypeExprSymbol(Sema& sema, const SemaNodeView& exprView)
     {
         if (exprView.type() && exprView.type()->isEnum())
@@ -187,10 +163,7 @@ Result AstForCStyleStmt::semaPreNode(Sema& sema)
 
     SmallVector<Symbol*> symbols;
     auto&                stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, forNode, "for_index_state");
-    stateSym.registerAttributes(sema);
-    stateSym.setDeclared(sema.ctx());
-    SWC_RESULT(Match::ghosting(sema, stateSym));
-    SWC_RESULT(completeLoopInternalSymbol(sema, stateSym, sema.typeMgr().typeU64()));
+    SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, sema.typeMgr().typeU64()));
     symbols.push_back(&stateSym);
     sema.setSymbolList(sema.curNodeRef(), symbols.span());
     return Result::Continue;
@@ -276,31 +249,17 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
                     continue;
 
                 auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
-                symVar.registerAttributes(sema);
-                symVar.setDeclared(sema.ctx());
-                SWC_RESULT(Match::ghosting(sema, symVar));
-
-                symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-                symVar.setTypeRef(i == 0 ? typeRef : indexRef);
-                SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
-                symVar.setTyped(sema.ctx());
-                symVar.setSemaCompleted(sema.ctx());
+                SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, symVar, i == 0 ? typeRef : indexRef));
                 symbols.push_back(&symVar);
             }
         }
 
         auto& stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state");
-        stateSym.registerAttributes(sema);
-        stateSym.setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, stateSym));
-        SWC_RESULT(completeForeachInternalSymbol(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
+        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
         symbols.push_back(&stateSym);
 
         auto& sourceSpillSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill");
-        sourceSpillSym.registerAttributes(sema);
-        sourceSpillSym.setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, sourceSpillSym));
-        SWC_RESULT(completeForeachInternalSymbol(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
+        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
         symbols.push_back(&sourceSpillSym);
 
         sema.setSymbolList(sema.curNodeRef(), symbols.span());
@@ -350,18 +309,10 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         // Create a variable
         if (tokNameRef.isValid())
         {
-            auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
-            symVar.registerAttributes(sema);
-            symVar.setDeclared(sema.ctx());
-            SWC_RESULT(Match::ghosting(sema, symVar));
-
+            auto&   symVar   = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
             TypeRef indexRef = TypeRef::invalid();
             SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexRef, sema.curNodeRef(), *this));
-            symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-            symVar.setTypeRef(indexRef);
-            SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar, indexRef));
-            symVar.setTyped(sema.ctx());
-            symVar.setSemaCompleted(sema.ctx());
+            SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, symVar, indexRef));
         }
     }
 
@@ -450,10 +401,7 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
         SmallVector<Symbol*> symbols;
         auto&                stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "for_index_state");
-        stateSym.registerAttributes(sema);
-        stateSym.setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, stateSym));
-        SWC_RESULT(completeLoopInternalSymbol(sema, stateSym, sema.typeMgr().typeU64()));
+        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, sema.typeMgr().typeU64()));
         symbols.push_back(&stateSym);
         sema.setSymbolList(sema.curNodeRef(), symbols.span());
     }

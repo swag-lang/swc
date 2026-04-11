@@ -476,8 +476,7 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
                 break;
 
             default:
-                SWC_ASSERT(false);
-                return Result::Error;
+                SWC_UNREACHABLE();
         }
 
         section.relocations.push_back(relocation);
@@ -514,12 +513,12 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
     if (description.startup)
     {
         addSymbolRecord(symbols, symbolIndices, {
-            .name          = description.startup->symbolName,
-            .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
-            .value         = description.startup->textOffset,
-            .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
-            .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-        });
+                                                    .name          = description.startup->symbolName,
+                                                    .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
+                                                    .value         = description.startup->textOffset,
+                                                    .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
+                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                });
     }
 
     for (const NativeFunctionInfo* info : description.functions)
@@ -527,12 +526,12 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         if (!info)
             continue;
         addSymbolRecord(symbols, symbolIndices, {
-            .name          = info->symbolName,
-            .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
-            .value         = info->textOffset,
-            .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
-            .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-        });
+                                                    .name          = info->symbolName,
+                                                    .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
+                                                    .value         = info->textOffset,
+                                                    .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
+                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                });
     }
 
     for (const auto& extraSymbol : extraSymbols)
@@ -552,12 +551,12 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
             continue;
 
         addSymbolRecord(symbols, symbolIndices, {
-            .name          = extraSymbol.name,
-            .sectionNumber = sectionNumber,
-            .value         = extraSymbol.value,
-            .type          = extraSymbol.type,
-            .storageClass  = extraSymbol.storageClass,
-        });
+                                                    .name          = extraSymbol.name,
+                                                    .sectionNumber = sectionNumber,
+                                                    .value         = extraSymbol.value,
+                                                    .type          = extraSymbol.type,
+                                                    .storageClass  = extraSymbol.storageClass,
+                                                });
     }
 
     if (!description.includeData)
@@ -568,32 +567,32 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         if (section.data.name == ".rdata")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                .name          = K_R_DATA_BASE_SYMBOL,
-                .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                .value         = 0,
-                .type          = 0,
-                .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-            });
+                                                        .name          = K_R_DATA_BASE_SYMBOL,
+                                                        .sectionNumber = static_cast<int16_t>(section.sectionNumber),
+                                                        .value         = 0,
+                                                        .type          = 0,
+                                                        .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                    });
         }
         else if (section.data.name == ".data")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                .name          = K_DATA_BASE_SYMBOL,
-                .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                .value         = 0,
-                .type          = 0,
-                .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-            });
+                                                        .name          = K_DATA_BASE_SYMBOL,
+                                                        .sectionNumber = static_cast<int16_t>(section.sectionNumber),
+                                                        .value         = 0,
+                                                        .type          = 0,
+                                                        .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                    });
         }
         else if (section.data.name == ".bss")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                .name          = K_BSS_BASE_SYMBOL,
-                .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                .value         = 0,
-                .type          = 0,
-                .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-            });
+                                                        .name          = K_BSS_BASE_SYMBOL,
+                                                        .sectionNumber = static_cast<int16_t>(section.sectionNumber),
+                                                        .value         = 0,
+                                                        .type          = 0,
+                                                        .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                    });
         }
     }
 }

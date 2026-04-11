@@ -205,26 +205,23 @@ namespace
         codeGen.setVariablePayload(symVar, symbolPayload);
     }
 
-    bool materializeAggregateSourceAddress(CodeGen& codeGen, AstNodeRef storageNodeRef, TypeRef sourceTypeRef, const CodeGenNodePayload& sourcePayload, MicroReg& outAddressReg)
+    void materializeAggregateSourceAddress(CodeGen& codeGen, AstNodeRef storageNodeRef, TypeRef sourceTypeRef, const CodeGenNodePayload& sourcePayload, MicroReg& outAddressReg)
     {
         outAddressReg = MicroReg::invalid();
         if (sourcePayload.isAddress())
         {
             outAddressReg = sourcePayload.reg;
-            return true;
+            return;
         }
 
         const uint64_t sourceSize = codeGen.typeMgr().get(sourceTypeRef).sizeOf(codeGen.ctx());
-        if (!sourceSize || sourceSize > std::numeric_limits<uint32_t>::max())
-            return false;
+        SWC_ASSERT(sourceSize && sourceSize < std::numeric_limits<uint32_t>::max());
 
         const CodeGenNodePayload* storagePayload = codeGen.safePayload(storageNodeRef);
-        if (!storagePayload || storagePayload->runtimeStorageSym == nullptr)
-            return false;
+        SWC_ASSERT(storagePayload && storagePayload->runtimeStorageSym != nullptr);
 
         outAddressReg = codeGen.runtimeStorageAddressReg(storageNodeRef);
         storePayloadToAddress(codeGen, outAddressReg, sourcePayload, static_cast<uint32_t>(sourceSize));
-        return true;
     }
 
     void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
@@ -523,8 +520,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
     const CodeGenNodePayload& initPayload = codeGen.payload(nodeInitRef);
     MicroReg                  baseAddress = MicroReg::invalid();
-    if (!materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress))
-        return Result::Error;
+    materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
     const auto&              fields  = initView.type()->payloadSymStruct().fields();
     const SemaNodeView       view    = codeGen.curViewSymbolList();

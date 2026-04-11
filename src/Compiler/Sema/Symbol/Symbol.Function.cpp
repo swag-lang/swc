@@ -661,8 +661,7 @@ void SymbolFunction::resetJitState() noexcept
 Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter)
 {
     outAdapter = nullptr;
-    if (!isClosure())
-        return Result::Error;
+    SWC_ASSERT(isClosure());
 
     const std::scoped_lock lock(metadataMutex_);
     if (closureAdapter_ != nullptr)

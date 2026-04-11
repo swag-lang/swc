@@ -153,15 +153,7 @@ namespace
         SWC_ASSERT(stringCmpFn != nullptr);
 
         SemaHelpers::addCurrentFunctionCallDependency(sema, stringCmpFn);
-
-        auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CodeGenNodePayload>();
-            sema.setCodeGenPayload(sema.curNodeRef(), payload);
-        }
-
-        payload->runtimeFunctionSymbol = stringCmpFn;
+        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeFunctionSymbol = stringCmpFn;
         return Result::Continue;
     }
 

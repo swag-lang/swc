@@ -200,31 +200,6 @@ namespace
         return true;
     }
 
-    TypeRef syntheticCallRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
-    {
-        if (sema.isGlobalScope())
-            return TypeRef::invalid();
-
-        const TypeRef returnTypeRef = calledFn.returnTypeRef();
-        if (!returnTypeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
-        if (returnType.isVoid())
-            return TypeRef::invalid();
-
-        const CallConv&                        callConv      = CallConv::get(calledFn.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        if (!normalizedRet.isIndirect)
-            return TypeRef::invalid();
-
-        const TypeRef storageTypeRef = returnType.unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (storageTypeRef.isValid())
-            return storageTypeRef;
-
-        return returnTypeRef;
-    }
-
     AstNodeRef makeSyntheticStringConstantArg(Sema& sema, const SourceCodeRef& codeRef, std::string_view value)
     {
         const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::StringLiteral>(codeRef.tokRef);
@@ -603,7 +578,7 @@ namespace
             return Result::Continue;
 
         SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
-        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, syntheticCallRuntimeStorageTypeRef(sema, calledFn), "__spec_op_runtime_storage"));
+        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, calledFn), "__spec_op_runtime_storage"));
         return Result::Continue;
     }
 

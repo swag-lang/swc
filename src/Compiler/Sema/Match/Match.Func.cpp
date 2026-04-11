@@ -1774,23 +1774,6 @@ namespace
         return sourceTypeRef;
     }
 
-    Result completeReferenceBindingRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
-    {
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        symVar.setTypeRef(typeRef);
-
-        if (SymbolFunction* ownerFunction = sema.currentFunction(); ownerFunction && typeRef.isValid())
-        {
-            const TypeInfo& symType = sema.typeMgr().get(typeRef);
-            SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
-            ownerFunction->addLocalVariable(sema.ctx(), &symVar);
-        }
-
-        symVar.setTyped(sema.ctx());
-        symVar.setSemaCompleted(sema.ctx());
-        return Result::Continue;
-    }
-
     Result attachReferenceBindingRuntimeStorageIfNeeded(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
     {
         if (argRef.isInvalid() || sema.isGlobalScope())
@@ -1810,26 +1793,9 @@ namespace
             return Result::Continue;
         }
 
-        TaskContext&        ctx         = sema.ctx();
-        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, "__call_arg_ref_storage");
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
-        auto*               symVariable = Symbol::make<SymbolVariable>(ctx, &sema.node(argRef), sema.node(argRef).tokRef(), idRef, flags);
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
-        {
-            sema.curScope().addSymbol(symVariable);
-        }
-        else
-        {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-            SWC_ASSERT(symMap != nullptr);
-            symMap->addSymbol(ctx, symVariable, true);
-        }
-
-        symVariable->registerAttributes(sema);
-        symVariable->setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, *symVariable));
-        SWC_RESULT(completeReferenceBindingRuntimeStorageSymbol(sema, *symVariable, storageTypeRef));
-        SemaHelpers::ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = symVariable;
+        auto& storageSym = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, sema.node(argRef), "__call_arg_ref_storage");
+        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, storageSym, storageTypeRef));
+        SemaHelpers::ensureCodeGenNodePayload(sema, argRef).runtimeStorageSym = &storageSym;
         return Result::Continue;
     }
 

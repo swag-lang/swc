@@ -18,39 +18,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    SymbolVariable& getOrCreateCastRuntimeStorageSymbol(Sema& sema, const AstNode& node)
-    {
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
-        if (payload.runtimeStorageSym != nullptr)
-            return *payload.runtimeStorageSym;
-
-        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-        {
-            payload.runtimeStorageSym = boundStorage;
-            return *boundStorage;
-        }
-
-        TaskContext&        ctx         = sema.ctx();
-        const Utf8          privateName = "__cast_runtime_storage";
-        const IdentifierRef idRef       = sema.idMgr().addIdentifierOwned(std::format("{}_{}", privateName, sema.compiler().atomicId().fetch_add(1)));
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
-
-        auto* sym = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
-        {
-            sema.curScope().addSymbol(sym);
-        }
-        else
-        {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
-            SWC_ASSERT(symMap != nullptr);
-            symMap->addSymbol(ctx, sym, true);
-        }
-
-        payload.runtimeStorageSym = sym;
-        return *sym;
-    }
-
     TypeRef castRuntimeStorageTypeRef(Sema& sema, const SemaNodeView& srcView, const SemaNodeView& dstView)
     {
         if (!srcView.type() || !dstView.type())
@@ -300,20 +267,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const TypeRef runtimeStorageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeView, dstTypeView);
     if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
     {
-        auto& storageSym = getOrCreateCastRuntimeStorageSymbol(sema, *this);
-        if (&storageSym == SemaHelpers::currentRuntimeStorage(sema))
-            return Result::Continue;
-        if (!storageSym.isDeclared())
-        {
-            storageSym.registerAttributes(sema);
-            storageSym.setDeclared(sema.ctx());
-        }
-
-        if (!storageSym.isSemaCompleted())
-        {
-            SWC_RESULT(Match::ghosting(sema, storageSym));
-            SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, runtimeStorageTypeRef));
-        }
+        auto& storageSym = SemaHelpers::getOrCreateRuntimeStorageSymbol(sema, sema.curNodeRef(), *this, "__cast_runtime_storage");
+        SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, runtimeStorageTypeRef));
     }
 
     return Result::Continue;

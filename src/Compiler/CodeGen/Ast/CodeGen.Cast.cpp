@@ -127,8 +127,6 @@ namespace
         return dstReg;
     }
 
-
-
     Result emitDynamicStructCast(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef targetTypeRef, bool checkOnly)
     {
         const CodeGenNodePayload& sourcePayload = codeGen.payload(sourceRef);
@@ -322,6 +320,171 @@ namespace
         return CodeGenSafety::emitDynCastCheck(codeGen, *panicFn, node);
     }
 
+    Result emitAnyRuntimeAsCall(MicroReg&       outResultReg,
+                                CodeGen&        codeGen,
+                                SymbolFunction& asFn,
+                                TypeRef         targetTypeRef,
+                                MicroReg        sourceTypeReg,
+                                MicroReg        valueAddrReg)
+    {
+        MicroBuilder& builder = codeGen.builder();
+
+        MicroReg targetTypeReg = MicroReg::invalid();
+        SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, targetTypeRef));
+
+        outResultReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(outResultReg, ApInt(0, 64), MicroOpBits::B64);
+        const MicroReg args[] = {targetTypeReg, sourceTypeReg, valueAddrReg};
+        return CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, asFn, args, outResultReg);
+    }
+
+    Result emitAnyReferenceCast(CodeGen&                  codeGen,
+                                const CodeGenNodePayload& srcPayload,
+                                const TypeInfo&           dstType,
+                                TypeRef                   dstTypeRef,
+                                const CodeGenNodePayload* castPayload,
+                                bool                      hasDynCastSafety,
+                                MicroReg                  valueAddrReg)
+    {
+        MicroBuilder& builder           = codeGen.builder();
+        MicroReg      finalValueAddrReg = valueAddrReg;
+        if (castPayload && castPayload->runtimeFunctionSymbol)
+        {
+            auto&          runtimeAsFn   = *castPayload->runtimeFunctionSymbol;
+            const MicroReg sourceTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(sourceTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+
+            MicroReg asResultReg = MicroReg::invalid();
+            SWC_RESULT(emitAnyRuntimeAsCall(asResultReg, codeGen, runtimeAsFn, dstType.payloadTypeRef(), sourceTypeReg, valueAddrReg));
+
+            if (hasDynCastSafety)
+            {
+                const MicroLabelRef okLabel = builder.createLabel();
+                builder.emitCmpRegImm(asResultReg, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, okLabel);
+                SWC_RESULT(emitDynCastPanic(codeGen, codeGen.node(codeGen.curNodeRef())));
+                builder.placeLabel(okLabel);
+                finalValueAddrReg = asResultReg;
+            }
+            else
+            {
+                finalValueAddrReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(finalValueAddrReg, valueAddrReg, MicroOpBits::B64);
+
+                const MicroLabelRef keepOriginalLabel = builder.createLabel();
+                builder.emitCmpRegImm(asResultReg, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, keepOriginalLabel);
+                builder.emitLoadRegReg(finalValueAddrReg, asResultReg, MicroOpBits::B64);
+                builder.placeLabel(keepOriginalLabel);
+            }
+        }
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(dstPayload.reg, finalValueAddrReg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
+    Result emitAnyPointerCast(CodeGen&                  codeGen,
+                              const CodeGenNodePayload& srcPayload,
+                              const TypeInfo&           dstType,
+                              TypeRef                   dstTypeRef,
+                              const CodeGenNodePayload* castPayload,
+                              MicroReg                  valueAddrReg)
+    {
+        MicroBuilder& builder = codeGen.builder();
+
+        MicroReg asValueAddrReg   = MicroReg::invalid();
+        MicroReg asPointerAddrReg = MicroReg::invalid();
+        MicroReg asMutablePtrReg  = MicroReg::invalid();
+        if (castPayload && castPayload->runtimeFunctionSymbol)
+        {
+            auto& runtimeAsFn = *castPayload->runtimeFunctionSymbol;
+
+            const MicroReg sourceTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(sourceTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+
+            SWC_RESULT(emitAnyRuntimeAsCall(asPointerAddrReg, codeGen, runtimeAsFn, dstTypeRef, sourceTypeReg, valueAddrReg));
+
+            if (dstType.isConst())
+            {
+                SWC_RESULT(emitAnyRuntimeAsCall(asValueAddrReg, codeGen, runtimeAsFn, dstType.payloadTypeRef(), sourceTypeReg, valueAddrReg));
+
+                TypeInfoFlags mutableFlags = dstType.flags();
+                mutableFlags.remove(TypeInfoFlagsE::Const);
+                const TypeRef mutablePtrTypeRef = dstType.isBlockPointer() ? codeGen.typeMgr().addType(TypeInfo::makeBlockPointer(dstType.payloadTypeRef(), mutableFlags)) : codeGen.typeMgr().addType(TypeInfo::makeValuePointer(dstType.payloadTypeRef(), mutableFlags));
+                if (mutablePtrTypeRef != dstTypeRef)
+                    SWC_RESULT(emitAnyRuntimeAsCall(asMutablePtrReg, codeGen, runtimeAsFn, mutablePtrTypeRef, sourceTypeReg, valueAddrReg));
+            }
+        }
+
+        auto valueBits = MicroOpBits::Zero;
+        if (anyCastAsValueBits(codeGen, dstType, valueBits))
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+
+            if (asValueAddrReg.isValid() || asPointerAddrReg.isValid() || asMutablePtrReg.isValid())
+            {
+                const MicroLabelRef tryPointerLabel = builder.createLabel();
+                const MicroLabelRef tryMutableLabel = builder.createLabel();
+                const MicroLabelRef fallbackLabel   = builder.createLabel();
+                const MicroLabelRef doneLabel       = builder.createLabel();
+
+                if (asValueAddrReg.isValid())
+                {
+                    builder.emitCmpRegImm(asValueAddrReg, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, tryPointerLabel);
+                    builder.emitLoadRegReg(dstPayload.reg, asValueAddrReg, MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+                }
+                else
+                {
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, tryPointerLabel);
+                }
+
+                builder.placeLabel(tryPointerLabel);
+                if (asPointerAddrReg.isValid())
+                {
+                    const MicroLabelRef pointerMissLabel = asMutablePtrReg.isValid() ? tryMutableLabel : fallbackLabel;
+                    builder.emitCmpRegImm(asPointerAddrReg, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, pointerMissLabel);
+                    builder.emitLoadRegMem(dstPayload.reg, asPointerAddrReg, 0, valueBits);
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+                }
+                else if (asMutablePtrReg.isValid())
+                {
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, tryMutableLabel);
+                }
+                else
+                {
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, fallbackLabel);
+                }
+
+                if (asMutablePtrReg.isValid())
+                {
+                    builder.placeLabel(tryMutableLabel);
+                    builder.emitCmpRegImm(asMutablePtrReg, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, fallbackLabel);
+                    builder.emitLoadRegMem(dstPayload.reg, asMutablePtrReg, 0, valueBits);
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+                }
+
+                builder.placeLabel(fallbackLabel);
+                builder.emitLoadRegMem(dstPayload.reg, valueAddrReg, 0, valueBits);
+                builder.placeLabel(doneLabel);
+                return Result::Continue;
+            }
+
+            builder.emitLoadRegMem(dstPayload.reg, valueAddrReg, 0, valueBits);
+            return Result::Continue;
+        }
+
+        const CodeGenNodePayload& dstPayload = codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.nextVirtualIntRegister(), dstTypeRef);
+        builder.emitLoadRegReg(dstPayload.reg, valueAddrReg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     Result emitAnyCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         if (dstTypeRef.isInvalid())
@@ -358,24 +521,22 @@ namespace
         const MicroReg valueAddrReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(valueAddrReg, srcPayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
 
+        if (dstType.isReference() || dstType.isMoveReference())
+            return emitAnyReferenceCast(codeGen, srcPayload, dstType, dstTypeRef, castPayload, hasDynCastSafety, valueAddrReg);
+
+        if (dstType.isAnyPointer())
+            return emitAnyPointerCast(codeGen, srcPayload, dstType, dstTypeRef, castPayload, valueAddrReg);
+
         MicroReg finalValueAddrReg = valueAddrReg;
         if (castPayload && castPayload->runtimeFunctionSymbol)
         {
-            auto& asFn = *castPayload->runtimeFunctionSymbol;
+            auto& runtimeAsFn = *castPayload->runtimeFunctionSymbol;
 
-            // Load source type from any.type
             const MicroReg sourceTypeReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(sourceTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
 
-            // Load target type info constant
-            MicroReg targetTypeReg = MicroReg::invalid();
-            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, dstTypeRef));
-
-            const MicroReg asResultReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegImm(asResultReg, ApInt(0, 64), MicroOpBits::B64);
-
-            const MicroReg args[] = {targetTypeReg, sourceTypeReg, valueAddrReg};
-            SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, asFn, args, asResultReg));
+            MicroReg asResultReg = MicroReg::invalid();
+            SWC_RESULT(emitAnyRuntimeAsCall(asResultReg, codeGen, runtimeAsFn, dstTypeRef, sourceTypeReg, valueAddrReg));
 
             if (hasDynCastSafety)
             {
@@ -400,14 +561,6 @@ namespace
         }
 
         if (dstType.isString() || dstType.isSlice() || dstType.isInterface() || dstType.isAnyVariadic())
-        {
-            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(dstPayload.reg, finalValueAddrReg, MicroOpBits::B64);
-            return Result::Continue;
-        }
-
-        if (dstType.isReference() || dstType.isMoveReference())
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();

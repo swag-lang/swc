@@ -85,6 +85,24 @@ namespace
         return leftTypeInfo->crc == rightTypeInfo->crc;
     }
 
+    ConstantRef anyStoredTypeInfoConstant(Sema& sema, ConstantRef anyCstRef)
+    {
+        const ConstantValue& anyCst = sema.cstMgr().get(anyCstRef);
+        if (!anyCst.isStruct())
+            return ConstantRef::invalid();
+
+        const ByteSpan anyBytes = anyCst.getStruct();
+        if (anyBytes.size() != sizeof(Runtime::Any))
+            return ConstantRef::invalid();
+
+        Runtime::Any runtimeAny{};
+        std::memcpy(&runtimeAny, anyBytes.data(), sizeof(runtimeAny));
+
+        ConstantValue typeCst = ConstantValue::makeValuePointer(sema.ctx(), sema.typeMgr().structTypeInfo(), reinterpret_cast<uint64_t>(runtimeAny.type), TypeInfoFlagsE::Const);
+        typeCst.setTypeRef(sema.typeMgr().typeTypeInfo());
+        return sema.cstMgr().addConstant(sema.ctx(), typeCst);
+    }
+
     bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
     {
         const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
@@ -98,6 +116,20 @@ namespace
         return sema.typeMgr().get(normalizedType.payloadTypeRef()).isScalarNumeric();
     }
 
+    ConstantRef readScalarReferenceConstant(Sema& sema, ConstantRef cstRef, TypeRef payloadTypeRef)
+    {
+        if (cstRef.isInvalid())
+            return ConstantRef::invalid();
+
+        const ConstantValue& refCst = sema.cstMgr().get(cstRef);
+        SWC_ASSERT(refCst.isValuePointer());
+        SWC_ASSERT(refCst.getValuePointer() != 0);
+
+        const ConstantValue valueCst = ConstantValue::make(sema.ctx(), reinterpret_cast<const void*>(refCst.getValuePointer()), payloadTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+        SWC_ASSERT(valueCst.isValid());
+        return sema.cstMgr().addConstant(sema.ctx(), valueCst);
+    }
+
     SemaNodeView scalarReadView(Sema& sema, const SemaNodeView& view)
     {
         if (!shouldReadScalarReference(sema, view.typeRef()))
@@ -108,6 +140,13 @@ namespace
         const TypeRef payloadTypeRef = sema.typeMgr().get(normalizedRef).payloadTypeRef();
         result.typeRef()             = payloadTypeRef;
         result.type()                = &sema.typeMgr().get(payloadTypeRef);
+        const ConstantRef scalarCstRef = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);
+        if (scalarCstRef.isValid())
+        {
+            result.cstRef() = scalarCstRef;
+            result.cst()    = &sema.cstMgr().get(scalarCstRef);
+        }
+
         return result;
     }
 
@@ -132,33 +171,75 @@ namespace
         return false;
     }
 
-
     Result constantFoldEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.type()->isTypeValue() && nodeRightView.type()->isTypeValue())
+        const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
+        const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+
+        if (compareLeftView.type()->isTypeValue() && compareRightView.type()->isTypeValue())
         {
-            SWC_ASSERT(nodeLeftView.cst() != nullptr);
-            SWC_ASSERT(nodeRightView.cst() != nullptr);
-            result = sema.cstMgr().cstBool(sameTypeValuePayload(sema, nodeLeftView.cst()->getTypeValue(), nodeRightView.cst()->getTypeValue()));
+            SWC_ASSERT(compareLeftView.cst() != nullptr);
+            SWC_ASSERT(compareRightView.cst() != nullptr);
+            result = sema.cstMgr().cstBool(sameTypeValuePayload(sema, compareLeftView.cst()->getTypeValue(), compareRightView.cst()->getTypeValue()));
             return Result::Continue;
         }
 
-        if (nodeLeftView.type()->isAnyTypeInfo(sema.ctx()) && nodeRightView.type()->isAnyTypeInfo(sema.ctx()))
+        if (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAnyTypeInfo(sema.ctx()))
         {
-            result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, nodeLeftView.cstRef(), nodeRightView.cstRef()));
+            result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, compareLeftView.cstRef(), compareRightView.cstRef()));
             return Result::Continue;
         }
 
-        if (isNullComparableConstant(sema, *nodeLeftView.cst()) || isNullComparableConstant(sema, *nodeRightView.cst()))
+        if (compareLeftView.type()->isAny() && compareRightView.type()->isAnyTypeInfo(sema.ctx()))
         {
-            result = sema.cstMgr().cstBool(isNullComparableConstant(sema, *nodeLeftView.cst()) &&
-                                           isNullComparableConstant(sema, *nodeRightView.cst()));
+            const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareLeftView.cstRef());
+            if (anyTypeCstRef.isValid())
+            {
+                result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, anyTypeCstRef, compareRightView.cstRef()));
+                return Result::Continue;
+            }
+        }
+
+        if (compareLeftView.type()->isAny() && compareRightView.type()->isTypeValue())
+        {
+            const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareLeftView.cstRef());
+            if (anyTypeCstRef.isValid())
+            {
+                result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, anyTypeCstRef, compareRightView.cstRef()));
+                return Result::Continue;
+            }
+        }
+
+        if (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAny())
+        {
+            const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareRightView.cstRef());
+            if (anyTypeCstRef.isValid())
+            {
+                result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, compareLeftView.cstRef(), anyTypeCstRef));
+                return Result::Continue;
+            }
+        }
+
+        if (compareLeftView.type()->isTypeValue() && compareRightView.type()->isAny())
+        {
+            const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareRightView.cstRef());
+            if (anyTypeCstRef.isValid())
+            {
+                result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, compareLeftView.cstRef(), anyTypeCstRef));
+                return Result::Continue;
+            }
+        }
+
+        if (isNullComparableConstant(sema, *compareLeftView.cst()) || isNullComparableConstant(sema, *compareRightView.cst()))
+        {
+            result = sema.cstMgr().cstBool(isNullComparableConstant(sema, *compareLeftView.cst()) &&
+                                           isNullComparableConstant(sema, *compareRightView.cst()));
             return Result::Continue;
         }
 
-        ConstantRef leftCstRef  = nodeLeftView.cstRef();
-        ConstantRef rightCstRef = nodeRightView.cstRef();
-        SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        ConstantRef leftCstRef  = compareLeftView.cstRef();
+        ConstantRef rightCstRef = compareRightView.cstRef();
+        SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
 
         // For float, we need to compare by values, because two different constants
         // can still have the same value. For example, 0.0 and -0.0 are two different
@@ -191,9 +272,12 @@ namespace
 
     Result constantFoldOrderedCompare(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, OrderedCompareOp op)
     {
-        ConstantRef leftCstRef  = nodeLeftView.cstRef();
-        ConstantRef rightCstRef = nodeRightView.cstRef();
-        SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
+        const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+
+        ConstantRef leftCstRef  = compareLeftView.cstRef();
+        ConstantRef rightCstRef = compareRightView.cstRef();
+        SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
@@ -241,10 +325,12 @@ namespace
 
     Result constantFoldCompareEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        ConstantRef leftCstRef  = nodeLeftView.cstRef();
-        ConstantRef rightCstRef = nodeRightView.cstRef();
+        const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
+        const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
 
-        SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        ConstantRef leftCstRef  = compareLeftView.cstRef();
+        ConstantRef rightCstRef = compareRightView.cstRef();
+        SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
         const ConstantValue& left  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& right = sema.cstMgr().get(rightCstRef);
 
@@ -312,6 +398,9 @@ namespace
             return Result::Continue;
         if (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
+        if ((compareLeftView.type()->isAny() && compareRightView.type()->isAnyTypeInfo(sema.ctx())) ||
+            (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAny()))
+            return Result::Continue;
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
@@ -358,7 +447,7 @@ namespace
         {
             if (!self.type() || !other.type())
                 return Result::Continue;
-            if (self.type()->isTypeValue() && other.type()->isAnyTypeInfo(sema.ctx()))
+            if (self.type()->isTypeValue() && (other.type()->isAnyTypeInfo(sema.ctx()) || other.type()->isAny()))
             {
                 SWC_RESULT(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
                 return Result::Continue;

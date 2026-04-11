@@ -197,6 +197,20 @@ namespace
         convertCompareOperand(outReg, codeGen, operandTypeRef, compareTypeRef);
     }
 
+    void loadTypeInfoComparePtr(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef operandTypeRef, TypeRef compareTypeRef)
+    {
+        const TypeRef   resolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), operandTypeRef);
+        const TypeInfo& operandType     = codeGen.typeMgr().get(resolvedTypeRef);
+        if (operandType.isAny())
+        {
+            outReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(outReg, payload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+            return;
+        }
+
+        materializeCompareOperand(outReg, codeGen, payload, operandTypeRef, compareTypeRef);
+    }
+
     Result emitStringCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
     {
         SymbolFunction* stringCmpSymbol = nullptr;
@@ -259,20 +273,40 @@ namespace
                                    TypeRef                   compareTypeRef)
     {
         MicroReg leftPtrReg, rightPtrReg;
-        materializeCompareOperand(leftPtrReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
-        materializeCompareOperand(rightPtrReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
+        loadTypeInfoComparePtr(leftPtrReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
+        loadTypeInfoComparePtr(rightPtrReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
 
-        MicroBuilder&  builder     = codeGen.builder();
+        MicroBuilder&       builder       = codeGen.builder();
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        resultPayload.reg                 = codeGen.nextVirtualIntRegister();
+
+        const MicroLabelRef samePtrLabel   = builder.createLabel();
+        const MicroLabelRef checkNullLabel = builder.createLabel();
+        const MicroLabelRef doneLabel      = builder.createLabel();
+        builder.emitCmpRegReg(leftPtrReg, rightPtrReg, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, samePtrLabel);
+        builder.emitCmpRegImm(leftPtrReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, checkNullLabel);
+        builder.emitCmpRegImm(rightPtrReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, checkNullLabel);
+
         const MicroReg leftCrcReg  = codeGen.nextVirtualIntRegister();
         const MicroReg rightCrcReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(leftCrcReg, leftPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
         builder.emitLoadRegMem(rightCrcReg, rightPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
-
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        resultPayload.reg                 = codeGen.nextVirtualIntRegister();
         builder.emitCmpRegReg(leftCrcReg, rightCrcReg, MicroOpBits::B32);
         builder.emitSetCondReg(resultPayload.reg, tokId == TokenId::SymEqualEqual ? MicroCond::Equal : MicroCond::NotEqual);
         builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+        builder.placeLabel(samePtrLabel);
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(tokId == TokenId::SymEqualEqual ? 1 : 0, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+        builder.placeLabel(checkNullLabel);
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(tokId == TokenId::SymEqualEqual ? 0 : 1, 32), MicroOpBits::B32);
+
+        builder.placeLabel(doneLabel);
         return Result::Continue;
     }
 
@@ -430,7 +464,16 @@ namespace
         normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
         normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
-        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
+        const TypeRef   compareTypeRef       = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
+        const TypeRef   resolvedLeftTypeRef  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftOperandTypeRef);
+        const TypeRef   resolvedRightTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), rightOperandTypeRef);
+        const TypeInfo& resolvedLeftType     = codeGen.typeMgr().get(resolvedLeftTypeRef);
+        const TypeInfo& resolvedRightType    = codeGen.typeMgr().get(resolvedRightTypeRef);
+        if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
+            ((resolvedLeftType.isAny() && resolvedRightType.isAnyTypeInfo(codeGen.ctx())) ||
+             (resolvedLeftType.isAnyTypeInfo(codeGen.ctx()) && resolvedRightType.isAny())))
+            return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
+
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef) &&
             hasPreparedRuntimeStringCompare(codeGen))

@@ -92,6 +92,27 @@ namespace
         return false;
     }
 
+    Result constantFoldPointerLikeFromValue(Sema& sema, ConstantRef srcCstRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef& outCstRef)
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        SWC_ASSERT(dstType.isAnyPointer() || dstType.isReference() || dstType.isMoveReference());
+
+        uint64_t       ptr       = 0;
+        const uint64_t valueSize = srcType.sizeOf(sema.ctx());
+        if (valueSize)
+        {
+            std::vector valueBytes(valueSize, std::byte{0});
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, asByteSpan(valueBytes), srcCstRef, srcTypeRef));
+            const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(valueBytes)));
+            ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
+        }
+
+        const ConstantValue ptrCst = ConstantValue::makeValuePointer(sema.ctx(), dstType.payloadTypeRef(), ptr, dstType.flags());
+        outCstRef                  = sema.cstMgr().addConstant(sema.ctx(), ptrCst);
+        return Result::Continue;
+    }
+
     Result setupCastOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
     {
         if (!castNeedsOverflowRuntimeSafety(sema, srcTypeRef, dstTypeRef, castFlags))
@@ -116,11 +137,12 @@ namespace
         if (dstType.isAny())
             return Result::Continue;
 
-        const bool hasDynCastSafety = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::DynCast);
-        const bool dstUsesTypeInfoMatch =
-            dstType.isStruct() ||
-            (!dstType.isAnyPointer() && !dstType.isReference() && !dstType.isMoveReference() &&
-             !dstType.isInterface() && !dstType.isAnyVariadic());
+        const bool hasDynCastSafety     = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::DynCast);
+        const bool dstUsesTypeInfoMatch = dstType.isStruct() ||
+                                          dstType.isAnyPointer() ||
+                                          dstType.isReference() ||
+                                          dstType.isMoveReference() ||
+                                          (!dstType.isInterface() && !dstType.isAnyVariadic());
         if (!dstUsesTypeInfoMatch)
             return Result::Continue;
 
@@ -163,7 +185,6 @@ namespace
 
         return true;
     }
-
 
     bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
 
@@ -1267,6 +1288,15 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     castFromAnyRequest.errorNodeRef = castRequest.errorNodeRef;
     castFromAnyRequest.errorCodeRef = castRequest.errorCodeRef;
     castFromAnyRequest.setConstantFoldingSrc(valueCstRef);
+
+    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    if ((dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()) &&
+        dstType.isConst() &&
+        dstType.payloadTypeRef() == valueTypeRef)
+    {
+        SWC_RESULT(constantFoldPointerLikeFromValue(sema, valueCstRef, valueTypeRef, dstTypeRef, castRequest.outConstRef));
+        return Result::Continue;
+    }
 
     const Result result = castAllowed(sema, castFromAnyRequest, valueTypeRef, dstTypeRef);
     if (result != Result::Continue)

@@ -35,7 +35,7 @@ the caller unless explicitly elevated.
 # Resolving Identifiers Outside the Macro Scope
 Use '#up' to explicitly reference and modify variables from the caller's scope.
 */
-// @TODO: Re-enable when `#up` resolves caller-local identifiers inside macros again.
+
 #test
 {
     #[Swag.Macro]

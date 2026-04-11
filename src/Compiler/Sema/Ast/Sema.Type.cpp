@@ -481,8 +481,7 @@ Result AstAliasDecl::semaPreNode(Sema& sema) const
 Result AstAliasDecl::semaPostNode(Sema& sema) const
 {
     const SemaNodeView view = sema.viewTypeSymbol(nodeExprRef);
-    if (!view.type() && !view.sym())
-        return Result::Error;
+    SWC_ASSERT(view.type() || view.sym());
 
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolAlias>();
 

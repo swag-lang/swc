@@ -48,8 +48,6 @@ namespace
             ApsInt                 foldedValue;
             const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::Plus);
             SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
-            if (foldStatus != Math::FoldStatus::Ok)
-                return Result::Error;
 
             result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
             return Result::Continue;
@@ -92,14 +90,12 @@ namespace
             ApFloat                foldedValue;
             const Math::FoldStatus foldStatus = Math::foldUnaryFloat(foldedValue, view.cst()->getFloat(), Math::FoldUnaryOp::Minus);
             SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
-            if (foldStatus != Math::FoldStatus::Ok)
-                return Result::Error;
 
             result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, foldedValue, view.type()->payloadFloatBits()));
             return Result::Continue;
         }
 
-        return Result::Error;
+        SWC_UNREACHABLE();
     }
 
     Result constantFoldBang(Sema& sema, ConstantRef& result, const SemaNodeView& view)
@@ -146,8 +142,6 @@ namespace
         ApsInt                 foldedValue;
         const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::BitwiseNot);
         SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
-        if (foldStatus != Math::FoldStatus::Ok)
-            return Result::Error;
 
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
         return Result::Continue;
@@ -166,10 +160,8 @@ namespace
             case TokenId::SymTilde:
                 return constantFoldTilde(sema, result, node, view);
             default:
-                break;
+                return Result::Error; // This is ok
         }
-
-        return Result::Error;
     }
 
     Result reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)

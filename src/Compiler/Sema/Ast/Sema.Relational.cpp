@@ -336,7 +336,7 @@ namespace
                 return constantFoldCompareEqual(sema, result, nodeLeftView, nodeRightView);
 
             default:
-                return Result::Error;
+                SWC_UNREACHABLE();
         }
     }
 

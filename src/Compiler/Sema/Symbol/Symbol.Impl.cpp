@@ -115,12 +115,9 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
 
-    uint32_t  shardIndex = 0;
-    const Ref typeInfoOffset =
-        sema.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
+    uint32_t  shardIndex     = 0;
+    const Ref typeInfoOffset = sema.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
     SWC_ASSERT(typeInfoOffset != INVALID_REF);
-    if (typeInfoOffset == INVALID_REF)
-        return Result::Error;
 
     const auto&    methods      = itfSym->functions();
     const uint32_t slotCount    = static_cast<uint32_t>(methods.size()) + 1;
@@ -138,6 +135,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
             // In that case the interface table is incomplete and must fail quietly.
             return Result::Error;
         }
+
         SWC_RESULT(sema.waitSemaCompleted(implMethod, implMethod->codeRef()));
         implMethods.push_back(implMethod);
     }

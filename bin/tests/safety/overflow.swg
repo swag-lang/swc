@@ -16,6 +16,19 @@ func overflowSafetyEnabled()->bool
     return #safety(Swag.SafetyWhat.Overflow)
 }
 
+#[Swag.CanOverflow(true)]
+func overflowAllowedByAttribute()->bool
+{
+    return #safety(Swag.SafetyWhat.Overflow)
+}
+
+#[Swag.CanOverflow(true)]
+func wrapCompoundU8(value: u8, delta: u8)->u8
+{
+    value += delta
+    return value
+}
+
 #test
 {
     const cfg      = #run dref @compiler.getBuildCfg()
@@ -33,6 +46,24 @@ func overflowSafetyEnabled()->bool
 {
     const value = #run overflowSafetyEnabled()
     #assert(value == true)
+}
+
+#test
+{
+    const value = #run overflowAllowedByAttribute()
+    #assert(value == false)
+}
+
+#test
+{
+    const value = #run wrapCompoundU8(255'u8, 1'u8)
+    #assert(value == 0'u8)
+}
+
+#test
+{
+    const value = #run wrapCompoundU8(255'u8, 255'u8)
+    #assert(value == 254'u8)
 }
 
 // =============================================

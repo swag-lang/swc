@@ -33,6 +33,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Inline, .str = "Inline"},
         {.name = PredefinedName::NoInline, .str = "NoInline"},
         {.name = PredefinedName::Optimize, .str = "Optimize"},
+        {.name = PredefinedName::CanOverflow, .str = "CanOverflow"},
         {.name = PredefinedName::PlaceHolder, .str = "PlaceHolder"},
         {.name = PredefinedName::NoPrint, .str = "NoPrint"},
         {.name = PredefinedName::Macro, .str = "Macro"},

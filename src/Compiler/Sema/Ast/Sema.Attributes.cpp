@@ -259,6 +259,19 @@ namespace
         return Result::Continue;
     }
 
+    Result collectCanOverflowOption(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
+    {
+        SWC_ASSERT(!args.empty());
+
+        bool enabled = false;
+        SWC_RESULT(collectResolvedBoolValue(sema, args[0], enabled));
+
+        // `CanOverflow(true)` means integer overflow is expected and should not trigger
+        // the overflow safety guard for the annotated scope.
+        outAttributes.addRuntimeSafetyOverride(Runtime::SafetyWhat::Overflow, !enabled);
+        return Result::Continue;
+    }
+
     Result collectForeignStringValue(Sema& sema, Utf8& outValue, const ResolvedCallArgument& arg)
     {
         outValue.clear();
@@ -324,6 +337,7 @@ namespace
         const IdentifierManager& idMgr       = sema.idMgr();
         const IdentifierRef      idRef       = attrSym.idRef();
         const IdentifierRef      safetyIdRef = sema.idMgr().addIdentifier("Safety");
+        const IdentifierRef      canOverflowIdRef = idMgr.predefined(IdentifierManager::PredefinedName::CanOverflow);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
@@ -332,6 +346,8 @@ namespace
             return collectPrintAstOptions(sema, args, outAttributes);
         if (idRef == safetyIdRef)
             return collectSafetyOptions(sema, resolvedArgs, outAttributes);
+        if (idRef == canOverflowIdRef)
+            return collectCanOverflowOption(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))
             return collectForeignOptions(sema, resolvedArgs, outAttributes);
         return Result::Continue;

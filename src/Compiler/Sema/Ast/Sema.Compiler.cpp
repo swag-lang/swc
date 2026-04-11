@@ -803,8 +803,8 @@ namespace
 
     Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef childRef = node.nodeArgRef;
-        const SemaNodeView view = sema.viewNodeTypeConstantSymbol(childRef);
+        const AstNodeRef   childRef = node.nodeArgRef;
+        const SemaNodeView view     = sema.viewNodeTypeConstantSymbol(childRef);
         if (!view.hasSymbol() && !view.hasType() && !view.hasConstant())
             return Result::Error;
         if (!view.sym() || !view.sym()->isVariable())

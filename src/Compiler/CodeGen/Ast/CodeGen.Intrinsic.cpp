@@ -224,7 +224,6 @@ namespace
         return outReg;
     }
 
-
     Result emitIntrinsicRuntimeCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
     {
         codeGen.function().addCallDependency(&runtimeFunction);
@@ -420,8 +419,8 @@ namespace
 
     Result emitIntrinsicInitStore(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg)
     {
-        TaskContext&    ctx      = codeGen.ctx();
-        const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
+        TaskContext&    ctx       = codeGen.ctx();
+        const TypeInfo& fillType  = codeGen.typeMgr().get(fillTypeRef);
         const auto      storeBits = CodeGenTypeHelpers::scalarStoreBits(fillType, ctx);
         if (storeBits != MicroOpBits::Zero)
         {
@@ -488,7 +487,7 @@ namespace
             return false;
 
         const ConstantValue& countCst = codeGen.cstMgr().get(countView.cstRef());
-        const uint64_t count = countCst.getIntLike().as64();
+        const uint64_t       count    = countCst.getIntLike().as64();
         SWC_ASSERT(count <= std::numeric_limits<uint32_t>::max());
         outCount = static_cast<uint32_t>(count);
         return true;

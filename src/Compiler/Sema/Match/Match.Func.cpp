@@ -1461,9 +1461,9 @@ namespace
 
             const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            const TypeRef    paramTypeRef = params[i]->typeRef();
-            TypeRef          castTypeRef  = paramTypeRef;
-            const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, paramTypeRef, argView.typeRef());
+            const TypeRef    paramTypeRef     = params[i]->typeRef();
+            TypeRef          castTypeRef      = paramTypeRef;
+            const TypeRef    bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, paramTypeRef, argView.typeRef());
             if (bindValueTypeRef.isValid())
                 castTypeRef = bindValueTypeRef;
 
@@ -1811,9 +1811,9 @@ namespace
             }
 
             ResolvedCallArgument resolvedArg{
-                .argRef                = finalArgRef,
-                .passKind              = passKind,
-                .bindsReferenceToValue = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
+                .argRef                   = finalArgRef,
+                .passKind                 = passKind,
+                .bindsReferenceToValue    = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
                 .passUfcsAddressAsPointer = i < numParams && passUfcsAddressAsPointer(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef, appliedUfcsArg),
             };
 

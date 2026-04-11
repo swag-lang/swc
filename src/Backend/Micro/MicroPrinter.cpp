@@ -103,7 +103,7 @@ namespace
             case MicroOpBits::B128:
                 return "128";
         }
-        
+
         SWC_UNREACHABLE();
     }
 
@@ -202,7 +202,7 @@ namespace
             case MicroOp::Xor:
                 return "xor";
         }
-        
+
         SWC_UNREACHABLE();
     }
 
@@ -253,7 +253,7 @@ namespace
             case MicroCond::Zero:
                 return "z";
         }
-        
+
         SWC_UNREACHABLE();
     }
 
@@ -1154,7 +1154,7 @@ namespace
             case MicroRelocation::Kind::GlobalInitAddress:
                 return "global-init";
         }
-        
+
         SWC_UNREACHABLE();
     }
 

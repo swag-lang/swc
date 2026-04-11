@@ -105,7 +105,6 @@ namespace
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, trueLabel);
     }
 
-
     SymbolFunction* runtimeStringCompareFunction(CodeGen& codeGen)
     {
         const IdentifierRef idRef = codeGen.idMgr().predefined(IdentifierManager::PredefinedName::RuntimeStringCmp);
@@ -139,9 +138,6 @@ namespace
         const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
         return typeInfo.isInterface() || typeInfo.isAny();
     }
-
-
-
 
     Result emitDynamicStructSwitchCaseTests(CodeGen&                        codeGen,
                                             const SwitchStmtCodeGenPayload& switchState,

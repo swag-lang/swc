@@ -36,7 +36,6 @@ namespace
         return SemaHelpers::requireRuntimeFunctionDependency(payload.runtimePanicSymbol, sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef);
     }
 
-
     bool isDynamicStructSwitchType(Sema& sema, TypeRef typeRef)
     {
         const TypeRef   unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
@@ -91,7 +90,6 @@ namespace
     {
         return SemaError::raise(sema, DiagnosticId::sema_err_switch_dynamic_case, nodeRef);
     }
-
 
     AstNodeRef dynamicStructSwitchBindingIdentRef(Sema& sema, AstNodeRef nodeRef)
     {

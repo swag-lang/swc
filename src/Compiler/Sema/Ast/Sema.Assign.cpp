@@ -53,7 +53,6 @@ namespace
         return hasReferenceRebindModifier(assignNode.modifierFlags);
     }
 
-
     Result checkAssignModifiers(Sema& sema, const AstAssignStmt& node)
     {
         const TokenId tokId = sema.token(node.codeRef()).id;

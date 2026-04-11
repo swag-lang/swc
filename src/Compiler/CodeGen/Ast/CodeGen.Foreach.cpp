@@ -182,7 +182,6 @@ namespace
         return nullptr;
     }
 
-
     MicroReg emitForeachElementAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
     {
         SWC_ASSERT(loopState.baseReg.isValid());

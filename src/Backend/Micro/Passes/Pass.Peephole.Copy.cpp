@@ -747,7 +747,6 @@ namespace
         return true;
     }
 
-
     MicroInstrRef nextInstructionRefForCopyFold(const MicroPassContext& context, const MicroInstrRef ref)
     {
         if (ref.isInvalid())

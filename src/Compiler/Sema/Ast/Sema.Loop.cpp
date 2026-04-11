@@ -34,7 +34,6 @@ namespace
         return result;
     }
 
-
     LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<LoopSemaPayload>(nodeRef))

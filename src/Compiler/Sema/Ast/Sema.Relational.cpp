@@ -135,11 +135,11 @@ namespace
         if (!shouldReadScalarReference(sema, view.typeRef()))
             return view;
 
-        SemaNodeView  result         = view;
-        const TypeRef normalizedRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        const TypeRef payloadTypeRef = sema.typeMgr().get(normalizedRef).payloadTypeRef();
-        result.typeRef()             = payloadTypeRef;
-        result.type()                = &sema.typeMgr().get(payloadTypeRef);
+        SemaNodeView  result           = view;
+        const TypeRef normalizedRef    = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        const TypeRef payloadTypeRef   = sema.typeMgr().get(normalizedRef).payloadTypeRef();
+        result.typeRef()               = payloadTypeRef;
+        result.type()                  = &sema.typeMgr().get(payloadTypeRef);
         const ConstantRef scalarCstRef = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);
         if (scalarCstRef.isValid())
         {

@@ -36,12 +36,12 @@ namespace
     UnaryOperandInfo collectUnaryOperandInfo(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
         UnaryOperandInfo info;
-        info.childPayload    = &codeGen.payload(nodeExprRef);
+        info.childPayload            = &codeGen.payload(nodeExprRef);
         const SemaNodeView childView = codeGen.viewType(nodeExprRef);
-        info.operandTypeRef  = info.childPayload->effectiveTypeRef(childView.typeRef());
-        info.resultTypeRef   = codeGen.curViewType().typeRef();
-        info.operandTypeInfo = &codeGen.typeMgr().get(info.operandTypeRef);
-        info.opBits          = CodeGenTypeHelpers::compareBits(*info.operandTypeInfo, codeGen.ctx());
+        info.operandTypeRef          = info.childPayload->effectiveTypeRef(childView.typeRef());
+        info.resultTypeRef           = codeGen.curViewType().typeRef();
+        info.operandTypeInfo         = &codeGen.typeMgr().get(info.operandTypeRef);
+        info.opBits                  = CodeGenTypeHelpers::compareBits(*info.operandTypeInfo, codeGen.ctx());
         SWC_ASSERT(info.opBits != MicroOpBits::Zero);
         return info;
     }

@@ -1375,7 +1375,7 @@ namespace
         auto&      calledFn    = nodeSymView.sym()->cast<SymbolFunction>();
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
         const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-        auto* currentFn = sema.currentFunction();
+        auto*      currentFn   = sema.currentFunction();
         if (currentFn &&
             currentFn->decl() &&
             calledFn.decl() &&

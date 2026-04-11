@@ -343,14 +343,14 @@ namespace
 
         if (type.isAggregateStruct())
         {
-            const auto& aggregate = type.payloadAggregate();
-            rtType.fields.count   = aggregate.types.size();
-            rtType.usingFields.ptr = nullptr;
+            const auto& aggregate    = type.payloadAggregate();
+            rtType.fields.count      = aggregate.types.size();
+            rtType.usingFields.ptr   = nullptr;
             rtType.usingFields.count = 0;
 
             entry.structFieldsCount = static_cast<uint32_t>(aggregate.types.size());
             entry.structFieldTypes.clear();
-            entry.usingFieldsCount  = 0;
+            entry.usingFieldsCount = 0;
             entry.usingFieldTypes.clear();
             entry.usingFieldsOffset = 0;
 

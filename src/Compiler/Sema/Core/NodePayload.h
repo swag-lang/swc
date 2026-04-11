@@ -47,13 +47,13 @@ enum class CallArgumentDefaultKind : uint8_t
 
 struct ResolvedCallArgument
 {
-    AstNodeRef              argRef                = AstNodeRef::invalid();
-    CallArgumentPassKind    passKind              = CallArgumentPassKind::Direct;
-    CallArgumentDefaultKind defaultKind           = CallArgumentDefaultKind::None;
-    bool                    bindsReferenceToValue = false;
+    AstNodeRef              argRef                   = AstNodeRef::invalid();
+    CallArgumentPassKind    passKind                 = CallArgumentPassKind::Direct;
+    CallArgumentDefaultKind defaultKind              = CallArgumentDefaultKind::None;
+    bool                    bindsReferenceToValue    = false;
     bool                    passUfcsAddressAsPointer = false;
-    ConstantRef             typeInfoCstRef        = ConstantRef::invalid();
-    ConstantRef             defaultCstRef         = ConstantRef::invalid();
+    ConstantRef             typeInfoCstRef           = ConstantRef::invalid();
+    ConstantRef             defaultCstRef            = ConstantRef::invalid();
 };
 
 class NodePayload

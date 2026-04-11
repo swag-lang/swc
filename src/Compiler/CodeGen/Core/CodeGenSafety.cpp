@@ -45,7 +45,6 @@ namespace
         return payload;
     }
 
-
     SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen)
     {
         if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());

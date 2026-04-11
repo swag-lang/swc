@@ -223,7 +223,6 @@ namespace
         return loadAssignOperand(codeGen, operandPayload, operandTypeRef, dstOpBits);
     }
 
-
     MicroReg materializeAssignPointerIndexReg(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);

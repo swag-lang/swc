@@ -71,6 +71,11 @@ namespace CodeGenTypeHelpers
         SWC_ASSERT(stride > 0);
         return stride;
     }
+
+    inline uint64_t blockPointerStride(TaskContext& ctx, TypeRef pointerTypeRef)
+    {
+        return blockPointerStride(ctx, ctx.typeMgr().get(pointerTypeRef));
+    }
 }
 
 SWC_END_NAMESPACE();

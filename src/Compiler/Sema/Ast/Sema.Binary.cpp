@@ -82,29 +82,6 @@ namespace
         }
     }
 
-    TokenId canonicalBinaryToken(TokenId op)
-    {
-        switch (op)
-        {
-            case TokenId::SymPlusEqual:
-            case TokenId::SymMinusEqual:
-            case TokenId::SymAsteriskEqual:
-            case TokenId::SymSlashEqual:
-            case TokenId::SymAmpersandEqual:
-            case TokenId::SymPipeEqual:
-            case TokenId::SymCircumflexEqual:
-            case TokenId::SymPercentEqual:
-            case TokenId::SymLowerLowerEqual:
-            case TokenId::SymGreaterGreaterEqual:
-                return Token::assignToBinary(op);
-
-            default:
-                break;
-        }
-
-        return op;
-    }
-
     bool mapTokenToFoldBinaryOp(Math::FoldBinaryOp& outOp, TokenId op)
     {
         switch (op)
@@ -540,7 +517,7 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstBinaryExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    const TokenId op = canonicalBinaryToken(sema.token(codeRef()).id);
+    const TokenId op = Token::canonicalBinary(sema.token(codeRef()).id);
     if (op == TokenId::SymPlusPlus && (childRef == nodeLeftRef || childRef == nodeRightRef))
         SemaHelpers::pushConstExprRequirement(sema, childRef);
     return Result::Continue;
@@ -556,7 +533,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
-    const TokenId op = canonicalBinaryToken(sema.token(codeRef()).id);
+    const TokenId op = Token::canonicalBinary(sema.token(codeRef()).id);
 
     bool handledSpecialOp = false;
     SWC_RESULT(SemaSpecOp::tryResolveBinary(sema, *this, nodeLeftView, handledSpecialOp));

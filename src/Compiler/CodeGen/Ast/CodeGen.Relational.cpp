@@ -77,20 +77,6 @@ namespace
         ioPayload.setIsAddress();
     }
 
-    void appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
-    {
-        const TypeInfo&                        argType       = codeGen.typeMgr().get(argTypeRef);
-        const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
-
-        ABICall::PreparedArg preparedArg;
-        preparedArg.srcReg      = operandPayload.reg;
-        preparedArg.kind        = ABICall::PreparedArgKind::Direct;
-        preparedArg.isFloat     = normalizedArg.isFloat;
-        preparedArg.isAddressed = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
-        preparedArg.numBits     = normalizedArg.numBits;
-        outArgs.push_back(preparedArg);
-    }
-
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
         if (shouldReadScalarReference(codeGen, leftTypeRef))
@@ -247,8 +233,8 @@ namespace
         SWC_ASSERT(params.size() >= 2);
         SWC_ASSERT(params[0] != nullptr);
         SWC_ASSERT(params[1] != nullptr);
-        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, leftPayload, params[0]->typeRef());
-        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, rightPayload, params[1]->typeRef());
+        CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, leftPayload, params[0]->typeRef());
+        CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, rightPayload, params[1]->typeRef());
 
         MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());

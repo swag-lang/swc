@@ -11,6 +11,7 @@
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -194,78 +195,6 @@ namespace
         return dstReg;
     }
 
-    enum class DynamicStructCastSourceKind : uint8_t
-    {
-        Invalid,
-        StructAddress,
-        StructPointerLike,
-        Interface,
-        Any,
-    };
-
-    struct DynamicStructCastSourceInfo
-    {
-        DynamicStructCastSourceKind kind          = DynamicStructCastSourceKind::Invalid;
-        TypeRef                     structTypeRef = TypeRef::invalid();
-    };
-
-    bool resolveDynamicStructCastSourceInfo(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)
-    {
-        outInfo = {};
-        if (!sourceTypeRef.isValid())
-            return false;
-
-        const TypeRef   resolvedSourceTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
-        const TypeInfo& sourceType            = codeGen.typeMgr().get(resolvedSourceTypeRef);
-
-        if (sourceType.isInterface())
-        {
-            outInfo.kind = DynamicStructCastSourceKind::Interface;
-            return true;
-        }
-
-        if (sourceType.isAny())
-        {
-            outInfo.kind = DynamicStructCastSourceKind::Any;
-            return true;
-        }
-
-        if (sourceType.isPointerOrReference())
-        {
-            const TypeRef   pointeeTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceType.payloadTypeRef());
-            const TypeInfo& pointeeType    = codeGen.typeMgr().get(pointeeTypeRef);
-            if (pointeeType.isStruct())
-            {
-                outInfo.kind          = DynamicStructCastSourceKind::StructPointerLike;
-                outInfo.structTypeRef = pointeeTypeRef;
-                return true;
-            }
-        }
-
-        if (!codeGen.sema().isLValue(sourceRef))
-            return false;
-
-        const TypeRef   structTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), resolvedSourceTypeRef);
-        const TypeInfo& structType    = codeGen.typeMgr().get(structTypeRef);
-        if (!structType.isStruct())
-            return false;
-
-        outInfo.kind          = DynamicStructCastSourceKind::StructAddress;
-        outInfo.structTypeRef = structTypeRef;
-        return true;
-    }
-
-    Result loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)
-    {
-        ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, typeRef, codeGen.curNodeRef()));
-        const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
-        SWC_ASSERT(typeInfoCst.isValuePointer());
-
-        outReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(outReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
-        return Result::Continue;
-    }
 
     void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
                                  CodeGen&                           codeGen,
@@ -322,7 +251,7 @@ namespace
         const TypeRef             sourceTypeRef = codeGen.viewType(sourceRef).typeRef();
 
         DynamicStructCastSourceInfo sourceInfo;
-        const bool                  hasSourceInfo = resolveDynamicStructCastSourceInfo(codeGen, sourceRef, sourceTypeRef, sourceInfo);
+        const bool                  hasSourceInfo = resolveDynamicStructCastSourceInfo(codeGen.sema(), sourceRef, sourceTypeRef, sourceInfo);
         SWC_ASSERT(hasSourceInfo);
 
         const TypeRef targetResolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
@@ -340,21 +269,21 @@ namespace
         builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), resultBits);
 
         MicroReg targetTypeReg = MicroReg::invalid();
-        SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetResolvedTypeRef));
+        SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, targetResolvedTypeRef));
 
         MicroReg sourceTypeReg = MicroReg::invalid();
         MicroReg sourcePtrReg  = MicroReg::invalid();
         switch (sourceInfo.kind)
         {
             case DynamicStructCastSourceKind::StructAddress:
-                SWC_RESULT(loadTypeInfoConstantReg(sourceTypeReg, codeGen, sourceInfo.structTypeRef));
+                SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(sourceTypeReg, codeGen, sourceInfo.structTypeRef));
                 sourcePtrReg = sourcePayload.reg;
                 if (!sourcePtrReg.isValid())
                     return Result::Error;
                 break;
 
             case DynamicStructCastSourceKind::StructPointerLike:
-                SWC_RESULT(loadTypeInfoConstantReg(sourceTypeReg, codeGen, sourceInfo.structTypeRef));
+                SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(sourceTypeReg, codeGen, sourceInfo.structTypeRef));
                 sourcePtrReg = codeGen.nextVirtualIntRegister();
                 if (sourcePayload.isAddress())
                     builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, 0, MicroOpBits::B64);
@@ -556,7 +485,7 @@ namespace
 
             // Load target type info constant
             MicroReg targetTypeReg = MicroReg::invalid();
-            SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, dstTypeRef));
+            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, dstTypeRef));
 
             const MicroReg asResultReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegImm(asResultReg, ApInt(0, 64), MicroOpBits::B64);

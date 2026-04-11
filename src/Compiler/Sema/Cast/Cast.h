@@ -9,6 +9,24 @@ struct SemaNodeView;
 class Sema;
 class Diagnostic;
 
+enum class DynamicStructCastSourceKind : uint8_t
+{
+    Invalid,
+    StructAddress,
+    StructPointerLike,
+    Interface,
+    Any,
+};
+
+struct DynamicStructCastSourceInfo
+{
+    DynamicStructCastSourceKind kind          = DynamicStructCastSourceKind::Invalid;
+    TypeRef                     structTypeRef = TypeRef::invalid();
+    bool                        sourceIsConst = false;
+};
+
+bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo);
+
 struct Cast
 {
     static Result  castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

@@ -275,11 +275,6 @@ namespace
         return loadAssignOperand(codeGen, operandPayload, operandTypeRef, dstOpBits);
     }
 
-    uint64_t pointerStrideSize(CodeGen& codeGen, TypeRef pointerTypeRef)
-    {
-        const TypeInfo& pointerType = codeGen.typeMgr().get(pointerTypeRef);
-        return CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), pointerType);
-    }
 
     MicroReg materializeAssignPointerIndexReg(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
@@ -538,7 +533,7 @@ namespace
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(assignOp == TokenId::SymPlusEqual || assignOp == TokenId::SymMinusEqual);
 
-        const uint64_t stride   = pointerStrideSize(codeGen, encodeCtx.target.opTypeRef);
+        const uint64_t stride   = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), encodeCtx.target.opTypeRef);
         const MicroReg leftReg  = codeGen.nextVirtualIntRegister();
         const MicroReg indexReg = materializeAssignPointerIndexReg(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef);
         MicroBuilder&  builder  = codeGen.builder();

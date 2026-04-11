@@ -5,7 +5,9 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -119,19 +121,6 @@ namespace
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, trueLabel);
     }
 
-    void appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
-    {
-        const TypeInfo&                        argType       = codeGen.typeMgr().get(argTypeRef);
-        const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
-
-        ABICall::PreparedArg preparedArg;
-        preparedArg.srcReg      = operandPayload.reg;
-        preparedArg.kind        = ABICall::PreparedArgKind::Direct;
-        preparedArg.isFloat     = normalizedArg.isFloat;
-        preparedArg.isAddressed = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
-        preparedArg.numBits     = normalizedArg.numBits;
-        outArgs.push_back(preparedArg);
-    }
 
     SymbolFunction* runtimeStringCompareFunction(CodeGen& codeGen)
     {
@@ -167,17 +156,6 @@ namespace
         return typeInfo.isInterface() || typeInfo.isAny();
     }
 
-    Result loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)
-    {
-        ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, typeRef, codeGen.curNodeRef()));
-        const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
-        SWC_ASSERT(typeInfoCst.isValuePointer());
-
-        outReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(outReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
-        return Result::Continue;
-    }
 
     void appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
                                  CodeGen&                           codeGen,
@@ -259,7 +237,7 @@ namespace
 
             MicroReg      targetTypeReg       = MicroReg::invalid();
             const TypeRef targetStructTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), codeGen.viewType(casePayload->expressions.front().typeExprRef).typeRef());
-            SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
+            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
 
             const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
             const MicroReg resultReg = codeGen.nextVirtualIntRegister();
@@ -287,7 +265,7 @@ namespace
         {
             MicroReg      targetTypeReg       = MicroReg::invalid();
             const TypeRef targetStructTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), codeGen.viewType(expr.typeExprRef).typeRef());
-            SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
+            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
 
             const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg};
             const MicroReg resultReg = codeGen.nextVirtualIntRegister();
@@ -332,8 +310,8 @@ namespace
         SWC_ASSERT(params.size() >= 2);
         SWC_ASSERT(params[0] != nullptr);
         SWC_ASSERT(params[1] != nullptr);
-        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, switchState.switchValuePayload, params[0]->typeRef());
-        appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, casePayload, params[1]->typeRef());
+        CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, switchState.switchValuePayload, params[0]->typeRef());
+        CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, casePayload, params[1]->typeRef());
 
         MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());

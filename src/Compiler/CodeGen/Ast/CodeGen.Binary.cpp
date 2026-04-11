@@ -13,29 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TokenId canonicalBinaryToken(TokenId tokId)
-    {
-        switch (tokId)
-        {
-            case TokenId::SymPlusEqual:
-            case TokenId::SymMinusEqual:
-            case TokenId::SymAsteriskEqual:
-            case TokenId::SymSlashEqual:
-            case TokenId::SymAmpersandEqual:
-            case TokenId::SymPipeEqual:
-            case TokenId::SymCircumflexEqual:
-            case TokenId::SymPercentEqual:
-            case TokenId::SymLowerLowerEqual:
-            case TokenId::SymGreaterGreaterEqual:
-                return Token::assignToBinary(tokId);
-
-            default:
-                break;
-        }
-
-        return tokId;
-    }
-
     enum class BinaryEncodingKind : uint8_t
     {
         IntLike,
@@ -55,12 +32,6 @@ namespace
         BinaryEncodingKind        encodingKind        = BinaryEncodingKind::IntLike;
         uint64_t                  pointerStride       = 0;
     };
-
-    uint64_t pointerStrideSize(CodeGen& codeGen, TypeRef pointerTypeRef)
-    {
-        const TypeInfo& pointerType = codeGen.typeMgr().get(pointerTypeRef);
-        return CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), pointerType);
-    }
 
     BinaryEncodingKind resolveBinaryEncodingKind(TokenId tokId, const TypeInfo& leftType, const TypeInfo& rightType)
     {
@@ -176,11 +147,11 @@ namespace
         if (ctx.encodingKind == BinaryEncodingKind::PointerOffset)
         {
             const TypeRef pointerTypeRef = leftSemanticType.isBlockPointer() ? leftSemanticTypeRef : rightSemanticTypeRef;
-            ctx.pointerStride            = pointerStrideSize(codeGen, pointerTypeRef);
+            ctx.pointerStride            = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), pointerTypeRef);
         }
         else if (ctx.encodingKind == BinaryEncodingKind::PointerDiff)
         {
-            ctx.pointerStride = pointerStrideSize(codeGen, leftSemanticTypeRef);
+            ctx.pointerStride = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), leftSemanticTypeRef);
         }
 
         return ctx;
@@ -553,7 +524,7 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
     }
 
-    const TokenId             tokId     = canonicalBinaryToken(codeGen.token(codeRef()).id);
+    const TokenId             tokId     = Token::canonicalBinary(codeGen.token(codeRef()).id);
     const BinaryEncodeContext encodeCtx = buildBinaryEncodeContext(codeGen, *this, tokId);
     switch (encodeCtx.encodingKind)
     {

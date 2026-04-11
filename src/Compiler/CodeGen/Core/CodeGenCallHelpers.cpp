@@ -1028,6 +1028,24 @@ namespace
     }
 }
 
+void CodeGenCallHelpers::appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs,
+                                                        CodeGen&                           codeGen,
+                                                        const CallConv&                    callConv,
+                                                        const CodeGenNodePayload&          operandPayload,
+                                                        TypeRef                            argTypeRef)
+{
+    const TypeInfo&                        argType       = codeGen.typeMgr().get(argTypeRef);
+    const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
+
+    ABICall::PreparedArg preparedArg;
+    preparedArg.srcReg      = operandPayload.reg;
+    preparedArg.kind        = ABICall::PreparedArgKind::Direct;
+    preparedArg.isFloat     = normalizedArg.isFloat;
+    preparedArg.isAddressed = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
+    preparedArg.numBits     = normalizedArg.numBits;
+    outArgs.push_back(preparedArg);
+}
+
 Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef)
 {
     MicroBuilder&      builder        = codeGen.builder();

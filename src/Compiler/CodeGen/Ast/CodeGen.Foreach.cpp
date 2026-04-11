@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -213,17 +214,6 @@ namespace
         return nullptr;
     }
 
-    Result loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)
-    {
-        ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, typeRef, codeGen.curNodeRef()));
-        const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
-        SWC_ASSERT(typeInfoCst.isValuePointer());
-
-        outReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(outReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
-        return Result::Continue;
-    }
 
     MicroReg emitForeachElementAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
     {
@@ -340,7 +330,7 @@ namespace
         if (const SymbolEnum* symEnum = foreachExprEnumSymbol(codeGen, exprRef))
         {
             MicroReg typeInfoReg = MicroReg::invalid();
-            SWC_RESULT(loadTypeInfoConstantReg(typeInfoReg, codeGen, symEnum->typeRef()));
+            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(typeInfoReg, codeGen, symEnum->typeRef()));
 
             loopState.enumValues  = true;
             loopState.elementSize = sizeof(Runtime::TypeValue);

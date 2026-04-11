@@ -122,6 +122,56 @@ Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef
     return SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, storageTypeRef);
 }
 
+bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)
+{
+    outInfo = {};
+    if (!sourceTypeRef.isValid())
+        return false;
+
+    const TypeRef   resolvedSourceTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sourceTypeRef);
+    const TypeInfo& sourceType            = sema.typeMgr().get(resolvedSourceTypeRef);
+
+    if (sourceType.isInterface())
+    {
+        outInfo.kind          = DynamicStructCastSourceKind::Interface;
+        outInfo.sourceIsConst = sourceType.isConst();
+        return true;
+    }
+
+    if (sourceType.isAny())
+    {
+        outInfo.kind          = DynamicStructCastSourceKind::Any;
+        outInfo.sourceIsConst = sourceType.isConst();
+        return true;
+    }
+
+    if (sourceType.isPointerOrReference())
+    {
+        const TypeRef   pointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sourceType.payloadTypeRef());
+        const TypeInfo& pointeeType    = sema.typeMgr().get(pointeeTypeRef);
+        if (pointeeType.isStruct())
+        {
+            outInfo.kind          = DynamicStructCastSourceKind::StructPointerLike;
+            outInfo.structTypeRef = pointeeTypeRef;
+            outInfo.sourceIsConst = sourceType.isConst();
+            return true;
+        }
+    }
+
+    if (!sema.isLValue(sourceRef))
+        return false;
+
+    const TypeRef   structTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), resolvedSourceTypeRef);
+    const TypeInfo& structType    = sema.typeMgr().get(structTypeRef);
+    if (!structType.isStruct())
+        return false;
+
+    outInfo.kind          = DynamicStructCastSourceKind::StructAddress;
+    outInfo.structTypeRef = structTypeRef;
+    outInfo.sourceIsConst = structType.isConst();
+    return true;
+}
+
 AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags)
 {
     const AstNode& node               = sema.node(nodeRef);

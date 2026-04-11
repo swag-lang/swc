@@ -1477,14 +1477,15 @@ namespace
         auto&      calledFn    = nodeSymView.sym()->cast<SymbolFunction>();
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
         const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-        if (auto* currentFn = sema.currentFunction(); currentFn &&
-                                                      currentFn->decl() &&
-                                                      calledFn.decl() &&
-                                                      calledFn.declNodeRef().isValid() &&
-                                                      !calledFn.isForeign() &&
-                                                      !calledFn.isEmpty() &&
-                                                      !isMixinCall &&
-                                                      !isMacroCall)
+        auto* currentFn = sema.currentFunction();
+        if (currentFn &&
+            currentFn->decl() &&
+            calledFn.decl() &&
+            calledFn.declNodeRef().isValid() &&
+            !calledFn.isForeign() &&
+            !calledFn.isEmpty() &&
+            !isMixinCall &&
+            !isMacroCall)
             currentFn->addCallDependency(&calledFn);
 
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());

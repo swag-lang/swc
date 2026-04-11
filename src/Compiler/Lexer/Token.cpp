@@ -98,6 +98,26 @@ TokenId Token::toRelated(TokenId id)
     }
 }
 
+TokenId Token::canonicalBinary(TokenId op)
+{
+    switch (op)
+    {
+        case TokenId::SymPlusEqual:
+        case TokenId::SymMinusEqual:
+        case TokenId::SymAsteriskEqual:
+        case TokenId::SymSlashEqual:
+        case TokenId::SymAmpersandEqual:
+        case TokenId::SymPipeEqual:
+        case TokenId::SymCircumflexEqual:
+        case TokenId::SymPercentEqual:
+        case TokenId::SymLowerLowerEqual:
+        case TokenId::SymGreaterGreaterEqual:
+            return assignToBinary(op);
+        default:
+            return op;
+    }
+}
+
 TokenId Token::assignToBinary(TokenId op)
 {
     switch (op)

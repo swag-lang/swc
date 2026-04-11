@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -289,6 +290,18 @@ ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& co
 
     const ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
     return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
+}
+
+Result CodeGenConstantHelpers::loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)
+{
+    ConstantRef typeInfoCstRef = ConstantRef::invalid();
+    SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, typeRef, codeGen.curNodeRef()));
+    const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
+    SWC_ASSERT(typeInfoCst.isValuePointer());
+
+    outReg = codeGen.nextVirtualIntRegister();
+    codeGen.builder().emitLoadRegPtrReloc(outReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

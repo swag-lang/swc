@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
-    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, struct StaticPayload payload);
+    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const struct StaticPayload& payload);
 
     struct StaticPayload
     {
@@ -119,7 +119,7 @@ namespace
         SWC_ASSERT(offset <= totalSize && size <= totalSize - offset);
     }
 
-    StaticPayload subPayload(const StaticPayload payload, const uint64_t offset, const uint64_t size)
+    StaticPayload subPayload(const StaticPayload& payload, const uint64_t offset, const uint64_t size)
     {
         assertByteRange(offset, size, payload.dstBytes.size());
         assertByteRange(offset, size, payload.srcBytes.size());
@@ -131,12 +131,7 @@ namespace
         };
     }
 
-    Result materializeStaticSubPayload(Sema&            sema,
-                                       DataSegment&     segment,
-                                       const TypeRef    typeRef,
-                                       const StaticPayload payload,
-                                       const uint64_t   offset,
-                                       const uint64_t   size)
+    Result materializeStaticSubPayload(Sema& sema, DataSegment& segment, const TypeRef typeRef, const StaticPayload& payload, const uint64_t offset, const uint64_t size)
     {
         return materializeStaticPayloadInPlace(sema, segment, typeRef, subPayload(payload, offset, size));
     }
@@ -204,7 +199,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticString(Sema& sema, DataSegment& segment, const StaticPayload payload)
+    Result materializeStaticString(Sema& sema, DataSegment& segment, const StaticPayload& payload)
     {
         assertRuntimePayloadSize<Runtime::String>(payload.srcBytes);
 
@@ -222,7 +217,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticAny(Sema& sema, DataSegment& segment, const StaticPayload payload)
+    Result materializeStaticAny(Sema& sema, DataSegment& segment, const StaticPayload& payload)
     {
         TaskContext& ctx = sema.ctx();
         assertRuntimePayloadSize<Runtime::Any>(payload.srcBytes);
@@ -258,7 +253,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticSlice(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload payload)
+    Result materializeStaticSlice(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload& payload)
     {
         TaskContext& ctx = sema.ctx();
         assertRuntimePayloadSize<Runtime::Slice<std::byte>>(payload.srcBytes);
@@ -301,7 +296,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticArray(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload payload)
+    Result materializeStaticArray(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload& payload)
     {
         TaskContext&    ctx            = sema.ctx();
         const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
@@ -323,7 +318,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticStruct(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload payload)
+    Result materializeStaticStruct(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload& payload)
     {
         TaskContext& ctx = sema.ctx();
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
@@ -343,7 +338,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticInterface(Sema& sema, DataSegment& segment, const StaticPayload payload)
+    Result materializeStaticInterface(Sema& sema, DataSegment& segment, const StaticPayload& payload)
     {
         assertRuntimePayloadSize<Runtime::Interface>(payload.srcBytes);
 
@@ -354,7 +349,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticClosure(Sema& sema, DataSegment& segment, const StaticPayload payload)
+    Result materializeStaticClosure(Sema& sema, DataSegment& segment, const StaticPayload& payload)
     {
         assertRuntimePayloadSize<Runtime::ClosureValue>(payload.srcBytes);
 
@@ -380,7 +375,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticPointer(Sema& sema, DataSegment& segment, const StaticPayload payload)
+    Result materializeStaticPointer(Sema& sema, DataSegment& segment, const StaticPayload& payload)
     {
         assertRuntimePayloadSize<uint64_t>(payload.srcBytes);
 
@@ -735,8 +730,8 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    // Aggregate layouts are reconstructed here so nested payloads reuse the same offset rules as lowering.
-    Result materializeStaticAggregate(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload payload)
+    // Aggregate layouts are reconstructed here, so nested payloads reuse the same offset rules as lowering.
+    Result materializeStaticAggregate(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload& payload)
     {
         TaskContext& ctx    = sema.ctx();
         uint64_t     offset = 0;
@@ -761,7 +756,7 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const StaticPayload payload)
+    Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const StaticPayload& payload)
     {
         SWC_INTERNAL_CHECK(typeRef.isValid());
 
@@ -892,14 +887,7 @@ Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, 
 
     const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
     outOffset                    = offset;
-    return materializeStaticPayloadInPlace(sema,
-                                           segment,
-                                           typeRef,
-                                           {
-                                               .baseOffset = offset,
-                                               .dstBytes   = rawBytes(storage, sizeOf),
-                                               .srcBytes   = srcBytes,
-                                           });
+    return materializeStaticPayloadInPlace(sema, segment, typeRef, {.baseOffset = offset, .dstBytes = rawBytes(storage, sizeOf), .srcBytes = srcBytes});
 }
 
 SWC_END_NAMESPACE();

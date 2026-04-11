@@ -17,46 +17,50 @@ namespace
         const SemaNodeView symbolView = sema.viewSymbol(nodeRef);
         return symbolView.hasSymbol() && symbolView.sym() && symbolView.sym()->isIgnored();
     }
-}
 
-Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
-{
-    // Compute unsupported = mods & ~allowed
-    const AstModifierFlags unsupported = mods.maskInvert(allowed);
-    if (unsupported.none())
-        return Result::Continue;
-
-    // Iterate over each bit in AstModifierFlagsE
-    unsupported.forEachSet([&](AstModifierFlagsE flag) {
-        TokenId tokId;
+    TokenId tokenIdForModifierFlag(AstModifierFlagsE flag)
+    {
         switch (flag)
         {
-            case AstModifierFlagsE::Bit: tokId = TokenId::ModifierBit; break;
-            case AstModifierFlagsE::UnConst: tokId = TokenId::ModifierUnConst; break;
-            case AstModifierFlagsE::Err: tokId = TokenId::ModifierErr; break;
-            case AstModifierFlagsE::NoErr: tokId = TokenId::ModifierNoErr; break;
-            case AstModifierFlagsE::Promote: tokId = TokenId::ModifierPromote; break;
-            case AstModifierFlagsE::Wrap: tokId = TokenId::ModifierWrap; break;
-            case AstModifierFlagsE::NoDrop: tokId = TokenId::ModifierNoDrop; break;
-            case AstModifierFlagsE::Ref: tokId = TokenId::ModifierRef; break;
-            case AstModifierFlagsE::ConstRef: tokId = TokenId::ModifierConstRef; break;
-            case AstModifierFlagsE::Reverse: tokId = TokenId::ModifierReverse; break;
-            case AstModifierFlagsE::Move: tokId = TokenId::ModifierMove; break;
-            case AstModifierFlagsE::MoveRaw: tokId = TokenId::ModifierMoveRaw; break;
-            case AstModifierFlagsE::Nullable: tokId = TokenId::ModifierNullable; break;
+            case AstModifierFlagsE::Bit: return TokenId::ModifierBit;
+            case AstModifierFlagsE::UnConst: return TokenId::ModifierUnConst;
+            case AstModifierFlagsE::Err: return TokenId::ModifierErr;
+            case AstModifierFlagsE::NoErr: return TokenId::ModifierNoErr;
+            case AstModifierFlagsE::Promote: return TokenId::ModifierPromote;
+            case AstModifierFlagsE::Wrap: return TokenId::ModifierWrap;
+            case AstModifierFlagsE::NoDrop: return TokenId::ModifierNoDrop;
+            case AstModifierFlagsE::Ref: return TokenId::ModifierRef;
+            case AstModifierFlagsE::ConstRef: return TokenId::ModifierConstRef;
+            case AstModifierFlagsE::Reverse: return TokenId::ModifierReverse;
+            case AstModifierFlagsE::Move: return TokenId::ModifierMove;
+            case AstModifierFlagsE::MoveRaw: return TokenId::ModifierMoveRaw;
+            case AstModifierFlagsE::Nullable: return TokenId::ModifierNullable;
             default:
                 SWC_UNREACHABLE();
         }
+    }
 
-        // Find actual source token for the modifier
+    void reportUnsupportedModifier(Sema& sema, const AstNode& node, AstModifierFlagsE flag)
+    {
+        const TokenId     tokId   = tokenIdForModifierFlag(flag);
         const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
         const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {tokId});
 
-        // Emit diagnostic
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.codeRef());
         diag.addArgument(Diagnostic::ARG_WHAT, srcView.tokenString(mdfRef));
         diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), mdfRef), "");
         diag.report(sema.ctx());
+    }
+}
+
+Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
+{
+    const AstModifierFlags unsupported = mods.maskInvert(allowed);
+    if (unsupported.none())
+        return Result::Continue;
+
+    unsupported.forEachSet([&](AstModifierFlagsE flag) {
+        reportUnsupportedModifier(sema, node, flag);
     });
 
     return Result::Error;

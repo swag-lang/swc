@@ -1,7 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Backend/ABI/ABITypeNormalize.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -587,6 +585,27 @@ namespace
         return &typeInfo.payloadSymFunction();
     }
 
+    const SymbolFunction* resolveCalledFunction(Sema& sema, Symbol* sym)
+    {
+        if (!sym)
+            return nullptr;
+        if (sym->isFunction())
+            return &sym->cast<SymbolFunction>();
+        if (sym->isVariable())
+            return callableTypeFunction(sema, sym->typeRef());
+        return nullptr;
+    }
+
+    void collectCalleeSymbolsWithFallback(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols)
+    {
+        nodeCallee.getSymbols(outSymbols);
+        if (outSymbols.empty() && sema.isValue(nodeCallee.nodeRef()))
+        {
+            if (auto* symFunc = callableTypeFunction(sema, nodeCallee.typeRef()))
+                outSymbols.push_back(symFunc);
+        }
+    }
+
     bool isVoidCodeBlockParameter(Sema& sema, const SymbolVariable& param)
     {
         const TypeInfo& paramType = param.type(sema.ctx());
@@ -714,21 +733,15 @@ namespace
 
         for (Symbol* const sym : symbols)
         {
-            if (!sym)
-                continue;
-            const SymbolFunction* fn = nullptr;
-            if (sym->isFunction())
-                fn = &sym->cast<SymbolFunction>();
-            else if (sym->isVariable())
-                fn = callableTypeFunction(sema, sym->typeRef());
-
+            const SymbolFunction* fn = resolveCalledFunction(sema, sym);
             if (fn && canConsumeTrailingCodeBlock(sema, *fn, args, ufcsArg))
                 return makeTrailingCodeBlockArgument(sema, outSiblingRef, *fn->parameters().back());
         }
 
         if (symbols.empty() && sema.isValue(nodeCallee.nodeRef()))
         {
-            if (const auto* fn = callableTypeFunction(sema, nodeCallee.typeRef()); fn && canConsumeTrailingCodeBlock(sema, *fn, args, ufcsArg))
+            const auto* fn = callableTypeFunction(sema, nodeCallee.typeRef());
+            if (fn && canConsumeTrailingCodeBlock(sema, *fn, args, ufcsArg))
                 return makeTrailingCodeBlockArgument(sema, outSiblingRef, *fn->parameters().back());
         }
 
@@ -738,32 +751,18 @@ namespace
 
     const SymbolFunction* uniqueInlineFunctionForCodeArgs(Sema& sema, AstNodeRef calleeRef)
     {
-        SmallVector<Symbol*> symbols;
-        sema.viewSymbol(calleeRef).getSymbols(symbols);
-
         const AstNode& calleeNode = sema.node(calleeRef);
         if (calleeNode.is(AstNodeId::MemberAccessExpr) || calleeNode.is(AstNodeId::AutoMemberAccessExpr))
             return nullptr;
 
-        if (symbols.empty() && sema.isValue(calleeRef))
-        {
-            if (auto* symFunc = callableTypeFunction(sema, sema.viewType(calleeRef).typeRef()))
-                symbols.push_back(symFunc);
-        }
+        const SemaNodeView   nodeCallee = sema.view(calleeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        SmallVector<Symbol*> symbols;
+        collectCalleeSymbolsWithFallback(sema, nodeCallee, symbols);
 
         if (symbols.size() != 1)
             return nullptr;
 
-        const SymbolFunction* fn = nullptr;
-        if (symbols.front()->isFunction())
-        {
-            fn = &symbols.front()->cast<SymbolFunction>();
-        }
-        else if (symbols.front()->isVariable())
-        {
-            fn = callableTypeFunction(sema, symbols.front()->typeRef());
-        }
-
+        const SymbolFunction* fn = resolveCalledFunction(sema, symbols.front());
         if (!fn || !SemaInline::canInlineCall(sema, *fn))
             return nullptr;
 
@@ -862,12 +861,7 @@ namespace
 
         const SemaNodeView   nodeCallee = sema.view(call.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
         SmallVector<Symbol*> symbols;
-        nodeCallee.getSymbols(symbols);
-        if (symbols.empty() && sema.isValue(nodeCallee.nodeRef()))
-        {
-            if (auto* symFunc = callableTypeFunction(sema, nodeCallee.typeRef()))
-                symbols.push_back(symFunc);
-        }
+        collectCalleeSymbolsWithFallback(sema, nodeCallee, symbols);
 
         const AstNodeRef ufcsArg        = resolveUfcsReceiverArg(sema, call.nodeExprRef);
         TypeRef          bindingTypeRef = TypeRef::invalid();
@@ -875,19 +869,7 @@ namespace
 
         for (Symbol* const sym : symbols)
         {
-            if (!sym)
-                continue;
-
-            const SymbolFunction* fn = nullptr;
-            if (sym->isFunction())
-            {
-                fn = &sym->cast<SymbolFunction>();
-            }
-            else if (sym->isVariable())
-            {
-                fn = callableTypeFunction(sema, sym->typeRef());
-            }
-
+            const SymbolFunction* fn = resolveCalledFunction(sema, sym);
             if (!fn)
                 continue;
 
@@ -971,8 +953,9 @@ namespace
             }
         }
 
-        bool isCallerLocation = false;
-        if (const AstNode& initNode = sema.node(param.nodeDefaultValueRef); initNode.is(AstNodeId::CompilerLiteral))
+        bool           isCallerLocation = false;
+        const AstNode& initNode         = sema.node(param.nodeDefaultValueRef);
+        if (initNode.is(AstNodeId::CompilerLiteral))
         {
             const Token& tok = sema.token(initNode.codeRef());
             isCallerLocation = tok.id == TokenId::CompilerCallerLocation;
@@ -1153,7 +1136,8 @@ namespace
             if (parentRef.isInvalid())
                 break;
 
-            if (Symbol* const symbol = sema.viewSymbol(parentRef).sym(); symbol && symbol->isFunction())
+            Symbol* const symbol = sema.viewSymbol(parentRef).sym();
+            if (symbol && symbol->isFunction())
                 return &symbol->cast<SymbolFunction>();
         }
 
@@ -1427,7 +1411,6 @@ namespace
         }
     }
 
-
     Result setupIntrinsicMathRuntimeSafety(Sema& sema, const AstIntrinsicCallExpr& node)
     {
         if (sema.viewConstant(sema.curNodeRef()).hasConstant())
@@ -1471,12 +1454,7 @@ namespace
             arg = Match::resolveCallArgumentRef(sema, arg);
 
         SmallVector<Symbol*> symbols;
-        nodeCallee.getSymbols(symbols);
-        if (symbols.empty() && sema.isValue(nodeCallee.nodeRef()))
-        {
-            if (auto* symFunc = callableTypeFunction(sema, nodeCallee.typeRef()))
-                symbols.push_back(symFunc);
-        }
+        collectCalleeSymbolsWithFallback(sema, nodeCallee, symbols);
 
         AstNodeRef ufcsArg = resolveUfcsReceiverArg(sema, node.nodeExprRef);
 

@@ -233,7 +233,8 @@ namespace
     Result emitStringCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload)
     {
         SymbolFunction* stringCmpSymbol = nullptr;
-        if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef()); payload && payload->runtimeFunctionSymbol != nullptr)
+        const auto*     payload         = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        if (payload && payload->runtimeFunctionSymbol != nullptr)
         {
             stringCmpSymbol = payload->runtimeFunctionSymbol;
         }

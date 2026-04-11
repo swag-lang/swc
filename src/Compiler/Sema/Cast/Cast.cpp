@@ -26,49 +26,48 @@ namespace
         return sema.curNodeRef();
     }
 
-    TypeRef castRuntimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
+}
+
+TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
+{
+    if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
+        return TypeRef::invalid();
+
+    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+    if (srcConstRef.isValid())
     {
-        if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-
-        if (srcConstRef.isValid())
-        {
-            if (dstType.isArray() && !srcType.isAggregate() && !srcType.isArray())
-                return dstTypeRef;
-            return TypeRef::invalid();
-        }
-
-        if (srcType.isArray() && (dstType.isSlice() || dstType.isString()))
+        if (dstType.isArray() && !srcType.isAggregate() && !srcType.isArray())
             return dstTypeRef;
-
-        if (!srcType.isAny() && dstType.isAny())
-        {
-            constexpr uint64_t     anyStorageSize = sizeof(Runtime::Any);
-            const uint64_t         valueStorage   = srcType.sizeOf(sema.ctx());
-            SmallVector4<uint64_t> dims;
-            dims.push_back(anyStorageSize + valueStorage);
-            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
-        }
-
-        if (srcType.isStruct() && dstType.isInterface())
-        {
-            constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
-            const uint64_t         valueStorage         = srcType.sizeOf(sema.ctx());
-            SmallVector4<uint64_t> dims;
-            dims.push_back(interfaceStorageSize + valueStorage);
-            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
-        }
-
-        if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
-            return dstTypeRef;
-
         return TypeRef::invalid();
     }
 
+    if (srcType.isArray() && (dstType.isSlice() || dstType.isString()))
+        return dstTypeRef;
 
+    if (!srcType.isAny() && dstType.isAny())
+    {
+        constexpr uint64_t     anyStorageSize = sizeof(Runtime::Any);
+        const uint64_t         valueStorage   = srcType.sizeOf(sema.ctx());
+        SmallVector4<uint64_t> dims;
+        dims.push_back(anyStorageSize + valueStorage);
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+    }
+
+    if (srcType.isStruct() && dstType.isInterface())
+    {
+        constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
+        const uint64_t         valueStorage         = srcType.sizeOf(sema.ctx());
+        SmallVector4<uint64_t> dims;
+        dims.push_back(interfaceStorageSize + valueStorage);
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+    }
+
+    if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
+        return dstTypeRef;
+
+    return TypeRef::invalid();
 }
 
 Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
@@ -118,7 +117,7 @@ Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef
     if (sema.isGlobalScope())
         return Result::Continue;
 
-    const TypeRef storageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);
+    const TypeRef storageTypeRef = Cast::runtimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);
     if (storageTypeRef.isInvalid())
         return Result::Continue;
 

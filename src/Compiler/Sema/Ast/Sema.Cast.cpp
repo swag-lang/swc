@@ -24,32 +24,7 @@ namespace
             return TypeRef::invalid();
         if (srcView.hasConstant())
             return TypeRef::invalid();
-
-        if (srcView.type()->isArray() && (dstView.type()->isSlice() || dstView.type()->isString()))
-            return dstView.typeRef();
-
-        if (!srcView.type()->isAny() && dstView.type()->isAny())
-        {
-            constexpr uint64_t     anyStorageSize = sizeof(Runtime::Any);
-            const uint64_t         valueStorage   = srcView.type()->sizeOf(sema.ctx());
-            SmallVector4<uint64_t> dims;
-            dims.push_back(anyStorageSize + valueStorage);
-            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
-        }
-
-        if (srcView.type()->isStruct() && dstView.type()->isInterface())
-        {
-            constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
-            const uint64_t         valueStorage         = srcView.type()->sizeOf(sema.ctx());
-            SmallVector4<uint64_t> dims;
-            dims.push_back(interfaceStorageSize + valueStorage);
-            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
-        }
-
-        if (srcView.type()->isFunction() && dstView.type()->isFunction() && !srcView.type()->isLambdaClosure() && dstView.type()->isLambdaClosure())
-            return dstView.typeRef();
-
-        return TypeRef::invalid();
+        return Cast::runtimeStorageTypeRef(sema, srcView.typeRef(), dstView.typeRef(), ConstantRef::invalid());
     }
 
     Result retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -196,7 +171,8 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
     // @MinusLiteralSuffix
-    if (const auto* parentNode = sema.visit().parentNode(); parentNode->is(AstNodeId::UnaryExpr))
+    const auto* parentNode = sema.visit().parentNode();
+    if (parentNode->is(AstNodeId::UnaryExpr))
     {
         const Token& tok = sema.token(parentNode->codeRef());
         if (tok.is(TokenId::SymMinus))

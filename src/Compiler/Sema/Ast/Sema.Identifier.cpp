@@ -320,7 +320,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     SWC_RESULT(ret);
 
     SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
-    if (const Symbol* sym = sema.curViewSymbol().sym(); sym && requiresExplicitClosureCapture(sema, *sym))
+    const Symbol* sym = sema.curViewSymbol().sym();
+    if (sym && requiresExplicitClosureCapture(sema, *sym))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_missing, sema.curNodeRef());
         diag.addArgument(Diagnostic::ARG_SYM, sym->name(sema.ctx()));

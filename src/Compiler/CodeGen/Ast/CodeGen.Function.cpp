@@ -567,7 +567,8 @@ namespace
             if (symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
                 symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
             {
-                if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar); symbolPayload && symbolPayload->isAddress())
+                const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
+                if (symbolPayload && symbolPayload->isAddress())
                     return *symbolPayload;
                 return codeGen.resolveLocalStackPayload(symVar);
             }

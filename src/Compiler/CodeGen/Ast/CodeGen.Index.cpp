@@ -347,14 +347,19 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
         const auto* specOpPayload = reinterpret_cast<const IndexSpecOpSemaPayload*>(payloadBase);
         calledFn                  = specOpPayload->calledFn;
     }
-    else if (const SemaNodeView symView = codeGen.curViewSymbol(); symView.sym() && symView.sym()->isFunction())
+    else
     {
-        calledFn = &symView.sym()->cast<SymbolFunction>();
-    }
-    else if (const SemaNodeView storedSymView(codeGen.sema(), codeGen.curNodeRef(), SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
-             storedSymView.sym() && storedSymView.sym()->isFunction())
-    {
-        calledFn = &storedSymView.sym()->cast<SymbolFunction>();
+        const SemaNodeView symView = codeGen.curViewSymbol();
+        if (symView.sym() && symView.sym()->isFunction())
+        {
+            calledFn = &symView.sym()->cast<SymbolFunction>();
+        }
+        else
+        {
+            const SemaNodeView storedSymView(codeGen.sema(), codeGen.curNodeRef(), SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+            if (storedSymView.sym() && storedSymView.sym()->isFunction())
+                calledFn = &storedSymView.sym()->cast<SymbolFunction>();
+        }
     }
 
     if (calledFn != nullptr)

@@ -39,17 +39,19 @@ namespace
         return Result::Continue;
     }
 
+    ConstantRef makeFoldedIntConstant(Sema& sema, const ApsInt& foldedValue, const TypeInfo& type, TypeInfo::Sign sign)
+    {
+        return sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, type.payloadIntBits(), sign));
+    }
+
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
-        const TaskContext& ctx = sema.ctx();
-
         if (view.type()->isInt())
         {
             ApsInt                 foldedValue;
             const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::Plus);
             SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
-
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
+            result = makeFoldedIntConstant(sema, foldedValue, *view.type(), view.type()->payloadIntSign());
             return Result::Continue;
         }
 
@@ -67,7 +69,6 @@ namespace
             return Result::Continue;
         }
 
-        const TaskContext& ctx = sema.ctx();
         if (view.type()->isInt())
         {
             ApsInt                 foldedValue;
@@ -81,7 +82,7 @@ namespace
                 return Result::Error;
             }
 
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), TypeInfo::Sign::Signed));
+            result = makeFoldedIntConstant(sema, foldedValue, *view.type(), TypeInfo::Sign::Signed);
             return Result::Continue;
         }
 
@@ -91,7 +92,7 @@ namespace
             const Math::FoldStatus foldStatus = Math::foldUnaryFloat(foldedValue, view.cst()->getFloat(), Math::FoldUnaryOp::Minus);
             SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
 
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, foldedValue, view.type()->payloadFloatBits()));
+            result = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeFloat(sema.ctx(), foldedValue, view.type()->payloadFloatBits()));
             return Result::Continue;
         }
 
@@ -138,12 +139,11 @@ namespace
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
-        const TaskContext&     ctx = sema.ctx();
         ApsInt                 foldedValue;
         const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::BitwiseNot);
         SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
 
-        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
+        result = makeFoldedIntConstant(sema, foldedValue, *view.type(), view.type()->payloadIntSign());
         return Result::Continue;
     }
 

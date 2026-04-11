@@ -54,8 +54,9 @@ namespace
             }
         }
 
-        bool isCallerLocation = false;
-        if (const AstNode& initNode = sema.node(param.nodeDefaultValueRef); initNode.is(AstNodeId::CompilerLiteral))
+        bool           isCallerLocation = false;
+        const AstNode& initNode         = sema.node(param.nodeDefaultValueRef);
+        if (initNode.is(AstNodeId::CompilerLiteral))
         {
             const Token& tok = sema.token(initNode.codeRef());
             isCallerLocation = tok.id == TokenId::CompilerCallerLocation;

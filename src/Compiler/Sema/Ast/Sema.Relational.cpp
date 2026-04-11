@@ -205,84 +205,62 @@ namespace
         return Result::Continue;
     }
 
-    Result constantFoldLess(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    enum class OrderedCompareOp : uint8_t
     {
-        if (nodeLeftView.cstRef() == nodeRightView.cstRef())
-        {
-            result = sema.cstMgr().cstFalse();
-            return Result::Continue;
-        }
+        Less,
+        LessEqual,
+        Greater,
+        GreaterEqual,
+    };
 
+    Result constantFoldOrderedCompare(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, OrderedCompareOp op)
+    {
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
-
         SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
-        if (leftCstRef == rightCstRef)
-        {
-            result = sema.cstMgr().cstFalse();
-            return Result::Continue;
-        }
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
 
-        result = sema.cstMgr().cstBool(leftCst.lt(rightCst));
+        // Float NaN comparisons must always go through the actual compare; integer/etc.
+        // can short-circuit when both refs already point at the same constant.
+        if (!leftCst.isFloat() && leftCstRef == rightCstRef)
+        {
+            const bool equalCaseValue = op == OrderedCompareOp::LessEqual || op == OrderedCompareOp::GreaterEqual;
+            result                    = sema.cstMgr().cstBool(equalCaseValue);
+            return Result::Continue;
+        }
+
+        bool cmpResult = false;
+        switch (op)
+        {
+            case OrderedCompareOp::Less: cmpResult = leftCst.lt(rightCst); break;
+            case OrderedCompareOp::LessEqual: cmpResult = leftCst.le(rightCst); break;
+            case OrderedCompareOp::Greater: cmpResult = leftCst.gt(rightCst); break;
+            case OrderedCompareOp::GreaterEqual: cmpResult = leftCst.ge(rightCst); break;
+        }
+        result = sema.cstMgr().cstBool(cmpResult);
         return Result::Continue;
+    }
+
+    Result constantFoldLess(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        return constantFoldOrderedCompare(sema, result, nodeLeftView, nodeRightView, OrderedCompareOp::Less);
     }
 
     Result constantFoldLessEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        ConstantRef leftCstRef  = nodeLeftView.cstRef();
-        ConstantRef rightCstRef = nodeRightView.cstRef();
-
-        SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
-        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
-        if (!leftCst.isFloat() && leftCstRef == rightCstRef)
-        {
-            result = sema.cstMgr().cstTrue();
-            return Result::Continue;
-        }
-
-        result = sema.cstMgr().cstBool(leftCst.le(rightCst));
-        return Result::Continue;
+        return constantFoldOrderedCompare(sema, result, nodeLeftView, nodeRightView, OrderedCompareOp::LessEqual);
     }
 
     Result constantFoldGreater(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        ConstantRef leftCstRef  = nodeLeftView.cstRef();
-        ConstantRef rightCstRef = nodeRightView.cstRef();
-
-        SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
-        if (leftCstRef == rightCstRef)
-        {
-            result = sema.cstMgr().cstFalse();
-            return Result::Continue;
-        }
-
-        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
-
-        result = sema.cstMgr().cstBool(leftCst.gt(rightCst));
-        return Result::Continue;
+        return constantFoldOrderedCompare(sema, result, nodeLeftView, nodeRightView, OrderedCompareOp::Greater);
     }
 
     Result constantFoldGreaterEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        ConstantRef leftCstRef  = nodeLeftView.cstRef();
-        ConstantRef rightCstRef = nodeRightView.cstRef();
-
-        SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
-        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
-        if (!leftCst.isFloat() && leftCstRef == rightCstRef)
-        {
-            result = sema.cstMgr().cstTrue();
-            return Result::Continue;
-        }
-
-        result = sema.cstMgr().cstBool(leftCst.ge(rightCst));
-        return Result::Continue;
+        return constantFoldOrderedCompare(sema, result, nodeLeftView, nodeRightView, OrderedCompareOp::GreaterEqual);
     }
 
     Result constantFoldCompareEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)

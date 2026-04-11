@@ -548,7 +548,8 @@ namespace
             const TypeRef      constantTypeRef   = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argConstView.cstRef());
             const bool         isNullConstantArg = argConstView.cst() && argConstView.cst()->isNull();
 
-            if (const CodeGenNodePayload* payload = codeGen.safePayload(argRef); payload && payload->reg.isValid())
+            const CodeGenNodePayload* payload = codeGen.safePayload(argRef);
+            if (payload && payload->reg.isValid())
             {
                 argPayload = *payload;
 
@@ -601,14 +602,16 @@ namespace
 
     const CodeGenNodePayload* resolveCallPayload(CodeGen& codeGen, AstNodeRef calleeRef)
     {
-        if (const CodeGenNodePayload* payload = codeGen.safePayload(calleeRef); payload && payload->reg.isValid())
+        const CodeGenNodePayload* payload = codeGen.safePayload(calleeRef);
+        if (payload && payload->reg.isValid())
             return payload;
 
         const AstNodeRef resolvedRef = codeGen.viewZero(calleeRef).nodeRef();
         if (resolvedRef.isValid() && resolvedRef != calleeRef)
         {
-            if (const CodeGenNodePayload* payload = codeGen.safePayload(resolvedRef); payload && payload->reg.isValid())
-                return payload;
+            const CodeGenNodePayload* resolvedPayload = codeGen.safePayload(resolvedRef);
+            if (resolvedPayload && resolvedPayload->reg.isValid())
+                return resolvedPayload;
         }
 
         return nullptr;

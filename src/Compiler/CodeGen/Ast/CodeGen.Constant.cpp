@@ -241,7 +241,8 @@ namespace
 
     TypeRef resolvedLiteralStorageTypeRef(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        if (const CodeGenNodePayload* payload = codeGen.safePayload(nodeRef); payload && payload->runtimeStorageSym != nullptr)
+        const CodeGenNodePayload* payload = codeGen.safePayload(nodeRef);
+        if (payload && payload->runtimeStorageSym != nullptr)
         {
             const TypeRef runtimeStorageTypeRef = payload->runtimeStorageSym->typeRef();
             if (runtimeStorageTypeRef.isValid())
@@ -618,7 +619,8 @@ namespace
 
 Result CodeGen::emitConstant(AstNodeRef nodeRef)
 {
-    if (const CodeGenNodePayload* payload = safePayload(nodeRef); payload && payload->reg.isValid())
+    const CodeGenNodePayload* existingPayload = safePayload(nodeRef);
+    if (existingPayload && existingPayload->reg.isValid())
         return Result::Continue;
 
     const SemaNodeView view = viewTypeConstant(nodeRef);
@@ -641,7 +643,8 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
 
 Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
 {
-    if (const CodeGenNodePayload* payload = codeGen.safePayload(codeGen.curNodeRef()); payload && payload->reg.isValid())
+    const CodeGenNodePayload* existingPayload = codeGen.safePayload(codeGen.curNodeRef());
+    if (existingPayload && existingPayload->reg.isValid())
         return Result::Continue;
 
     const TypeRef targetTypeRef = codeGen.curViewType().typeRef();

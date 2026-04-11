@@ -78,24 +78,10 @@ namespace
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
     }
 
-    Utf8 makeFunctionSortKey(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    template<typename T>
+    void sortAndUniqueByLocation(const NativeBackendBuilder& builder, std::vector<T*>& values)
     {
-        return makeSymbolLocationSortKey(builder, symbol);
-    }
-
-    Utf8 makeVariableSortKey(const NativeBackendBuilder& builder, const SymbolVariable& symbol)
-    {
-        return makeSymbolLocationSortKey(builder, symbol);
-    }
-
-    void sortAndUniqueByLocation(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& values)
-    {
-        sortAndUnique(values, [&](const SymbolFunction& symbol) { return makeFunctionSortKey(builder, symbol); });
-    }
-
-    void sortAndUniqueByLocation(const NativeBackendBuilder& builder, std::vector<SymbolVariable*>& values)
-    {
-        sortAndUnique(values, [&](const SymbolVariable& symbol) { return makeVariableSortKey(builder, symbol); });
+        sortAndUnique(values, [&](const T& symbol) { return makeSymbolLocationSortKey(builder, symbol); });
     }
 
     template<typename T>
@@ -244,7 +230,7 @@ namespace
             NativeFunctionInfo info;
             info.symbol      = symbol;
             info.machineCode = &symbol->loweredCode();
-            info.sortKey     = makeFunctionSortKey(builder, *symbol);
+            info.sortKey     = makeSymbolLocationSortKey(builder, *symbol);
             info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", builder.functionInfos.size(), Math::hash(info.sortKey));
             info.debugName   = symbol->getFullScopedName(builder.ctx());
             info.exported    = symbol->isPublic() && !isCompilerFunction(*symbol);

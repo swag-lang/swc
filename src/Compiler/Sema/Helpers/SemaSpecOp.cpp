@@ -777,8 +777,9 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
         sema.setSemaPayload(sema.curNodeRef(), assignPayload);
     }
 
-    if (const SemaNodeView symView = sema.curViewSymbol(); symView.sym() && symView.sym()->isFunction())
-        assignPayload->calledFn = &symView.sym()->cast<SymbolFunction>();
+    const SemaNodeView assignSymView = sema.curViewSymbol();
+    if (assignSymView.sym() && assignSymView.sym()->isFunction())
+        assignPayload->calledFn = &assignSymView.sym()->cast<SymbolFunction>();
 
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
     outHandled = true;
@@ -926,8 +927,9 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         sema.setSemaPayload(sema.curNodeRef(), assignPayload);
     }
 
-    if (const SemaNodeView symView = sema.curViewSymbol(); symView.sym() && symView.sym()->isFunction())
-        assignPayload->calledFn = &symView.sym()->cast<SymbolFunction>();
+    const SemaNodeView assignSymView = sema.curViewSymbol();
+    if (assignSymView.sym() && assignSymView.sym()->isFunction())
+        assignPayload->calledFn = &assignSymView.sym()->cast<SymbolFunction>();
 
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
     outHandled = true;
@@ -1091,8 +1093,9 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
         sema.setSemaPayload(sema.curNodeRef(), relationalPayload);
     }
 
-    if (const SemaNodeView symView = sema.curViewSymbol(); symView.sym() && symView.sym()->isFunction())
-        relationalPayload->calledFn = &symView.sym()->cast<SymbolFunction>();
+    const SemaNodeView relSymView = sema.curViewSymbol();
+    if (relSymView.sym() && relSymView.sym()->isFunction())
+        relationalPayload->calledFn = &relSymView.sym()->cast<SymbolFunction>();
 
     switch (tok.id)
     {
@@ -1101,17 +1104,22 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
             break;
 
         case TokenId::SymBangEqual:
+        {
             sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
-            if (const SemaNodeView resultView = sema.curViewConstant(); resultView.cstRef().isValid())
-                sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstNegBool(resultView.cstRef()));
+            const SemaNodeView negResultView = sema.curViewConstant();
+            if (negResultView.cstRef().isValid())
+                sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstNegBool(negResultView.cstRef()));
             break;
+        }
 
         case TokenId::SymLess:
         case TokenId::SymLessEqual:
         case TokenId::SymGreater:
         case TokenId::SymGreaterEqual:
+        {
             sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
-            if (const SemaNodeView resultView = sema.curViewConstant(); resultView.cstRef().isValid())
+            const SemaNodeView resultView = sema.curViewConstant();
+            if (resultView.cstRef().isValid())
             {
                 const int ordering = sema.cstMgr().get(resultView.cstRef()).getInt().compare(ApsInt::makeSigned32(0));
                 bool      cmpRes   = false;
@@ -1136,6 +1144,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
                 sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(cmpRes));
             }
             break;
+        }
 
         case TokenId::SymLessEqualGreater:
             sema.setType(sema.curNodeRef(), sema.typeMgr().typeS32());

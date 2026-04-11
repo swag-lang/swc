@@ -72,7 +72,12 @@ struct Token
     bool is(TokenId id) const { return this->id == id; }
     bool isAny(std::initializer_list<TokenId> list) const
     {
-        return std::ranges::any_of(list, [this](auto id) { return this->id == id; });
+        for (const TokenId candidate : list)
+        {
+            if (this->id == candidate)
+                return true;
+        }
+        return false;
     }
 
     bool             isNot(TokenId id) const { return this->id != id; }

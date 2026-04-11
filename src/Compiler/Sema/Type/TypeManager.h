@@ -91,6 +91,7 @@ public:
 
     TypeRef         addType(const TypeInfo& typeInfo);
     const TypeInfo& get(TypeRef typeRef) const;
+    TypeRef         unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) const;
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 

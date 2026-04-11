@@ -2,6 +2,7 @@
 #include "Main/Command/Command.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/SymbolSort.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
@@ -17,13 +18,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    template<typename T>
-    struct SortEntry
-    {
-        T*   symbol = nullptr;
-        Utf8 key;
-    };
-
     bool hasErrors(const uint64_t errorsBefore)
     {
         return Stats::getNumErrors() != errorsBefore;
@@ -224,52 +218,9 @@ namespace
         return !Stats::hasError();
     }
 
-    template<typename T>
-    Utf8 makeSymbolLocationSortKey(const TaskContext& ctx, const T& symbol)
-    {
-        Utf8 key;
-        if (const SourceFile* file = ctx.compiler().srcView(symbol.srcViewRef()).file())
-            key += Utf8(file->path());
-
-        key += "|";
-        key += std::to_string(symbol.tokRef().get());
-        return key;
-    }
-
-    Utf8 makeFunctionSortKey(const TaskContext& ctx, const SymbolFunction& symbol)
-    {
-        return makeSymbolLocationSortKey(ctx, symbol);
-    }
-
     void sortAndUniqueFunctions(std::vector<SymbolFunction*>& values, const TaskContext& ctx)
     {
-        std::erase(values, nullptr);
-        if (values.size() < 2)
-            return;
-
-        std::vector<SortEntry<SymbolFunction>> entries;
-        entries.reserve(values.size());
-        for (SymbolFunction* symbol : values)
-        {
-            SWC_ASSERT(symbol != nullptr);
-            entries.push_back({.symbol = symbol, .key = makeFunctionSortKey(ctx, *symbol)});
-        }
-
-        std::ranges::stable_sort(entries, [](const SortEntry<SymbolFunction>& lhs, const SortEntry<SymbolFunction>& rhs) {
-            return lhs.key < rhs.key;
-        });
-
-        values.clear();
-        values.reserve(entries.size());
-        const SymbolFunction* previous = nullptr;
-        for (const auto& entry : entries)
-        {
-            if (entry.symbol == previous)
-                continue;
-
-            values.push_back(entry.symbol);
-            previous = entry.symbol;
-        }
+        SymbolSort::sortAndUniqueByLocation(values, ctx.compiler());
     }
 
     struct DataSegmentSnapshot

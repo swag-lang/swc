@@ -20,18 +20,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef unwrapAliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return typeRef;
-
-        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
     bool hasPreparedRuntimeStringCompare(CodeGen& codeGen)
     {
         const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
@@ -40,14 +28,14 @@ namespace
 
     bool isStringCompareType(CodeGen& codeGen, TypeRef typeRef)
     {
-        const TypeRef   unwrappedTypeRef = unwrapAliasEnumTypeRef(codeGen, typeRef);
+        const TypeRef   unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
         return typeInfo.isString();
     }
 
     bool shouldReadScalarReference(CodeGen& codeGen, TypeRef typeRef)
     {
-        const TypeRef normalizedTypeRef = unwrapAliasEnumTypeRef(codeGen, typeRef);
+        const TypeRef normalizedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         if (!normalizedTypeRef.isValid())
             return false;
 
@@ -60,7 +48,7 @@ namespace
 
     void normalizeScalarReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
     {
-        const TypeRef normalizedTypeRef = unwrapAliasEnumTypeRef(codeGen, ioTypeRef);
+        const TypeRef normalizedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), ioTypeRef);
         if (!normalizedTypeRef.isValid())
             return;
 
@@ -106,14 +94,14 @@ namespace
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
         if (shouldReadScalarReference(codeGen, leftTypeRef))
-            leftTypeRef = codeGen.typeMgr().get(unwrapAliasEnumTypeRef(codeGen, leftTypeRef)).payloadTypeRef();
+            leftTypeRef = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftTypeRef)).payloadTypeRef();
         else
-            leftTypeRef = unwrapAliasEnumTypeRef(codeGen, leftTypeRef);
+            leftTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftTypeRef);
 
         if (shouldReadScalarReference(codeGen, rightTypeRef))
-            rightTypeRef = codeGen.typeMgr().get(unwrapAliasEnumTypeRef(codeGen, rightTypeRef)).payloadTypeRef();
+            rightTypeRef = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), rightTypeRef)).payloadTypeRef();
         else
-            rightTypeRef = unwrapAliasEnumTypeRef(codeGen, rightTypeRef);
+            rightTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), rightTypeRef);
 
         const TypeInfo& leftType  = codeGen.typeMgr().get(leftTypeRef);
         const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);

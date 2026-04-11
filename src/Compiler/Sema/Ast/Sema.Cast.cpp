@@ -65,25 +65,13 @@ namespace
         bool                        sourceIsConst = false;
     };
 
-    TypeRef unwrapAliasEnumTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrapAliasEnum(sema.ctx(), typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
     bool resolveDynamicStructCastSemaInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSemaInfo& outInfo)
     {
         outInfo = {};
         if (!sourceTypeRef.isValid())
             return false;
 
-        const TypeRef   resolvedSourceTypeRef = unwrapAliasEnumTypeRef(sema, sourceTypeRef);
+        const TypeRef   resolvedSourceTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sourceTypeRef);
         const TypeInfo& sourceType            = sema.typeMgr().get(resolvedSourceTypeRef);
 
         if (sourceType.isInterface())
@@ -102,7 +90,7 @@ namespace
 
         if (sourceType.isPointerOrReference())
         {
-            const TypeRef   pointeeTypeRef = unwrapAliasEnumTypeRef(sema, sourceType.payloadTypeRef());
+            const TypeRef   pointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sourceType.payloadTypeRef());
             const TypeInfo& pointeeType    = sema.typeMgr().get(pointeeTypeRef);
             if (pointeeType.isStruct())
             {
@@ -116,7 +104,7 @@ namespace
         if (!sema.isLValue(sourceRef))
             return false;
 
-        const TypeRef   structTypeRef = unwrapAliasEnumTypeRef(sema, resolvedSourceTypeRef);
+        const TypeRef   structTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), resolvedSourceTypeRef);
         const TypeInfo& structType    = sema.typeMgr().get(structTypeRef);
         if (!structType.isStruct())
             return false;

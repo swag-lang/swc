@@ -66,21 +66,9 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef unwrapAliasEnumTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrapAliasEnum(sema.ctx(), typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
     bool isDynamicStructSwitchType(Sema& sema, TypeRef typeRef)
     {
-        const TypeRef   unwrappedTypeRef = unwrapAliasEnumTypeRef(sema, typeRef);
+        const TypeRef   unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
         const TypeInfo& typeInfo         = sema.typeMgr().get(unwrappedTypeRef);
         return typeInfo.isInterface() || typeInfo.isAny();
     }
@@ -199,11 +187,11 @@ namespace
         }
 
         TypeInfoFlags bindingFlags = TypeInfoFlagsE::Zero;
-        const TypeRef sourceType   = unwrapAliasEnumTypeRef(sema, switchTypeRef);
+        const TypeRef sourceType   = sema.typeMgr().unwrapAliasEnum(sema.ctx(), switchTypeRef);
         if (sema.typeMgr().get(sourceType).isConst() || sema.typeMgr().get(targetTypeRef).isConst())
             bindingFlags.add(TypeInfoFlagsE::Const);
 
-        const TypeRef   resolvedTargetTypeRef = unwrapAliasEnumTypeRef(sema, targetTypeRef);
+        const TypeRef   resolvedTargetTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), targetTypeRef);
         const TypeInfo& resolvedTargetType    = sema.typeMgr().get(resolvedTargetTypeRef);
         const bool      bindAsPointer         = !sema.typeMgr().get(sourceType).isAny() || resolvedTargetType.isStruct();
 
@@ -282,10 +270,10 @@ namespace
             return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
 
         const TypeRef   switchTypeRef       = dynamicStructSwitchExprTypeRef(sema, switchRef);
-        const TypeRef   unwrappedSwitchRef  = unwrapAliasEnumTypeRef(sema, switchTypeRef);
+        const TypeRef   unwrappedSwitchRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), switchTypeRef);
         const TypeInfo& switchType          = sema.typeMgr().get(unwrappedSwitchRef);
         const TypeRef   targetTypeRef       = typeView.typeRef();
-        const TypeRef   targetStructTypeRef = unwrapAliasEnumTypeRef(sema, targetTypeRef);
+        const TypeRef   targetStructTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), targetTypeRef);
         const TypeInfo& targetStructType    = sema.typeMgr().get(targetStructTypeRef);
 
         // For 'any', case types can be any concrete type.
@@ -576,7 +564,7 @@ namespace
                 const TypeRef targetTypeRef = sema.viewType(expr.typeExprRef).typeRef();
                 SWC_ASSERT(targetTypeRef.isValid());
 
-                const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(sema, targetTypeRef);
+                const TypeRef targetStructTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), targetTypeRef);
                 SWC_RESULT(checkDuplicateDynamicCaseType(sema, switchRef, targetStructTypeRef, expr.caseExprRef, caseStmt.nodeWhereRef));
             }
 

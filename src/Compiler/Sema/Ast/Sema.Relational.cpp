@@ -86,22 +86,9 @@ namespace
         return leftTypeInfo->crc == rightTypeInfo->crc;
     }
 
-    TypeRef unwrapAliasEnumTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return typeRef;
-
-        const TypeInfo& typeInfo         = sema.typeMgr().get(typeRef);
-        const TypeRef   unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
     bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
     {
-        const TypeRef normalizedTypeRef = unwrapAliasEnumTypeRef(sema, typeRef);
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
         if (!normalizedTypeRef.isValid())
             return false;
 
@@ -118,7 +105,7 @@ namespace
             return view;
 
         SemaNodeView  result         = view;
-        const TypeRef normalizedRef  = unwrapAliasEnumTypeRef(sema, view.typeRef());
+        const TypeRef normalizedRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
         const TypeRef payloadTypeRef = sema.typeMgr().get(normalizedRef).payloadTypeRef();
         result.typeRef()             = payloadTypeRef;
         result.type()                = &sema.typeMgr().get(payloadTypeRef);
@@ -130,8 +117,8 @@ namespace
         if (!nodeLeftView.type() || !nodeRightView.type())
             return false;
 
-        const TypeRef   leftTypeRef  = unwrapAliasEnumTypeRef(sema, nodeLeftView.typeRef());
-        const TypeRef   rightTypeRef = unwrapAliasEnumTypeRef(sema, nodeRightView.typeRef());
+        const TypeRef   leftTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
+        const TypeRef   rightTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeRightView.typeRef());
         const TypeInfo& leftType     = sema.typeMgr().get(leftTypeRef);
         const TypeInfo& rightType    = sema.typeMgr().get(rightTypeRef);
         return leftType.isString() && rightType.isString();

@@ -160,21 +160,9 @@ namespace
         return codeGen.compiler().runtimeFunctionSymbol(idRef);
     }
 
-    TypeRef unwrapAliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
     bool isDynamicStructSwitchType(CodeGen& codeGen, TypeRef typeRef)
     {
-        const TypeRef   unwrappedTypeRef = unwrapAliasEnumTypeRef(codeGen, typeRef);
+        const TypeRef   unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
         const TypeInfo& typeInfo         = codeGen.typeMgr().get(unwrappedTypeRef);
         return typeInfo.isInterface() || typeInfo.isAny();
     }
@@ -270,7 +258,7 @@ namespace
             SWC_ASSERT(casePayload->expressions.size() == 1);
 
             MicroReg      targetTypeReg       = MicroReg::invalid();
-            const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(casePayload->expressions.front().typeExprRef).typeRef());
+            const TypeRef targetStructTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), codeGen.viewType(casePayload->expressions.front().typeExprRef).typeRef());
             SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
 
             const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg};
@@ -298,7 +286,7 @@ namespace
         for (const auto& expr : casePayload->expressions)
         {
             MicroReg      targetTypeReg       = MicroReg::invalid();
-            const TypeRef targetStructTypeRef = unwrapAliasEnumTypeRef(codeGen, codeGen.viewType(expr.typeExprRef).typeRef());
+            const TypeRef targetStructTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), codeGen.viewType(expr.typeExprRef).typeRef());
             SWC_RESULT(loadTypeInfoConstantReg(targetTypeReg, codeGen, targetStructTypeRef));
 
             const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg};

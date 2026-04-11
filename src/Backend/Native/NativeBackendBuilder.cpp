@@ -4,6 +4,7 @@
 #include "Backend/Native/NativeLinker.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
+#include "Backend/Native/SymbolSort.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
@@ -22,66 +23,9 @@ namespace
     constexpr uint32_t K_NATIVE_TEST_COUNT_MISMATCH_EXIT_TAG        = 0xA0000000u;
     constexpr uint32_t K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK = 0x0FFFFFFFu;
 
-    template<typename T>
-    struct SortEntry
-    {
-        T*   symbol = nullptr;
-        Utf8 key;
-    };
-
-    template<typename T, typename MAKE_KEY>
-    void sortAndUnique(std::vector<T*>& values, const MAKE_KEY& makeKey)
-    {
-        values.erase(std::remove(values.begin(), values.end(), nullptr), values.end());
-        if (values.size() < 2)
-            return;
-
-        std::vector<SortEntry<T>> entries;
-        entries.reserve(values.size());
-        for (T* symbol : values)
-        {
-            SWC_ASSERT(symbol != nullptr);
-            entries.push_back({.symbol = symbol, .key = makeKey(*symbol)});
-        }
-
-        std::ranges::stable_sort(entries, [](const SortEntry<T>& lhs, const SortEntry<T>& rhs) {
-            return lhs.key < rhs.key;
-        });
-
-        values.clear();
-        values.reserve(entries.size());
-        T* previous = nullptr;
-        for (const auto& entry : entries)
-        {
-            if (entry.symbol == previous)
-                continue;
-
-            values.push_back(entry.symbol);
-            previous = entry.symbol;
-        }
-    }
-
-    template<typename T>
-    Utf8 makeSymbolLocationSortKey(const NativeBackendBuilder& builder, const T& symbol)
-    {
-        Utf8 key;
-        if (const SourceFile* file = builder.compiler().srcView(symbol.srcViewRef()).file())
-            key += Utf8(file->path());
-
-        key += "|";
-        key += std::to_string(symbol.tokRef().get());
-        return key;
-    }
-
     bool isCompilerFunction(const SymbolFunction& symbol)
     {
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
-    }
-
-    template<typename T>
-    void sortAndUniqueByLocation(const NativeBackendBuilder& builder, std::vector<T*>& values)
-    {
-        sortAndUnique(values, [&](const T& symbol) { return makeSymbolLocationSortKey(builder, symbol); });
     }
 
     template<typename T>
@@ -230,7 +174,7 @@ namespace
             NativeFunctionInfo info;
             info.symbol      = symbol;
             info.machineCode = &symbol->loweredCode();
-            info.sortKey     = makeSymbolLocationSortKey(builder, *symbol);
+            info.sortKey     = SymbolSort::locationKey(builder.compiler(), *symbol);
             info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", builder.functionInfos.size(), Math::hash(info.sortKey));
             info.debugName   = symbol->getFullScopedName(builder.ctx());
             info.exported    = symbol->isPublic() && !isCompilerFunction(*symbol);
@@ -404,12 +348,12 @@ Result NativeBackendBuilder::prepare()
 
     auto functions = compiler_.nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
-    sortAndUniqueByLocation(*this, testFunctions);
-    sortAndUniqueByLocation(*this, initFunctions);
-    sortAndUniqueByLocation(*this, preMainFunctions);
-    sortAndUniqueByLocation(*this, dropFunctions);
-    sortAndUniqueByLocation(*this, mainFunctions);
-    sortAndUniqueByLocation(*this, regularGlobals);
+    SymbolSort::sortAndUniqueByLocation(testFunctions, compiler_);
+    SymbolSort::sortAndUniqueByLocation(initFunctions, compiler_);
+    SymbolSort::sortAndUniqueByLocation(preMainFunctions, compiler_);
+    SymbolSort::sortAndUniqueByLocation(dropFunctions, compiler_);
+    SymbolSort::sortAndUniqueByLocation(mainFunctions, compiler_);
+    SymbolSort::sortAndUniqueByLocation(regularGlobals, compiler_);
     appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
 
     std::optional<TimedActionLog::ScopedStage> microStage;
@@ -425,7 +369,7 @@ Result NativeBackendBuilder::prepare()
     while (true)
     {
         appendCodeGenDependencies(*this, functions);
-        sortAndUniqueByLocation(*this, functions);
+        SymbolSort::sortAndUniqueByLocation(functions, compiler_);
         rebuildFunctionInfos(*this, functions);
         SWC_RESULT(scheduleCodeGen(*this));
 

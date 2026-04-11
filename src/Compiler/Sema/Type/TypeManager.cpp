@@ -213,6 +213,13 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
     return *(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
 }
 
+TypeRef TypeManager::unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) const
+{
+    if (!typeRef.isValid())
+        return TypeRef::invalid();
+    return get(typeRef).unwrapAliasEnum(ctx, typeRef);
+}
+
 TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const
 {
     if (lhs == rhs && !force32BitInts)

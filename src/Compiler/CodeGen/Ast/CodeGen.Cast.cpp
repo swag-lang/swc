@@ -197,17 +197,6 @@ namespace
         TypeRef                     structTypeRef = TypeRef::invalid();
     };
 
-    TypeRef unwrapAliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
 
     bool resolveDynamicStructCastSourceInfo(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)
     {
@@ -215,7 +204,7 @@ namespace
         if (!sourceTypeRef.isValid())
             return false;
 
-        const TypeRef   resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen, sourceTypeRef);
+        const TypeRef   resolvedSourceTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
         const TypeInfo& sourceType            = codeGen.typeMgr().get(resolvedSourceTypeRef);
 
         if (sourceType.isInterface())
@@ -232,7 +221,7 @@ namespace
 
         if (sourceType.isPointerOrReference())
         {
-            const TypeRef   pointeeTypeRef = unwrapAliasEnumTypeRef(codeGen, sourceType.payloadTypeRef());
+            const TypeRef   pointeeTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceType.payloadTypeRef());
             const TypeInfo& pointeeType    = codeGen.typeMgr().get(pointeeTypeRef);
             if (pointeeType.isStruct())
             {
@@ -245,7 +234,7 @@ namespace
         if (!codeGen.sema().isLValue(sourceRef))
             return false;
 
-        const TypeRef   structTypeRef = unwrapAliasEnumTypeRef(codeGen, resolvedSourceTypeRef);
+        const TypeRef   structTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), resolvedSourceTypeRef);
         const TypeInfo& structType    = codeGen.typeMgr().get(structTypeRef);
         if (!structType.isStruct())
             return false;
@@ -325,7 +314,7 @@ namespace
         const bool                  hasSourceInfo = resolveDynamicStructCastSourceInfo(codeGen, sourceRef, sourceTypeRef, sourceInfo);
         SWC_ASSERT(hasSourceInfo);
 
-        const TypeRef targetResolvedTypeRef = unwrapAliasEnumTypeRef(codeGen, targetTypeRef);
+        const TypeRef targetResolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
 
         const auto* runtimePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         SWC_ASSERT(runtimePayload != nullptr);
@@ -702,8 +691,8 @@ namespace
 
         const TypeInfo& srcType            = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& dstType            = codeGen.typeMgr().get(dstTypeRef);
-        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(codeGen, sourceTypeRef);
-        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(codeGen, dstTypeRef);
+        const TypeRef   resolvedSrcTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
+        const TypeRef   resolvedDstTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
         const TypeInfo& resolvedSrcType    = codeGen.typeMgr().get(resolvedSrcTypeRef);
         const TypeInfo& resolvedDstType    = codeGen.typeMgr().get(resolvedDstTypeRef);
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())

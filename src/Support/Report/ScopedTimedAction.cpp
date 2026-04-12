@@ -82,10 +82,10 @@ namespace
         return LogColor::BrightYellow;
     }
 
-    LogColor stageOutcomeColor(const TimedActionLog::StageSpec& spec, const TimedActionLog::StageOutcome outcome)
+    LogColor stageOutcomeColor(const std::string_view key, const TimedActionLog::StageOutcome outcome)
     {
         if (outcome == TimedActionLog::StageOutcome::Success)
-            return stageColor(spec.key);
+            return stageColor(key);
 
         return outcomeColor(outcome);
     }
@@ -147,54 +147,54 @@ namespace
         return LogColorHelper::toAnsi(ctx, LogColor::Reset);
     }
 
-    void appendStageText(Utf8& line, const TaskContext& ctx, const TimedActionLog::StageSpec& spec)
+    void appendStageText(Utf8& line, const TaskContext& ctx, const std::string_view key, const std::string_view label, const std::string_view verb, const std::string_view detail)
     {
         const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
-        line += colorize(ctx, stageColor(spec.key), std::format("{:<{}}", spec.label, ACTION_LABEL_WIDTH));
+        line += colorize(ctx, stageColor(key), std::format("{:<{}}", label, ACTION_LABEL_WIDTH));
         line += " ";
-        line += colorize(ctx, LogColor::White, spec.verb);
-        if (!spec.detail.empty())
+        line += colorize(ctx, LogColor::White, verb);
+        if (!detail.empty())
         {
             line += " ";
             line += colorize(ctx, LogColor::Gray, bullet);
             line += " ";
-            line += colorize(ctx, LogColor::Gray, spec.detail);
+            line += colorize(ctx, LogColor::Gray, detail);
         }
     }
 
-    Utf8 formatStageStart(const TaskContext& ctx, const TimedActionLog::StageSpec& spec)
+    Utf8 formatStageStart(const TaskContext& ctx, const std::string_view key, const std::string_view label, const std::string_view verb, const std::string_view detail)
     {
         Utf8 line;
         line += "  ";
-        line += colorize(ctx, stageColor(spec.key), stageStartGlyph(ctx));
+        line += colorize(ctx, stageColor(key), stageStartGlyph(ctx));
         line += "  ";
-        appendStageText(line, ctx, spec);
+        appendStageText(line, ctx, key, label, verb, detail);
         line += resetColor(ctx);
         return line;
     }
 
-    Utf8 formatCompletedStageLine(const TaskContext& ctx, const TimedActionLog::StageSpec& spec)
+    Utf8 formatCompletedStageLine(const TaskContext& ctx, const std::string_view key, const std::string_view label, const std::string_view verb, const std::string_view detail)
     {
         Utf8 line;
         line += "  ";
-        line += colorize(ctx, stageColor(spec.key), stageOutcomeGlyph(ctx, TimedActionLog::StageOutcome::Success));
+        line += colorize(ctx, stageColor(key), stageOutcomeGlyph(ctx, TimedActionLog::StageOutcome::Success));
         line += "  ";
-        appendStageText(line, ctx, spec);
+        appendStageText(line, ctx, key, label, verb, detail);
         line += resetColor(ctx);
         return line;
     }
 
-    Utf8 formatStageEnd(const TaskContext& ctx, const TimedActionLog::StageSpec& spec, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs, const Utf8& stat)
+    Utf8 formatStageEnd(const TaskContext& ctx, const std::string_view key, const std::string_view label, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs, const Utf8& stat)
     {
         const Utf8 duration        = Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
         const Utf8 bullet          = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
-        const auto outcomeLogColor = stageOutcomeColor(spec, outcome);
+        const auto outcomeLogColor = stageOutcomeColor(key, outcome);
 
         Utf8 line;
         line += "  ";
         line += colorize(ctx, outcomeLogColor, stageOutcomeGlyph(ctx, outcome));
         line += "  ";
-        line += colorize(ctx, outcomeLogColor, std::format("{:<{}}", spec.label, ACTION_LABEL_WIDTH));
+        line += colorize(ctx, outcomeLogColor, std::format("{:<{}}", label, ACTION_LABEL_WIDTH));
         line += " ";
         line += colorize(ctx, LogColor::White, duration);
         if (!stat.empty())
@@ -202,7 +202,7 @@ namespace
             line += " ";
             line += colorize(ctx, LogColor::Gray, bullet);
             line += " ";
-            line += colorize(ctx, LogColor::White, stat);
+            line += colorize(ctx, LogColor::Gray, stat);
         }
         line += resetColor(ctx);
         return line;
@@ -233,26 +233,10 @@ TimedActionLog::StatsSnapshot TimedActionLog::StatsSnapshot::capture()
     result.timeTotal   = stats.timeTotal.load(std::memory_order_relaxed);
     result.numErrors   = stats.numErrors.load(std::memory_order_relaxed);
     result.numWarnings = stats.numWarnings.load(std::memory_order_relaxed);
-#if SWC_HAS_STATS
-    result.numFiles  = stats.numFiles.load(std::memory_order_relaxed);
-    result.numTokens = stats.numTokens.load(std::memory_order_relaxed);
-#endif
+    result.numFiles    = stats.numFiles.load(std::memory_order_relaxed);
+    result.numTokens   = stats.numTokens.load(std::memory_order_relaxed);
 
     return result;
-}
-
-Utf8 TimedActionLog::formatStageStartLine(const TaskContext& ctx, const StageSpec& spec)
-{
-    Utf8 line = formatStageStart(ctx, spec);
-    line += "\n";
-    return line;
-}
-
-Utf8 TimedActionLog::formatStageEndLine(const TaskContext& ctx, const StageSpec& spec, const StageOutcome outcome, const uint64_t durationNs, const Utf8& stat)
-{
-    Utf8 line = formatStageEnd(ctx, spec, outcome, durationNs, stat);
-    line += "\n";
-    return line;
 }
 
 void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)
@@ -262,14 +246,7 @@ void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    const StageSpec spec{
-        .key    = "config",
-        .label  = "Config",
-        .verb   = "arming toolchain",
-        .detail = formatBuildConfiguration(ctx),
-    };
-
-    Utf8 line = formatCompletedStageLine(ctx, spec);
+    Utf8 line = formatCompletedStageLine(ctx, "config", "Config", "arming toolchain", formatBuildConfiguration(ctx));
     line += "\n";
     printLineLocked(ctx, line);
 }
@@ -299,21 +276,17 @@ void TimedActionLog::printSessionFlags(const TaskContext& ctx)
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    const StageSpec spec{
-        .key    = "config",
-        .label  = "Modes",
-        .verb   = "settling runtime",
-        .detail = joinParts(ctx, flags, LogColor::Gray),
-    };
-
-    Utf8 line = formatCompletedStageLine(ctx, spec);
+    Utf8 line = formatCompletedStageLine(ctx, "config", "Modes", "settling runtime", joinParts(ctx, flags, LogColor::Gray));
     line += "\n";
     printLineLocked(ctx, line);
 }
 
-TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, StageSpec spec) :
+TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, Utf8 key, Utf8 label, Utf8 verb, Utf8 detail) :
     ctx_(&ctx),
-    spec_(std::move(spec)),
+    key_(std::move(key)),
+    label_(std::move(label)),
+    verb_(std::move(verb)),
+    detail_(std::move(detail)),
     startTick_(Clock::now())
 {
     const StatsSnapshot before = StatsSnapshot::capture();
@@ -327,7 +300,10 @@ TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, StageSpec spec)
     }
 
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
-    printLineLocked(*ctx_, formatStageStartLine(*ctx_, spec_));
+
+    Utf8 line = formatStageStart(*ctx_, key_, label_, verb_, detail_);
+    line += "\n";
+    printLineLocked(*ctx_, line);
 }
 
 TimedActionLog::ScopedStage::~ScopedStage()
@@ -347,7 +323,10 @@ TimedActionLog::ScopedStage::~ScopedStage()
         outcome = mergeOutcome(outcome, forcedOutcome_.value());
 
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
-    printLineLocked(*ctx_, formatStageEndLine(*ctx_, spec_, outcome, durationNs, stat_));
+
+    Utf8 line = formatStageEnd(*ctx_, key_, label_, outcome, durationNs, stat_);
+    line += "\n";
+    printLineLocked(*ctx_, line);
 }
 
 void TimedActionLog::ScopedStage::markOutcome(const StageOutcome outcome)
@@ -379,12 +358,8 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     };
 
     std::vector<ColoredPart> parts;
-#if SWC_HAS_STATS
     if (snapshot.numFiles)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numFiles, "file"), LogColor::White});
-    if (snapshot.numTokens)
-        parts.push_back({Utf8Helper::countWithLabel(snapshot.numTokens, "token"), LogColor::White});
-#endif
     parts.push_back({Utf8Helper::toNiceTime(Timer::toSeconds(snapshot.timeTotal)), LogColor::White});
     if (snapshot.numWarnings)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numWarnings, "warning"), LogColor::BrightYellow});

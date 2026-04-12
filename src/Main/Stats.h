@@ -8,6 +8,8 @@ struct Stats
     std::atomic<uint64_t> timeTotal   = 0;
     std::atomic<size_t>   numErrors   = 0;
     std::atomic<size_t>   numWarnings = 0;
+    std::atomic<size_t>   numFiles    = 0;
+    std::atomic<size_t>   numTokens   = 0;
 
 #if SWC_HAS_STATS
     std::atomic<uint64_t> timeLoadFile   = 0;
@@ -20,8 +22,6 @@ struct Stats
     std::atomic<size_t> memAllocated    = 0;
     std::atomic<size_t> memMaxAllocated = 0;
 
-    std::atomic<size_t> numFiles             = 0;
-    std::atomic<size_t> numTokens            = 0;
     std::atomic<size_t> numAstNodes          = 0;
     std::atomic<size_t> numVisitedAstNodes   = 0;
     std::atomic<size_t> numConstants         = 0;

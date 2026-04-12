@@ -109,9 +109,9 @@ Result SourceFile::loadContent(TaskContext& ctx)
     }
 
     SWC_MEM_SCOPE("Frontend/LoadFile");
+    Stats::get().numFiles.fetch_add(1);
 #if SWC_HAS_STATS
     Timer time(&Stats::get().timeLoadFile);
-    Stats::get().numFiles.fetch_add(1);
 #endif
 
     std::ifstream file(path_, std::ios::binary | std::ios::ate);

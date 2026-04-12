@@ -308,12 +308,7 @@ Result NativeBackendBuilder::run()
     NativeArtifactPaths         paths;
     artifactBuilder.queryPaths(paths);
     {
-        TimedActionLog::ScopedStage stage(ctx_, {
-                                                    .key    = "build",
-                                                    .label  = "Build",
-                                                    .verb   = "forging native artifact",
-                                                    .detail = paths.artifactPath.filename().string(),
-                                                });
+        TimedActionLog::ScopedStage stage(ctx_, "build", "Build", "forging native artifact", paths.artifactPath.filename().string());
 
         SWC_RESULT(prepare());
         stage.setStat(Utf8Helper::countWithLabel(compiler_.nativeCodeSegment().size(), "function"));
@@ -361,11 +356,7 @@ Result NativeBackendBuilder::prepare()
     std::optional<TimedActionLog::ScopedStage> microStage;
     if (ctx_.global().logger().claimStageOnce("micro"))
     {
-        microStage.emplace(ctx_, TimedActionLog::StageSpec{
-                                     .key   = "micro",
-                                     .label = "Micro",
-                                     .verb  = "optimizing instruction flow",
-                                 });
+        microStage.emplace(ctx_, "micro", "Micro", "optimizing instruction flow");
     }
 
     while (true)
@@ -453,12 +444,7 @@ Result NativeBackendBuilder::writeObjects()
 
 Result NativeBackendBuilder::runGeneratedArtifact()
 {
-    TimedActionLog::ScopedStage stage(ctx_, {
-                                                .key    = "run",
-                                                .label  = "Run",
-                                                .verb   = "handing off",
-                                                .detail = artifactPath.filename().string(),
-                                            });
+    TimedActionLog::ScopedStage stage(ctx_, "run", "Run", "handing off", artifactPath.filename().string());
 
     uint32_t                    exitCode    = 0;
     const fs::path              artifactDir = artifactPath.parent_path();

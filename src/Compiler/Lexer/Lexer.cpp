@@ -1438,10 +1438,8 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     if (!isRawMode() && hasFileError_)
         srcView_->setLexOnly();
 
-#if SWC_HAS_STATS
     if (!isRawMode())
         Stats::get().numTokens.fetch_add(srcView_->tokens().size());
-#endif
 }
 
 void Lexer::buildTriviaIndex() const

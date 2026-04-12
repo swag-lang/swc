@@ -26,23 +26,13 @@ namespace TimedActionLog
         static StatsSnapshot capture();
     };
 
-    struct StageSpec
-    {
-        Utf8 key;
-        Utf8 label;
-        Utf8 verb;
-        Utf8 detail;
-    };
-
-    Utf8 formatStageStartLine(const TaskContext& ctx, const StageSpec& spec);
-    Utf8 formatStageEndLine(const TaskContext& ctx, const StageSpec& spec, StageOutcome outcome, uint64_t durationNs, const Utf8& stat = {});
     void printBuildConfiguration(const TaskContext& ctx);
     void printSessionFlags(const TaskContext& ctx);
 
     class ScopedStage
     {
     public:
-        ScopedStage(const TaskContext& ctx, StageSpec spec);
+        ScopedStage(const TaskContext& ctx, Utf8 key, Utf8 label, Utf8 verb, Utf8 detail = {});
         ~ScopedStage();
 
         ScopedStage(const ScopedStage&)            = delete;
@@ -55,7 +45,10 @@ namespace TimedActionLog
 
     private:
         const TaskContext*          ctx_ = nullptr;
-        StageSpec                   spec_;
+        Utf8                        key_;
+        Utf8                        label_;
+        Utf8                        verb_;
+        Utf8                        detail_;
         Clock::time_point           startTick_{};
         size_t                      startErrors_   = 0;
         size_t                      startWarnings_ = 0;

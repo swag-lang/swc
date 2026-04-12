@@ -58,12 +58,7 @@ namespace Unittest
         CompilerInstance compiler(ctx.global(), ctx.cmdLine());
         TaskContext      testCtx(compiler);
         compiler.setupSema(testCtx);
-        TimedActionLog::ScopedStage stage(testCtx, {
-                                                       .key    = "verify",
-                                                       .label  = "Unittest",
-                                                       .verb   = "running backend checks",
-                                                       .detail = std::format("{} cases", testRegistry().size()),
-                                                   });
+        TimedActionLog::ScopedStage stage(testCtx, "verify", "Unittest", "running backend checks", std::format("{} cases", testRegistry().size()));
         Logger::ScopedStageMute     muteNestedStages(testCtx.global().logger());
 
         bool       hasFailure      = false;

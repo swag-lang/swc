@@ -101,12 +101,7 @@ namespace Command
     {
         SWC_MEM_SCOPE("Sema");
         TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, {
-                                                   .key    = "sema",
-                                                   .label  = "Sema",
-                                                   .verb   = "checking meaning",
-                                                   .detail = formatCommandSourceRoots(ctx.cmdLine()),
-                                               });
+        TimedActionLog::ScopedStage stage(ctx, "sema", "Sema", "checking meaning", formatCommandSourceRoots(ctx.cmdLine()));
 
         const Global&     global   = ctx.global();
         JobManager&       jobMgr   = global.jobMgr();
@@ -168,9 +163,7 @@ namespace Command
 
         Sema::waitDone(ctx, clientId);
 
-#if SWC_HAS_STATS
         stage.setStat(Utf8Helper::countWithLabel(Stats::get().numTokens.load(std::memory_order_relaxed), "token"));
-#endif
     }
 }
 

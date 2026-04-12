@@ -97,12 +97,7 @@ namespace Command
     void syntax(CompilerInstance& compiler)
     {
         TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, {
-                                                   .key    = "syntax",
-                                                   .label  = "Syntax",
-                                                   .verb   = "shaping syntax",
-                                                   .detail = formatCommandSourceRoots(ctx.cmdLine()),
-                                               });
+        TimedActionLog::ScopedStage stage(ctx, "syntax", "Syntax", "shaping syntax", formatCommandSourceRoots(ctx.cmdLine()));
         const Global&               global   = ctx.global();
         JobManager&                 jobMgr   = global.jobMgr();
         const JobClientId           clientId = compiler.jobClientId();

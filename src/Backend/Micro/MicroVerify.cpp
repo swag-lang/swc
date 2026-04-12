@@ -75,14 +75,20 @@ namespace
         if (!reg.isValid())
             return false;
 
-        if (reg.isInt())
-            return reg.index() < 16;
-        if (reg.isFloat())
-            return reg.index() < 4;
-        if (reg.isVirtual())
-            return true;
-        if (reg.isInstructionPointer() || reg.isNoBase())
-            return true;
+        switch (reg.kind())
+        {
+            case MicroRegKind::Int:
+            case MicroRegKind::Float:
+            case MicroRegKind::VirtualInt:
+            case MicroRegKind::VirtualFloat:
+                return true;
+
+            case MicroRegKind::Special:
+                return reg.isInstructionPointer() || reg.isNoBase();
+
+            case MicroRegKind::Invalid:
+                break;
+        }
 
         return false;
     }

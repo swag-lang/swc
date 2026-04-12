@@ -101,7 +101,7 @@ namespace Command
     {
         SWC_MEM_SCOPE("Sema");
         TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, "Sema", "checking meaning", formatCommandSourceRoots(ctx.cmdLine()));
+        TimedActionLog::ScopedStage stage(ctx, "Sema", formatCommandSourceRoots(ctx.cmdLine()));
 
         const Global&     global   = ctx.global();
         JobManager&       jobMgr   = global.jobMgr();

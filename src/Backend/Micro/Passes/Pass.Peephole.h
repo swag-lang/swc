@@ -47,18 +47,21 @@ public:
         RuleTarget         target       = RuleTarget::AnyInstruction;
         RuleApplyMutableFn applyMutable = nullptr;
         RuleApplyConstFn   applyConst   = nullptr;
+        const char*        name         = nullptr;
 
         Rule() = default;
 
-        Rule(const RuleTarget targetValue, const RuleApplyMutableFn applyValue) :
+        Rule(const RuleTarget targetValue, const RuleApplyMutableFn applyValue, const char* nameValue = nullptr) :
             target(targetValue),
-            applyMutable(applyValue)
+            applyMutable(applyValue),
+            name(nameValue)
         {
         }
 
-        Rule(const RuleTarget targetValue, const RuleApplyConstFn applyValue) :
+        Rule(const RuleTarget targetValue, const RuleApplyConstFn applyValue, const char* nameValue = nullptr) :
             target(targetValue),
-            applyConst(applyValue)
+            applyConst(applyValue),
+            name(nameValue)
         {
         }
 
@@ -106,12 +109,13 @@ private:
     static RuleDispatch        buildRuleDispatch(const RuleList& rules);
     static RuleDispatch        makeDefaultRuleDispatch();
     static const RuleDispatch& getRuleDispatch();
-    bool                       applyOpcodeRules(const Cursor& cursor);
+    Result                     applyOpcodeRules(bool& outChanged, const Cursor& cursor);
     MicroStorage::Iterator     computeResumeIterator(const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt) const;
     static void                appendAddressingRules(RuleList& outRules);
     static void                appendImmediateRules(RuleList& outRules);
     static void                appendCopyRules(RuleList& outRules);
     static void                appendCleanupRules(RuleList& outRules);
+    Result                     failRuleInvariant(const Rule& rule, const Cursor& cursor, std::string_view message) const;
 
     void precomputeStackSlotInfo();
 

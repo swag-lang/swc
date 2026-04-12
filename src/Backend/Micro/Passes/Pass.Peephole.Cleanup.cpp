@@ -2278,90 +2278,92 @@ void MicroPeepholePass::precomputeStackSlotInfo()
 
 void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
 {
+#define ADD_RULE(target, fn) outRules.emplace_back(RuleTarget::target, fn, #fn)
     // Rule: remove_overwritten_store_to_same_slot
     // Purpose: remove an earlier store when a later store overwrites the exact same address before any read.
     // Example: mov [rsp], 3; mov r10, 42; mov [rsp], r10 -> mov r10, 42; mov [rsp], r10
-    outRules.emplace_back(RuleTarget::StackWriteCandidate, removeOverwrittenStoreToSameSlot);
+    ADD_RULE(StackWriteCandidate, removeOverwrittenStoreToSameSlot);
 
     // Rule: remove_dead_stack_store_before_ret
     // Purpose: remove stores to local stack slots that are never observed before returning.
     // Example: mov [rsp], r9; mov rax, r9; ret -> mov rax, r9; ret
-    outRules.emplace_back(RuleTarget::StackWriteCandidate, removeDeadStackStoreBeforeRet);
+    ADD_RULE(StackWriteCandidate, removeDeadStackStoreBeforeRet);
 
     // Rule: fold_late_load_binary_store_back_into_mem_op
     // Purpose: late fold of load/copy/op/store patterns into direct memory ops after regalloc introduced copies.
     // Example: mov r11,[rbp]; mov r9,rcx; add r11,r9; mov [rbp],r11 -> add [rbp],rcx
-    outRules.emplace_back(RuleTarget::LoadRegMem, foldLateLoadBinaryStoreBackIntoMemOp);
+    ADD_RULE(LoadRegMem, foldLateLoadBinaryStoreBackIntoMemOp);
 
     // Rule: forward_stack_store_to_following_load
     // Purpose: forward stack-slot stores directly to later loads when the source register is still available.
     // Example: mov [rsp+64], r10; ...; mov rax, [rsp+64] -> mov [rsp+64], r10; ...; mov rax, r10
-    outRules.emplace_back(RuleTarget::LoadMemReg, forwardStackStoreToFollowingLoad);
+    ADD_RULE(LoadMemReg, forwardStackStoreToFollowingLoad);
 
     // Rule: remove_never_read_stack_store
     // Purpose: remove stack-pointer slot stores that are never read/address-taken anywhere in the function.
     // Example: mov [rsp+0x70], r9; ... (no read) -> <removed>
-    outRules.emplace_back(RuleTarget::StackWriteCandidate, removeNeverReadStackStore);
+    ADD_RULE(StackWriteCandidate, removeNeverReadStackStore);
 
     // Rule: remove_redundant_stack_load_store_pair
     // Purpose: remove a stack load restored unchanged later, with no observable intervening effect.
     // Example: mov rax, [rsp+56]; mov rcx, [rsp+64]; mov [rsp+56], rax -> mov rcx, [rsp+64]
-    outRules.emplace_back(RuleTarget::LoadRegMem, removeRedundantStackLoadStorePair);
+    ADD_RULE(LoadRegMem, removeRedundantStackLoadStorePair);
 
     // Rule: eliminate_redundant_compare_zero_after_flag_def
     // Purpose: remove cmp r, 0 when the previous instruction already defines flags on the same register.
     // Example: add r10, 3; cmp r10, 0; je L0 -> add r10, 3; je L0
-    outRules.emplace_back(RuleTarget::CmpRegImm, eliminateRedundantCompareZeroAfterFlagDef);
+    ADD_RULE(CmpRegImm, eliminateRedundantCompareZeroAfterFlagDef);
 
     // Rule: remove_dead_compare_instruction
     // Purpose: remove compare operations whose flags are never consumed.
     // Example: cmp r11, 0; mov rax, 11; ret -> mov rax, 11; ret
-    outRules.emplace_back(RuleTarget::CmpAny, removeDeadCompareInstruction);
+    ADD_RULE(CmpAny, removeDeadCompareInstruction);
 
     // Rule: fold_setcond_compare_setcond_chain
     // Purpose: collapse bool rematerialization chain into one setcc.
     // Example: setne r9; cmp r9, 0; sete r10 -> sete r10
-    outRules.emplace_back(RuleTarget::CmpRegImm, foldSetCondCompareSetCondChain);
+    ADD_RULE(CmpRegImm, foldSetCondCompareSetCondChain);
 
     // Rule: fold_setcond_compare_zero_into_direct_jump
     // Purpose: consume bool materialization compare in front of conditional jump.
     // Example: setcc r11; cmp r11, 0; je L0 -> setcc r11; j!cc L0
-    outRules.emplace_back(RuleTarget::CmpRegImm, foldSetCondCompareZeroIntoDirectJump);
+    ADD_RULE(CmpRegImm, foldSetCondCompareZeroIntoDirectJump);
 
     // Rule: fold_bool_and_chain_into_direct_jumps
     // Purpose: replace materialized bool-and chains with direct conditional branches.
     // Example: cmp/setcc/.../and/cmp/jz L0 -> cmp/jcc L0; cmp/jcc L0
-    outRules.emplace_back(RuleTarget::CmpRegImm, foldBoolAndChainIntoDirectJumps);
+    ADD_RULE(CmpRegImm, foldBoolAndChainIntoDirectJumps);
 
     // Rule: fold_setcond_zeroext_copy
     // Purpose: route setcc and zero-extend directly to final destination register.
     // Example: setcc r10; zero_extend r10; mov rax, r10 -> setcc rax; zero_extend rax
-    outRules.emplace_back(RuleTarget::SetCondReg, foldSetCondZeroExtCopy);
+    ADD_RULE(SetCondReg, foldSetCondZeroExtCopy);
 
     // Rule: fold_clearreg_into_next_mem_store_zero
     // Purpose: store zero immediate directly to memory instead of through a cleared temp register.
     // Example: xor rdx, rdx; mov [rsp], rdx -> mov [rsp], 0
-    outRules.emplace_back(RuleTarget::ClearReg, foldClearRegIntoNextMemStoreZero);
+    ADD_RULE(ClearReg, foldClearRegIntoNextMemStoreZero);
 
     // Rule: remove_redundant_stack_save_restore_around_immediate_shift
     // Purpose: remove save/restore pairs that became unnecessary after shift-count folding.
     // Example: mov [rsp+32], rcx; shl r8, 1; mov rcx, [rsp+32] -> shl r8, 1
-    outRules.emplace_back(RuleTarget::LoadMemReg, removeRedundantStackSaveRestoreAroundImmediateShift);
+    ADD_RULE(LoadMemReg, removeRedundantStackSaveRestoreAroundImmediateShift);
 
     // Rule: remove_redundant_clear_before_convert_float_to_int
     // Purpose: remove clears of a destination register that is fully overwritten by cvtf2i.
     // Example: xor r10, r10; cvtf2i r10, xmm0 -> cvtf2i r10, xmm0
-    outRules.emplace_back(RuleTarget::ClearReg, removeRedundantClearBeforeConvertFloatToInt);
+    ADD_RULE(ClearReg, removeRedundantClearBeforeConvertFloatToInt);
 
     // Rule: remove_adjacent_push_pop_same_register
     // Purpose: remove adjacent push/pop pairs that save and restore the same non-stack register.
     // Example: push rbp; pop rbp -> <removed>
-    outRules.emplace_back(RuleTarget::Push, removeAdjacentPushPopSameRegister);
+    ADD_RULE(Push, removeAdjacentPushPopSameRegister);
 
     // Rule: remove_no_op_instruction
     // Purpose: remove encoder-level no-op instructions.
     // Example: mov r8, r8 -> <removed>
-    outRules.emplace_back(RuleTarget::AnyInstruction, removeNoOpInstruction);
+    ADD_RULE(AnyInstruction, removeNoOpInstruction);
+#undef ADD_RULE
 }
 
 bool MicroPeepholePass::computeEquivalentStackBases(const MicroPassContext& context)

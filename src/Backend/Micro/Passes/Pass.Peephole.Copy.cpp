@@ -9,6 +9,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void restoreReplacedRegisters(const SmallVector<MicroReg*>& regs, const MicroReg reg)
+    {
+        for (MicroReg* replacedReg : regs)
+            *replacedReg = reg;
+    }
+
     bool classifyRegUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg reg, bool& outUse, bool& outDef)
     {
         outUse = false;
@@ -139,23 +145,34 @@ namespace
 
         bool reachedRet  = false;
         bool replacedUse = false;
+        SmallVector<MicroReg*> replacedRegs;
 
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
         {
-            const MicroInstr&        scanInst = *scanIt;
-            const MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
-            if (!scanOps)
-                return false;
+            const MicroInstr& scanInst = *scanIt;
 
             const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
             if (useDef.isCall)
+            {
+                restoreReplacedRegisters(replacedRegs, copyDstReg);
                 return false;
+            }
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
             {
                 if (scanInst.op != MicroInstrOpcode::Ret)
+                {
+                    restoreReplacedRegisters(replacedRegs, copyDstReg);
                     return false;
+                }
                 reachedRet = true;
                 break;
+            }
+
+            const MicroInstrOperand* scanOps = scanInst.ops(*context.operands);
+            if (!scanOps)
+            {
+                restoreReplacedRegisters(replacedRegs, copyDstReg);
+                return false;
             }
 
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -167,11 +184,14 @@ namespace
             classifyCopyRegsUseDef(context, scanInst, copyDstReg, copySrcReg, hasUse, hasDef, srcDef);
 
             if (srcDef || hasDef)
+            {
+                restoreReplacedRegisters(replacedRegs, copyDstReg);
                 return false;
+            }
             if (!hasUse)
                 continue;
 
-            SmallVector<MicroReg*> replaced;
+            const size_t replacedCountBefore = replacedRegs.size();
             for (const MicroInstrRegOperandRef& ref : refs)
             {
                 if (!ref.reg || !ref.use)
@@ -182,13 +202,14 @@ namespace
                     continue;
 
                 reg = copySrcReg;
-                replaced.push_back(&reg);
+                replacedRegs.push_back(&reg);
             }
 
             if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
             {
-                for (MicroReg* reg : replaced)
-                    *(reg) = copyDstReg;
+                for (size_t i = replacedCountBefore; i < replacedRegs.size(); ++i)
+                    *replacedRegs[i] = copyDstReg;
+                replacedRegs.resize(replacedCountBefore);
                 return false;
             }
 
@@ -196,9 +217,15 @@ namespace
         }
 
         if (!reachedRet || !replacedUse)
+        {
+            restoreReplacedRegisters(replacedRegs, copyDstReg);
             return false;
+        }
         if (!pass.isRegUnusedAfterInstruction(nextIt, endIt, copyDstReg))
+        {
+            restoreReplacedRegisters(replacedRegs, copyDstReg);
             return false;
+        }
 
         context.instructions->erase(instRef);
         return true;
@@ -224,6 +251,8 @@ namespace
         if (!copyDstReg.isSameClass(copySrcReg))
             return false;
 
+        const MicroReg originalOp0 = nextOps[0].reg;
+        const MicroReg originalOp1 = nextInst.op == MicroInstrOpcode::CmpRegReg ? nextOps[1].reg : MicroReg::invalid();
         bool replacesOperand = false;
 
         if (nextInst.op == MicroInstrOpcode::CmpRegReg)
@@ -263,10 +292,20 @@ namespace
             return false;
 
         if (!pass.isCopyDeadAfterInstruction(std::next(nextIt), endIt, copyDstReg))
+        {
+            nextOps[0].reg = originalOp0;
+            if (nextInst.op == MicroInstrOpcode::CmpRegReg)
+                nextOps[1].reg = originalOp1;
             return false;
+        }
 
         if (MicroPassHelpers::violatesEncoderConformance(context, nextInst, nextOps))
+        {
+            nextOps[0].reg = originalOp0;
+            if (nextInst.op == MicroInstrOpcode::CmpRegReg)
+                nextOps[1].reg = originalOp1;
             return false;
+        }
 
         context.instructions->erase(instRef);
         return true;
@@ -1510,89 +1549,91 @@ namespace
 
 void MicroPeepholePass::appendCopyRules(RuleList& outRules)
 {
+#define ADD_RULE(target, fn) outRules.emplace_back(RuleTarget::target, fn, #fn)
     // Rule: forward_copy_into_next_binary_source
     // Purpose: forward copied source register into the next binary operation source.
     // Example: mov r8, r11; and r5, r8 -> and r5, r11
-    outRules.emplace_back(RuleTarget::LoadRegReg, forwardCopyIntoNextBinarySource);
+    ADD_RULE(LoadRegReg, forwardCopyIntoNextBinarySource);
 
     // Rule: forward_copy_into_following_copy_source
     // Purpose: forward copied source register into a following copy source across neutral instructions.
     // Example: mov r11, rcx; mov r10, rdx; mov r9, r11 -> mov r10, rdx; mov r9, rcx
-    outRules.emplace_back(RuleTarget::LoadRegReg, forwardCopyIntoFollowingCopySource);
+    ADD_RULE(LoadRegReg, forwardCopyIntoFollowingCopySource);
 
     // Rule: forward_copy_into_ret_region_sources
     // Purpose: forward a b64 copy into later source-only uses up to ret and remove the copy.
     // Example: mov r11, rcx; mov rax, r11; sub rax, r11; ret -> mov rax, rcx; sub rax, rcx; ret
-    outRules.emplace_back(RuleTarget::LoadRegReg, forwardCopyIntoRetRegionSourceUses);
+    ADD_RULE(LoadRegReg, forwardCopyIntoRetRegionSourceUses);
 
     // Rule: forward_copy_into_next_compare_source
     // Purpose: forward copied source register into next compare.
     // Example: mov r8, r11; cmp r8, 0 -> cmp r11, 0
-    outRules.emplace_back(RuleTarget::LoadRegReg, forwardCopyIntoNextCompareSource);
+    ADD_RULE(LoadRegReg, forwardCopyIntoNextCompareSource);
 
     // Rule: fold_copy_into_next_memory_base
     // Purpose: fold copied base register into next memory access base.
     // Example: mov r10, rsp; mov [r10], xmm3 -> mov [rsp], xmm3
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyIntoNextMemoryBase);
+    ADD_RULE(LoadRegReg, foldCopyIntoNextMemoryBase);
 
     // Rule: fold_copy_into_next_self_load_mem
     // Purpose: fold copied base into later self-load memory form.
     // Example: mov r11, rcx; mov r9, rdx; mov r11, [r11] -> mov r9, rdx; mov r11, [rcx]
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyIntoNextSelfLoadMem);
+    ADD_RULE(LoadRegReg, foldCopyIntoNextSelfLoadMem);
 
     // Rule: fold_copy_twin_load_mem_reuse
     // Purpose: reuse first identical memory load result and remove copied-base register.
     // Example: mov r10, rdx; mov rdx, [r10]; mov r9, [r10] -> mov rdx, [rdx]; mov r9, rdx
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyTwinLoadMemReuse);
+    ADD_RULE(LoadRegReg, foldCopyTwinLoadMemReuse);
 
     // Rule: fold_ret_copy_into_accumulator
     // Purpose: retarget the final accumulator chain to return register and drop trailing copy.
     // Example: add rdx, [r8]; mov rax, rdx; ret -> add rax, [r8]; ret
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldRetCopyIntoAccumulator);
+    ADD_RULE(LoadRegReg, foldRetCopyIntoAccumulator);
 
     // Rule: fold_copy_op_copy_back
     // Purpose: fold copy-to-temp + binary-op + copy-back into direct binary-op on a source.
     // Example: mov r8, r11; and r8, rdx; mov r11, r8 -> and r11, rdx
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyOpCopyBack);
+    ADD_RULE(LoadRegReg, foldCopyOpCopyBack);
 
     // Rule: fold_copy_swap_add_into_accumulator
     // Purpose: fold copy old-index + copy loaded-value + add + accumulator-store into direct 'add' on loaded value.
     // Example: mov rax,r8; mov r8,rcx; add r8,rax; add [rsp+30],r8 -> add rcx,r8; add [rsp+30],rcx
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopySwapAddIntoAccumulator);
+    ADD_RULE(LoadRegReg, foldCopySwapAddIntoAccumulator);
 
     // Rule: fold_copy_unary_copy_back
     // Purpose: fold copy-to-temp + unary-op + copy-back into direct unary-op on source.
     // Example: mov r8, r11; neg r8; mov r11, r8 -> neg r11
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyUnaryCopyBack);
+    ADD_RULE(LoadRegReg, foldCopyUnaryCopyBack);
 
     // Rule: fold_tail_copy_binary_into_source
     // Purpose: fold a copy + binary accumulator mutation near function tail into source register.
     // Example: mov r9, r8; add r9, r10; mov [rax], r9; mov rax, r9; ret -> add r8, r10; mov [rax], r8; mov rax, r8; ret
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldTailCopyBinaryIntoSource);
+    ADD_RULE(LoadRegReg, foldTailCopyBinaryIntoSource);
 
     // Rule: fold_copy_back_with_previous_op
     // Purpose: same fold as above, detected from trailing copy-back instruction.
     // Example: mov r8, r11; xor r8, rdx; mov r11, r8 -> xor r11, rdx
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyBackWithPreviousOp);
+    ADD_RULE(LoadRegReg, foldCopyBackWithPreviousOp);
 
     // Rule: coalesce_copy_instruction
     // Purpose: rewrite downstream uses of copy destination to copy source and remove copy.
     // Example: mov r8, r11; add r9, r8; or r10, r8 -> add r9, r11; or r10, r11
-    outRules.emplace_back(RuleTarget::LoadRegReg, coalesceCopyInstruction);
+    ADD_RULE(LoadRegReg, coalesceCopyInstruction);
 
     // Rule: remove_unused_copy_destination
     // Purpose: remove a copy when the destination register is never used afterward.
     // Example: mov r9, r11; add rax, rcx -> add rax, rcx
-    outRules.emplace_back(RuleTarget::LoadRegReg, removeUnusedCopyDestination);
+    ADD_RULE(LoadRegReg, removeUnusedCopyDestination);
 
     // Rule: remove_dead_copy_before_use
     // Purpose: remove a copy when the destination value dies before any reachable use.
     // Example: mov rbp, rsp; push rdi; mov rbp, rsp -> push rdi; mov rbp, rsp
-    outRules.emplace_back(RuleTarget::LoadRegReg, removeDeadCopyBeforeUse);
+    ADD_RULE(LoadRegReg, removeDeadCopyBeforeUse);
 
     // Rule: remove_overwritten_copy
     // Purpose: remove a copy when the destination is immediately overwritten by another copy.
     // Example: mov r8, r11; mov r8, rdx -> mov r8, rdx
-    outRules.emplace_back(RuleTarget::LoadRegReg, removeOverwrittenCopy);
+    ADD_RULE(LoadRegReg, removeOverwrittenCopy);
+#undef ADD_RULE
 }
 SWC_END_NAMESPACE();

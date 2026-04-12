@@ -17,6 +17,131 @@ namespace
 {
     constexpr size_t ACTION_LABEL_WIDTH = 8;
 
+    // Each stage has a rotating set of short, craftsman-philosopher phrases.
+
+    constexpr std::string_view CONFIG_VERBS[] = {
+        "arming the forge",
+        "sharpening instruments",
+        "preparing the ground",
+        "readying the anvil",
+        "gathering tools",
+        "setting the stage",
+    };
+
+    constexpr std::string_view MODES_VERBS[] = {
+        "settling conditions",
+        "choosing the stance",
+        "aligning intent",
+        "tuning the approach",
+    };
+
+    constexpr std::string_view SYNTAX_VERBS[] = {
+        "shaping syntax",
+        "carving structure",
+        "tracing outlines",
+        "reading the grain",
+        "unfolding form",
+        "mapping contours",
+    };
+
+    constexpr std::string_view SEMA_VERBS[] = {
+        "weighing meaning",
+        "probing depth",
+        "seeking coherence",
+        "distilling intent",
+        "threading sense",
+        "reading between lines",
+    };
+
+    constexpr std::string_view JIT_VERBS[] = {
+        "sparking proofs",
+        "testing mettle",
+        "striking sparks",
+        "trial under fire",
+        "forging certainty",
+        "igniting trials",
+    };
+
+    constexpr std::string_view MICRO_VERBS[] = {
+        "honing the edge",
+        "polishing facets",
+        "stripping excess",
+        "refining precision",
+        "cutting to essence",
+        "chiseling details",
+    };
+
+    constexpr std::string_view BUILD_VERBS[] = {
+        "forging substance",
+        "casting the mold",
+        "hammering form",
+        "tempering steel",
+        "shaping the artifact",
+        "materializing intent",
+    };
+
+    constexpr std::string_view RUN_VERBS[] = {
+        "releasing creation",
+        "handing the reins",
+        "setting it free",
+        "breathing life",
+        "letting it fly",
+        "launching forward",
+    };
+
+    constexpr std::string_view VERIFY_VERBS[] = {
+        "measuring truth",
+        "weighing the yield",
+        "checking the mark",
+        "testing the claim",
+        "gauging results",
+        "confirming the craft",
+    };
+
+    constexpr std::string_view UNITTEST_VERBS[] = {
+        "probing foundations",
+        "testing the bones",
+        "checking integrity",
+        "stress-testing roots",
+        "verifying the core",
+    };
+
+    constexpr std::string_view FALLBACK_VERBS[] = {
+        "working the material",
+    };
+
+    template<size_t N>
+    std::string_view pickVerb(const std::string_view (&pool)[N])
+    {
+        static std::atomic<uint32_t> counter{0};
+        return pool[counter.fetch_add(1, std::memory_order_relaxed) % N];
+    }
+
+    std::string_view stageVerb(const std::string_view label)
+    {
+        if (label == "Config")
+            return pickVerb(CONFIG_VERBS);
+        if (label == "Modes")
+            return pickVerb(MODES_VERBS);
+        if (label == "Syntax")
+            return pickVerb(SYNTAX_VERBS);
+        if (label == "Sema")
+            return pickVerb(SEMA_VERBS);
+        if (label == "JIT")
+            return pickVerb(JIT_VERBS);
+        if (label == "Micro")
+            return pickVerb(MICRO_VERBS);
+        if (label == "Build")
+            return pickVerb(BUILD_VERBS);
+        if (label == "Run")
+            return pickVerb(RUN_VERBS);
+        if (label == "Verify")
+            return pickVerb(VERIFY_VERBS);
+        if (label == "Unittest")
+            return pickVerb(UNITTEST_VERBS);
+        return pickVerb(FALLBACK_VERBS);
+    }
+
     Utf8 buildCfgBackendKindName(const Runtime::BuildCfgBackendKind value)
     {
         switch (value)
@@ -162,24 +287,24 @@ namespace
         }
     }
 
-    Utf8 formatStageStart(const TaskContext& ctx, const std::string_view label, const std::string_view verb, const std::string_view detail)
+    Utf8 formatStageStart(const TaskContext& ctx, const std::string_view label, const std::string_view detail)
     {
         Utf8 line;
         line += "  ";
         line += colorize(ctx, stageColor(label), stageStartGlyph(ctx));
         line += "  ";
-        appendStageText(line, ctx, label, verb, detail);
+        appendStageText(line, ctx, label, stageVerb(label), detail);
         line += resetColor(ctx);
         return line;
     }
 
-    Utf8 formatCompletedStageLine(const TaskContext& ctx, const std::string_view label, const std::string_view verb, const std::string_view detail)
+    Utf8 formatCompletedStageLine(const TaskContext& ctx, const std::string_view label, const std::string_view detail)
     {
         Utf8 line;
         line += "  ";
         line += colorize(ctx, stageColor(label), stageOutcomeGlyph(ctx, TimedActionLog::StageOutcome::Success));
         line += "  ";
-        appendStageText(line, ctx, label, verb, detail);
+        appendStageText(line, ctx, label, stageVerb(label), detail);
         line += resetColor(ctx);
         return line;
     }
@@ -246,7 +371,7 @@ void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    Utf8 line = formatCompletedStageLine(ctx, "Config", "arming toolchain", formatBuildConfiguration(ctx));
+    Utf8 line = formatCompletedStageLine(ctx, "Config", formatBuildConfiguration(ctx));
     line += "\n";
     printLineLocked(ctx, line);
 }
@@ -276,16 +401,14 @@ void TimedActionLog::printSessionFlags(const TaskContext& ctx)
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    Utf8 line = formatCompletedStageLine(ctx, "Modes", "settling runtime", joinParts(ctx, flags, LogColor::Gray));
+    Utf8 line = formatCompletedStageLine(ctx, "Modes", joinParts(ctx, flags, LogColor::Gray));
     line += "\n";
     printLineLocked(ctx, line);
 }
 
-TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, Utf8 label, Utf8 verb, Utf8 detail) :
+TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, Utf8 label, Utf8 detail) :
     ctx_(&ctx),
     label_(std::move(label)),
-    verb_(std::move(verb)),
-    detail_(std::move(detail)),
     startTick_(Clock::now())
 {
     const StatsSnapshot before = StatsSnapshot::capture();
@@ -300,7 +423,7 @@ TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, Utf8 label, Utf
 
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
 
-    Utf8 line = formatStageStart(*ctx_, label_, verb_, detail_);
+    Utf8 line = formatStageStart(*ctx_, label_, detail);
     line += "\n";
     printLineLocked(*ctx_, line);
 }

@@ -67,37 +67,38 @@ public:
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
-    Utf8                                formatInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
-    void                                printInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
-    void                                setFlags(MicroBuilderFlags flags) { flags_ = flags; }
-    MicroBuilderFlags                   flags() const { return flags_; }
-    bool                                hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
-    void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
-    void                                setCurrentDebugNoStep(bool value);
-    bool                                currentDebugNoStep() const { return currentDebugNoStep_; }
-    SourceCodeRef                       instructionSourceCodeRef(MicroInstrRef instructionRef) const;
-    void                                setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
-    void                                setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
-    const Runtime::BuildCfgBackend&     backendBuildCfg() const { return backendBuildCfg_; }
-    void                                setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
-    void                                releaseMemory();
-    const Utf8&                         printSymbolName() const { return printSymbolName_; }
-    const Utf8&                         printFilePath() const { return printFilePath_; }
-    uint32_t                            printSourceLine() const { return printSourceLine_; }
-    void                                clearRelocations() { relocations_.clear(); }
-    void                                addRelocation(const MicroRelocation& relocation);
-    bool                                invalidateRelocationForInstruction(MicroInstrRef instructionRef);
-    bool                                pruneDeadRelocations();
-    std::vector<MicroRelocation>&       codeRelocations() { return relocations_; }
-    const std::vector<MicroRelocation>& codeRelocations() const { return relocations_; }
-    void                                addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
-    void                                addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
-    bool                                isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
-    bool                                isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
-    uint32_t                            nextVirtualIntRegIndexHint() const;
-    const MicroControlFlowGraph&        controlFlowGraph();
-    void                                invalidateControlFlowGraph();
-    void                                markControlFlowGraphMaybeDirty();
+    Utf8                                                       formatInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    void                                                       printInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    void                                                       setFlags(MicroBuilderFlags flags) { flags_ = flags; }
+    MicroBuilderFlags                                          flags() const { return flags_; }
+    bool                                                       hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
+    void                                                       setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
+    void                                                       setCurrentDebugNoStep(bool value);
+    bool                                                       currentDebugNoStep() const { return currentDebugNoStep_; }
+    SourceCodeRef                                              instructionSourceCodeRef(MicroInstrRef instructionRef) const;
+    void                                                       setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
+    void                                                       setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
+    const Runtime::BuildCfgBackend&                            backendBuildCfg() const { return backendBuildCfg_; }
+    void                                                       setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
+    void                                                       releaseMemory();
+    const Utf8&                                                printSymbolName() const { return printSymbolName_; }
+    const Utf8&                                                printFilePath() const { return printFilePath_; }
+    uint32_t                                                   printSourceLine() const { return printSourceLine_; }
+    void                                                       clearRelocations() { relocations_.clear(); }
+    void                                                       addRelocation(const MicroRelocation& relocation);
+    bool                                                       invalidateRelocationForInstruction(MicroInstrRef instructionRef);
+    bool                                                       pruneDeadRelocations();
+    std::vector<MicroRelocation>&                              codeRelocations() { return relocations_; }
+    const std::vector<MicroRelocation>&                        codeRelocations() const { return relocations_; }
+    const std::unordered_map<MicroReg, SmallVector<MicroReg>>& virtualRegForbiddenPhysRegs() const { return virtualRegForbiddenPhysRegs_; }
+    void                                                       addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
+    void                                                       addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
+    bool                                                       isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
+    bool                                                       isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
+    uint32_t                                                   nextVirtualIntRegIndexHint() const;
+    const MicroControlFlowGraph&                               controlFlowGraph();
+    void                                                       invalidateControlFlowGraph();
+    void                                                       markControlFlowGraphMaybeDirty();
 
     Result        runPasses(Encoder* encoder, MicroPassContext& context);
     Result        runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);

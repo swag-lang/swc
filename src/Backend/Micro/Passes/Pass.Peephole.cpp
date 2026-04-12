@@ -1,7 +1,9 @@
 #include "pch.h"
+#include "Backend/Micro/MicroVerify.h"
 #include "Backend/Micro/Passes/Pass.Peephole.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Support/Report/Logger.h"
 #include "Support/Memory/MemoryProfile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -120,19 +122,57 @@ const MicroPeepholePass::RuleDispatch& MicroPeepholePass::getRuleDispatch()
     return DISPATCH;
 }
 
-bool MicroPeepholePass::applyOpcodeRules(const Cursor& cursor)
+Result MicroPeepholePass::failRuleInvariant(const Rule& rule, const Cursor& cursor, std::string_view message) const
+{
+    const char* ruleName = rule.name ? rule.name : "<unnamed-rule>";
+    if (context_)
+    {
+        if (context_->taskContext)
+        {
+            Logger::print(*context_->taskContext,
+                          std::format("[micro-verify] peephole rule {} on opcode {} (ref={}): {}\n",
+                                      ruleName,
+                                      cursor.inst ? static_cast<uint32_t>(cursor.inst->op) : std::numeric_limits<uint32_t>::max(),
+                                      cursor.instRef.get(),
+                                      message));
+        }
+    }
+
+    return Result::Error;
+}
+
+Result MicroPeepholePass::applyOpcodeRules(bool& outChanged, const Cursor& cursor)
 {
     SWC_ASSERT(cursor.inst != nullptr);
+    outChanged = false;
 
     const auto& rules = getRuleDispatch().rulesByOpcode[static_cast<size_t>((cursor.inst)->op)];
     for (const Rule& rule : rules)
     {
         SWC_ASSERT(rule.applyMutable != nullptr || rule.applyConst != nullptr);
-        if (rule.apply(*this, cursor))
-            return true;
+
+#if SWC_DEV_MODE
+        const uint64_t structuralHashBefore = MicroVerify::computeStructuralHash(context());
+#endif
+
+        const bool ruleChanged = rule.apply(*this, cursor);
+
+#if SWC_DEV_MODE
+        const uint64_t structuralHashAfter = MicroVerify::computeStructuralHash(context());
+        if (!ruleChanged && structuralHashAfter != structuralHashBefore)
+            return failRuleInvariant(rule, cursor, "mutated micro state while returning false");
+        if (ruleChanged && structuralHashAfter == structuralHashBefore)
+            return failRuleInvariant(rule, cursor, "reported success without an observable micro-state change");
+#endif
+
+        if (ruleChanged)
+        {
+            outChanged = true;
+            return Result::Continue;
+        }
     }
 
-    return false;
+    return Result::Continue;
 }
 
 MicroStorage::Iterator MicroPeepholePass::computeResumeIterator(const MicroStorage::View&     view,
@@ -212,7 +252,9 @@ Result MicroPeepholePass::run(MicroPassContext& context)
         cursor.nextIt  = nextIt;
         cursor.endIt   = endIt;
 
-        if (applyOpcodeRules(cursor))
+        bool changed = false;
+        SWC_RESULT(applyOpcodeRules(changed, cursor));
+        if (changed)
         {
             context.passChanged = true;
             it                  = computeResumeIterator(view, prevIt, hasPrev, instRef, nextIt);

@@ -1668,46 +1668,48 @@ namespace
 
 void MicroPeepholePass::appendAddressingRules(RuleList& outRules)
 {
-    outRules.emplace_back(RuleTarget::LoadRegImm, foldZeroIndexAmcFromImmediate);
-    outRules.emplace_back(RuleTarget::LoadRegImm, foldImmediateIndexAmcIntoNextLoadRegMem);
+#define ADD_RULE(target, fn) outRules.emplace_back(RuleTarget::target, fn, #fn)
+    ADD_RULE(LoadRegImm, foldZeroIndexAmcFromImmediate);
+    ADD_RULE(LoadRegImm, foldImmediateIndexAmcIntoNextLoadRegMem);
 
     // Rule: fold_copy_add_into_load_address
     // Purpose: fold copy + add-immediate into one address load.
     // Example: mov r11, rdx; add r11, 8 -> lea r11, [rdx + 8]
-    outRules.emplace_back(RuleTarget::LoadRegReg, foldCopyAddIntoLoadAddress);
+    ADD_RULE(LoadRegReg, foldCopyAddIntoLoadAddress);
 
     // Rule: fold_loadaddr_into_next_loadaddr
     // Purpose: collapse chained address computations into one.
     // Example: lea r11, [rsp + 8]; lea rdx, [r11] -> lea rdx, [rsp + 8]
-    outRules.emplace_back(RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextLoadAddr);
+    ADD_RULE(LoadAddrRegMem, foldLoadAddrIntoNextLoadAddr);
 
     // Rule: fold_loadaddr_into_next_mem_offset
     // Purpose: consume temporary address register in next memory instruction.
     // Example: lea r11, [rdx + 8]; mov [r11], rax -> mov [rdx + 8], rax
-    outRules.emplace_back(RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextMemOffset);
-    outRules.emplace_back(RuleTarget::LoadAddrRegMem, normalizeLoadAddrStackBaseToFramePointer);
-    outRules.emplace_back(RuleTarget::LoadAddrRegMem, foldLoadAddrIntoAllMemOffsets);
+    ADD_RULE(LoadAddrRegMem, foldLoadAddrIntoNextMemOffset);
+    ADD_RULE(LoadAddrRegMem, normalizeLoadAddrStackBaseToFramePointer);
+    ADD_RULE(LoadAddrRegMem, foldLoadAddrIntoAllMemOffsets);
 
-    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemIntoNextLoadAddrCopy);
+    ADD_RULE(LoadRegMem, foldLoadRegMemIntoNextLoadAddrCopy);
 
     // Rule: fold_loadregmem_into_next_cmpmemimm
     // Purpose: fold loaded temporary compared with immediate into direct memory compare.
     // Example: mov r8, [rsp + 8]; cmp r8, 0 -> cmp [rsp + 8], 0
-    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemIntoNextCmpMemImm);
+    ADD_RULE(LoadRegMem, foldLoadRegMemIntoNextCmpMemImm);
 
     // Rule: fold_nonadjacent_loadopstore_into_memimm
     // Purpose: fold load/op/store into direct memory-immediate op even with independent instructions in between.
     // Example: mov r8,[rsp+48]; add r8,1; ... ; mov [rsp+48],r8 -> add [rsp+48],1
-    outRules.emplace_back(RuleTarget::OpBinaryRegImm, foldNonAdjacentLoadOpStoreIntoMemImm);
+    ADD_RULE(OpBinaryRegImm, foldNonAdjacentLoadOpStoreIntoMemImm);
 
-    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemIntoNextBinaryRegMem);
-    outRules.emplace_back(RuleTarget::LoadRegMem, foldLoadRegMemBinaryStoreBackIntoMemOp);
-    outRules.emplace_back(RuleTarget::LoadMemReg, foldLoadRegMemBinaryStoreBackIntoMemOpTail);
+    ADD_RULE(LoadRegMem, foldLoadRegMemIntoNextBinaryRegMem);
+    ADD_RULE(LoadRegMem, foldLoadRegMemBinaryStoreBackIntoMemOp);
+    ADD_RULE(LoadMemReg, foldLoadRegMemBinaryStoreBackIntoMemOpTail);
 
     // Rule: fold_loadaddramc_into_next_memory_access
     // Purpose: consume temporary AMC address register by folding next memory access into AMC form.
     // Example: lea r11, [r8 + r9 * 16]; mov rdx, [r11] -> mov rdx, [r8 + r9 * 16]
-    outRules.emplace_back(RuleTarget::LoadAddrAmcRegMem, foldLoadAddrAmcIntoNextMemoryAccess);
-    outRules.emplace_back(RuleTarget::LoadAddrAmcRegMem, foldLoadAddrAmcIntoLaterLoadRegMem);
+    ADD_RULE(LoadAddrAmcRegMem, foldLoadAddrAmcIntoNextMemoryAccess);
+    ADD_RULE(LoadAddrAmcRegMem, foldLoadAddrAmcIntoLaterLoadRegMem);
+#undef ADD_RULE
 }
 SWC_END_NAMESPACE();

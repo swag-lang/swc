@@ -48,6 +48,18 @@ struct OuterPtr
     @assert(innerVal.x == 9)
 }
 
+#test
+{
+    var out: OuterValue
+    out.x = 11
+
+    let basePtr: const *Inner = &out
+    @assert(basePtr.x == 11)
+
+    let baseRef: const &Inner = &out
+    @assert(baseRef.x == 11)
+}
+
 struct Inner2
 {
     x: s32

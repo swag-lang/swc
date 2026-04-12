@@ -157,6 +157,41 @@ namespace
 
         return std::max<uint32_t>(alignOf, 1);
     }
+
+    bool resolveUsingFieldPathRec(const TaskContext&                 ctx,
+                                  const SymbolStruct&               currentStruct,
+                                  const SymbolStruct&               targetStruct,
+                                  SmallVector<SymbolStructUsingPathStep>& outSteps,
+                                  SmallVector<const SymbolStruct*>& visited)
+    {
+        if (&currentStruct == &targetStruct)
+            return true;
+
+        for (const SymbolStruct* visitedStruct : visited)
+        {
+            if (visitedStruct == &currentStruct)
+                return false;
+        }
+
+        visited.push_back(&currentStruct);
+        for (const SymbolVariable* field : currentStruct.fields())
+        {
+            if (!field || !field->isUsingField())
+                continue;
+
+            bool                usingFieldIsPointer = false;
+            const SymbolStruct* usingTargetStruct   = field->usingTargetStruct(ctx, usingFieldIsPointer);
+            if (!usingTargetStruct)
+                continue;
+
+            outSteps.push_back({.field = field, .isPointer = usingFieldIsPointer});
+            if (resolveUsingFieldPathRec(ctx, *usingTargetStruct, targetStruct, outSteps, visited))
+                return true;
+            outSteps.pop_back();
+        }
+
+        return false;
+    }
 }
 
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
@@ -290,6 +325,13 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
     }
 
     return false;
+}
+
+bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const
+{
+    outSteps.clear();
+    SmallVector<const SymbolStruct*> visited;
+    return resolveUsingFieldPathRec(ctx, *this, targetStruct, outSteps, visited);
 }
 
 Result SymbolStruct::canBeCompleted(Sema& sema) const

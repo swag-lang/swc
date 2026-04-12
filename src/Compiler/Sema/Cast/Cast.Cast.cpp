@@ -52,6 +52,18 @@ namespace
         return typeRef;
     }
 
+    TypeRef unwrapAliasEnumTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef unwrappedTypeRef = typeMgr.get(typeRef).unwrapAliasEnum(ctx, typeRef);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
     bool castNeedsOverflowRuntimeSafety(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
     {
         if (castFlags.hasAny({CastFlagsE::BitCast, CastFlagsE::NoOverflow}))
@@ -240,6 +252,55 @@ namespace
         payload.runtimeArrayFillCstRef  = fillCstRef;
         outNeedsRuntimeStorage          = true;
         return Result::Continue;
+    }
+
+    bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
+    {
+        for (const auto& step : usingPath)
+        {
+            if (step.isPointer)
+                return true;
+        }
+
+        return false;
+    }
+
+    Result resolveUsingStructCastPath(Sema&                                   sema,
+                                      const CastRequest&                      castRequest,
+                                      TypeRef                                 srcStructTypeRef,
+                                      TypeRef                                 dstStructTypeRef,
+                                      SmallVector<SymbolStructUsingPathStep>& outSteps,
+                                      bool&                                   outFound)
+    {
+        outFound = false;
+        outSteps.clear();
+
+        srcStructTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcStructTypeRef);
+        dstStructTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstStructTypeRef);
+        if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& srcStructType = sema.typeMgr().get(srcStructTypeRef);
+        const TypeInfo& dstStructType = sema.typeMgr().get(dstStructTypeRef);
+        if (!srcStructType.isStruct() || !dstStructType.isStruct())
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(&srcStructType, castRequest.errorNodeRef));
+        SWC_RESULT(sema.waitSemaCompleted(&dstStructType, castRequest.errorNodeRef));
+
+        outFound = srcStructType.payloadSymStruct().resolveUsingFieldPath(sema.ctx(), dstStructType.payloadSymStruct(), outSteps);
+        return Result::Continue;
+    }
+
+    bool pointerKindsCompatible(const TypeInfo& srcType, const TypeInfo& dstType, const CastKind castKind)
+    {
+        if (srcType.kind() == dstType.kind())
+            return true;
+        if (srcType.isBlockPointer() && dstType.isValuePointer())
+            return true;
+        if (srcType.isValuePointer() && dstType.isBlockPointer() && castKind == CastKind::Explicit)
+            return true;
+        return false;
     }
 
     bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, const bool ignoreTopLevelClosure)
@@ -687,6 +748,12 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
                 return Result::Continue;
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
         }
+
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        bool                                   hasUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcPointeeTypeRef, dstPointeeTypeRef, usingPath, hasUsingPath));
+        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+            return Result::Continue;
     }
 
     // Pointer to ref
@@ -699,6 +766,12 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
         if (srcType.payloadTypeRef() == dstPointeeTypeRef)
+            return Result::Continue;
+
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        bool                                   hasUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcType.payloadTypeRef(), dstPointeeTypeRef, usingPath, hasUsingPath));
+        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
             return Result::Continue;
     }
 
@@ -760,15 +833,9 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
     const bool dstIsVoid      = dstType.payloadTypeRef() == sema.typeMgr().typeVoid();
     if (sameUnderlying || srcIsVoid || dstIsVoid || castRequest.kind == CastKind::Explicit)
     {
-        bool ok = false;
-        if (srcType.kind() == dstType.kind())
-            ok = true;
-        else if (srcType.isBlockPointer() && dstType.isValuePointer())
-            ok = true;
-        else if (srcType.isValuePointer() && dstType.isBlockPointer() && castRequest.kind == CastKind::Explicit)
-            ok = true;
+        bool ok = pointerKindsCompatible(srcType, dstType, castRequest.kind);
         // TODO @legacy
-        else if (sameUnderlying || srcIsVoid || dstIsVoid)
+        if (!ok && (sameUnderlying || srcIsVoid || dstIsVoid))
             ok = true;
 
         if (ok)
@@ -781,6 +848,20 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
             {
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
             }
+
+            return Result::Continue;
+        }
+    }
+
+    if (pointerKindsCompatible(srcType, dstType, castRequest.kind))
+    {
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        bool                                   hasUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef(), usingPath, hasUsingPath));
+        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
             return Result::Continue;
         }

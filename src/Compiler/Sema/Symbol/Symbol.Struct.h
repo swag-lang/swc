@@ -10,6 +10,13 @@ class SymbolImpl;
 class SymbolFunction;
 class SymbolInterface;
 class Sema;
+class TaskContext;
+
+struct SymbolStructUsingPathStep
+{
+    const SymbolVariable* field     = nullptr;
+    bool                  isPointer = false;
+};
 
 enum class SymbolStructFlagsE : uint8_t
 {
@@ -53,6 +60,7 @@ public:
     const SymbolImpl*        findInterfaceImpl(IdentifierRef interfaceIdRef) const;
     bool                     implementsInterface(const SymbolInterface& itf) const;
     bool                     implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
+    bool                     resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const;
 
     Result      computeLayout(TaskContext& ctx);
     ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);

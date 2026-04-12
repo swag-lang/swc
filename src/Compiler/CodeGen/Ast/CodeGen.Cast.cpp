@@ -17,6 +17,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -47,6 +48,95 @@ namespace
     {
         outBits = CodeGenTypeHelpers::scalarStoreBits(dstType, codeGen.ctx());
         return outBits != MicroOpBits::Zero;
+    }
+
+    TypeRef unwrapAliasEnumTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef unwrappedTypeRef = typeMgr.get(typeRef).unwrapAliasEnum(ctx, typeRef);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+
+        return typeRef;
+    }
+
+    bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
+    {
+        for (const auto& step : usingPath)
+        {
+            if (step.isPointer)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool resolveUsingStructCastPath(CodeGen& codeGen, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
+    {
+        outSteps.clear();
+
+        srcStructTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), srcStructTypeRef);
+        dstStructTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), dstStructTypeRef);
+        if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())
+            return false;
+
+        const TypeInfo& srcStructType = codeGen.typeMgr().get(srcStructTypeRef);
+        const TypeInfo& dstStructType = codeGen.typeMgr().get(dstStructTypeRef);
+        if (!srcStructType.isStruct() || !dstStructType.isStruct())
+            return false;
+
+        if (!srcStructType.payloadSymStruct().resolveUsingFieldPath(codeGen.ctx(), dstStructType.payloadSymStruct(), outSteps))
+            return false;
+
+        return !outSteps.empty() && !usingPathHasPointerStep(outSteps);
+    }
+
+    bool resolveUsingPointerLikeCastPath(CodeGen& codeGen, TypeRef sourceTypeRef, TypeRef dstTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
+    {
+        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
+        const TypeRef resolvedDstTypeRef    = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), dstTypeRef);
+        if (!resolvedSourceTypeRef.isValid() || !resolvedDstTypeRef.isValid())
+            return false;
+
+        const TypeInfo& sourceType = codeGen.typeMgr().get(resolvedSourceTypeRef);
+        const TypeInfo& dstType    = codeGen.typeMgr().get(resolvedDstTypeRef);
+        if (!(sourceType.isAnyPointer() || sourceType.isReference() || sourceType.isMoveReference()))
+            return false;
+        if (!(dstType.isAnyPointer() || dstType.isReference() || dstType.isMoveReference()))
+            return false;
+
+        return resolveUsingStructCastPath(codeGen, sourceType.payloadTypeRef(), dstType.payloadTypeRef(), outSteps);
+    }
+
+    Result emitUsingPointerLikeCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef, const SmallVector<SymbolStructUsingPathStep>& usingPath)
+    {
+        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
+        SWC_ASSERT(resolvedSourceTypeRef.isValid());
+
+        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
+        MicroBuilder&             builder    = codeGen.builder();
+
+        MicroReg objectReg = srcPayload.reg;
+        if (srcPayload.isAddress())
+        {
+            objectReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(objectReg, srcPayload.reg, 0, MicroOpBits::B64);
+        }
+
+        const TypeInfo& resolvedSourceType = codeGen.typeMgr().get(resolvedSourceTypeRef);
+        SWC_ASSERT(resolvedSourceType.isAnyPointer() || resolvedSourceType.isReference() || resolvedSourceType.isMoveReference());
+        for (const auto& step : usingPath)
+        {
+            SWC_ASSERT(step.field != nullptr);
+            SWC_ASSERT(!step.isPointer);
+            objectReg = codeGen.offsetAddressReg(objectReg, step.field->offset());
+        }
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        dstPayload.reg                 = objectReg;
+        return Result::Continue;
     }
 
     MicroReg narrowF64ToFloatBits(CodeGen& codeGen, MicroReg f64Reg, MicroOpBits dstBits, TypeRef dstTypeRef)
@@ -820,6 +910,10 @@ namespace
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeItfReg, dstTypeRef);
             return Result::Continue;
         }
+
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        if (resolveUsingPointerLikeCastPath(codeGen, sourceTypeRef, dstTypeRef, usingPath))
+            return emitUsingPointerLikeCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef, usingPath);
 
         const bool srcFloatType   = resolvedSrcType.isFloat();
         const bool srcIntLikeType = resolvedSrcType.isNumericIntLike();

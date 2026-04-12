@@ -10,6 +10,7 @@ enum class CastKind
     Implicit,
     Parameter,
     Condition,
+    BoolExpr,
     Explicit,
     Promotion,
     Initialization,

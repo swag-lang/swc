@@ -30,9 +30,6 @@
     @assert(!a or !b)
 }
 
-const A = ""
-#assert(!A == false)
-
 #test
 {
     var a: s32

@@ -79,39 +79,20 @@ namespace
 
     Result constantFoldBang(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
-        const ConstantManager& cstMgr = sema.cstMgr();
-
-        if (view.cst()->isBool())
+        CastRequest castRequest(CastKind::BoolExpr);
+        castRequest.errorNodeRef = view.nodeRef();
+        castRequest.setConstantFoldingSrc(view.cstRef());
+        const Result castResult = Cast::castAllowed(sema, castRequest, view.typeRef(), sema.typeMgr().typeBool());
+        if (castResult != Result::Continue)
         {
-            result = cstMgr.cstNegBool(view.cstRef());
-            return Result::Continue;
+            if (castResult == Result::Error)
+                return Cast::emitCastFailure(sema, castRequest.failure);
+            return castResult;
         }
 
-        if (view.cst()->isInt())
-        {
-            result = cstMgr.cstBool(view.cst()->getInt().isZero());
-            return Result::Continue;
-        }
-
-        if (view.cst()->isChar())
-        {
-            result = cstMgr.cstBool(view.cst()->getChar());
-            return Result::Continue;
-        }
-
-        if (view.cst()->isRune())
-        {
-            result = cstMgr.cstBool(view.cst()->getRune());
-            return Result::Continue;
-        }
-
-        if (view.cst()->isString())
-        {
-            result = cstMgr.cstFalse();
-            return Result::Continue;
-        }
-
-        SWC_INTERNAL_ERROR();
+        SWC_ASSERT(castRequest.constantFoldingResult().isValid());
+        result = sema.cstMgr().cstNegBool(castRequest.constantFoldingResult());
+        return Result::Continue;
     }
 
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& view)
@@ -274,7 +255,7 @@ namespace
     Result semaBang(Sema& sema, const AstUnaryExpr& node, SemaNodeView& view)
     {
         SWC_UNUSED(node);
-        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
         return Result::Continue;
     }

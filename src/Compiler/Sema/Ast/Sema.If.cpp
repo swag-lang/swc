@@ -366,7 +366,7 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
     if (childRef == nodeConditionRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeConditionRef);
-        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
     }
 
     return Result::Continue;
@@ -398,7 +398,7 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeWhereRef)
     {
         SemaNodeView view   = sema.viewNodeTypeConstant(nodeWhereRef);
-        const Result result = Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition);
+        const Result result = Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr);
         restoreMaskedIfVarDeclCondition(sema, sema.curNodeRef());
         return result;
     }

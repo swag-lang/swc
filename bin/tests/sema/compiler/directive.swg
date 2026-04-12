@@ -48,6 +48,10 @@ const DISABLED = 0
 
 #assert(MODE == 1)
 
-#if "true" // swc-expected-error {{sema_err_invalid_type}}
+#if "true" // swc-expected-error {{sema_err_cannot_cast}}
+{
+}
+
+#assert("true") // swc-expected-error {{sema_err_cannot_cast}}
 {
 }

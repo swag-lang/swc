@@ -73,7 +73,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
 
     // Condition must be bool
-    SWC_RESULT(Cast::cast(sema, nodeCondView, sema.typeMgr().typeBool(), CastKind::Condition));
+    SWC_RESULT(Cast::cast(sema, nodeCondView, sema.typeMgr().typeBool(), CastKind::BoolExpr));
 
     // Make both branches compatible
     TypeRef typeRef = TypeRef::invalid();

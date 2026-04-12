@@ -64,6 +64,16 @@ namespace
         return typeRef;
     }
 
+    bool isTruthyBoolCastKind(const CastKind castKind)
+    {
+        return castKind == CastKind::Condition || castKind == CastKind::BoolExpr;
+    }
+
+    bool isStrictBoolExprCastKind(const CastKind castKind)
+    {
+        return castKind == CastKind::BoolExpr;
+    }
+
     bool castNeedsOverflowRuntimeSafety(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
     {
         if (castFlags.hasAny({CastFlagsE::BitCast, CastFlagsE::NoOverflow}))
@@ -122,6 +132,25 @@ namespace
 
         const ConstantValue ptrCst = ConstantValue::makeValuePointer(sema.ctx(), dstType.payloadTypeRef(), ptr, dstType.flags());
         outCstRef                  = sema.cstMgr().addConstant(sema.ctx(), ptrCst);
+        return Result::Continue;
+    }
+
+    Result foldConstantPointerLikeToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef)
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const uint64_t  sizeOf  = srcType.sizeOf(sema.ctx());
+        if (!sizeOf)
+        {
+            castRequest.setConstantFoldingResult(sema.cstMgr().cstFalse());
+            return Result::Continue;
+        }
+
+        std::vector valueBytes(sizeOf, std::byte{0});
+        SWC_RESULT(ConstantLower::lowerToBytes(sema, asByteSpan(valueBytes), castRequest.constantFoldingSrc(), srcTypeRef));
+
+        uint64_t rawValue = 0;
+        std::memcpy(&rawValue, valueBytes.data(), std::min<uint64_t>(sizeof(rawValue), valueBytes.size()));
+        castRequest.setConstantFoldingResult(rawValue ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
         return Result::Continue;
     }
 
@@ -192,7 +221,7 @@ namespace
         if (dstType.isAny())
             return false;
 
-        if (dstType.isBool() && castRequest.kind == CastKind::Condition)
+        if (dstType.isBool() && isTruthyBoolCastKind(castRequest.kind))
             return false;
 
         return true;
@@ -437,7 +466,7 @@ Result Cast::castBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef src
 
 Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castRequest.kind != CastKind::Explicit && castRequest.kind != CastKind::Condition)
+    if (castRequest.kind != CastKind::Explicit && !isTruthyBoolCastKind(castRequest.kind))
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     const TypeManager& typeMgr = sema.typeMgr();
@@ -454,6 +483,9 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
             cv = &sema.cstMgr().get(castRequest.constantFoldingSrc());
         }
 
+        if (isStrictBoolExprCastKind(castRequest.kind) && srcType.isAnyString() && !cv->isNull())
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
         if (cv->isNull())
             castRequest.setConstantFoldingResult(sema.cstMgr().cstFalse());
         else if (srcType.isIntLike())
@@ -466,9 +498,9 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
             if (!foldConstantIntLikeToBool(sema, castRequest))
                 return Result::Error;
         }
-        else if (srcType.isString())
+        else if (srcType.isPointerLike())
         {
-            castRequest.setConstantFoldingResult(cv->getString().data() ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
+            SWC_RESULT(foldConstantPointerLikeToBool(sema, castRequest, srcTypeRef));
         }
         else
             SWC_UNREACHABLE();
@@ -1402,8 +1434,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
     if (srcType.isAlias() || dstType.isAlias())
     {
-        const bool allowAliasConditionToBool = castRequest.kind == CastKind::Condition && dstType.isBool();
-        if (castRequest.kind != CastKind::Explicit && !allowAliasConditionToBool)
+        const bool allowAliasBoolCast = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
+        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 

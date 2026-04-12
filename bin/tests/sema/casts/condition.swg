@@ -24,7 +24,7 @@
 }
 
 const A = ""
-#assert(!A == false)
+#assert(!A == false) // swc-expected-error {{sema_err_cannot_cast}}
 
 #test
 {

@@ -37,6 +37,7 @@
 #assert(!false == true)
 
 #assert(!(1 == 1))                  // swc-expected-error {{sema_err_compiler_assert}}
+#assert(!"text")                    // swc-expected-error {{sema_err_cannot_cast}}
 #assert(!1.0)                       // swc-expected-error {{sema_err_unary_operand_type}}
 #assert(!true)                      // swc-expected-error {{sema_err_compiler_assert}}
 #assert(!false)

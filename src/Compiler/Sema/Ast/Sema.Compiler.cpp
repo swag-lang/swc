@@ -276,20 +276,7 @@ namespace
 
         SemaNodeView view = sema.viewNodeTypeConstant(nodeRef);
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-
-        TypeRef rawTypeRef = view.typeRef();
-        if (rawTypeRef.isValid())
-        {
-            const TypeRef unwrappedTypeRef = sema.typeMgr().get(rawTypeRef).unwrapAliasEnum(sema.ctx(), rawTypeRef);
-            if (unwrappedTypeRef.isValid())
-                rawTypeRef = unwrappedTypeRef;
-        }
-
-        const TypeInfo& rawType = sema.typeMgr().get(rawTypeRef);
-        if (!rawType.isBool() && !rawType.isNumericIntLike())
-            return SemaError::raiseInvalidType(sema, nodeRef, view.typeRef(), sema.typeMgr().typeBool());
-
-        return Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition);
+        return Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr);
     }
 }
 

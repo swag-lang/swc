@@ -18,12 +18,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool inlineReturnTargetsCaller(const SemaInlinePayload& inlinePayload)
-    {
-        return inlinePayload.sourceFunction &&
-               inlinePayload.sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
-    }
-
     SymbolFunction* recoverFunctionExprSymbolFromDependencies(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (!nodeRef.isValid())
@@ -48,11 +42,6 @@ namespace
         }
 
         return nullptr;
-    }
-
-    bool shouldSpillParametersForDebugInfo(const CodeGen& codeGen)
-    {
-        return codeGen.isDebugInfoEnabled();
     }
 
     SymbolFunction& functionExprSymbol(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -182,7 +171,7 @@ namespace
 
     void appendDebugParameterSlots(CodeGen& codeGen, uint64_t& frameSize)
     {
-        if (!shouldSpillParametersForDebugInfo(codeGen))
+        if (!codeGen.isDebugInfoEnabled())
             return;
 
         // Debug info wants a stable stack home even for parameters that arrive only in registers.
@@ -305,7 +294,7 @@ namespace
 
     void spillParametersToDebugSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
-        if (!shouldSpillParametersForDebugInfo(codeGen))
+        if (!codeGen.isDebugInfoEnabled())
             return;
         if (!codeGen.hasLocalStackFrame())
             return;
@@ -1078,7 +1067,9 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
     {
         const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
         SWC_ASSERT(inlineCtx.payload != nullptr);
-        if (!inlineReturnTargetsCaller(*inlineCtx.payload))
+        const bool callerReturn = inlineCtx.payload->sourceFunction &&
+                                     inlineCtx.payload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
+        if (!callerReturn)
             return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef);
     }
 

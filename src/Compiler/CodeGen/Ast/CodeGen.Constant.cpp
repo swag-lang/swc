@@ -88,11 +88,11 @@ namespace
 
                 SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
                 offset = alignUpTo(offset, alignment);
-                outLayout.push_back({
-                    .valueRef = elementRefs[i],
-                    .typeRef  = elementTypeRef,
-                    .offset   = static_cast<uint32_t>(offset),
-                });
+                AggregateElementLayout elem;
+                elem.valueRef = elementRefs[i];
+                elem.typeRef  = elementTypeRef;
+                elem.offset   = static_cast<uint32_t>(offset);
+                outLayout.push_back(elem);
                 offset += elementSize;
                 maxAlignment = std::max(maxAlignment, alignment);
             }
@@ -121,11 +121,11 @@ namespace
             {
                 const uint64_t elementOffset = i * elementSize;
                 SWC_ASSERT(elementOffset <= std::numeric_limits<uint32_t>::max());
-                outLayout.push_back({
-                    .valueRef = elementRefs[i],
-                    .typeRef  = elementTypeRef,
-                    .offset   = static_cast<uint32_t>(elementOffset),
-                });
+                AggregateElementLayout elem;
+                elem.valueRef = elementRefs[i];
+                elem.typeRef  = elementTypeRef;
+                elem.offset   = static_cast<uint32_t>(elementOffset);
+                outLayout.push_back(elem);
             }
 
             const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());
@@ -154,11 +154,11 @@ namespace
             if (!fieldSize)
                 continue;
 
-            outLayout.push_back({
-                .valueRef = elementRefs[i],
-                .typeRef  = fieldTypeRef,
-                .offset   = field->offset(),
-            });
+            AggregateElementLayout elem;
+            elem.valueRef = elementRefs[i];
+            elem.typeRef  = fieldTypeRef;
+            elem.offset   = field->offset();
+            outLayout.push_back(elem);
         }
 
         const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());

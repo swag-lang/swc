@@ -80,31 +80,29 @@ namespace
             return;
         }
 
-        switch (numBits)
+        SWC_ASSERT(numBits == 32 || numBits == 64);
+        const uint64_t addr = reinterpret_cast<uint64_t>(ptr);
+
+        if (numBits == 32)
         {
-            case 32:
+            uint32_t v32 = 0;
+            if (tryReadHostValue(ptr, v32))
             {
-                uint32_t value = 0;
-                if (tryReadHostValue(ptr, value))
-                    out += std::format("{} = [0x{:016X}] -> 0x{:08X}\n", label, reinterpret_cast<uint64_t>(ptr), value);
-                else
-                    out += std::format("{} = [0x{:016X}] -> <unreadable>\n", label, reinterpret_cast<uint64_t>(ptr));
+                out += std::format("{} = [0x{:016X}] -> 0x{:08X}\n", label, addr, v32);
                 return;
             }
-
-            case 64:
-            {
-                uint64_t value = 0;
-                if (tryReadHostValue(ptr, value))
-                    out += std::format("{} = [0x{:016X}] -> 0x{:016X}\n", label, reinterpret_cast<uint64_t>(ptr), value);
-                else
-                    out += std::format("{} = [0x{:016X}] -> <unreadable>\n", label, reinterpret_cast<uint64_t>(ptr));
-                return;
-            }
-
-            default:
-                SWC_UNREACHABLE();
         }
+        else
+        {
+            uint64_t v64 = 0;
+            if (tryReadHostValue(ptr, v64))
+            {
+                out += std::format("{} = [0x{:016X}] -> 0x{:016X}\n", label, addr, v64);
+                return;
+            }
+        }
+
+        out += std::format("{} = [0x{:016X}] -> <unreadable>\n", label, addr);
     }
 
     AstNodeRef fallbackWaitNodeRef(const TaskContext& ctx, const SymbolFunction* ownerFunction)

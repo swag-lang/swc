@@ -89,12 +89,6 @@ namespace
         return false;
     }
 
-    uint64_t requiredScratchForIssue(const MicroConformanceIssue& issue)
-    {
-        SWC_UNUSED(issue);
-        return 0;
-    }
-
     bool isConcreteAllocatableReg(MicroReg reg)
     {
         return reg.isInt() || reg.isFloat();
@@ -929,7 +923,8 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         if (!encoder.queryConformanceIssue(issue, inst, ops))
             continue;
 
-        stackScratchFrameSize = std::max(stackScratchFrameSize, requiredScratchForIssue(issue));
+        // Reserved for future scratch-frame requirements.
+        SWC_UNUSED(issue);
     }
 
     if (stackScratchFrameSize)

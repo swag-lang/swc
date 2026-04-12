@@ -479,55 +479,7 @@ namespace
 
     void emitModRm(PagedStore& store, uint64_t memOffset, MicroReg reg, MicroReg memReg)
     {
-        const auto memX64 = microRegToX64Reg(memReg);
-
-        if (memOffset == 0 && memX64 != X64Reg::R13 && memX64 != X64Reg::Rbp)
-        {
-            if (memX64 == X64Reg::Rsp || memX64 == X64Reg::R12)
-            {
-                const auto modRm = getModRm(ModRmMode::Memory, encodeReg(reg), MODRM_RM_SIB);
-                store.pushU8(modRm);
-                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
-            }
-            else
-            {
-                const auto modRm = getModRm(ModRmMode::Memory, encodeReg(reg), encodeReg(memX64));
-                store.pushU8(modRm);
-            }
-        }
-        else if (canEncodeSigned8(memOffset))
-        {
-            if (memX64 == X64Reg::Rsp || memX64 == X64Reg::R12)
-            {
-                const auto modRm = getModRm(ModRmMode::Displacement8, encodeReg(reg), MODRM_RM_SIB);
-                store.pushU8(modRm);
-                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
-            }
-            else
-            {
-                const auto modRm = getModRm(ModRmMode::Displacement8, encodeReg(reg), encodeReg(memX64));
-                store.pushU8(modRm);
-            }
-
-            emitValue(store, memOffset, MicroOpBits::B8);
-        }
-        else
-        {
-            if (memX64 == X64Reg::Rsp || memX64 == X64Reg::R12)
-            {
-                const auto modRm = getModRm(ModRmMode::Displacement32, encodeReg(reg), MODRM_RM_SIB);
-                store.pushU8(modRm);
-                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
-            }
-            else
-            {
-                const auto modRm = getModRm(ModRmMode::Displacement32, encodeReg(reg), encodeReg(memX64));
-                store.pushU8(modRm);
-            }
-
-            SWC_ASSERT(canEncodeSigned32(memOffset));
-            emitValue(store, memOffset, MicroOpBits::B32);
-        }
+        emitModRm(store, memOffset, encodeReg(reg), memReg);
     }
 
     void emitSpecB8(PagedStore& store, uint8_t value, MicroOpBits opBits)

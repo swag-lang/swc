@@ -1905,28 +1905,17 @@ namespace
         const MicroReg contextSizeReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegImm(contextSizeReg, ApInt(contextType.sizeOf(codeGen.ctx()), 64), MicroOpBits::B64);
 
+        ABICall::PreparedArg directU64Arg;
+        directU64Arg.kind    = ABICall::PreparedArgKind::Direct;
+        directU64Arg.numBits = 64;
+
         SmallVector<ABICall::PreparedArg> preparedArgs;
-        preparedArgs.push_back({
-            .srcReg      = tlsIdReg,
-            .kind        = ABICall::PreparedArgKind::Direct,
-            .isFloat     = false,
-            .isAddressed = false,
-            .numBits     = 64,
-        });
-        preparedArgs.push_back({
-            .srcReg      = contextSizeReg,
-            .kind        = ABICall::PreparedArgKind::Direct,
-            .isFloat     = false,
-            .isAddressed = false,
-            .numBits     = 64,
-        });
-        preparedArgs.push_back({
-            .srcReg      = initContextPayload.reg,
-            .kind        = ABICall::PreparedArgKind::Direct,
-            .isFloat     = false,
-            .isAddressed = false,
-            .numBits     = 64,
-        });
+        directU64Arg.srcReg = tlsIdReg;
+        preparedArgs.push_back(directU64Arg);
+        directU64Arg.srcReg = contextSizeReg;
+        preparedArgs.push_back(directU64Arg);
+        directU64Arg.srcReg = initContextPayload.reg;
+        preparedArgs.push_back(directU64Arg);
 
         const CallConvKind          tlsGetPtrCallConvKind = tlsGetPtrFunction->callConvKind();
         const ABICall::PreparedCall preparedTlsGetPtrCall = ABICall::prepareArgs(builder, tlsGetPtrCallConvKind, preparedArgs.span());

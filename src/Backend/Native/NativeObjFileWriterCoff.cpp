@@ -72,7 +72,13 @@ namespace
         if (!shouldEmitDebugConstant(ctx, symbol))
             return;
 
-        out.push_back(DebugInfoConstantRecord{{Utf8(symbol.name(ctx)), symbol.getFullScopedName(ctx), symbol.typeRef(), true}, symbol.cstRef()});
+        DebugInfoConstantRecord record;
+        record.name        = Utf8(symbol.name(ctx));
+        record.linkageName = symbol.getFullScopedName(ctx);
+        record.typeRef     = symbol.typeRef();
+        record.isConst     = true;
+        record.valueRef    = symbol.cstRef();
+        out.push_back(record);
     }
 
     void collectGlobalDebugConstantsRec(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const SymbolMap& symbolMap)
@@ -198,10 +204,14 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
                 if (!shouldEmitDebugVariable(builder_.ctx(), *symVar))
                     continue;
 
-                debugStorage.parameters.push_back(DebugInfoLocalRecord{
-                    {Utf8(symVar->name(builder_.ctx())), symVar->getFullScopedName(builder_.ctx()), symVar->typeRef(), symVar->hasExtraFlag(SymbolVariableFlagsE::Let)},
-                    symVar->debugStackSlotOffset(),
-                    parameterBaseReg});
+                DebugInfoLocalRecord record;
+                record.name        = Utf8(symVar->name(builder_.ctx()));
+                record.linkageName = symVar->getFullScopedName(builder_.ctx());
+                record.typeRef     = symVar->typeRef();
+                record.isConst     = symVar->hasExtraFlag(SymbolVariableFlagsE::Let);
+                record.offset      = symVar->debugStackSlotOffset();
+                record.baseReg     = parameterBaseReg;
+                debugStorage.parameters.push_back(record);
             }
 
             for (const SymbolVariable* symVar : info->symbol->localVariables())
@@ -212,10 +222,14 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
                 if (!shouldEmitDebugVariable(builder_.ctx(), *symVar))
                     continue;
 
-                debugStorage.locals.push_back(DebugInfoLocalRecord{
-                    {Utf8(symVar->name(builder_.ctx())), symVar->getFullScopedName(builder_.ctx()), symVar->typeRef(), symVar->hasExtraFlag(SymbolVariableFlagsE::Let)},
-                    symVar->offset(),
-                    localBaseReg});
+                DebugInfoLocalRecord record;
+                record.name        = Utf8(symVar->name(builder_.ctx()));
+                record.linkageName = symVar->getFullScopedName(builder_.ctx());
+                record.typeRef     = symVar->typeRef();
+                record.isConst     = symVar->hasExtraFlag(SymbolVariableFlagsE::Let);
+                record.offset      = symVar->offset();
+                record.baseReg     = localBaseReg;
+                debugStorage.locals.push_back(record);
             }
 
             collectFunctionDebugConstants(debugStorage.constants, builder_.ctx(), *info->symbol);
@@ -251,12 +265,16 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
             if (sectionName.empty())
                 continue;
 
-            debugGlobals.push_back(DebugInfoDataRecord{
-                {Utf8(symbol->name(builder_.ctx())), symbol->getFullScopedName(builder_.ctx()), symbol->typeRef(), symbol->hasExtraFlag(SymbolVariableFlagsE::Let)},
-                debugDataSymbolName(builder_.ctx(), *symbol),
-                sectionName,
-                symbol->offset(),
-                symbol->isPublic()});
+            DebugInfoDataRecord record;
+            record.name         = Utf8(symbol->name(builder_.ctx()));
+            record.linkageName  = symbol->getFullScopedName(builder_.ctx());
+            record.typeRef      = symbol->typeRef();
+            record.isConst      = symbol->hasExtraFlag(SymbolVariableFlagsE::Let);
+            record.symbolName   = debugDataSymbolName(builder_.ctx(), *symbol);
+            record.sectionName  = sectionName;
+            record.symbolOffset = symbol->offset();
+            record.isGlobal     = symbol->isPublic();
+            debugGlobals.push_back(record);
         }
 
         collectGlobalDebugConstants(debugConstants, builder_.ctx(), builder_.compiler());

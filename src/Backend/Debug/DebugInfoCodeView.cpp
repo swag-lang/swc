@@ -235,6 +235,23 @@ namespace
         outBytes.insert(outBytes.end(), bytes.begin(), bytes.end());
     }
 
+    void addSecrelAndSectionRelocations(NativeSectionData& section, const Utf8& symbolName, uint32_t offRelocOffset, uint32_t segRelocOffset, uint64_t addend = 0)
+    {
+        NativeSectionRelocation offReloc;
+        offReloc.offset     = offRelocOffset;
+        offReloc.symbolName = symbolName;
+        offReloc.addend     = addend;
+        offReloc.type       = IMAGE_REL_AMD64_SECREL;
+        section.relocations.push_back(offReloc);
+
+        NativeSectionRelocation segReloc;
+        segReloc.offset     = segRelocOffset;
+        segReloc.symbolName = symbolName;
+        segReloc.addend     = 0;
+        segReloc.type       = IMAGE_REL_AMD64_SECTION;
+        section.relocations.push_back(segReloc);
+    }
+
     void writeCString(std::vector<std::byte>& bytes, const Utf8& value)
     {
         bytes.insert(bytes.end(), reinterpret_cast<const std::byte*>(value.data()), reinterpret_cast<const std::byte*>(value.data() + value.size()));
@@ -541,10 +558,10 @@ namespace
             if (!entries.empty() && entries.back().line == line)
                 continue;
 
-            entries.push_back({
-                .codeOffset = range.codeStartOffset,
-                .line       = line,
-            });
+            LineEntry entry;
+            entry.codeOffset = range.codeStartOffset;
+            entry.line       = line;
+            entries.push_back(entry);
         }
 
         return result;
@@ -683,18 +700,7 @@ namespace
         writeU16(bytes, 0);
         writeCString(bytes, data.name.empty() ? data.symbolName : data.name);
 
-        debugSection.relocations.push_back({
-            .offset     = offRelocOffset,
-            .symbolName = relocSymbolName,
-            .addend     = relocAddend,
-            .type       = IMAGE_REL_AMD64_SECREL,
-        });
-        debugSection.relocations.push_back({
-            .offset     = segRelocOffset,
-            .symbolName = relocSymbolName,
-            .addend     = 0,
-            .type       = IMAGE_REL_AMD64_SECTION,
-        });
+        addSecrelAndSectionRelocations(debugSection, relocSymbolName, offRelocOffset, segRelocOffset, relocAddend);
         endRecord(bytes, recordOffset);
     }
 
@@ -761,18 +767,7 @@ namespace
         bytes.push_back(std::byte{0});
         writeCString(bytes, function.debugName.empty() ? function.symbolName : function.debugName);
 
-        debugSection.relocations.push_back({
-            .offset     = offRelocOffset,
-            .symbolName = function.symbolName,
-            .addend     = 0,
-            .type       = IMAGE_REL_AMD64_SECREL,
-        });
-        debugSection.relocations.push_back({
-            .offset     = segRelocOffset,
-            .symbolName = function.symbolName,
-            .addend     = 0,
-            .type       = IMAGE_REL_AMD64_SECTION,
-        });
+        addSecrelAndSectionRelocations(debugSection, function.symbolName, offRelocOffset, segRelocOffset);
         endRecord(bytes, procOffset);
 
         const uint32_t frameOffset = beginRecord(bytes, K_S_FRAMEPROC);
@@ -1116,11 +1111,11 @@ namespace
                     if (fieldName.empty())
                         fieldName = std::format("_{}", i);
 
-                    fields.push_back({
-                        .name      = fieldName,
-                        .typeIndex = typeIndexFor(fieldTypeRef),
-                        .offset    = offset,
-                    });
+                    FieldDesc field;
+                    field.name      = fieldName;
+                    field.typeIndex = typeIndexFor(fieldTypeRef);
+                    field.offset    = offset;
+                    fields.push_back(field);
                     offset += fieldType.sizeOf(*ctx);
                 }
 
@@ -1148,11 +1143,11 @@ namespace
                     if (!field || field->typeRef().isInvalid() || !field->idRef().isValid())
                         continue;
 
-                    fields.push_back({
-                        .name      = Utf8(field->name(*ctx)),
-                        .typeIndex = typeIndexFor(field->typeRef(), field->hasExtraFlag(SymbolVariableFlagsE::Let)),
-                        .offset    = field->offset(),
-                    });
+                    FieldDesc desc;
+                    desc.name      = Utf8(field->name(*ctx));
+                    desc.typeIndex = typeIndexFor(field->typeRef(), field->hasExtraFlag(SymbolVariableFlagsE::Let));
+                    desc.offset    = field->offset();
+                    fields.push_back(desc);
                 }
 
                 const uint32_t fieldListType = fields.empty() ? 0 : appendFieldList(fields);
@@ -1206,18 +1201,7 @@ namespace
         writeU16(bytes, 0);
         writeU32(bytes, static_cast<uint32_t>(function.machineCode->bytes.size()));
 
-        debugSection.relocations.push_back({
-            .offset     = offRelocOffset,
-            .symbolName = function.symbolName,
-            .addend     = 0,
-            .type       = IMAGE_REL_AMD64_SECREL,
-        });
-        debugSection.relocations.push_back({
-            .offset     = segRelocOffset,
-            .symbolName = function.symbolName,
-            .addend     = 0,
-            .type       = IMAGE_REL_AMD64_SECTION,
-        });
+        addSecrelAndSectionRelocations(debugSection, function.symbolName, offRelocOffset, segRelocOffset);
 
         for (const auto& block : functionLines.blocks)
         {
@@ -1361,11 +1345,11 @@ namespace
                 const DebugInfoDataRecord& data = request.globals[i];
                 if (!sectionBaseSymbolName(data.sectionName))
                 {
-                    outResult.symbols.push_back({
-                        .name        = data.symbolName,
-                        .sectionName = data.sectionName,
-                        .value       = data.symbolOffset,
-                    });
+                    DebugInfoDefinedSymbol dataSym;
+                    dataSym.name        = data.symbolName;
+                    dataSym.sectionName = data.sectionName;
+                    dataSym.value       = data.symbolOffset;
+                    outResult.symbols.push_back(dataSym);
                 }
                 appendDataSymbol(debugSection.bytes, debugSection, data, globalTypeIndices[i]);
             }
@@ -1431,36 +1415,34 @@ namespace
             writeBytes(xdataSection.bytes, ByteSpan{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
 
             const Utf8 unwindSymbolName = std::format("__swc_unwind_{:04}", unwindIndex++);
-            outResult.symbols.push_back({
-                .name         = unwindSymbolName,
-                .sectionName  = xdataSection.name,
-                .value        = unwindOffset,
-                .type         = 0,
-                .storageClass = IMAGE_SYM_CLASS_STATIC,
-            });
+            DebugInfoDefinedSymbol unwindSym;
+            unwindSym.name        = unwindSymbolName;
+            unwindSym.sectionName = xdataSection.name;
+            unwindSym.value       = unwindOffset;
+            outResult.symbols.push_back(unwindSym);
 
             alignBytes(pdataSection.bytes, 4);
             const uint32_t pdataOffset = static_cast<uint32_t>(pdataSection.bytes.size());
             pdataSection.bytes.resize(pdataOffset + 12, std::byte{0});
 
-            pdataSection.relocations.push_back({
-                .offset     = pdataOffset + 0,
-                .symbolName = function.symbolName,
-                .addend     = 0,
-                .type       = IMAGE_REL_AMD64_ADDR32NB,
-            });
-            pdataSection.relocations.push_back({
-                .offset     = pdataOffset + 4,
-                .symbolName = function.symbolName,
-                .addend     = function.machineCode->bytes.size(),
-                .type       = IMAGE_REL_AMD64_ADDR32NB,
-            });
-            pdataSection.relocations.push_back({
-                .offset     = pdataOffset + 8,
-                .symbolName = unwindSymbolName,
-                .addend     = 0,
-                .type       = IMAGE_REL_AMD64_ADDR32NB,
-            });
+            NativeSectionRelocation beginReloc;
+            beginReloc.offset     = pdataOffset + 0;
+            beginReloc.symbolName = function.symbolName;
+            beginReloc.type       = IMAGE_REL_AMD64_ADDR32NB;
+            pdataSection.relocations.push_back(beginReloc);
+
+            NativeSectionRelocation endReloc;
+            endReloc.offset     = pdataOffset + 4;
+            endReloc.symbolName = function.symbolName;
+            endReloc.addend     = function.machineCode->bytes.size();
+            endReloc.type       = IMAGE_REL_AMD64_ADDR32NB;
+            pdataSection.relocations.push_back(endReloc);
+
+            NativeSectionRelocation unwindReloc;
+            unwindReloc.offset     = pdataOffset + 8;
+            unwindReloc.symbolName = unwindSymbolName;
+            unwindReloc.type       = IMAGE_REL_AMD64_ADDR32NB;
+            pdataSection.relocations.push_back(unwindReloc);
 
             writeAddend(pdataSection.bytes, pdataOffset + 4, static_cast<uint32_t>(function.machineCode->bytes.size()));
         }

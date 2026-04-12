@@ -1297,13 +1297,6 @@ namespace
         return substituteQuotedGenericMemberCall(sema, parentRef, currentRef, tokNameRef, specializedMembers.span(), outHandled);
     }
 
-    TypeRef memberRuntimeStorageTypeRef(Sema& sema)
-    {
-        SmallVector<uint64_t> dims;
-        dims.push_back(8);
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
-    }
-
     bool needsStructMemberRuntimeStorage(Sema& sema, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView)
     {
         if (sema.isGlobalScope())
@@ -1441,7 +1434,10 @@ namespace
                 storageSym.registerAttributes(sema);
                 storageSym.setDeclared(sema.ctx());
                 SWC_RESULT(Match::ghosting(sema, storageSym));
-                SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, memberRuntimeStorageTypeRef(sema)));
+                SmallVector<uint64_t> storageDims;
+                storageDims.push_back(8);
+                const TypeRef storageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(storageDims.span(), sema.typeMgr().typeU8()));
+                SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
                 payload.runtimeStorageSym = &storageSym;
             }
         }

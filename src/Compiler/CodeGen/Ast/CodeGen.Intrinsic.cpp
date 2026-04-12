@@ -452,6 +452,8 @@ namespace
 
     Result buildIntrinsicInitTuplePayload(CodeGen& codeGen, const AstIntrinsicInit& node, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args, CodeGenNodePayload& outPayload)
     {
+        SWC_UNUSED(node);
+        
         const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
         SWC_ASSERT(fillType.isStruct());
 

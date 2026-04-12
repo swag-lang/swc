@@ -402,7 +402,7 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef)
+Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef)
 {
     outCalledFn     = nullptr;
     outParamTypeRef = TypeRef::invalid();

@@ -174,7 +174,7 @@ namespace
         return it->second;
     }
 
-    const TypeGen::TypeGenCache::Entry& payloadDepEntry(TypeManager& typeMgr, const TypeGen::TypeGenCache& cache, TypeRef key)
+    const TypeGen::TypeGenCache::Entry& payloadDepEntry(const TypeManager& typeMgr, const TypeGen::TypeGenCache& cache, TypeRef key)
     {
         return requireCacheEntry(cache, typeMgr.get(key).payloadTypeRef());
     }

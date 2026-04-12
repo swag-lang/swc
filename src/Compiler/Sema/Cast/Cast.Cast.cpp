@@ -208,6 +208,8 @@ namespace
 
     AstNodeRef sourceArgRefForStructAffectCast(const Sema& sema, const SemaNodeView& view, const CastFlags castFlags)
     {
+        SWC_UNUSED(sema);
+
         if (!castFlags.has(CastFlagsE::FromExplicitNode))
             return view.nodeRef();
 

@@ -50,7 +50,7 @@ struct Cast
     static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& view);
     static TypeRef    runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
     static Result     retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    static Result     resolveStructAffectCastCandidate(Sema& sema, SourceCodeRef codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef);
+    static Result     resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef);
 
 private:
     static Result castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

@@ -31,7 +31,7 @@ namespace
             return std::nullopt;
 
         const SemaNodeView argSymView = codeGen.viewSymbol(argRef);
-        auto* const        symVar     = argSymView.sym() ? argSymView.sym()->safeCast<SymbolVariable>() : nullptr;
+        const auto* const  symVar     = argSymView.sym() ? argSymView.sym()->safeCast<SymbolVariable>() : nullptr;
         if (!symVar)
             return std::nullopt;
 

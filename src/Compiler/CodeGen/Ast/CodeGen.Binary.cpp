@@ -113,6 +113,7 @@ namespace
     BinaryEncodeContext buildBinaryEncodeContext(CodeGen& codeGen, const AstBinaryExpr& node, TokenId tokId)
     {
         BinaryEncodeContext ctx;
+        TypeManager&       typeMgr = codeGen.typeMgr();
 
         const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
@@ -122,10 +123,10 @@ namespace
         ctx.rightPayload        = &codeGen.payload(node.nodeRightRef);
         ctx.leftOperandTypeRef  = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeLeftRef, leftView, *ctx.leftPayload);
         ctx.rightOperandTypeRef = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
-        ctx.leftOperandTypeRef  = codeGen.typeMgr().get(ctx.leftOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
-        ctx.rightOperandTypeRef = codeGen.typeMgr().get(ctx.rightOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
+        ctx.leftOperandTypeRef  = typeMgr.get(ctx.leftOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
+        ctx.rightOperandTypeRef = typeMgr.get(ctx.rightOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
         ctx.resultTypeRef       = codeGen.curViewType().typeRef();
-        ctx.operationTypeRef    = codeGen.typeMgr().get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
+        ctx.operationTypeRef    = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
         if (!ctx.operationTypeRef.isValid())
             ctx.operationTypeRef = ctx.leftOperandTypeRef;
         SWC_ASSERT(ctx.leftOperandTypeRef.isValid());
@@ -133,15 +134,15 @@ namespace
         SWC_ASSERT(ctx.resultTypeRef.isValid());
         SWC_ASSERT(ctx.operationTypeRef.isValid());
 
-        TypeRef leftSemanticTypeRef  = codeGen.typeMgr().get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
-        TypeRef rightSemanticTypeRef = codeGen.typeMgr().get(rightView.typeRef()).unwrapAliasEnum(codeGen.ctx(), rightView.typeRef());
+        TypeRef leftSemanticTypeRef  = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
+        TypeRef rightSemanticTypeRef = typeMgr.get(rightView.typeRef()).unwrapAliasEnum(codeGen.ctx(), rightView.typeRef());
         if (!leftSemanticTypeRef.isValid())
             leftSemanticTypeRef = ctx.leftOperandTypeRef;
         if (!rightSemanticTypeRef.isValid())
             rightSemanticTypeRef = ctx.rightOperandTypeRef;
 
-        const TypeInfo& leftSemanticType  = codeGen.typeMgr().get(leftSemanticTypeRef);
-        const TypeInfo& rightSemanticType = codeGen.typeMgr().get(rightSemanticTypeRef);
+        const TypeInfo& leftSemanticType  = typeMgr.get(leftSemanticTypeRef);
+        const TypeInfo& rightSemanticType = typeMgr.get(rightSemanticTypeRef);
         ctx.encodingKind                  = resolveBinaryEncodingKind(tokId, leftSemanticType, rightSemanticType);
         // Pointer arithmetic is expressed in element units, so capture the stride once and reuse it in
         // both offset and difference lowering.

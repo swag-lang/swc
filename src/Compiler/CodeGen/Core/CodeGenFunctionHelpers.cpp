@@ -35,8 +35,9 @@ namespace
         SWC_ASSERT(typeRef.isValid());
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
 
-        TaskContext&    ctx      = sema.ctx();
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        TaskContext&     ctx     = sema.ctx();
+        TypeManager&     typeMgr = sema.typeMgr();
+        const TypeInfo& typeInfo = typeMgr.get(typeRef);
         if (typeInfo.isAlias())
         {
             const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
@@ -88,7 +89,7 @@ namespace
             auto* const       dstSlice       = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
             const auto* const srcSlice       = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
             const TypeRef     elementTypeRef = typeInfo.payloadTypeRef();
-            const TypeInfo&   elementType    = sema.typeMgr().get(elementTypeRef);
+            const TypeInfo&   elementType    = typeMgr.get(elementTypeRef);
             const uint64_t    elementSize    = elementType.sizeOf(ctx);
             const bool        scanElements   = SemaHelpers::needsPersistentCompilerRunReturn(sema, elementTypeRef);
             if (!srcSlice->ptr || !srcSlice->count || !elementSize)
@@ -132,7 +133,7 @@ namespace
             if (!SemaHelpers::needsPersistentCompilerRunReturn(sema, elementTypeRef))
                 return Result::Continue;
 
-            const TypeInfo& elementType = sema.typeMgr().get(elementTypeRef);
+            const TypeInfo& elementType = typeMgr.get(elementTypeRef);
             const uint64_t  elementSize = elementType.sizeOf(ctx);
             SWC_ASSERT(elementSize != 0);
             if (!elementSize)
@@ -165,7 +166,7 @@ namespace
                     continue;
 
                 const TypeRef   fieldTypeRef = field->typeRef();
-                const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
+                const TypeInfo& fieldType    = typeMgr.get(fieldTypeRef);
                 const uint64_t  fieldSize    = fieldType.sizeOf(ctx);
                 const uint64_t  fieldOffset  = field->offset();
                 SWC_ASSERT(fieldOffset + fieldSize <= dstBytes.size());

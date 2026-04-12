@@ -77,13 +77,6 @@ namespace
         return nullptr;
     }
 
-    bool inlineReturnTargetsCaller(const SemaInlinePayload* inlinePayload)
-    {
-        return inlinePayload &&
-               inlinePayload->sourceFunction &&
-               inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
-    }
-
     bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -454,7 +447,7 @@ namespace
     {
         outTypeRef                             = TypeRef::invalid();
         const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        if (inlinePayload && !inlineReturnTargetsCaller(inlinePayload))
+        if (inlinePayload && !inlinePayload->returnsToCallerSite())
         {
             outTypeRef = inlinePayload->returnTypeRef;
             return Result::Continue;
@@ -1713,7 +1706,7 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
     TypeRef returnTypeRef = TypeRef::invalid();
     if (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        inlinePayload && !inlineReturnTargetsCaller(inlinePayload))
+        inlinePayload && !inlinePayload->returnsToCallerSite())
     {
         returnTypeRef = inlinePayload->returnTypeRef;
     }

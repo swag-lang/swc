@@ -259,19 +259,16 @@ uint64_t MicroConstantPropagationPass::signExtendToBits(uint64_t value, MicroOpB
 {
     const uint64_t normalizedSrc = MicroPassHelpers::normalizeToOpBits(value, srcBits);
 
+    int64_t extended = static_cast<int64_t>(normalizedSrc);
     switch (srcBits)
     {
-        case MicroOpBits::B8:
-            return MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(normalizedSrc))), dstBits);
-        case MicroOpBits::B16:
-            return MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int16_t>(normalizedSrc))), dstBits);
-        case MicroOpBits::B32:
-            return MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(normalizedSrc))), dstBits);
-        case MicroOpBits::B64:
-            return MicroPassHelpers::normalizeToOpBits(normalizedSrc, dstBits);
-        default:
-            return MicroPassHelpers::normalizeToOpBits(normalizedSrc, dstBits);
+        case MicroOpBits::B8:  extended = static_cast<int8_t>(normalizedSrc);  break;
+        case MicroOpBits::B16: extended = static_cast<int16_t>(normalizedSrc); break;
+        case MicroOpBits::B32: extended = static_cast<int32_t>(normalizedSrc); break;
+        default: break;
     }
+
+    return MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(extended), dstBits);
 }
 
 namespace

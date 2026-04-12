@@ -1067,9 +1067,7 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
     {
         const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
         SWC_ASSERT(inlineCtx.payload != nullptr);
-        const bool callerReturn = inlineCtx.payload->sourceFunction &&
-                                     inlineCtx.payload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
-        if (!callerReturn)
+        if (!inlineCtx.payload->returnsToCallerSite())
             return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef);
     }
 

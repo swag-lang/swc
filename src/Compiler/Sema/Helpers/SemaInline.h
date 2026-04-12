@@ -16,6 +16,8 @@ namespace SemaInline
 
 struct SemaInlinePayload
 {
+    bool returnsToCallerSite() const { return sourceFunction && sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn); }
+
     const SymbolFunction*                            sourceFunction = nullptr;
     SymbolVariable*                                  resultVar      = nullptr;
     SmallVector<SemaClone::ParamBinding, 6>          argMappings;

@@ -12,10 +12,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-}
-
 Result MicroBranchFoldingPass::run(MicroPassContext& context)
 {
     SWC_MEM_SCOPE("Backend/MicroLower/BranchFold");

@@ -17,13 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool inlineReturnTargetsCaller(const SemaInlinePayload* inlinePayload)
-    {
-        return inlinePayload &&
-               inlinePayload->sourceFunction &&
-               inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn);
-    }
-
     Result finalizeLambdaTypeParameterDefault(Sema& sema, const AstLambdaParam& param, SymbolVariable& symVar)
     {
         if (param.nodeDefaultValueRef.isInvalid())
@@ -172,7 +165,7 @@ Result AstRetValType::semaPostNode(Sema& sema)
     // function. Use the inline payload's return type so that `retval` resolves correctly.
     if (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload())
     {
-        if (!inlineReturnTargetsCaller(inlinePayload) && inlinePayload->returnTypeRef.isValid())
+        if (!inlinePayload->returnsToCallerSite() && inlinePayload->returnTypeRef.isValid())
         {
             sema.setType(sema.curNodeRef(), inlinePayload->returnTypeRef);
             return Result::Continue;

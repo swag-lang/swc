@@ -13,6 +13,25 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result semaPreNodeChildStructCommon(Sema& sema, AstNodeRef childRef, AstNodeRef nodeBodyRef)
+    {
+        if (childRef == nodeBodyRef)
+        {
+            TaskContext& ctx = sema.ctx();
+
+            auto&          sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+            const TypeInfo structType    = TypeInfo::makeStruct(&sym);
+            const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
+            sym.setTypeRef(structTypeRef);
+            sym.setTyped(ctx);
+
+            sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
+            sema.curScope().setSymMap(&sym);
+        }
+
+        return Result::Continue;
+    }
+
     Result pushStructInitializerChildBindingType(Sema& sema, AstNodeRef childRef, TypeRef targetTypeRef, SpanRef spanArgsRef)
     {
         SmallVector<AstNodeRef> children;
@@ -60,22 +79,7 @@ Result AstStructDecl::semaPreNode(Sema& sema) const
 
 Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeBodyRef)
-    {
-        TaskContext& ctx = sema.ctx();
-
-        // Creates symbol with type
-        auto&          sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
-        const TypeInfo structType    = TypeInfo::makeStruct(&sym);
-        const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
-        sym.setTypeRef(structTypeRef);
-        sym.setTyped(ctx);
-
-        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
-        sema.curScope().setSymMap(&sym);
-    }
-
-    return Result::Continue;
+    return semaPreNodeChildStructCommon(sema, childRef, nodeBodyRef);
 }
 
 Result AstStructDecl::semaPostNode(Sema& sema)
@@ -131,21 +135,7 @@ Result AstUnionDecl::semaPreNode(Sema& sema) const
 
 Result AstUnionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeBodyRef)
-    {
-        TaskContext& ctx = sema.ctx();
-
-        auto&          sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
-        const TypeInfo structType    = TypeInfo::makeStruct(&sym);
-        const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
-        sym.setTypeRef(structTypeRef);
-        sym.setTyped(ctx);
-
-        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
-        sema.curScope().setSymMap(&sym);
-    }
-
-    return Result::Continue;
+    return semaPreNodeChildStructCommon(sema, childRef, nodeBodyRef);
 }
 
 Result AstUnionDecl::semaPostNode(Sema& sema)
@@ -185,22 +175,7 @@ Result AstAnonymousStructDecl::semaPreNode(Sema& sema) const
 
 Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeBodyRef)
-    {
-        TaskContext& ctx = sema.ctx();
-
-        // Creates symbol with type
-        auto&          sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
-        const TypeInfo structType    = TypeInfo::makeStruct(&sym);
-        const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
-        sym.setTypeRef(structTypeRef);
-        sym.setTyped(ctx);
-
-        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
-        sema.curScope().setSymMap(&sym);
-    }
-
-    return Result::Continue;
+    return semaPreNodeChildStructCommon(sema, childRef, nodeBodyRef);
 }
 
 Result AstAnonymousStructDecl::semaPostNode(Sema& sema)

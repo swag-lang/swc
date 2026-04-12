@@ -99,6 +99,15 @@ namespace
         });
     }
 
+    bool isIncludableDependency(const NativeBackendBuilder& builder, const SymbolFunction& fn)
+    {
+        if (fn.isForeign() || fn.isEmpty() || fn.isAttribute())
+            return false;
+        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
+        return fn.isSemaCompleted() && shouldPrepareSymbol(builder, fn);
+    }
+
     bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
     {
         bool               changed = false;
@@ -112,15 +121,7 @@ namespace
             function->appendCallDependencies(deps);
             for (SymbolFunction* dep : deps)
             {
-                if (!dep)
-                    continue;
-                if (dep->isForeign() || dep->isEmpty() || dep->isAttribute())
-                    continue;
-                if (dep->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || dep->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-                    continue;
-                if (!dep->isSemaCompleted())
-                    continue;
-                if (!shouldPrepareSymbol(builder, *dep))
+                if (!dep || !isIncludableDependency(builder, *dep))
                     continue;
                 if (!seenFunctions.insert(dep).second)
                     continue;
@@ -143,15 +144,7 @@ namespace
                 continue;
 
             SymbolFunction* const target = global->globalFunctionInit();
-            if (!target)
-                continue;
-            if (target->isForeign() || target->isEmpty() || target->isAttribute())
-                continue;
-            if (target->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || target->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-                continue;
-            if (!target->isSemaCompleted())
-                continue;
-            if (!shouldPrepareSymbol(builder, *target))
+            if (!target || !isIncludableDependency(builder, *target))
                 continue;
             if (!seenFunctions.insert(target).second)
                 continue;

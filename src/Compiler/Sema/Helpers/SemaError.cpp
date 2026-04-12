@@ -16,14 +16,23 @@ namespace
 {
     constexpr size_t K_FORMAT_LIST_LIMIT = 8;
 
-    void appendQuotedListItem(Utf8& out, bool& first, std::string_view name)
+    // Returns false when the limit is reached (caller should break).
+    bool appendQuotedListItem(Utf8& out, bool& first, size_t& count, std::string_view name)
     {
+        if (count == K_FORMAT_LIST_LIMIT)
+        {
+            out += ", ...";
+            return false;
+        }
+
         if (!first)
             out += ", ";
         first = false;
         out += '\'';
         out += name;
         out += '\'';
+        ++count;
+        return true;
     }
 
     void ignoreCurrentFunctionOnError(Sema& sema, const DiagnosticId id)
@@ -193,15 +202,8 @@ Utf8 SemaError::formatEnumValueList(const TaskContext& ctx, const SymbolEnum& sy
         const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
         if (!enumValue)
             continue;
-
-        if (count == K_FORMAT_LIST_LIMIT)
-        {
-            result += ", ...";
+        if (!appendQuotedListItem(result, first, count, enumValue->name(ctx)))
             break;
-        }
-
-        appendQuotedListItem(result, first, enumValue->name(ctx));
-        ++count;
     }
 
     return result;
@@ -216,15 +218,8 @@ Utf8 SemaError::formatStructFieldList(const TaskContext& ctx, const SymbolStruct
     {
         if (!field)
             continue;
-
-        if (count == K_FORMAT_LIST_LIMIT)
-        {
-            result += ", ...";
+        if (!appendQuotedListItem(result, first, count, field->name(ctx)))
             break;
-        }
-
-        appendQuotedListItem(result, first, field->name(ctx));
-        ++count;
     }
 
     return result;
@@ -248,15 +243,8 @@ Utf8 SemaError::formatStructMemberList(Sema& sema, TypeRef typeRef)
     {
         if (!idRef.isValid())
             continue;
-
-        if (count == K_FORMAT_LIST_LIMIT)
-        {
-            result += ", ...";
+        if (!appendQuotedListItem(result, first, count, sema.idMgr().get(idRef).name))
             break;
-        }
-
-        appendQuotedListItem(result, first, sema.idMgr().get(idRef).name);
-        ++count;
     }
 
     return result;

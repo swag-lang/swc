@@ -9,20 +9,11 @@ class MicroBuilder;
 class TaskContext;
 struct MicroInstr;
 struct MicroInstrOperand;
-class MicroControlFlowSimplificationPass;
-class MicroInstructionCombinePass;
-class MicroStrengthReductionPass;
-class MicroCopyPropagationPass;
-class MicroConstantPropagationPass;
-class MicroDeadCodeEliminationPass;
-class MicroBranchFoldingPass;
-class MicroLoadStoreForwardingPass;
-class MicroPeepholePass;
+class MicroStackAdjustNormalizePass;
+class MicroLegalizePass;
 class MicroRegisterAllocationPass;
 class MicroPrologEpilogPass;
 class MicroPrologEpilogSanitizePass;
-class MicroStackAdjustNormalizePass;
-class MicroLegalizePass;
 class MicroEmitPass;
 
 class MicroPassManager
@@ -49,21 +40,12 @@ private:
     std::vector<MicroPass*> loopPasses_;
     std::vector<MicroPass*> finalPasses_;
 
-    std::unique_ptr<MicroControlFlowSimplificationPass> cfgSimplifyPass_;
-    std::unique_ptr<MicroInstructionCombinePass>        instructionCombinePass_;
-    std::unique_ptr<MicroStrengthReductionPass>         strengthReductionPass_;
-    std::unique_ptr<MicroCopyPropagationPass>           copyPropagationPass_;
-    std::unique_ptr<MicroConstantPropagationPass>       constantPropagationPass_;
-    std::unique_ptr<MicroDeadCodeEliminationPass>       deadCodePass_;
-    std::unique_ptr<MicroBranchFoldingPass>             branchFoldingPass_;
-    std::unique_ptr<MicroLoadStoreForwardingPass>       loadStoreForwardPass_;
-    std::unique_ptr<MicroPeepholePass>                  peepholePass_;
-    std::unique_ptr<MicroStackAdjustNormalizePass>      stackAdjustNormalizePass_;
-    std::unique_ptr<MicroRegisterAllocationPass>        regAllocPass_;
-    std::unique_ptr<MicroPrologEpilogPass>              prologEpilogPass_;
-    std::unique_ptr<MicroPrologEpilogSanitizePass>      prologEpilogSanitizePass_;
-    std::unique_ptr<MicroLegalizePass>                  legalizePass_;
-    std::unique_ptr<MicroEmitPass>                      emitPass_;
+    std::unique_ptr<MicroStackAdjustNormalizePass> stackAdjustNormalizePass_;
+    std::unique_ptr<MicroLegalizePass>             legalizePass_;
+    std::unique_ptr<MicroRegisterAllocationPass>   regAllocPass_;
+    std::unique_ptr<MicroPrologEpilogPass>         prologEpilogPass_;
+    std::unique_ptr<MicroPrologEpilogSanitizePass> prologEpilogSanitizePass_;
+    std::unique_ptr<MicroEmitPass>                 emitPass_;
 };
 
 SWC_END_NAMESPACE();

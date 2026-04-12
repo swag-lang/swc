@@ -144,27 +144,6 @@
     <ClCompile Include="src\Unittest\Test.JIT.Execution.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Micro.BranchFolding.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Micro.ConstantPropagation.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Micro.ControlFlowSimplification.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Micro.CopyPropagation.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Micro.DeadCodeElimination.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Micro.LoadStoreForwarding.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Micro.Peephole.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
     <ClCompile Include="src\Unittest\Test.Micro.PrologEpilogSanitize.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
@@ -173,12 +152,6 @@
     </ClCompile>
     <ClCompile Include="src\Unittest\Test.Micro.StackAdjustNormalize.cpp">
       <Filter>src\Unittest</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Micro.StrengthReduction.cpp">
-      <Filter>src\Unittest</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\unittest\Test.Micro.LivenessMetadata.cpp">
-      <Filter>src\Backend\unittest</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\unittest\Test.Micro.Verify.cpp">
       <Filter>src\Backend\unittest</Filter>
@@ -276,58 +249,7 @@
     <ClCompile Include="src\Backend\\Micro\MachineCode.cpp">
       <Filter>src\Backend\Micro</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.BranchFolding.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Helpers.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Rewrite.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Track.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.State.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Forward.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Helpers.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.Liveness.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Forward.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Helpers.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.Promote.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp">
@@ -335,24 +257,6 @@
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp">
       <Filter>src\Backend\Micro</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Addressing.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Cleanup.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Common.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Copy.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Immediate.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.Emit.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
@@ -367,9 +271,6 @@
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.cpp">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\MicroPassManager.cpp">
@@ -977,31 +878,7 @@
     <ClInclude Include="src\Backend\\Micro\MachineCode.h">
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.BranchFolding.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.Peephole.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.Emit.h">
@@ -1017,9 +894,6 @@
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.h">
-      <Filter>src\Backend\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\MicroPassManager.h">

@@ -616,7 +616,6 @@
         <ClInclude Include="src\Compiler\Verify.h" />
     </ItemGroup>
     <ItemGroup>
-        <Folder Include="src\Backend\unittest\" />
         <Folder Include="src\Compiler\"/>
         <Folder Include="src\Support\Memory\mimalloc\"/>
         <Folder Include="src\Support\"/>

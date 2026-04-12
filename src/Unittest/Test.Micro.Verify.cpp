@@ -70,6 +70,7 @@ namespace
 SWC_TEST_BEGIN(MicroVerify_RejectsUndefinedJumpLabel)
     MicroBuilder     builder(ctx);
     MicroPassContext passContext;
+    passContext.microVerify = true;
     passContext.taskContext  = &ctx;
     passContext.builder      = &builder;
     passContext.instructions = &builder.instructions();

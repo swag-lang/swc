@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Main/Command/CommandLine.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -20,11 +21,21 @@ namespace
         inOutHash *= K_HASH_PRIME;
     }
 
-    Result failVerify(const MicroPassContext& context, std::string_view phase, const std::string& message)
+    bool shouldLogVerifyError(const MicroPassContext& context)
     {
-        if (context.taskContext)
-            Logger::print(*context.taskContext, std::format("[micro-verify] {}: {}\n", phase, message));
-        return Result::Error;
+        if (!context.taskContext)
+            return false;
+
+#if SWC_DEV_MODE
+        return context.taskContext->cmdLine().microVerify;
+#else
+        return false;
+#endif
+    }
+
+    Result reportError(const MicroPassContext& context, std::string_view phase, std::string_view message)
+    {
+        return MicroVerify::reportError(context, phase, message);
     }
 
     bool isValidOpcode(const MicroInstrOpcode op)
@@ -234,59 +245,59 @@ namespace
     {
         if (!isValidOpcode(inst.op))
         {
-            return failVerify(context, phase, std::format("instruction #{} (ref={}) uses invalid opcode {}", instructionIndex, instructionRef.get(), static_cast<uint32_t>(inst.op)));
+            return reportError(context, phase, std::format("instruction #{} (ref={}) uses invalid opcode {}", instructionIndex, instructionRef.get(), static_cast<uint32_t>(inst.op)));
         }
 
         const uint8_t minOperands = minimumOperandCount(inst.op);
         if (inst.numOperands < minOperands)
         {
-            return failVerify(context, phase, std::format("instruction #{} (ref={}) has {} operands, expected at least {} for opcode {}", instructionIndex, instructionRef.get(), inst.numOperands, minOperands, static_cast<uint32_t>(inst.op)));
+            return reportError(context, phase, std::format("instruction #{} (ref={}) has {} operands, expected at least {} for opcode {}", instructionIndex, instructionRef.get(), inst.numOperands, minOperands, static_cast<uint32_t>(inst.op)));
         }
 
         switch (inst.op)
         {
             case MicroInstrOpcode::Label:
                 if (ops[0].valueU64 > std::numeric_limits<uint32_t>::max())
-                    return failVerify(context, phase, std::format("label instruction #{} stores out-of-range label id {}", instructionIndex, ops[0].valueU64));
+                    return reportError(context, phase, std::format("label instruction #{} stores out-of-range label id {}", instructionIndex, ops[0].valueU64));
                 break;
 
             case MicroInstrOpcode::JumpCond:
                 if (!isValidCondition(ops[0].cpuCond))
-                    return failVerify(context, phase, std::format("jump instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
+                    return reportError(context, phase, std::format("jump instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
                 if (!isValidOpBits(ops[1].opBits))
-                    return failVerify(context, phase, std::format("jump instruction #{} uses invalid op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
+                    return reportError(context, phase, std::format("jump instruction #{} uses invalid op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
                 if (ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
-                    return failVerify(context, phase, std::format("jump instruction #{} targets out-of-range label {}", instructionIndex, ops[2].valueU64));
+                    return reportError(context, phase, std::format("jump instruction #{} targets out-of-range label {}", instructionIndex, ops[2].valueU64));
                 break;
 
             case MicroInstrOpcode::JumpCondImm:
                 if (!isValidCondition(ops[0].cpuCond))
-                    return failVerify(context, phase, std::format("jump-immediate instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
+                    return reportError(context, phase, std::format("jump-immediate instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
                 if (!isValidOpBits(ops[1].opBits))
-                    return failVerify(context, phase, std::format("jump-immediate instruction #{} uses invalid op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
+                    return reportError(context, phase, std::format("jump-immediate instruction #{} uses invalid op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
                 break;
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
             case MicroInstrOpcode::CallIndirect:
                 if (!isValidCallConv(ops[MicroInstr::info(inst.op).callConvIndex].callConv))
-                    return failVerify(context, phase, std::format("call instruction #{} uses invalid calling convention {}", instructionIndex, static_cast<uint32_t>(ops[MicroInstr::info(inst.op).callConvIndex].callConv)));
+                    return reportError(context, phase, std::format("call instruction #{} uses invalid calling convention {}", instructionIndex, static_cast<uint32_t>(ops[MicroInstr::info(inst.op).callConvIndex].callConv)));
                 break;
 
             case MicroInstrOpcode::SetCondReg:
                 if (!isValidCondition(ops[1].cpuCond))
-                    return failVerify(context, phase, std::format("setcc instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[1].cpuCond)));
+                    return reportError(context, phase, std::format("setcc instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[1].cpuCond)));
                 break;
 
             case MicroInstrOpcode::LoadCondRegReg:
                 if (!isValidCondition(ops[2].cpuCond))
-                    return failVerify(context, phase, std::format("conditional move instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[2].cpuCond)));
+                    return reportError(context, phase, std::format("conditional move instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[2].cpuCond)));
                 break;
 
             case MicroInstrOpcode::LoadRegPtrImm:
             case MicroInstrOpcode::LoadRegPtrReloc:
                 if (ops[1].opBits != MicroOpBits::B64)
-                    return failVerify(context, phase, std::format("pointer load instruction #{} must use B64 op bits", instructionIndex));
+                    return reportError(context, phase, std::format("pointer load instruction #{} must use B64 op bits", instructionIndex));
                 break;
 
             default:
@@ -311,7 +322,7 @@ namespace
 
             if (!isValidNonMemoryOperandRegister(ops[operandIndex].reg))
             {
-                return failVerify(context, phase, std::format("instruction #{} uses invalid register {} at operand {}", instructionIndex, ops[operandIndex].reg.packed, operandIndex));
+                return reportError(context, phase, std::format("instruction #{} uses invalid register {} at operand {}", instructionIndex, ops[operandIndex].reg.packed, operandIndex));
             }
         }
 
@@ -320,12 +331,12 @@ namespace
 
         if (info.memBaseOperandIndex >= inst.numOperands || info.memOffsetOperandIndex >= inst.numOperands)
         {
-            return failVerify(context, phase, std::format("instruction #{} advertises memory operands outside its operand range", instructionIndex));
+            return reportError(context, phase, std::format("instruction #{} advertises memory operands outside its operand range", instructionIndex));
         }
 
         if (!isValidMemoryBaseRegister(inst.op, ops[info.memBaseOperandIndex].reg))
         {
-            return failVerify(context, phase, std::format("instruction #{} uses invalid memory base register {} at operand {}", instructionIndex, ops[info.memBaseOperandIndex].reg.packed, info.memBaseOperandIndex));
+            return reportError(context, phase, std::format("instruction #{} uses invalid memory base register {} at operand {}", instructionIndex, ops[info.memBaseOperandIndex].reg.packed, info.memBaseOperandIndex));
         }
 
         switch (inst.op)
@@ -336,7 +347,7 @@ namespace
             case MicroInstrOpcode::LoadAddrAmcRegMem:
                 if (!isValidAmcIndexRegister(ops[2].reg))
                 {
-                    return failVerify(context, phase, std::format("instruction #{} uses invalid AMC index register {} at operand 2", instructionIndex, ops[2].reg.packed));
+                    return reportError(context, phase, std::format("instruction #{} uses invalid AMC index register {} at operand 2", instructionIndex, ops[2].reg.packed));
                 }
                 break;
 
@@ -353,7 +364,7 @@ namespace
         {
             if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
             {
-                return failVerify(context, phase, std::format("relocation #{} has constant payload but kind {}", relocationIndex, static_cast<uint32_t>(relocation.kind)));
+                return reportError(context, phase, std::format("relocation #{} has constant payload but kind {}", relocationIndex, static_cast<uint32_t>(relocation.kind)));
             }
         }
         else if (relocation.targetSymbol)
@@ -361,7 +372,7 @@ namespace
             const bool validKind = relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress;
             if (!validKind || !relocation.targetSymbol->isFunction())
             {
-                return failVerify(context, phase, std::format("relocation #{} uses incompatible symbol target", relocationIndex));
+                return reportError(context, phase, std::format("relocation #{} uses incompatible symbol target", relocationIndex));
             }
         }
         else
@@ -371,12 +382,12 @@ namespace
                                    relocation.kind == MicroRelocation::Kind::GlobalInitAddress;
             if (!validKind)
             {
-                return failVerify(context, phase, std::format("relocation #{} is missing its target payload", relocationIndex));
+                return reportError(context, phase, std::format("relocation #{} is missing its target payload", relocationIndex));
             }
 
             if (relocation.targetAddress > std::numeric_limits<uint32_t>::max())
             {
-                return failVerify(context, phase, std::format("relocation #{} stores out-of-range data-segment offset {}", relocationIndex, relocation.targetAddress));
+                return reportError(context, phase, std::format("relocation #{} stores out-of-range data-segment offset {}", relocationIndex, relocation.targetAddress));
             }
         }
 
@@ -384,19 +395,19 @@ namespace
         {
             case MicroInstrOpcode::CallLocal:
                 if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress)
-                    return failVerify(context, phase, std::format("call-local instruction uses relocation kind {}", static_cast<uint32_t>(relocation.kind)));
+                    return reportError(context, phase, std::format("call-local instruction uses relocation kind {}", static_cast<uint32_t>(relocation.kind)));
                 break;
 
             case MicroInstrOpcode::CallExtern:
                 if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress)
-                    return failVerify(context, phase, std::format("call-extern instruction uses relocation kind {}", static_cast<uint32_t>(relocation.kind)));
+                    return reportError(context, phase, std::format("call-extern instruction uses relocation kind {}", static_cast<uint32_t>(relocation.kind)));
                 break;
 
             case MicroInstrOpcode::LoadRegPtrReloc:
                 break;
 
             default:
-                return failVerify(context, phase, std::format("relocation #{} points to non-relocatable opcode {}", relocationIndex, static_cast<uint32_t>(inst.op)));
+                return reportError(context, phase, std::format("relocation #{} points to non-relocatable opcode {}", relocationIndex, static_cast<uint32_t>(inst.op)));
         }
 
         return Result::Continue;
@@ -419,7 +430,7 @@ namespace
             const MicroReg virtualReg = entry->first;
             if (!virtualReg.isVirtual())
             {
-                return failVerify(context, phase, std::format("forbidden-register map uses non-virtual key {}", virtualReg.packed));
+                return reportError(context, phase, std::format("forbidden-register map uses non-virtual key {}", virtualReg.packed));
             }
 
             std::vector<uint32_t> regs;
@@ -428,7 +439,7 @@ namespace
             {
                 if (!isValidAnyRegister(reg) || reg.isVirtual() || reg.isInstructionPointer() || reg.isNoBase())
                 {
-                    return failVerify(context, phase, std::format("forbidden-register map for {} contains invalid concrete register {}", virtualReg.packed, reg.packed));
+                    return reportError(context, phase, std::format("forbidden-register map for {} contains invalid concrete register {}", virtualReg.packed, reg.packed));
                 }
 
                 regs.push_back(reg.packed);
@@ -437,7 +448,7 @@ namespace
             std::ranges::sort(regs);
             if (std::ranges::adjacent_find(regs) != regs.end())
             {
-                return failVerify(context, phase, std::format("forbidden-register map for {} contains duplicate concrete registers", virtualReg.packed));
+                return reportError(context, phase, std::format("forbidden-register map for {} contains duplicate concrete registers", virtualReg.packed));
             }
         }
 
@@ -445,8 +456,28 @@ namespace
     }
 }
 
+bool MicroVerify::isEnabled(const MicroPassContext& context)
+{
+#if SWC_DEV_MODE
+    return context.microVerify;
+#else
+    (void) context;
+    return false;
+#endif
+}
+
+Result MicroVerify::reportError(const MicroPassContext& context, std::string_view phase, std::string_view message)
+{
+    if (shouldLogVerifyError(context))
+        Logger::print(*context.taskContext, std::format("[micro-verify] {}: {}\n", phase, message));
+    return Result::Error;
+}
+
 uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
 {
+    if (!isEnabled(context))
+        return 0;
+
     if (!context.instructions || !context.operands)
         return 0;
 
@@ -539,10 +570,13 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
 
 Result MicroVerify::verify(const MicroPassContext& context, std::string_view phase)
 {
+    if (!isEnabled(context))
+        return Result::Continue;
+
     if (!context.instructions)
-        return failVerify(context, phase, "missing instruction storage");
+        return reportError(context, phase, "missing instruction storage");
     if (!context.operands)
-        return failVerify(context, phase, "missing operand storage");
+        return reportError(context, phase, "missing operand storage");
 
     uint32_t                             iteratedInstructionCount = 0;
     std::unordered_set<uint32_t>         definedLabels;
@@ -564,25 +598,25 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
         {
             if (inst.opsRef.isValid())
             {
-                return failVerify(context, phase, std::format("instruction #{} (ref={}) has zero operands but a valid operand ref {}", instructionIdx, instructionRef.get(), inst.opsRef.get()));
+                return reportError(context, phase, std::format("instruction #{} (ref={}) has zero operands but a valid operand ref {}", instructionIdx, instructionRef.get(), inst.opsRef.get()));
             }
         }
         else
         {
             if (inst.opsRef.isInvalid())
             {
-                return failVerify(context, phase, std::format("instruction #{} (ref={}) has {} operands but an invalid operand ref", instructionIdx, instructionRef.get(), inst.numOperands));
+                return reportError(context, phase, std::format("instruction #{} (ref={}) has {} operands but an invalid operand ref", instructionIdx, instructionRef.get(), inst.numOperands));
             }
 
             const uint64_t operandEnd = static_cast<uint64_t>(inst.opsRef.get()) + inst.numOperands;
             if (operandEnd > context.operands->count())
             {
-                return failVerify(context, phase, std::format("instruction #{} (ref={}) references operands [{}..{}) outside storage size {}", instructionIdx, instructionRef.get(), inst.opsRef.get(), operandEnd, context.operands->count()));
+                return reportError(context, phase, std::format("instruction #{} (ref={}) references operands [{}..{}) outside storage size {}", instructionIdx, instructionRef.get(), inst.opsRef.get(), operandEnd, context.operands->count()));
             }
 
             ops = context.operands->ptr(inst.opsRef);
             if (!ops)
-                return failVerify(context, phase, std::format("instruction #{} (ref={}) cannot resolve operand storage", instructionIdx, instructionRef.get()));
+                return reportError(context, phase, std::format("instruction #{} (ref={}) cannot resolve operand storage", instructionIdx, instructionRef.get()));
         }
 
         SWC_RESULT(verifyInstructionShape(context, phase, instructionIdx, instructionRef, inst, ops));
@@ -594,7 +628,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
             const uint32_t label = static_cast<uint32_t>(ops[0].valueU64);
             if (!definedLabels.insert(label).second)
             {
-                return failVerify(context, phase, std::format("duplicate label definition for id {}", label));
+                return reportError(context, phase, std::format("duplicate label definition for id {}", label));
             }
         }
         else if (inst.op == MicroInstrOpcode::JumpCond)
@@ -608,13 +642,13 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
 
     if (iteratedInstructionCount != context.instructions->count())
     {
-        return failVerify(context, phase, std::format("instruction count mismatch: iterated {} entries, storage reports {}", iteratedInstructionCount, context.instructions->count()));
+        return reportError(context, phase, std::format("instruction count mismatch: iterated {} entries, storage reports {}", iteratedInstructionCount, context.instructions->count()));
     }
 
     for (const uint32_t label : jumpTargets)
     {
         if (!definedLabels.contains(label))
-            return failVerify(context, phase, std::format("jump targets undefined label {}", label));
+            return reportError(context, phase, std::format("jump targets undefined label {}", label));
     }
 
     if (context.builder)
@@ -625,13 +659,13 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
             const MicroRelocation& relocation = relocations[relocationIdx];
             if (relocation.instructionRef.isInvalid())
             {
-                return failVerify(context, phase, std::format("relocation #{} has an invalid instruction ref", relocationIdx));
+                return reportError(context, phase, std::format("relocation #{} has an invalid instruction ref", relocationIdx));
             }
 
             const MicroInstr* inst = context.instructions->ptr(relocation.instructionRef);
             if (!inst)
             {
-                return failVerify(context, phase, std::format("relocation #{} points to dead or missing instruction ref {}", relocationIdx, relocation.instructionRef.get()));
+                return reportError(context, phase, std::format("relocation #{} points to dead or missing instruction ref {}", relocationIdx, relocation.instructionRef.get()));
             }
 
             SWC_RESULT(verifyRelocation(context, phase, static_cast<uint32_t>(relocationIdx), relocation, *inst));
@@ -644,7 +678,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
             const auto count = found == relocationCountByRef.end() ? 0ull : found->second;
             if (count != 1)
             {
-                return failVerify(context, phase, std::format("instruction ref {} expects exactly one relocation, found {}", instructionRefValue, count));
+                return reportError(context, phase, std::format("instruction ref {} expects exactly one relocation, found {}", instructionRefValue, count));
             }
         }
 

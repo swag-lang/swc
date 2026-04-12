@@ -3,7 +3,6 @@
 #include "Backend/Micro/Passes/Pass.Peephole.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
-#include "Support/Report/Logger.h"
 #include "Support/Memory/MemoryProfile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -125,20 +124,13 @@ const MicroPeepholePass::RuleDispatch& MicroPeepholePass::getRuleDispatch()
 Result MicroPeepholePass::failRuleInvariant(const Rule& rule, const Cursor& cursor, std::string_view message) const
 {
     const char* ruleName = rule.name ? rule.name : "<unnamed-rule>";
-    if (context_)
-    {
-        if (context_->taskContext)
-        {
-            Logger::print(*context_->taskContext,
-                          std::format("[micro-verify] peephole rule {} on opcode {} (ref={}): {}\n",
-                                      ruleName,
-                                      cursor.inst ? static_cast<uint32_t>(cursor.inst->op) : std::numeric_limits<uint32_t>::max(),
-                                      cursor.instRef.get(),
-                                      message));
-        }
-    }
-
-    return Result::Error;
+    SWC_ASSERT(context_ != nullptr);
+    return MicroVerify::reportError(*context_,
+                                    std::format("peephole rule {} on opcode {} (ref={})",
+                                                ruleName,
+                                                cursor.inst ? static_cast<uint32_t>(cursor.inst->op) : std::numeric_limits<uint32_t>::max(),
+                                                cursor.instRef.get()),
+                                    message);
 }
 
 Result MicroPeepholePass::applyOpcodeRules(bool& outChanged, const Cursor& cursor)
@@ -152,7 +144,7 @@ Result MicroPeepholePass::applyOpcodeRules(bool& outChanged, const Cursor& curso
         SWC_ASSERT(rule.applyMutable != nullptr || rule.applyConst != nullptr);
 
 #if SWC_DEV_MODE
-        const bool shouldVerify = context().microVerify;
+        const bool shouldVerify = MicroVerify::isEnabled(context());
         uint64_t   structuralHashBefore = 0;
         if (shouldVerify)
             structuralHashBefore = MicroVerify::computeStructuralHash(context());

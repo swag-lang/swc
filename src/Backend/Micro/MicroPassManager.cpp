@@ -157,23 +157,6 @@ namespace
         return optimizationIterationLimit(context.builder->backendBuildCfg());
     }
 
-    Result failPassInvariant(const MicroPassContext& context, const MicroPass& pass, std::string_view message)
-    {
-        if (context.taskContext)
-            Logger::print(*context.taskContext, std::format("[micro-verify] {}: {}\n", pass.name(), message));
-        return Result::Error;
-    }
-
-    bool microVerifyEnabled(const MicroPassContext& context)
-    {
-#if SWC_DEV_MODE
-        return context.microVerify;
-#else
-        (void) context;
-        return false;
-#endif
-    }
-
     Result runPass(MicroPassContext& context, MicroPass& pass)
     {
         uint64_t storageRevisionBefore = 0;
@@ -182,7 +165,7 @@ namespace
 
 #if SWC_DEV_MODE
         uint64_t structuralHashBefore = 0;
-        if (microVerifyEnabled(context))
+        if (MicroVerify::isEnabled(context))
         {
             const std::string stageNameBefore = passStageName(pass, true);
             SWC_RESULT(MicroVerify::verify(context, stageNameBefore));
@@ -212,7 +195,7 @@ namespace
             context.builder->pruneDeadRelocations();
 
 #if SWC_DEV_MODE
-        if (microVerifyEnabled(context))
+        if (MicroVerify::isEnabled(context))
         {
             const std::string stageNameAfter = passStageName(pass, false);
             SWC_RESULT(MicroVerify::verify(context, stageNameAfter));
@@ -222,12 +205,12 @@ namespace
             {
                 if (storageRevisionAfter != storageRevisionBefore || structuralHashAfter != structuralHashBefore)
                 {
-                    return failPassInvariant(context, pass, "pass mutated micro state without setting passChanged");
+                    return MicroVerify::reportError(context, pass.name(), "pass mutated micro state without setting passChanged");
                 }
             }
             else if (storageRevisionAfter == storageRevisionBefore && structuralHashAfter == structuralHashBefore)
             {
-                return failPassInvariant(context, pass, "pass set passChanged but produced no observable micro-state change");
+                return MicroVerify::reportError(context, pass.name(), "pass set passChanged but produced no observable micro-state change");
             }
         }
 #endif
@@ -258,7 +241,7 @@ namespace
 
 #if SWC_DEV_MODE
         std::unordered_set<uint64_t> seenStates;
-        if (microVerifyEnabled(context))
+        if (MicroVerify::isEnabled(context))
         {
             seenStates.reserve(maxIterations + 1);
             seenStates.insert(MicroVerify::computeStructuralHash(context));
@@ -278,14 +261,12 @@ namespace
                 break;
 
 #if SWC_DEV_MODE
-            if (microVerifyEnabled(context))
+            if (MicroVerify::isEnabled(context))
             {
                 const uint64_t structuralHash = MicroVerify::computeStructuralHash(context);
                 if (!seenStates.insert(structuralHash).second)
                 {
-                    if (context.taskContext)
-                        Logger::print(*context.taskContext, std::format("[micro-verify] optimization loop re-entered a previous micro state at iteration {}\n", iteration + 1));
-                    return Result::Error;
+                    return MicroVerify::reportError(context, "optimization-loop", std::format("re-entered a previous micro state at iteration {}", iteration + 1));
                 }
             }
 #endif

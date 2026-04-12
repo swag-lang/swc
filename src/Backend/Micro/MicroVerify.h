@@ -9,6 +9,8 @@ struct MicroPassContext;
 
 namespace MicroVerify
 {
+    bool     isEnabled(const MicroPassContext& context);
+    Result   reportError(const MicroPassContext& context, std::string_view phase, std::string_view message);
     Result   verify(const MicroPassContext& context, std::string_view phase);
     uint64_t computeStructuralHash(const MicroPassContext& context);
 }

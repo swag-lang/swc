@@ -8,6 +8,20 @@ namespace TimedActionLog
 {
     using Clock = std::chrono::steady_clock;
 
+    enum class Stage : uint8_t
+    {
+        Config,
+        Modes,
+        Syntax,
+        Sema,
+        JIT,
+        Micro,
+        Build,
+        Run,
+        Verify,
+        Unittest,
+    };
+
     enum class StageOutcome : uint8_t
     {
         Success = 0,
@@ -32,7 +46,7 @@ namespace TimedActionLog
     class ScopedStage
     {
     public:
-        ScopedStage(const TaskContext& ctx, Utf8 label, Utf8 detail = {});
+        ScopedStage(const TaskContext& ctx, Stage stage);
         ~ScopedStage();
 
         ScopedStage(const ScopedStage&)            = delete;
@@ -45,7 +59,7 @@ namespace TimedActionLog
 
     private:
         const TaskContext*          ctx_ = nullptr;
-        Utf8                        label_;
+        Stage                       stage_{};
         Clock::time_point           startTick_{};
         size_t                      startErrors_   = 0;
         size_t                      startWarnings_ = 0;

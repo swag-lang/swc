@@ -308,7 +308,7 @@ Result NativeBackendBuilder::run()
     NativeArtifactPaths         paths;
     artifactBuilder.queryPaths(paths);
     {
-        TimedActionLog::ScopedStage stage(ctx_, "Build", paths.artifactPath.filename().string());
+        TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Build);
 
         SWC_RESULT(prepare());
         stage.setStat(Utf8Helper::countWithLabel(compiler_.nativeCodeSegment().size(), "function"));
@@ -356,7 +356,7 @@ Result NativeBackendBuilder::prepare()
     std::optional<TimedActionLog::ScopedStage> microStage;
     if (ctx_.global().logger().claimStageOnce("micro"))
     {
-        microStage.emplace(ctx_, "Micro");
+        microStage.emplace(ctx_, TimedActionLog::Stage::Micro);
     }
 
     while (true)
@@ -444,7 +444,7 @@ Result NativeBackendBuilder::writeObjects()
 
 Result NativeBackendBuilder::runGeneratedArtifact()
 {
-    TimedActionLog::ScopedStage stage(ctx_, "Run", artifactPath.filename().string());
+    TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Run);
 
     uint32_t                    exitCode    = 0;
     const fs::path              artifactDir = artifactPath.parent_path();

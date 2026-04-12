@@ -13,10 +13,13 @@
 
 SWC_BEGIN_NAMESPACE();
 
+using Stage = TimedActionLog::Stage;
+
 namespace
 {
     constexpr size_t ACTION_LABEL_WIDTH = 8;
 
+    // ── Philosophy verb pools ──────────────────────────────────────────
     // Each stage has a rotating set of short, craftsman-philosopher phrases.
 
     constexpr std::string_view CONFIG_VERBS[] = {
@@ -106,10 +109,6 @@ namespace
         "verifying the core",
     };
 
-    constexpr std::string_view FALLBACK_VERBS[] = {
-        "working the material",
-    };
-
     template<size_t N>
     std::string_view pickVerb(const std::string_view (&pool)[N])
     {
@@ -117,30 +116,201 @@ namespace
         return pool[counter.fetch_add(1, std::memory_order_relaxed) % N];
     }
 
-    std::string_view stageVerb(const std::string_view label)
+    std::string_view stageVerb(const Stage stage)
     {
-        if (label == "Config")
-            return pickVerb(CONFIG_VERBS);
-        if (label == "Modes")
-            return pickVerb(MODES_VERBS);
-        if (label == "Syntax")
-            return pickVerb(SYNTAX_VERBS);
-        if (label == "Sema")
-            return pickVerb(SEMA_VERBS);
-        if (label == "JIT")
-            return pickVerb(JIT_VERBS);
-        if (label == "Micro")
-            return pickVerb(MICRO_VERBS);
-        if (label == "Build")
-            return pickVerb(BUILD_VERBS);
-        if (label == "Run")
-            return pickVerb(RUN_VERBS);
-        if (label == "Verify")
-            return pickVerb(VERIFY_VERBS);
-        if (label == "Unittest")
-            return pickVerb(UNITTEST_VERBS);
-        return pickVerb(FALLBACK_VERBS);
+        switch (stage)
+        {
+            case Stage::Config:
+                return pickVerb(CONFIG_VERBS);
+            case Stage::Modes:
+                return pickVerb(MODES_VERBS);
+            case Stage::Syntax:
+                return pickVerb(SYNTAX_VERBS);
+            case Stage::Sema:
+                return pickVerb(SEMA_VERBS);
+            case Stage::JIT:
+                return pickVerb(JIT_VERBS);
+            case Stage::Micro:
+                return pickVerb(MICRO_VERBS);
+            case Stage::Build:
+                return pickVerb(BUILD_VERBS);
+            case Stage::Run:
+                return pickVerb(RUN_VERBS);
+            case Stage::Verify:
+                return pickVerb(VERIFY_VERBS);
+            case Stage::Unittest:
+                return pickVerb(UNITTEST_VERBS);
+        }
+
+        SWC_UNREACHABLE();
     }
+
+    // ── Stage properties ───────────────────────────────────────────────
+
+    std::string_view stageLabel(const Stage stage)
+    {
+        switch (stage)
+        {
+            case Stage::Config:
+                return "Config";
+            case Stage::Modes:
+                return "Modes";
+            case Stage::Syntax:
+                return "Syntax";
+            case Stage::Sema:
+                return "Sema";
+            case Stage::JIT:
+                return "JIT";
+            case Stage::Micro:
+                return "Micro";
+            case Stage::Build:
+                return "Build";
+            case Stage::Run:
+                return "Run";
+            case Stage::Verify:
+                return "Verify";
+            case Stage::Unittest:
+                return "Unittest";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    LogColor stageColor(const Stage stage)
+    {
+        switch (stage)
+        {
+            case Stage::Config:
+            case Stage::Modes:
+            case Stage::Sema:
+                return LogColor::BrightBlue;
+            case Stage::Syntax:
+            case Stage::Verify:
+            case Stage::Unittest:
+                return LogColor::BrightCyan;
+            case Stage::JIT:
+            case Stage::Micro:
+                return LogColor::BrightMagenta;
+            case Stage::Build:
+                return LogColor::BrightYellow;
+            case Stage::Run:
+                return LogColor::BrightGreen;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    LogColor outcomeColor(const TimedActionLog::StageOutcome outcome)
+    {
+        switch (outcome)
+        {
+            case TimedActionLog::StageOutcome::Success:
+                return LogColor::BrightGreen;
+            case TimedActionLog::StageOutcome::Warning:
+                return LogColor::BrightYellow;
+            case TimedActionLog::StageOutcome::Error:
+                return LogColor::BrightRed;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    LogColor stageOutcomeColor(const Stage stage, const TimedActionLog::StageOutcome outcome)
+    {
+        if (outcome == TimedActionLog::StageOutcome::Success)
+            return stageColor(stage);
+
+        return outcomeColor(outcome);
+    }
+
+    // ── Source root formatting ──────────────────────────────────────────
+
+    fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
+    {
+        fs::path result;
+        auto     itLhs = lhs.begin();
+        auto     itRhs = rhs.begin();
+        while (itLhs != lhs.end() && itRhs != rhs.end() && *itLhs == *itRhs)
+        {
+            result /= *itLhs;
+            ++itLhs;
+            ++itRhs;
+        }
+
+        return result;
+    }
+
+    Utf8 displayPath(const fs::path& path)
+    {
+        std::error_code ec;
+        const fs::path  currentPath = fs::current_path(ec);
+        if (!ec)
+        {
+            std::error_code relEc;
+            const fs::path  relative = fs::relative(path, currentPath, relEc);
+            if (!relEc && !relative.empty())
+                return Utf8{relative.generic_string()};
+        }
+
+        return Utf8{path.generic_string()};
+    }
+
+    Utf8 formatSourceRoots(const std::vector<fs::path>& roots)
+    {
+        if (roots.empty())
+            return "sources";
+
+        fs::path          commonRoot;
+        std::vector<Utf8> labels;
+        for (const fs::path& root : roots)
+        {
+            const fs::path normalized = root.lexically_normal();
+            if (commonRoot.empty())
+                commonRoot = normalized;
+            else
+                commonRoot = commonPathPrefix(commonRoot, normalized);
+
+            labels.push_back(displayPath(normalized));
+        }
+
+        std::ranges::sort(labels);
+        labels.erase(std::ranges::unique(labels).begin(), labels.end());
+
+        if (labels.size() == 1)
+            return labels.front();
+
+        if (!commonRoot.empty() && commonRoot != "." && commonRoot != commonRoot.root_path())
+            return displayPath(commonRoot);
+
+        return std::format("{} locations", Utf8Helper::toNiceBigNumber(labels.size()));
+    }
+
+    Utf8 formatCommandSourceRoots(const CommandLine& cmdLine)
+    {
+        std::vector<fs::path> roots;
+        if (!cmdLine.modulePath.empty())
+            roots.push_back(cmdLine.modulePath);
+        for (const fs::path& folder : cmdLine.directories)
+            roots.push_back(folder);
+        for (const fs::path& file : cmdLine.files)
+            roots.push_back(file.parent_path().empty() ? file : file.parent_path());
+
+        return formatSourceRoots(roots);
+    }
+
+    Utf8 stageDetail(const TaskContext& ctx, const Stage stage)
+    {
+        switch (stage)
+        {
+            case Stage::Syntax:
+            case Stage::Sema:
+                return formatCommandSourceRoots(ctx.cmdLine());
+            default:
+                return {};
+        }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────
 
     Utf8 buildCfgBackendKindName(const Runtime::BuildCfgBackendKind value)
     {
@@ -171,48 +341,6 @@ namespace
     TimedActionLog::StageOutcome mergeOutcome(const TimedActionLog::StageOutcome lhs, const TimedActionLog::StageOutcome rhs)
     {
         return static_cast<int>(lhs) >= static_cast<int>(rhs) ? lhs : rhs;
-    }
-
-    LogColor outcomeColor(const TimedActionLog::StageOutcome outcome)
-    {
-        switch (outcome)
-        {
-            case TimedActionLog::StageOutcome::Success:
-                return LogColor::BrightGreen;
-            case TimedActionLog::StageOutcome::Warning:
-                return LogColor::BrightYellow;
-            case TimedActionLog::StageOutcome::Error:
-                return LogColor::BrightRed;
-        }
-
-        SWC_UNREACHABLE();
-    }
-
-    LogColor stageColor(const std::string_view label)
-    {
-        if (label == "Config" || label == "Modes")
-            return LogColor::BrightBlue;
-        if (label == "Syntax")
-            return LogColor::BrightCyan;
-        if (label == "Sema")
-            return LogColor::BrightBlue;
-        if (label == "JIT")
-            return LogColor::BrightMagenta;
-        if (label == "Micro")
-            return LogColor::BrightMagenta;
-        if (label == "Verify" || label == "Unittest")
-            return LogColor::BrightCyan;
-        if (label == "Run")
-            return LogColor::BrightGreen;
-        return LogColor::BrightYellow;
-    }
-
-    LogColor stageOutcomeColor(const std::string_view label, const TimedActionLog::StageOutcome outcome)
-    {
-        if (outcome == TimedActionLog::StageOutcome::Success)
-            return stageColor(label);
-
-        return outcomeColor(outcome);
     }
 
     Utf8 stageStartGlyph(const TaskContext& ctx)
@@ -272,12 +400,13 @@ namespace
         return LogColorHelper::toAnsi(ctx, LogColor::Reset);
     }
 
-    void appendStageText(Utf8& line, const TaskContext& ctx, const std::string_view label, const std::string_view verb, const std::string_view detail)
+    void appendStageText(Utf8& line, const TaskContext& ctx, const Stage stage, const std::string_view detail)
     {
+        const auto label  = stageLabel(stage);
         const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
-        line += colorize(ctx, stageColor(label), std::format("{:<{}}", label, ACTION_LABEL_WIDTH));
+        line += colorize(ctx, stageColor(stage), std::format("{:<{}}", label, ACTION_LABEL_WIDTH));
         line += " ";
-        line += colorize(ctx, LogColor::White, verb);
+        line += colorize(ctx, LogColor::White, stageVerb(stage));
         if (!detail.empty())
         {
             line += " ";
@@ -287,33 +416,34 @@ namespace
         }
     }
 
-    Utf8 formatStageStart(const TaskContext& ctx, const std::string_view label, const std::string_view detail)
+    Utf8 formatStageStart(const TaskContext& ctx, const Stage stage, const std::string_view detail)
     {
         Utf8 line;
         line += "  ";
-        line += colorize(ctx, stageColor(label), stageStartGlyph(ctx));
+        line += colorize(ctx, stageColor(stage), stageStartGlyph(ctx));
         line += "  ";
-        appendStageText(line, ctx, label, stageVerb(label), detail);
+        appendStageText(line, ctx, stage, detail);
         line += resetColor(ctx);
         return line;
     }
 
-    Utf8 formatCompletedStageLine(const TaskContext& ctx, const std::string_view label, const std::string_view detail)
+    Utf8 formatCompletedStageLine(const TaskContext& ctx, const Stage stage, const std::string_view detail)
     {
         Utf8 line;
         line += "  ";
-        line += colorize(ctx, stageColor(label), stageOutcomeGlyph(ctx, TimedActionLog::StageOutcome::Success));
+        line += colorize(ctx, stageColor(stage), stageOutcomeGlyph(ctx, TimedActionLog::StageOutcome::Success));
         line += "  ";
-        appendStageText(line, ctx, label, stageVerb(label), detail);
+        appendStageText(line, ctx, stage, detail);
         line += resetColor(ctx);
         return line;
     }
 
-    Utf8 formatStageEnd(const TaskContext& ctx, const std::string_view label, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs, const Utf8& stat)
+    Utf8 formatStageEnd(const TaskContext& ctx, const Stage stage, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs, const Utf8& stat)
     {
+        const auto label           = stageLabel(stage);
         const Utf8 duration        = Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
         const Utf8 bullet          = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
-        const auto outcomeLogColor = stageOutcomeColor(label, outcome);
+        const auto outcomeLogColor = stageOutcomeColor(stage, outcome);
 
         Utf8 line;
         line += "  ";
@@ -371,7 +501,7 @@ void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    Utf8 line = formatCompletedStageLine(ctx, "Config", formatBuildConfiguration(ctx));
+    Utf8 line = formatCompletedStageLine(ctx, Stage::Config, formatBuildConfiguration(ctx));
     line += "\n";
     printLineLocked(ctx, line);
 }
@@ -401,14 +531,14 @@ void TimedActionLog::printSessionFlags(const TaskContext& ctx)
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    Utf8 line = formatCompletedStageLine(ctx, "Modes", joinParts(ctx, flags, LogColor::Gray));
+    Utf8 line = formatCompletedStageLine(ctx, Stage::Modes, joinParts(ctx, flags, LogColor::Gray));
     line += "\n";
     printLineLocked(ctx, line);
 }
 
-TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, Utf8 label, Utf8 detail) :
+TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, const Stage stage) :
     ctx_(&ctx),
-    label_(std::move(label)),
+    stage_(stage),
     startTick_(Clock::now())
 {
     const StatsSnapshot before = StatsSnapshot::capture();
@@ -423,7 +553,7 @@ TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, Utf8 label, Utf
 
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
 
-    Utf8 line = formatStageStart(*ctx_, label_, detail);
+    Utf8 line = formatStageStart(*ctx_, stage_, stageDetail(*ctx_, stage_));
     line += "\n";
     printLineLocked(*ctx_, line);
 }
@@ -446,7 +576,7 @@ TimedActionLog::ScopedStage::~ScopedStage()
 
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
 
-    Utf8 line = formatStageEnd(*ctx_, label_, outcome, durationNs, stat_);
+    Utf8 line = formatStageEnd(*ctx_, stage_, outcome, durationNs, stat_);
     line += "\n";
     printLineLocked(*ctx_, line);
 }

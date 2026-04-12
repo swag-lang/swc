@@ -35,9 +35,9 @@ namespace
         SWC_ASSERT(typeRef.isValid());
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
 
-        TaskContext&    ctx      = sema.ctx();
-        TypeManager&    typeMgr  = sema.typeMgr();
-        const TypeInfo& typeInfo = typeMgr.get(typeRef);
+        TaskContext&       ctx      = sema.ctx();
+        const TypeManager& typeMgr  = sema.typeMgr();
+        const TypeInfo&    typeInfo = typeMgr.get(typeRef);
         if (typeInfo.isAlias())
         {
             const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);

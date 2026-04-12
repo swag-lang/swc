@@ -76,7 +76,7 @@ namespace
     bool resolveUsingStructCastPath(CodeGen& codeGen, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
     {
         outSteps.clear();
-        TypeManager& typeMgr = codeGen.typeMgr();
+        const TypeManager& typeMgr = codeGen.typeMgr();
 
         srcStructTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), srcStructTypeRef);
         dstStructTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstStructTypeRef);
@@ -96,9 +96,9 @@ namespace
 
     bool resolveUsingPointerLikeCastPath(CodeGen& codeGen, TypeRef sourceTypeRef, TypeRef dstTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
     {
-        TypeManager&  typeMgr               = codeGen.typeMgr();
-        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
-        const TypeRef resolvedDstTypeRef    = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
+        const TypeManager& typeMgr               = codeGen.typeMgr();
+        const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef      resolvedDstTypeRef    = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
         if (!resolvedSourceTypeRef.isValid() || !resolvedDstTypeRef.isValid())
             return false;
 

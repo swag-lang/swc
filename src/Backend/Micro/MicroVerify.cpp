@@ -501,7 +501,7 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
 
     uint64_t hash = K_HASH_OFFSET_BASIS;
 
-    std::vector<uint32_t> instructionOrdinalByRef(context.instructions->slotCount(), K_ORDINAL_INVALID);
+    std::vector instructionOrdinalByRef(context.instructions->slotCount(), K_ORDINAL_INVALID);
 
     uint32_t instructionOrdinal = 0;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)

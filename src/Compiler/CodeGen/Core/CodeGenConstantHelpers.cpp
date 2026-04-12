@@ -58,9 +58,9 @@ namespace
         if (typeRef.isInvalid())
             return false;
 
-        TaskContext&    ctx      = codeGen.ctx();
-        TypeManager&    typeMgr  = ctx.typeMgr();
-        const TypeInfo& typeInfo = typeMgr.get(typeRef);
+        TaskContext&       ctx      = codeGen.ctx();
+        const TypeManager& typeMgr  = ctx.typeMgr();
+        const TypeInfo&    typeInfo = typeMgr.get(typeRef);
         if (typeInfo.isAlias())
         {
             const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);

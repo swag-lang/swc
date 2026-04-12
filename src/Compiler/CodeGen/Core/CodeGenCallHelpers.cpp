@@ -365,10 +365,10 @@ namespace
         if (!normalizedTypeRef.isValid() || normalizedArg.isIndirect)
             return;
 
-        TaskContext&    ctx            = codeGen.ctx();
-        TypeManager&    typeMgr        = ctx.typeMgr();
-        MicroBuilder&   builder        = codeGen.builder();
-        const TypeInfo& normalizedType = typeMgr.get(normalizedTypeRef);
+        TaskContext&       ctx            = codeGen.ctx();
+        const TypeManager& typeMgr        = ctx.typeMgr();
+        MicroBuilder&      builder        = codeGen.builder();
+        const TypeInfo&    normalizedType = typeMgr.get(normalizedTypeRef);
         if (normalizedType.isReference())
             return;
 

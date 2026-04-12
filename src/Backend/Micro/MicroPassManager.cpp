@@ -171,7 +171,7 @@ namespace
     };
 #endif
 
-    Result verifyCurrentState(MicroPassContext& context, std::string_view phase, VerifyStateCache& cache)
+    Result verifyCurrentState(const MicroPassContext& context, std::string_view phase, VerifyStateCache& cache)
     {
 #if SWC_DEV_MODE
         if (!MicroVerify::isEnabled(context))

@@ -12,6 +12,24 @@ namespace Math
     ApFloat bitCastToApFloat(const ApsInt& src, uint32_t floatBits);
     ApsInt  bitCastToApInt(const ApFloat& src, bool isUnsigned);
 
+    static constexpr bool isPowerOfTwo(uint64_t value) noexcept
+    {
+        return value != 0 && (value & (value - 1)) == 0;
+    }
+
+    static constexpr uint32_t integerLog2(uint64_t value) noexcept
+    {
+        SWC_ASSERT(isPowerOfTwo(value));
+        uint32_t index = 0;
+        while (value > 1)
+        {
+            value >>= 1;
+            ++index;
+        }
+
+        return index;
+    }
+
     static constexpr uint32_t alignUpU32(uint32_t v, uint32_t a) noexcept
     {
         if (!a)

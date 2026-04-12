@@ -161,16 +161,6 @@ namespace
 
     using CodeGenMemoryHelpers::loadOperandToRegister;
 
-    bool isFloatRegClass(const MicroReg reg)
-    {
-        return reg.isFloat() || reg.isVirtualFloat();
-    }
-
-    bool isIntRegClass(const MicroReg reg)
-    {
-        return reg.isInt() || reg.isVirtualInt();
-    }
-
     TypeRef resolveArithmeticOperandPhysicalTypeRef(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef sourceTypeRef)
     {
         sourceTypeRef = codeGen.typeMgr().get(sourceTypeRef).unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
@@ -185,9 +175,9 @@ namespace
 
         const TypeInfo& sourceType  = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& payloadType = codeGen.typeMgr().get(payloadTypeRef);
-        if (payloadType.isFloat() && isFloatRegClass(operandPayload.reg) && !sourceType.isFloat())
+        if (payloadType.isFloat() && operandPayload.reg.isAnyFloat() && !sourceType.isFloat())
             return payloadTypeRef;
-        if ((payloadType.isIntLike() || payloadType.isBool()) && isIntRegClass(operandPayload.reg) && sourceType.isFloat())
+        if ((payloadType.isIntLike() || payloadType.isBool()) && operandPayload.reg.isAnyInt() && sourceType.isFloat())
             return payloadTypeRef;
 
         return sourceTypeRef;

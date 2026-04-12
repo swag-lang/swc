@@ -121,16 +121,16 @@ namespace
         switch (op)
         {
             case MicroInstrOpcode::LoadAddrRegMem:
-                return reg.isInt() || reg.isVirtualInt() || reg.isInstructionPointer();
+                return reg.isAnyInt() || reg.isInstructionPointer();
 
             case MicroInstrOpcode::LoadAmcRegMem:
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAmcMemImm:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
-                return reg.isInt() || reg.isVirtualInt() || reg.isNoBase();
+                return reg.isAnyInt() || reg.isNoBase();
 
             default:
-                return reg.isInt() || reg.isVirtualInt();
+                return reg.isAnyInt();
         }
     }
 
@@ -140,7 +140,7 @@ namespace
             return false;
         if (reg.isInstructionPointer() || reg.isNoBase())
             return false;
-        return reg.isInt() || reg.isVirtualInt();
+        return reg.isAnyInt();
     }
 
     bool expectsRelocation(const MicroInstrOpcode op)

@@ -44,6 +44,8 @@ struct MicroReg
     constexpr bool isVirtualInt() const { return kind() == MicroRegKind::VirtualInt; }
     constexpr bool isVirtualFloat() const { return kind() == MicroRegKind::VirtualFloat; }
     constexpr bool isVirtual() const { return isVirtualInt() || isVirtualFloat(); }
+    constexpr bool isAnyInt() const { return isInt() || isVirtualInt(); }
+    constexpr bool isAnyFloat() const { return isFloat() || isVirtualFloat(); }
 
     bool isSameClass(MicroReg other) const;
 

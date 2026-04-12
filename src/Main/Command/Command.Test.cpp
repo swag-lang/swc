@@ -10,6 +10,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/ScopedTimedAction.h"
@@ -377,6 +378,8 @@ namespace
                 return false;
             executedTestCount++;
         }
+
+        stage.setStat(Utf8Helper::countWithLabel(executedTestCount, "test"));
 
         if (executedTestCount != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, executedTestCount);

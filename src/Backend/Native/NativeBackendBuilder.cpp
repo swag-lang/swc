@@ -10,6 +10,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -315,6 +316,7 @@ Result NativeBackendBuilder::run()
                                                 });
 
         SWC_RESULT(prepare());
+        stage.setStat(Utf8Helper::countWithLabel(compiler_.nativeCodeSegment().size(), "function"));
         SWC_RESULT(artifactBuilder.build());
         SWC_RESULT(writeObjects());
 
@@ -374,7 +376,11 @@ Result NativeBackendBuilder::prepare()
         SWC_RESULT(scheduleCodeGen(*this));
 
         if (!appendCodeGenDependencies(*this, functions))
+        {
+            if (microStage)
+                microStage->setStat(Utf8Helper::countWithLabel(functions.size(), "function"));
             return Result::Continue;
+        }
     }
 }
 

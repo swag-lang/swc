@@ -117,6 +117,7 @@ namespace Command
         }
 
         jobMgr.waitAll(compiler.jobClientId());
+        stage.setStat(Utf8Helper::countWithLabel(compiler.files().size(), "file"));
 
         if (!Stats::hasError())
         {

@@ -8,6 +8,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
@@ -166,6 +167,10 @@ namespace Command
         }
 
         Sema::waitDone(ctx, clientId);
+
+#if SWC_HAS_STATS
+        stage.setStat(Utf8Helper::countWithLabel(Stats::get().numTokens.load(std::memory_order_relaxed), "token"));
+#endif
     }
 }
 

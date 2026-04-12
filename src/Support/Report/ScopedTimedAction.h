@@ -35,7 +35,7 @@ namespace TimedActionLog
     };
 
     Utf8 formatStageStartLine(const TaskContext& ctx, const StageSpec& spec);
-    Utf8 formatStageEndLine(const TaskContext& ctx, const StageSpec& spec, StageOutcome outcome, uint64_t durationNs);
+    Utf8 formatStageEndLine(const TaskContext& ctx, const StageSpec& spec, StageOutcome outcome, uint64_t durationNs, const Utf8& stat = {});
     void printBuildConfiguration(const TaskContext& ctx);
     void printSessionFlags(const TaskContext& ctx);
 
@@ -51,6 +51,7 @@ namespace TimedActionLog
         void markOutcome(StageOutcome outcome);
         void markFailure();
         void markWarning();
+        void setStat(Utf8 stat);
 
     private:
         const TaskContext*          ctx_ = nullptr;
@@ -59,6 +60,7 @@ namespace TimedActionLog
         size_t                      startErrors_   = 0;
         size_t                      startWarnings_ = 0;
         std::optional<StageOutcome> forcedOutcome_;
+        Utf8                        stat_;
     };
 
     Utf8 formatSummaryLine(const TaskContext& ctx, const StatsSnapshot& snapshot);

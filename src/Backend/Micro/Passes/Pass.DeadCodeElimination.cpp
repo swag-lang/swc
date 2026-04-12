@@ -12,11 +12,13 @@ SWC_BEGIN_NAMESPACE();
 
 void MicroDeadCodeEliminationPass::initRunState(MicroPassContext& context)
 {
-    context_      = &context;
-    storage_      = context.instructions;
-    operands_     = context.operands;
-    encoder_      = context.encoder;
-    callConvKind_ = context.callConvKind;
+    context_                 = &context;
+    storage_                 = context.instructions;
+    operands_                = context.operands;
+    encoder_                 = context.encoder;
+    callConvKind_            = context.callConvKind;
+    usesIntReturnRegOnRet_   = context.usesIntReturnRegOnRet;
+    usesFloatReturnRegOnRet_ = context.usesFloatReturnRegOnRet;
 }
 
 Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)

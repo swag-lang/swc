@@ -57,6 +57,8 @@ namespace ABICall
         uint32_t numPreparedArgs      = 0;
         uint32_t stackAdjust          = 0;
         bool     stackAlreadyAdjusted = false;
+        uint8_t  intArgMask           = 0;
+        uint8_t  floatArgMask         = 0;
     };
 
     PreparedCall prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args);

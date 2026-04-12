@@ -315,15 +315,17 @@ void MicroBuilder::emitRet()
     addInstruction(MicroInstrOpcode::Ret, 0);
 }
 
-void MicroBuilder::emitCallLocal(Symbol* targetSymbol, CallConvKind callConv)
+void MicroBuilder::emitCallLocal(Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
 {
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
     SWC_ASSERT(!targetFunction.isForeign());
 
-    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallLocal, 1);
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallLocal, 3);
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
+    ops[1].valueU32        = intArgMask;
+    ops[2].valueU32        = floatArgMask;
 
     addRelocation({
         .kind           = MicroRelocation::Kind::LocalFunctionAddress,
@@ -334,15 +336,17 @@ void MicroBuilder::emitCallLocal(Symbol* targetSymbol, CallConvKind callConv)
     });
 }
 
-void MicroBuilder::emitCallExtern(Symbol* targetSymbol, CallConvKind callConv)
+void MicroBuilder::emitCallExtern(Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
 {
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
     SWC_ASSERT(targetFunction.isForeign());
 
-    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallExtern, 1);
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallExtern, 3);
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
+    ops[1].valueU32        = intArgMask;
+    ops[2].valueU32        = floatArgMask;
 
     addRelocation({
         .kind           = MicroRelocation::Kind::ForeignFunctionAddress,
@@ -353,13 +357,15 @@ void MicroBuilder::emitCallExtern(Symbol* targetSymbol, CallConvKind callConv)
     });
 }
 
-void MicroBuilder::emitCallReg(MicroReg reg, CallConvKind callConv)
+void MicroBuilder::emitCallReg(const MicroReg reg, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
 {
     // Micro IR models calls as indirect calls carrying the selected calling convention.
-    const auto&        inst = addInstruction(MicroInstrOpcode::CallIndirect, 2);
+    const auto&        inst = addInstruction(MicroInstrOpcode::CallIndirect, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = reg;
     ops[1].callConv         = callConv;
+    ops[2].valueU32         = intArgMask;
+    ops[3].valueU32         = floatArgMask;
 }
 
 void MicroBuilder::emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef)
@@ -739,12 +745,14 @@ void MicroBuilder::emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
 
 Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
 {
-    context.encoder          = encoder;
-    context.taskContext      = ctx_;
-    context.builder          = this;
-    context.instructions     = &instructions_;
-    context.operands         = &operands_;
-    context.passPrintOptions = printPassOptions_;
+    context.encoder                 = encoder;
+    context.taskContext             = ctx_;
+    context.builder                 = this;
+    context.instructions            = &instructions_;
+    context.operands                = &operands_;
+    context.passPrintOptions        = printPassOptions_;
+    context.usesIntReturnRegOnRet   = usesIntReturnRegOnRet_;
+    context.usesFloatReturnRegOnRet = usesFloatReturnRegOnRet_;
 #if SWC_DEV_MODE
     if (!context.microVerify && ctx_)
         context.microVerify = ctx_->cmdLine().microVerify;
@@ -772,6 +780,12 @@ void MicroBuilder::printInstructions(MicroRegPrintMode regPrintMode, const Encod
     MicroPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, this);
 }
 
+void MicroBuilder::setRetUsesAbiRegs(const bool usesIntReturnReg, const bool usesFloatReturnReg)
+{
+    usesIntReturnRegOnRet_   = usesIntReturnReg;
+    usesFloatReturnRegOnRet_ = usesFloatReturnReg;
+}
+
 void MicroBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine)
 {
     printSymbolName_ = std::move(symbolName);
@@ -788,6 +802,8 @@ void MicroBuilder::releaseMemory()
     printSymbolName_                 = Utf8();
     printFilePath_                   = Utf8();
     printSourceLine_                 = 0;
+    usesIntReturnRegOnRet_           = true;
+    usesFloatReturnRegOnRet_         = true;
     printPassOptions_                = {};
     labels_                          = {};
     relocations_                     = {};

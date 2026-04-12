@@ -26,7 +26,6 @@ private:
     bool eliminateDeadPureDefsByBackwardLivenessCfg(const MicroControlFlowGraph& controlFlowGraph);
     bool eliminateDeadPureDefsByBackwardLivenessLinearTail();
 
-    static void addCallArgumentRegs(std::unordered_set<MicroReg>& liveRegs, const CallConv& conv);
     static void killCallClobberedRegs(std::unordered_set<MicroReg>& liveRegs, const CallConv& conv);
     static bool canCurrentDefKillPreviousPureDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg defReg);
     static bool isControlFlowBarrier(const MicroInstr& inst);
@@ -36,13 +35,21 @@ private:
     void        gatherCfgLiveOut(const MicroControlFlowGraph& controlFlowGraph, uint32_t instructionIdx, uint32_t instructionCount, uint32_t rowWordCount);
     void        applyLinearLiveness(const MicroInstrUseDef& useDef);
     static void addLiveReg(std::unordered_set<MicroReg>& liveRegs, MicroReg reg);
-    static void transferInstructionLiveness(std::unordered_set<MicroReg>& outLiveIn, const std::unordered_set<MicroReg>& liveOut, const MicroInstr& inst, const MicroInstrUseDef& useDef, CallConvKind callConvKind);
+    static void transferInstructionLiveness(std::unordered_set<MicroReg>&       outLiveIn,
+                                            const std::unordered_set<MicroReg>& liveOut,
+                                            const MicroInstr&                   inst,
+                                            const MicroInstrUseDef&             useDef,
+                                            CallConvKind                        callConvKind,
+                                            bool                                usesIntReturnRegOnRet,
+                                            bool                                usesFloatReturnRegOnRet);
 
-    MicroPassContext*                           context_      = nullptr;
-    MicroStorage*                               storage_      = nullptr;
-    const MicroOperandStorage*                  operands_     = nullptr;
-    const Encoder*                              encoder_      = nullptr;
-    CallConvKind                                callConvKind_ = CallConvKind::Host;
+    MicroPassContext*                           context_                 = nullptr;
+    MicroStorage*                               storage_                 = nullptr;
+    const MicroOperandStorage*                  operands_                = nullptr;
+    const Encoder*                              encoder_                 = nullptr;
+    CallConvKind                                callConvKind_            = CallConvKind::Host;
+    bool                                        usesIntReturnRegOnRet_   = true;
+    bool                                        usesFloatReturnRegOnRet_ = true;
     std::unordered_map<MicroReg, MicroInstrRef> lastPureDefByReg_;
 
     // Reusable buffers for CFG liveness analysis

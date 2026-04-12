@@ -573,6 +573,16 @@ Result SymbolFunction::emit(TaskContext& ctx)
     if (hasLoweredCode())
         return Result::Continue;
     auto& builder = microInstrBuilder(ctx);
+    if (!returnTypeRef().isValid() || returnTypeRef() == ctx.typeMgr().typeVoid())
+    {
+        builder.setRetUsesAbiRegs(false, false);
+    }
+    else
+    {
+        const CallConv&                        callConv      = CallConv::get(callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, returnTypeRef(), ABITypeNormalize::Usage::Return);
+        builder.setRetUsesAbiRegs(!normalizedRet.isFloat, normalizedRet.isFloat);
+    }
     SWC_MEM_SCOPE("Backend/MicroLower");
 #if SWC_HAS_STATS
     Timer timeMicroLower(&Stats::get().timeMicroLower);

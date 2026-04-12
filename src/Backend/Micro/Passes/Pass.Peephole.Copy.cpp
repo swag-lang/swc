@@ -889,15 +889,15 @@ namespace
         else if (inst->op == MicroInstrOpcode::Ret)
         {
             const CallConv& functionConv = CallConv::get(context->callConvKind);
-            result                       = functionConv.intReturn != reg && functionConv.floatReturn != reg;
+            result                       = (!context->usesIntReturnRegOnRet || functionConv.intReturn != reg) &&
+                     (!context->usesFloatReturnRegOnRet || functionConv.floatReturn != reg);
         }
         else
         {
             const MicroInstrUseDef useDef = inst->collectUseDef(*context->operands, context->encoder);
             if (useDef.isCall)
             {
-                const CallConv& callConv = CallConv::get(useDef.callConv);
-                if (MicroPassHelpers::isRegCallArgument(callConv, reg))
+                if (microRegSpanContains(useDef.uses, reg))
                 {
                     result = false;
                 }
@@ -1130,7 +1130,8 @@ namespace
             return false;
 
         const CallConv& functionConv = CallConv::get(context.callConvKind);
-        if (copySrcReg == functionConv.intReturn || copySrcReg == functionConv.floatReturn)
+        if ((context.usesIntReturnRegOnRet && copySrcReg == functionConv.intReturn) ||
+            (context.usesFloatReturnRegOnRet && copySrcReg == functionConv.floatReturn))
             return false;
 
         const MicroInstr& nextInst = *nextIt;

@@ -20,6 +20,16 @@ namespace
 
     using MicroPassHelpers::touchesReg;
 
+    bool hasRegUse(const MicroInstrUseDef& useDef, const MicroReg reg)
+    {
+        return microRegSpanContains(useDef.uses, reg);
+    }
+
+    bool hasRegDef(const MicroInstrUseDef& useDef, const MicroReg reg)
+    {
+        return microRegSpanContains(useDef.defs, reg);
+    }
+
     template<size_t N>
     bool wouldConformEncoder(const MicroPassContext& context, MicroInstrOpcode opcode, const std::array<MicroInstrOperand, N>& ops)
     {
@@ -203,21 +213,10 @@ namespace
         const CallConv& functionConv = CallConv::get(context.callConvKind);
         for (; scanIt != endIt; ++scanIt)
         {
-            const MicroInstr&                    scanInst = *scanIt;
-            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-            bool hasUse = false;
-            bool hasDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg || *(ref.reg) != reg)
-                    continue;
-
-                hasUse |= ref.use;
-                hasDef |= ref.def;
-            }
+            const MicroInstr&      scanInst = *scanIt;
+            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
+            const bool             hasUse   = hasRegUse(useDef, reg);
+            const bool             hasDef   = hasRegDef(useDef, reg);
 
             if (hasUse)
                 return false;
@@ -226,7 +225,8 @@ namespace
 
             if (scanInst.op == MicroInstrOpcode::Ret)
             {
-                if (functionConv.intReturn == reg || functionConv.floatReturn == reg)
+                if ((context.usesIntReturnRegOnRet && functionConv.intReturn == reg) ||
+                    (context.usesFloatReturnRegOnRet && functionConv.floatReturn == reg))
                     return false;
                 return true;
             }
@@ -279,21 +279,10 @@ namespace
     {
         for (; scanIt != endIt; ++scanIt)
         {
-            const MicroInstr&                    scanInst = *scanIt;
-            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-            bool hasUse = false;
-            bool hasDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg || *(ref.reg) != reg)
-                    continue;
-
-                hasUse |= ref.use;
-                hasDef |= ref.def;
-            }
+            const MicroInstr&      scanInst = *scanIt;
+            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
+            const bool             hasUse   = hasRegUse(useDef, reg);
+            const bool             hasDef   = hasRegDef(useDef, reg);
 
             if (hasUse)
                 return false;
@@ -464,20 +453,9 @@ namespace
             if (!scanOps)
                 return false;
 
-            const MicroInstrUseDef               useDef = scanInst.collectUseDef(*context.operands, context.encoder);
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-            bool hasUse = false;
-            bool hasDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg || *(ref.reg) != indexReg)
-                    continue;
-
-                hasUse |= ref.use;
-                hasDef |= ref.def;
-            }
+            const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
+            const bool             hasUse = hasRegUse(useDef, indexReg);
+            const bool             hasDef = hasRegDef(useDef, indexReg);
 
             if (hasDef)
                 return false;
@@ -1149,28 +1127,10 @@ namespace
             if (!scanOps)
                 return false;
 
-            const MicroInstrUseDef               useDef = scanInst.collectUseDef(*context.operands, context.encoder);
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-            bool hasUse     = false;
-            bool hasDef     = false;
-            bool hasBaseDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *(ref.reg);
-                if (reg == tmpReg)
-                {
-                    hasUse |= ref.use;
-                    hasDef |= ref.def;
-                }
-
-                if (reg == baseReg && ref.def)
-                    hasBaseDef = true;
-            }
+            const MicroInstrUseDef useDef     = scanInst.collectUseDef(*context.operands, context.encoder);
+            const bool             hasUse     = hasRegUse(useDef, tmpReg);
+            const bool             hasDef     = hasRegDef(useDef, tmpReg);
+            const bool             hasBaseDef = hasRegDef(useDef, baseReg);
 
             if (hasBaseDef)
                 return false;
@@ -1248,20 +1208,9 @@ namespace
             if (!scanOps)
                 return false;
 
-            const MicroInstrUseDef               useDef = scanInst.collectUseDef(*context.operands, context.encoder);
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-            bool hasUse = false;
-            bool hasDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg || *(ref.reg) != indexReg)
-                    continue;
-
-                hasUse |= ref.use;
-                hasDef |= ref.def;
-            }
+            const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
+            const bool             hasUse = hasRegUse(useDef, indexReg);
+            const bool             hasDef = hasRegDef(useDef, indexReg);
 
             if (hasDef)
                 return false;
@@ -1341,29 +1290,11 @@ namespace
         std::vector<RewriteCandidate> candidates;
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
         {
-            const MicroInstr&                    scanInst = *scanIt;
-            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-            bool hasTmpUse  = false;
-            bool hasTmpDef  = false;
-            bool hasBaseDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *(ref.reg);
-                if (reg == tmpReg)
-                {
-                    hasTmpUse |= ref.use;
-                    hasTmpDef |= ref.def;
-                }
-
-                if (reg == baseReg && ref.def)
-                    hasBaseDef = true;
-            }
+            const MicroInstr&      scanInst   = *scanIt;
+            const MicroInstrUseDef useDef     = scanInst.collectUseDef(*context.operands, context.encoder);
+            const bool             hasTmpUse  = hasRegUse(useDef, tmpReg);
+            const bool             hasTmpDef  = hasRegDef(useDef, tmpReg);
+            const bool             hasBaseDef = hasRegDef(useDef, baseReg);
 
             if (hasTmpDef)
                 return false;
@@ -1591,31 +1522,11 @@ namespace
             if (!scanOps)
                 return false;
 
-            const MicroInstrUseDef               useDef = scanInst.collectUseDef(*context.operands, context.encoder);
-            SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*context.operands, refs, context.encoder);
-
-            bool hasTmpUse   = false;
-            bool hasTmpDef   = false;
-            bool hasBaseDef  = false;
-            bool hasIndexDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *(ref.reg);
-                if (reg == tmpReg)
-                {
-                    hasTmpUse |= ref.use;
-                    hasTmpDef |= ref.def;
-                }
-
-                if (ref.def && reg == baseReg)
-                    hasBaseDef = true;
-                if (ref.def && reg == indexReg)
-                    hasIndexDef = true;
-            }
+            const MicroInstrUseDef useDef      = scanInst.collectUseDef(*context.operands, context.encoder);
+            const bool             hasTmpUse   = hasRegUse(useDef, tmpReg);
+            const bool             hasTmpDef   = hasRegDef(useDef, tmpReg);
+            const bool             hasBaseDef  = hasRegDef(useDef, baseReg);
+            const bool             hasIndexDef = hasRegDef(useDef, indexReg);
 
             if (hasBaseDef || hasIndexDef || hasTmpDef)
                 return false;

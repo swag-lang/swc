@@ -26,6 +26,8 @@ void MicroInstrUseDef::addUseDef(MicroReg reg)
 
 namespace
 {
+    constexpr uint8_t K_CALL_ARG_MASK_ALL = 0xFF;
+
     std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrDef& info, const MicroInstrOperand* ops)
     {
         auto modes = info.regModes;
@@ -108,6 +110,45 @@ namespace
             }
         }
     }
+
+    uint8_t resolveCallArgMask(const MicroInstr& inst, const MicroInstrOperand* ops, const bool floatMask)
+    {
+        uint8_t maskOperandIndex = 0xFF;
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::CallLocal:
+            case MicroInstrOpcode::CallExtern:
+                maskOperandIndex = floatMask ? 2 : 1;
+                break;
+            case MicroInstrOpcode::CallIndirect:
+                maskOperandIndex = floatMask ? 3 : 2;
+                break;
+            default:
+                return K_CALL_ARG_MASK_ALL;
+        }
+
+        if (!ops || inst.numOperands <= maskOperandIndex)
+            return K_CALL_ARG_MASK_ALL;
+
+        return static_cast<uint8_t>(ops[maskOperandIndex].valueU32);
+    }
+
+    void addMaskedCallArgRegs(MicroInstrUseDef& useDef, const MicroRegSpan regs, const uint8_t mask)
+    {
+        if (mask == K_CALL_ARG_MASK_ALL)
+        {
+            for (const MicroReg reg : regs)
+                useDef.addUse(reg);
+            return;
+        }
+
+        const auto maskableCount = std::min<size_t>(regs.size(), 8);
+        for (size_t i = 0; i < maskableCount; ++i)
+        {
+            if (mask & static_cast<uint8_t>(1u << i))
+                useDef.addUse(regs[i]);
+        }
+    }
 }
 
 MicroInstrOperand* MicroInstr::ops(MicroOperandStorage& operands) const
@@ -138,10 +179,8 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
         // Call instructions consume ABI argument registers implicitly. Keep them live so
         // register allocation and later rewrites cannot reuse them before the call.
         const CallConv& callConv = CallConv::get(useDef.callConv);
-        for (const MicroReg reg : callConv.intArgRegs)
-            useDef.addUse(reg);
-        for (const MicroReg reg : callConv.floatArgRegs)
-            useDef.addUse(reg);
+        addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, false));
+        addMaskedCallArgRegs(useDef, callConv.floatArgRegs, resolveCallArgMask(*this, ops, true));
         for (const MicroReg reg : callConv.intTransientRegs)
             useDef.addDef(reg);
         for (const MicroReg reg : callConv.floatTransientRegs)

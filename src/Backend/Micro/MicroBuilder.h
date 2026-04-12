@@ -46,6 +46,8 @@ struct MicroRelocation
 class MicroBuilder
 {
 public:
+    static constexpr uint8_t K_CALL_ARG_MASK_ALL = 0xFF;
+
     MicroBuilder() = default;
 
     explicit MicroBuilder(TaskContext& ctx) :
@@ -79,6 +81,9 @@ public:
     void                                                       setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     void                                                       setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&                            backendBuildCfg() const { return backendBuildCfg_; }
+    void                                                       setRetUsesAbiRegs(bool usesIntReturnReg, bool usesFloatReturnReg);
+    bool                                                       usesIntReturnRegOnRet() const { return usesIntReturnRegOnRet_; }
+    bool                                                       usesFloatReturnRegOnRet() const { return usesFloatReturnRegOnRet_; }
     void                                                       setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
     void                                                       releaseMemory();
     const Utf8&                                                printSymbolName() const { return printSymbolName_; }
@@ -111,9 +116,9 @@ public:
     void emitBreakpoint();
     void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();
-    void emitCallLocal(Symbol* targetSymbol, CallConvKind callConv);
-    void emitCallExtern(Symbol* targetSymbol, CallConvKind callConv);
-    void emitCallReg(MicroReg reg, CallConvKind callConv);
+    void emitCallLocal(Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitCallExtern(Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitCallReg(MicroReg reg, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);
     void emitJumpReg(MicroReg reg);
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
@@ -162,7 +167,9 @@ private:
     bool                                                currentDebugNoStep_        = false;
     Utf8                                                printSymbolName_;
     Utf8                                                printFilePath_;
-    uint32_t                                            printSourceLine_ = 0;
+    uint32_t                                            printSourceLine_         = 0;
+    bool                                                usesIntReturnRegOnRet_   = true;
+    bool                                                usesFloatReturnRegOnRet_ = true;
     std::vector<Utf8>                                   printPassOptions_;
     Runtime::BuildCfgBackend                            backendBuildCfg_{};
     std::vector<MicroInstrRef>                          labels_;

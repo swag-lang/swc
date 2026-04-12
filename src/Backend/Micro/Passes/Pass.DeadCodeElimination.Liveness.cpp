@@ -79,8 +79,10 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
 
         if (inst->op == MicroInstrOpcode::Ret)
         {
-            pushDenseRegIndex(useIndices, denseRegIndex, conv.intReturn);
-            pushDenseRegIndex(useIndices, denseRegIndex, conv.floatReturn);
+            if (usesIntReturnRegOnRet_)
+                pushDenseRegIndex(useIndices, denseRegIndex, conv.intReturn);
+            if (usesFloatReturnRegOnRet_)
+                pushDenseRegIndex(useIndices, denseRegIndex, conv.floatReturn);
         }
 
         if (useDef.isCall)
@@ -90,10 +92,6 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessCfg(co
                 pushDenseRegIndex(killIndices, denseRegIndex, reg);
             for (const MicroReg reg : convAtCall.floatTransientRegs)
                 pushDenseRegIndex(killIndices, denseRegIndex, reg);
-            for (const MicroReg reg : convAtCall.intArgRegs)
-                pushDenseRegIndex(useIndices, denseRegIndex, reg);
-            for (const MicroReg reg : convAtCall.floatArgRegs)
-                pushDenseRegIndex(useIndices, denseRegIndex, reg);
             for (const MicroReg reg : useDef.uses)
                 pushDenseRegIndex(useIndices, denseRegIndex, reg);
         }
@@ -239,7 +237,6 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
             const CallConv& convAtCall = CallConv::get(useDef.callConv);
 
             killCallClobberedRegs(linearLiveRegs_, convAtCall);
-            addCallArgumentRegs(linearLiveRegs_, convAtCall);
             for (const MicroReg useReg : useDef.uses)
                 linearLiveRegs_.insert(useReg);
             continue;
@@ -251,8 +248,10 @@ bool MicroDeadCodeEliminationPass::eliminateDeadPureDefsByBackwardLivenessLinear
             if (inst.op == MicroInstrOpcode::Ret)
             {
                 processRegion = true;
-                addLiveReg(linearLiveRegs_, conv.intReturn);
-                addLiveReg(linearLiveRegs_, conv.floatReturn);
+                if (usesIntReturnRegOnRet_)
+                    addLiveReg(linearLiveRegs_, conv.intReturn);
+                if (usesFloatReturnRegOnRet_)
+                    addLiveReg(linearLiveRegs_, conv.floatReturn);
                 continue;
             }
 

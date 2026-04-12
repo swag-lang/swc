@@ -10,6 +10,20 @@ namespace
 {
     constexpr uint32_t K_CALL_PUSH_SIZE = sizeof(void*);
 
+    template<typename TA, typename TP>
+    uint8_t computeCallArgMask(const CallConv& conv, std::span<const TA> args, const TP& predicate)
+    {
+        uint8_t    mask            = 0;
+        const auto numMaskableArgs = std::min<size_t>(args.size(), std::min<size_t>(conv.numArgRegisterSlots(), 8));
+        for (size_t i = 0; i < numMaskableArgs; ++i)
+        {
+            if (predicate(args[i]))
+                mask |= static_cast<uint8_t>(1u << i);
+        }
+
+        return mask;
+    }
+
     struct PreparedCallStackAdjust
     {
         uint32_t before  = 0;
@@ -234,6 +248,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     const CallConv& conv            = CallConv::get(callConvKind);
     const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
     preparedCall.numPreparedArgs    = numPreparedArgs;
+    preparedCall.intArgMask         = computeCallArgMask(conv, args, [](const PreparedArg& arg) { return !arg.isFloat; });
+    preparedCall.floatArgMask       = computeCallArgMask(conv, args, [](const PreparedArg& arg) { return arg.isFloat; });
     if (args.empty())
         return preparedCall;
 
@@ -528,9 +544,11 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
     // Fully self-contained call helper for runtime/JIT address calls.
-    const CallConv& conv        = CallConv::get(callConvKind);
-    const auto      numArgs     = static_cast<uint32_t>(args.size());
-    const uint32_t  stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
+    const CallConv& conv         = CallConv::get(callConvKind);
+    const auto      numArgs      = static_cast<uint32_t>(args.size());
+    const uint8_t   intArgMask   = computeCallArgMask(conv, args, [](const Arg& arg) { return !arg.isFloat; });
+    const uint8_t   floatArgMask = computeCallArgMask(conv, args, [](const Arg& arg) { return arg.isFloat; });
+    const uint32_t  stackAdjust  = computeCallStackAdjust(callConvKind, numArgs);
 
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Subtract);
     MicroReg   regBase, regTmp;
@@ -539,7 +557,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 
     emitCallArgs(builder, conv, args, regBase, regTmp);
     builder.emitLoadRegPtrImm(regTmp, targetAddress);
-    builder.emitCallReg(regTmp, callConvKind);
+    builder.emitCallReg(regTmp, callConvKind, intArgMask, floatArgMask);
     emitReturnWriteBack(builder, conv, ret, regBase);
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Add);
 }
@@ -553,7 +571,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
     const CallConv&               conv        = CallConv::get(callConvKind);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    builder.emitCallLocal(targetSymbol, callConvKind);
+    builder.emitCallLocal(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
@@ -572,7 +590,7 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
     const CallConv&               conv        = CallConv::get(callConvKind);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    builder.emitCallExtern(targetSymbol, callConvKind);
+    builder.emitCallExtern(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
@@ -604,7 +622,7 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
     }
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    builder.emitCallReg(targetReg, callConvKind);
+    builder.emitCallReg(targetReg, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }

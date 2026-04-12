@@ -8,7 +8,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using MicroPassHelpers::isRegCallArgument;
     using MicroPassHelpers::isRegPersistentAcrossCalls;
 }
 
@@ -33,15 +32,15 @@ bool MicroPeepholePass::isCopyDeadAfterInstruction(MicroStorage::Iterator scanIt
         if (scanInst.op == MicroInstrOpcode::Ret)
         {
             const CallConv& functionConv = CallConv::get(context_->callConvKind);
-            if (functionConv.intReturn == reg || functionConv.floatReturn == reg)
+            if ((context_->usesIntReturnRegOnRet && functionConv.intReturn == reg) ||
+                (context_->usesFloatReturnRegOnRet && functionConv.floatReturn == reg))
                 return false;
             return true;
         }
 
         if (useDef.isCall)
         {
-            const CallConv& callConv = CallConv::get(useDef.callConv);
-            if (isRegCallArgument(callConv, reg))
+            if (microRegSpanContains(useDef.uses, reg))
                 return false;
 
             if (!isRegPersistentAcrossCalls(*context_, reg))
@@ -110,14 +109,14 @@ bool MicroPeepholePass::isRegUnusedAfterInstruction(MicroStorage::Iterator scanI
 
         if (useDef.isCall)
         {
-            const CallConv& callConv = CallConv::get(useDef.callConv);
-            if (isRegCallArgument(callConv, reg))
+            if (microRegSpanContains(useDef.uses, reg))
                 return false;
         }
 
         if (scanInst.op == MicroInstrOpcode::Ret)
         {
-            if (functionConv.intReturn == reg || functionConv.floatReturn == reg)
+            if ((context_->usesIntReturnRegOnRet && functionConv.intReturn == reg) ||
+                (context_->usesFloatReturnRegOnRet && functionConv.floatReturn == reg))
                 return false;
         }
     }

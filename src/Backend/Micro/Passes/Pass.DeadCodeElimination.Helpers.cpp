@@ -63,14 +63,6 @@ namespace
     }
 }
 
-void MicroDeadCodeEliminationPass::addCallArgumentRegs(std::unordered_set<MicroReg>& liveRegs, const CallConv& conv)
-{
-    for (const MicroReg reg : conv.intArgRegs)
-        liveRegs.insert(reg);
-    for (const MicroReg reg : conv.floatArgRegs)
-        liveRegs.insert(reg);
-}
-
 void MicroDeadCodeEliminationPass::killCallClobberedRegs(std::unordered_set<MicroReg>& liveRegs, const CallConv& conv)
 {
     for (const MicroReg reg : conv.intTransientRegs)
@@ -204,22 +196,25 @@ void MicroDeadCodeEliminationPass::transferInstructionLiveness(std::unordered_se
                                                                const std::unordered_set<MicroReg>& liveOut,
                                                                const MicroInstr&                   inst,
                                                                const MicroInstrUseDef&             useDef,
-                                                               const CallConvKind                  callConvKind)
+                                                               const CallConvKind                  callConvKind,
+                                                               const bool                          usesIntReturnRegOnRet,
+                                                               const bool                          usesFloatReturnRegOnRet)
 {
     outLiveIn = liveOut;
 
     if (inst.op == MicroInstrOpcode::Ret)
     {
         const CallConv& conv = CallConv::get(callConvKind);
-        addLiveReg(outLiveIn, conv.intReturn);
-        addLiveReg(outLiveIn, conv.floatReturn);
+        if (usesIntReturnRegOnRet)
+            addLiveReg(outLiveIn, conv.intReturn);
+        if (usesFloatReturnRegOnRet)
+            addLiveReg(outLiveIn, conv.floatReturn);
     }
 
     if (useDef.isCall)
     {
         const CallConv& callConv = CallConv::get(useDef.callConv);
         killCallClobberedRegs(outLiveIn, callConv);
-        addCallArgumentRegs(outLiveIn, callConv);
 
         // Calls clobber transient regs and consume argument regs.
         // Do not apply generic def-kill here: call defs can overlap arg regs.

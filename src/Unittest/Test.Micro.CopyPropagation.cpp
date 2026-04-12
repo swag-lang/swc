@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -14,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runCopyPropagationPass(MicroBuilder& builder)
+    Result runCopyPropagationPass(MicroBuilder& builder, Encoder* encoder = nullptr)
     {
         MicroCopyPropagationPass pass;
         MicroPassManager         passManager;
@@ -22,7 +23,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Host;
-        return builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, encoder, passContext);
     }
 
     const MicroInstr* instructionAt(const MicroBuilder& builder, uint32_t index)
@@ -173,6 +174,35 @@ SWC_TEST_BEGIN(MicroCopyPropagation_CallUseDefDefinesTransientRegs)
         if (!containsReg(useDef.defs, reg))
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroCopyPropagation_PreservesFixedRegisterConformance)
+{
+    MicroBuilder       builder(ctx);
+    X64Encoder         encoder(ctx);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg rcx = MicroReg::intReg(2);
+
+    builder.emitLoadRegImm(r9, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitLoadRegReg(rcx, r8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(r9, rcx, MicroOp::ShiftLeft, MicroOpBits::B64);
+
+    SWC_RESULT(runCopyPropagationPass(builder, &encoder));
+
+    const MicroOperandStorage& operands = builder.operands();
+    const MicroInstr*          inst2    = instructionAt(builder, 2);
+    if (!inst2)
+        return Result::Error;
+
+    const MicroInstrOperand* ops2 = inst2->ops(operands);
+    if (inst2->op != MicroInstrOpcode::OpBinaryRegReg || ops2[1].reg != rcx)
+        return Result::Error;
+
+    MicroConformanceIssue issue;
+    if (encoder.queryConformanceIssue(issue, *inst2, ops2))
+        return Result::Error;
 }
 SWC_TEST_END()
 

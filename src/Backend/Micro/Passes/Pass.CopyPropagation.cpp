@@ -78,6 +78,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
                 continue;
 
             MicroReg&      reg         = *(ref.reg);
+            const MicroReg originalReg = reg;
             const MicroReg resolvedReg = resolveAlias(aliases_, reg);
             if (resolvedReg != reg && reg.isSameClass(resolvedReg))
             {
@@ -87,6 +88,12 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
                     continue;
 
                 reg                 = resolvedReg;
+                if (MicroPassHelpers::violatesEncoderConformance(context, inst, ops))
+                {
+                    reg = originalReg;
+                    continue;
+                }
+
                 context.passChanged = true;
             }
         }

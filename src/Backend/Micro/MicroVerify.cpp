@@ -39,6 +39,17 @@ namespace
         return MicroVerify::reportError(context, phase, message);
     }
 
+    std::string formatVerifyContext(const MicroPassContext& context)
+    {
+        if (!context.builder)
+            return {};
+
+        const std::string_view symbolName = context.builder->printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{context.builder->printSymbolName()};
+        const std::string_view filePath   = context.builder->printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{context.builder->printFilePath()};
+        const uint32_t         sourceLine = context.builder->printSourceLine();
+        return std::format(" [{} @ {}:{}]", symbolName, filePath, sourceLine);
+    }
+
     bool isValidOpcode(const MicroInstrOpcode op)
     {
         return static_cast<size_t>(op) < MICRO_INSTR_OPCODE_INFOS.size();
@@ -476,7 +487,7 @@ bool MicroVerify::isEnabled(const MicroPassContext& context)
 Result MicroVerify::reportError(const MicroPassContext& context, std::string_view phase, std::string_view message)
 {
     if (shouldLogVerifyError(context))
-        Logger::print(*context.taskContext, std::format("[micro-verify] {}: {}\n", phase, message));
+        Logger::print(*context.taskContext, std::format("[micro-verify] {}{}: {}\n", phase, formatVerifyContext(context), message));
     return Result::Error;
 }
 

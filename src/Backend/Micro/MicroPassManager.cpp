@@ -163,6 +163,14 @@ namespace
         uint64_t structuralHash  = 0;
     };
 
+#if SWC_DEV_MODE
+    struct LoopPassTraceEntry
+    {
+        std::string passName;
+        uint64_t    structuralHash = 0;
+    };
+#endif
+
     Result verifyCurrentState(MicroPassContext& context, std::string_view phase, VerifyStateCache& cache)
     {
 #if SWC_DEV_MODE
@@ -279,10 +287,25 @@ namespace
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
             bool iterationMutated = false;
+#if SWC_DEV_MODE
+            std::vector<LoopPassTraceEntry> iterationTrace;
+            if (MicroVerify::isEnabled(context))
+                iterationTrace.reserve(passes.size());
+#endif
             for (MicroPass* pass : passes)
             {
                 SWC_RESULT(runPass(context, *pass, verifyCache));
                 iterationMutated = iterationMutated || context.passChanged;
+#if SWC_DEV_MODE
+                if (MicroVerify::isEnabled(context) && context.passChanged)
+                {
+                    SWC_ASSERT(verifyCache.hasCurrentState);
+                    iterationTrace.emplace_back(LoopPassTraceEntry{
+                        .passName       = std::string{pass->name()},
+                        .structuralHash = verifyCache.structuralHash,
+                    });
+                }
+#endif
             }
 
             if (!iterationMutated)
@@ -295,7 +318,17 @@ namespace
                 const uint64_t structuralHash = verifyCache.structuralHash;
                 if (!seenStates.insert(structuralHash).second)
                 {
-                    return MicroVerify::reportError(context, "optimization-loop", std::format("re-entered a previous micro state at iteration {}", iteration + 1));
+                    std::string traceText;
+                    if (!iterationTrace.empty())
+                    {
+                        traceText = " after";
+                        for (const auto& traceEntry : iterationTrace)
+                            traceText += std::format(" {}(0x{:016X})", traceEntry.passName, traceEntry.structuralHash);
+                    }
+
+                    return MicroVerify::reportError(context,
+                                                    "optimization-loop",
+                                                    std::format("re-entered a previous micro state at iteration {}{}", iteration + 1, traceText));
                 }
             }
 #endif

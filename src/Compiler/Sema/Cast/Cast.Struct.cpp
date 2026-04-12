@@ -426,6 +426,10 @@ Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& c
     SymbolFunction* bestFn   = nullptr;
     for (SymbolFunction* calledFn : candidates)
     {
+        // Special ops can be registered on the struct before the method
+        // signature itself has finished semantic resolution.
+        SWC_RESULT(sema.waitSemaCompleted(calledFn, codeRef));
+
         if (!calledFn || !allowsStructAffectCast(*calledFn, castKind))
             continue;
 

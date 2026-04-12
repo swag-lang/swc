@@ -95,12 +95,35 @@ namespace
             return;
         }
 
-        if (type.isString())   { rtType.nativeKind = Runtime::TypeInfoNativeKind::String;    return; }
-        if (type.isCString())  { rtType.nativeKind = Runtime::TypeInfoNativeKind::CString;   return; }
-        if (type.isRune())     { rtType.nativeKind = Runtime::TypeInfoNativeKind::Rune;      return; }
-        if (type.isAny())      { rtType.nativeKind = Runtime::TypeInfoNativeKind::Any;       return; }
-        if (type.isVoid())     { rtType.nativeKind = Runtime::TypeInfoNativeKind::Void;      return; }
-        if (type.isUndefined()){ rtType.nativeKind = Runtime::TypeInfoNativeKind::Undefined; }
+        if (type.isString())
+        {
+            rtType.nativeKind = Runtime::TypeInfoNativeKind::String;
+            return;
+        }
+        if (type.isCString())
+        {
+            rtType.nativeKind = Runtime::TypeInfoNativeKind::CString;
+            return;
+        }
+        if (type.isRune())
+        {
+            rtType.nativeKind = Runtime::TypeInfoNativeKind::Rune;
+            return;
+        }
+        if (type.isAny())
+        {
+            rtType.nativeKind = Runtime::TypeInfoNativeKind::Any;
+            return;
+        }
+        if (type.isVoid())
+        {
+            rtType.nativeKind = Runtime::TypeInfoNativeKind::Void;
+            return;
+        }
+        if (type.isUndefined())
+        {
+            rtType.nativeKind = Runtime::TypeInfoNativeKind::Undefined;
+        }
     }
 
     void initArray(Runtime::TypeInfoArray& rtType, const TypeInfo& type)

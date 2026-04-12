@@ -391,11 +391,10 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         return Result::Continue;
     }
 
-    SymbolFunction* calledFn     = nullptr;
-    TypeRef         paramTypeRef = TypeRef::invalid();
-    const SourceCodeRef codeRef  = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef :
-                                   castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef() :
-                                                                         sema.node(sema.curNodeRef()).codeRef();
+    SymbolFunction*     calledFn     = nullptr;
+    TypeRef             paramTypeRef = TypeRef::invalid();
+    const SourceCodeRef codeRef      = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
+                                                                                                                                          : sema.node(sema.curNodeRef()).codeRef();
     SWC_RESULT(resolveStructAffectCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, paramTypeRef));
     if (calledFn)
         return Result::Continue;
@@ -405,7 +404,7 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 
 Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef)
 {
-    outCalledFn    = nullptr;
+    outCalledFn     = nullptr;
     outParamTypeRef = TypeRef::invalid();
 
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
@@ -423,7 +422,7 @@ Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef co
     if (candidates.empty())
         return Result::Continue;
 
-    AffectCastRank  bestRank = AffectCastRank::Bad;
+    auto            bestRank = AffectCastRank::Bad;
     SymbolFunction* bestFn   = nullptr;
     for (SymbolFunction* calledFn : candidates)
     {

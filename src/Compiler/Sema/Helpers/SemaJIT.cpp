@@ -435,11 +435,11 @@ namespace
         if (calledFn.parameters().empty())
             return false;
 
-        const TypeRef   receiverParamTypeRef = sema.typeMgr().get(calledFn.parameters().front()->typeRef()).unwrap(sema.ctx(), calledFn.parameters().front()->typeRef(), TypeExpandE::Alias);
+        const TypeRef   receiverParamTypeRef      = sema.typeMgr().get(calledFn.parameters().front()->typeRef()).unwrap(sema.ctx(), calledFn.parameters().front()->typeRef(), TypeExpandE::Alias);
         const TypeRef   normalizedReceiverTypeRef = sema.typeMgr().get(receiverTypeRef).unwrap(sema.ctx(), receiverTypeRef, TypeExpandE::Alias);
-        const TypeRef   receiverParamRef = receiverParamTypeRef.isValid() ? receiverParamTypeRef : calledFn.parameters().front()->typeRef();
-        const TypeRef   receiverType     = normalizedReceiverTypeRef.isValid() ? normalizedReceiverTypeRef : receiverTypeRef;
-        const TypeInfo& receiverParam    = sema.typeMgr().get(receiverParamRef);
+        const TypeRef   receiverParamRef          = receiverParamTypeRef.isValid() ? receiverParamTypeRef : calledFn.parameters().front()->typeRef();
+        const TypeRef   receiverType              = normalizedReceiverTypeRef.isValid() ? normalizedReceiverTypeRef : receiverTypeRef;
+        const TypeInfo& receiverParam             = sema.typeMgr().get(receiverParamRef);
         if (!receiverParam.isReference())
             return false;
         if (receiverParam.payloadTypeRef() != receiverType)
@@ -585,14 +585,14 @@ namespace
         return Result::Continue;
     }
 
-    Result buildConstAffectCallArguments(Sema&                                sema,
-                                         bool&                                outBuilt,
-                                         const SymbolFunction&                calledFn,
-                                         AstNodeRef                           callRef,
+    Result buildConstAffectCallArguments(Sema&                                 sema,
+                                         bool&                                 outBuilt,
+                                         const SymbolFunction&                 calledFn,
+                                         AstNodeRef                            callRef,
                                          std::span<const ResolvedCallArgument> resolvedArgs,
-                                         TypeRef                              receiverTypeRef,
-                                         ConstantRef                          receiverInitCstRef,
-                                         const std::byte*&                    outReceiverStorage,
+                                         TypeRef                               receiverTypeRef,
+                                         ConstantRef                           receiverInitCstRef,
+                                         const std::byte*&                     outReceiverStorage,
                                          SmallVector<SmallVector<std::byte>>&  outArgStorage,
                                          SmallVector<JITArgument>&             outJitArgs)
     {
@@ -871,7 +871,7 @@ Result SemaJIT::tryRunConstAffectCall(Sema&                                 sema
     if (jitResult != Result::Continue)
         return reportJitEvaluationFailure(sema, calledFn);
 
-    const uint64_t structSize = sema.typeMgr().get(receiverTypeRef).sizeOf(sema.ctx());
+    const uint64_t    structSize   = sema.typeMgr().get(receiverTypeRef).sizeOf(sema.ctx());
     const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, ByteSpan{receiverStorage, structSize});
     sema.setConstant(callRef, resultCstRef);
     sema.setFoldedTypedConst(callRef);

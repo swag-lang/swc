@@ -158,11 +158,11 @@ namespace
         return std::max<uint32_t>(alignOf, 1);
     }
 
-    bool resolveUsingFieldPathRec(const TaskContext&                 ctx,
-                                  const SymbolStruct&               currentStruct,
-                                  const SymbolStruct&               targetStruct,
+    bool resolveUsingFieldPathRec(const TaskContext&                      ctx,
+                                  const SymbolStruct&                     currentStruct,
+                                  const SymbolStruct&                     targetStruct,
                                   SmallVector<SymbolStructUsingPathStep>& outSteps,
-                                  SmallVector<const SymbolStruct*>& visited)
+                                  SmallVector<const SymbolStruct*>&       visited)
     {
         if (&currentStruct == &targetStruct)
             return true;

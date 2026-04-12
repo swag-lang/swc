@@ -579,9 +579,9 @@ namespace
         const AstNodeRef   argRef            = arg.argRef;
         if (argRef.isValid())
         {
-            const AstNodeRef resolvedArgRef = codeGen.resolvedNodeRef(argRef);
-            SemaNodeView     argView        = codeGen.viewType(argRef);
-            SemaNodeView     argConstView   = codeGen.viewTypeConstant(argRef);
+            const AstNodeRef                  resolvedArgRef = codeGen.resolvedNodeRef(argRef);
+            SemaNodeView                      argView        = codeGen.viewType(argRef);
+            SemaNodeView                      argConstView   = codeGen.viewTypeConstant(argRef);
             std::optional<CodeGenNodePayload> fallbackPayload;
             const CodeGenNodePayload*         payload = codeGen.safePayload(argRef);
 
@@ -594,9 +594,9 @@ namespace
                 payload      = codeGen.sema().codeGenPayload<CodeGenNodePayload>(argRef);
             }
 
-            normalizedTypeRef                  = resolveNormalizedArgTypeRef(codeGen, param, argView);
-            const TypeRef constantTypeRef      = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argConstView.cstRef());
-            const bool    isNullConstantArg    = argConstView.cst() && argConstView.cst()->isNull();
+            normalizedTypeRef               = resolveNormalizedArgTypeRef(codeGen, param, argView);
+            const TypeRef constantTypeRef   = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argConstView.cstRef());
+            const bool    isNullConstantArg = argConstView.cst() && argConstView.cst()->isNull();
 
             if ((!payload || !payload->reg.isValid()) && resolvedArgRef == argRef)
             {

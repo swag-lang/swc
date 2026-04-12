@@ -247,14 +247,14 @@ namespace
         return Result::Continue;
     }
 
-    Result prepareStructAffectCast(Sema&                  sema,
-                                   SemaNodeView&          view,
-                                   TypeRef                dstTypeRef,
-                                   CastKind               castKind,
-                                   CastFlags              castFlags,
-                                   SymbolFunction*&       outCalledFn,
-                                   ConstantRef&           outReceiverInitCstRef,
-                                   AstNodeRef&            outSourceArgRef)
+    Result prepareStructAffectCast(Sema&            sema,
+                                   SemaNodeView&    view,
+                                   TypeRef          dstTypeRef,
+                                   CastKind         castKind,
+                                   CastFlags        castFlags,
+                                   SymbolFunction*& outCalledFn,
+                                   ConstantRef&     outReceiverInitCstRef,
+                                   AstNodeRef&      outSourceArgRef)
     {
         outCalledFn           = nullptr;
         outReceiverInitCstRef = ConstantRef::invalid();
@@ -280,13 +280,13 @@ namespace
         return computeStructAffectReceiverInit(sema, dstTypeRef, *outCalledFn, outReceiverInitCstRef);
     }
 
-    Result tryConstantFoldStructAffectCast(Sema&                sema,
-                                           AstNodeRef            callRef,
-                                           AstNodeRef            sourceArgRef,
-                                           TypeRef               dstTypeRef,
-                                           SymbolFunction&       calledFn,
-                                           ConstantRef           receiverInitCstRef,
-                                           ConstantRef&          outConstRef)
+    Result tryConstantFoldStructAffectCast(Sema&           sema,
+                                           AstNodeRef      callRef,
+                                           AstNodeRef      sourceArgRef,
+                                           TypeRef         dstTypeRef,
+                                           SymbolFunction& calledFn,
+                                           ConstantRef     receiverInitCstRef,
+                                           ConstantRef&    outConstRef)
     {
         outConstRef = ConstantRef::invalid();
         if (sourceArgRef.isInvalid())
@@ -306,7 +306,7 @@ namespace
         return Result::Continue;
     }
 
-    Result finalizeRuntimeStructAffectCast(Sema&          sema,
+    Result finalizeRuntimeStructAffectCast(Sema&           sema,
                                            AstNodeRef      castNodeRef,
                                            AstNodeRef      sourceArgRef,
                                            TypeRef         dstTypeRef,
@@ -1698,8 +1698,8 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     // Success !
     if (result == Result::Continue)
     {
-        SymbolFunction* structAffectCalledFn = nullptr;
-        ConstantRef     structAffectInitCstRef = ConstantRef::invalid();
+        SymbolFunction* structAffectCalledFn     = nullptr;
+        ConstantRef     structAffectInitCstRef   = ConstantRef::invalid();
         AstNodeRef      structAffectSourceArgRef = AstNodeRef::invalid();
         SWC_RESULT(prepareStructAffectCast(sema, view, dstTypeRef, effectiveKind, effectiveFlags, structAffectCalledFn, structAffectInitCstRef, structAffectSourceArgRef));
         if (structAffectCalledFn && srcCstRef.isValid())

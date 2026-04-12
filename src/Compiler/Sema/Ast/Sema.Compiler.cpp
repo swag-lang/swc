@@ -440,11 +440,11 @@ Result AstCompilerDiagnostic::semaPreNodeChild(Sema& sema, const AstNodeRef& chi
 
 Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
-    const Token&       tok     = sema.token(codeRef());
+    const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::CompilerAssert)
         SWC_RESULT(castCompilerConditionToBool(sema, nodeArgRef));
 
-    const SemaNodeView  argView  = sema.viewConstant(nodeArgRef);
+    const SemaNodeView   argView  = sema.viewConstant(nodeArgRef);
     const ConstantValue& constant = *(argView.cst());
     SWC_ASSERT(argView.hasConstant());
     switch (tok.id)

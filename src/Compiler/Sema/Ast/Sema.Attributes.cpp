@@ -334,9 +334,9 @@ namespace
         if (!attrSym.inSwagNamespace(sema.ctx()))
             return Result::Continue;
 
-        const IdentifierManager& idMgr       = sema.idMgr();
-        const IdentifierRef      idRef       = attrSym.idRef();
-        const IdentifierRef      safetyIdRef = sema.idMgr().addIdentifier("Safety");
+        const IdentifierManager& idMgr            = sema.idMgr();
+        const IdentifierRef      idRef            = attrSym.idRef();
+        const IdentifierRef      safetyIdRef      = sema.idMgr().addIdentifier("Safety");
         const IdentifierRef      canOverflowIdRef = idMgr.predefined(IdentifierManager::PredefinedName::CanOverflow);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);

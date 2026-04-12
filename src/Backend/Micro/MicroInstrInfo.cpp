@@ -30,33 +30,4 @@ bool MicroInstrInfo::isLocalDataflowBarrier(const MicroInstr& inst, const MicroI
     return false;
 }
 
-bool MicroInstrInfo::usesCpuFlags(const MicroInstr& inst)
-{
-    const MicroInstrDef& info = MicroInstr::info(inst.op);
-    return info.flags.has(MicroInstrFlagsE::UsesCpuFlags);
-}
-
-bool MicroInstrInfo::definesCpuFlags(const MicroInstr& inst)
-{
-    const MicroInstrDef& info = MicroInstr::info(inst.op);
-    return info.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
-}
-
-bool MicroInstrInfo::isMemoryWriteInstruction(const MicroInstr& inst)
-{
-    const MicroInstrDef& info = MicroInstr::info(inst.op);
-    return info.flags.has(MicroInstrFlagsE::WritesMemory);
-}
-
-bool MicroInstrInfo::getMemBaseOffsetOperandIndices(uint8_t& outBaseIndex, uint8_t& outOffsetIndex, const MicroInstr& inst)
-{
-    const MicroInstrDef& info = MicroInstr::info(inst.op);
-    if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
-        return false;
-
-    outBaseIndex   = info.memBaseOperandIndex;
-    outOffsetIndex = info.memOffsetOperandIndex;
-    return true;
-}
-
 SWC_END_NAMESPACE();

@@ -45,6 +45,56 @@ struct RuntimeAffectHolder
     target: RuntimeAffectTarget
 }
 
+struct RuntimeParamAffectTarget
+{
+    value: s32
+    tag: s32
+    sentinel: s32 = 777
+}
+
+impl RuntimeParamAffectTarget
+{
+    #[Swag.Overload, Swag.NoInline]
+    mtd opAffect(value: s32)
+    {
+        .value = value
+        .tag = 10
+    }
+
+    #[Swag.Implicit, Swag.Overload, Swag.NoInline]
+    mtd opAffect(value: u16)
+    {
+        .value = cast(s32) value
+        .tag = 20
+    }
+
+    #[Swag.Complete, Swag.Overload, Swag.NoInline]
+    mtd opAffect(value: u64)
+    {
+        .value = cast(s32) value
+        .tag = 30
+        .sentinel = cast(s32) value
+    }
+}
+
+struct RuntimeConstAffectVector2
+{
+    x, y: f32
+}
+
+impl RuntimeConstAffectVector2
+{
+    #[Swag.ConstExpr]
+    mtd opAffect(one: f32)
+    {
+        .x, .y = one
+    }
+}
+
+const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
+#assert(RuntimeConstAffectOne.x == 1.0)
+#assert(RuntimeConstAffectOne.y == 1.0)
+
 #test
 {
     var target = RuntimeAffectTarget{}
@@ -132,6 +182,41 @@ struct RuntimeAffectHolder
     @assert(target.tag == 10)
     @assert(target.calls == 1)
     @assert(target.sentinel == 1234)
+}
+
+#test
+{
+    let target: RuntimeParamAffectTarget = 2'u64
+
+    @assert(target.value == 2)
+    @assert(target.tag == 30)
+    @assert(target.sentinel == 2)
+}
+
+#test
+{
+    func takesExplicit(value: RuntimeParamAffectTarget)
+    {
+        @assert(value.value == 5)
+        @assert(value.tag == 10)
+        @assert(value.sentinel == 777)
+    }
+
+    func takesImplicit(value: RuntimeParamAffectTarget)
+    {
+        @assert(value.value == 7)
+        @assert(value.tag == 20)
+        @assert(value.sentinel == 777)
+    }
+
+    takesExplicit(cast(RuntimeParamAffectTarget) 5's32)
+    takesImplicit(7'u16)
+}
+
+#test
+{
+    @assert(RuntimeConstAffectOne.x == 1.0)
+    @assert(RuntimeConstAffectOne.y == 1.0)
 }
 
 #test

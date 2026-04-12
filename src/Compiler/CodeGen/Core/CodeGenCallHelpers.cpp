@@ -25,6 +25,45 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    std::optional<CodeGenNodePayload> resolveVariableArgumentPayload(CodeGen& codeGen, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return std::nullopt;
+
+        const SemaNodeView argSymView = codeGen.viewSymbol(argRef);
+        auto* const        symVar     = argSymView.sym() ? argSymView.sym()->safeCast<SymbolVariable>() : nullptr;
+        if (!symVar)
+            return std::nullopt;
+
+        if (symVar->isClosureCapture())
+            return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, *symVar);
+
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
+            return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, *symVar);
+
+        if (symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), *symVar);
+
+        if (const auto* payload = codeGen.variablePayload(*symVar))
+            return *payload;
+
+        if (symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
+            (codeGen.localStackBaseReg().isValid() && symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
+            return codeGen.resolveLocalStackPayload(*symVar);
+
+        if (symVar->hasGlobalStorage())
+        {
+            CodeGenNodePayload payload;
+            payload.typeRef = symVar->typeRef();
+            payload.setIsAddress();
+            payload.reg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegDataSegmentReloc(payload.reg, symVar->globalStorageKind(), symVar->offset());
+            return payload;
+        }
+
+        return std::nullopt;
+    }
+
     void emitPointerConstant(CodeGen& codeGen, MicroReg reg, uint64_t value, ConstantRef cstRef)
     {
         if (!value)
@@ -540,13 +579,38 @@ namespace
         const AstNodeRef   argRef            = arg.argRef;
         if (argRef.isValid())
         {
-            const SemaNodeView argView           = codeGen.viewType(argRef);
-            normalizedTypeRef                    = resolveNormalizedArgTypeRef(codeGen, param, argView);
-            const SemaNodeView argConstView      = codeGen.viewTypeConstant(argRef);
-            const TypeRef      constantTypeRef   = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argConstView.cstRef());
-            const bool         isNullConstantArg = argConstView.cst() && argConstView.cst()->isNull();
+            const AstNodeRef resolvedArgRef = codeGen.resolvedNodeRef(argRef);
+            SemaNodeView     argView        = codeGen.viewType(argRef);
+            SemaNodeView     argConstView   = codeGen.viewTypeConstant(argRef);
+            std::optional<CodeGenNodePayload> fallbackPayload;
+            const CodeGenNodePayload*         payload = codeGen.safePayload(argRef);
 
-            const CodeGenNodePayload* payload = codeGen.safePayload(argRef);
+            if (resolvedArgRef != argRef &&
+                (!payload || !payload->reg.isValid()) &&
+                !argConstView.cstRef().isValid())
+            {
+                argView      = codeGen.sema().viewStored(argRef, SemaNodeViewPartE::Type);
+                argConstView = codeGen.sema().viewStored(argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                payload      = codeGen.sema().codeGenPayload<CodeGenNodePayload>(argRef);
+            }
+
+            normalizedTypeRef                  = resolveNormalizedArgTypeRef(codeGen, param, argView);
+            const TypeRef constantTypeRef      = resolveConstantMaterializationTypeRef(codeGen, normalizedTypeRef, argConstView.cstRef());
+            const bool    isNullConstantArg    = argConstView.cst() && argConstView.cst()->isNull();
+
+            if ((!payload || !payload->reg.isValid()) && resolvedArgRef == argRef)
+            {
+                SWC_RESULT(codeGen.emitNodeNow(argRef));
+                payload = codeGen.safePayload(argRef);
+            }
+
+            if ((!payload || !payload->reg.isValid()) && argRef.isValid())
+            {
+                fallbackPayload = resolveVariableArgumentPayload(codeGen, argRef);
+                if (fallbackPayload)
+                    payload = &fallbackPayload.value();
+            }
+
             if (payload && payload->reg.isValid())
             {
                 argPayload = *payload;

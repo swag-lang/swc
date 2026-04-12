@@ -8,6 +8,13 @@ SWC_BEGIN_NAMESPACE();
 struct SemaNodeView;
 class Sema;
 class Diagnostic;
+class SymbolFunction;
+
+struct CastAffectPayload
+{
+    SymbolFunction* calledFn           = nullptr;
+    ConstantRef     receiverInitCstRef = ConstantRef::invalid();
+};
 
 enum class DynamicStructCastSourceKind : uint8_t
 {
@@ -43,6 +50,7 @@ struct Cast
     static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& view);
     static TypeRef    runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
     static Result     retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    static Result     resolveStructAffectCastCandidate(Sema& sema, SourceCodeRef codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef);
 
 private:
     static Result castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

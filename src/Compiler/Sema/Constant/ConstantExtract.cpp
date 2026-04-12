@@ -13,6 +13,57 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result makeScalarFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, ByteSpan bytes, ConstantRef& outCstRef)
+    {
+        outCstRef = ConstantRef::invalid();
+        if (!fieldTypeRef.isValid())
+            return Result::Continue;
+
+        TaskContext&    ctx       = sema.ctx();
+        const TypeInfo& fieldType = sema.typeMgr().get(fieldTypeRef);
+        if (fieldType.isAlias())
+        {
+            const TypeRef unwrappedTypeRef = fieldType.unwrap(ctx, fieldTypeRef, TypeExpandE::Alias);
+            if (!unwrappedTypeRef.isValid())
+                return Result::Continue;
+
+            ConstantRef scalarCstRef = ConstantRef::invalid();
+            SWC_RESULT(makeScalarFieldConstantFromBytes(sema, unwrappedTypeRef, bytes, scalarCstRef));
+            if (!scalarCstRef.isValid())
+                return Result::Continue;
+
+            ConstantValue scalarValue = sema.cstMgr().get(scalarCstRef);
+            scalarValue.setTypeRef(fieldTypeRef);
+            outCstRef = sema.cstMgr().addConstant(ctx, scalarValue);
+            return Result::Continue;
+        }
+
+        if (fieldType.isEnum())
+        {
+            ConstantRef underlyingCstRef = ConstantRef::invalid();
+            SWC_RESULT(makeScalarFieldConstantFromBytes(sema, fieldType.payloadSymEnum().underlyingTypeRef(), bytes, underlyingCstRef));
+            if (!underlyingCstRef.isValid())
+                return Result::Continue;
+
+            outCstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeEnumValue(ctx, underlyingCstRef, fieldTypeRef));
+            return Result::Continue;
+        }
+
+        if (!fieldType.isBool() &&
+            !fieldType.isChar() &&
+            !fieldType.isRune() &&
+            !fieldType.isInt() &&
+            !fieldType.isFloat())
+            return Result::Continue;
+
+        ConstantValue fieldValue = ConstantValue::make(ctx, bytes.data(), fieldTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+        if (!fieldValue.isValid())
+            return Result::Continue;
+
+        outCstRef = sema.cstMgr().addConstant(ctx, fieldValue);
+        return Result::Continue;
+    }
+
     Result failStructMemberType(Sema& sema, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
@@ -98,6 +149,10 @@ namespace
     Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         SWC_UNUSED(typeField);
+        SWC_RESULT(makeScalarFieldConstantFromBytes(sema, fieldTypeRef, bytes, outCstRef));
+        if (outCstRef.isValid())
+            return Result::Continue;
+
         outCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, bytes);
         if (outCstRef.isInvalid())
             return failStructMemberType(sema, symVar, nodeMemberRef);

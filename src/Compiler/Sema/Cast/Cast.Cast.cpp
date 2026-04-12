@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
@@ -202,6 +203,141 @@ namespace
         if (hasDynCastSafety)
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef));
 
+        return Result::Continue;
+    }
+
+    AstNodeRef sourceArgRefForStructAffectCast(const Sema& sema, const SemaNodeView& view, const CastFlags castFlags)
+    {
+        if (!castFlags.has(CastFlagsE::FromExplicitNode))
+            return view.nodeRef();
+
+        if (!view.node())
+            return AstNodeRef::invalid();
+
+        if (view.node()->is(AstNodeId::CastExpr))
+            return view.node()->cast<AstCastExpr>().nodeExprRef;
+        if (view.node()->is(AstNodeId::AutoCastExpr))
+            return view.node()->cast<AstAutoCastExpr>().nodeExprRef;
+
+        return AstNodeRef::invalid();
+    }
+
+    AstNodeRef makeStructAffectReceiverRef(Sema& sema, TypeRef dstTypeRef, const TokenRef tokRef, SymbolVariable* storageSym, ConstantRef initCstRef)
+    {
+        auto [receiverRef, receiverNode] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+        if (storageSym)
+            sema.setSymbol(receiverRef, storageSym);
+        if (initCstRef.isValid())
+            sema.setConstant(receiverRef, initCstRef);
+        sema.setType(receiverRef, dstTypeRef);
+        sema.setIsValue(*receiverNode);
+        sema.setIsLValue(*receiverNode);
+        return receiverRef;
+    }
+
+    Result computeStructAffectReceiverInit(Sema& sema, TypeRef dstTypeRef, const SymbolFunction& calledFn, ConstantRef& outInitCstRef)
+    {
+        outInitCstRef = ConstantRef::invalid();
+        if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Complete))
+            return Result::Continue;
+
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&dstType, sema.curNodeRef()));
+        outInitCstRef = dstType.payloadSymStruct().computeDefaultValue(sema, dstTypeRef);
+        return Result::Continue;
+    }
+
+    Result prepareStructAffectCast(Sema&                  sema,
+                                   SemaNodeView&          view,
+                                   TypeRef                dstTypeRef,
+                                   CastKind               castKind,
+                                   CastFlags              castFlags,
+                                   SymbolFunction*&       outCalledFn,
+                                   ConstantRef&           outReceiverInitCstRef,
+                                   AstNodeRef&            outSourceArgRef)
+    {
+        outCalledFn           = nullptr;
+        outReceiverInitCstRef = ConstantRef::invalid();
+        outSourceArgRef       = sourceArgRefForStructAffectCast(sema, view, castFlags);
+        if (outSourceArgRef.isInvalid())
+            return Result::Continue;
+
+        const SourceCodeRef codeRef = sema.node(outSourceArgRef).codeRef();
+        TypeRef             paramTypeRef;
+        SWC_RESULT(Cast::resolveStructAffectCastCandidate(sema, codeRef, view.typeRef(), dstTypeRef, castKind, outCalledFn, paramTypeRef));
+        if (!outCalledFn)
+            return Result::Continue;
+
+        if (paramTypeRef.isValid() && view.typeRef() != paramTypeRef)
+        {
+            SemaNodeView sourceView(sema, outSourceArgRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            SWC_RESULT(Cast::cast(sema, sourceView, paramTypeRef, CastKind::Parameter));
+            outSourceArgRef = sourceView.nodeRef();
+            if (!castFlags.has(CastFlagsE::FromExplicitNode))
+                view = sourceView;
+        }
+
+        return computeStructAffectReceiverInit(sema, dstTypeRef, *outCalledFn, outReceiverInitCstRef);
+    }
+
+    Result tryConstantFoldStructAffectCast(Sema&                sema,
+                                           AstNodeRef            callRef,
+                                           AstNodeRef            sourceArgRef,
+                                           TypeRef               dstTypeRef,
+                                           SymbolFunction&       calledFn,
+                                           ConstantRef           receiverInitCstRef,
+                                           ConstantRef&          outConstRef)
+    {
+        outConstRef = ConstantRef::invalid();
+        if (sourceArgRef.isInvalid())
+            return Result::Continue;
+
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        const TokenRef                    tokRef      = sema.node(sourceArgRef).tokRef();
+        const AstNodeRef                  receiverRef = makeStructAffectReceiverRef(sema, dstTypeRef, tokRef, nullptr, receiverInitCstRef);
+        resolvedArgs.push_back({.argRef = receiverRef, .bindsReferenceToValue = true});
+        resolvedArgs.push_back({.argRef = sourceArgRef});
+
+        SWC_RESULT(SemaJIT::tryRunConstAffectCall(sema, calledFn, callRef, resolvedArgs.span(), dstTypeRef, receiverInitCstRef, true));
+        const SemaNodeView callView(sema, callRef, SemaNodeViewPartE::Constant);
+        if (callView.cstRef().isValid() &&
+            sema.cstMgr().get(callView.cstRef()).typeRef() == dstTypeRef)
+            outConstRef = callView.cstRef();
+        return Result::Continue;
+    }
+
+    Result finalizeRuntimeStructAffectCast(Sema&          sema,
+                                           AstNodeRef      castNodeRef,
+                                           AstNodeRef      sourceArgRef,
+                                           TypeRef         dstTypeRef,
+                                           SymbolFunction& calledFn,
+                                           ConstantRef     receiverInitCstRef)
+    {
+        if (castNodeRef.isInvalid() || sourceArgRef.isInvalid() || sema.isGlobalScope())
+            return Result::Continue;
+
+        auto& storageSym = SemaHelpers::getOrCreateRuntimeStorageSymbol(sema, castNodeRef, sema.node(castNodeRef), "__cast_runtime_storage");
+        SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, dstTypeRef));
+
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        const AstNodeRef                  receiverRef = makeStructAffectReceiverRef(sema, dstTypeRef, sema.node(sourceArgRef).tokRef(), &storageSym, ConstantRef::invalid());
+        resolvedArgs.push_back({.argRef = receiverRef, .bindsReferenceToValue = true});
+        resolvedArgs.push_back({.argRef = sourceArgRef});
+
+        sema.setResolvedCallArguments(castNodeRef, resolvedArgs);
+        sema.setIsValue(castNodeRef);
+        sema.unsetIsLValue(castNodeRef);
+
+        auto* payload = sema.semaPayload<CastAffectPayload>(castNodeRef);
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CastAffectPayload>();
+            sema.setSemaPayload(castNodeRef, payload);
+        }
+
+        payload->calledFn           = &calledFn;
+        payload->receiverInitCstRef = receiverInitCstRef;
+        SemaHelpers::addCurrentFunctionCallDependency(sema, &calledFn);
         return Result::Continue;
     }
 
@@ -1491,7 +1627,9 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
-    if (res == Result::Continue && castRequest.isConstantFolding())
+    if (res == Result::Continue &&
+        castRequest.isConstantFolding() &&
+        castRequest.outConstRef.isValid())
     {
         ConstantValue resCst = sema.cstMgr().get(castRequest.outConstRef);
         if (resCst.typeRef() != dstTypeRef)
@@ -1560,6 +1698,21 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     // Success !
     if (result == Result::Continue)
     {
+        SymbolFunction* structAffectCalledFn = nullptr;
+        ConstantRef     structAffectInitCstRef = ConstantRef::invalid();
+        AstNodeRef      structAffectSourceArgRef = AstNodeRef::invalid();
+        SWC_RESULT(prepareStructAffectCast(sema, view, dstTypeRef, effectiveKind, effectiveFlags, structAffectCalledFn, structAffectInitCstRef, structAffectSourceArgRef));
+        if (structAffectCalledFn && srcCstRef.isValid())
+            castRequest.setConstantFoldingResult(ConstantRef::invalid());
+
+        if (structAffectCalledFn && castRequest.constantFoldingResult().isInvalid())
+        {
+            ConstantRef structAffectConstRef = ConstantRef::invalid();
+            SWC_RESULT(tryConstantFoldStructAffectCast(sema, view.nodeRef(), structAffectSourceArgRef, dstTypeRef, *structAffectCalledFn, structAffectInitCstRef, structAffectConstRef));
+            if (structAffectConstRef.isValid())
+                castRequest.setConstantFoldingResult(structAffectConstRef);
+        }
+
         if (castRequest.constantFoldingResult().isInvalid())
         {
             AstNodeRef runtimeCastNodeRef = view.nodeRef();
@@ -1585,6 +1738,8 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
             SWC_RESULT(setupCastOverflowRuntimeSafety(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
             SWC_RESULT(setupCastFromAnyRuntime(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
+            if (structAffectCalledFn)
+                SWC_RESULT(finalizeRuntimeStructAffectCast(sema, runtimeCastNodeRef, structAffectSourceArgRef, dstTypeRef, *structAffectCalledFn, structAffectInitCstRef));
         }
         else
         {

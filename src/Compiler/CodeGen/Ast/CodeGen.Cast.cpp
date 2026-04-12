@@ -714,6 +714,60 @@ namespace
         return Result::Continue;
     }
 
+    Result initializeStructAffectReceiverStorage(CodeGen& codeGen, MicroReg storageReg, TypeRef dstTypeRef, ConstantRef initCstRef)
+    {
+        if (!initCstRef.isValid())
+            return Result::Continue;
+
+        const uint64_t storageSize = codeGen.typeMgr().get(dstTypeRef).sizeOf(codeGen.ctx());
+        if (!storageSize)
+            return Result::Continue;
+
+        SWC_ASSERT(storageSize <= std::numeric_limits<uint32_t>::max());
+        SmallVector<std::byte> storageBytes;
+        storageBytes.resize(storageSize);
+        std::memset(storageBytes.data(), 0, storageBytes.size());
+        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{storageBytes.data(), storageBytes.size()}, initCstRef, dstTypeRef));
+
+        const ConstantRef    initPayloadCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, ByteSpan{storageBytes.data(), storageBytes.size()});
+        const ConstantValue& initPayloadCst    = codeGen.cstMgr().get(initPayloadCstRef);
+        const MicroReg       initReg           = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(initReg, reinterpret_cast<uint64_t>(initPayloadCst.getStruct().data()), initPayloadCstRef);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, storageReg, initReg, static_cast<uint32_t>(storageSize));
+        return Result::Continue;
+    }
+
+    Result emitStructAffectCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const CastAffectPayload& affectPayload)
+    {
+        SWC_UNUSED(srcNodeRef);
+
+        const auto* castPayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(castPayload != nullptr);
+        SWC_ASSERT(castPayload->runtimeStorageSym != nullptr);
+        SWC_ASSERT(affectPayload.calledFn != nullptr);
+
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
+        SWC_ASSERT(!resolvedArgs.empty() && resolvedArgs[0].argRef.isValid());
+
+        const MicroReg runtimeStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        SWC_RESULT(initializeStructAffectReceiverStorage(codeGen, runtimeStorageReg, dstTypeRef, affectPayload.receiverInitCstRef));
+
+        CodeGenNodePayload& receiverArg = codeGen.setPayload(resolvedArgs[0].argRef, dstTypeRef);
+        receiverArg.reg                 = runtimeStorageReg;
+        receiverArg.typeRef             = dstTypeRef;
+        receiverArg.setIsAddress();
+
+        if (const auto* receiverSym = codeGen.viewSymbol(resolvedArgs[0].argRef).sym();
+            receiverSym && receiverSym->isVariable())
+            codeGen.setVariablePayload(receiverSym->cast<SymbolVariable>(), receiverArg);
+
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), affectPayload.calledFn);
+        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+        codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, dstTypeRef);
+        return Result::Continue;
+    }
+
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         MicroBuilder&             builder             = codeGen.builder();
@@ -737,6 +791,10 @@ namespace
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
             return Result::Continue;
         }
+
+        if (const auto* affectPayload = codeGen.sema().semaPayload<CastAffectPayload>(codeGen.curNodeRef());
+            affectPayload && affectPayload->calledFn != nullptr)
+            return emitStructAffectCast(codeGen, srcNodeRef, dstTypeRef, *affectPayload);
 
         const AstNodeRef resolvedSrcNodeRef = codeGen.viewZero(srcNodeRef).nodeRef();
         const AstNode&   srcNode            = codeGen.node(resolvedSrcNodeRef);

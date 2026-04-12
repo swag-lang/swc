@@ -39,8 +39,19 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     {
         if (dstType.isArray() && !srcType.isAggregate() && !srcType.isArray())
             return dstTypeRef;
-        return TypeRef::invalid();
     }
+
+    if (dstType.isStruct())
+    {
+        SymbolFunction* calledFn     = nullptr;
+        TypeRef         paramTypeRef = TypeRef::invalid();
+        const auto      codeRef      = sema.node(sema.curNodeRef()).codeRef();
+        if (Cast::resolveStructAffectCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, CastKind::Initialization, calledFn, paramTypeRef) == Result::Continue && calledFn)
+            return dstTypeRef;
+    }
+
+    if (srcConstRef.isValid())
+        return TypeRef::invalid();
 
     if (srcType.isArray() && (dstType.isSlice() || dstType.isString()))
         return dstTypeRef;

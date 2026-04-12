@@ -80,27 +80,28 @@ Function arguments are not automatically converted through 'opAffect' unless
 'Swag.Implicit' is used. Otherwise, an explicit cast is required.
 */
 
-// @TODO: Re-enable when function arguments can use `opAffect`-based conversions again.
-// #test
-// {
-//     func toto(v: Struct)
-//     {
-//         @assert(v.x == 5)
-//         @assert(v.y == 5)
-//         @assert(v.z == 666)
-//     }
-//
-//     func titi(v: Struct)
-//     {
-//         @assert(v.y == 666)
-//     }
-//
-//     // Explicit cast triggers 'opAffect(s32)'
-//     toto(cast(Struct) 5's32)
-//
-//     // Implicit conversion via 'opAffect(u16)'
-//     toto(5'u16)
-// }
+#test
+{
+    func takesExplicit(v: Struct)
+    {
+        @assert(v.x == 5)
+        @assert(v.y == 5)
+        @assert(v.z == 666)
+    }
+
+    func takesImplicit(v: Struct)
+    {
+        @assert(v.x == 5)
+        @assert(v.y == 5)
+        @assert(v.z == 666)
+    }
+
+    // Explicit cast triggers 'opAffect(s32)'
+    takesExplicit(cast(Struct) 5's32)
+
+    // Implicit conversion via 'opAffect(u16)'
+    takesImplicit(5'u16)
+}
 
 /**
 # Using 'opAffect' in Constant Expressions
@@ -120,7 +121,6 @@ impl Vector2
     }
 }
 
-// @TODO: Re-enable when `#[Swag.ConstExpr] opAffect` can initialize constants again.
-// const One: Vector2 = 1.0
-// #assert(One.x == 1.0)
-// #assert(One.y == 1.0)
+const One: Vector2 = 1.0
+#assert(One.x == 1.0)
+#assert(One.y == 1.0)

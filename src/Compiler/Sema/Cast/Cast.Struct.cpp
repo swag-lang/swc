@@ -6,6 +6,8 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Diagnostic.h"
@@ -150,6 +152,53 @@ namespace
         if (outRef.isInvalid())
             outRef = valueRef;
         return Result::Continue;
+    }
+
+    enum class AffectCastRank : uint8_t
+    {
+        Bad,
+        Standard,
+        Exact,
+    };
+
+    bool allowsStructAffectCast(const SymbolFunction& calledFn, const CastKind castKind)
+    {
+        switch (castKind)
+        {
+            case CastKind::Explicit:
+            case CastKind::Initialization:
+                return true;
+
+            case CastKind::Implicit:
+            case CastKind::Parameter:
+            case CastKind::Promotion:
+                return calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Implicit);
+
+            default:
+                return false;
+        }
+    }
+
+    AffectCastRank rankStructAffectCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const SymbolFunction& calledFn)
+    {
+        if (calledFn.parameters().size() < 2)
+            return AffectCastRank::Bad;
+
+        const TypeRef paramTypeRef = calledFn.parameters()[1]->typeRef();
+        if (!paramTypeRef.isValid())
+            return AffectCastRank::Bad;
+        if (paramTypeRef == dstTypeRef && srcTypeRef != paramTypeRef)
+            return AffectCastRank::Bad;
+        if (srcTypeRef == paramTypeRef)
+            return AffectCastRank::Exact;
+
+        CastRequest castRequest(CastKind::Parameter);
+        castRequest.errorCodeRef = codeRef;
+        const Result castResult  = Cast::castAllowed(sema, castRequest, srcTypeRef, paramTypeRef);
+        if (castResult != Result::Continue)
+            return AffectCastRank::Bad;
+
+        return AffectCastRank::Standard;
     }
 
     Result castStructToStruct(const CastStructArgs& args)
@@ -342,7 +391,62 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         return Result::Continue;
     }
 
+    SymbolFunction* calledFn     = nullptr;
+    TypeRef         paramTypeRef = TypeRef::invalid();
+    const SourceCodeRef codeRef  = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef :
+                                   castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef() :
+                                                                         sema.node(sema.curNodeRef()).codeRef();
+    SWC_RESULT(resolveStructAffectCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, paramTypeRef));
+    if (calledFn)
+        return Result::Continue;
+
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+}
+
+Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef)
+{
+    outCalledFn    = nullptr;
+    outParamTypeRef = TypeRef::invalid();
+
+    if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
+        return Result::Continue;
+
+    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    if (srcType.isStruct() || srcType.isAggregateStruct() || !dstType.isStruct())
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(&dstType, sema.curNodeRef()));
+
+    const IdentifierRef opAffectId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect);
+    const auto          candidates = dstType.payloadSymStruct().getSpecOp(opAffectId);
+    if (candidates.empty())
+        return Result::Continue;
+
+    AffectCastRank  bestRank = AffectCastRank::Bad;
+    SymbolFunction* bestFn   = nullptr;
+    for (SymbolFunction* calledFn : candidates)
+    {
+        if (!calledFn || !allowsStructAffectCast(*calledFn, castKind))
+            continue;
+
+        const AffectCastRank rank = rankStructAffectCandidate(sema, codeRef, srcTypeRef, dstTypeRef, *calledFn);
+        if (rank == AffectCastRank::Bad)
+            continue;
+
+        if (bestFn == nullptr || rank > bestRank)
+        {
+            bestRank = rank;
+            bestFn   = calledFn;
+        }
+    }
+
+    if (!bestFn)
+        return Result::Continue;
+
+    outCalledFn     = bestFn;
+    outParamTypeRef = bestFn->parameters().size() >= 2 ? bestFn->parameters()[1]->typeRef() : TypeRef::invalid();
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

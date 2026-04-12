@@ -41,6 +41,56 @@ struct AffectHolder
     target: AffectTarget
 }
 
+struct ParamAffectTarget
+{
+    value: s32
+    tag: s32
+    sentinel: s32 = 777
+}
+
+impl ParamAffectTarget
+{
+    #[Swag.Overload]
+    mtd opAffect(value: s32)
+    {
+        .value = value
+        .tag = 10
+    }
+
+    #[Swag.Implicit, Swag.Overload]
+    mtd opAffect(value: u16)
+    {
+        .value = cast(s32) value
+        .tag = 20
+    }
+
+    #[Swag.Complete, Swag.Overload]
+    mtd opAffect(value: u64)
+    {
+        .value = cast(s32) value
+        .tag = 30
+        .sentinel = cast(s32) value
+    }
+}
+
+struct ConstAffectVector2
+{
+    x, y: f32
+}
+
+impl ConstAffectVector2
+{
+    #[Swag.ConstExpr]
+    mtd opAffect(one: f32)
+    {
+        .x, .y = one
+    }
+}
+
+const ConstAffectOne: ConstAffectVector2 = 1.0
+#assert(ConstAffectOne.x == 1.0)
+#assert(ConstAffectOne.y == 1.0)
+
 #test
 {
     var target = AffectTarget{}
@@ -84,6 +134,18 @@ struct AffectHolder
     var target = AffectTarget{}
     let ptr = &target
     dref ptr = 99's32
+}
+
+#test
+{
+    func takesExplicit(value: ParamAffectTarget) {}
+    func takesImplicit(value: ParamAffectTarget) {}
+
+    takesExplicit(cast(ParamAffectTarget) 5's32)
+    takesImplicit(7'u16)
+
+    let complete: ParamAffectTarget = 2'u64
+    #assert(#typeof(complete) == ParamAffectTarget)
 }
 
 #test

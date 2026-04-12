@@ -588,15 +588,6 @@ namespace
         if (!nodeInitView.typeRef().isValid())
             return Result::Continue;
 
-        CastRequest castRequest(CastKind::Initialization);
-        castRequest.errorNodeRef = nodeInitView.nodeRef();
-        castRequest.setConstantFoldingSrc(nodeInitView.cstRef());
-        const Result castAllowedResult = Cast::castAllowed(sema, castRequest, nodeInitView.typeRef(), explicitTypeRef);
-        if (castAllowedResult == Result::Pause)
-            return Result::Pause;
-        if (castAllowedResult == Result::Continue)
-            return Result::Continue;
-
         auto* const symVar = getVariableSymbol(symbols.front());
         if (!symVar)
             return Result::Continue;
@@ -605,7 +596,17 @@ namespace
         bool             handled     = false;
         SWC_RESULT(SemaSpecOp::tryResolveVarInitAffect(sema, receiverRef, context.nodeInitRef, handled));
         if (!handled)
+        {
+            CastRequest castRequest(CastKind::Initialization);
+            castRequest.errorNodeRef = nodeInitView.nodeRef();
+            castRequest.setConstantFoldingSrc(nodeInitView.cstRef());
+            const Result castAllowedResult = Cast::castAllowed(sema, castRequest, nodeInitView.typeRef(), explicitTypeRef);
+            if (castAllowedResult == Result::Pause)
+                return Result::Pause;
+            if (castAllowedResult == Result::Continue)
+                return Result::Continue;
             return Result::Continue;
+        }
 
         symVar->addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
         outInfo.handled = true;

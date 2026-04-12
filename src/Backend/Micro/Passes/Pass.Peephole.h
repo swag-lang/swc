@@ -124,6 +124,8 @@ private:
     MicroOperandStorage* operands_                     = nullptr;
     mutable bool         equivalentStackBasesComputed_ = false;
     mutable bool         equivalentStackBasesValue_    = false;
+    bool                 structuralHashKnown_          = false;
+    uint64_t             structuralHashValue_          = 0;
 
     std::vector<StackSlotRange> stackReadRanges_;
     std::vector<uint32_t>       instrSeqNum_;

@@ -157,7 +157,33 @@ namespace
         return optimizationIterationLimit(context.builder->backendBuildCfg());
     }
 
-    Result runPass(MicroPassContext& context, MicroPass& pass)
+    struct VerifyStateCache
+    {
+        bool     hasCurrentState = false;
+        uint64_t structuralHash  = 0;
+    };
+
+    Result verifyCurrentState(MicroPassContext& context, std::string_view phase, VerifyStateCache& cache)
+    {
+#if SWC_DEV_MODE
+        if (!MicroVerify::isEnabled(context))
+            return Result::Continue;
+
+        if (!cache.hasCurrentState)
+        {
+            SWC_RESULT(MicroVerify::verify(context, phase, &cache.structuralHash));
+            cache.hasCurrentState = true;
+        }
+#else
+        SWC_UNUSED(context);
+        SWC_UNUSED(phase);
+        SWC_UNUSED(cache);
+#endif
+
+        return Result::Continue;
+    }
+
+    Result runPass(MicroPassContext& context, MicroPass& pass, VerifyStateCache& verifyCache)
     {
         uint64_t storageRevisionBefore = 0;
         if (context.instructions)
@@ -168,8 +194,8 @@ namespace
         if (MicroVerify::isEnabled(context))
         {
             const std::string stageNameBefore = passStageName(pass, true);
-            SWC_RESULT(MicroVerify::verify(context, stageNameBefore));
-            structuralHashBefore = MicroVerify::computeStructuralHash(context);
+            SWC_RESULT(verifyCurrentState(context, stageNameBefore, verifyCache));
+            structuralHashBefore = verifyCache.structuralHash;
         }
 #endif
 
@@ -198,8 +224,9 @@ namespace
         if (MicroVerify::isEnabled(context))
         {
             const std::string stageNameAfter = passStageName(pass, false);
-            SWC_RESULT(MicroVerify::verify(context, stageNameAfter));
-            const uint64_t structuralHashAfter = MicroVerify::computeStructuralHash(context);
+            verifyCache.hasCurrentState = false;
+            SWC_RESULT(verifyCurrentState(context, stageNameAfter, verifyCache));
+            const uint64_t structuralHashAfter = verifyCache.structuralHash;
 
             if (!context.passChanged)
             {
@@ -221,18 +248,18 @@ namespace
         return Result::Continue;
     }
 
-    Result runLinearPasses(MicroPassContext& context, std::span<MicroPass* const> passes)
+    Result runLinearPasses(MicroPassContext& context, std::span<MicroPass* const> passes, VerifyStateCache& verifyCache)
     {
         for (MicroPass* pass : passes)
         {
             SWC_ASSERT(pass != nullptr);
-            SWC_RESULT(runPass(context, *pass));
+            SWC_RESULT(runPass(context, *pass, verifyCache));
         }
 
         return Result::Continue;
     }
 
-    Result runLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes)
+    Result runLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes, VerifyStateCache& verifyCache)
     {
         if (passes.empty())
             return Result::Continue;
@@ -244,7 +271,8 @@ namespace
         if (MicroVerify::isEnabled(context))
         {
             seenStates.reserve(maxIterations + 1);
-            seenStates.insert(MicroVerify::computeStructuralHash(context));
+            SWC_RESULT(verifyCurrentState(context, "optimization-loop-start", verifyCache));
+            seenStates.insert(verifyCache.structuralHash);
         }
 #endif
 
@@ -253,7 +281,7 @@ namespace
             bool iterationMutated = false;
             for (MicroPass* pass : passes)
             {
-                SWC_RESULT(runPass(context, *pass));
+                SWC_RESULT(runPass(context, *pass, verifyCache));
                 iterationMutated = iterationMutated || context.passChanged;
             }
 
@@ -263,7 +291,8 @@ namespace
 #if SWC_DEV_MODE
             if (MicroVerify::isEnabled(context))
             {
-                const uint64_t structuralHash = MicroVerify::computeStructuralHash(context);
+                SWC_ASSERT(verifyCache.hasCurrentState);
+                const uint64_t structuralHash = verifyCache.structuralHash;
                 if (!seenStates.insert(structuralHash).second)
                 {
                     return MicroVerify::reportError(context, "optimization-loop", std::format("re-entered a previous micro state at iteration {}", iteration + 1));
@@ -337,11 +366,12 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 Result MicroPassManager::run(MicroPassContext& context) const
 {
     SWC_ASSERT(context.instructions != nullptr);
-    SWC_RESULT(runLinearPasses(context, startPasses_));
+    VerifyStateCache verifyCache;
+    SWC_RESULT(runLinearPasses(context, startPasses_, verifyCache));
 
     context.printInstrCountBefore = context.instructions->count();
-    SWC_RESULT(runLoopPasses(context, loopPasses_));
-    SWC_RESULT(runLinearPasses(context, finalPasses_));
+    SWC_RESULT(runLoopPasses(context, loopPasses_, verifyCache));
+    SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));
 
     return Result::Continue;
 }

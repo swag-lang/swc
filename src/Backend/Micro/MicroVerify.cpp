@@ -14,6 +14,7 @@ namespace
     constexpr uint64_t K_HASH_OFFSET_BASIS = 1469598103934665603ull;
     constexpr uint64_t K_HASH_PRIME        = 1099511628211ull;
     constexpr uint64_t K_HASH_INVALID      = std::numeric_limits<uint64_t>::max();
+    constexpr uint32_t K_ORDINAL_INVALID   = std::numeric_limits<uint32_t>::max();
 
     void mixHash(uint64_t& inOutHash, uint64_t value)
     {
@@ -483,8 +484,7 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
 
     uint64_t hash = K_HASH_OFFSET_BASIS;
 
-    std::unordered_map<uint32_t, uint32_t> instructionOrdinalByRef;
-    instructionOrdinalByRef.reserve(context.instructions->count());
+    std::vector<uint32_t> instructionOrdinalByRef(context.instructions->slotCount(), K_ORDINAL_INVALID);
 
     uint32_t instructionOrdinal = 0;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
@@ -537,8 +537,9 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
             }
             else
             {
-                const auto found = instructionOrdinalByRef.find(relocation.instructionRef.get());
-                mixHash(hash, found == instructionOrdinalByRef.end() ? K_HASH_INVALID : found->second);
+                const uint32_t refValue = relocation.instructionRef.get();
+                const uint32_t ordinal  = refValue < instructionOrdinalByRef.size() ? instructionOrdinalByRef[refValue] : K_ORDINAL_INVALID;
+                mixHash(hash, ordinal == K_ORDINAL_INVALID ? K_HASH_INVALID : ordinal);
             }
         }
 
@@ -568,7 +569,7 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
     return hash;
 }
 
-Result MicroVerify::verify(const MicroPassContext& context, std::string_view phase)
+Result MicroVerify::verify(const MicroPassContext& context, std::string_view phase, uint64_t* outStructuralHash)
 {
     if (!isEnabled(context))
         return Result::Continue;
@@ -578,20 +579,35 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
     if (!context.operands)
         return reportError(context, phase, "missing operand storage");
 
-    uint32_t                             iteratedInstructionCount = 0;
-    std::unordered_set<uint32_t>         definedLabels;
-    std::vector<uint32_t>                jumpTargets;
-    std::unordered_set<uint32_t>         relocationExpectedRefs;
-    std::unordered_map<uint32_t, size_t> relocationCountByRef;
+    if (outStructuralHash)
+        *outStructuralHash = K_HASH_OFFSET_BASIS;
 
-    definedLabels.reserve(context.instructions->count());
+    const uint32_t        instructionSlotCount = context.instructions->slotCount();
+    uint32_t              iteratedInstructionCount = 0;
+    std::vector<uint32_t> instructionOrdinalByRef;
+    std::vector<uint8_t>  definedLabels;
+    std::vector<uint32_t> jumpTargets;
+    std::vector<uint32_t> relocationExpectedRefs;
+    std::vector<uint32_t> relocationCountByRef;
+
+    if (outStructuralHash)
+        instructionOrdinalByRef.assign(instructionSlotCount, K_ORDINAL_INVALID);
+
     jumpTargets.reserve(context.instructions->count() / 2 + 1);
+    if (context.builder)
+    {
+        relocationExpectedRefs.reserve(context.instructions->count() / 8 + 1);
+        relocationCountByRef.resize(instructionSlotCount);
+    }
 
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         const MicroInstrRef instructionRef = it.current;
         const MicroInstr&   inst           = *it;
         const uint32_t      instructionIdx = iteratedInstructionCount++;
+
+        if (outStructuralHash)
+            instructionOrdinalByRef[instructionRef.get()] = instructionIdx;
 
         const MicroInstrOperand* ops = nullptr;
         if (inst.numOperands == 0)
@@ -623,21 +639,49 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
         if (ops)
             SWC_RESULT(verifyInstructionRegisters(context, phase, instructionIdx, inst, ops));
 
+        if (outStructuralHash)
+        {
+            mixHash(*outStructuralHash, static_cast<uint8_t>(inst.op));
+            mixHash(*outStructuralHash, inst.numOperands);
+            mixHash(*outStructuralHash, inst.debugNoStep ? 1 : 0);
+            mixHash(*outStructuralHash, inst.sourceCodeRef.srcViewRef.isValid() ? inst.sourceCodeRef.srcViewRef.get() : K_HASH_INVALID);
+            mixHash(*outStructuralHash, inst.sourceCodeRef.tokRef.isValid() ? inst.sourceCodeRef.tokRef.get() : K_HASH_INVALID);
+
+            if (!inst.numOperands)
+            {
+                mixHash(*outStructuralHash, 0);
+            }
+            else
+            {
+                mixHash(*outStructuralHash, 1);
+                for (uint32_t operandIndex = 0; operandIndex < inst.numOperands; ++operandIndex)
+                {
+                    mixHash(*outStructuralHash, ops[operandIndex].valueU64);
+                    mixHash(*outStructuralHash, ops[operandIndex].valueInt.hash());
+                }
+            }
+        }
+
         if (inst.op == MicroInstrOpcode::Label)
         {
             const uint32_t label = static_cast<uint32_t>(ops[0].valueU64);
-            if (!definedLabels.insert(label).second)
+            if (label >= definedLabels.size())
+                definedLabels.resize(static_cast<size_t>(label) + 1);
+
+            if (definedLabels[label])
             {
                 return reportError(context, phase, std::format("duplicate label definition for id {}", label));
             }
+
+            definedLabels[label] = 1;
         }
         else if (inst.op == MicroInstrOpcode::JumpCond)
         {
             jumpTargets.push_back(static_cast<uint32_t>(ops[2].valueU64));
         }
 
-        if (expectsRelocation(inst.op))
-            relocationExpectedRefs.insert(instructionRef.get());
+        if (context.builder && expectsRelocation(inst.op))
+            relocationExpectedRefs.push_back(instructionRef.get());
     }
 
     if (iteratedInstructionCount != context.instructions->count())
@@ -647,13 +691,16 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
 
     for (const uint32_t label : jumpTargets)
     {
-        if (!definedLabels.contains(label))
+        if (label >= definedLabels.size() || !definedLabels[label])
             return reportError(context, phase, std::format("jump targets undefined label {}", label));
     }
 
     if (context.builder)
     {
         const auto& relocations = context.builder->codeRelocations();
+        if (outStructuralHash)
+            mixHash(*outStructuralHash, relocations.size());
+
         for (size_t relocationIdx = 0; relocationIdx < relocations.size(); ++relocationIdx)
         {
             const MicroRelocation& relocation = relocations[relocationIdx];
@@ -670,12 +717,23 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
 
             SWC_RESULT(verifyRelocation(context, phase, static_cast<uint32_t>(relocationIdx), relocation, *inst));
             relocationCountByRef[relocation.instructionRef.get()]++;
+
+            if (outStructuralHash)
+            {
+                mixHash(*outStructuralHash, static_cast<uint8_t>(relocation.kind));
+                mixHash(*outStructuralHash, relocation.targetAddress);
+                mixHash(*outStructuralHash, relocation.constantRef.isValid() ? relocation.constantRef.get() : K_HASH_INVALID);
+                mixHash(*outStructuralHash, relocation.targetSymbol ? reinterpret_cast<uintptr_t>(relocation.targetSymbol) : 0);
+
+                const uint32_t refValue = relocation.instructionRef.get();
+                const uint32_t ordinal  = refValue < instructionOrdinalByRef.size() ? instructionOrdinalByRef[refValue] : K_ORDINAL_INVALID;
+                mixHash(*outStructuralHash, ordinal == K_ORDINAL_INVALID ? K_HASH_INVALID : ordinal);
+            }
         }
 
         for (const uint32_t instructionRefValue : relocationExpectedRefs)
         {
-            const auto found = relocationCountByRef.find(instructionRefValue);
-            const auto count = found == relocationCountByRef.end() ? 0ull : found->second;
+            const auto count = instructionRefValue < relocationCountByRef.size() ? relocationCountByRef[instructionRefValue] : 0u;
             if (count != 1)
             {
                 return reportError(context, phase, std::format("instruction ref {} expects exactly one relocation, found {}", instructionRefValue, count));
@@ -683,6 +741,31 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
         }
 
         SWC_RESULT(verifyForbiddenRegisterMap(context, phase));
+
+        if (outStructuralHash)
+        {
+            std::vector<const std::pair<const MicroReg, SmallVector<MicroReg>>*> entries;
+            entries.reserve(context.builder->virtualRegForbiddenPhysRegs().size());
+            for (const auto& entry : context.builder->virtualRegForbiddenPhysRegs())
+                entries.push_back(&entry);
+
+            std::ranges::sort(entries, [](const auto* lhs, const auto* rhs) { return lhs->first.packed < rhs->first.packed; });
+            mixHash(*outStructuralHash, entries.size());
+            for (const auto* entry : entries)
+            {
+                mixHash(*outStructuralHash, entry->first.packed);
+
+                std::vector<uint32_t> regs;
+                regs.reserve(entry->second.size());
+                for (const MicroReg reg : entry->second)
+                    regs.push_back(reg.packed);
+
+                std::ranges::sort(regs);
+                mixHash(*outStructuralHash, regs.size());
+                for (const uint32_t regPacked : regs)
+                    mixHash(*outStructuralHash, regPacked);
+            }
+        }
     }
 
     return Result::Continue;

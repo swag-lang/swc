@@ -23,6 +23,8 @@ void MicroPeepholePass::initRunState(MicroPassContext& context)
     operands_                     = context.operands;
     equivalentStackBasesComputed_ = false;
     equivalentStackBasesValue_    = false;
+    structuralHashKnown_          = false;
+    structuralHashValue_          = 0;
 }
 
 bool MicroPeepholePass::hasEquivalentStackBases() const
@@ -147,7 +149,15 @@ Result MicroPeepholePass::applyOpcodeRules(bool& outChanged, const Cursor& curso
         const bool shouldVerify = MicroVerify::isEnabled(context());
         uint64_t   structuralHashBefore = 0;
         if (shouldVerify)
-            structuralHashBefore = MicroVerify::computeStructuralHash(context());
+        {
+            if (!structuralHashKnown_)
+            {
+                structuralHashValue_ = MicroVerify::computeStructuralHash(context());
+                structuralHashKnown_ = true;
+            }
+
+            structuralHashBefore = structuralHashValue_;
+        }
 #endif
 
         const bool ruleChanged = rule.apply(*this, cursor);
@@ -160,6 +170,9 @@ Result MicroPeepholePass::applyOpcodeRules(bool& outChanged, const Cursor& curso
                 return failRuleInvariant(rule, cursor, "mutated micro state while returning false");
             if (ruleChanged && structuralHashAfter == structuralHashBefore)
                 return failRuleInvariant(rule, cursor, "reported success without an observable micro-state change");
+
+            structuralHashValue_ = structuralHashAfter;
+            structuralHashKnown_ = true;
         }
 #endif
 

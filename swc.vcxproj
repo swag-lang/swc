@@ -167,7 +167,6 @@
         <ClCompile Include="src\Unittest\Test.Micro.RegAlloc.cpp"/>
         <ClCompile Include="src\Unittest\Test.Micro.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Unittest\Test.Micro.StrengthReduction.cpp"/>
-        <ClCompile Include="src\Unittest\Test.Micro.Verify.cpp"/>
         <ClCompile Include="src\Unittest\Test.Native.NativeArtifact.cpp"/>
         <ClCompile Include="src\Unittest\Test.Support.PagedStore.cpp"/>
         <ClCompile Include="src\Support\Thread\Job.cpp"/>

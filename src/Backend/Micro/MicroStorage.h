@@ -87,6 +87,7 @@ public:
     };
 
     uint32_t                              count() const noexcept;
+    uint32_t                              slotCount() const noexcept { return static_cast<uint32_t>(nodes_.size()); }
     uint64_t                              revision() const noexcept;
     size_t                                allocatedBytes() const noexcept;
     void                                  clear() noexcept;

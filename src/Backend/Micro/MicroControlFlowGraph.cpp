@@ -22,6 +22,7 @@ void MicroControlFlowGraph::clear()
 {
     instructionRefs_.clear();
     successors_.clear();
+    predecessors_.clear();
     hasUnsupportedControlFlowForCfgLiveness_ = false;
     supportsDeadCodeLiveness_                = true;
 }
@@ -174,6 +175,17 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
 
         if (hasFallthrough)
             successors.push_back(static_cast<uint32_t>(instructionIndex + 1));
+    }
+
+    // Build predecessors from successors.
+    predecessors_.resize(instructionRefs_.size());
+    for (size_t idx = 0; idx < instructionRefs_.size(); ++idx)
+    {
+        for (const uint32_t succIdx : successors_[idx])
+        {
+            if (succIdx < predecessors_.size())
+                predecessors_[succIdx].push_back(static_cast<uint32_t>(idx));
+        }
     }
 }
 

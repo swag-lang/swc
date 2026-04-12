@@ -308,7 +308,7 @@ Result NativeBackendBuilder::run()
     NativeArtifactPaths         paths;
     artifactBuilder.queryPaths(paths);
     {
-        TimedActionLog::ScopedStage stage(ctx_, "build", "Build", "forging native artifact", paths.artifactPath.filename().string());
+        TimedActionLog::ScopedStage stage(ctx_, "Build", "forging native artifact", paths.artifactPath.filename().string());
 
         SWC_RESULT(prepare());
         stage.setStat(Utf8Helper::countWithLabel(compiler_.nativeCodeSegment().size(), "function"));
@@ -356,7 +356,7 @@ Result NativeBackendBuilder::prepare()
     std::optional<TimedActionLog::ScopedStage> microStage;
     if (ctx_.global().logger().claimStageOnce("micro"))
     {
-        microStage.emplace(ctx_, "micro", "Micro", "optimizing instruction flow");
+        microStage.emplace(ctx_, "Micro", "optimizing instruction flow");
     }
 
     while (true)
@@ -444,7 +444,7 @@ Result NativeBackendBuilder::writeObjects()
 
 Result NativeBackendBuilder::runGeneratedArtifact()
 {
-    TimedActionLog::ScopedStage stage(ctx_, "run", "Run", "handing off", artifactPath.filename().string());
+    TimedActionLog::ScopedStage stage(ctx_, "Run", "handing off", artifactPath.filename().string());
 
     uint32_t                    exitCode    = 0;
     const fs::path              artifactDir = artifactPath.parent_path();

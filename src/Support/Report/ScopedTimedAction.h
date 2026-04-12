@@ -32,7 +32,7 @@ namespace TimedActionLog
     class ScopedStage
     {
     public:
-        ScopedStage(const TaskContext& ctx, Utf8 key, Utf8 label, Utf8 verb, Utf8 detail = {});
+        ScopedStage(const TaskContext& ctx, Utf8 label, Utf8 verb, Utf8 detail = {});
         ~ScopedStage();
 
         ScopedStage(const ScopedStage&)            = delete;
@@ -45,7 +45,6 @@ namespace TimedActionLog
 
     private:
         const TaskContext*          ctx_ = nullptr;
-        Utf8                        key_;
         Utf8                        label_;
         Utf8                        verb_;
         Utf8                        detail_;

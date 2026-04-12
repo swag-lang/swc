@@ -209,7 +209,7 @@ namespace
             return false;
 
         TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, "verify", "Verify", "checking expectations", "source-driven expectations");
+        TimedActionLog::ScopedStage stage(ctx, "Verify", "checking expectations", "source-driven expectations");
         verifyExpectedMarkers(ctx);
         return !Stats::hasError();
     }
@@ -293,7 +293,7 @@ namespace
         SWC_MEM_SCOPE("Backend/JIT");
         TaskContext                 ctx(compiler);
         const uint32_t              expectedTestCount = expectedJitTestCount(compiler);
-        TimedActionLog::ScopedStage stage(ctx, "jit", "JIT", "sparking test code", "compiler test entry points");
+        TimedActionLog::ScopedStage stage(ctx, "JIT", "sparking test code", "compiler test entry points");
 
         std::vector<SymbolFunction*> allFunctions;
         std::vector<SymbolFunction*> initFunctions;
@@ -386,7 +386,7 @@ namespace
             return runNativeBackends(compiler);
 
         TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, "verify", "Verify", "checking expectations", "source-driven expectations");
+        TimedActionLog::ScopedStage stage(ctx, "Verify", "checking expectations", "source-driven expectations");
         verifyExpectedMarkers(ctx);
         return !Stats::hasError();
     }

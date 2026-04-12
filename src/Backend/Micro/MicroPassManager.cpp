@@ -373,19 +373,13 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 {
     clear();
 
-    // Phase 1 — Initial lowering and first register allocation.
-    // The code generator currently emits physical registers, so we must legalize
-    // and allocate before the optimization loop. When we switch to virtual register
-    // generation, the pre-RA loop will move before RegAlloc.
+    // Phase 1 — Initial lowering.
     addStartPass(*stackAdjustNormalizePass_);
     addStartPass(*legalizePass_);
-    addStartPass(*regAllocPass_);
-    addStartPass(*prologEpilogPass_);
 
-    // Phase 2 — Pre-RA optimization loop (placeholder for virtual register passes).
-    // These passes are designed to work on virtual registers before register allocation.
-    // Currently empty skeletons — they will be populated as we transition the code
-    // generator to emit virtual registers instead of physical ones.
+    // Phase 2 — Pre-RA optimization loop (virtual registers, no encoder constraints).
+    // Each pass sees the full virtual register space and can freely rewrite without
+    // worrying about physical register pressure or encoding legality.
     if (optimize)
     {
         addLoopPass(*constantFoldingPass_);
@@ -396,13 +390,14 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addLoopPass(*branchSimplifyPass_);
     }
 
-    // Phase 3 — Re-legalize and re-allocate.
-    // Optimization passes (and regalloc itself) can introduce instructions that
-    // require another legalization pass.
+    // Phase 3 — Register allocation boundary.
+    // Legalize + RegAlloc run in the loop: regalloc can introduce spills/reloads
+    // that require another legalization pass.
     addLoopPass(*legalizePass_);
     addLoopPass(*regAllocPass_);
 
     // Phase 4 — Post-RA finalization.
+    addFinalPass(*prologEpilogPass_);
     if (optimize)
         addFinalPass(*postRAPeepholePass_);
     addFinalPass(*prologEpilogSanitizePass_);

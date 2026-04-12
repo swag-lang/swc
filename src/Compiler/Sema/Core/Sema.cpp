@@ -317,13 +317,13 @@ void Sema::pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterCh
     pushFrame(frame);
     const size_t before = frames_.size();
     SWC_ASSERT(before > 0);
-    deferredPopFrames_.push_back({
-        .nodeRef                  = curNodeRef(),
-        .childRef                 = popAfterChildRef,
-        .onPostNode               = false,
-        .expectedFrameCountBefore = before,
-        .expectedFrameCountAfter  = before - 1,
-    });
+    DeferredPopFrame entry;
+    entry.nodeRef                  = curNodeRef();
+    entry.childRef                 = popAfterChildRef;
+    entry.onPostNode               = false;
+    entry.expectedFrameCountBefore = before;
+    entry.expectedFrameCountAfter  = before - 1;
+    deferredPopFrames_.push_back(entry);
 }
 
 void Sema::pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef)
@@ -331,23 +331,22 @@ void Sema::pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef)
     pushFrame(frame);
     const size_t before = frames_.size();
     SWC_ASSERT(before > 0);
-    deferredPopFrames_.push_back({
-        .nodeRef                  = popNodeRef.isValid() ? popNodeRef : curNodeRef(),
-        .childRef                 = AstNodeRef::invalid(),
-        .onPostNode               = true,
-        .expectedFrameCountBefore = before,
-        .expectedFrameCountAfter  = before - 1,
-    });
+    DeferredPopFrame entry;
+    entry.nodeRef                  = popNodeRef.isValid() ? popNodeRef : curNodeRef();
+    entry.onPostNode               = true;
+    entry.expectedFrameCountBefore = before;
+    entry.expectedFrameCountAfter  = before - 1;
+    deferredPopFrames_.push_back(entry);
 }
 
 void Sema::deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(callback);
-    deferredPostNodeActions_.push_back({
-        .nodeRef  = nodeRef,
-        .callback = std::move(callback),
-    });
+    DeferredPostNodeAction action;
+    action.nodeRef  = nodeRef;
+    action.callback = std::move(callback);
+    deferredPostNodeActions_.push_back(std::move(action));
 }
 
 SemaScope* Sema::pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef)
@@ -355,13 +354,13 @@ SemaScope* Sema::pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAft
     SemaScope*   scope  = pushScope(flags);
     const size_t before = scopes_.size();
     SWC_ASSERT(before > 0);
-    deferredPopScopes_.push_back({
-        .nodeRef                  = curNodeRef(),
-        .childRef                 = popAfterChildRef,
-        .onPostNode               = false,
-        .expectedScopeCountBefore = before,
-        .expectedScopeCountAfter  = before - 1,
-    });
+    DeferredPopScope scopeEntry;
+    scopeEntry.nodeRef                  = curNodeRef();
+    scopeEntry.childRef                 = popAfterChildRef;
+    scopeEntry.onPostNode               = false;
+    scopeEntry.expectedScopeCountBefore = before;
+    scopeEntry.expectedScopeCountAfter  = before - 1;
+    deferredPopScopes_.push_back(scopeEntry);
     return scope;
 }
 
@@ -370,13 +369,12 @@ SemaScope* Sema::pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNode
     SemaScope*   scope  = pushScope(flags);
     const size_t before = scopes_.size();
     SWC_ASSERT(before > 0);
-    deferredPopScopes_.push_back({
-        .nodeRef                  = popNodeRef.isValid() ? popNodeRef : curNodeRef(),
-        .childRef                 = AstNodeRef::invalid(),
-        .onPostNode               = true,
-        .expectedScopeCountBefore = before,
-        .expectedScopeCountAfter  = before - 1,
-    });
+    DeferredPopScope scopeEntry;
+    scopeEntry.nodeRef                  = popNodeRef.isValid() ? popNodeRef : curNodeRef();
+    scopeEntry.onPostNode               = true;
+    scopeEntry.expectedScopeCountBefore = before;
+    scopeEntry.expectedScopeCountAfter  = before - 1;
+    deferredPopScopes_.push_back(scopeEntry);
     return scope;
 }
 

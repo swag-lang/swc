@@ -685,18 +685,20 @@ namespace
 
     Result concretizeAggregateArray(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef explicitTypeRef, TypeRef& finalTypeRef, SemaNodeView& nodeInitView)
     {
-        if (explicitTypeRef.isValid() || finalTypeRef.isInvalid() || !sema.typeMgr().get(finalTypeRef).isAggregateArray())
+        TypeManager& typeMgr = sema.typeMgr();
+
+        if (explicitTypeRef.isValid() || finalTypeRef.isInvalid() || !typeMgr.get(finalTypeRef).isAggregateArray())
             return Result::Continue;
 
-        const auto& elemTypes = sema.typeMgr().get(finalTypeRef).payloadAggregate().types;
+        const auto& elemTypes = typeMgr.get(finalTypeRef).payloadAggregate().types;
         if (elemTypes.empty())
             return Result::Continue;
 
         // All elements must be compatible (same kind, or all numeric).
-        const TypeInfo& firstElem = sema.typeMgr().get(elemTypes[0]);
+        const TypeInfo& firstElem = typeMgr.get(elemTypes[0]);
         for (size_t i = 1; i < elemTypes.size(); ++i)
         {
-            const TypeInfo& ei = sema.typeMgr().get(elemTypes[i]);
+            const TypeInfo& ei = typeMgr.get(elemTypes[i]);
             if (ei.kind() != firstElem.kind() && !(firstElem.isScalarNumeric() && ei.isScalarNumeric()))
                 return Result::Continue;
         }
@@ -705,7 +707,7 @@ namespace
         // recursively concretize the inner aggregate first, then wrap with the
         // outer dimension to produce [2][2] s32 (not [2, 2] s32).
         TypeRef elemTypeRef = elemTypes[0];
-        if (sema.typeMgr().get(elemTypeRef).isAggregateArray())
+        if (typeMgr.get(elemTypeRef).isAggregateArray())
         {
             // Get the concretized inner element type from the constant value.
             if (nodeInitView.cstRef().isValid())
@@ -721,15 +723,15 @@ namespace
 
             // If the inner element is still an aggregate, walk to the leaf type
             // and build nested array types from the inside out.
-            if (sema.typeMgr().get(elemTypeRef).isAggregateArray())
+            if (typeMgr.get(elemTypeRef).isAggregateArray())
             {
                 SmallVector4<uint64_t> innerDims;
                 if (!deduceArrayDimsFromType(sema, elemTypeRef, innerDims) || innerDims.empty())
                     return Result::Continue;
                 TypeRef leafTypeRef = elemTypeRef;
-                while (sema.typeMgr().get(leafTypeRef).isAggregateArray())
+                while (typeMgr.get(leafTypeRef).isAggregateArray())
                 {
-                    const auto& inner = sema.typeMgr().get(leafTypeRef).payloadAggregate().types;
+                    const auto& inner = typeMgr.get(leafTypeRef).payloadAggregate().types;
                     if (inner.empty())
                         break;
                     leafTypeRef = inner[0];
@@ -740,7 +742,7 @@ namespace
                 {
                     SmallVector4<uint64_t> d;
                     d.push_back(innerDim);
-                    elemTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(d, elemTypeRef));
+                    elemTypeRef = typeMgr.addType(TypeInfo::makeArray(d, elemTypeRef));
                 }
             }
         }
@@ -761,7 +763,7 @@ namespace
 
         SmallVector4<uint64_t> outerDim;
         outerDim.push_back(elemTypes.size());
-        finalTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(outerDim, elemTypeRef));
+        finalTypeRef = typeMgr.addType(TypeInfo::makeArray(outerDim, elemTypeRef));
         if (context.nodeInitRef.isValid())
             SWC_RESULT(Cast::cast(sema, nodeInitView, finalTypeRef, CastKind::Initialization));
 

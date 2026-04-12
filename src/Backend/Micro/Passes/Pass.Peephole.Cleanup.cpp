@@ -428,20 +428,11 @@ namespace
         return false;
     }
 
-    bool isZeroTestTrueCond(const MicroCond cond)
-    {
-        return cond == MicroCond::Equal || cond == MicroCond::Zero;
-    }
-
-    bool isZeroTestFalseCond(const MicroCond cond)
-    {
-        return cond == MicroCond::NotEqual || cond == MicroCond::NotZero;
-    }
-
     bool hasSameZeroTestPolarity(const MicroCond lhs, const MicroCond rhs)
     {
-        return (isZeroTestTrueCond(lhs) && isZeroTestTrueCond(rhs)) ||
-               (isZeroTestFalseCond(lhs) && isZeroTestFalseCond(rhs));
+        const bool lhsTrue = lhs == MicroCond::Equal || lhs == MicroCond::Zero;
+        const bool rhsTrue = rhs == MicroCond::Equal || rhs == MicroCond::Zero;
+        return lhsTrue == rhsTrue;
     }
 
     bool foldSetCondCompareZeroIntoDirectJump(const MicroPeepholePass& pass, const MicroPeepholePass::Cursor& cursor)

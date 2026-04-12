@@ -29,24 +29,27 @@ namespace
     }
 }
 
+namespace
+{
+    Result raiseSymbolConflict(Sema& sema, DiagnosticId diagId, const Symbol* symbol, const Symbol* otherSymbol)
+    {
+        TaskContext& ctx  = sema.ctx();
+        auto         diag = SemaError::report(sema, diagId, symbol->codeRef());
+        diag.addNote(DiagnosticId::sema_note_other_definition);
+        diag.last().addSpan(otherSymbol->codeRange(ctx));
+        diag.report(ctx);
+        return Result::Error;
+    }
+}
+
 Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
-    TaskContext& ctx  = sema.ctx();
-    auto         diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->codeRef());
-    diag.addNote(DiagnosticId::sema_note_other_definition);
-    diag.last().addSpan(otherSymbol->codeRange(ctx));
-    diag.report(ctx);
-    return Result::Error;
+    return raiseSymbolConflict(sema, DiagnosticId::sema_err_already_defined, symbol, otherSymbol);
 }
 
 Result SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
-    TaskContext& ctx  = sema.ctx();
-    auto         diag = report(sema, DiagnosticId::sema_err_ghosting, symbol->codeRef());
-    diag.addNote(DiagnosticId::sema_note_other_definition);
-    diag.last().addSpan(otherSymbol->codeRange(ctx));
-    diag.report(ctx);
-    return Result::Error;
+    return raiseSymbolConflict(sema, DiagnosticId::sema_err_ghosting, symbol, otherSymbol);
 }
 
 Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)

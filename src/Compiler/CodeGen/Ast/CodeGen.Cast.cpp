@@ -76,14 +76,15 @@ namespace
     bool resolveUsingStructCastPath(CodeGen& codeGen, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
     {
         outSteps.clear();
+        TypeManager& typeMgr = codeGen.typeMgr();
 
-        srcStructTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), srcStructTypeRef);
-        dstStructTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), dstStructTypeRef);
+        srcStructTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), srcStructTypeRef);
+        dstStructTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstStructTypeRef);
         if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())
             return false;
 
-        const TypeInfo& srcStructType = codeGen.typeMgr().get(srcStructTypeRef);
-        const TypeInfo& dstStructType = codeGen.typeMgr().get(dstStructTypeRef);
+        const TypeInfo& srcStructType = typeMgr.get(srcStructTypeRef);
+        const TypeInfo& dstStructType = typeMgr.get(dstStructTypeRef);
         if (!srcStructType.isStruct() || !dstStructType.isStruct())
             return false;
 
@@ -95,13 +96,14 @@ namespace
 
     bool resolveUsingPointerLikeCastPath(CodeGen& codeGen, TypeRef sourceTypeRef, TypeRef dstTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
     {
-        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
-        const TypeRef resolvedDstTypeRef    = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), dstTypeRef);
+        TypeManager&  typeMgr               = codeGen.typeMgr();
+        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef resolvedDstTypeRef    = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
         if (!resolvedSourceTypeRef.isValid() || !resolvedDstTypeRef.isValid())
             return false;
 
-        const TypeInfo& sourceType = codeGen.typeMgr().get(resolvedSourceTypeRef);
-        const TypeInfo& dstType    = codeGen.typeMgr().get(resolvedDstTypeRef);
+        const TypeInfo& sourceType = typeMgr.get(resolvedSourceTypeRef);
+        const TypeInfo& dstType    = typeMgr.get(resolvedDstTypeRef);
         if (!(sourceType.isAnyPointer() || sourceType.isReference() || sourceType.isMoveReference()))
             return false;
         if (!(dstType.isAnyPointer() || dstType.isReference() || dstType.isMoveReference()))
@@ -809,15 +811,17 @@ namespace
             return Result::Continue;
         }
 
-        if (codeGen.typeMgr().get(sourceTypeRef).isAny())
+        TypeManager& typeMgr = codeGen.typeMgr();
+
+        if (typeMgr.get(sourceTypeRef).isAny())
             return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
 
-        const TypeInfo& srcType            = codeGen.typeMgr().get(sourceTypeRef);
-        const TypeInfo& dstType            = codeGen.typeMgr().get(dstTypeRef);
-        const TypeRef   resolvedSrcTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
-        const TypeRef   resolvedDstTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
-        const TypeInfo& resolvedSrcType    = codeGen.typeMgr().get(resolvedSrcTypeRef);
-        const TypeInfo& resolvedDstType    = codeGen.typeMgr().get(resolvedDstTypeRef);
+        const TypeInfo& srcType            = typeMgr.get(sourceTypeRef);
+        const TypeInfo& dstType            = typeMgr.get(dstTypeRef);
+        const TypeRef   resolvedSrcTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
+        const TypeRef   resolvedDstTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
+        const TypeInfo& resolvedSrcType    = typeMgr.get(resolvedSrcTypeRef);
+        const TypeInfo& resolvedDstType    = typeMgr.get(resolvedDstTypeRef);
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
 
@@ -864,7 +868,7 @@ namespace
             const MicroReg runtimeAnyReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
             TypeRef        anyTypeRef    = sourceTypeRef;
             if (srcType.isChar())
-                anyTypeRef = codeGen.typeMgr().typeRune();
+                anyTypeRef = typeMgr.typeRune();
 
             MicroReg valuePtrReg = srcPayload.reg;
             if (!srcPayload.isAddress())

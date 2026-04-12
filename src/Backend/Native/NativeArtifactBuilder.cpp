@@ -502,15 +502,13 @@ Result NativeArtifactBuilder::buildStartup() const
         const MicroReg expectedCountReg = MicroReg::virtualIntReg(builder.nextVirtualIntRegIndexHint());
         builder.emitLoadRegImm(expectedCountReg, ApInt(expectedTestCount, 64), MicroOpBits::B64);
 
+        ABICall::PreparedArg countArg;
+        countArg.srcReg  = expectedCountReg;
+        countArg.kind    = ABICall::PreparedArgKind::Direct;
+        countArg.numBits = 64;
+
         SmallVector<ABICall::PreparedArg> preparedArgs;
-        preparedArgs.push_back({
-            .srcReg      = expectedCountReg,
-            .kind        = ABICall::PreparedArgKind::Direct,
-            .isFloat     = false,
-            .isSigned    = false,
-            .isAddressed = false,
-            .numBits     = 64,
-        });
+        preparedArgs.push_back(countArg);
 
         const ABICall::PreparedCall preparedInit = ABICall::prepareArgs(builder, testCountInitFn->callConvKind(), preparedArgs);
         ABICall::callLocal(builder, testCountInitFn->callConvKind(), testCountInitFn, preparedInit);

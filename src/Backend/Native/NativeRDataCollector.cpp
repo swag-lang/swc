@@ -94,11 +94,11 @@ Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const ui
 
     reachableOffsets_[shardIndex].push_back(allocation.offset);
     owners_[shardIndex].emplace(allocation.offset, ownerName);
-    pending_.push_back({
-        .shardIndex   = shardIndex,
-        .sourceOffset = allocation.offset,
-        .ownerName    = ownerName,
-    });
+    PendingRDataAllocation entry;
+    entry.shardIndex   = shardIndex;
+    entry.sourceOffset = allocation.offset;
+    entry.ownerName    = ownerName;
+    pending_.push_back(entry);
     return Result::Continue;
 }
 
@@ -140,11 +140,11 @@ Result NativeRDataCollector::emitReachableAllocations()
             std::memcpy(builder_->mergedRData.bytes.data() + insertOffset, sourceBytes, allocation.size);
 
             emittedAllocations[shardIndex].push_back(allocation);
-            mappings.push_back({
-                .sourceOffset  = allocation.offset,
-                .size          = allocation.size,
-                .emittedOffset = emittedOffset,
-            });
+            NativeRDataAllocationMapEntry mapEntry;
+            mapEntry.sourceOffset  = allocation.offset;
+            mapEntry.size          = allocation.size;
+            mapEntry.emittedOffset = emittedOffset;
+            mappings.push_back(mapEntry);
         }
     }
 

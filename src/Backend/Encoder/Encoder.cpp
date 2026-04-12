@@ -42,12 +42,12 @@ void Encoder::addDebugSourceRange(const uint32_t codeStartOffset, const uint32_t
         }
     }
 
-    debugSourceRanges_.push_back({
-        .codeStartOffset = codeStartOffset,
-        .codeEndOffset   = codeEndOffset,
-        .sourceCodeRef   = sourceCodeRef,
-        .debugNoStep     = debugNoStep,
-    });
+    EncoderDebugSourceRange range;
+    range.codeStartOffset = codeStartOffset;
+    range.codeEndOffset   = codeEndOffset;
+    range.sourceCodeRef   = sourceCodeRef;
+    range.debugNoStep     = debugNoStep;
+    debugSourceRanges_.push_back(range);
 }
 
 std::string Encoder::formatRegisterName(MicroReg reg) const

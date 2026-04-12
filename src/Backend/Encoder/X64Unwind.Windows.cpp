@@ -198,11 +198,11 @@ bool X64UnwindWindows::tryTrackPush(const MicroInstrOperand* ops, const uint32_t
     if (unwindPushedRegMask_ & regMask)
         return false;
 
-    unwindOps_.push_back({
-        .kind       = UnwindOpKind::PushNonVol,
-        .codeOffset = static_cast<uint8_t>(codeEndOffset),
-        .reg        = reg,
-    });
+    UnwindOp op;
+    op.kind       = UnwindOpKind::PushNonVol;
+    op.codeOffset = static_cast<uint8_t>(codeEndOffset);
+    op.reg        = reg;
+    unwindOps_.push_back(op);
     unwindPushedRegMask_ |= regMask;
     return true;
 }
@@ -223,11 +223,11 @@ bool X64UnwindWindows::tryTrackAllocateStack(const MicroInstrOperand* ops, const
     if (!ops[3].valueU64 || ops[3].valueU64 > std::numeric_limits<uint32_t>::max())
         return false;
 
-    unwindOps_.push_back({
-        .kind       = UnwindOpKind::AllocateStack,
-        .codeOffset = static_cast<uint8_t>(codeEndOffset),
-        .stackSize  = static_cast<uint32_t>(ops[3].valueU64),
-    });
+    UnwindOp op;
+    op.kind       = UnwindOpKind::AllocateStack;
+    op.codeOffset = static_cast<uint8_t>(codeEndOffset);
+    op.stackSize  = static_cast<uint32_t>(ops[3].valueU64);
+    unwindOps_.push_back(op);
     unwindHasStackAllocation_ = true;
     return true;
 }
@@ -276,10 +276,10 @@ bool X64UnwindWindows::tryTrackSetFramePointer(const MicroInstr& inst, const Mic
     unwindHasFrameRegister_   = true;
     unwindFrameRegister_      = reg;
     unwindFrameOffsetInSlots_ = static_cast<uint8_t>(frameOffset / 16);
-    unwindOps_.push_back({
-        .kind       = UnwindOpKind::SetFramePointer,
-        .codeOffset = static_cast<uint8_t>(codeEndOffset),
-    });
+    UnwindOp op;
+    op.kind       = UnwindOpKind::SetFramePointer;
+    op.codeOffset = static_cast<uint8_t>(codeEndOffset);
+    unwindOps_.push_back(op);
     return true;
 }
 

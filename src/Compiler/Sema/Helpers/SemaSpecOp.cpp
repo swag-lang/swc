@@ -602,16 +602,6 @@ namespace
         }
     }
 
-    bool isSpecOpInImplFor(const SymbolFunction& sym)
-    {
-        const SymbolMap* symMap = sym.ownerSymMap();
-        if (!symMap)
-            return false;
-        if (!symMap->isImpl())
-            return false;
-        return symMap->cast<SymbolImpl>().isForInterface();
-    }
-
 }
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
@@ -641,7 +631,8 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
     const SymbolStruct* ownerStruct = sym.ownerStruct();
     if (!ownerStruct)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
-    if (isSpecOpInImplFor(sym))
+    const SymbolMap* ownerMap = sym.ownerSymMap();
+    if (ownerMap && ownerMap->isImpl() && ownerMap->cast<SymbolImpl>().isForInterface())
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_in_impl_for, sym);
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {

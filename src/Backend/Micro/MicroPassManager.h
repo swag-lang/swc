@@ -9,12 +9,25 @@ class MicroBuilder;
 class TaskContext;
 struct MicroInstr;
 struct MicroInstrOperand;
+
+// Structural passes
 class MicroStackAdjustNormalizePass;
 class MicroLegalizePass;
 class MicroRegisterAllocationPass;
 class MicroPrologEpilogPass;
 class MicroPrologEpilogSanitizePass;
 class MicroEmitPass;
+
+// Pre-RA optimization passes (operate on virtual registers)
+class MicroConstantFoldingPass;
+class MicroCopyEliminationPass;
+class MicroInstructionCombinePass;
+class MicroStrengthReductionPass;
+class MicroDeadCodeEliminationPass;
+class MicroBranchSimplifyPass;
+
+// Post-RA optimization passes (operate on physical registers)
+class MicroPostRAPeepholePass;
 
 class MicroPassManager
 {
@@ -40,12 +53,24 @@ private:
     std::vector<MicroPass*> loopPasses_;
     std::vector<MicroPass*> finalPasses_;
 
+    // Structural passes
     std::unique_ptr<MicroStackAdjustNormalizePass> stackAdjustNormalizePass_;
     std::unique_ptr<MicroLegalizePass>             legalizePass_;
     std::unique_ptr<MicroRegisterAllocationPass>   regAllocPass_;
     std::unique_ptr<MicroPrologEpilogPass>         prologEpilogPass_;
     std::unique_ptr<MicroPrologEpilogSanitizePass> prologEpilogSanitizePass_;
     std::unique_ptr<MicroEmitPass>                 emitPass_;
+
+    // Pre-RA optimization passes
+    std::unique_ptr<MicroConstantFoldingPass>     constantFoldingPass_;
+    std::unique_ptr<MicroCopyEliminationPass>     copyEliminationPass_;
+    std::unique_ptr<MicroInstructionCombinePass>  instructionCombinePass_;
+    std::unique_ptr<MicroStrengthReductionPass>   strengthReductionPass_;
+    std::unique_ptr<MicroDeadCodeEliminationPass> deadCodeEliminationPass_;
+    std::unique_ptr<MicroBranchSimplifyPass>      branchSimplifyPass_;
+
+    // Post-RA optimization passes
+    std::unique_ptr<MicroPostRAPeepholePass> postRAPeepholePass_;
 };
 
 SWC_END_NAMESPACE();

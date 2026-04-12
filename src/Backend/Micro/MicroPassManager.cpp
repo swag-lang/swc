@@ -3,12 +3,19 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroVerify.h"
+#include "Backend/Micro/Passes/Pass.BranchSimplify.h"
+#include "Backend/Micro/Passes/Pass.ConstantFolding.h"
+#include "Backend/Micro/Passes/Pass.CopyElimination.h"
+#include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
+#include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
+#include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
+#include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
@@ -331,12 +338,24 @@ namespace
 
 MicroPassManager::MicroPassManager()
 {
+    // Structural passes
     stackAdjustNormalizePass_ = std::make_unique<MicroStackAdjustNormalizePass>();
     legalizePass_             = std::make_unique<MicroLegalizePass>();
     regAllocPass_             = std::make_unique<MicroRegisterAllocationPass>();
     prologEpilogPass_         = std::make_unique<MicroPrologEpilogPass>();
     prologEpilogSanitizePass_ = std::make_unique<MicroPrologEpilogSanitizePass>();
     emitPass_                 = std::make_unique<MicroEmitPass>();
+
+    // Pre-RA optimization passes
+    constantFoldingPass_     = std::make_unique<MicroConstantFoldingPass>();
+    copyEliminationPass_     = std::make_unique<MicroCopyEliminationPass>();
+    instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
+    strengthReductionPass_   = std::make_unique<MicroStrengthReductionPass>();
+    deadCodeEliminationPass_ = std::make_unique<MicroDeadCodeEliminationPass>();
+    branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
+
+    // Post-RA optimization passes
+    postRAPeepholePass_ = std::make_unique<MicroPostRAPeepholePass>();
 }
 
 MicroPassManager::~MicroPassManager()                                      = default;
@@ -354,19 +373,38 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 {
     clear();
 
+    // Phase 1 — Initial lowering and first register allocation.
+    // The code generator currently emits physical registers, so we must legalize
+    // and allocate before the optimization loop. When we switch to virtual register
+    // generation, the pre-RA loop will move before RegAlloc.
     addStartPass(*stackAdjustNormalizePass_);
     addStartPass(*legalizePass_);
     addStartPass(*regAllocPass_);
     addStartPass(*prologEpilogPass_);
 
-    // Optimization passes will be re-added here as part of the new architecture.
-    SWC_UNUSED(optimize);
+    // Phase 2 — Pre-RA optimization loop (placeholder for virtual register passes).
+    // These passes are designed to work on virtual registers before register allocation.
+    // Currently empty skeletons — they will be populated as we transition the code
+    // generator to emit virtual registers instead of physical ones.
+    if (optimize)
+    {
+        addLoopPass(*constantFoldingPass_);
+        addLoopPass(*copyEliminationPass_);
+        addLoopPass(*instructionCombinePass_);
+        addLoopPass(*strengthReductionPass_);
+        addLoopPass(*deadCodeEliminationPass_);
+        addLoopPass(*branchSimplifyPass_);
+    }
 
-    // Legalize + RegAlloc must run in the loop as well: regalloc can introduce
-    // instructions (spills, reloads) that require another legalization pass.
+    // Phase 3 — Re-legalize and re-allocate.
+    // Optimization passes (and regalloc itself) can introduce instructions that
+    // require another legalization pass.
     addLoopPass(*legalizePass_);
     addLoopPass(*regAllocPass_);
 
+    // Phase 4 — Post-RA finalization.
+    if (optimize)
+        addFinalPass(*postRAPeepholePass_);
     addFinalPass(*prologEpilogSanitizePass_);
     addFinalPass(*emitPass_);
 }

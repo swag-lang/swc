@@ -153,6 +153,9 @@
     <ClCompile Include="src\Unittest\Test.Micro.StackAdjustNormalize.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Test.Micro.StrengthReduction.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\unittest\Test.Micro.Verify.cpp">
       <Filter>src\Backend\unittest</Filter>
     </ClCompile>
@@ -292,6 +295,9 @@
       <Filter>src\Backend\Micro</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroUseDefMap.cpp">
       <Filter>src\Backend\Micro</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\MicroPassManager.cpp">
@@ -852,6 +858,9 @@
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroUseDefMap.h">
       <Filter>src\Backend\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\MicroStorage.h">

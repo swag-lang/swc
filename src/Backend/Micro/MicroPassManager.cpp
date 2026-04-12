@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroUseDefMap.h"
 #include "Backend/Micro/MicroVerify.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
@@ -226,6 +227,9 @@ namespace
         if (context.passChanged && context.builder)
             context.builder->pruneDeadRelocations();
 
+        if (context.passChanged && context.useDefMap)
+            context.useDefMap->invalidate();
+
 #if SWC_DEV_MODE
         if (MicroVerify::isEnabled(context))
         {
@@ -282,8 +286,21 @@ namespace
         }
 #endif
 
+        // Build the shared use-def map for pre-RA passes. It is rebuilt at the start
+        // of each iteration when a previous pass mutated the IR.
+        MicroUseDefMap useDefMap;
+        if (context.instructions && context.operands)
+        {
+            useDefMap.build(*context.instructions, *context.operands, context.encoder);
+            context.useDefMap = &useDefMap;
+        }
+
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
+            // Rebuild the use-def map if a previous iteration invalidated it.
+            if (!useDefMap.isValid() && context.instructions && context.operands)
+                useDefMap.build(*context.instructions, *context.operands, context.encoder);
+
             bool iterationMutated = false;
 #if SWC_DEV_MODE
             std::vector<LoopPassTraceEntry> iterationTrace;
@@ -292,6 +309,10 @@ namespace
 #endif
             for (MicroPass* pass : passes)
             {
+                // Rebuild the use-def map if a previous pass in this iteration invalidated it.
+                if (!useDefMap.isValid() && context.instructions && context.operands)
+                    useDefMap.build(*context.instructions, *context.operands, context.encoder);
+
                 SWC_RESULT(runPass(context, *pass, verifyCache));
                 iterationMutated = iterationMutated || context.passChanged;
 #if SWC_DEV_MODE
@@ -332,6 +353,7 @@ namespace
 #endif
         }
 
+        context.useDefMap = nullptr;
         return Result::Continue;
     }
 }

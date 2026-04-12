@@ -159,6 +159,7 @@
         <ClCompile Include="src\Unittest\Test.Micro.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Unittest\Test.Micro.RegAlloc.cpp"/>
         <ClCompile Include="src\Unittest\Test.Micro.StackAdjustNormalize.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Micro.StrengthReduction.cpp"/>
         <ClCompile Include="src\Unittest\Test.Native.NativeArtifact.cpp" />
         <ClCompile Include="src\Unittest\Test.Support.PagedStore.cpp" />
         <ClCompile Include="src\Support\Thread\Job.cpp" />
@@ -205,6 +206,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp" />
         <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp" />
         <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroUseDefMap.cpp" />
         <ClCompile Include="src\Backend\\Micro\MicroPassManager.cpp" />
         <ClCompile Include="src\Backend\\Micro\MicroVerify.cpp" />
         <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp" />
@@ -407,6 +409,7 @@
         <ClInclude Include="src\Support\Report\ScopedTimedAction.h" />
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h" />
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroUseDefMap.h" />
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h" />
         <ClInclude Include="src\Backend\\Micro\MicroControlFlowGraph.h" />
         <ClInclude Include="src\Unittest\UnittestHelpers.h" />

@@ -72,57 +72,55 @@ order. The most recent defer runs first when the scope ends.
 'defer' is ideal for resource handling — ensuring that allocation and
 release logic stay close together and cleanup always happens.
 */
-// @TODO: Re-enable when defer examples using method-style calls on locals no longer crash semantic parsing.
-// #test
-// {
-//     func createResource()                 => true
-//     func releaseResource(resource: *bool) { dref resource = false }
-//     func isResourceCreated(b: bool)       => b
-//
-//     var resource = false
-//     for 10
-//     {
-//         resource = createResource()
-//         defer
-//         {
-//             @assert(resource.isResourceCreated())
-//             releaseResource(&resource)
-//         }
-//
-//         if @index == 2 do
-//             break // Defer ensures cleanup even on early exit.
-//     }
-//
-//     @assert(!resource.isResourceCreated())
-// }
+#test
+{
+    func createResource()                 => true
+    func releaseResource(resource: *bool) { dref resource = false }
+    func isResourceCreated(b: bool)       => b
+
+    var resource = false
+    for 10
+    {
+        resource = createResource()
+        defer
+        {
+            @assert(resource.isResourceCreated())
+            releaseResource(&resource)
+        }
+
+        if @index == 2 do
+            break // Defer ensures cleanup even on early exit.
+    }
+
+    @assert(!resource.isResourceCreated())
+}
 
 /**
 # Example: Error Handling
 'defer' ensures reliable cleanup even in functions that may return early due
 to errors. This pattern creates robust, error-resilient code.
 */
-// @TODO: Re-enable when defer plus method-style local checks compile again in early-return flows.
-// #test
-// {
-//     func createResource()                 => true
-//     func releaseResource(resource: *bool) { dref resource = false }
-//     func isResourceCreated(b: bool)       => b
-//
-//     func performTask()->bool
-//     {
-//         var resource = createResource()
-//         defer releaseResource(&resource) // Always release resource.
-//
-//         if !resource.isResourceCreated()
-//         {
-//             // Early return still triggers defer.
-//             return false
-//         }
-//
-//         // Perform work...
-//         return true
-//     }
-//
-//     let success = performTask()
-//     @assert(success)
-// }
+#test
+{
+    func createResource()                 => true
+    func releaseResource(resource: *bool) { dref resource = false }
+    func isResourceCreated(b: bool)       => b
+
+    func performTask()->bool
+    {
+        var resource = createResource()
+        defer releaseResource(&resource) // Always release resource.
+
+        if !resource.isResourceCreated()
+        {
+            // Early return still triggers defer.
+            return false
+        }
+
+        // Perform work...
+        return true
+    }
+
+    let success = performTask()
+    @assert(success)
+}

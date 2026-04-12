@@ -2,8 +2,8 @@
 /**
 # 'Namespaces in Swag'
 
-Namespaces in Swag provide a structured way to organize symbols — functions,
-variables, and types — within a specific scope. Grouping related symbols under
+Namespaces in Swag provide a structured way to organize symbols such as functions,
+variables, and types within a specific scope. Grouping related symbols under
 a namespace helps prevent naming conflicts and makes the code more modular
 and maintainable.
 
@@ -42,21 +42,17 @@ namespace A.B.C
 }
 
 /**
-# 'Using' with Namespaces
+# 'Qualified Namespace Access'
 
-The 'using' keyword imports symbols from a namespace into the current scope.
-This eliminates the need to fully qualify symbols, improving readability,
-especially when dealing with deeply nested namespaces.
+Symbols from a namespace are accessed through their qualified name.
 */
 
-using namespace Private
+namespace Private
 {
     const FileSymbol = 0 // Constant defined within namespace 'Private'
 }
 
 const B = Private.FileSymbol     // Access via fully qualified name
-// @TODO: Re-enable when `using namespace ...` exposes direct symbol lookup here again.
-// const C = FileSymbol             // Direct access via 'using' directive
 
 /**
 # 'Private' Scopes

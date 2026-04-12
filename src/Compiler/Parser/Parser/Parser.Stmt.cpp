@@ -39,21 +39,26 @@ AstNodeRef Parser::parseAccessModifier()
 
 AstNodeRef Parser::parseUsing()
 {
-    if (nextIs(TokenId::KwdNamespace))
-    {
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingNamespaceStmt>(consume());
-        nodePtr->nodeNameRef    = parseNamespace();
-        return nodeRef;
-    }
-
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>(consume());
 
     SmallVector<AstNodeRef> nodeChildren;
     AstNodeRef              nodeIdentifier = parseQualifiedIdentifier();
+    if (nodeIdentifier.isInvalid())
+    {
+        skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+        return AstNodeRef::invalid();
+    }
+
     nodeChildren.push_back(nodeIdentifier);
     while (consumeIf(TokenId::SymComma).isValid())
     {
         nodeIdentifier = parseQualifiedIdentifier();
+        if (nodeIdentifier.isInvalid())
+        {
+            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+            return AstNodeRef::invalid();
+        }
+
         nodeChildren.push_back(nodeIdentifier);
     }
 

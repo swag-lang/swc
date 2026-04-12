@@ -365,22 +365,23 @@ namespace
         if (!normalizedTypeRef.isValid() || normalizedArg.isIndirect)
             return;
 
-        TaskContext&    ctx            = codeGen.ctx();
+        TaskContext&     ctx            = codeGen.ctx();
+        TypeManager&     typeMgr        = ctx.typeMgr();
         MicroBuilder&   builder        = codeGen.builder();
-        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
+        const TypeInfo& normalizedType = typeMgr.get(normalizedTypeRef);
         if (normalizedType.isReference())
             return;
 
         const TypeRef   normalizedTypeUnwrapped = normalizedType.unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias);
         const TypeRef   dstTypeRef              = normalizedTypeUnwrapped.isValid() ? normalizedTypeUnwrapped : normalizedTypeRef;
-        const TypeInfo& dstType                 = ctx.typeMgr().get(dstTypeRef);
+        const TypeInfo& dstType                 = typeMgr.get(dstTypeRef);
 
         if (argPayload.typeRef.isValid())
         {
-            const TypeInfo& srcTypeInfo      = ctx.typeMgr().get(argPayload.typeRef);
+            const TypeInfo& srcTypeInfo      = typeMgr.get(argPayload.typeRef);
             const TypeRef   srcTypeUnwrapped = srcTypeInfo.unwrap(ctx, argPayload.typeRef, TypeExpandE::Alias);
             const TypeRef   srcTypeRef       = srcTypeUnwrapped.isValid() ? srcTypeUnwrapped : argPayload.typeRef;
-            const TypeInfo& srcType          = ctx.typeMgr().get(srcTypeRef);
+            const TypeInfo& srcType          = typeMgr.get(srcTypeRef);
             const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
             const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 

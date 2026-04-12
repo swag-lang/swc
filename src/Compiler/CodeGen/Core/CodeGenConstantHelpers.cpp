@@ -58,8 +58,9 @@ namespace
         if (typeRef.isInvalid())
             return false;
 
-        TaskContext&    ctx      = codeGen.ctx();
-        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+        TaskContext&     ctx     = codeGen.ctx();
+        TypeManager&     typeMgr = ctx.typeMgr();
+        const TypeInfo& typeInfo = typeMgr.get(typeRef);
         if (typeInfo.isAlias())
         {
             const TypeRef unwrappedTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
@@ -104,7 +105,7 @@ namespace
         if (typeInfo.isArray())
         {
             const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
-            const TypeInfo& elementType    = ctx.typeMgr().get(elementTypeRef);
+            const TypeInfo& elementType    = typeMgr.get(elementTypeRef);
             const uint64_t  elementSize    = elementType.sizeOf(ctx);
             if (!elementSize)
                 return payload.empty();
@@ -132,7 +133,7 @@ namespace
                     continue;
 
                 const TypeRef   fieldTypeRef = field->typeRef();
-                const TypeInfo& fieldType    = ctx.typeMgr().get(fieldTypeRef);
+                const TypeInfo& fieldType    = typeMgr.get(fieldTypeRef);
                 const uint64_t  fieldSize    = fieldType.sizeOf(ctx);
                 const uint64_t  fieldOffset  = field->offset();
                 if (fieldOffset + fieldSize > payload.size())
@@ -151,7 +152,7 @@ namespace
             uint64_t offset = 0;
             for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
             {
-                const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
+                const TypeInfo& fieldType = typeMgr.get(fieldTypeRef);
                 uint32_t        align     = fieldType.alignOf(ctx);
                 const uint64_t  fieldSize = fieldType.sizeOf(ctx);
                 if (!align)

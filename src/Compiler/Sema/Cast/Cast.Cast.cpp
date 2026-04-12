@@ -891,11 +891,12 @@ Result Cast::castFromUndefined(const Sema& sema, const CastRequest& castRequest,
 
 Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    TypeManager&    typeMgr = sema.typeMgr();
+    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
     const auto      dstPointeeTypeRef = dstType.payloadTypeRef();
-    const TypeInfo& dstPointeeType    = sema.typeMgr().get(dstPointeeTypeRef);
+    const TypeInfo& dstPointeeType    = typeMgr.get(dstPointeeTypeRef);
 
     // Ref to ref
     if (srcType.isReference())
@@ -904,7 +905,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
         const auto      srcPointeeTypeRef = srcType.payloadTypeRef();
-        const TypeInfo& srcPointeeType    = sema.typeMgr().get(srcPointeeTypeRef);
+        const TypeInfo& srcPointeeType    = typeMgr.get(srcPointeeTypeRef);
 
         if (srcPointeeTypeRef == dstPointeeTypeRef)
             return Result::Continue;
@@ -995,12 +996,13 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
 
 Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    TypeManager&    typeMgr = sema.typeMgr();
+    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
     const bool sameUnderlying = srcType.payloadTypeRef() == dstType.payloadTypeRef();
-    const bool srcIsVoid      = srcType.payloadTypeRef() == sema.typeMgr().typeVoid();
-    const bool dstIsVoid      = dstType.payloadTypeRef() == sema.typeMgr().typeVoid();
+    const bool srcIsVoid      = srcType.payloadTypeRef() == typeMgr.typeVoid();
+    const bool dstIsVoid      = dstType.payloadTypeRef() == typeMgr.typeVoid();
     if (sameUnderlying || srcIsVoid || dstIsVoid || castRequest.kind == CastKind::Explicit)
     {
         bool ok = pointerKindsCompatible(srcType, dstType, castRequest.kind);
@@ -1011,7 +1013,7 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
         if (ok)
         {
             // TODO @legacy
-            if (dstType.unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Pointer) == sema.typeMgr().typeVoid())
+            if (dstType.unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Pointer) == typeMgr.typeVoid())
             {
             }
             else if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
@@ -1042,8 +1044,9 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
 
 Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    TypeManager&    typeMgr = sema.typeMgr();
+    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
     // UFCS receiver: allow taking the address to get a pointer.
     // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
@@ -1057,7 +1060,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
 
     if (srcType.isAnyPointer())
     {
-        const TypeInfo& srcPointeeType = sema.typeMgr().get(srcType.payloadTypeRef());
+        const TypeInfo& srcPointeeType = typeMgr.get(srcType.payloadTypeRef());
         if (srcPointeeType.isReference() && srcPointeeType.payloadTypeRef() == dstType.payloadTypeRef())
         {
             bool ok = false;
@@ -1134,14 +1137,15 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
 
 Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    TaskContext&    ctx     = sema.ctx();
-    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    TaskContext&     ctx     = sema.ctx();
+    TypeManager&     typeMgr = sema.typeMgr();
+    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
     // String -> const [..] u8
     if (srcType.isString())
     {
-        if (dstType.isConst() && dstType.payloadTypeRef() == sema.typeMgr().typeU8())
+        if (dstType.isConst() && dstType.payloadTypeRef() == typeMgr.typeU8())
         {
             if (castRequest.isConstantFolding())
             {

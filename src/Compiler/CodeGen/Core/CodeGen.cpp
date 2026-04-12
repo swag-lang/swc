@@ -83,6 +83,14 @@ namespace
         return nullptr;
     }
 
+    uint64_t arrayTotalElementCount(const TypeInfo& typeInfo)
+    {
+        uint64_t total = 1;
+        for (const uint64_t dim : typeInfo.payloadArrayDims())
+            total *= dim;
+        return total;
+    }
+
     bool hasLifecycleRec(const CodeGen& codeGen, TypeRef typeRef, const CodeGenLifecycleKind lifecycleKind)
     {
         typeRef = normalizeLifecycleTypeRef(codeGen, typeRef);
@@ -92,10 +100,7 @@ namespace
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (typeInfo.isArray())
         {
-            uint64_t totalCount = 1;
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                totalCount *= dim;
-            if (!totalCount)
+            if (!arrayTotalElementCount(typeInfo))
                 return false;
 
             return hasLifecycleRec(codeGen, typeInfo.payloadArrayElemTypeRef(), lifecycleKind);
@@ -137,9 +142,7 @@ namespace
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (typeInfo.isArray())
         {
-            uint64_t multiplier = 1;
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                multiplier *= dim;
+            const uint64_t multiplier = arrayTotalElementCount(typeInfo);
             if (!multiplier)
                 return false;
 
@@ -186,9 +189,7 @@ namespace
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (typeInfo.isArray())
         {
-            uint64_t totalCount = 1;
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                totalCount *= dim;
+            const uint64_t totalCount = arrayTotalElementCount(typeInfo);
             if (!totalCount)
                 return Result::Continue;
 

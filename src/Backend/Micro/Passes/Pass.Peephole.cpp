@@ -152,17 +152,23 @@ Result MicroPeepholePass::applyOpcodeRules(bool& outChanged, const Cursor& curso
         SWC_ASSERT(rule.applyMutable != nullptr || rule.applyConst != nullptr);
 
 #if SWC_DEV_MODE
-        const uint64_t structuralHashBefore = MicroVerify::computeStructuralHash(context());
+        const bool shouldVerify = context().microVerify;
+        uint64_t   structuralHashBefore = 0;
+        if (shouldVerify)
+            structuralHashBefore = MicroVerify::computeStructuralHash(context());
 #endif
 
         const bool ruleChanged = rule.apply(*this, cursor);
 
 #if SWC_DEV_MODE
-        const uint64_t structuralHashAfter = MicroVerify::computeStructuralHash(context());
-        if (!ruleChanged && structuralHashAfter != structuralHashBefore)
-            return failRuleInvariant(rule, cursor, "mutated micro state while returning false");
-        if (ruleChanged && structuralHashAfter == structuralHashBefore)
-            return failRuleInvariant(rule, cursor, "reported success without an observable micro-state change");
+        if (shouldVerify)
+        {
+            const uint64_t structuralHashAfter = MicroVerify::computeStructuralHash(context());
+            if (!ruleChanged && structuralHashAfter != structuralHashBefore)
+                return failRuleInvariant(rule, cursor, "mutated micro state while returning false");
+            if (ruleChanged && structuralHashAfter == structuralHashBefore)
+                return failRuleInvariant(rule, cursor, "reported success without an observable micro-state change");
+        }
 #endif
 
         if (ruleChanged)

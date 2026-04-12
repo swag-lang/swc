@@ -82,7 +82,7 @@ SWC_TEST_BEGIN(MicroVerify_RejectsUndefinedJumpLabel)
         return Result::Error;
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(MicroVerify_RejectsSilentMutationWithoutPassChanged)
+SWC_TEST_BEGIN(MicroVerify_IsDisabledByDefaultForPassManager)
     MicroBuilder builder(ctx);
     builder.emitNop();
 
@@ -92,6 +92,21 @@ SWC_TEST_BEGIN(MicroVerify_RejectsSilentMutationWithoutPassChanged)
 
     MicroPassContext passContext;
     const Result     result = builder.runPasses(passes, nullptr, passContext);
+    if (result != Result::Continue)
+        return Result::Error;
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroVerify_RejectsSilentMutationWithoutPassChanged)
+    MicroBuilder builder(ctx);
+    builder.emitNop();
+
+    SilentMutationPass pass;
+    MicroPassManager   passes;
+    passes.addStartPass(pass);
+
+    MicroPassContext passContext;
+    passContext.microVerify = true;
+    const Result result = builder.runPasses(passes, nullptr, passContext);
 
 #if SWC_DEV_MODE
     if (result != Result::Error)
@@ -111,7 +126,8 @@ SWC_TEST_BEGIN(MicroVerify_RejectsReportedChangeWithoutMutation)
     passes.addStartPass(pass);
 
     MicroPassContext passContext;
-    const Result     result = builder.runPasses(passes, nullptr, passContext);
+    passContext.microVerify = true;
+    const Result result = builder.runPasses(passes, nullptr, passContext);
 
 #if SWC_DEV_MODE
     if (result != Result::Error)
@@ -131,6 +147,7 @@ SWC_TEST_BEGIN(MicroVerify_DetectsLoopOscillation)
     passes.addLoopPass(pass);
 
     MicroPassContext passContext;
+    passContext.microVerify             = true;
     passContext.optimizationIterationLimit = 4;
     const Result result = builder.runPasses(passes, nullptr, passContext);
 

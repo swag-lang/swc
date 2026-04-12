@@ -689,6 +689,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Development, "all", "--verbose-info", "-vi", CommandLineType::Bool, &cmdLine_->verboseInfo, nullptr, "Print computed command, environment, toolchain and native artifact information before running the command.");
     addArg(HelpOptionGroup::Development, "all", "--dev-mode", "-dm", CommandLineType::Bool, &CompilerInstance::dbgDevMode, nullptr, "Open a message box when an error is reported.");
 #if SWC_DEV_MODE
+    addArg(HelpOptionGroup::Testing, "all", "--micro-verify", nullptr, CommandLineType::Bool, &cmdLine_->microVerify, nullptr, "Run dev-only Micro IR legality and pass-invariant verification. Intended for backend validation and slower than normal compilation.");
     addArg(HelpOptionGroup::Development, "all", "--randomize", "-rz", CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize single-threaded job scheduling. Forces --num-cores=1.");
     addArg(HelpOptionGroup::Development, "all", "--seed", "-rs", CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set the seed for --randomize. Forces --randomize and --num-cores=1.");
 #endif

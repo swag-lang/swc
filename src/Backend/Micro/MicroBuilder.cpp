@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroPrinter.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Main/Command/CommandLine.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -744,6 +745,10 @@ Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder,
     context.instructions     = &instructions_;
     context.operands         = &operands_;
     context.passPrintOptions = printPassOptions_;
+#if SWC_DEV_MODE
+    if (!context.microVerify && ctx_)
+        context.microVerify = ctx_->cmdLine().microVerify;
+#endif
 
     return passes.run(context);
 }

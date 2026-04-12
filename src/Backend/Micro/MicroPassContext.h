@@ -23,6 +23,7 @@ struct MicroPassContext
     CallConvKind          callConvKind           = CallConvKind::Host;
     bool                  preservePersistentRegs = false;
     bool                  forceFramePointer      = false;
+    bool                  microVerify            = false;
 
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).
     uint32_t optimizationIterationLimit = 0;

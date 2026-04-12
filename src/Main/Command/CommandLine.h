@@ -73,6 +73,7 @@ struct CommandLine
     bool runtime          = true;
 
 #ifdef SWC_DEV_MODE
+    bool     microVerify = false;
     bool     randomize = false;
     uint32_t randSeed  = 0;
 #endif

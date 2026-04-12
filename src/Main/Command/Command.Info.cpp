@@ -182,6 +182,7 @@ namespace
         printInfoLine(ctx, "verboseUnittest", boolToUtf8(cmdLine.verboseUnittest));
         printInfoLine(ctx, "runtime", boolToUtf8(cmdLine.runtime));
 #ifdef SWC_DEV_MODE
+        printInfoLine(ctx, "microVerify", boolToUtf8(cmdLine.microVerify));
         printInfoLine(ctx, "randomize", boolToUtf8(cmdLine.randomize));
         printInfoLine(ctx, "randSeed", std::to_string(cmdLine.randSeed));
 #endif

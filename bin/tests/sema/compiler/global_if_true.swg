@@ -1,4 +1,4 @@
-#global #if true
+#global #if 1
 #global fileprivate
 #global namespace GIf
 

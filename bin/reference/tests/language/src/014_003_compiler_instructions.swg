@@ -22,22 +22,22 @@ var Global = 0 // Define a global variable 'Global'.
 Static conditional compilation. Expressions are evaluated at compile time to
 include or exclude code based on constants or conditions.
 */
-// @TODO: Re-enable when `#if` accepts the documented `1`/`0` compile-time flags again.
-// const DEBUG   = 1
-// const RELEASE = 0
-//
-// #if DEBUG
-// {
-//     // Compiled because DEBUG == 1.
-// }
-// #elif RELEASE
-// {
-//     // Would compile if RELEASE were true and DEBUG were false.
-// }
-// #else
-// {
-//     // Compiled if neither DEBUG nor RELEASE is true.
-// }
+
+const DEBUG   = 1
+const RELEASE = 0
+
+#if DEBUG
+{
+    // Compiled because DEBUG == 1.
+}
+#elif RELEASE
+{
+    // Would compile if RELEASE were true and DEBUG were false.
+}
+#else
+{
+    // Compiled if neither DEBUG nor RELEASE is true.
+}
 
 /**
 # '#error'/'#warning'

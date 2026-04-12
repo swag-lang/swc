@@ -1,4 +1,4 @@
 #global fileprivate
-#global #if false
+#global #if 0
 
 #assert(false)

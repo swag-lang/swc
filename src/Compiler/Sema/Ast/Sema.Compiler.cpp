@@ -269,6 +269,15 @@ namespace
         outValue = Utf8{codeRange.srcView->codeView(codeRange.offset, codeRange.len)};
         return true;
     }
+
+    Result castCompilerConditionToBool(Sema& sema, AstNodeRef nodeRef)
+    {
+        SWC_RESULT(SemaCheck::isConstant(sema, nodeRef));
+
+        SemaNodeView view = sema.viewNodeTypeConstant(nodeRef);
+        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+        return Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition);
+    }
 }
 
 Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -382,10 +391,10 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         return Result::Continue;
     }
 
+    SWC_RESULT(castCompilerConditionToBool(sema, nodeConditionRef));
+
     const SemaNodeView condView = sema.viewConstant(nodeConditionRef);
-    SWC_ASSERT(condView.cst());
-    if (!condView.cst()->isBool())
-        return SemaError::raiseInvalidType(sema, nodeConditionRef, condView.cst()->typeRef(), sema.typeMgr().typeBool());
+    SWC_ASSERT(condView.cst() && condView.cst()->isBool());
 
     if (childRef == nodeIfBlockRef && !condView.cst()->getBool())
         return Result::SkipChildren;
@@ -432,9 +441,12 @@ Result AstCompilerDiagnostic::semaPreNodeChild(Sema& sema, const AstNodeRef& chi
 Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
     const Token&       tok     = sema.token(codeRef());
-    const SemaNodeView argView = sema.viewConstant(nodeArgRef);
-    SWC_ASSERT(argView.hasConstant());
+    if (tok.id == TokenId::CompilerAssert)
+        SWC_RESULT(castCompilerConditionToBool(sema, nodeArgRef));
+
+    const SemaNodeView  argView  = sema.viewConstant(nodeArgRef);
     const ConstantValue& constant = *(argView.cst());
+    SWC_ASSERT(argView.hasConstant());
     switch (tok.id)
     {
         case TokenId::CompilerError:
@@ -444,8 +456,6 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             break;
 
         case TokenId::CompilerAssert:
-            if (!constant.isBool())
-                return SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeBool());
             if (!constant.getBool())
                 return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, codeRef());
             break;
@@ -660,12 +670,10 @@ namespace
 {
     Result semaCompilerGlobalIf(Sema& sema, const AstCompilerGlobal& node)
     {
-        SWC_RESULT(SemaCheck::isConstant(sema, node.nodeModeRef));
-        const SemaNodeView condView = sema.viewConstant(node.nodeModeRef);
+        SWC_RESULT(castCompilerConditionToBool(sema, node.nodeModeRef));
 
-        SWC_ASSERT(condView.cst());
-        if (!condView.cst()->isBool())
-            return SemaError::raiseInvalidType(sema, node.nodeModeRef, condView.cst()->typeRef(), sema.typeMgr().typeBool());
+        const SemaNodeView condView = sema.viewConstant(node.nodeModeRef);
+        SWC_ASSERT(condView.cst() && condView.cst()->isBool());
 
         sema.frame().setGlobalCompilerIfEnabled(condView.cst()->getBool());
         return Result::SkipChildren;

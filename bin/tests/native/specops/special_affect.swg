@@ -219,7 +219,6 @@ const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
     @assert(RuntimeConstAffectOne.y == 1.0)
 }
 
-#[Swag.PrintMicro]
 #test
 {
     var lhs = RuntimeAffectTarget{value: 1, tag: 2, calls: 3}

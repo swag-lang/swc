@@ -996,9 +996,9 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
 
 Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    TypeManager&    typeMgr = sema.typeMgr();
-    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+    const TypeManager& typeMgr = sema.typeMgr();
+    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
     const bool sameUnderlying = srcType.payloadTypeRef() == dstType.payloadTypeRef();
     const bool srcIsVoid      = srcType.payloadTypeRef() == typeMgr.typeVoid();
@@ -1044,9 +1044,9 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
 
 Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    TypeManager&    typeMgr = sema.typeMgr();
-    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+    const TypeManager& typeMgr = sema.typeMgr();
+    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
     // UFCS receiver: allow taking the address to get a pointer.
     // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
@@ -1137,8 +1137,8 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
 
 Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    TaskContext&     ctx     = sema.ctx();
-    TypeManager&     typeMgr = sema.typeMgr();
+    TaskContext&    ctx     = sema.ctx();
+    TypeManager&    typeMgr = sema.typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
     const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 

@@ -87,7 +87,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
                 if (microRegSpanContains(useDef.defs, resolvedReg))
                     continue;
 
-                reg                 = resolvedReg;
+                reg = resolvedReg;
                 if (MicroPassHelpers::violatesEncoderConformance(context, inst, ops))
                 {
                     reg = originalReg;

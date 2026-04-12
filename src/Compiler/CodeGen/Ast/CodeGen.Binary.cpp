@@ -113,7 +113,7 @@ namespace
     BinaryEncodeContext buildBinaryEncodeContext(CodeGen& codeGen, const AstBinaryExpr& node, TokenId tokId)
     {
         BinaryEncodeContext ctx;
-        TypeManager&       typeMgr = codeGen.typeMgr();
+        TypeManager&        typeMgr = codeGen.typeMgr();
 
         const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);

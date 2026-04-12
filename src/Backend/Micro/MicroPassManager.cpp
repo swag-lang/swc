@@ -232,7 +232,7 @@ namespace
         if (MicroVerify::isEnabled(context))
         {
             const std::string stageNameAfter = passStageName(pass, false);
-            verifyCache.hasCurrentState = false;
+            verifyCache.hasCurrentState      = false;
             SWC_RESULT(verifyCurrentState(context, stageNameAfter, verifyCache));
             const uint64_t structuralHashAfter = verifyCache.structuralHash;
 

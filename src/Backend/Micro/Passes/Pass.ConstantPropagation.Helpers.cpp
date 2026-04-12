@@ -262,7 +262,7 @@ uint64_t MicroConstantPropagationPass::signExtendToBits(uint64_t value, MicroOpB
     int64_t extended = static_cast<int64_t>(normalizedSrc);
     switch (srcBits)
     {
-        case MicroOpBits::B8:  extended = static_cast<int8_t>(normalizedSrc);  break;
+        case MicroOpBits::B8: extended = static_cast<int8_t>(normalizedSrc); break;
         case MicroOpBits::B16: extended = static_cast<int16_t>(normalizedSrc); break;
         case MicroOpBits::B32: extended = static_cast<int32_t>(normalizedSrc); break;
         default: break;

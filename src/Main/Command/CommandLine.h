@@ -74,8 +74,8 @@ struct CommandLine
 
 #ifdef SWC_DEV_MODE
     bool     microVerify = false;
-    bool     randomize = false;
-    uint32_t randSeed  = 0;
+    bool     randomize   = false;
+    uint32_t randSeed    = 0;
 #endif
 
     uint32_t                        syntaxColorLum  = 0;

@@ -599,7 +599,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
     if (outStructuralHash)
         *outStructuralHash = K_HASH_OFFSET_BASIS;
 
-    const uint32_t        instructionSlotCount = context.instructions->slotCount();
+    const uint32_t        instructionSlotCount     = context.instructions->slotCount();
     uint32_t              iteratedInstructionCount = 0;
     std::vector<uint32_t> instructionOrdinalByRef;
     std::vector<uint8_t>  definedLabels;

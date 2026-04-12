@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Backend/Micro/MicroVerify.h"
 #include "Backend/Micro/Passes/Pass.Peephole.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroVerify.h"
 #include "Support/Memory/MemoryProfile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -146,7 +146,7 @@ Result MicroPeepholePass::applyOpcodeRules(bool& outChanged, const Cursor& curso
         SWC_ASSERT(rule.applyMutable != nullptr || rule.applyConst != nullptr);
 
 #if SWC_DEV_MODE
-        const bool shouldVerify = MicroVerify::isEnabled(context());
+        const bool shouldVerify         = MicroVerify::isEnabled(context());
         uint64_t   structuralHashBefore = 0;
         if (shouldVerify)
         {

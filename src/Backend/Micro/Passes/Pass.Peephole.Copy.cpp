@@ -143,8 +143,8 @@ namespace
         if (ops[2].opBits != MicroOpBits::B64)
             return false;
 
-        bool reachedRet  = false;
-        bool replacedUse = false;
+        bool                   reachedRet  = false;
+        bool                   replacedUse = false;
         SmallVector<MicroReg*> replacedRegs;
 
         for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
@@ -251,9 +251,9 @@ namespace
         if (!copyDstReg.isSameClass(copySrcReg))
             return false;
 
-        const MicroReg originalOp0 = nextOps[0].reg;
-        const MicroReg originalOp1 = nextInst.op == MicroInstrOpcode::CmpRegReg ? nextOps[1].reg : MicroReg::invalid();
-        bool replacesOperand = false;
+        const MicroReg originalOp0     = nextOps[0].reg;
+        const MicroReg originalOp1     = nextInst.op == MicroInstrOpcode::CmpRegReg ? nextOps[1].reg : MicroReg::invalid();
+        bool           replacesOperand = false;
 
         if (nextInst.op == MicroInstrOpcode::CmpRegReg)
         {

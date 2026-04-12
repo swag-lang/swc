@@ -35,8 +35,8 @@ namespace
         SWC_ASSERT(typeRef.isValid());
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
 
-        TaskContext&     ctx     = sema.ctx();
-        TypeManager&     typeMgr = sema.typeMgr();
+        TaskContext&    ctx      = sema.ctx();
+        TypeManager&    typeMgr  = sema.typeMgr();
         const TypeInfo& typeInfo = typeMgr.get(typeRef);
         if (typeInfo.isAlias())
         {

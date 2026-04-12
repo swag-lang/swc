@@ -58,8 +58,8 @@ namespace
         if (typeRef.isInvalid())
             return false;
 
-        TaskContext&     ctx     = codeGen.ctx();
-        TypeManager&     typeMgr = ctx.typeMgr();
+        TaskContext&    ctx      = codeGen.ctx();
+        TypeManager&    typeMgr  = ctx.typeMgr();
         const TypeInfo& typeInfo = typeMgr.get(typeRef);
         if (typeInfo.isAlias())
         {

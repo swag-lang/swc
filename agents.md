@@ -6,14 +6,11 @@
     1. Compile a **DevMode** build.
     2. Run `test_dm.bat`.
     3. If either step fails, fix the issue before proceeding.
+    4. Run `all_dm.bat`.
 
-- When `test_dm.bat` completes successfully (no crashes or errors):
+- When `all_dm.bat` completes successfully (no crashes or errors):
     1. Compile `swc` in **Release** mode.
-    2. Run:
-       ```
-       tools/all_dm.bat
-       tools/all.bat
-       ```
+    2. Run `all.bat`.
     3. Ensure no regressions occur.
 
 - When modifying **code generation**, run `test.bat` **10 consecutive times** to detect nondeterministic behavior.
@@ -22,7 +19,7 @@
 
 - **C++ unit tests**
     - Backend only
-    - Must be placed in `backend/unittest`.
+    - Must be placed in `src/Unittest`.
 
 - Individual tests must not run longer than **40 seconds**.
   (Compilation time is excluded from this limit.)

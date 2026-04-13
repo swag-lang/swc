@@ -19,21 +19,7 @@ namespace
         MicroOpBits opBits = MicroOpBits::B64;
     };
 
-    const MicroSsaState* ensureSsaState(const MicroPassContext& context, MicroSsaState& localState)
-    {
-        if (context.ssaState)
-            return context.ssaState;
-        if (!context.builder || !context.instructions || !context.operands)
-            return nullptr;
-
-        localState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
-        return &localState;
-    }
-
-    bool tryGetKnownValue(KnownValue&                    out,
-                          const std::vector<KnownValue>& knownValues,
-                          const std::vector<uint8_t>&    knownFlags,
-                          const uint32_t                 valueId)
+    bool tryGetKnownValue(KnownValue& out, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const uint32_t valueId)
     {
         if (valueId >= knownFlags.size() || !knownFlags[valueId])
             return false;
@@ -47,12 +33,7 @@ namespace
         return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
     }
 
-    bool tryGetKnownReachingValue(KnownValue&                    out,
-                                  const MicroSsaState&           ssaState,
-                                  const std::vector<KnownValue>& knownValues,
-                                  const std::vector<uint8_t>&    knownFlags,
-                                  const MicroReg                 reg,
-                                  const MicroInstrRef            instRef)
+    bool tryGetKnownReachingValue(KnownValue& out, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const MicroReg reg, const MicroInstrRef instRef)
     {
         const auto reachingDef = ssaState.reachingDef(reg, instRef);
         if (!reachingDef.valid())
@@ -61,11 +42,7 @@ namespace
         return tryGetKnownValue(out, knownValues, knownFlags, reachingDef.valueId);
     }
 
-    bool tryInferPhiConstant(KnownValue&                    out,
-                             const MicroSsaState&           ssaState,
-                             const MicroSsaState::PhiInfo&  phiInfo,
-                             const std::vector<KnownValue>& knownValues,
-                             const std::vector<uint8_t>&    knownFlags)
+    bool tryInferPhiConstant(KnownValue& out, const MicroSsaState& ssaState, const MicroSsaState::PhiInfo& phiInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
     {
         bool       hasCandidate = false;
         KnownValue candidate;
@@ -95,13 +72,7 @@ namespace
         return true;
     }
 
-    bool tryInferInstructionConstant(KnownValue&                     out,
-                                     const MicroSsaState&            ssaState,
-                                     const MicroStorage&             storage,
-                                     const MicroOperandStorage&      operands,
-                                     const std::vector<KnownValue>&  knownValues,
-                                     const std::vector<uint8_t>&     knownFlags,
-                                     const MicroSsaState::ValueInfo& valueInfo)
+    bool tryInferInstructionConstant(KnownValue& out, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const MicroSsaState::ValueInfo& valueInfo)
     {
         if (!valueInfo.instRef.isValid())
             return false;
@@ -166,11 +137,7 @@ namespace
         return false;
     }
 
-    void computeKnownValues(std::vector<KnownValue>&   knownValues,
-                            std::vector<uint8_t>&      knownFlags,
-                            const MicroSsaState&       ssaState,
-                            const MicroStorage&        storage,
-                            const MicroOperandStorage& operands)
+    void computeKnownValues(std::vector<KnownValue>& knownValues, std::vector<uint8_t>& knownFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
     {
         knownValues.assign(ssaState.values().size(), {});
         knownFlags.assign(ssaState.values().size(), 0);
@@ -210,12 +177,7 @@ namespace
         }
     }
 
-    bool tryFoldCopyFromKnown(const MicroSsaState&           ssaState,
-                              const std::vector<KnownValue>& knownValues,
-                              const std::vector<uint8_t>&    knownFlags,
-                              const MicroInstrRef            instRef,
-                              MicroInstr&                    inst,
-                              MicroInstrOperand*             ops)
+    bool tryFoldCopyFromKnown(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::LoadRegReg)
             return false;
@@ -237,12 +199,7 @@ namespace
         return true;
     }
 
-    bool tryFoldBinaryRegImm(const MicroSsaState&           ssaState,
-                             const std::vector<KnownValue>& knownValues,
-                             const std::vector<uint8_t>&    knownFlags,
-                             const MicroInstrRef            instRef,
-                             MicroInstr&                    inst,
-                             MicroInstrOperand*             ops)
+    bool tryFoldBinaryRegImm(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
@@ -261,7 +218,6 @@ namespace
             return false;
 
         inst.op          = MicroInstrOpcode::LoadRegImm;
-        ops[1].opBits    = ops[1].opBits;
         ops[2].valueU64  = foldedValue;
         inst.numOperands = 3;
         return true;
@@ -277,7 +233,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
     MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = ensureSsaState(context, localSsaState);
+    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 

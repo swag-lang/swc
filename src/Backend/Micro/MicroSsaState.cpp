@@ -1,14 +1,14 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_INVALID_INDEX       = std::numeric_limits<uint32_t>::max();
-    constexpr uint32_t K_INVALID_BLOCK_INDEX = std::numeric_limits<uint32_t>::max();
+    constexpr uint32_t K_INVALID = std::numeric_limits<uint32_t>::max();
 
     template<uint32_t N>
     void appendUniqueIndex(SmallVector<uint32_t, N>& values, const uint32_t value)
@@ -22,41 +22,21 @@ namespace
         values.push_back(value);
     }
 
+    // Cooper-Harvey-Kennedy finger-walk over the dom tree.
     uint32_t intersectIdom(uint32_t                     lhs,
                            uint32_t                     rhs,
                            const std::vector<uint32_t>& idom,
                            const std::vector<uint32_t>& rpoPosition)
     {
-        uint32_t fingerLhs = lhs;
-        uint32_t fingerRhs = rhs;
-        while (fingerLhs != fingerRhs)
+        while (lhs != rhs)
         {
-            if (fingerLhs == K_INVALID_BLOCK_INDEX || fingerRhs == K_INVALID_BLOCK_INDEX)
-                return K_INVALID_BLOCK_INDEX;
-
-            const uint32_t posLhs = rpoPosition[fingerLhs];
-            const uint32_t posRhs = rpoPosition[fingerRhs];
-            if (posLhs == K_INVALID_INDEX || posRhs == K_INVALID_INDEX)
-                return K_INVALID_BLOCK_INDEX;
-
-            while (rpoPosition[fingerLhs] > rpoPosition[fingerRhs])
-            {
-                const uint32_t next = idom[fingerLhs];
-                if (next == fingerLhs)
-                    return K_INVALID_BLOCK_INDEX;
-                fingerLhs = next;
-            }
-
-            while (rpoPosition[fingerRhs] > rpoPosition[fingerLhs])
-            {
-                const uint32_t next = idom[fingerRhs];
-                if (next == fingerRhs)
-                    return K_INVALID_BLOCK_INDEX;
-                fingerRhs = next;
-            }
+            while (rpoPosition[lhs] > rpoPosition[rhs])
+                lhs = idom[lhs];
+            while (rpoPosition[rhs] > rpoPosition[lhs])
+                rhs = idom[rhs];
         }
 
-        return fingerLhs;
+        return lhs;
     }
 }
 
@@ -99,8 +79,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
         const MicroInstr* inst = storage.ptr(instRef);
         SWC_ASSERT(inst != nullptr);
-        if (inst)
-            info.useDef = inst->collectUseDef(operands, encoder);
+        info.useDef = inst->collectUseDef(operands, encoder);
     }
 
     buildBlocks(controlFlowGraph);
@@ -109,6 +88,17 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
     renameIntoSsa();
 
     valid_ = true;
+}
+
+const MicroSsaState* MicroSsaState::ensureFor(const MicroPassContext& context, MicroSsaState& localState)
+{
+    if (context.ssaState)
+        return context.ssaState;
+    if (!context.builder || !context.instructions || !context.operands)
+        return nullptr;
+
+    localState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+    return &localState;
 }
 
 void MicroSsaState::clear()
@@ -139,21 +129,17 @@ MicroSsaState::ReachingDef MicroSsaState::reachingDef(const MicroReg reg, const 
         return {};
 
     const uint32_t slot = beforeInstRef.get();
-    if (slot >= instrInfos_.size())
-        return {};
+    SWC_ASSERT(slot < instrInfos_.size());
 
     const uint32_t valueId = findRegValue(instrInfos_[slot].reachingValues, reg);
     if (valueId == K_INVALID_VALUE)
         return {};
 
-    const ValueInfo* valueInfo = this->valueInfo(valueId);
-    if (!valueInfo)
-        return {};
-
-    ReachingDef result;
+    const ValueInfo& info = valueInfos_[valueId];
+    ReachingDef      result;
     result.valueId = valueId;
-    result.instRef = valueInfo->instRef;
-    result.isPhi   = valueInfo->isPhi();
+    result.instRef = info.instRef;
+    result.isPhi   = info.isPhi();
     if (!result.isPhi)
         result.inst = storage_->ptr(result.instRef);
     return result;
@@ -174,9 +160,7 @@ const MicroInstrUseDef* MicroSsaState::instrUseDef(const MicroInstrRef instRef) 
         return nullptr;
 
     const uint32_t slot = instRef.get();
-    if (slot >= instrInfos_.size())
-        return nullptr;
-
+    SWC_ASSERT(slot < instrInfos_.size());
     return &instrInfos_[slot].useDef;
 }
 
@@ -187,9 +171,7 @@ bool MicroSsaState::defValue(const MicroReg reg, const MicroInstrRef instRef, ui
         return false;
 
     const uint32_t slot = instRef.get();
-    if (slot >= instrInfos_.size())
-        return false;
-
+    SWC_ASSERT(slot < instrInfos_.size());
     outValueId = findRegValue(instrInfos_[slot].defValues, reg);
     return outValueId != K_INVALID_VALUE;
 }
@@ -240,8 +222,10 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
 
         for (const uint32_t successorIndex : successors)
         {
-            if (successorIndex != instructionIndex + 1 && successorIndex < leaders.size())
-                leaders[successorIndex] = 1;
+            if (successorIndex == instructionIndex + 1)
+                continue;
+            SWC_ASSERT(successorIndex < leaders.size());
+            leaders[successorIndex] = 1;
         }
     }
 
@@ -271,13 +255,9 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
         const auto&    successors      = controlFlowGraph.successors(lastInstruction);
         for (const uint32_t successorIndex : successors)
         {
-            if (successorIndex >= instructionToBlock_.size())
-                continue;
-
+            SWC_ASSERT(successorIndex < instructionToBlock_.size());
             const uint32_t successorBlock = instructionToBlock_[successorIndex];
-            if (successorBlock == K_INVALID_BLOCK)
-                continue;
-
+            SWC_ASSERT(successorBlock != K_INVALID_BLOCK);
             appendUniqueIndex(block.successors, successorBlock);
         }
     }
@@ -302,22 +282,37 @@ void MicroSsaState::computeDominators()
     if (blocks_.empty())
         return;
 
+    // Seed roots: entry block plus any predecessor-less block (covers unreachable
+    // sub-graphs). Fall back to scanning unvisited blocks for cycles unreachable
+    // from any seed.
     std::vector<uint8_t>     visited(blocks_.size(), 0);
     SmallVector<uint32_t, 8> roots;
     roots.push_back(0);
-    for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
+    for (uint32_t blockIndex = 1; blockIndex < blocks_.size(); ++blockIndex)
     {
         if (blocks_[blockIndex].predecessors.empty())
-            appendUniqueIndex(roots, blockIndex);
+            roots.push_back(blockIndex);
     }
+
+    std::vector<uint32_t> dfsStack;
+    std::vector<uint32_t> dfsIter;
+    std::vector<uint32_t> postOrder;
+    std::vector<uint32_t> rpoPosition(blocks_.size(), K_INVALID);
 
     size_t rootCursor = 0;
     while (true)
     {
-        uint32_t rootBlock = K_INVALID_BLOCK;
-        if (rootCursor < roots.size())
-            rootBlock = roots[rootCursor++];
-        else
+        uint32_t rootBlock = K_INVALID;
+        while (rootCursor < roots.size())
+        {
+            const uint32_t candidate = roots[rootCursor++];
+            if (!visited[candidate])
+            {
+                rootBlock = candidate;
+                break;
+            }
+        }
+        if (rootBlock == K_INVALID)
         {
             for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
             {
@@ -328,15 +323,12 @@ void MicroSsaState::computeDominators()
                 }
             }
         }
-
-        if (rootBlock == K_INVALID_BLOCK)
+        if (rootBlock == K_INVALID)
             break;
-        if (rootBlock >= blocks_.size() || visited[rootBlock])
-            continue;
 
-        std::vector<uint32_t> dfsStack;
-        std::vector<uint32_t> dfsIter;
-        std::vector<uint32_t> postOrder;
+        dfsStack.clear();
+        dfsIter.clear();
+        postOrder.clear();
         dfsStack.push_back(rootBlock);
         dfsIter.push_back(0);
         visited[rootBlock] = 1;
@@ -350,13 +342,12 @@ void MicroSsaState::computeDominators()
             if (iterIndex < successors.size())
             {
                 const uint32_t successorBlock = successors[iterIndex++];
-                if (successorBlock < blocks_.size() && !visited[successorBlock])
+                if (!visited[successorBlock])
                 {
                     visited[successorBlock] = 1;
                     dfsStack.push_back(successorBlock);
                     dfsIter.push_back(0);
                 }
-
                 continue;
             }
 
@@ -365,46 +356,35 @@ void MicroSsaState::computeDominators()
             dfsIter.pop_back();
         }
 
-        std::vector<uint32_t> rpo(postOrder.rbegin(), postOrder.rend());
-        std::vector<uint32_t> rpoPosition(blocks_.size(), K_INVALID_INDEX);
-        for (uint32_t rpoIndex = 0; rpoIndex < rpo.size(); ++rpoIndex)
-            rpoPosition[rpo[rpoIndex]] = rpoIndex;
+        std::ranges::fill(rpoPosition, K_INVALID);
+        const uint32_t rpoSize = static_cast<uint32_t>(postOrder.size());
+        for (uint32_t i = 0; i < rpoSize; ++i)
+            rpoPosition[postOrder[rpoSize - 1 - i]] = i;
 
         idomValues[rootBlock] = rootBlock;
         bool changed          = true;
         while (changed)
         {
             changed = false;
-            for (uint32_t rpoIndex = 1; rpoIndex < rpo.size(); ++rpoIndex)
+            for (uint32_t i = 1; i < rpoSize; ++i)
             {
-                const uint32_t blockIndex = rpo[rpoIndex];
-                uint32_t       newIdom    = K_INVALID_BLOCK;
+                const uint32_t blockIndex = postOrder[rpoSize - 1 - i];
+                uint32_t       newIdom    = K_INVALID;
 
                 for (const uint32_t predecessorBlock : blocks_[blockIndex].predecessors)
                 {
-                    if (predecessorBlock >= blocks_.size())
-                        continue;
-                    if (rpoPosition[predecessorBlock] == K_INVALID_INDEX)
+                    if (rpoPosition[predecessorBlock] == K_INVALID)
                         continue;
                     if (idomValues[predecessorBlock] == K_INVALID_BLOCK)
                         continue;
 
-                    if (newIdom == K_INVALID_BLOCK)
-                    {
+                    if (newIdom == K_INVALID)
                         newIdom = predecessorBlock;
-                        continue;
-                    }
-
-                    const uint32_t intersectedIdom = intersectIdom(predecessorBlock, newIdom, idomValues, rpoPosition);
-                    if (intersectedIdom == K_INVALID_BLOCK_INDEX)
-                        continue;
-                    newIdom = intersectedIdom;
+                    else
+                        newIdom = intersectIdom(predecessorBlock, newIdom, idomValues, rpoPosition);
                 }
 
-                if (newIdom == K_INVALID_BLOCK)
-                    continue;
-
-                if (idomValues[blockIndex] != newIdom)
+                if (newIdom != K_INVALID && idomValues[blockIndex] != newIdom)
                 {
                     idomValues[blockIndex] = newIdom;
                     changed                = true;
@@ -475,9 +455,7 @@ void MicroSsaState::placePhiNodes()
 
         for (const uint32_t blockIndex : defBlocks)
         {
-            if (blockIndex >= blocks_.size())
-                continue;
-
+            SWC_ASSERT(blockIndex < blocks_.size());
             workList.push_back(blockIndex);
             inWork[blockIndex] = 1;
         }
@@ -489,7 +467,7 @@ void MicroSsaState::placePhiNodes()
 
             for (const uint32_t frontierBlock : blocks_[blockIndex].dominanceFrontier)
             {
-                if (frontierBlock >= blocks_.size() || hasPhi[frontierBlock])
+                if (hasPhi[frontierBlock])
                     continue;
 
                 ensurePhi(frontierBlock, reg);
@@ -602,14 +580,12 @@ void MicroSsaState::captureReachingUses(SmallVector4<RegValueEntry>& out, const 
 
 void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint32_t successorBlock, const std::unordered_map<MicroReg, uint32_t>& currentValues)
 {
-    if (successorBlock >= blocks_.size())
-        return;
-
+    SWC_ASSERT(successorBlock < blocks_.size());
     BlockInfo& successor = blocks_[successorBlock];
     for (const uint32_t phiIndex : successor.phis)
     {
         PhiInfo& phi      = phiInfos_[phiIndex];
-        uint32_t predSlot = K_INVALID_INDEX;
+        uint32_t predSlot = K_INVALID;
         for (uint32_t idx = 0; idx < phi.predecessorBlocks.size(); ++idx)
         {
             if (phi.predecessorBlocks[idx] == predecessorBlock)
@@ -619,7 +595,7 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
             }
         }
 
-        if (predSlot == K_INVALID_INDEX)
+        if (predSlot == K_INVALID)
             continue;
 
         const auto currentValue = currentValues.find(phi.reg);
@@ -686,9 +662,7 @@ uint32_t MicroSsaState::ensurePhi(const uint32_t blockIndex, const MicroReg reg)
 
 void MicroSsaState::appendValueUse(const uint32_t valueId, const UseSite& useSite)
 {
-    if (valueId >= valueInfos_.size())
-        return;
-
+    SWC_ASSERT(valueId < valueInfos_.size());
     valueInfos_[valueId].uses.push_back(useSite);
 }
 
@@ -706,8 +680,6 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
         const uint32_t currentValueId = stack.back();
         stack.pop_back();
 
-        if (currentValueId >= valueInfos_.size())
-            continue;
         if (visited[currentValueId])
             continue;
         visited[currentValueId] = 1;

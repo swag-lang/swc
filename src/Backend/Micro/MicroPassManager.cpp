@@ -272,12 +272,12 @@ namespace
         return Result::Continue;
     }
 
-    Result runLoopPasses(MicroPassContext&          context,
+    Result runLoopPasses(MicroPassContext&           context,
                          std::span<MicroPass* const> passes,
-                         const uint32_t             maxIterations,
-                         const bool                 buildSsa,
-                         std::string_view           loopName,
-                         VerifyStateCache&          verifyCache)
+                         const uint32_t              maxIterations,
+                         const bool                  buildSsa,
+                         std::string_view            loopName,
+                         VerifyStateCache&           verifyCache)
     {
         if (passes.empty())
             return Result::Continue;
@@ -293,19 +293,21 @@ namespace
 #endif
 
         MicroSsaState ssaState;
-        if (buildSsa && context.builder && context.instructions && context.operands)
+        const bool    useSharedSsa = buildSsa && context.builder && context.instructions && context.operands;
+        const auto    refreshSsa   = [&] {
+            if (useSharedSsa && !ssaState.isValid())
+                ssaState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+        };
+        if (useSharedSsa)
         {
-            ssaState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+            refreshSsa();
             context.ssaState = &ssaState;
         }
 
         bool reachedFixedPoint = false;
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
-            if (buildSsa && context.ssaState && !ssaState.isValid() && context.builder && context.instructions && context.operands)
-            {
-                ssaState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
-            }
+            refreshSsa();
 
             bool iterationMutated = false;
 #if SWC_DEV_MODE
@@ -315,11 +317,7 @@ namespace
 #endif
             for (MicroPass* pass : passes)
             {
-                if (buildSsa && context.ssaState && !ssaState.isValid() && context.builder && context.instructions && context.operands)
-                {
-                    ssaState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
-                }
-
+                refreshSsa();
                 SWC_RESULT(runPass(context, *pass, verifyCache));
                 iterationMutated = iterationMutated || context.passChanged;
 #if SWC_DEV_MODE
@@ -458,9 +456,8 @@ Result MicroPassManager::run(MicroPassContext& context) const
 
     // Pre-RA optimization loop — converges on the virtual-register IR.
     SWC_ASSERT(context.builder);
-    const uint32_t preRAMaxIterations =
-        std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
-    SWC_RESULT(runLoopPasses(context, preRALoopPasses_, preRAMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
+    const uint32_t preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
+    SWC_RESULT(runLoopPasses(context, preRALoopPasses_, preRaMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
 
     // Register allocation loop — legalize + regalloc iterate until stable.
     const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);

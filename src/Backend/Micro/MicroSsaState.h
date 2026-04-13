@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 class MicroBuilder;
 class MicroControlFlowGraph;
+struct MicroPassContext;
 
 class MicroSsaState
 {
@@ -64,6 +65,12 @@ public:
     };
 
     void build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
+
+    // Returns the shared SSA from the pass context if available; otherwise builds
+    // it into 'localState' and returns that. Used by passes that may run either
+    // inside the pre-RA optimization loop (shared SSA) or standalone.
+    static const MicroSsaState* ensureFor(const MicroPassContext& context, MicroSsaState& localState);
+
     void clear();
     void invalidate();
     bool isValid() const { return valid_; }

@@ -12,17 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const MicroSsaState* ensureSsaState(const MicroPassContext& context, MicroSsaState& localState)
-    {
-        if (context.ssaState)
-            return context.ssaState;
-        if (!context.builder || !context.instructions || !context.operands)
-            return nullptr;
-
-        localState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
-        return &localState;
-    }
-
     bool canRewriteShift(MicroOpBits opBits, uint64_t immediate)
     {
         const uint32_t bitCount = getNumBits(opBits);
@@ -87,7 +76,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
     MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = ensureSsaState(context, localSsaState);
+    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
 
     const auto view  = storage.view();
     const auto endIt = view.end();

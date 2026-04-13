@@ -311,6 +311,111 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_OrOr)
 }
 SWC_TEST_END()
 
+// LoadRegMem ; OpBinaryRegImm ; LoadMemReg  ->  OpBinaryMemImm
+SWC_TEST_BEGIN(InstCombine_MemFold_Imm_Consecutive)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(2);
+    constexpr MicroReg vt   = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegPtrImm(base, 0x1000);
+    builder.emitLoadRegMem(vt, base, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(vt, ApInt(7, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 8, vt, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// LoadRegMem ; OpBinaryRegReg ; LoadMemReg  ->  OpBinaryMemReg
+SWC_TEST_BEGIN(InstCombine_MemFold_Reg_Consecutive)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(2);
+    constexpr MicroReg vt   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg rhs  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegPtrImm(base, 0x1000);
+    builder.emitLoadRegImm(rhs, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(vt, base, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(vt, rhs, MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 0, vt, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Load ; <unrelated instr> ; Op ; Store  -> still folds (windowed scan).
+SWC_TEST_BEGIN(InstCombine_MemFold_NonConsecutive)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(2);
+    constexpr MicroReg vt   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg rhs  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegPtrImm(base, 0x1000);
+    builder.emitLoadRegMem(vt, base, 0, MicroOpBits::B64);
+    // Materialize rhs between the load and the op (mimics the codegen shape).
+    builder.emitLoadRegImm(rhs, ApInt(11, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(vt, rhs, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 0, vt, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// vt is read after the store -> must NOT fold.
+SWC_TEST_BEGIN(InstCombine_MemFold_VtReadAfterStore_NotFolded)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(2);
+    constexpr MicroReg vt   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg out  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegPtrImm(base, 0x1000);
+    builder.emitLoadRegMem(vt, base, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(vt, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 0, vt, MicroOpBits::B64);
+    builder.emitLoadRegReg(out, vt, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    // The triple cannot be folded because vt's post-op SSA value has 2 uses
+    // (the store and the subsequent copy).
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

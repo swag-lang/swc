@@ -242,24 +242,30 @@ void Diagnostic::report(TaskContext& ctx) const
             if (!dismiss)
                 Stats::addError();
             ctx.setHasError();
-            ctx.compiler().notifyAlive();
-            if (fileOwner_.isValid())
+            if (ctx.hasCompiler())
             {
-                SourceFile& file = ctx.compiler().file(fileOwner_);
-                file.setHasError();
-                const SourceCodeRange startRange = elements_.front()->codeRange(0, ctx);
-                file.addErrorLineRange(startRange.line, codeRangeEndLine(ctx, startRange));
+                ctx.compiler().notifyAlive();
+                if (fileOwner_.isValid())
+                {
+                    SourceFile& file = ctx.compiler().file(fileOwner_);
+                    file.setHasError();
+                    const SourceCodeRange startRange = elements_.front()->codeRange(0, ctx);
+                    file.addErrorLineRange(startRange.line, codeRangeEndLine(ctx, startRange));
+                }
             }
             break;
         case DiagnosticSeverity::Warning:
             if (!dismiss)
                 Stats::get().numWarnings.fetch_add(1);
             ctx.setHasWarning();
-            ctx.compiler().notifyAlive();
-            if (fileOwner_.isValid())
+            if (ctx.hasCompiler())
             {
-                SourceFile& file = ctx.compiler().file(fileOwner_);
-                file.setHasWarning();
+                ctx.compiler().notifyAlive();
+                if (fileOwner_.isValid())
+                {
+                    SourceFile& file = ctx.compiler().file(fileOwner_);
+                    file.setHasWarning();
+                }
             }
             break;
         default:

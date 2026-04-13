@@ -162,6 +162,7 @@
         <ClCompile Include="src\Unittest\Test.Micro.ConstantFolding.cpp"/>
         <ClCompile Include="src\Unittest\Test.Micro.Ssa.cpp"/>
         <ClCompile Include="src\Unittest\Test.Micro.StrengthReduction.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Micro.InstructionCombine.cpp"/>
         <ClCompile Include="src\Unittest\Test.Native.NativeArtifact.cpp" />
         <ClCompile Include="src\Unittest\Test.Support.PagedStore.cpp" />
         <ClCompile Include="src\Support\Thread\Job.cpp" />

@@ -466,6 +466,10 @@ Result MicroPassManager::run(MicroPassContext& context) const
     context.statsInstrAfterOptim = context.instructions->count();
 #endif
 
+    // All passes preceding the legalize/RA loop must keep the IR in virtual-register form;
+    // physical registers are only legal once register allocation kicks in.
+    SWC_RESULT(MicroVerify::verifyAllRegistersVirtual(context, "pre-ra-virtual-only"));
+
     // Register allocation loop — legalize + regalloc iterate until stable.
     const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
     SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, false, "ra-legalize-loop", verifyCache));

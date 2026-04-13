@@ -156,6 +156,9 @@
     <ClCompile Include="src\Unittest\Test.Micro.CopyElimination.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Test.Micro.BranchSimplify.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Test.Micro.Ssa.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>

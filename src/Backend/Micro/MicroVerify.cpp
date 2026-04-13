@@ -491,6 +491,62 @@ Result MicroVerify::reportError(const MicroPassContext& context, std::string_vie
     return Result::Error;
 }
 
+Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, std::string_view phase)
+{
+    if (!isEnabled(context))
+        return Result::Continue;
+    if (!context.instructions || !context.operands)
+        return Result::Continue;
+
+    uint32_t instructionIdx = 0;
+    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it, ++instructionIdx)
+    {
+        const MicroInstr& inst = *it;
+        if (!inst.numOperands || inst.opsRef.isInvalid())
+            continue;
+
+        const MicroInstrOperand* ops   = context.operands->ptr(inst.opsRef);
+        if (!ops)
+            continue;
+
+        const MicroInstrDef& info  = MicroInstr::info(inst.op);
+        const auto           modes = resolveRegModes(info, ops);
+        const bool           hasMem = info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands);
+
+        const auto checkReg = [&](size_t operandIndex, const MicroReg reg) -> Result {
+            if (!reg.isValid())
+                return Result::Continue;
+            if (reg.isVirtual() || reg.isInstructionPointer() || reg.isNoBase())
+                return Result::Continue;
+            return reportError(context, phase, std::format("instruction #{} uses non-virtual register {} at operand {} before legalize/RA loop", instructionIdx, reg.packed, operandIndex));
+        };
+
+        for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
+        {
+            const bool isMemBase = hasMem && operandIndex == info.memBaseOperandIndex;
+            if (modes[operandIndex] == MicroInstrRegMode::None && !isMemBase)
+                continue;
+            SWC_RESULT(checkReg(operandIndex, ops[operandIndex].reg));
+        }
+
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadAmcMemReg:
+            case MicroInstrOpcode::LoadAmcMemImm:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                if (inst.numOperands > 2)
+                    SWC_RESULT(checkReg(2, ops[2].reg));
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    return Result::Continue;
+}
+
 uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
 {
     if (!isEnabled(context))

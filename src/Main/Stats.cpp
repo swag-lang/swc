@@ -1,6 +1,8 @@
 #include "pch.h"
-#include "Main/Stats.h"
+
+#include "Command/CommandLine.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -167,11 +169,16 @@ void Stats::print(const TaskContext& ctx) const
     constexpr auto colorHeader = LogColor::Yellow;
     constexpr auto colorMsg    = LogColor::White;
 
-    Logger::printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helper::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
-    Logger::printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeTotal.load())));
-    Logger::printHeaderDot(ctx, colorHeader, "osMaxAllocated", colorMsg, Utf8Helper::toNiceSize(Os::peakProcessMemoryUsage()));
+    if (ctx.cmdLine().stats)
+    {
+        Logger::printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helper::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
+        Logger::printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeTotal.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "osMaxAllocated", colorMsg, Utf8Helper::toNiceSize(Os::peakProcessMemoryUsage()));
+    }
 
 #if SWC_HAS_STATS
+    if (ctx.cmdLine().stats)
+    {
     // Frontend counts
     Logger::print(ctx, "\n");
     Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numFiles", colorMsg, Utf8Helper::toNiceBigNumber(numFiles.load()));
@@ -211,33 +218,37 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "time.sema.analysis", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
+    }
 
     // Memory profile
-    MemoryProfile::Summary summary;
-    MemoryProfile::buildSummary(summary);
-
-    Logger::print(ctx, "\n");
-    Logger::printHeaderDot(ctx, colorHeader, "mem.trackedPeak", colorMsg, Utf8Helper::toNiceSize(summary.totalPeakBytes));
-    Logger::printHeaderDot(ctx, colorHeader, "mem.trackedCurrent", colorMsg, Utf8Helper::toNiceSize(summary.totalCurrentBytes));
-
-    if (!summary.categories.empty())
+    if (ctx.cmdLine().statsMem)
     {
+        MemoryProfile::Summary summary;
+        MemoryProfile::buildSummary(summary);
+
         Logger::print(ctx, "\n");
+        Logger::printHeaderDot(ctx, colorHeader, "mem.trackedPeak", colorMsg, Utf8Helper::toNiceSize(summary.totalPeakBytes));
+        Logger::printHeaderDot(ctx, colorHeader, "mem.trackedCurrent", colorMsg, Utf8Helper::toNiceSize(summary.totalCurrentBytes));
 
-        TreeNode root;
-        for (const auto& cat : summary.categories)
-            insertIntoTree(root, cat);
-        propagateStats(root);
-
-        // Untagged
-        const size_t taggedPeak = root.peakBytes;
-        if (taggedPeak < summary.totalPeakBytes)
+        if (!summary.categories.empty())
         {
-            const size_t untaggedPeak = summary.totalPeakBytes - taggedPeak;
-            printMemLine(ctx, Utf8("(untagged)"), 0, summary.totalPeakBytes, untaggedPeak, 0, 0, nullptr);
-        }
+            Logger::print(ctx, "\n");
 
-        printTree(ctx, root, summary.totalPeakBytes, 0);
+            TreeNode root;
+            for (const auto& cat : summary.categories)
+                insertIntoTree(root, cat);
+            propagateStats(root);
+
+            // Untagged
+            const size_t taggedPeak = root.peakBytes;
+            if (taggedPeak < summary.totalPeakBytes)
+            {
+                const size_t untaggedPeak = summary.totalPeakBytes - taggedPeak;
+                printMemLine(ctx, Utf8("(untagged)"), 0, summary.totalPeakBytes, untaggedPeak, 0, 0, nullptr);
+            }
+
+            printTree(ctx, root, summary.totalPeakBytes, 0);
+        }
     }
 #endif
 

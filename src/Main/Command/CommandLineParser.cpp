@@ -663,6 +663,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
 
     addArg(HelpOptionGroup::Compiler, "all", "--num-cores", "-j", CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg(HelpOptionGroup::Compiler, "all", "--stats", "-st", CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
+    addArg(HelpOptionGroup::Compiler, "all", "--stats-mem", "-stm", CommandLineType::Bool, &cmdLine_->statsMem, nullptr, "Display runtime memory statistics after execution.");
     addArg(HelpOptionGroup::Compiler, "test build run", "--clear-output", "-co", CommandLineType::Bool, &cmdLine_->clear, nullptr, "Clear native work and artifact folders before building native outputs.");
 
     addArg(HelpOptionGroup::Diagnostics, "all", "--path-display", "-pd", CommandLineType::EnumInt, &cmdLine_->filePathDisplay, "as-is|basename|absolute", "Control file path display style for diagnostics, stack traces and file locations.");

@@ -58,6 +58,7 @@ struct CommandLine
     bool errorId          = false;
     bool silent           = false;
     bool stats            = false;
+    bool statsMem         = false;
     bool clear            = false;
     bool verboseInfo      = false;
     bool verboseVerify    = false;

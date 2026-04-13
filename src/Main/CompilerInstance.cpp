@@ -259,7 +259,7 @@ void CompilerInstance::logAfter()
 
 void CompilerInstance::logStats()
 {
-    if (!cmdLine().stats)
+    if (!cmdLine().stats && !cmdLine().statsMem)
         return;
 
     const TaskContext ctx(*this);

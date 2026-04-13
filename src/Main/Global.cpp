@@ -23,7 +23,7 @@ Global::Global()
 
 void Global::initialize(const CommandLine& cmdLine) const
 {
-    MemoryProfile::setDetailedTrackingEnabled(cmdLine.stats);
+    MemoryProfile::setDetailedTrackingEnabled(cmdLine.statsMem);
     Os::initialize();
     CallConv::setup();
     langSpec_->setup();

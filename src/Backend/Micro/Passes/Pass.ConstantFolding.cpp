@@ -101,11 +101,11 @@ namespace
 
         // Rewrite: LoadRegReg dst, src  ->  LoadRegImm dst, C
         const MicroReg dstReg = ops[0].reg;
-        inst.op          = MicroInstrOpcode::LoadRegImm;
-        ops[0].reg       = dstReg;
-        ops[1].opBits    = srcKnown->opBits;
-        ops[2].valueU64  = srcKnown->value;
-        inst.numOperands = 3;
+        inst.op               = MicroInstrOpcode::LoadRegImm;
+        ops[0].reg            = dstReg;
+        ops[1].opBits         = srcKnown->opBits;
+        ops[2].valueU64       = srcKnown->value;
+        inst.numOperands      = 3;
 
         setKnown(known, dstReg, srcKnown->value, srcKnown->opBits);
         return true;
@@ -146,11 +146,11 @@ namespace
 
         // Rewrite: OpBinaryRegImm dst, op, imm  ->  LoadRegImm dst, result
         const MicroReg dstReg = ops[0].reg;
-        inst.op          = MicroInstrOpcode::LoadRegImm;
-        ops[0].reg       = dstReg;
-        ops[1].opBits    = opBits;
-        ops[2].valueU64  = result;
-        inst.numOperands = 3;
+        inst.op               = MicroInstrOpcode::LoadRegImm;
+        ops[0].reg            = dstReg;
+        ops[1].opBits         = opBits;
+        ops[2].valueU64       = result;
+        inst.numOperands      = 3;
 
         setKnown(known, dstReg, result, opBits);
         return true;

@@ -63,7 +63,7 @@ private:
 
     void clearState();
     void initState(MicroPassContext& context);
-    void coalesceLocalCopies();
+    void coalesceLocalCopies() const;
 
     uint32_t         denseVirtualIndex(MicroReg key) const;
     VRegState&       stateForVirtual(MicroReg key);
@@ -90,14 +90,14 @@ private:
     void             markCurrentVirtualLiveOut(uint32_t stamp);
     void             rebuildCurrentConcreteLiveOutRegs();
     bool             canEraseCoalescedCopy(MicroInstrRef copyRef, MicroReg dstReg) const;
-    void             mergeVirtualForbiddenRegs(MicroReg dstReg, MicroReg srcReg);
+    void             mergeVirtualForbiddenRegs(MicroReg dstReg, MicroReg srcReg) const;
     bool             isCurrentConcreteLiveOut(MicroReg key) const;
     void             setupPools();
     void             ensureSpillSlot(VRegState& regState, bool isFloat);
     static void      clearRematerialization(VRegState& regState);
     static void      setRematerializedImmediate(VRegState& regState, const MicroInstrOperand& immediate, MicroOpBits opBits);
     static uint64_t  spillMemOffset(uint64_t spillOffset, int64_t stackDepth);
-    void             queueRematerializedLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState) const;
+    static void      queueRematerializedLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState);
     void             queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
     void             queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
     bool             spillOrRematerializeLiveValue(MicroReg physReg, VRegState& regState, int64_t stackDepth, std::vector<PendingInsert>& pending);

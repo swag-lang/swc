@@ -52,7 +52,7 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     }
 }
 
-void MicroRegisterAllocationPass::coalesceLocalCopies()
+void MicroRegisterAllocationPass::coalesceLocalCopies() const
 {
     SWC_ASSERT(context_ != nullptr);
     SWC_ASSERT(context_->builder != nullptr);
@@ -102,7 +102,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies()
                     if (!ref.reg || *ref.reg != dstReg || !ref.use || ref.def)
                         continue;
 
-                    *ref.reg    = srcReg;
+                    *ref.reg     = srcReg;
                     replacedUses = true;
                 }
             }
@@ -361,7 +361,7 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
     return true;
 }
 
-void MicroRegisterAllocationPass::mergeVirtualForbiddenRegs(MicroReg dstReg, MicroReg srcReg)
+void MicroRegisterAllocationPass::mergeVirtualForbiddenRegs(MicroReg dstReg, MicroReg srcReg) const
 {
     SWC_ASSERT(context_ != nullptr);
     SWC_ASSERT(context_->builder != nullptr);
@@ -810,7 +810,7 @@ uint64_t MicroRegisterAllocationPass::spillMemOffset(uint64_t spillOffset, int64
     return static_cast<uint64_t>(finalOffset);
 }
 
-void MicroRegisterAllocationPass::queueRematerializedLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState) const
+void MicroRegisterAllocationPass::queueRematerializedLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState)
 {
     SWC_ASSERT(regState.rematerializable);
     out.op            = MicroInstrOpcode::LoadRegImm;
@@ -860,9 +860,9 @@ bool MicroRegisterAllocationPass::spillOrRematerializeLiveValue(MicroReg physReg
     return true;
 }
 
-void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState& regState,
-                                                                const MicroReg virtKey,
-                                                                const MicroInstr& inst,
+void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState&                     regState,
+                                                                const MicroReg                 virtKey,
+                                                                const MicroInstr&              inst,
                                                                 const MicroInstrOperand* const instOps) const
 {
     clearRematerialization(regState);
@@ -1703,7 +1703,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             const MicroInstrOperand* const rewrittenOps = it->ops(*operands_);
             if (rewrittenOps && rewrittenOps[0].reg == rewrittenOps[1].reg)
             {
-                it->op         = MicroInstrOpcode::Nop;
+                it->op          = MicroInstrOpcode::Nop;
                 it->numOperands = 0;
                 it->opsRef      = MicroOperandRef::invalid();
             }

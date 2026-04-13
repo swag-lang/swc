@@ -11,10 +11,72 @@
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/MemoryProfile.h"
 
-// Assigns physical registers to virtual registers and handles spills.
-// Example: v3 -> rax when a free compatible register exists.
-// Example: under pressure, v7 lives on stack: store v7 before conflict, reload before use.
-// This pass converts virtual microcode into concrete register form.
+// Linear-scan style register allocation for the micro IR.
+//
+// Overall flow (driven by `run()`):
+//
+//   clearState           : drop all per-function caches.
+//   initState            : capture context, sizes, and reset bookkeeping.
+//   coalesceLocalCopies  : remove `mov vDst, vSrc` copies whose source can
+//                          take over the destination's role within the same
+//                          local flow region. This both shrinks live ranges
+//                          and avoids needless register-to-register moves
+//                          in the assigned output.
+//   prepareInstructionData
+//                        : build the per-instruction use/def descriptor
+//                          (`instructionUseDefs_`) and the dense-index
+//                          tables that map MicroReg -> compact integer for
+//                          the liveness bitsets and state arrays.
+//   analyzeLiveness      : iterative dataflow over the local CFG; computes
+//                          live-in / live-out bit sets per instruction,
+//                          tracks call sites for caller-saved spilling, and
+//                          builds the per-virtual position lists used for
+//                          `distanceToNextUse` heuristics during eviction.
+//   setupPools           : seed the free-register pools (one per register
+//                          class) from the calling-convention's allocatable
+//                          regs, honoring per-virtual forbidden-physreg
+//                          constraints recorded by Legalize.
+//   rewriteInstructions  : single forward pass that, at each instruction:
+//                            1. expires mappings whose virtual is no longer
+//                               live, returning their phys reg to the pool;
+//                            2. spills caller-saved live values around calls;
+//                            3. assigns physical regs for use/def operands,
+//                               possibly evicting a less-valuable mapping
+//                               (chosen by `selectEvictionCandidate`) into a
+//                               spill slot or rematerializing a known constant;
+//                            4. mutates operand registers in place and queues
+//                               any pending spill stores/loads to insert
+//                               before/after the instruction.
+//   insertSpillFrame     : if any spill slots were used, insert the matching
+//                          `sub sp, frameSize` at function entry and the
+//                          matching `add sp, frameSize` before each Ret.
+//
+// Spill / rematerialize policy (see VRegState):
+//   - When a virtual is evicted, prefer rematerialization if it has a known
+//     constant origin (LoadRegImm/ClearReg) — emit a fresh load at the use
+//     site instead of hitting memory.
+//   - Otherwise allocate (lazily) a stack slot via `ensureSpillSlot` and
+//     emit store-before-eviction / load-before-use as PendingInsert entries.
+//   - `spillMemOffset` resolves the slot to a SP-relative offset, accounting
+//     for inline pushes/pops between function entry and the access point.
+//
+// Eviction heuristic (`isCandidateBetter`):
+//   - Prefer evicting a value that is dead soon (largest distanceToNextUse).
+//   - Prefer evicting a value that already has a spill slot (no extra store).
+//   - Prefer evicting a value that is rematerializable from an immediate.
+//   - Penalize evicting a value live across a call (it would need a save
+//     even if it survives this allocation point).
+//
+// Constraints honored:
+//   - Per-virtual forbidden physical registers (Legalize-supplied; e.g. for
+//     fixed shift-count operands).
+//   - Caller-saved registers spilled across CallInstruction sites.
+//   - Persistent (callee-saved) physical registers tracked separately so
+//     PrologEpilog can later push/pop them.
+//   - Memory base registers used by destructive load forms are kept off the
+//     destination's candidate list (`recordDestructiveAlias`).
+//
+// The pass converts virtual microcode into concrete register form.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -308,11 +370,11 @@ bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKe
     return isLiveInAt(virtKey, positions[cursor]);
 }
 
-bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey,
-                                                 uint32_t instructionIndex,
-                                                 MicroReg physReg,
+bool MicroRegisterAllocationPass::canUsePhysical(MicroReg     virtKey,
+                                                 uint32_t     instructionIndex,
+                                                 MicroReg     physReg,
                                                  MicroRegSpan forbiddenPhysRegs,
-                                                 bool allowConcreteLive) const
+                                                 bool         allowConcreteLive) const
 {
     if (!physReg.isInt() && !physReg.isFloat())
         return false;
@@ -331,7 +393,7 @@ bool MicroRegisterAllocationPass::tryTakeSpecificPhysical(SmallVector<MicroReg>&
                                                           MicroReg               preferredPhysReg,
                                                           MicroRegSpan           forbiddenPhysRegs,
                                                           bool                   allowConcreteLive,
-                                                          MicroReg&              outPhys)
+                                                          MicroReg&              outPhys) const
 {
     for (size_t candidateIndex = 0; candidateIndex < pool.size(); ++candidateIndex)
     {
@@ -1290,7 +1352,7 @@ bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest&     
     if (!canUsePhysical(request.virtKey, request.instructionIndex, sourcePhys, forbiddenPhysRegs, allowConcreteLive))
         return false;
 
-    auto& dstState = stateForVirtual(request.virtKey);
+    const auto& dstState = stateForVirtual(request.virtKey);
     if (dstState.mapped && dstState.phys != sourcePhys)
     {
         const MicroReg dstPhys = dstState.phys;
@@ -1753,16 +1815,16 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 request.preferredPhysReg = srcReg;
         }
 
-        std::stable_sort(allocRequests.begin(),
-                         allocRequests.end(),
-                         [](const AllocRequest& lhs, const AllocRequest& rhs)
-                         {
-                             const auto lhsPriority = lhs.isUse && lhs.isDef ? 0u : lhs.isUse ? 1u : 2u;
-                             const auto rhsPriority = rhs.isUse && rhs.isDef ? 0u : rhs.isUse ? 1u : 2u;
-                             return lhsPriority < rhsPriority;
-                         });
+        std::ranges::stable_sort(allocRequests,
+                                 [](const AllocRequest& lhs, const AllocRequest& rhs) {
+                                     const auto lhsPriority = lhs.isUse && lhs.isDef ? 0u : lhs.isUse ? 1u
+                                                                                                      : 2u;
+                                     const auto rhsPriority = rhs.isUse && rhs.isDef ? 0u : rhs.isUse ? 1u
+                                                                                                      : 2u;
+                                     return lhsPriority < rhsPriority;
+                                 });
 
-        SmallVector<MicroReg>    mentionedConcreteRegs;
+        SmallVector<MicroReg> mentionedConcreteRegs;
         mentionedConcreteRegs.reserve(instructionUseDefs_[idx].uses.size() + instructionUseDefs_[idx].defs.size());
         for (const MicroReg reg : instructionUseDefs_[idx].uses)
         {

@@ -4,6 +4,45 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Memory/MemoryProfile.h"
 
+// Stack adjustment normalization.
+//
+// During lowering each scope produces its own `sub rsp, N` / `add rsp, N`
+// pair around stack-passed arguments and locals. The result is a sequence of
+// nested adjustments whose maximum depth equals the function's true frame
+// size. This pass replaces all of them with a single sub at entry and a
+// matching add before each Ret, so the stack pointer holds the function-wide
+// frame for the entire body.
+//
+// Pipeline:
+//
+//   analyzeFunctionStackAdjustments  : symbolically execute SP, recording
+//                                      the depth at every instruction, the
+//                                      list of inline sub/add SP sites, and
+//                                      the maximum depth reached.
+//
+//   hasCallAtNonFrameDepth           : abort if any call happens at a depth
+//                                      different from the function frame —
+//                                      hoisting would move stack-passed
+//                                      arguments to wrong ABI slots.
+//
+//   validateOffsetRebase             : dry-run rewrite; checks that no
+//                                      [sp + off] reference would overflow
+//                                      and that any `mov reg, sp` copy can
+//                                      be paired with a follow-up Add.
+//
+//   applyOffsetRebase                : rebase every [sp + off] / amc-form
+//                                      offset to the new SP origin and
+//                                      insert the compensating Add after
+//                                      `mov reg, sp` copies.
+//
+//   final fix-up                     : drop the original sub/add SP sites
+//                                      and emit one sub at function entry
+//                                      plus one add before each Ret.
+//
+// The 2-phase validate-then-mutate split is intentional: the analysis is
+// cheap, the mutation is destructive, and bailing out cleanly when the
+// rebase isn't safe lets the function keep its original adjustments.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace
@@ -58,17 +97,14 @@ namespace
         return true;
     }
 
+    // Records the SP depth observed at the source side of a forward jump.
+    // If the same label is reached from multiple sites at different depths
+    // we leave the first observation untouched: such control flow already
+    // disqualifies the function from normalization (validateOffsetRebase
+    // will see the inconsistency through the per-instruction depth map).
     void mergeLabelDepth(std::unordered_map<uint32_t, uint64_t>& labelDepthById, uint32_t labelId, uint64_t depth)
     {
-        const auto it = labelDepthById.find(labelId);
-        if (it == labelDepthById.end())
-        {
-            labelDepthById.emplace(labelId, depth);
-            return;
-        }
-
-        if (it->second != depth)
-            return;
+        labelDepthById.try_emplace(labelId, depth);
     }
 
     bool tryAddOffset(uint64_t& value, uint64_t delta, bool apply)

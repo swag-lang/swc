@@ -6,9 +6,25 @@
 #include "Support/Memory/MemoryProfile.h"
 
 // Final emission pass: converts legalized micro instructions to machine code.
-// Example: branch placeholders are patched to concrete displacements.
-// Example: relocation-bearing immediates receive final code offsets.
-// This pass does not optimize semantics; it materializes final bytes.
+//
+// This pass does not optimize — it materializes final bytes. It runs in two
+// stages over the instruction stream:
+//
+//   1. Forward emission. Each MicroInstr is dispatched to the matching
+//      Encoder::encodeXxx routine. Two side tables are populated as we go:
+//        - labelOffsets_       : Label opcode -> code offset, used by stage 2.
+//        - pendingLabelJumps_  : conditional jumps with unresolved targets,
+//                                emitted with a placeholder displacement.
+//      Relocation-bearing instructions (LoadRegPtrReloc, CallLocal/Extern)
+//      bind their final code offset into the corresponding MicroRelocation
+//      via bindAbs64RelocationOffset() so the linker can patch the absolute
+//      pointer at load time.
+//
+//   2. Branch patching. Now that every Label has a concrete offset, walk the
+//      pending jump list and patch each placeholder displacement.
+//
+// Debug info source ranges are attached during stage 1 only when the builder
+// requested DebugInfo.
 
 SWC_BEGIN_NAMESPACE();
 

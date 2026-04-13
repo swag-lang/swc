@@ -8,9 +8,32 @@
 #include "Support/Memory/MemoryProfile.h"
 
 // Rewrites non-encodable instruction forms into legal encoder forms.
-// Example: unsupported mem+imm pattern -> sequence using a temporary register.
-// Example: oversized immediate form -> split/rewrite to legal width.
-// This pass preserves semantics while enforcing backend encoding constraints.
+//
+// The encoder publishes a `MicroConformanceIssue` for every micro-instruction
+// it cannot emit as-is (oversized immediates, unsupported mem+imm patterns,
+// fixed-register operand constraints like `cl` for variable shifts, ...).
+// This pass walks the IR, queries the encoder for the next issue on the
+// current instruction, and dispatches to a kind-specific rewrite (clamping
+// an immediate, splitting a 64-bit store into two 32-bit stores, materializing
+// a value into a scratch register, swapping operands to a fixed reg, ...).
+// Each rewrite leaves the IR semantically equivalent; the inner loop keeps
+// re-querying the same instruction until the encoder reports it conformant,
+// so a single instruction may be rewritten through several intermediate forms.
+//
+// Two helpers underpin the rewrites:
+//   - mustPreserveRegAfterInstruction / isRegUsedBeforeDefinitionWithinLocalFlow:
+//     tiny local liveness probes used to decide whether a fixed register has
+//     to be saved/restored around the rewrite.
+//   - addVirtualForbiddenReg / addLiveConcreteForbiddenRegsAfterInstruction:
+//     teach the register allocator to keep the freshly-introduced virtual
+//     register away from physical registers that are still live, so the
+//     rewrite cannot be undone by a later coalescing.
+//
+// Note: the scratch-frame scaffolding (stackScratchFrameSize / insertScratchFrame /
+// computeStackScratchBaseOffset) is wired but currently unused — the float
+// immediate rewrite uses push/pop around the scratch reg instead. The hooks
+// stay in place because some encoder backends will need a function-wide
+// scratch slot rather than a transient push.
 
 SWC_BEGIN_NAMESPACE();
 

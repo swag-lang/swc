@@ -6,9 +6,30 @@
 #include "Support/Memory/MemoryProfile.h"
 
 // Inserts ABI-mandated save/restore code around the function body.
-// Example: if callee-saved rbx is used, emit push rbx in prolog and pop rbx in epilog.
-// Example: reserve stack slots for preserved state when required by calling convention.
-// This pass enforces ABI correctness, not optimization.
+//
+// Pipeline (run after register allocation, when every register is concrete):
+//
+//   1. remapPersistentIntRegsToUnusedTransient
+//        Optimization: for leaf functions (no calls), if RA picked a callee-
+//        saved integer register but a free caller-saved one is also available,
+//        swap them. The save/restore that would otherwise be required is then
+//        unnecessary. Eligible candidates must be defined before any use (so
+//        the original ABI value never matters) and be remappable end-to-end.
+//
+//   2. buildSavedRegsPlan
+//        Walks the body and classifies every concrete register touched:
+//          - integer persistent regs   -> push/pop in prologue/epilogue
+//          - float   persistent regs   -> explicit stack slot (no push form)
+//          - frame   pointer           -> push + `mov fp, sp` setup
+//        Computes the spill-area size needed to hold the float slots and
+//        rounds the prologue stack subtract up to the ABI alignment so the
+//        body sees a properly aligned SP.
+//
+//   3. insertSavedRegsPrologue / insertSavedRegsEpilogue
+//        Materializes the planned push/pop, frame setup, stack adjust, and
+//        slot stores/loads. When an existing adjacent stack adjust matches
+//        the direction we need, it is merged in place instead of emitted
+//        again (avoids back-to-back `sub sp` pairs).
 
 SWC_BEGIN_NAMESPACE();
 

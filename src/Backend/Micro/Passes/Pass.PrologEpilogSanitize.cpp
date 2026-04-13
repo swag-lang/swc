@@ -7,6 +7,29 @@
 #include "Main/TaskContext.h"
 #include "Support/Memory/MemoryProfile.h"
 
+// Tidies up the prologue / epilogue produced by lowering before final emission.
+//
+//   sanitizePrologueFramePointerSetups
+//       Promotes a stray `mov fp, sp` / `lea fp, [sp]` redundantly emitted by
+//       earlier stages to a single canonical setup placed right after the
+//       frame-pointer push. When --force-frame-pointer is on but no setup was
+//       produced, one is synthesized.
+//
+//   sanitizePrologueStackAdjustments
+//       Coalesces consecutive `sub sp, c1` / `sub sp, c2` pairs into a single
+//       subtract. Encoder conformance is re-checked so we do not produce an
+//       immediate the target cannot encode.
+//
+//   expandLargePrologueStackAdjustments
+//       Windows requires touching every guard page when growing the stack by
+//       more than one page, so a function that subtracts more than 4 KiB needs
+//       explicit probe loads. The expansion inserts one dummy load per page
+//       between the subtract and the body so the guard pages fault in order.
+//
+//   sanitizeEpilogueStackAdjustments
+//       Same coalescing as the prologue version but applied backwards from
+//       each Ret over the run of epilogue instructions.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

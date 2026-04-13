@@ -221,6 +221,10 @@ void Stats::print(const TaskContext& ctx) const
     const int64_t raDelta = static_cast<int64_t>(numMicroAfterRA) - static_cast<int64_t>(numMicroAfterOptim);
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.raDelta", colorMsg, formatDelta(raDelta, numMicroAfterOptim));
 
+    // Post-RA finalization delta (prolog/epilog, frame setup, peephole...).
+    const int64_t finalDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroAfterRA);
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.finalDelta", colorMsg, formatDelta(finalDelta, numMicroAfterRA));
+
     // Whole-pipeline delta.
     const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroBefore);
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, formatDelta(pipelineDelta, numMicroBefore));

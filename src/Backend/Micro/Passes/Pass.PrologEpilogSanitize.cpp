@@ -205,6 +205,11 @@ namespace
                 framePointerSetupRefs.push_back(it.current);
         }
 
+        MicroInstrOperand setFrameOps[3];
+        setFrameOps[0].reg    = conv.framePointer;
+        setFrameOps[1].reg    = conv.stackPointer;
+        setFrameOps[2].opBits = MicroOpBits::B64;
+
         if (framePointerSetupRefs.empty())
         {
             if (!context.forceFramePointer || !conv.framePointer.isValid())
@@ -212,10 +217,6 @@ namespace
             if (!insertBeforeRef.isValid())
                 return false;
 
-            MicroInstrOperand setFrameOps[3];
-            setFrameOps[0].reg    = conv.framePointer;
-            setFrameOps[1].reg    = conv.stackPointer;
-            setFrameOps[2].opBits = MicroOpBits::B64;
             context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps, true);
             return true;
         }
@@ -226,10 +227,6 @@ namespace
         if (framePointerSetupRefs.size() == 1 && framePointerSetupRefs.front() == insertBeforeRef)
             return false;
 
-        MicroInstrOperand setFrameOps[3];
-        setFrameOps[0].reg    = conv.framePointer;
-        setFrameOps[1].reg    = conv.stackPointer;
-        setFrameOps[2].opBits = MicroOpBits::B64;
         context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps, true);
 
         bool changed = true;
@@ -325,24 +322,20 @@ namespace
             const MicroInstrRef insertBeforeRef = nextIt.current;
             uint64_t            remaining       = stackAdjust;
 
+            MicroInstrOperand probeOps[4];
+            probeOps[0].reg    = conv.intReturn;
+            probeOps[1].reg    = conv.stackPointer;
+            probeOps[2].opBits = MicroOpBits::B64;
+
             while (remaining > K_WINDOWS_STACK_PROBE_PAGE_SIZE)
             {
                 remaining -= K_WINDOWS_STACK_PROBE_PAGE_SIZE;
-
-                MicroInstrOperand probeOps[4];
-                probeOps[0].reg      = conv.intReturn;
-                probeOps[1].reg      = conv.stackPointer;
-                probeOps[2].opBits   = MicroOpBits::B64;
                 probeOps[3].valueU64 = remaining;
                 context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps, true);
             }
 
-            MicroInstrOperand finalProbeOps[4];
-            finalProbeOps[0].reg      = conv.intReturn;
-            finalProbeOps[1].reg      = conv.stackPointer;
-            finalProbeOps[2].opBits   = MicroOpBits::B64;
-            finalProbeOps[3].valueU64 = 0;
-            context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, finalProbeOps, true);
+            probeOps[3].valueU64 = 0;
+            context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps, true);
             return true;
         }
 

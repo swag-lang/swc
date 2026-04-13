@@ -48,7 +48,11 @@ namespace
         return ops && operandIndex < inst.numOperands;
     }
 
-    bool mustPreserveRegAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)
+    // Scans forward from instRef looking for a use/def of reg.
+    // Returns true on use (live), false on def (killed), false if reg invalid,
+    // or fallbackResult if instRef is not found / a local dataflow barrier is hit
+    // before any use/def — the two callers disagree on this conservative default.
+    bool scanRegLivenessAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg, bool fallbackResult)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -61,7 +65,7 @@ namespace
         while (it != view.end() && it.current != instRef)
             ++it;
         if (it == view.end())
-            return true;
+            return fallbackResult;
 
         ++it;
         for (; it != view.end(); ++it)
@@ -69,7 +73,7 @@ namespace
             const MicroInstr&      scanInst = *it;
             const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
-                return true;
+                return fallbackResult;
 
             if (microRegSpanContains(useDef.uses, reg))
                 return true;
@@ -78,53 +82,26 @@ namespace
         }
 
         return false;
+    }
+
+    bool mustPreserveRegAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)
+    {
+        return scanRegLivenessAfterInstruction(context, instRef, reg, true);
     }
 
     bool isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg)
     {
-        SWC_ASSERT(context.instructions);
-        SWC_ASSERT(context.operands);
-
-        if (!reg.isValid())
-            return false;
-
-        const MicroStorage::View view = context.instructions->view();
-        auto                     it   = view.begin();
-        while (it != view.end() && it.current != instRef)
-            ++it;
-        if (it == view.end())
-            return false;
-
-        ++it;
-        for (; it != view.end(); ++it)
-        {
-            const MicroInstr&      scanInst = *it;
-            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
-            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
-                return false;
-
-            if (microRegSpanContains(useDef.uses, reg))
-                return true;
-            if (microRegSpanContains(useDef.defs, reg))
-                return false;
-        }
-
-        return false;
-    }
-
-    bool isConcreteAllocatableReg(MicroReg reg)
-    {
-        return reg.isInt() || reg.isFloat();
+        return scanRegLivenessAfterInstruction(context, instRef, reg, false);
     }
 
     void addVirtualForbiddenReg(const MicroPassContext& context, MicroReg virtualReg, MicroReg concreteReg)
     {
         SWC_ASSERT(context.builder);
         SWC_ASSERT(virtualReg.isVirtual());
-        if (!isConcreteAllocatableReg(concreteReg))
+        if (!concreteReg.isInt() && !concreteReg.isFloat())
             return;
 
-        (context.builder)->addVirtualRegForbiddenPhysReg(virtualReg, concreteReg);
+        context.builder->addVirtualRegForbiddenPhysReg(virtualReg, concreteReg);
     }
 
     void addLiveConcreteForbiddenRegsAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg virtualReg)
@@ -274,12 +251,12 @@ namespace
         const MicroReg      stackPointerReg = encoder.stackPointerReg();
         const MicroInstrRef firstRef        = beginIt.current;
 
-        std::array<MicroInstrOperand, 4> subOps;
-        subOps[0].reg      = stackPointerReg;
-        subOps[1].opBits   = MicroOpBits::B64;
-        subOps[2].microOp  = MicroOp::Subtract;
-        subOps[3].valueU64 = frameSize;
-        context.instructions->insertBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps, true);
+        std::array<MicroInstrOperand, 4> stackAdjustOps;
+        stackAdjustOps[0].reg      = stackPointerReg;
+        stackAdjustOps[1].opBits   = MicroOpBits::B64;
+        stackAdjustOps[2].microOp  = MicroOp::Subtract;
+        stackAdjustOps[3].valueU64 = frameSize;
+        context.instructions->insertBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps, true);
 
         std::vector<MicroInstrRef> retRefs;
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
@@ -288,15 +265,9 @@ namespace
                 retRefs.push_back(it.current);
         }
 
+        stackAdjustOps[2].microOp = MicroOp::Add;
         for (const MicroInstrRef retRef : retRefs)
-        {
-            std::array<MicroInstrOperand, 4> addOps;
-            addOps[0].reg      = stackPointerReg;
-            addOps[1].opBits   = MicroOpBits::B64;
-            addOps[2].microOp  = MicroOp::Add;
-            addOps[3].valueU64 = frameSize;
-            context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps, true);
-        }
+            context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps, true);
     }
 
     void removeInstruction(const MicroPassContext& context, MicroInstrRef instRef)

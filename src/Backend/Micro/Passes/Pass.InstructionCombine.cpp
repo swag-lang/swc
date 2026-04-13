@@ -53,13 +53,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // Mask of the low 'opBits' bits, sign-extended to 64 (so we can compare
-    // immediates against -1 regardless of the operand width).
-    uint64_t allOnesMask(MicroOpBits opBits)
-    {
-        return getBitsMask(opBits);
-    }
-
     bool isSameOpBitsInt(MicroOpBits a, MicroOpBits b)
     {
         return a == b && a != MicroOpBits::Zero && a != MicroOpBits::B128;
@@ -69,7 +62,7 @@ namespace
     // (i.e. the result equals v).
     bool isRightIdentity(MicroOp op, MicroOpBits opBits, uint64_t imm)
     {
-        const uint64_t mask = allOnesMask(opBits);
+        const uint64_t mask = getBitsMask(opBits);
         switch (op)
         {
             case MicroOp::Add:
@@ -100,7 +93,7 @@ namespace
     // that constant (already masked to opBits).
     bool isRightAbsorbing(MicroOp op, MicroOpBits opBits, uint64_t imm, uint64_t& outResult)
     {
-        const uint64_t mask = allOnesMask(opBits);
+        const uint64_t mask = getBitsMask(opBits);
         switch (op)
         {
             case MicroOp::And:
@@ -146,7 +139,7 @@ namespace
                         MicroOp&    outOp,
                         uint64_t&   outImm)
     {
-        const uint64_t mask = allOnesMask(opBits);
+        const uint64_t mask = getBitsMask(opBits);
 
         const auto fold = [&](MicroOp op, uint64_t lhs, uint64_t rhs) -> std::optional<uint64_t> {
             uint64_t   value  = 0;

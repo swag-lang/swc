@@ -56,6 +56,16 @@ namespace
         return true;
     }
 
+    void insertStackAdjust(const MicroPassContext& context, MicroInstrRef insertBeforeRef, MicroReg stackPointerReg, MicroOp op, uint64_t value)
+    {
+        MicroInstrOperand ops[4];
+        ops[0].reg      = stackPointerReg;
+        ops[1].opBits   = MicroOpBits::B64;
+        ops[2].microOp  = op;
+        ops[3].valueU64 = value;
+        context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, ops, true);
+    }
+
     bool hasCallInstruction(const MicroPassContext& context)
     {
         SWC_ASSERT(context.instructions);
@@ -490,14 +500,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     }
 
     if (savedRegsStackSubSize_ && !mergedStackSub)
-    {
-        MicroInstrOperand subOps[4];
-        subOps[0].reg      = conv.stackPointer;
-        subOps[1].opBits   = MicroOpBits::B64;
-        subOps[2].microOp  = MicroOp::Subtract;
-        subOps[3].valueU64 = savedRegsStackSubSize_;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, subOps, true);
-    }
+        insertStackAdjust(context, insertBeforeRef, conv.stackPointer, MicroOp::Subtract, savedRegsStackSubSize_);
 
     // Float persistent regs use explicit stack slots because there is no push/pop form.
     for (const SavedRegSlot& slot : savedRegSlots_)
@@ -538,14 +541,7 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     }
 
     if (savedRegsStackSubSize_ && !mergedStackAdd)
-    {
-        MicroInstrOperand addOps[4];
-        addOps[0].reg      = conv.stackPointer;
-        addOps[1].opBits   = MicroOpBits::B64;
-        addOps[2].microOp  = MicroOp::Add;
-        addOps[3].valueU64 = savedRegsStackSubSize_;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, addOps, true);
-    }
+        insertStackAdjust(context, insertBeforeRef, conv.stackPointer, MicroOp::Add, savedRegsStackSubSize_);
 
     for (const MicroReg pushedReg : std::ranges::reverse_view(pushedRegs_))
     {

@@ -378,24 +378,19 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
             retRefs.push_back(it.current);
     }
 
-    MicroInstrOperand subOps[4];
-    subOps[0].reg      = conv.stackPointer;
-    subOps[1].opBits   = MicroOpBits::B64;
-    subOps[2].microOp  = MicroOp::Subtract;
-    subOps[3].valueU64 = analysisResult.frameSize;
-    context.instructions->insertBefore(*context.operands, beginIt.current, MicroInstrOpcode::OpBinaryRegImm, subOps, true);
+    MicroInstrOperand stackAdjustOps[4];
+    stackAdjustOps[0].reg      = conv.stackPointer;
+    stackAdjustOps[1].opBits   = MicroOpBits::B64;
+    stackAdjustOps[2].microOp  = MicroOp::Subtract;
+    stackAdjustOps[3].valueU64 = analysisResult.frameSize;
+    context.instructions->insertBefore(*context.operands, beginIt.current, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps, true);
 
+    stackAdjustOps[2].microOp = MicroOp::Add;
     for (const MicroInstrRef retRef : retRefs)
     {
         if (!context.instructions->ptr(retRef))
             continue;
-
-        MicroInstrOperand addOps[4];
-        addOps[0].reg      = conv.stackPointer;
-        addOps[1].opBits   = MicroOpBits::B64;
-        addOps[2].microOp  = MicroOp::Add;
-        addOps[3].valueU64 = analysisResult.frameSize;
-        context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps, true);
+        context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps, true);
     }
 
     context.passChanged = true;

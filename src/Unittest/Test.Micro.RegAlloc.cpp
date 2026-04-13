@@ -362,6 +362,44 @@ namespace
         b.emitRet();
     }
 
+    void buildVirtualCopyCoalescing(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv& conv = CallConv::get(callConvKind);
+
+        constexpr MicroReg srcValue  = MicroReg::virtualIntReg(7500);
+        constexpr MicroReg copiedReg = MicroReg::virtualIntReg(7501);
+
+        b.addVirtualRegForbiddenPhysReg(srcValue, conv.intReturn);
+        b.emitLoadRegImm(srcValue, ApInt(0x11223344, 64), MicroOpBits::B64);
+        b.emitLoadRegReg(copiedReg, srcValue, MicroOpBits::B64);
+        b.emitLoadRegReg(conv.intReturn, copiedReg, MicroOpBits::B64);
+        b.emitRet();
+    }
+
+    void buildImmediateRematerialization(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv& conv = CallConv::get(callConvKind);
+        SWC_ASSERT(!conv.intTransientRegs.empty());
+
+        const MicroReg     forcedReg   = conv.intTransientRegs.back();
+        constexpr MicroReg rematValue  = MicroReg::virtualIntReg(7600);
+        SmallVector<MicroReg> forbiddenRegs;
+        forbiddenRegs.reserve(conv.intRegs.size());
+        for (const MicroReg reg : conv.intRegs)
+        {
+            if (reg == forcedReg)
+                continue;
+
+            forbiddenRegs.push_back(reg);
+        }
+
+        b.addVirtualRegForbiddenPhysRegs(rematValue, forbiddenRegs.span());
+        b.emitLoadRegImm(rematValue, ApInt(0x12345678, 64), MicroOpBits::B64);
+        b.emitLoadRegImm(forcedReg, ApInt(0x55, 64), MicroOpBits::B64);
+        b.emitLoadRegReg(conv.intReturn, rematValue, MicroOpBits::B64);
+        b.emitRet();
+    }
+
     bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
@@ -459,6 +497,35 @@ namespace
         }
 
         return hasSub && hasAdd && hasStore && hasLoad;
+    }
+
+    uint32_t countOpcode(MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        uint32_t result = 0;
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (inst.op == opcode)
+                result++;
+        }
+
+        return result;
+    }
+
+    uint32_t countLoadRegImmValue(MicroBuilder& builder, uint64_t value)
+    {
+        uint32_t result = 0;
+        auto&    storeOps = builder.operands();
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadRegImm)
+                continue;
+
+            const MicroInstrOperand* ops = inst.ops(storeOps);
+            if (ops && ops[2].immediateValue(64).as64() == value)
+                result++;
+        }
+
+        return result;
     }
 
     bool containsIntArgRegs(MicroBuilder& builder, const CallConv& conv)
@@ -662,7 +729,8 @@ SWC_TEST_BEGIN(RegAlloc_Spill_IntPressureAcrossCall)
 
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
 
-        if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)))
+        if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)) &&
+            countOpcode(builder, MicroInstrOpcode::LoadRegImm) <= 24)
             return Result::Error;
     }
 }
@@ -685,7 +753,8 @@ SWC_TEST_BEGIN(RegAlloc_Spill_FloatAcrossCall_NoPersistent)
 
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
 
-        if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)))
+        if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)) &&
+            countOpcode(builder, MicroInstrOpcode::LoadRegImm) == 0)
             return Result::Error;
     }
 }
@@ -827,6 +896,56 @@ SWC_TEST_BEGIN(RegAlloc_UsesPersistentFallbackWhenTransientPoolExhausted)
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
 
         if (!returnUsesPersistentReg(builder, conv.intReturn, conv))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_CoalescesLinearVirtualCopies)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroBuilder builder(ctx);
+        buildVirtualCopyCoalescing(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+        SWC_RESULT(verifyCallConvConformity(builder, CallConv::get(callConvKind)));
+
+        if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_RematerializesImmediateReloads)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroBuilder builder(ctx);
+        buildImmediateRematerialization(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+        SWC_RESULT(verifyCallConvConformity(builder, CallConv::get(callConvKind)));
+
+        if (countLoadRegImmValue(builder, 0x12345678) != 2)
+            return Result::Error;
+        if (hasSpillFrameOps(builder, CallConv::get(callConvKind)))
             return Result::Error;
     }
 }

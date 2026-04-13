@@ -19,13 +19,16 @@ public:
     Result            run(MicroPassContext& context) override;
     struct VRegState
     {
-        MicroReg    phys;
-        uint64_t    spillOffset     = 0;
-        MicroOpBits spillBits       = MicroOpBits::B64;
-        uint32_t    mappedListIndex = std::numeric_limits<uint32_t>::max();
-        bool        mapped          = false;
-        bool        hasSpill        = false;
-        bool        dirty           = false;
+        MicroReg          phys;
+        uint64_t          spillOffset      = 0;
+        MicroOpBits       spillBits        = MicroOpBits::B64;
+        MicroInstrOperand rematImmediate   = {};
+        MicroOpBits       rematBits        = MicroOpBits::B64;
+        uint32_t          mappedListIndex  = std::numeric_limits<uint32_t>::max();
+        bool              mapped           = false;
+        bool              hasSpill         = false;
+        bool              dirty            = false;
+        bool              rematerializable = false;
     };
 
 private:
@@ -60,6 +63,7 @@ private:
 
     void clearState();
     void initState(MicroPassContext& context);
+    void coalesceLocalCopies();
 
     uint32_t         denseVirtualIndex(MicroReg key) const;
     VRegState&       stateForVirtual(MicroReg key);
@@ -85,12 +89,19 @@ private:
     void             computeCurrentLiveOutBits(uint32_t instructionIndex);
     void             markCurrentVirtualLiveOut(uint32_t stamp);
     void             rebuildCurrentConcreteLiveOutRegs();
+    bool             canEraseCoalescedCopy(MicroInstrRef copyRef, MicroReg dstReg) const;
+    void             mergeVirtualForbiddenRegs(MicroReg dstReg, MicroReg srcReg);
     bool             isCurrentConcreteLiveOut(MicroReg key) const;
     void             setupPools();
     void             ensureSpillSlot(VRegState& regState, bool isFloat);
+    static void      clearRematerialization(VRegState& regState);
+    static void      setRematerializedImmediate(VRegState& regState, const MicroInstrOperand& immediate, MicroOpBits opBits);
     static uint64_t  spillMemOffset(uint64_t spillOffset, int64_t stackDepth);
+    void             queueRematerializedLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState) const;
     void             queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
     void             queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
+    bool             spillOrRematerializeLiveValue(MicroReg physReg, VRegState& regState, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void             updateRematerializationForDef(VRegState& regState, MicroReg virtKey, const MicroInstr& inst, const MicroInstrOperand* instOps) const;
     void             applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst) const;
     static void      mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth);
     bool             isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const;
@@ -140,6 +151,7 @@ private:
     std::vector<uint64_t>                               tempInVirtual_;
     std::vector<uint64_t>                               tempOutConcrete_;
     std::vector<uint64_t>                               tempInConcrete_;
+    std::vector<uint32_t>                               definitionCounts_;
     std::vector<uint32_t>                               liveStampByDenseIndex_;
     std::vector<uint8_t>                                vregsLiveAcrossCall_;
     std::vector<uint8_t>                                callSpillFlags_;

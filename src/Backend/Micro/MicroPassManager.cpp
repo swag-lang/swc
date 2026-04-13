@@ -28,6 +28,7 @@ namespace
 {
     constexpr uint32_t K_OPT_ITERATION_OFF = 1;
     constexpr uint32_t K_OPT_ITERATION_ON  = 16;
+    constexpr uint32_t K_RA_ITERATION_ON   = 16;
 
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
@@ -148,12 +149,11 @@ namespace
         return K_OPT_ITERATION_ON;
     }
 
-    uint32_t optimizationIterationLimit(const MicroPassContext& context)
+    uint32_t loopIterationLimit(const MicroPassContext& context, const uint32_t defaultLimit)
     {
         if (context.optimizationIterationLimit)
             return context.optimizationIterationLimit;
-        SWC_ASSERT(context.builder);
-        return optimizationIterationLimit(context.builder->backendBuildCfg());
+        return defaultLimit;
     }
 
     struct VerifyStateCache
@@ -269,12 +269,14 @@ namespace
         return Result::Continue;
     }
 
-    Result runLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes, VerifyStateCache& verifyCache)
+    Result runLoopPasses(MicroPassContext&          context,
+                         std::span<MicroPass* const> passes,
+                         const uint32_t             maxIterations,
+                         std::string_view           loopName,
+                         VerifyStateCache&          verifyCache)
     {
         if (passes.empty())
             return Result::Continue;
-
-        const uint32_t maxIterations = std::max<uint32_t>(optimizationIterationLimit(context), 1);
 
 #if SWC_DEV_MODE
         std::unordered_set<uint64_t> seenStates;
@@ -295,6 +297,7 @@ namespace
             context.useDefMap = &useDefMap;
         }
 
+        bool reachedFixedPoint = false;
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
             // Rebuild the use-def map if a previous iteration invalidated it.
@@ -328,7 +331,10 @@ namespace
             }
 
             if (!iterationMutated)
+            {
+                reachedFixedPoint = true;
                 break;
+            }
 
 #if SWC_DEV_MODE
             if (MicroVerify::isEnabled(context))
@@ -351,6 +357,14 @@ namespace
                 }
             }
 #endif
+        }
+
+        if (!reachedFixedPoint)
+        {
+            context.useDefMap = nullptr;
+            return MicroVerify::reportError(context,
+                                            loopName,
+                                            std::format("failed to reach a fixed point after {} iterations", maxIterations));
         }
 
         context.useDefMap = nullptr;
@@ -437,10 +451,14 @@ Result MicroPassManager::run(MicroPassContext& context) const
     context.printInstrCountBefore = context.instructions->count();
 
     // Pre-RA optimization loop — converges on the virtual-register IR.
-    SWC_RESULT(runLoopPasses(context, preRALoopPasses_, verifyCache));
+    SWC_ASSERT(context.builder);
+    const uint32_t preRAMaxIterations =
+        std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
+    SWC_RESULT(runLoopPasses(context, preRALoopPasses_, preRAMaxIterations, "pre-ra-optimization-loop", verifyCache));
 
     // Register allocation loop — legalize + regalloc iterate until stable.
-    SWC_RESULT(runLoopPasses(context, raLoopPasses_, verifyCache));
+    const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
+    SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, "ra-legalize-loop", verifyCache));
 
     SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));
 

@@ -387,7 +387,8 @@ MicroPassManager& MicroPassManager::operator=(MicroPassManager&&) noexcept = def
 void MicroPassManager::clear()
 {
     startPasses_.clear();
-    loopPasses_.clear();
+    preRALoopPasses_.clear();
+    raLoopPasses_.clear();
     finalPasses_.clear();
 }
 
@@ -395,30 +396,31 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 {
     clear();
 
-    // Phase 1 — Initial lowering.
+    // Phase 1 — Initial lowering (runs once).
+    // Only stack adjustment normalization. Legalize is deferred to the RA loop:
+    // pre-RA optimization passes work on unconstrained virtual-register IR and
+    // shouldn't see encoder-specific rewrites.
     addStartPass(*stackAdjustNormalizePass_);
-    addStartPass(*legalizePass_);
 
-    // Phase 2 — Pre-RA optimization loop (virtual registers, no encoder constraints).
-    // Each pass sees the full virtual register space and can freely rewrite without
-    // worrying about physical register pressure or encoding legality.
+    // Phase 2 — Pre-RA optimization loop (operates on virtual registers only).
+    // Iterates until fixed point before touching register allocation.
     if (optimize)
     {
-        addLoopPass(*constantFoldingPass_);
-        addLoopPass(*copyEliminationPass_);
-        addLoopPass(*instructionCombinePass_);
-        addLoopPass(*strengthReductionPass_);
-        addLoopPass(*deadCodeEliminationPass_);
-        addLoopPass(*branchSimplifyPass_);
+        addPreRALoopPass(*constantFoldingPass_);
+        addPreRALoopPass(*copyEliminationPass_);
+        addPreRALoopPass(*instructionCombinePass_);
+        addPreRALoopPass(*strengthReductionPass_);
+        addPreRALoopPass(*deadCodeEliminationPass_);
+        addPreRALoopPass(*branchSimplifyPass_);
     }
 
-    // Phase 3 — Register allocation boundary.
-    // Legalize + RegAlloc run in the loop: regalloc can introduce spills/reloads
-    // that require another legalization pass.
-    addLoopPass(*legalizePass_);
-    addLoopPass(*regAllocPass_);
+    // Phase 3 — Register allocation loop.
+    // Legalize can introduce new virtual registers; RegAlloc can introduce spills that
+    // need another Legalize pass. They iterate together until stable.
+    addRALoopPass(*legalizePass_);
+    addRALoopPass(*regAllocPass_);
 
-    // Phase 4 — Post-RA finalization.
+    // Phase 4 — Post-RA finalization (runs once, on physical registers).
     addFinalPass(*prologEpilogPass_);
     if (optimize)
         addFinalPass(*postRAPeepholePass_);
@@ -433,7 +435,13 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_RESULT(runLinearPasses(context, startPasses_, verifyCache));
 
     context.printInstrCountBefore = context.instructions->count();
-    SWC_RESULT(runLoopPasses(context, loopPasses_, verifyCache));
+
+    // Pre-RA optimization loop — converges on the virtual-register IR.
+    SWC_RESULT(runLoopPasses(context, preRALoopPasses_, verifyCache));
+
+    // Register allocation loop — legalize + regalloc iterate until stable.
+    SWC_RESULT(runLoopPasses(context, raLoopPasses_, verifyCache));
+
     SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));
 
     return Result::Continue;

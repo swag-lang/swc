@@ -5,8 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 // Pre-RA copy elimination on virtual registers.
 // Propagates register aliases and removes redundant copies.
-// Runs before register allocation so it operates on infinite virtual registers
-// without encoder conformance constraints.
+
 class MicroCopyEliminationPass final : public MicroPass
 {
 public:

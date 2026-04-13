@@ -274,8 +274,18 @@ namespace
         SWC_ASSERT(frameSize != 0);
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
 
-        const MicroReg frameBaseReg = callConv.preferredLocalStackBaseReg();
-        SWC_ASSERT(frameBaseReg.isValid());
+        // Materialize the local stack base into a virtual register. RegAlloc will assign
+        // it a physical register — we constrain it to a persistent (callee-saved) register
+        // by forbidding all transient (caller-saved) registers, so it survives calls.
+        const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
+        SmallVector<MicroReg> forbiddenRegs;
+        for (const MicroReg reg : callConv.intTransientRegs)
+            forbiddenRegs.push_back(reg);
+        forbiddenRegs.push_back(callConv.stackPointer);
+        if (callConv.framePointer.isValid())
+            forbiddenRegs.push_back(callConv.framePointer);
+        builder.addVirtualRegForbiddenPhysRegs(frameBaseReg, forbiddenRegs.span());
+
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
         codeGen.setLocalStackBaseReg(frameBaseReg);
         codeGen.function().setDebugStackFrameSize(frameSize);

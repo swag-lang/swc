@@ -577,6 +577,7 @@ namespace
         addVirtualForbiddenReg(context, scratchReg, originalReg);
         addVirtualForbiddenReg(context, scratchReg, issue.requiredReg);
         addVirtualForbiddenReg(context, scratchReg, issue.forbiddenReg);
+        addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, scratchReg);
 
         insertLoadRegImm(context, instRef, scratchReg, opBits, immOperand);
 

@@ -43,14 +43,19 @@ public:
     void clear();
     void configureDefaultPipeline(bool optimize);
     void addStartPass(MicroPass& pass) { startPasses_.push_back(&pass); }
-    void addLoopPass(MicroPass& pass) { loopPasses_.push_back(&pass); }
+    void addPreRALoopPass(MicroPass& pass) { preRALoopPasses_.push_back(&pass); }
+    void addRALoopPass(MicroPass& pass) { raLoopPasses_.push_back(&pass); }
     void addFinalPass(MicroPass& pass) { finalPasses_.push_back(&pass); }
+
+    // Back-compat shim: addLoopPass routes to the RA loop (legalize+regalloc).
+    void addLoopPass(MicroPass& pass) { raLoopPasses_.push_back(&pass); }
 
     Result run(MicroPassContext& context) const;
 
 private:
     std::vector<MicroPass*> startPasses_;
-    std::vector<MicroPass*> loopPasses_;
+    std::vector<MicroPass*> preRALoopPasses_;
+    std::vector<MicroPass*> raLoopPasses_;
     std::vector<MicroPass*> finalPasses_;
 
     // Structural passes

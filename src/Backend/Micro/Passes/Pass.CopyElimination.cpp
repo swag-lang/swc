@@ -6,9 +6,23 @@
 #include "Support/Memory/MemoryProfile.h"
 
 // Pre-RA copy elimination on virtual registers.
-// Propagates register aliases created by copy/move instructions and removes dead copies.
-// Example: mov v2, v1; add v3, v2 -> add v3, v1  (then remove dead copy).
-// Example: mov v2, v1; mov v4, v2 -> mov v4, v1.
+//
+// Step 1: compute a "canonical value" lattice over SSA. A value's canonical
+//         form is itself, unless it's defined by a register-to-register copy
+//         from a source whose own canonical value still reaches this point —
+//         in which case we transitively forward to that source. Phi nodes are
+//         canonicalized only when every incoming canonical value agrees.
+//
+// Step 2: rewrite every virtual-register use to its canonical value, but only
+//         when the canonical reg's reaching def at the use site is the same
+//         SSA value we resolved (otherwise the canonical reg has been
+//         redefined and we'd alias the wrong value).
+//
+// Step 3: rebuild SSA (live ranges and uses are now stale) and erase any copy
+//         whose destination is no longer used afterwards. Self-copies are
+//         removed unconditionally.
+//
+// Example: mov v2, v1; add v3, v2  ->  add v3, v1  (then drop the dead copy).
 
 SWC_BEGIN_NAMESPACE();
 

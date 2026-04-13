@@ -5,9 +5,21 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Support/Memory/MemoryProfile.h"
 
-// Pre-RA constant folding backed by SSA def-use chains.
-// Uses exact reaching definitions across the CFG, including phi joins when all
-// incoming values are the same constant.
+// Pre-RA constant folding driven by SSA reaching definitions.
+//
+// Computes a per-value "known constant" lattice as a fixed-point over the SSA
+// graph, then rewrites instructions whose inputs are known. Phi joins are
+// folded only when every incoming value resolves to the same constant.
+//
+// Patterns folded:
+//   LoadRegImm / ClearReg          : seed values.
+//   LoadRegReg with known src      : rewritten to LoadRegImm.
+//   OpBinaryRegImm with known lhs  : evaluated, rewritten to LoadRegImm.
+//   OpBinaryRegReg with known lhs+rhs : evaluated, rewritten to LoadRegImm.
+//
+// The propagation step never mutates the IR, so the fixed point is stable.
+// Rewrite is a single linear pass; the outer pass-manager loop handles
+// re-running and re-building SSA after a change.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -42,7 +54,8 @@ namespace
         return tryGetKnownValue(out, knownValues, knownFlags, reachingDef.valueId);
     }
 
-    bool tryInferPhiConstant(KnownValue& out, const MicroSsaState& ssaState, const MicroSsaState::PhiInfo& phiInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
+    // Phi is a constant iff every incoming value is the same constant.
+    bool tryInferPhiConstant(KnownValue& out, const MicroSsaState::PhiInfo& phiInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
     {
         bool       hasCandidate = false;
         KnownValue candidate;
@@ -64,7 +77,6 @@ namespace
                 return false;
         }
 
-        SWC_UNUSED(ssaState);
         if (!hasCandidate)
             return false;
 
@@ -130,6 +142,30 @@ namespace
                 return true;
             }
 
+            case MicroInstrOpcode::OpBinaryRegReg:
+            {
+                // Layout: [dst (UseDef), src, opBits, microOp]. Both inputs must
+                // be known constants for the result to be constant.
+                if (inst->numOperands < 4 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                    return false;
+
+                KnownValue lhs;
+                KnownValue rhs;
+                if (!tryGetKnownReachingValue(lhs, ssaState, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
+                    return false;
+                if (!tryGetKnownReachingValue(rhs, ssaState, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
+                    return false;
+
+                uint64_t   foldedValue = 0;
+                const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, lhs.value, rhs.value, ops[3].microOp, ops[2].opBits);
+                if (status != Math::FoldStatus::Ok)
+                    return false;
+
+                out.value  = foldedValue;
+                out.opBits = ops[2].opBits;
+                return true;
+            }
+
             default:
                 break;
         }
@@ -160,7 +196,7 @@ namespace
                 {
                     const auto* phiInfo = ssaState.phiInfoForValue(valueId);
                     if (phiInfo)
-                        inferred = tryInferPhiConstant(knownValue, ssaState, *phiInfo, knownValues, knownFlags);
+                        inferred = tryInferPhiConstant(knownValue, *phiInfo, knownValues, knownFlags);
                 }
                 else
                 {
@@ -222,6 +258,35 @@ namespace
         inst.numOperands = 3;
         return true;
     }
+
+    bool tryFoldBinaryRegReg(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+    {
+        if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        if (!ops || inst.numOperands < 4)
+            return false;
+        if (!ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
+            return false;
+
+        KnownValue lhs;
+        KnownValue rhs;
+        if (!tryGetKnownReachingValue(lhs, ssaState, knownValues, knownFlags, ops[0].reg, instRef))
+            return false;
+        if (!tryGetKnownReachingValue(rhs, ssaState, knownValues, knownFlags, ops[1].reg, instRef))
+            return false;
+
+        uint64_t   foldedValue = 0;
+        const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, lhs.value, rhs.value, ops[3].microOp, ops[2].opBits);
+        if (status != Math::FoldStatus::Ok)
+            return false;
+
+        // Rewrite to LoadRegImm: [dst, opBits, imm].
+        inst.op          = MicroInstrOpcode::LoadRegImm;
+        ops[1].opBits    = ops[2].opBits;
+        ops[2].valueU64  = foldedValue;
+        inst.numOperands = 3;
+        return true;
+    }
 }
 
 Result MicroConstantFoldingPass::run(MicroPassContext& context)
@@ -250,7 +315,8 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
         MicroInstrOperand*  ops     = inst.ops(operands);
 
         const bool changed = tryFoldCopyFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldBinaryRegImm(*ssaState, knownValues, knownFlags, instRef, inst, ops);
+                             tryFoldBinaryRegImm(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
+                             tryFoldBinaryRegReg(*ssaState, knownValues, knownFlags, instRef, inst, ops);
         if (changed)
             context.passChanged = true;
     }

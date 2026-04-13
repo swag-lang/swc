@@ -65,7 +65,8 @@ namespace
         return a == b && a != MicroOpBits::Zero && a != MicroOpBits::B128;
     }
 
-    // True if 'imm' is the additive / bitwise zero for 'op' applied as 'v op imm'.
+    // True if 'imm' is the right identity for 'op' applied as 'v op imm'
+    // (i.e. the result equals v).
     bool isRightIdentity(MicroOp op, MicroOpBits opBits, uint64_t imm)
     {
         const uint64_t mask = allOnesMask(opBits);
@@ -83,6 +84,10 @@ namespace
             case MicroOp::RotateRight:
                 return (imm & mask) == 0;
 
+            case MicroOp::MultiplySigned:
+            case MicroOp::MultiplyUnsigned:
+                return (imm & mask) == 1;
+
             case MicroOp::And:
                 return (imm & mask) == mask;
 
@@ -91,7 +96,8 @@ namespace
         }
     }
 
-    // True if 'v op imm' is constant regardless of v.
+    // True if 'v op imm' is a constant regardless of v. 'outResult' receives
+    // that constant (already masked to opBits).
     bool isRightAbsorbing(MicroOp op, MicroOpBits opBits, uint64_t imm, uint64_t& outResult)
     {
         const uint64_t mask = allOnesMask(opBits);
@@ -109,6 +115,15 @@ namespace
                 if ((imm & mask) == mask)
                 {
                     outResult = mask;
+                    return true;
+                }
+                break;
+
+            case MicroOp::MultiplySigned:
+            case MicroOp::MultiplyUnsigned:
+                if ((imm & mask) == 0)
+                {
+                    outResult = 0;
                     return true;
                 }
                 break;
@@ -151,12 +166,12 @@ namespace
             const bool     firstIsSub  = firstOp == MicroOp::Subtract;
             const bool     secondIsSub = secondOp == MicroOp::Subtract;
 
-            uint64_t addImm = 0;  // immediate when encoded as Add.
+            uint64_t addImm = 0; // immediate when encoded as Add.
             if (firstIsSub == secondIsSub)
                 addImm = firstIsSub ? ((0u - (a + b)) & mask) : ((a + b) & mask);
-            else if (firstIsSub)  // -a + b == b - a
+            else if (firstIsSub) // -a + b == b - a
                 addImm = (b - a) & mask;
-            else                  // +a - b == a - b
+            else // +a - b == a - b
                 addImm = (a - b) & mask;
 
             const uint64_t subImm = (0u - addImm) & mask;
@@ -214,35 +229,34 @@ namespace
     {
         enum class Kind : uint8_t
         {
-            EraseCurrent,             // remove 'current' (identity op).
-            RewriteCurrentToClear,    // 'current' becomes ClearReg.
-            RewriteCurrentToLoadImm,  // 'current' becomes LoadRegImm with 'newImm'.
-            ReassociateChain,         // erase 'current', rewrite 'previous' op+imm.
-            MemoryFold,               // erase 'previous' (load) + 'current' (store),
-                                      // rewrite 'middle' to OpBinaryMemImm.
+            EraseCurrent,            // remove 'current' (identity op).
+            RewriteCurrentToClear,   // 'current' becomes ClearReg.
+            RewriteCurrentToLoadImm, // 'current' becomes LoadRegImm with 'newImm'.
+            ReassociateChain,        // erase 'current', rewrite 'previous' op+imm.
+            MemoryFold,              // erase 'previous' (load) + 'current' (store),
+                                     // rewrite 'middle' to OpBinaryMemImm.
         };
 
-        Kind          kind     = Kind::EraseCurrent;
-        MicroInstrRef current  = MicroInstrRef::invalid();
-        MicroInstrRef previous = MicroInstrRef::invalid();
-        MicroInstrRef middle   = MicroInstrRef::invalid();
-        MicroOp       newOp    = MicroOp::Add;
-        uint64_t      newImm   = 0;
-        uint64_t      memOff   = 0;
-        MicroReg      memBase  = MicroReg::invalid();
-        MicroReg      rhsReg   = MicroReg::invalid();
-        MicroOpBits   opBits   = MicroOpBits::B64;
+        Kind          kind        = Kind::EraseCurrent;
+        MicroInstrRef current     = MicroInstrRef::invalid();
+        MicroInstrRef previous    = MicroInstrRef::invalid();
+        MicroInstrRef middle      = MicroInstrRef::invalid();
+        MicroOp       newOp       = MicroOp::Add;
+        uint64_t      newImm      = 0;
+        uint64_t      memOff      = 0;
+        MicroReg      memBase     = MicroReg::invalid();
+        MicroReg      rhsReg      = MicroReg::invalid();
+        MicroOpBits   opBits      = MicroOpBits::B64;
         bool          midIsRegReg = false;
     };
 
     // Look up the SSA reaching-def of 'reg' just before 'instRef' and decide
     // whether it is a single-use, same-shape OpBinaryRegImm we can reassociate.
-    bool tryPlanReassociate(CombinePlan&         plan,
-                            const MicroSsaState& ssa,
-                            const MicroStorage&  storage,
+    bool tryPlanReassociate(CombinePlan&               plan,
+                            const MicroSsaState&       ssa,
                             const MicroOperandStorage& operands,
-                            MicroInstrRef        currentRef,
-                            const MicroInstrOperand* curOps)
+                            MicroInstrRef              currentRef,
+                            const MicroInstrOperand*   curOps)
     {
         const MicroReg dst    = curOps[0].reg;
         const MicroOp  curOp  = curOps[2].microOp;
@@ -268,7 +282,7 @@ namespace
         if (!valueInfo || valueInfo->uses.size() != 1)
             return false;
 
-        MicroOp  combinedOp  = MicroOp::Add;
+        auto     combinedOp  = MicroOp::Add;
         uint64_t combinedImm = 0;
         if (!tryReassociate(prevOps[2].microOp, prevOps[3].valueU64, curOp, curImm, opBits, combinedOp, combinedImm))
             return false;
@@ -279,17 +293,15 @@ namespace
         plan.newOp    = combinedOp;
         plan.newImm   = combinedImm;
         plan.opBits   = opBits;
-        SWC_UNUSED(storage);
         return true;
     }
 
-    bool tryPlanRegImm(CombinePlan&             plan,
-                       const MicroSsaState*     ssa,
-                       const MicroStorage&      storage,
+    bool tryPlanRegImm(CombinePlan&               plan,
+                       const MicroSsaState*       ssa,
                        const MicroOperandStorage& operands,
-                       MicroInstrRef            instRef,
-                       const MicroInstr&        inst,
-                       const MicroInstrOperand* ops)
+                       MicroInstrRef              instRef,
+                       const MicroInstr&          inst,
+                       const MicroInstrOperand*   ops)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm || inst.numOperands < 4 || !ops)
             return false;
@@ -333,7 +345,7 @@ namespace
             return true;
         }
 
-        if (ssa && tryPlanReassociate(plan, *ssa, storage, operands, instRef, ops))
+        if (ssa && tryPlanReassociate(plan, *ssa, operands, instRef, ops))
             return true;
 
         return false;
@@ -420,15 +432,15 @@ namespace
     // consecutive — intervening instructions are allowed as long as they do
     // not write memory (potential alias of [base+off]), do not redefine 'vt' or
     // 'base', and (between op and store) do not use 'vt'.
-    bool tryPlanMemoryFold(CombinePlan&         plan,
-                           const MicroSsaState* ssa,
+    bool tryPlanMemoryFold(CombinePlan&               plan,
+                           const MicroSsaState*       ssa,
                            const MicroOperandStorage& operands,
-                           MicroInstrRef        loadRef,
-                           const MicroInstr&    loadInst,
-                           MicroInstrRef        opRef,
-                           const MicroInstr&    opInst,
-                           MicroInstrRef        storeRef,
-                           const MicroInstr&    storeInst)
+                           MicroInstrRef              loadRef,
+                           const MicroInstr&          loadInst,
+                           MicroInstrRef              opRef,
+                           const MicroInstr&          opInst,
+                           MicroInstrRef              storeRef,
+                           const MicroInstr&          storeInst)
     {
         if (!ssa)
             return false;
@@ -453,16 +465,16 @@ namespace
         //   OpBinaryRegImm: [reg, opBits, microOp, imm]
         //   OpBinaryRegReg: [dst, src, opBits, microOp]
         //   LoadMemReg    : [base, src, opBits, off]
-        const MicroReg    vt        = loadOps[0].reg;
-        const MicroReg    loadBase  = loadOps[1].reg;
-        const MicroOpBits loadBits  = loadOps[2].opBits;
-        const uint64_t    loadOff   = loadOps[3].valueU64;
+        const MicroReg    vt       = loadOps[0].reg;
+        const MicroReg    loadBase = loadOps[1].reg;
+        const MicroOpBits loadBits = loadOps[2].opBits;
+        const uint64_t    loadOff  = loadOps[3].valueU64;
 
-        const MicroReg    opReg     = opOps[0].reg;
-        const MicroOpBits opBits    = middleIsRegImm ? opOps[1].opBits : opOps[2].opBits;
-        const MicroOp     microOp   = middleIsRegImm ? opOps[2].microOp : opOps[3].microOp;
-        const uint64_t    opImm     = middleIsRegImm ? opOps[3].valueU64 : 0;
-        const MicroReg    rhsReg    = middleIsRegReg ? opOps[1].reg : MicroReg::invalid();
+        const MicroReg    opReg   = opOps[0].reg;
+        const MicroOpBits opBits  = middleIsRegImm ? opOps[1].opBits : opOps[2].opBits;
+        const MicroOp     microOp = middleIsRegImm ? opOps[2].microOp : opOps[3].microOp;
+        const uint64_t    opImm   = middleIsRegImm ? opOps[3].valueU64 : 0;
+        const MicroReg    rhsReg  = middleIsRegReg ? opOps[1].reg : MicroReg::invalid();
 
         const MicroReg    storeBase = storeOps[0].reg;
         const MicroReg    storeSrc  = storeOps[1].reg;
@@ -503,19 +515,15 @@ namespace
         if (!opValue || opValue->uses.size() != 1)
             return false;
 
-        plan.kind     = CombinePlan::Kind::MemoryFold;
-        plan.previous = loadRef;
-        plan.middle   = opRef;
-        plan.current  = storeRef;
-        plan.newOp    = microOp;
-        plan.newImm   = opImm;
-        plan.memOff   = loadOff;
-        plan.memBase  = loadBase;
-        plan.opBits   = opBits;
-        // Encode rhs reg into 'newOp' parameter via piggybacking is ugly;
-        // instead reuse memBase carrier and discriminate at apply time on the
-        // middle instruction's original opcode. Keep the rhs in a separate
-        // field in the plan.
+        plan.kind        = CombinePlan::Kind::MemoryFold;
+        plan.previous    = loadRef;
+        plan.middle      = opRef;
+        plan.current     = storeRef;
+        plan.newOp       = microOp;
+        plan.newImm      = opImm;
+        plan.memOff      = loadOff;
+        plan.memBase     = loadBase;
+        plan.opBits      = opBits;
         plan.midIsRegReg = middleIsRegReg;
         plan.rhsReg      = rhsReg;
         return true;
@@ -538,8 +546,8 @@ namespace
                 // ClearReg layout: [reg, opBits].
                 if (inst->numOperands < 2)
                     return;
-                inst->op         = MicroInstrOpcode::ClearReg;
-                ops[1].opBits    = plan.opBits;
+                inst->op          = MicroInstrOpcode::ClearReg;
+                ops[1].opBits     = plan.opBits;
                 inst->numOperands = 2;
                 return;
             }
@@ -560,7 +568,7 @@ namespace
 
             case CombinePlan::Kind::ReassociateChain:
             {
-                MicroInstr* prev = storage.ptr(plan.previous);
+                const MicroInstr* prev = storage.ptr(plan.previous);
                 SWC_ASSERT(prev && prev->op == MicroInstrOpcode::OpBinaryRegImm);
                 MicroInstrOperand* prevOps = prev->ops(operands);
                 SWC_ASSERT(prevOps && prev->numOperands >= 4);
@@ -604,7 +612,6 @@ namespace
 
                 storage.erase(plan.previous);
                 storage.erase(plan.current);
-                return;
             }
         }
     }
@@ -627,7 +634,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     // converge across loop iterations rather than fighting within one.
     SmallVector<CombinePlan, 16> plans;
     std::unordered_set<uint32_t> claimedSources;
-    std::unordered_set<uint32_t> claimedInstrs;  // any instruction already in a plan.
+    std::unordered_set<uint32_t> claimedInstrs; // any instruction already in a plan.
 
     const auto view  = storage.view();
     const auto endIt = view.end();
@@ -650,17 +657,17 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         // Memory-fold scan: anchored on each LoadRegMem.
         if (inst.op == MicroInstrOpcode::LoadRegMem && inst.numOperands >= 4 && ops)
         {
-            const MicroReg     vt       = ops[0].reg;
-            const MicroReg     base     = ops[1].reg;
-            const MicroOpBits  loadBits = ops[2].opBits;
-            const uint64_t     loadOff  = ops[3].valueU64;
+            const MicroReg    vt       = ops[0].reg;
+            const MicroReg    base     = ops[1].reg;
+            const MicroOpBits loadBits = ops[2].opBits;
+            const uint64_t    loadOff  = ops[3].valueU64;
 
-            if (vt.isVirtualInt() && claimedInstrs.find(instRef.get()) == claimedInstrs.end())
+            if (vt.isVirtualInt() && !claimedInstrs.contains(instRef.get()))
             {
-                MicroInstrRef     midRef    = MicroInstrRef::invalid();
-                const MicroInstr* midInst   = nullptr;
-                bool              foundMid  = false;
-                bool              aborted   = false;
+                MicroInstrRef     midRef   = MicroInstrRef::invalid();
+                const MicroInstr* midInst  = nullptr;
+                bool              foundMid = false;
+                bool              aborted  = false;
 
                 auto walker = it;
                 ++walker;
@@ -684,9 +691,9 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
                                 const uint32_t a = instRef.get();
                                 const uint32_t b = midRef.get();
                                 const uint32_t c = walker.current.get();
-                                if (claimedInstrs.find(a) == claimedInstrs.end() &&
-                                    claimedInstrs.find(b) == claimedInstrs.end() &&
-                                    claimedInstrs.find(c) == claimedInstrs.end())
+                                if (!claimedInstrs.contains(a) &&
+                                    !claimedInstrs.contains(b) &&
+                                    !claimedInstrs.contains(c))
                                 {
                                     claimedInstrs.insert(a);
                                     claimedInstrs.insert(b);
@@ -708,7 +715,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
                         break;
                     }
 
-                    const auto* useDef = ssaState ? ssaState->instrUseDef(walker.current) : nullptr;
+                    const auto* useDef   = ssaState ? ssaState->instrUseDef(walker.current) : nullptr;
                     const bool  defsVt   = useDef && microRegSpanContains(useDef->defs, vt);
                     const bool  defsBase = useDef && microRegSpanContains(useDef->defs, base);
                     const bool  usesVt   = useDef && microRegSpanContains(useDef->uses, vt);
@@ -753,14 +760,13 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
                         }
                     }
                 }
-                SWC_UNUSED(foundMid);
             }
         }
 
         if (!planned)
         {
             if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
-                planned = tryPlanRegImm(plan, ssaState, storage, operands, instRef, inst, ops);
+                planned = tryPlanRegImm(plan, ssaState, operands, instRef, inst, ops);
             else if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
                 planned = tryPlanRegReg(plan, instRef, inst, ops, ssaState);
 
@@ -770,8 +776,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
                 {
                     const uint32_t prevSlot = plan.previous.get();
                     if (!claimedSources.insert(prevSlot).second ||
-                        claimedInstrs.find(prevSlot) != claimedInstrs.end() ||
-                        claimedInstrs.find(plan.current.get()) != claimedInstrs.end())
+                        claimedInstrs.contains(prevSlot) ||
+                        claimedInstrs.contains(plan.current.get()))
                     {
                         planned = false;
                     }

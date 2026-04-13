@@ -515,7 +515,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
         const MicroInstrRef instRef = instructionRefs_[instructionIndex];
         InstrInfo&          info    = instrInfos_[instRef.get()];
 
-        captureReachingUses(info.reachingValues, info.useDef, state.currentValues);
+        captureReachingValues(info.reachingValues, state.currentValues);
 
         for (const MicroReg reg : info.useDef.uses)
         {
@@ -560,22 +560,13 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
     }
 }
 
-void MicroSsaState::captureReachingUses(SmallVector4<RegValueEntry>& out, const MicroInstrUseDef& useDef, const std::unordered_map<MicroReg, uint32_t>& currentValues)
+void MicroSsaState::captureReachingValues(SmallVector4<RegValueEntry>& out, const std::unordered_map<MicroReg, uint32_t>& currentValues)
 {
     out.clear();
-    out.reserve(useDef.uses.size());
+    out.reserve(currentValues.size());
 
-    for (const MicroReg reg : useDef.uses)
-    {
-        if (!isTrackedReg(reg))
-            continue;
-
-        const auto currentValue = currentValues.find(reg);
-        if (currentValue == currentValues.end())
-            continue;
-
-        out.push_back(RegValueEntry{reg, currentValue->second});
-    }
+    for (const auto& [reg, valueId] : currentValues)
+        out.push_back(RegValueEntry{reg, valueId});
 }
 
 void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint32_t successorBlock, const std::unordered_map<MicroReg, uint32_t>& currentValues)

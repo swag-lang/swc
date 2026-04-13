@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroUseDefMap.h"
+#include "Backend/Micro/MicroSsaState.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/MemoryProfile.h"
 
@@ -12,6 +12,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const MicroSsaState* ensureSsaState(const MicroPassContext& context, MicroSsaState& localState)
+    {
+        if (context.ssaState)
+            return context.ssaState;
+        if (!context.builder || !context.instructions || !context.operands)
+            return nullptr;
+
+        localState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+        return &localState;
+    }
+
     bool canRewriteShift(MicroOpBits opBits, uint64_t immediate)
     {
         const uint32_t bitCount = getNumBits(opBits);
@@ -52,12 +63,12 @@ namespace
         return true;
     }
 
-    bool tryReduceAddSubZero(const MicroInstrOperand* ops, uint64_t immediate, MicroStorage& storage, MicroInstrRef instRef, const MicroUseDefMap* useDefMap)
+    bool tryReduceAddSubZero(const MicroInstrOperand* ops, uint64_t immediate, MicroStorage& storage, MicroInstrRef instRef, const MicroSsaState* ssaState)
     {
         if (immediate != 0)
             return false;
 
-        if (useDefMap && !useDefMap->isRegUsedAfter(ops[0].reg, instRef))
+        if (ssaState && !ssaState->isRegUsedAfter(ops[0].reg, instRef))
         {
             storage.erase(instRef);
             return true;
@@ -73,9 +84,10 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    MicroStorage&         storage   = *context.instructions;
-    MicroOperandStorage&  operands  = *context.operands;
-    const MicroUseDefMap* useDefMap = context.useDefMap;
+    MicroStorage&        storage  = *context.instructions;
+    MicroOperandStorage& operands = *context.operands;
+    MicroSsaState        localSsaState;
+    const MicroSsaState* ssaState = ensureSsaState(context, localSsaState);
 
     const auto view  = storage.view();
     const auto endIt = view.end();
@@ -111,7 +123,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
 
             case MicroOp::Add:
             case MicroOp::Subtract:
-                changed = tryReduceAddSubZero(ops, immediate, storage, instRef, useDefMap);
+                changed = tryReduceAddSubZero(ops, immediate, storage, instRef, ssaState);
                 break;
 
             default:

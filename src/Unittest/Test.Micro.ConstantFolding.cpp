@@ -39,8 +39,8 @@ namespace
 // load v1, 5; add v1, 3  ->  load v1, 8 (folded semantically)
 SWC_TEST_BEGIN(ConstantFolding_FoldBinaryRegImm)
 {
-    const MicroReg v1 = MicroReg::virtualIntReg(1);
-    MicroBuilder   builder(ctx);
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
 
     builder.emitLoadRegImm(v1, ApInt(5, 64), MicroOpBits::B64);
     builder.emitOpBinaryRegImm(v1, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
@@ -62,9 +62,9 @@ SWC_TEST_END()
 // load v1, 42; mov v2, v1  ->  load v1, 42; load v2, 42
 SWC_TEST_BEGIN(ConstantFolding_FoldCopyFromKnown)
 {
-    const MicroReg v1 = MicroReg::virtualIntReg(1);
-    const MicroReg v2 = MicroReg::virtualIntReg(2);
-    MicroBuilder   builder(ctx);
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v2 = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
 
     builder.emitLoadRegImm(v1, ApInt(42, 64), MicroOpBits::B64);
     builder.emitLoadRegReg(v2, v1, MicroOpBits::B64);
@@ -84,8 +84,8 @@ SWC_TEST_END()
 // load v1, 5; add v1, 3; shl v1, 2  ->  three LoadRegImm (5, 8, 32)
 SWC_TEST_BEGIN(ConstantFolding_ChainedFold)
 {
-    const MicroReg v1 = MicroReg::virtualIntReg(1);
-    MicroBuilder   builder(ctx);
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
 
     builder.emitLoadRegImm(v1, ApInt(5, 64), MicroOpBits::B64);
     builder.emitOpBinaryRegImm(v1, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
@@ -108,8 +108,8 @@ SWC_TEST_END()
 // clear v1; add v1, 7  ->  load v1, 7  (ClearReg tracked as v1=0)
 SWC_TEST_BEGIN(ConstantFolding_FoldFromClearReg)
 {
-    const MicroReg v1 = MicroReg::virtualIntReg(1);
-    MicroBuilder   builder(ctx);
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
 
     builder.emitClearReg(v1, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(v1, ApInt(7, 64), MicroOp::Add, MicroOpBits::B64);
@@ -120,6 +120,35 @@ SWC_TEST_BEGIN(ConstantFolding_FoldFromClearReg)
     if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
     if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Fold through a phi-like merge when both incoming branch values are the same constant.
+SWC_TEST_BEGIN(ConstantFolding_FoldAcrossJoinSameConstant)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    const MicroLabelRef labelThen = builder.createLabel();
+    const MicroLabelRef labelJoin = builder.createLabel();
+
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, labelThen);
+    builder.emitLoadRegImm(v1, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, labelJoin);
+    builder.placeLabel(labelThen);
+    builder.emitLoadRegImm(v1, ApInt(7, 64), MicroOpBits::B64);
+    builder.placeLabel(labelJoin);
+    builder.emitOpBinaryRegImm(v1, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runConstantFoldingPass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 3)
         return Result::Error;
 
     return Result::Continue;

@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroUseDefMap.h"
 #include "Backend/Micro/MicroVerify.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
@@ -229,6 +230,8 @@ namespace
 
         if (context.passChanged && context.useDefMap)
             context.useDefMap->invalidate();
+        if (context.passChanged && context.ssaState)
+            context.ssaState->invalidate();
 
 #if SWC_DEV_MODE
         if (MicroVerify::isEnabled(context))
@@ -272,6 +275,7 @@ namespace
     Result runLoopPasses(MicroPassContext&          context,
                          std::span<MicroPass* const> passes,
                          const uint32_t             maxIterations,
+                         const bool                 buildSsa,
                          std::string_view           loopName,
                          VerifyStateCache&          verifyCache)
     {
@@ -288,21 +292,20 @@ namespace
         }
 #endif
 
-        // Build the shared use-def map for pre-RA passes. It is rebuilt at the start
-        // of each iteration when a previous pass mutated the IR.
-        MicroUseDefMap useDefMap;
-        if (context.instructions && context.operands)
+        MicroSsaState ssaState;
+        if (buildSsa && context.builder && context.instructions && context.operands)
         {
-            useDefMap.build(*context.instructions, *context.operands, context.encoder);
-            context.useDefMap = &useDefMap;
+            ssaState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+            context.ssaState = &ssaState;
         }
 
         bool reachedFixedPoint = false;
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
-            // Rebuild the use-def map if a previous iteration invalidated it.
-            if (!useDefMap.isValid() && context.instructions && context.operands)
-                useDefMap.build(*context.instructions, *context.operands, context.encoder);
+            if (buildSsa && context.ssaState && !ssaState.isValid() && context.builder && context.instructions && context.operands)
+            {
+                ssaState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+            }
 
             bool iterationMutated = false;
 #if SWC_DEV_MODE
@@ -312,9 +315,10 @@ namespace
 #endif
             for (MicroPass* pass : passes)
             {
-                // Rebuild the use-def map if a previous pass in this iteration invalidated it.
-                if (!useDefMap.isValid() && context.instructions && context.operands)
-                    useDefMap.build(*context.instructions, *context.operands, context.encoder);
+                if (buildSsa && context.ssaState && !ssaState.isValid() && context.builder && context.instructions && context.operands)
+                {
+                    ssaState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+                }
 
                 SWC_RESULT(runPass(context, *pass, verifyCache));
                 iterationMutated = iterationMutated || context.passChanged;
@@ -362,12 +366,14 @@ namespace
         if (!reachedFixedPoint)
         {
             context.useDefMap = nullptr;
+            context.ssaState  = nullptr;
             return MicroVerify::reportError(context,
                                             loopName,
                                             std::format("failed to reach a fixed point after {} iterations", maxIterations));
         }
 
         context.useDefMap = nullptr;
+        context.ssaState  = nullptr;
         return Result::Continue;
     }
 }
@@ -454,11 +460,11 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_ASSERT(context.builder);
     const uint32_t preRAMaxIterations =
         std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
-    SWC_RESULT(runLoopPasses(context, preRALoopPasses_, preRAMaxIterations, "pre-ra-optimization-loop", verifyCache));
+    SWC_RESULT(runLoopPasses(context, preRALoopPasses_, preRAMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
 
     // Register allocation loop — legalize + regalloc iterate until stable.
     const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
-    SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, "ra-legalize-loop", verifyCache));
+    SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, false, "ra-legalize-loop", verifyCache));
 
     SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));
 

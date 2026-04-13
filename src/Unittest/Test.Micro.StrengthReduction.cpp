@@ -53,6 +53,18 @@ namespace
 
         return 0;
     }
+
+    uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == opcode)
+                ++count;
+        }
+
+        return count;
+    }
 }
 
 // mul r, 8 -> shl r, 3
@@ -129,6 +141,33 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyNonPowerOfTwoUnchanged)
     if (getFirstBinaryOp(builder) != MicroOp::MultiplyUnsigned)
         return Result::Error;
     if (getFirstBinaryImm(builder) != 7)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// add v1, 0 in one branch should be removed when the defined value is dead at the join.
+SWC_TEST_BEGIN(StrengthReduction_RemoveAddZeroDeadAcrossJoin)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    const MicroLabelRef labelThen = builder.createLabel();
+    const MicroLabelRef labelJoin = builder.createLabel();
+
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, labelThen);
+    builder.emitLoadRegImm(v1, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(v1, ApInt(0, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, labelJoin);
+    builder.placeLabel(labelThen);
+    builder.emitLoadRegImm(v1, ApInt(2, 64), MicroOpBits::B64);
+    builder.placeLabel(labelJoin);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
 
     return Result::Continue;

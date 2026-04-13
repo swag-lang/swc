@@ -7,6 +7,7 @@ class MicroStorage;
 class MicroOperandStorage;
 class MicroBuilder;
 class MicroUseDefMap;
+class MicroSsaState;
 class TaskContext;
 class Encoder;
 
@@ -31,6 +32,10 @@ struct MicroPassContext
     // Shared use-def map for pre-RA optimization passes.
     // Built once at the start of the optimization loop, invalidated when a pass mutates the IR.
     MicroUseDefMap* useDefMap = nullptr;
+
+    // Shared SSA analysis for pre-RA optimization passes.
+    // Built once at the start of the optimization loop, invalidated when a pass mutates the IR.
+    MicroSsaState* ssaState = nullptr;
 
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).
     uint32_t optimizationIterationLimit = 0;

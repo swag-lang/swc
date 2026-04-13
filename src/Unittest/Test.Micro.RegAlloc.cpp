@@ -376,6 +376,21 @@ namespace
         b.emitRet();
     }
 
+    void buildBarrieredVirtualCopyTransfer(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv&     conv         = CallConv::get(callConvKind);
+        const MicroLabelRef barrierLabel = b.createLabel();
+
+        constexpr MicroReg srcValue  = MicroReg::virtualIntReg(7550);
+        constexpr MicroReg copiedReg = MicroReg::virtualIntReg(7551);
+
+        b.emitLoadRegImm(srcValue, ApInt(0x55667788, 64), MicroOpBits::B64);
+        b.emitLoadRegReg(copiedReg, srcValue, MicroOpBits::B64);
+        b.placeLabel(barrierLabel);
+        b.emitLoadRegReg(conv.intReturn, copiedReg, MicroOpBits::B64);
+        b.emitRet();
+    }
+
     void buildImmediateRematerialization(MicroBuilder& b, CallConvKind callConvKind)
     {
         const CallConv& conv = CallConv::get(callConvKind);
@@ -907,6 +922,30 @@ SWC_TEST_BEGIN(RegAlloc_CoalescesLinearVirtualCopies)
     {
         MicroBuilder builder(ctx);
         buildVirtualCopyCoalescing(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.addStartPass(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+
+        SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+        SWC_RESULT(verifyCallConvConformity(builder, CallConv::get(callConvKind)));
+
+        if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_TransfersDeadCopySourcesAcrossBarriers)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroBuilder builder(ctx);
+        buildBarrieredVirtualCopyTransfer(builder, callConvKind);
 
         MicroRegisterAllocationPass regAllocPass;
         MicroPassManager            passes;

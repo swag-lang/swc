@@ -18,6 +18,46 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    void appendUniqueDenseIndex(SmallVector<uint32_t, 4>& indices, const uint32_t value)
+    {
+        for (const auto existing : indices)
+        {
+            if (existing == value)
+                return;
+        }
+
+        indices.push_back(value);
+    }
+
+    void appendUniquePosition(std::vector<uint32_t>& positions, const uint32_t instructionIndex)
+    {
+        if (positions.empty() || positions.back() != instructionIndex)
+            positions.push_back(instructionIndex);
+    }
+
+    void advancePositionCursor(uint32_t& cursor, const std::vector<uint32_t>& positions, const uint32_t instructionIndex)
+    {
+        while (cursor < positions.size() && positions[cursor] <= instructionIndex)
+            ++cursor;
+    }
+
+    bool isRegisterCopyLike(const MicroInstrOpcode op)
+    {
+        switch (op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+}
+
 void MicroRegisterAllocationPass::initState(MicroPassContext& context)
 {
     context_          = &context;
@@ -39,8 +79,6 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     predecessors_.reserve(instructionCount_);
     worklist_.reserve(instructionCount_);
     inWorklist_.reserve(instructionCount_);
-    usePositions_.reserve(128);
-    concreteTouchPositions_.reserve(32);
 
     for (const auto& inst : instructions_->view())
     {
@@ -257,15 +295,59 @@ bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKe
     if (!physReg.isInt() && !physReg.isFloat())
         return false;
 
-    const auto it = concreteTouchPositions_.find(physReg);
-    if (it == concreteTouchPositions_.end())
+    const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
+    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= concreteTouchPositionsByDenseIndex_.size())
         return false;
 
-    const auto nextTouchIt = std::ranges::upper_bound(it->second, instructionIndex);
-    if (nextTouchIt == it->second.end())
+    const auto& positions = concreteTouchPositionsByDenseIndex_[denseIndex];
+    auto        cursor    = nextConcreteTouchCursor_[denseIndex];
+    advancePositionCursor(cursor, positions, instructionIndex);
+    if (cursor >= positions.size())
         return false;
 
-    return isLiveInAt(virtKey, *nextTouchIt);
+    return isLiveInAt(virtKey, positions[cursor]);
+}
+
+bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey,
+                                                 uint32_t instructionIndex,
+                                                 MicroReg physReg,
+                                                 MicroRegSpan forbiddenPhysRegs,
+                                                 bool allowConcreteLive) const
+{
+    if (!physReg.isInt() && !physReg.isFloat())
+        return false;
+    if (containsKey(forbiddenPhysRegs, physReg))
+        return false;
+    if (isPhysRegForbiddenForVirtual(virtKey, physReg))
+        return false;
+    if (!allowConcreteLive && hasFutureConcreteTouchConflict(virtKey, physReg, instructionIndex))
+        return false;
+    return true;
+}
+
+bool MicroRegisterAllocationPass::tryTakeSpecificPhysical(SmallVector<MicroReg>& pool,
+                                                          MicroReg               virtKey,
+                                                          uint32_t               instructionIndex,
+                                                          MicroReg               preferredPhysReg,
+                                                          MicroRegSpan           forbiddenPhysRegs,
+                                                          bool                   allowConcreteLive,
+                                                          MicroReg&              outPhys)
+{
+    for (size_t candidateIndex = 0; candidateIndex < pool.size(); ++candidateIndex)
+    {
+        if (pool[candidateIndex] != preferredPhysReg)
+            continue;
+        if (!canUsePhysical(virtKey, instructionIndex, preferredPhysReg, forbiddenPhysRegs, allowConcreteLive))
+            return false;
+
+        outPhys = preferredPhysReg;
+        if (candidateIndex != pool.size() - 1)
+            pool[candidateIndex] = pool.back();
+        pool.pop_back();
+        return true;
+    }
+
+    return false;
 }
 
 bool MicroRegisterAllocationPass::tryTakeAllowedPhysical(SmallVector<MicroReg>& pool,
@@ -279,11 +361,7 @@ bool MicroRegisterAllocationPass::tryTakeAllowedPhysical(SmallVector<MicroReg>& 
     {
         const size_t candidateIndex = index - 1;
         const auto   candidateReg   = pool[candidateIndex];
-        if (containsKey(forbiddenPhysRegs, candidateReg))
-            continue;
-        if (isPhysRegForbiddenForVirtual(virtKey, candidateReg))
-            continue;
-        if (!allowConcreteLive && hasFutureConcreteTouchConflict(virtKey, candidateReg, instructionIndex))
+        if (!canUsePhysical(virtKey, instructionIndex, candidateReg, forbiddenPhysRegs, allowConcreteLive))
             continue;
 
         outPhys = candidateReg;
@@ -321,16 +399,38 @@ void MicroRegisterAllocationPass::returnToFreePool(MicroReg reg)
 
 uint32_t MicroRegisterAllocationPass::distanceToNextUse(MicroReg key, uint32_t instructionIndex) const
 {
-    const auto useIt = usePositions_.find(key);
-    if (useIt == usePositions_.end())
+    const uint32_t denseIndex = denseVirtualRegs_.find(key);
+    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= usePositionsByDenseVirtual_.size())
         return std::numeric_limits<uint32_t>::max();
 
-    const auto& positions = useIt->second;
-    const auto  it        = std::ranges::upper_bound(positions, instructionIndex);
-    if (it == positions.end())
+    const auto& positions = usePositionsByDenseVirtual_[denseIndex];
+    auto        cursor    = nextUsePositionCursor_[denseIndex];
+    advancePositionCursor(cursor, positions, instructionIndex);
+    if (cursor >= positions.size())
         return std::numeric_limits<uint32_t>::max();
 
-    return *it - instructionIndex;
+    return positions[cursor] - instructionIndex;
+}
+
+void MicroRegisterAllocationPass::advanceCurrentPositionCursors(const uint32_t instructionIndex)
+{
+    for (const uint32_t denseIndex : useVirtualIndices_[instructionIndex])
+    {
+        SWC_ASSERT(denseIndex < usePositionsByDenseVirtual_.size());
+        advancePositionCursor(nextUsePositionCursor_[denseIndex], usePositionsByDenseVirtual_[denseIndex], instructionIndex);
+    }
+
+    for (const uint32_t denseIndex : useConcreteIndices_[instructionIndex])
+    {
+        SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
+        advancePositionCursor(nextConcreteTouchCursor_[denseIndex], concreteTouchPositionsByDenseIndex_[denseIndex], instructionIndex);
+    }
+
+    for (const uint32_t denseIndex : defConcreteIndices_[instructionIndex])
+    {
+        SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
+        advancePositionCursor(nextConcreteTouchCursor_[denseIndex], concreteTouchPositionsByDenseIndex_[denseIndex], instructionIndex);
+    }
 }
 
 bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copyRef, const MicroReg dstReg) const
@@ -381,8 +481,6 @@ void MicroRegisterAllocationPass::mergeVirtualForbiddenRegs(MicroReg dstReg, Mic
 
 void MicroRegisterAllocationPass::prepareInstructionData()
 {
-    usePositions_.clear();
-
     controlFlowGraph_                                    = &((context_->builder)->controlFlowGraph());
     const std::span<const MicroInstrRef> instructionRefs = controlFlowGraph_->instructionRefs();
     SWC_ASSERT(instructionRefs.size() == instructionCount_);
@@ -403,7 +501,6 @@ void MicroRegisterAllocationPass::prepareInstructionData()
                 continue;
 
             hasVirtual = true;
-            usePositions_[reg].push_back(idx);
         }
 
         for (const MicroReg reg : useDef.defs)
@@ -422,8 +519,6 @@ void MicroRegisterAllocationPass::prepareInstructionData()
 void MicroRegisterAllocationPass::analyzeLiveness()
 {
     // CFG-aware backward liveness: captures live-out sets even across back-edges.
-    concreteTouchPositions_.clear();
-
     if (!instructionCount_)
         return;
 
@@ -462,15 +557,12 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (reg.isVirtual())
             {
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                usesV.push_back(regIndex);
+                appendUniqueDenseIndex(usesV, regIndex);
             }
             else if (reg.isInt() || reg.isFloat())
             {
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                usesC.push_back(regIndex);
-                auto& concreteTouches = concreteTouchPositions_[reg];
-                if (concreteTouches.empty() || concreteTouches.back() != idx)
-                    concreteTouches.push_back(idx);
+                appendUniqueDenseIndex(usesC, regIndex);
             }
         }
 
@@ -479,15 +571,12 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (reg.isVirtual())
             {
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                defsV.push_back(regIndex);
+                appendUniqueDenseIndex(defsV, regIndex);
             }
             else if (reg.isInt() || reg.isFloat())
             {
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                defsC.push_back(regIndex);
-                auto& concreteTouches = concreteTouchPositions_[reg];
-                if (concreteTouches.empty() || concreteTouches.back() != idx)
-                    concreteTouches.push_back(idx);
+                appendUniqueDenseIndex(defsC, regIndex);
             }
         }
 
@@ -497,12 +586,12 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             for (const MicroReg reg : callConv.intTransientRegs)
             {
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                defsC.push_back(regIndex);
+                appendUniqueDenseIndex(defsC, regIndex);
             }
             for (const MicroReg reg : callConv.floatTransientRegs)
             {
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                defsC.push_back(regIndex);
+                appendUniqueDenseIndex(defsC, regIndex);
             }
         }
     }
@@ -510,18 +599,44 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     const uint32_t virtualWordCount  = denseVirtualRegs_.wordCount();
     const uint32_t concreteWordCount = denseConcreteRegs_.wordCount();
     const auto&    virtualRegs       = denseVirtualRegs_.regs();
+    const auto&    concreteRegs      = denseConcreteRegs_.regs();
 
     states_.clear();
     states_.resize(virtualRegs.size());
+    usePositionsByDenseVirtual_.clear();
+    usePositionsByDenseVirtual_.resize(virtualRegs.size());
+    concreteTouchPositionsByDenseIndex_.clear();
+    concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
     definitionCounts_.assign(virtualRegs.size(), 0);
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
+        for (const uint32_t denseIndex : useVirtualIndices_[idx])
+        {
+            SWC_ASSERT(denseIndex < usePositionsByDenseVirtual_.size());
+            appendUniquePosition(usePositionsByDenseVirtual_[denseIndex], idx);
+        }
+
         for (const uint32_t denseIndex : defVirtualIndices_[idx])
         {
             SWC_ASSERT(denseIndex < definitionCounts_.size());
             definitionCounts_[denseIndex]++;
         }
+
+        for (const uint32_t denseIndex : useConcreteIndices_[idx])
+        {
+            SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
+            appendUniquePosition(concreteTouchPositionsByDenseIndex_[denseIndex], idx);
+        }
+
+        for (const uint32_t denseIndex : defConcreteIndices_[idx])
+        {
+            SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
+            appendUniquePosition(concreteTouchPositionsByDenseIndex_[denseIndex], idx);
+        }
     }
+
+    nextUsePositionCursor_.assign(virtualRegs.size(), 0);
+    nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);
     liveStampByDenseIndex_.assign(virtualRegs.size(), 0);
     vregsLiveAcrossCall_.assign(virtualRegs.size(), 0);
     callSpillFlags_.assign(virtualRegs.size(), 0);
@@ -1065,6 +1180,38 @@ MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePool
     return FreePools{&freeFloatTransient_, freeFloatPersistent_.empty() ? nullptr : &freeFloatPersistent_};
 }
 
+bool MicroRegisterAllocationPass::tryTakePreferredPhysical(const AllocRequest& request,
+                                                           MicroRegSpan        forbiddenPhysRegs,
+                                                           const bool          allowConcreteLive,
+                                                           MicroReg&           outPhys)
+{
+    if (!request.preferredPhysReg.isValid())
+        return false;
+
+    const FreePools pools = pickFreePools(request);
+    SWC_ASSERT(pools.primary != nullptr);
+
+    if (tryTakeSpecificPhysical(*pools.primary,
+                                request.virtKey,
+                                request.instructionIndex,
+                                request.preferredPhysReg,
+                                forbiddenPhysRegs,
+                                allowConcreteLive,
+                                outPhys))
+        return true;
+
+    if (!pools.secondary)
+        return false;
+
+    return tryTakeSpecificPhysical(*pools.secondary,
+                                   request.virtKey,
+                                   request.instructionIndex,
+                                   request.preferredPhysReg,
+                                   forbiddenPhysRegs,
+                                   allowConcreteLive,
+                                   outPhys);
+}
+
 bool MicroRegisterAllocationPass::tryTakeFreePhysical(const AllocRequest& request,
                                                       MicroRegSpan        forbiddenPhysRegs,
                                                       bool                allowConcreteLive,
@@ -1119,6 +1266,47 @@ void MicroRegisterAllocationPass::mapVirtReg(MicroReg virtKey, MicroReg physReg)
     regState.phys = physReg;
 }
 
+bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest&         request,
+                                                        MicroRegSpan                forbiddenPhysRegs,
+                                                        const uint32_t              stamp,
+                                                        const int64_t               stackDepth,
+                                                        std::vector<PendingInsert>& pending,
+                                                        const bool                  allowLiveSourceSpill,
+                                                        const bool                  allowConcreteLive,
+                                                        MicroReg&                   outPhys)
+{
+    if (!request.transferSource.isVirtual() || request.transferSource == request.virtKey)
+        return false;
+
+    auto& sourceState = stateForVirtual(request.transferSource);
+    if (!sourceState.mapped)
+        return false;
+
+    const bool sourceLiveOut = isLiveOut(request.transferSource, stamp);
+    if (sourceLiveOut && !allowLiveSourceSpill)
+        return false;
+
+    const MicroReg sourcePhys = sourceState.phys;
+    if (!canUsePhysical(request.virtKey, request.instructionIndex, sourcePhys, forbiddenPhysRegs, allowConcreteLive))
+        return false;
+
+    auto& dstState = stateForVirtual(request.virtKey);
+    if (dstState.mapped && dstState.phys != sourcePhys)
+    {
+        const MicroReg dstPhys = dstState.phys;
+        unmapVirtReg(request.virtKey);
+        returnToFreePool(dstPhys);
+    }
+
+    if (sourceLiveOut)
+        spillOrRematerializeLiveValue(sourcePhys, sourceState, stackDepth, pending);
+
+    unmapVirtReg(request.transferSource);
+    mapVirtReg(request.virtKey, sourcePhys);
+    outPhys = sourcePhys;
+    return true;
+}
+
 bool MicroRegisterAllocationPass::selectEvictionCandidateWithFallback(MicroReg     requestVirtKey,
                                                                       uint32_t     instructionIndex,
                                                                       bool         isFloatReg,
@@ -1145,9 +1333,15 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&      
 {
     // Prefer free registers; otherwise evict one candidate and spill if needed.
     MicroReg physReg;
+    if (tryTakePreferredPhysical(request, forbiddenPhysRegs, false, physReg))
+        return physReg;
     if (tryTakeFreePhysical(request, forbiddenPhysRegs, false, physReg))
         return physReg;
+    if (tryTakePreferredPhysical(request, forbiddenPhysRegs, true, physReg))
+        return physReg;
     if (tryTakeFreePhysical(request, forbiddenPhysRegs, true, physReg))
+        return physReg;
+    if (tryTransferCopySource(request, forbiddenPhysRegs, stamp, stackDepth, pending, true, true, physReg))
         return physReg;
 
     MicroReg victimKey = MicroReg::invalid();
@@ -1243,6 +1437,9 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest&         
 {
     // Reuse existing mapping when possible, otherwise allocate and load from spill on use.
     auto& regState = stateForVirtual(request.virtKey);
+    if (!request.isUse && tryTransferCopySource(request, forbiddenPhysRegs, stamp, stackDepth, pending, false, false, regState.phys))
+        return regState.phys;
+
     if (regState.mapped &&
         ((request.isDef && containsKey(forbiddenPhysRegs, regState.phys)) ||
          containsKey(remapForbiddenPhysRegs, regState.phys)))
@@ -1442,6 +1639,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         computeCurrentLiveOutBits(idx);
         markCurrentVirtualLiveOut(stamp);
         rebuildCurrentConcreteLiveOutRegs();
+        advanceCurrentPositionCursors(idx);
 
         if (it->op == MicroInstrOpcode::Label && it->numOperands >= 1)
         {
@@ -1538,6 +1736,32 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         }
 
         const MicroInstrOperand* instOps = it->ops(*operands_);
+        for (auto& request : allocRequests)
+        {
+            if (!instOps || !request.isDef || request.isUse)
+                continue;
+            if (!isRegisterCopyLike(it->op) || instOps[0].reg != request.virtKey)
+                continue;
+
+            const MicroReg srcReg = instOps[1].reg;
+            if (!request.virtKey.isSameClass(srcReg))
+                continue;
+
+            if (srcReg.isVirtual())
+                request.transferSource = srcReg;
+            else if (srcReg.isInt() || srcReg.isFloat())
+                request.preferredPhysReg = srcReg;
+        }
+
+        std::stable_sort(allocRequests.begin(),
+                         allocRequests.end(),
+                         [](const AllocRequest& lhs, const AllocRequest& rhs)
+                         {
+                             const auto lhsPriority = lhs.isUse && lhs.isDef ? 0u : lhs.isUse ? 1u : 2u;
+                             const auto rhsPriority = rhs.isUse && rhs.isDef ? 0u : rhs.isUse ? 1u : 2u;
+                             return lhsPriority < rhsPriority;
+                         });
+
         SmallVector<MicroReg>    mentionedConcreteRegs;
         mentionedConcreteRegs.reserve(instructionUseDefs_[idx].uses.size() + instructionUseDefs_[idx].defs.size());
         for (const MicroReg reg : instructionUseDefs_[idx].uses)
@@ -1790,8 +2014,6 @@ void MicroRegisterAllocationPass::clearState()
     controlFlowGraph_ = nullptr;
 
     vregsLiveAcrossCall_.clear();
-    usePositions_.clear();
-    concreteTouchPositions_.clear();
     instructionUseDefs_.clear();
     denseVirtualRegs_.clear();
     denseConcreteRegs_.clear();
@@ -1799,6 +2021,10 @@ void MicroRegisterAllocationPass::clearState()
     defVirtualIndices_.clear();
     useConcreteIndices_.clear();
     defConcreteIndices_.clear();
+    usePositionsByDenseVirtual_.clear();
+    concreteTouchPositionsByDenseIndex_.clear();
+    nextUsePositionCursor_.clear();
+    nextConcreteTouchCursor_.clear();
     liveInVirtualBits_.clear();
     liveInConcreteBits_.clear();
     predecessors_.clear();

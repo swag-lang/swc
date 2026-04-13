@@ -45,6 +45,12 @@ struct MicroPassContext
 #if SWC_HAS_STATS
     size_t optimizationInstrRemoved = 0;
     size_t optimizationInstrAdded   = 0;
+
+    // Instruction counts captured at the four pipeline checkpoints.
+    size_t statsInstrBeforePasses = 0;
+    size_t statsInstrAfterOptim   = 0;
+    size_t statsInstrAfterRA      = 0;
+    size_t statsInstrFinal        = 0;
 #endif
 };
 

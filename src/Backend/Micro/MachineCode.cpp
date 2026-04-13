@@ -25,16 +25,13 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     encoder.setBackendBuildCfg(builder.backendBuildCfg());
     encoder.clearDebugSourceRanges();
 
-#if SWC_HAS_STATS
-    const size_t numMicroInstrNoOptim = builder.instructions().count();
-#endif
-
     SWC_RESULT(builder.runPasses(&encoder, passContext));
 
 #if SWC_HAS_STATS
-    const size_t numMicroInstrFinal = builder.instructions().count();
-    Stats::get().numMicroInstrNoOptim.fetch_add(numMicroInstrNoOptim, std::memory_order_relaxed);
-    Stats::get().numMicroInstrFinal.fetch_add(numMicroInstrFinal, std::memory_order_relaxed);
+    Stats::get().numMicroInstrBeforePasses.fetch_add(passContext.statsInstrBeforePasses, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterOptim.fetch_add(passContext.statsInstrAfterOptim, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterRA.fetch_add(passContext.statsInstrAfterRA, std::memory_order_relaxed);
+    Stats::get().numMicroInstrFinal.fetch_add(passContext.statsInstrFinal, std::memory_order_relaxed);
 #endif
 
     // Diagnostics can abort lowering before any encodable instruction is produced.

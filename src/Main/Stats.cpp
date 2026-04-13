@@ -196,19 +196,34 @@ void Stats::print(const TaskContext& ctx) const
 
     // Backend micro counts
     Logger::print(ctx, "\n");
-    const size_t numMicroNoOptim = numMicroInstrNoOptim.load();
-    const size_t numMicroFinal   = numMicroInstrFinal.load();
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrNoOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroNoOptim));
+    const size_t numMicroBefore     = numMicroInstrBeforePasses.load();
+    const size_t numMicroAfterOptim = numMicroInstrAfterOptim.load();
+    const size_t numMicroAfterRA    = numMicroInstrAfterRA.load();
+    const size_t numMicroFinal      = numMicroInstrFinal.load();
+
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrBeforePasses", colorMsg, Utf8Helper::toNiceBigNumber(numMicroBefore));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrAfterOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroAfterOptim));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrAfterRA", colorMsg, Utf8Helper::toNiceBigNumber(numMicroAfterRA));
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrFinal", colorMsg, Utf8Helper::toNiceBigNumber(numMicroFinal));
 
-    const int64_t numMicroPipelineDelta     = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroNoOptim);
-    const char    numMicroPipelineDeltaSign = numMicroPipelineDelta >= 0 ? '+' : '-';
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, std::format("{}{}", numMicroPipelineDeltaSign, Utf8Helper::toNiceBigNumber(static_cast<size_t>(std::abs(numMicroPipelineDelta)))));
+    const auto formatDelta = [](int64_t delta, size_t base) {
+        const char sign = delta >= 0 ? '+' : '-';
+        const auto abs  = static_cast<size_t>(std::abs(delta));
+        const double pct = base != 0 ? 100.0 * static_cast<double>(delta) / static_cast<double>(base) : 0.0;
+        return std::format("{}{} ({:+.2f}%)", sign, Utf8Helper::toNiceBigNumber(abs), pct);
+    };
 
-    double pipelineRemovedPct = 0.0;
-    if (numMicroNoOptim != 0)
-        pipelineRemovedPct = 100.0 * static_cast<double>(numMicroPipelineDelta) / static_cast<double>(numMicroNoOptim);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrReducedPct", colorMsg, std::format("{:.2f}%", pipelineRemovedPct));
+    // Pre-RA optimization gain: negative = instructions removed.
+    const int64_t optimDelta = static_cast<int64_t>(numMicroAfterOptim) - static_cast<int64_t>(numMicroBefore);
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.optimDelta", colorMsg, formatDelta(optimDelta, numMicroBefore));
+
+    // Legalize + RegAlloc cost: positive = instructions added (spills/legalization).
+    const int64_t raDelta = static_cast<int64_t>(numMicroAfterRA) - static_cast<int64_t>(numMicroAfterOptim);
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.raDelta", colorMsg, formatDelta(raDelta, numMicroAfterOptim));
+
+    // Whole-pipeline delta.
+    const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroBefore);
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, formatDelta(pipelineDelta, numMicroBefore));
 
     // Time
     Logger::print(ctx, "\n");

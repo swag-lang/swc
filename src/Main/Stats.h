@@ -28,8 +28,10 @@ struct Stats
     std::atomic<size_t> numTypes             = 0;
     std::atomic<size_t> numIdentifiers       = 0;
     std::atomic<size_t> numSymbols           = 0;
-    std::atomic<size_t> numMicroInstrNoOptim = 0;
-    std::atomic<size_t> numMicroInstrFinal   = 0;
+    std::atomic<size_t> numMicroInstrBeforePasses = 0;
+    std::atomic<size_t> numMicroInstrAfterOptim   = 0;
+    std::atomic<size_t> numMicroInstrAfterRA      = 0;
+    std::atomic<size_t> numMicroInstrFinal        = 0;
     std::atomic<size_t> numCodeGenFunctions  = 0;
 #endif // SWC_HAS_STATS
 

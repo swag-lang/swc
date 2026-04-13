@@ -453,17 +453,32 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_RESULT(runLinearPasses(context, startPasses_, verifyCache));
 
     context.printInstrCountBefore = context.instructions->count();
+#if SWC_HAS_STATS
+    context.statsInstrBeforePasses = context.instructions->count();
+#endif
 
     // Pre-RA optimization loop — converges on the virtual-register IR.
     SWC_ASSERT(context.builder);
     const uint32_t preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
     SWC_RESULT(runLoopPasses(context, preRALoopPasses_, preRaMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
 
+#if SWC_HAS_STATS
+    context.statsInstrAfterOptim = context.instructions->count();
+#endif
+
     // Register allocation loop — legalize + regalloc iterate until stable.
     const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
     SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, false, "ra-legalize-loop", verifyCache));
 
+#if SWC_HAS_STATS
+    context.statsInstrAfterRA = context.instructions->count();
+#endif
+
     SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));
+
+#if SWC_HAS_STATS
+    context.statsInstrFinal = context.instructions->count();
+#endif
 
     return Result::Continue;
 }

@@ -118,7 +118,9 @@ namespace
         ENCODE_CASE("load_reg_reg_xmm0_xmm1_b32", "F3 0F 10 C1", b.emitLoadRegReg(XMM0, XMM1, MicroOpBits::B32););
         ENCODE_CASE("load_reg_reg_xmm2_r9_b32", "66 41 0F 6E D1", b.emitLoadRegReg(XMM2, R9, MicroOpBits::B32););
         ENCODE_CASE("load_reg_reg_r10_xmm3_b32", "66 41 0F 7E DA", b.emitLoadRegReg(R10, XMM3, MicroOpBits::B32););
-        ENCODE_CASE("load_reg_imm_xmm0_b32_conform", "41 BB 01 00 00 00 41 53 F3 40 0F 10 04 24 41 5B", b.emitLoadRegImm(XMM0, ApInt(1, 64), MicroOpBits::B32););
+        // Float-immediate lowering: stage the constant in a GP scratch (R11),
+        // then move GP -> XMM via MOVD instead of routing through the stack.
+        ENCODE_CASE("load_reg_imm_xmm0_b32_conform", "41 BB 01 00 00 00 66 41 0F 6E C3", b.emitLoadRegImm(XMM0, ApInt(1, 64), MicroOpBits::B32););
 
         ENCODE_CASE("load_reg_mem_r8_rbp_0_b64", "4C 8B 45 00", b.emitLoadRegMem(R8, RBP, 0, MicroOpBits::B64););
         ENCODE_CASE("load_reg_mem_r8_r13_0_b64", "4D 8B 45 00", b.emitLoadRegMem(R8, R13, 0, MicroOpBits::B64););

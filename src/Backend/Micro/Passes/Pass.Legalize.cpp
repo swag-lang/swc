@@ -366,6 +366,7 @@ namespace
                                      uint64_t                 stackScratchBaseOffset,
                                      uint32_t&                nextVirtualIntRegIndex)
     {
+        SWC_UNUSED(encoder);
         SWC_UNUSED(stackScratchBaseOffset);
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm || inst.op == MicroInstrOpcode::LoadRegPtrReloc);
@@ -376,6 +377,11 @@ namespace
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             opBits = MicroOpBits::B64;
 
+        // Stage the constant in a fresh GP scratch, then move GP -> XMM through
+        // LoadRegReg. The encoder is responsible for picking the right cross-class
+        // move (movd/movq on x86, fmov on ARM, etc.); if some target can't encode
+        // a direct GP-to-float move, it will report a follow-up conformance issue
+        // on the LoadRegReg and the legalize loop will lower it further.
         const MicroReg scratchReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
         addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, scratchReg);
 
@@ -383,22 +389,14 @@ namespace
         loadImmOps[0].reg    = scratchReg;
         loadImmOps[1].opBits = opBits;
         loadImmOps[2]        = ops[2];
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegImm, loadImmOps);
+        context.instructions->insertBefore(*context.operands, instRef, inst.op, loadImmOps);
 
-        std::array<MicroInstrOperand, 1> pushOps;
-        pushOps[0].reg = scratchReg;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::Push, pushOps);
+        std::array<MicroInstrOperand, 3> moveOps;
+        moveOps[0].reg    = dstReg;
+        moveOps[1].reg    = scratchReg;
+        moveOps[2].opBits = opBits;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
 
-        std::array<MicroInstrOperand, 4> loadMemOps;
-        loadMemOps[0].reg      = dstReg;
-        loadMemOps[1].reg      = encoder.stackPointerReg();
-        loadMemOps[2].opBits   = opBits;
-        loadMemOps[3].valueU64 = 0;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, loadMemOps);
-
-        std::array<MicroInstrOperand, 1> popOps;
-        popOps[0].reg = scratchReg;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::Pop, popOps);
         removeInstruction(context, instRef);
     }
 

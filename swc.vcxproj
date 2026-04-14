@@ -202,6 +202,13 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Emit.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.Common.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.RegImm.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.RegReg.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.MemoryFold.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.NarrowExtend.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp" />
@@ -438,6 +445,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Emit.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.Internal.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h" />

@@ -279,6 +279,27 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.Common.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.RegImm.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.RegReg.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.MemoryFold.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.NarrowExtend.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
@@ -939,6 +960,9 @@
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.Internal.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h">

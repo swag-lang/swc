@@ -59,7 +59,7 @@ namespace
     }
 
     // True if 'imm' is the right identity for 'op' applied as 'v op imm'
-    // (i.e. the result equals v).
+    // (i.e., the result equals v).
     bool isRightIdentity(MicroOp op, MicroOpBits opBits, uint64_t imm)
     {
         const uint64_t mask = getBitsMask(opBits);
@@ -149,8 +149,8 @@ namespace
             return value & mask;
         };
 
-        // Add/Sub family. Compute the net signed contribution then pick the
-        // shorter encoding (Add or Sub of the smaller magnitude under 'mask').
+        // Add/Sub family. Compute the net signed contribution, then pick the
+        // shorter encoding (Add or Sub of the smaller size under 'mask').
         if ((firstOp == MicroOp::Add || firstOp == MicroOp::Subtract) &&
             (secondOp == MicroOp::Add || secondOp == MicroOp::Subtract))
         {
@@ -417,6 +417,226 @@ namespace
     bool writesMemory(const MicroInstr& inst)
     {
         return MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::WritesMemory);
+    }
+
+    // Local store-to-load forwarding. For each `LoadMemReg [base+off], src` we
+    // remember (base, off, bits, src). If a later `LoadRegMem dst, [base+off]`
+    // with matching base/offset/bits shows up before that slot gets overwritten
+    // or `src` gets redefined, the reload reads the exact value we just stored
+    // — rewrite it as `LoadRegReg dst, src` and skip the memory round-trip.
+    // Any writing to memory we can't prove disjoint, any call, and any branch or
+    // label flushes the cache conservatively. The cache is small and scanned
+    // linearly; patterns that escape the window converge on the next loop
+    // iteration after other passes tighten the window.
+    bool forwardStoresToLoads(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState* ssa)
+    {
+        if (!ssa)
+            return false;
+
+        struct CacheEntry
+        {
+            MicroReg    base;
+            MicroReg    src;
+            MicroOpBits bits = MicroOpBits::Zero;
+            uint64_t    off  = 0;
+        };
+        SmallVector<CacheEntry, 8> cache;
+
+        const auto dropEntriesUsing = [&](MicroReg reg) {
+            for (uint32_t i = 0; i < cache.size();)
+            {
+                if (cache[i].base == reg || cache[i].src == reg)
+                    cache.erase(cache.begin() + i);
+                else
+                    ++i;
+            }
+        };
+
+        bool       changed = false;
+        const auto view    = storage.view();
+        const auto endIt   = view.end();
+        for (auto it = view.begin(); it != endIt; ++it)
+        {
+            MicroInstr&              inst = *it;
+            const MicroInstrOperand* ops  = inst.ops(operands);
+
+            if (inst.op == MicroInstrOpcode::LoadRegMem && inst.numOperands >= 4 && ops)
+            {
+                const MicroReg    dst  = ops[0].reg;
+                const MicroReg    base = ops[1].reg;
+                const MicroOpBits bits = ops[2].opBits;
+                const uint64_t    off  = ops[3].valueU64;
+
+                for (const CacheEntry& e : cache)
+                {
+                    if (e.base == base && e.off == off && e.bits == bits && e.src.isValid() && e.src != dst)
+                    {
+                        MicroInstrOperand* mOps = inst.ops(operands);
+                        mOps[1].reg             = e.src;
+                        mOps[2].opBits          = bits;
+                        inst.op                 = MicroInstrOpcode::LoadRegReg;
+                        inst.numOperands        = 3;
+                        changed                 = true;
+                        break;
+                    }
+                }
+                continue;
+            }
+
+            if (inst.op == MicroInstrOpcode::LoadMemReg && inst.numOperands >= 4 && ops)
+            {
+                // A store we can exactly model. Without alias info, any previous
+                // entry could overlap — flush the cache, then install this one.
+                cache.clear();
+                const MicroReg    base = ops[0].reg;
+                const MicroReg    src  = ops[1].reg;
+                const MicroOpBits bits = ops[2].opBits;
+                const uint64_t    off  = ops[3].valueU64;
+                cache.push_back({base, src, bits, off});
+                continue;
+            }
+
+            if (isControlOrCall(inst) || writesMemory(inst))
+            {
+                cache.clear();
+                continue;
+            }
+
+            const auto* useDef = ssa->instrUseDef(it.current);
+            if (useDef)
+            {
+                for (const MicroReg def : useDef->defs)
+                    dropEntriesUsing(def);
+            }
+        }
+
+        return changed;
+    }
+
+    // Returns the bit-width at which 'useInst' reads 'reg'. Returns Zero when
+    // we cannot determine a narrow read (call, push, unrecognized opcode) —
+    // callers should treat that as "full width, don't narrow".
+    MicroOpBits useReadBits(const MicroInstr& useInst, const MicroInstrOperand* useOps, MicroReg reg)
+    {
+        if (!useOps)
+            return MicroOpBits::Zero;
+
+        switch (useInst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::CmpRegReg:
+                return useOps[2].opBits;
+
+            case MicroInstrOpcode::CmpRegImm:
+                return useOps[1].opBits;
+
+            case MicroInstrOpcode::OpBinaryRegImm:
+                return useOps[1].opBits;
+
+            case MicroInstrOpcode::OpBinaryRegReg:
+                return useOps[2].opBits;
+
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+                // The extend explicitly reads 'srcBits' of its source.
+                return useOps[1].reg == reg ? useOps[3].opBits : MicroOpBits::Zero;
+
+            case MicroInstrOpcode::LoadMemImm:
+                // Only a memory base: reg is used as a pointer, full width.
+                return MicroOpBits::Zero;
+
+            default:
+                return MicroOpBits::Zero;
+        }
+    }
+
+    // Zero/Sign-extend whose upper bits nobody reads. If every use of the
+    // extended value reads at most `srcBits`, the extend is a no-op at the
+    // observed widths and collapses to a plain `LoadRegReg dst, src, srcBits`
+    // (or is erased outright when `dst == src`).
+    bool narrowDeadExtends(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState* ssa)
+    {
+        if (!ssa)
+            return false;
+
+        bool       changed = false;
+        const auto view    = storage.view();
+        const auto endIt   = view.end();
+
+        SmallVector<MicroInstrRef, 8> pendingErase;
+
+        for (auto it = view.begin(); it != endIt; ++it)
+        {
+            MicroInstr& inst = *it;
+            if ((inst.op != MicroInstrOpcode::LoadZeroExtRegReg && inst.op != MicroInstrOpcode::LoadSignedExtRegReg) || inst.numOperands < 4)
+                continue;
+
+            MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+
+            const MicroReg    dst     = ops[0].reg;
+            const MicroReg    src     = ops[1].reg;
+            const MicroOpBits dstBits = ops[2].opBits;
+            const MicroOpBits srcBits = ops[3].opBits;
+
+            if (!dst.isVirtual() || dstBits == srcBits || srcBits == MicroOpBits::Zero)
+                continue;
+
+            uint32_t valueId = 0;
+            if (!ssa->defValue(dst, it.current, valueId))
+                continue;
+
+            const auto* valueInfo = ssa->valueInfo(valueId);
+            if (!valueInfo || valueInfo->uses.empty())
+                continue;
+
+            const uint32_t srcBitsNum = getNumBits(srcBits);
+            bool           allNarrow  = true;
+            for (const auto& useSite : valueInfo->uses)
+            {
+                if (useSite.kind != MicroSsaState::UseSite::Kind::Instruction)
+                {
+                    allNarrow = false;
+                    break;
+                }
+                const MicroInstr* useInst = storage.ptr(useSite.instRef);
+                if (!useInst)
+                {
+                    allNarrow = false;
+                    break;
+                }
+                const MicroInstrOperand* useOps  = useInst->ops(operands);
+                const MicroOpBits        useBits = useReadBits(*useInst, useOps, dst);
+                if (useBits == MicroOpBits::Zero || getNumBits(useBits) > srcBitsNum)
+                {
+                    allNarrow = false;
+                    break;
+                }
+            }
+
+            if (!allNarrow)
+                continue;
+
+            if (dst == src)
+            {
+                pendingErase.push_back(it.current);
+            }
+            else
+            {
+                // LoadRegReg layout: [dst, src, opBits].
+                ops[2].opBits    = srcBits;
+                inst.op          = MicroInstrOpcode::LoadRegReg;
+                inst.numOperands = 3;
+            }
+            changed = true;
+        }
+
+        for (const MicroInstrRef ref : pendingErase)
+            storage.erase(ref);
+
+        return changed;
     }
 
     // Returns true and fills 'plan' when a load/modify/store triple bracketing
@@ -787,13 +1007,16 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         }
     }
 
-    if (plans.empty())
-        return Result::Continue;
-
     for (const CombinePlan& plan : plans)
         applyPlan(storage, operands, plan);
 
-    context.passChanged = true;
+    const bool mutatedPlans   = !plans.empty();
+    const bool forwardedLoads = forwardStoresToLoads(storage, operands, ssaState);
+    const bool narrowedExt    = narrowDeadExtends(storage, operands, ssaState);
+
+    if (mutatedPlans || forwardedLoads || narrowedExt)
+        context.passChanged = true;
+
     return Result::Continue;
 }
 

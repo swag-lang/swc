@@ -2,13 +2,17 @@
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/MicroReg.h"
 
-// Forward a single-use LoadRegImm into its consumer so the intermediate
-// register copy disappears.
+// Forward a LoadRegImm into its consumer so the materializing register
+// disappears. We rewrite only the consumer; when every use of the
+// LoadRegImm has been forwarded its result becomes dead and the
+// companion DeadCodeElimination pass removes the LoadRegImm itself on
+// the next iteration of the pre-RA optimization loop.
 //
 //   LoadRegImm    vt, bitsImm, imm
 //   LoadMemReg    [base], vt, storeBits, off    -> LoadMemImm      [base], storeBits, off, imm
 //   CmpRegReg     a, vt, bits                   -> CmpRegImm       a, bits, imm
 //   OpBinaryRegReg dst, vt, bits, microOp       -> OpBinaryRegImm  dst, bits, microOp, imm
+//   LoadRegReg    dst, vt, bits                 -> LoadRegImm      dst, bits, imm
 
 SWC_BEGIN_NAMESPACE();
 
@@ -16,13 +20,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        struct ImmSource
-        {
-            MicroInstrRef defRef = MicroInstrRef::invalid();
-            uint64_t      imm    = 0;
-        };
-
-        bool findSingleUseImmDef(ImmSource& out, Context& ctx, MicroReg useReg, MicroInstrRef useRef)
+        bool findImmDef(uint64_t& outImm, Context& ctx, MicroReg useReg, MicroInstrRef useRef)
         {
             if (!useReg.isVirtualInt())
                 return false;
@@ -41,13 +39,7 @@ namespace InstructionCombine
             if (immOps[2].hasWideImmediateValue())
                 return false;
 
-            if (!valueHasSingleUse(*ctx.ssa, useReg, rd.instRef))
-                return false;
-            if (ctx.isClaimed(rd.instRef))
-                return false;
-
-            out.defRef = rd.instRef;
-            out.imm    = immOps[2].valueU64;
+            outImm = immOps[2].valueU64;
             return true;
         }
     }
@@ -66,23 +58,22 @@ namespace InstructionCombine
         const MicroOpBits storeBits = storeOps[2].opBits;
         const uint64_t    storeOff  = storeOps[3].valueU64;
 
-        ImmSource src;
-        if (!findSingleUseImmDef(src, ctx, srcReg, storeRef))
+        uint64_t rawImm = 0;
+        if (!findImmDef(rawImm, ctx, srcReg, storeRef))
             return false;
 
-        if (!ctx.claimAll({src.defRef, storeRef}))
+        if (!ctx.claimAll({storeRef}))
             return false;
 
-        const uint64_t imm = src.imm & getBitsMask(storeBits);
+        const uint64_t imm = rawImm & getBitsMask(storeBits);
 
         MicroInstrOperand newOps[4];
-        newOps[0].reg    = base;
-        newOps[1].opBits = storeBits;
+        newOps[0].reg      = base;
+        newOps[1].opBits   = storeBits;
         newOps[2].valueU64 = storeOff;
         newOps[3].setImmediateValue(ApInt(imm, getNumBits(storeBits)));
 
         ctx.emitRewrite(storeRef, MicroInstrOpcode::LoadMemImm, newOps);
-        ctx.emitErase(src.defRef);
         return true;
     }
 
@@ -101,14 +92,14 @@ namespace InstructionCombine
 
         // Only rewrite when the RHS is the constant. Swapping with an LHS
         // constant would require inverting every consumer's MicroCond.
-        ImmSource src;
-        if (!findSingleUseImmDef(src, ctx, rhs, cmpRef))
+        uint64_t rawImm = 0;
+        if (!findImmDef(rawImm, ctx, rhs, cmpRef))
             return false;
 
-        if (!ctx.claimAll({src.defRef, cmpRef}))
+        if (!ctx.claimAll({cmpRef}))
             return false;
 
-        const uint64_t imm = src.imm & getBitsMask(opBits);
+        const uint64_t imm = rawImm & getBitsMask(opBits);
 
         MicroInstrOperand newOps[3];
         newOps[0].reg    = lhs;
@@ -116,7 +107,6 @@ namespace InstructionCombine
         newOps[2].setImmediateValue(ApInt(imm, getNumBits(opBits)));
 
         ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegImm, newOps);
-        ctx.emitErase(src.defRef);
         return true;
     }
 
@@ -138,14 +128,14 @@ namespace InstructionCombine
         if (!dst.isVirtualInt())
             return false;
 
-        ImmSource src;
-        if (!findSingleUseImmDef(src, ctx, rhs, binRef))
+        uint64_t rawImm = 0;
+        if (!findImmDef(rawImm, ctx, rhs, binRef))
             return false;
 
-        if (!ctx.claimAll({src.defRef, binRef}))
+        if (!ctx.claimAll({binRef}))
             return false;
 
-        const uint64_t imm = src.imm & getBitsMask(opBits);
+        const uint64_t imm = rawImm & getBitsMask(opBits);
 
         MicroInstrOperand newOps[4];
         newOps[0].reg     = dst;
@@ -154,7 +144,43 @@ namespace InstructionCombine
         newOps[3].setImmediateValue(ApInt(imm, getNumBits(opBits)));
 
         ctx.emitRewrite(binRef, MicroInstrOpcode::OpBinaryRegImm, newOps);
-        ctx.emitErase(src.defRef);
+        return true;
+    }
+
+    // LoadRegReg dst, src, bits where src = LoadRegImm imm  -> LoadRegImm dst, bits, imm.
+    // Breaks constant-carrying copies (e.g. from narrowing reg-reg moves
+    // that CopyElimination skips when the source/destination widths differ).
+    bool tryFoldConstCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (copyInst.numOperands < 3 || ctx.isClaimed(copyRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* copyOps = copyInst.ops(*ctx.operands);
+        if (!copyOps)
+            return false;
+
+        const MicroReg    dst    = copyOps[0].reg;
+        const MicroReg    src    = copyOps[1].reg;
+        const MicroOpBits opBits = copyOps[2].opBits;
+
+        if (!dst.isVirtualInt())
+            return false;
+
+        uint64_t rawImm = 0;
+        if (!findImmDef(rawImm, ctx, src, copyRef))
+            return false;
+
+        if (!ctx.claimAll({copyRef}))
+            return false;
+
+        const uint64_t imm = rawImm & getBitsMask(opBits);
+
+        MicroInstrOperand newOps[3];
+        newOps[0].reg    = dst;
+        newOps[1].opBits = opBits;
+        newOps[2].setImmediateValue(ApInt(imm, getNumBits(opBits)));
+
+        ctx.emitRewrite(copyRef, MicroInstrOpcode::LoadRegImm, newOps);
         return true;
     }
 }

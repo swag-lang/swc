@@ -37,6 +37,7 @@ namespace
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldMemoryAddressing);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowExtend);
         return r;

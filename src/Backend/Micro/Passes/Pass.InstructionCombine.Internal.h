@@ -88,6 +88,7 @@ namespace InstructionCombine
     bool tryFoldConstStore(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldConstCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
 
     //===-- Whole-IR scans --------------------------------------------------===//
 

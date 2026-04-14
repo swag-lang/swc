@@ -24,11 +24,16 @@ public:
         MicroOpBits       spillBits        = MicroOpBits::B64;
         MicroInstrOperand rematImmediate   = {};
         MicroOpBits       rematBits        = MicroOpBits::B64;
+        // Original instruction that defined a rematerializable value. If the value
+        // is evicted or expires before any user reads its physical mapping, the
+        // defining instruction is unreachable and gets pruned at the end of RA.
+        MicroInstrRef     rematDefInstRef  = MicroInstrRef::invalid();
         uint32_t          mappedListIndex  = std::numeric_limits<uint32_t>::max();
         bool              mapped           = false;
         bool              hasSpill         = false;
         bool              dirty            = false;
         bool              rematerializable = false;
+        bool              rematDefConsumed = false;
     };
 
 private:
@@ -106,7 +111,10 @@ private:
     void             queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
     void             queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
     bool             spillOrRematerializeLiveValue(MicroReg physReg, VRegState& regState, int64_t stackDepth, std::vector<PendingInsert>& pending);
-    void             updateRematerializationForDef(VRegState& regState, MicroReg virtKey, const MicroInstr& inst, const MicroInstrOperand* instOps) const;
+    void             updateRematerializationForDef(VRegState& regState, MicroReg virtKey, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* instOps) const;
+    void             noteRematDefConsumed(VRegState& regState) const;
+    void             retireRematDef(VRegState& regState);
+    void             pruneDeadRematDefs();
     void             applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst) const;
     static void      mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth);
     bool             isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const;
@@ -176,6 +184,7 @@ private:
     SmallVector<MicroReg> freeFloatPersistent_;
 
     std::vector<VRegState>                     states_;
+    std::vector<MicroInstrRef>                 deadRematDefs_;
     const MicroControlFlowGraph*               controlFlowGraph_ = nullptr;
     std::vector<PendingInsert>                 pending_;
     std::vector<PendingInsert>                 boundaryPending_;

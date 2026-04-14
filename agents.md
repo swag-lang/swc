@@ -2,6 +2,12 @@
 
 ## Hard Rules
 
+- Always fix the **root cause** of problems. Do not introduce hacks or workarounds.
+
+---
+
+### Validation Workflow
+
 - After any change:
     1. Compile a **DevMode** build.
     2. Run `test_dm.bat`.
@@ -13,37 +19,36 @@
     2. Run `all.bat`.
     3. Ensure no regressions occur.
 
-- When modifying **code generation**, run `test.bat` **10 consecutive times** to detect nondeterministic behavior.
+---
 
-- If a new feature is added, create appropriate tests in the most relevant `bin/tests` folder and file.
+### Determinism
 
-- **C++ unit tests**
+- When modifying **code generation**:
+    - Run `test.bat` **10 consecutive times**.
+    - Investigate and fix any nondeterministic behavior.
+
+---
+
+### Testing
+
+- Any new swag language feature must include **relevant tests**:
+    - Place them in the appropriate `bin/tests` folder.
+
+- **C++ unit tests**:
     - Backend only
-    - Must be placed in `src/Unittest`.
+    - Must be placed in `src/Unittest`
 
-- Individual tests must not run longer than **40 seconds**.
-  (Compilation time is excluded from this limit.)
+- Individual tests must not exceed **40 seconds** of runtime  
+  (compilation time excluded).
 
-- When done, don't forget to remove all the temporary files/folders created by you to investigate any issues.
+---
+
+### Clean Workspace
+
+- Remove any **temporary files or folders** created during debugging or investigation before finishing.
 
 ---
 
 ## Coding Rules
 
-- Comment what you are doing when this is really usefull. Do not over comment. Make it pro.
-
-- Always fix the **root cause** of problems. Do not introduce hacks or workarounds.
-
-- Avoid excessive use of **lambdas**. Favor clarity and readability.
-
-- For functions returning values via parameters:
-    - Place the **output parameter first**, after global parameters (e.g., managers).
-
-- Use `auto` when it:
-    - Improves readability
-    - Avoids repeating complex types
-    - Reduces redundancy
-
-  Use explicit types when they better communicate intent.
-
-- Do not add defensive code. Prefere `SWC_ASSERT` if possible.
+- See `@coding-rules.md`

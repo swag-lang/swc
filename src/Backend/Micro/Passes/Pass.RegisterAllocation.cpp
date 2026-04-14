@@ -968,6 +968,41 @@ void MicroRegisterAllocationPass::clearRematerialization(VRegState& regState)
     regState.rematerializable = false;
     regState.rematImmediate   = {};
     regState.rematBits        = MicroOpBits::B64;
+    regState.rematDefInstRef  = MicroInstrRef::invalid();
+    regState.rematDefConsumed = false;
+}
+
+void MicroRegisterAllocationPass::noteRematDefConsumed(VRegState& regState) const
+{
+    if (regState.rematDefInstRef.isValid())
+        regState.rematDefConsumed = true;
+}
+
+void MicroRegisterAllocationPass::retireRematDef(VRegState& regState)
+{
+    if (!regState.rematDefInstRef.isValid())
+        return;
+
+    if (!regState.rematDefConsumed)
+        deadRematDefs_.push_back(regState.rematDefInstRef);
+
+    regState.rematDefInstRef  = MicroInstrRef::invalid();
+    regState.rematDefConsumed = false;
+}
+
+void MicroRegisterAllocationPass::pruneDeadRematDefs()
+{
+    if (deadRematDefs_.empty() || !instructions_)
+        return;
+
+    bool erased = false;
+    for (const MicroInstrRef ref : deadRematDefs_)
+        erased |= instructions_->erase(ref);
+
+    if (erased && context_)
+        context_->passChanged = true;
+
+    deadRematDefs_.clear();
 }
 
 void MicroRegisterAllocationPass::setRematerializedImmediate(VRegState& regState, const MicroInstrOperand& immediate, const MicroOpBits opBits)
@@ -975,6 +1010,7 @@ void MicroRegisterAllocationPass::setRematerializedImmediate(VRegState& regState
     regState.rematerializable = true;
     regState.rematImmediate   = immediate;
     regState.rematBits        = opBits;
+    regState.rematDefConsumed = false;
 }
 
 uint64_t MicroRegisterAllocationPass::spillMemOffset(uint64_t spillOffset, int64_t stackDepth)
@@ -1039,6 +1075,7 @@ bool MicroRegisterAllocationPass::spillOrRematerializeLiveValue(MicroReg physReg
 
 void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState&                     regState,
                                                                 const MicroReg                 virtKey,
+                                                                const MicroInstrRef            instRef,
                                                                 const MicroInstr&              inst,
                                                                 const MicroInstrOperand* const instOps) const
 {
@@ -1056,7 +1093,10 @@ void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState&      
     {
         case MicroInstrOpcode::LoadRegImm:
             if (instOps[0].reg == virtKey)
+            {
                 setRematerializedImmediate(regState, instOps[2], instOps[1].opBits);
+                regState.rematDefInstRef = instRef;
+            }
             return;
 
         case MicroInstrOpcode::ClearReg:
@@ -1065,6 +1105,7 @@ void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState&      
                 MicroInstrOperand zeroImm;
                 zeroImm.setImmediateValue(ApInt(0, getNumBits(instOps[1].opBits)));
                 setRematerializedImmediate(regState, zeroImm, instOps[1].opBits);
+                regState.rematDefInstRef = instRef;
             }
             return;
 
@@ -1077,6 +1118,8 @@ void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState&      
                     regState.rematerializable = srcState.rematerializable;
                     regState.rematImmediate   = srcState.rematImmediate;
                     regState.rematBits        = srcState.rematBits;
+                    // Don't track this copy as a remat-def: cleaning it up belongs
+                    // to the pre-RA copy elimination pass, not to RA's own bookkeeping.
                 }
             }
             return;
@@ -1297,6 +1340,10 @@ void MicroRegisterAllocationPass::unmapVirtReg(MicroReg virtKey)
     if (!regState.mapped)
         return;
 
+    // The original mapping is going away; if nothing ever read it, the defining
+    // instruction produced a value no one observed and can be erased post-RA.
+    retireRematDef(regState);
+
     SWC_ASSERT(regState.mappedListIndex != std::numeric_limits<uint32_t>::max());
     SWC_ASSERT(regState.mappedListIndex < mappedVirtualIndices_.size());
 
@@ -1515,7 +1562,13 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest&         
     }
 
     if (regState.mapped)
+    {
+        // Reusing the original mapping for a use means the defining instruction's
+        // physical write is actually observed; keep its remat def alive.
+        if (request.isUse)
+            noteRematDefConsumed(regState);
         return regState.phys;
+    }
 
     const auto physReg = allocatePhysical(request, protectedKeys, forbiddenPhysRegs, stamp, stackDepth, pending);
     mapVirtReg(request.virtKey, physReg);
@@ -1642,6 +1695,7 @@ void MicroRegisterAllocationPass::clearAllMappedVirtuals()
     {
         auto& regState = states_[denseIndex];
         SWC_ASSERT(regState.mapped);
+        retireRematDef(regState);
         const MicroReg physReg   = regState.phys;
         regState.mapped          = false;
         regState.mappedListIndex = std::numeric_limits<uint32_t>::max();
@@ -1960,7 +2014,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (request.isDef)
             {
                 auto& regState = stateForVirtual(request.virtKey);
-                updateRematerializationForDef(regState, request.virtKey, *it, instOps);
+                updateRematerializationForDef(regState, request.virtKey, it.current, *it, instOps);
                 regState.dirty = true;
             }
         }
@@ -2108,6 +2162,7 @@ void MicroRegisterAllocationPass::clearState()
     freeFloatTransient_.clear();
     freeFloatPersistent_.clear();
     states_.clear();
+    deadRematDefs_.clear();
     pending_.clear();
     boundaryPending_.clear();
     labelStackDepth_.clear();
@@ -2132,6 +2187,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     analyzeLiveness();
     setupPools();
     rewriteInstructions();
+    pruneDeadRematDefs();
     insertSpillFrame();
 
     return Result::Continue;

@@ -168,6 +168,9 @@
     <ClCompile Include="src\Unittest\Test.Micro.InstructionCombine.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Test.Micro.PreRAPeephole.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Test.Micro.PostRAPeephole.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
@@ -328,6 +331,18 @@
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.Common.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.ConstForward.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.CopyForward.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp">
@@ -993,6 +1008,12 @@
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.Internal.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.h">

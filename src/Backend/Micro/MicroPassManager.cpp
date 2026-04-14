@@ -13,6 +13,7 @@
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
+#include "Backend/Micro/Passes/Pass.PreRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
@@ -388,6 +389,7 @@ MicroPassManager::MicroPassManager()
     emitPass_                 = std::make_unique<MicroEmitPass>();
 
     // Pre-RA optimization passes
+    preRAPeepholePass_      = std::make_unique<MicroPreRAPeepholePass>();
     constantFoldingPass_     = std::make_unique<MicroConstantFoldingPass>();
     copyEliminationPass_     = std::make_unique<MicroCopyEliminationPass>();
     instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
@@ -428,6 +430,7 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     // Iterates until fixed point before touching register allocation.
     if (optimize)
     {
+        addPreRALoopPass(*preRAPeepholePass_);
         addPreRALoopPass(*constantFoldingPass_);
         addPreRALoopPass(*copyEliminationPass_);
         addPreRALoopPass(*instructionCombinePass_);

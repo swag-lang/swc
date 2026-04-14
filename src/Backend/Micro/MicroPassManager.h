@@ -19,6 +19,7 @@ class MicroPrologEpilogSanitizePass;
 class MicroEmitPass;
 
 // Pre-RA optimization passes (operate on virtual registers)
+class MicroPreRAPeepholePass;
 class MicroConstantFoldingPass;
 class MicroCopyEliminationPass;
 class MicroInstructionCombinePass;
@@ -72,6 +73,7 @@ private:
     std::unique_ptr<MicroEmitPass>                 emitPass_;
 
     // Pre-RA optimization passes
+    std::unique_ptr<MicroPreRAPeepholePass>    preRAPeepholePass_;
     std::unique_ptr<MicroConstantFoldingPass>     constantFoldingPass_;
     std::unique_ptr<MicroCopyEliminationPass>     copyEliminationPass_;
     std::unique_ptr<MicroInstructionCombinePass>  instructionCombinePass_;

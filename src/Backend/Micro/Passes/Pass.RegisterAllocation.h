@@ -114,7 +114,8 @@ private:
     void             updateRematerializationForDef(VRegState& regState, MicroReg virtKey, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* instOps) const;
     void             noteRematDefConsumed(VRegState& regState) const;
     void             retireRematDef(VRegState& regState);
-    void             pruneDeadRematDefs();
+    void             queueErase(MicroInstrRef instRef);
+    void             flushQueuedErasures();
     void             applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst) const;
     static void      mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth);
     bool             isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const;
@@ -184,7 +185,7 @@ private:
     SmallVector<MicroReg> freeFloatPersistent_;
 
     std::vector<VRegState>                     states_;
-    std::vector<MicroInstrRef>                 deadRematDefs_;
+    std::vector<MicroInstrRef>                 pendingErasures_;
     const MicroControlFlowGraph*               controlFlowGraph_ = nullptr;
     std::vector<PendingInsert>                 pending_;
     std::vector<PendingInsert>                 boundaryPending_;

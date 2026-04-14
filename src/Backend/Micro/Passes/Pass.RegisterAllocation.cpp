@@ -984,25 +984,31 @@ void MicroRegisterAllocationPass::retireRematDef(VRegState& regState)
         return;
 
     if (!regState.rematDefConsumed)
-        deadRematDefs_.push_back(regState.rematDefInstRef);
+        queueErase(regState.rematDefInstRef);
 
     regState.rematDefInstRef  = MicroInstrRef::invalid();
     regState.rematDefConsumed = false;
 }
 
-void MicroRegisterAllocationPass::pruneDeadRematDefs()
+void MicroRegisterAllocationPass::queueErase(const MicroInstrRef instRef)
 {
-    if (deadRematDefs_.empty() || !instructions_)
+    if (instRef.isValid())
+        pendingErasures_.push_back(instRef);
+}
+
+void MicroRegisterAllocationPass::flushQueuedErasures()
+{
+    if (pendingErasures_.empty() || !instructions_)
         return;
 
     bool erased = false;
-    for (const MicroInstrRef ref : deadRematDefs_)
+    for (const MicroInstrRef ref : pendingErasures_)
         erased |= instructions_->erase(ref);
 
     if (erased && context_)
         context_->passChanged = true;
 
-    deadRematDefs_.clear();
+    pendingErasures_.clear();
 }
 
 void MicroRegisterAllocationPass::setRematerializedImmediate(VRegState& regState, const MicroInstrOperand& immediate, const MicroOpBits opBits)
@@ -2043,9 +2049,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             const MicroInstrOperand* const rewrittenOps = it->ops(*operands_);
             if (rewrittenOps && rewrittenOps[0].reg == rewrittenOps[1].reg)
             {
-                it->op          = MicroInstrOpcode::Nop;
-                it->numOperands = 0;
-                it->opsRef      = MicroOperandRef::invalid();
+                // mov rX, rX: drop the instruction entirely. We can't erase here
+                // because the iterator would become invalid; queue for end-of-pass.
+                queueErase(instructionRef);
             }
         }
 
@@ -2162,7 +2168,7 @@ void MicroRegisterAllocationPass::clearState()
     freeFloatTransient_.clear();
     freeFloatPersistent_.clear();
     states_.clear();
-    deadRematDefs_.clear();
+    pendingErasures_.clear();
     pending_.clear();
     boundaryPending_.clear();
     labelStackDepth_.clear();
@@ -2187,7 +2193,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     analyzeLiveness();
     setupPools();
     rewriteInstructions();
-    pruneDeadRematDefs();
+    flushQueuedErasures();
     insertSpillFrame();
 
     return Result::Continue;

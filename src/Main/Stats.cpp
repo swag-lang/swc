@@ -159,6 +159,22 @@ namespace
                 printTree(ctx, *child, totalPeakBytes, depth + 1);
         }
     }
+
+    std::string formatMicroInstrDelta(const int64_t delta, const size_t base)
+    {
+        const char   sign = delta >= 0 ? '+' : '-';
+        const size_t abs  = static_cast<size_t>(std::abs(delta));
+        const double pct  = base != 0 ? 100.0 * static_cast<double>(delta) / static_cast<double>(base) : 0.0;
+        return std::format("{}{} ({:+.2f}%)", sign, Utf8Helper::toNiceBigNumber(abs), pct);
+    }
+
+    struct MicroStageTransition
+    {
+        const char* deltaLabel = nullptr;
+        const char* countLabel = nullptr;
+        size_t      previousCount = 0;
+        size_t      currentCount  = 0;
+    };
 }
 #endif
 
@@ -196,38 +212,34 @@ void Stats::print(const TaskContext& ctx) const
 
     // Backend micro counts
     Logger::print(ctx, "\n");
-    const size_t numMicroBefore     = numMicroInstrBeforePasses.load();
-    const size_t numMicroAfterOptim = numMicroInstrAfterOptim.load();
-    const size_t numMicroAfterRA    = numMicroInstrAfterRA.load();
-    const size_t numMicroFinal      = numMicroInstrFinal.load();
+    const size_t numMicroInitial          = numMicroInstrInitial.load();
+    const size_t numMicroAfterStart       = numMicroInstrAfterStart.load();
+    const size_t numMicroAfterPreRAOptim  = numMicroInstrAfterPreRAOptim.load();
+    const size_t numMicroAfterRA          = numMicroInstrAfterRA.load();
+    const size_t numMicroAfterPostRASetup = numMicroInstrAfterPostRASetup.load();
+    const size_t numMicroAfterPostRAOptim = numMicroInstrAfterPostRAOptim.load();
+    const size_t numMicroFinal            = numMicroInstrFinal.load();
 
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrBeforePasses", colorMsg, Utf8Helper::toNiceBigNumber(numMicroBefore));
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrAfterOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroAfterOptim));
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrAfterRA", colorMsg, Utf8Helper::toNiceBigNumber(numMicroAfterRA));
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrFinal", colorMsg, Utf8Helper::toNiceBigNumber(numMicroFinal));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrInitial", colorMsg, Utf8Helper::toNiceBigNumber(numMicroInitial));
 
-    const auto formatDelta = [](int64_t delta, size_t base) {
-        const char sign = delta >= 0 ? '+' : '-';
-        const auto abs  = static_cast<size_t>(std::abs(delta));
-        const double pct = base != 0 ? 100.0 * static_cast<double>(delta) / static_cast<double>(base) : 0.0;
-        return std::format("{}{} ({:+.2f}%)", sign, Utf8Helper::toNiceBigNumber(abs), pct);
+    const std::array<MicroStageTransition, 6> transitions = {
+        MicroStageTransition{"count.micro.startDelta", "count.micro.instrAfterStart", numMicroInitial, numMicroAfterStart},
+        MicroStageTransition{"count.micro.preRAOptimDelta", "count.micro.instrAfterPreRAOptim", numMicroAfterStart, numMicroAfterPreRAOptim},
+        MicroStageTransition{"count.micro.raDelta", "count.micro.instrAfterRA", numMicroAfterPreRAOptim, numMicroAfterRA},
+        MicroStageTransition{"count.micro.postRASetupDelta", "count.micro.instrAfterPostRASetup", numMicroAfterRA, numMicroAfterPostRASetup},
+        MicroStageTransition{"count.micro.postRAOptimDelta", "count.micro.instrAfterPostRAOptim", numMicroAfterPostRASetup, numMicroAfterPostRAOptim},
+        MicroStageTransition{"count.micro.finalCleanupDelta", "count.micro.instrFinal", numMicroAfterPostRAOptim, numMicroFinal},
     };
 
-    // Pre-RA optimization gain: negative = instructions removed.
-    const int64_t optimDelta = static_cast<int64_t>(numMicroAfterOptim) - static_cast<int64_t>(numMicroBefore);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.optimDelta", colorMsg, formatDelta(optimDelta, numMicroBefore));
+    for (const MicroStageTransition& transition : transitions)
+    {
+        const int64_t delta = static_cast<int64_t>(transition.currentCount) - static_cast<int64_t>(transition.previousCount);
+        Logger::printHeaderDot(ctx, colorHeader, transition.deltaLabel, colorMsg, formatMicroInstrDelta(delta, transition.previousCount));
+        Logger::printHeaderDot(ctx, colorHeader, transition.countLabel, colorMsg, Utf8Helper::toNiceBigNumber(transition.currentCount));
+    }
 
-    // Legalize + RegAlloc cost: positive = instructions added (spills/legalization).
-    const int64_t raDelta = static_cast<int64_t>(numMicroAfterRA) - static_cast<int64_t>(numMicroAfterOptim);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.raDelta", colorMsg, formatDelta(raDelta, numMicroAfterOptim));
-
-    // Post-RA finalization delta (prolog/epilog, frame setup, peephole...).
-    const int64_t finalDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroAfterRA);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.finalDelta", colorMsg, formatDelta(finalDelta, numMicroAfterRA));
-
-    // Whole-pipeline delta.
-    const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroBefore);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, formatDelta(pipelineDelta, numMicroBefore));
+    const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, formatMicroInstrDelta(pipelineDelta, numMicroInitial));
 
     // Time
     Logger::print(ctx, "\n");

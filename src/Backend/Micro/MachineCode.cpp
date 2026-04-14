@@ -28,9 +28,12 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     SWC_RESULT(builder.runPasses(&encoder, passContext));
 
 #if SWC_HAS_STATS
-    Stats::get().numMicroInstrBeforePasses.fetch_add(passContext.statsInstrBeforePasses, std::memory_order_relaxed);
-    Stats::get().numMicroInstrAfterOptim.fetch_add(passContext.statsInstrAfterOptim, std::memory_order_relaxed);
+    Stats::get().numMicroInstrInitial.fetch_add(passContext.statsInstrInitial, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterStart.fetch_add(passContext.statsInstrAfterStart, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterPreRAOptim.fetch_add(passContext.statsInstrAfterPreRAOptim, std::memory_order_relaxed);
     Stats::get().numMicroInstrAfterRA.fetch_add(passContext.statsInstrAfterRA, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterPostRASetup.fetch_add(passContext.statsInstrAfterPostRASetup, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterPostRAOptim.fetch_add(passContext.statsInstrAfterPostRAOptim, std::memory_order_relaxed);
     Stats::get().numMicroInstrFinal.fetch_add(passContext.statsInstrFinal, std::memory_order_relaxed);
 #endif
 

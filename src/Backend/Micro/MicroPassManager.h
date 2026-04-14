@@ -46,6 +46,8 @@ public:
     void addStartPass(MicroPass& pass) { startPasses_.push_back(&pass); }
     void addPreRALoopPass(MicroPass& pass) { preRALoopPasses_.push_back(&pass); }
     void addRALoopPass(MicroPass& pass) { raLoopPasses_.push_back(&pass); }
+    void addPostRASetupPass(MicroPass& pass) { postRASetupPasses_.push_back(&pass); }
+    void addPostRAOptimPass(MicroPass& pass) { postRAOptimPasses_.push_back(&pass); }
     void addFinalPass(MicroPass& pass) { finalPasses_.push_back(&pass); }
 
     // Back-compat shim: addLoopPass routes to the RA loop (legalize+regalloc).
@@ -57,6 +59,8 @@ private:
     std::vector<MicroPass*> startPasses_;
     std::vector<MicroPass*> preRALoopPasses_;
     std::vector<MicroPass*> raLoopPasses_;
+    std::vector<MicroPass*> postRASetupPasses_;
+    std::vector<MicroPass*> postRAOptimPasses_;
     std::vector<MicroPass*> finalPasses_;
 
     // Structural passes

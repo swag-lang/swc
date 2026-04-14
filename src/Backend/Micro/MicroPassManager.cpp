@@ -409,6 +409,8 @@ void MicroPassManager::clear()
     startPasses_.clear();
     preRALoopPasses_.clear();
     raLoopPasses_.clear();
+    postRASetupPasses_.clear();
+    postRAOptimPasses_.clear();
     finalPasses_.clear();
 }
 
@@ -441,11 +443,11 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     addRALoopPass(*regAllocPass_);
 
     // Phase 4 — Post-RA finalization (runs once, on physical registers).
-    addFinalPass(*prologEpilogPass_);
+    addPostRASetupPass(*prologEpilogPass_);
     if (optimize)
     {
-        addFinalPass(*postRADeadCodeElimPass_);
-        addFinalPass(*postRAPeepholePass_);
+        addPostRAOptimPass(*postRADeadCodeElimPass_);
+        addPostRAOptimPass(*postRAPeepholePass_);
     }
     addFinalPass(*prologEpilogSanitizePass_);
     addFinalPass(*emitPass_);
@@ -455,11 +457,16 @@ Result MicroPassManager::run(MicroPassContext& context) const
 {
     SWC_ASSERT(context.instructions != nullptr);
     VerifyStateCache verifyCache;
+
+#if SWC_HAS_STATS
+    context.statsInstrInitial = context.instructions->count();
+#endif
+
     SWC_RESULT(runLinearPasses(context, startPasses_, verifyCache));
 
     context.printInstrCountBefore = context.instructions->count();
 #if SWC_HAS_STATS
-    context.statsInstrBeforePasses = context.instructions->count();
+    context.statsInstrAfterStart = context.instructions->count();
 #endif
 
     // Pre-RA optimization loop — converges on the virtual-register IR.
@@ -468,7 +475,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_RESULT(runLoopPasses(context, preRALoopPasses_, preRaMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
 
 #if SWC_HAS_STATS
-    context.statsInstrAfterOptim = context.instructions->count();
+    context.statsInstrAfterPreRAOptim = context.instructions->count();
 #endif
 
     // All passes preceding the legalize/RA loop must keep the IR in virtual-register form;
@@ -481,6 +488,18 @@ Result MicroPassManager::run(MicroPassContext& context) const
 
 #if SWC_HAS_STATS
     context.statsInstrAfterRA = context.instructions->count();
+#endif
+
+    SWC_RESULT(runLinearPasses(context, postRASetupPasses_, verifyCache));
+
+#if SWC_HAS_STATS
+    context.statsInstrAfterPostRASetup = context.instructions->count();
+#endif
+
+    SWC_RESULT(runLinearPasses(context, postRAOptimPasses_, verifyCache));
+
+#if SWC_HAS_STATS
+    context.statsInstrAfterPostRAOptim = context.instructions->count();
 #endif
 
     SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));

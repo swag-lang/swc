@@ -31,9 +31,12 @@ namespace
         PatternRegistry r;
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryOpBinaryRegImm);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryOpBinaryRegReg);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstBinaryRhs);
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldMemoryAddressing);
+        r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldMemoryAddressing);
+        r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowExtend);
         return r;

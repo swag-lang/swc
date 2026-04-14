@@ -53,15 +53,6 @@ namespace InstructionCombine
             return true;
         }
 
-        bool valueHasSingleUse(const MicroSsaState& ssa, MicroReg reg, MicroInstrRef defInstRef)
-        {
-            uint32_t valueId = 0;
-            if (!ssa.defValue(reg, defInstRef, valueId))
-                return false;
-            const auto* info = ssa.valueInfo(valueId);
-            return info && info->uses.size() == 1;
-        }
-
         bool storeMatches(const MicroInstr&        store,
                           const MicroInstrOperand* storeOps,
                           MicroReg                 base,

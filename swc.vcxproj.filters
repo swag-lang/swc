@@ -303,6 +303,9 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.ConstProp.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>

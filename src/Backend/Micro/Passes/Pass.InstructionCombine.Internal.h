@@ -76,6 +76,7 @@ namespace InstructionCombine
     bool        isControlOrCall(const MicroInstr& inst);
     bool        writesMemory(const MicroInstr& inst);
     MicroOpBits useReadBits(const MicroInstr& useInst, const MicroInstrOperand* useOps, MicroReg reg);
+    bool        valueHasSingleUse(const MicroSsaState& ssa, MicroReg reg, MicroInstrRef defInstRef);
 
     //===-- Patterns (one per file) -----------------------------------------===//
 
@@ -84,6 +85,9 @@ namespace InstructionCombine
     bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldConstStore(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldConstCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
 
     //===-- Whole-IR scans --------------------------------------------------===//
 

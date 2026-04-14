@@ -210,6 +210,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.NarrowExtend.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.ConstProp.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Common.cpp" />

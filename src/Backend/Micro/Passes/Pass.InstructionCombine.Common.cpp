@@ -235,6 +235,15 @@ namespace InstructionCombine
         }
     }
 
+    bool valueHasSingleUse(const MicroSsaState& ssa, MicroReg reg, MicroInstrRef defInstRef)
+    {
+        uint32_t valueId = 0;
+        if (!ssa.defValue(reg, defInstRef, valueId))
+            return false;
+        const auto* info = ssa.valueInfo(valueId);
+        return info && info->uses.size() == 1;
+    }
+
     //===-- Context methods -------------------------------------------------===//
 
     bool Context::isClaimed(MicroInstrRef ref) const

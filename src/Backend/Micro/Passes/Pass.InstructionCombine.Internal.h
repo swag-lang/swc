@@ -57,21 +57,18 @@ namespace InstructionCombine
 
         std::array<SmallVector<PatternFn, 2>, K_OPCODE_COUNT> byOpcode;
 
-        void add(MicroInstrOpcode op, PatternFn fn);
-        std::span<PatternFn const> patternsFor(MicroInstrOpcode op) const;
+        void                       add(MicroInstrOpcode op, PatternFn fn);
+        std::span<const PatternFn> patternsFor(MicroInstrOpcode op) const;
     };
 
-    void applyAction(Context& ctx, const Action& action);
+    void applyAction(const Context& ctx, const Action& action);
 
     //===-- Shared helpers --------------------------------------------------===//
 
     bool        isSameOpBitsInt(MicroOpBits a, MicroOpBits b);
     bool        isRightIdentity(MicroOp op, MicroOpBits opBits, uint64_t imm);
     bool        isRightAbsorbing(MicroOp op, MicroOpBits opBits, uint64_t imm, uint64_t& outResult);
-    bool        tryReassociate(MicroOp firstOp, uint64_t firstImm,
-                               MicroOp secondOp, uint64_t secondImm,
-                               MicroOpBits opBits,
-                               MicroOp& outOp, uint64_t& outImm);
+    bool        tryReassociate(MicroOp firstOp, uint64_t firstImm, MicroOp secondOp, uint64_t secondImm, MicroOpBits opBits, MicroOp& outOp, uint64_t& outImm);
     bool        isMemFoldableOp(MicroOp op);
     bool        isControlOrCall(const MicroInstr& inst);
     bool        writesMemory(const MicroInstr& inst);

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -81,13 +81,7 @@ namespace InstructionCombine
 
     namespace
     {
-        bool tryFoldAddSub(MicroOp     firstOp,
-                           uint64_t    firstImm,
-                           MicroOp     secondOp,
-                           uint64_t    secondImm,
-                           MicroOpBits opBits,
-                           MicroOp&    outOp,
-                           uint64_t&   outImm)
+        bool tryFoldAddSub(MicroOp firstOp, uint64_t firstImm, MicroOp secondOp, uint64_t secondImm, MicroOpBits opBits, MicroOp& outOp, uint64_t& outImm)
         {
             const uint64_t mask        = getBitsMask(opBits);
             const uint64_t a           = firstImm & mask;
@@ -117,11 +111,7 @@ namespace InstructionCombine
             return true;
         }
 
-        bool foldSameBitwise(MicroOp     op,
-                             uint64_t    lhs,
-                             uint64_t    rhs,
-                             MicroOpBits opBits,
-                             uint64_t&   outImm)
+        bool foldSameBitwise(MicroOp op, uint64_t lhs, uint64_t rhs, MicroOpBits opBits, uint64_t& outImm)
         {
             uint64_t   value  = 0;
             const auto status = MicroPassHelpers::foldBinaryImmediate(value, lhs, rhs, op, opBits);
@@ -132,13 +122,7 @@ namespace InstructionCombine
         }
     }
 
-    bool tryReassociate(MicroOp     firstOp,
-                        uint64_t    firstImm,
-                        MicroOp     secondOp,
-                        uint64_t    secondImm,
-                        MicroOpBits opBits,
-                        MicroOp&    outOp,
-                        uint64_t&   outImm)
+    bool tryReassociate(MicroOp firstOp, uint64_t firstImm, MicroOp secondOp, uint64_t secondImm, MicroOpBits opBits, MicroOp& outOp, uint64_t& outImm)
     {
         const bool firstIsAddSub  = firstOp == MicroOp::Add || firstOp == MicroOp::Subtract;
         const bool secondIsAddSub = secondOp == MicroOp::Add || secondOp == MicroOp::Subtract;
@@ -269,10 +253,7 @@ namespace InstructionCombine
         actions.push_back(a);
     }
 
-    void Context::emitRewrite(MicroInstrRef                      ref,
-                              MicroInstrOpcode                   newOp,
-                              std::span<const MicroInstrOperand> newOps,
-                              bool                               allocNewBlock)
+    void Context::emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock)
     {
         SWC_ASSERT(newOps.size() <= Action::K_MAX_OPS);
         Action a;
@@ -287,7 +268,7 @@ namespace InstructionCombine
 
     //===-- Action application ---------------------------------------------===//
 
-    void applyAction(Context& ctx, const Action& action)
+    void applyAction(const Context& ctx, const Action& action)
     {
         SWC_ASSERT(ctx.storage);
         SWC_ASSERT(ctx.operands);
@@ -327,7 +308,7 @@ namespace InstructionCombine
         byOpcode[static_cast<size_t>(op)].push_back(fn);
     }
 
-    std::span<PatternFn const> PatternRegistry::patternsFor(MicroInstrOpcode op) const
+    std::span<const PatternFn> PatternRegistry::patternsFor(MicroInstrOpcode op) const
     {
         return byOpcode[static_cast<size_t>(op)].span();
     }

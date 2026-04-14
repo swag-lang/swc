@@ -20,7 +20,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        bool findImmDef(uint64_t& outImm, Context& ctx, MicroReg useReg, MicroInstrRef useRef)
+        bool findImmDef(uint64_t& outImm, const Context& ctx, MicroReg useReg, MicroInstrRef useRef)
         {
             if (!useReg.isVirtualInt())
                 return false;

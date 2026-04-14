@@ -306,6 +306,9 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
@@ -966,6 +969,9 @@
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.h">

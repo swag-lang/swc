@@ -28,6 +28,7 @@ class MicroBranchSimplifyPass;
 
 // Post-RA optimization passes (operate on physical registers)
 class MicroPostRAPeepholePass;
+class MicroPostRADeadCodeElimPass;
 
 class MicroPassManager
 {
@@ -75,7 +76,8 @@ private:
     std::unique_ptr<MicroBranchSimplifyPass>      branchSimplifyPass_;
 
     // Post-RA optimization passes
-    std::unique_ptr<MicroPostRAPeepholePass> postRAPeepholePass_;
+    std::unique_ptr<MicroPostRAPeepholePass>     postRAPeepholePass_;
+    std::unique_ptr<MicroPostRADeadCodeElimPass> postRADeadCodeElimPass_;
 };
 
 SWC_END_NAMESPACE();

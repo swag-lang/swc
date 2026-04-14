@@ -9,6 +9,7 @@
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
+#include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
@@ -395,7 +396,8 @@ MicroPassManager::MicroPassManager()
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
 
     // Post-RA optimization passes
-    postRAPeepholePass_ = std::make_unique<MicroPostRAPeepholePass>();
+    postRAPeepholePass_      = std::make_unique<MicroPostRAPeepholePass>();
+    postRADeadCodeElimPass_  = std::make_unique<MicroPostRADeadCodeElimPass>();
 }
 
 MicroPassManager::~MicroPassManager()                                      = default;
@@ -441,7 +443,10 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     // Phase 4 — Post-RA finalization (runs once, on physical registers).
     addFinalPass(*prologEpilogPass_);
     if (optimize)
+    {
+        addFinalPass(*postRADeadCodeElimPass_);
         addFinalPass(*postRAPeepholePass_);
+    }
     addFinalPass(*prologEpilogSanitizePass_);
     addFinalPass(*emitPass_);
 }

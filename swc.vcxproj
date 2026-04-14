@@ -211,6 +211,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp" />
@@ -448,6 +449,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.Internal.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h" />

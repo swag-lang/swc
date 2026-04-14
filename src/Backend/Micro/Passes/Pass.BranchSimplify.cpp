@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
+#include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Memory/MemoryProfile.h"
 
@@ -34,75 +35,58 @@ namespace
         MicroOpBits opBits = MicroOpBits::B64;
     };
 
+    struct KnownValueTraits
+    {
+        static bool isValid(const KnownValue&)
+        {
+            return true;
+        }
+
+        static bool same(const KnownValue& lhs, const KnownValue& rhs)
+        {
+            return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
+        }
+    };
+
+    struct KnownValueContext
+    {
+        const MicroSsaState&       ssaState;
+        const MicroStorage&        storage;
+        const MicroOperandStorage& operands;
+    };
+
     struct ProgramLayout
     {
-        std::vector<MicroInstrRef>        order;
-        std::vector<uint32_t>             ordinalByRef;
+        std::vector<MicroInstrRef>             order;
+        std::vector<uint32_t>                  ordinalByRef;
         std::unordered_map<uint32_t, uint32_t> labelOrdinalById;
     };
 
-    bool tryGetKnownValue(KnownValue& out, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const uint32_t valueId)
+    bool tryGetKnownReachingValue(KnownValue&                    outValue,
+                                  const KnownValueContext&       context,
+                                  const std::vector<KnownValue>& knownValues,
+                                  const std::vector<uint8_t>&    knownFlags,
+                                  const MicroReg                 reg,
+                                  const MicroInstrRef            instRef)
     {
-        if (valueId >= knownFlags.size() || !knownFlags[valueId])
-            return false;
-
-        out = knownValues[valueId];
-        return true;
+        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, context.ssaState, knownValues, knownFlags, reg, instRef);
     }
 
-    bool sameKnownValue(const KnownValue& lhs, const KnownValue& rhs)
-    {
-        return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
-    }
-
-    bool tryGetKnownReachingValue(KnownValue& out, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const MicroReg reg, const MicroInstrRef instRef)
-    {
-        const auto reachingDef = ssaState.reachingDef(reg, instRef);
-        if (!reachingDef.valid())
-            return false;
-
-        return tryGetKnownValue(out, knownValues, knownFlags, reachingDef.valueId);
-    }
-
-    bool tryInferPhiConstant(KnownValue& out, const MicroSsaState::PhiInfo& phiInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
-    {
-        bool       hasCandidate = false;
-        KnownValue candidate;
-
-        for (const uint32_t incomingValueId : phiInfo.incomingValueIds)
-        {
-            KnownValue incomingValue;
-            if (!tryGetKnownValue(incomingValue, knownValues, knownFlags, incomingValueId))
-                return false;
-
-            if (!hasCandidate)
-            {
-                candidate    = incomingValue;
-                hasCandidate = true;
-                continue;
-            }
-
-            if (!sameKnownValue(candidate, incomingValue))
-                return false;
-        }
-
-        if (!hasCandidate)
-            return false;
-
-        out = candidate;
-        return true;
-    }
-
-    bool tryInferInstructionConstant(KnownValue& out, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const MicroSsaState::ValueInfo& valueInfo)
+    bool tryInferInstructionConstant(KnownValue&              outValue,
+                                     const KnownValueContext& context,
+                                     const uint32_t,
+                                     const MicroSsaState::ValueInfo& valueInfo,
+                                     const std::vector<KnownValue>&  knownValues,
+                                     const std::vector<uint8_t>&     knownFlags)
     {
         if (!valueInfo.instRef.isValid())
             return false;
 
-        const MicroInstr* inst = storage.ptr(valueInfo.instRef);
+        const MicroInstr* inst = context.storage.ptr(valueInfo.instRef);
         if (!inst)
             return false;
 
-        const MicroInstrOperand* ops = inst->ops(operands);
+        const MicroInstrOperand* ops = inst->ops(context.operands);
         if (!ops)
             return false;
 
@@ -112,16 +96,16 @@ namespace
                 if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
-                out.value  = ops[2].valueU64;
-                out.opBits = ops[1].opBits;
+                outValue.value  = ops[2].valueU64;
+                outValue.opBits = ops[1].opBits;
                 return true;
 
             case MicroInstrOpcode::ClearReg:
                 if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
-                out.value  = 0;
-                out.opBits = ops[1].opBits;
+                outValue.value  = 0;
+                outValue.opBits = ops[1].opBits;
                 return true;
 
             case MicroInstrOpcode::LoadRegReg:
@@ -129,7 +113,7 @@ namespace
                 if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64)
                     return false;
 
-                return tryGetKnownReachingValue(out, ssaState, knownValues, knownFlags, ops[1].reg, valueInfo.instRef);
+                return tryGetKnownReachingValue(outValue, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef);
             }
 
             case MicroInstrOpcode::OpBinaryRegImm:
@@ -138,7 +122,7 @@ namespace
                     return false;
 
                 KnownValue inputValue;
-                if (!tryGetKnownReachingValue(inputValue, ssaState, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
+                if (!tryGetKnownReachingValue(inputValue, context, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
                     return false;
 
                 uint64_t   foldedValue = 0;
@@ -146,8 +130,8 @@ namespace
                 if (status != Math::FoldStatus::Ok)
                     return false;
 
-                out.value  = foldedValue;
-                out.opBits = ops[1].opBits;
+                outValue.value  = foldedValue;
+                outValue.opBits = ops[1].opBits;
                 return true;
             }
 
@@ -158,9 +142,9 @@ namespace
 
                 KnownValue lhs;
                 KnownValue rhs;
-                if (!tryGetKnownReachingValue(lhs, ssaState, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
+                if (!tryGetKnownReachingValue(lhs, context, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
                     return false;
-                if (!tryGetKnownReachingValue(rhs, ssaState, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
+                if (!tryGetKnownReachingValue(rhs, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                     return false;
 
                 uint64_t   foldedValue = 0;
@@ -168,8 +152,8 @@ namespace
                 if (status != Math::FoldStatus::Ok)
                     return false;
 
-                out.value  = foldedValue;
-                out.opBits = ops[2].opBits;
+                outValue.value  = foldedValue;
+                outValue.opBits = ops[2].opBits;
                 return true;
             }
 
@@ -182,42 +166,8 @@ namespace
 
     void computeKnownValues(std::vector<KnownValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
     {
-        outValues.assign(ssaState.values().size(), {});
-        outFlags.assign(ssaState.values().size(), 0);
-
-        bool changed = true;
-        while (changed)
-        {
-            changed           = false;
-            const auto values = ssaState.values();
-            for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
-            {
-                if (outFlags[valueId])
-                    continue;
-
-                const auto& valueInfo = values[valueId];
-                KnownValue  knownValue;
-                bool        inferred = false;
-
-                if (valueInfo.isPhi())
-                {
-                    const auto* phiInfo = ssaState.phiInfoForValue(valueId);
-                    if (phiInfo)
-                        inferred = tryInferPhiConstant(knownValue, *phiInfo, outValues, outFlags);
-                }
-                else
-                {
-                    inferred = tryInferInstructionConstant(knownValue, ssaState, storage, operands, outValues, outFlags, valueInfo);
-                }
-
-                if (!inferred)
-                    continue;
-
-                outValues[valueId] = knownValue;
-                outFlags[valueId]  = 1;
-                changed            = true;
-            }
-        }
+        const KnownValueContext context{ssaState, storage, operands};
+        computeSsaValueFixedPoint<KnownValue, KnownValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionConstant);
     }
 
     bool tryGetLabelId(uint32_t& outLabelId, const MicroInstr& inst, const MicroInstrOperand* ops)
@@ -291,7 +241,7 @@ namespace
 
     bool tryGetTrampolineTarget(uint32_t& outTargetLabelId, const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t labelId)
     {
-        outTargetLabelId = 0;
+        outTargetLabelId   = 0;
         const auto labelIt = layout.labelOrdinalById.find(labelId);
         if (labelIt == layout.labelOrdinalById.end())
             return false;
@@ -317,7 +267,7 @@ namespace
 
     bool tryResolveTrampolineTarget(uint32_t& outFinalTargetLabelId, const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t startLabelId)
     {
-        uint32_t                    currentLabelId = startLabelId;
+        uint32_t                     currentLabelId = startLabelId;
         std::unordered_set<uint32_t> visited;
         visited.reserve(4);
 
@@ -403,24 +353,22 @@ namespace
         return false;
     }
 
-    bool tryEvaluateKnownBranch(bool& outTaken,
-                                const MicroStorage&              storage,
-                                const MicroOperandStorage&       operands,
-                                const MicroSsaState&             ssaState,
-                                const std::vector<KnownValue>&   knownValues,
-                                const std::vector<uint8_t>&      knownFlags,
-                                const MicroInstrRef              flagDefRef,
-                                const MicroCond                  jumpCond)
+    bool tryEvaluateKnownBranch(bool&                          outTaken,
+                                const KnownValueContext&       context,
+                                const std::vector<KnownValue>& knownValues,
+                                const std::vector<uint8_t>&    knownFlags,
+                                const MicroInstrRef            flagDefRef,
+                                const MicroCond                jumpCond)
     {
         outTaken = false;
         if (!flagDefRef.isValid())
             return false;
 
-        const MicroInstr* flagDefInst = storage.ptr(flagDefRef);
+        const MicroInstr* flagDefInst = context.storage.ptr(flagDefRef);
         if (!flagDefInst)
             return false;
 
-        const MicroInstrOperand* flagOps = flagDefInst->ops(operands);
+        const MicroInstrOperand* flagOps = flagDefInst->ops(context.operands);
         if (!flagOps)
             return false;
 
@@ -432,7 +380,7 @@ namespace
                     return false;
 
                 KnownValue lhsValue;
-                if (!tryGetKnownReachingValue(lhsValue, ssaState, knownValues, knownFlags, flagOps[0].reg, flagDefRef))
+                if (!tryGetKnownReachingValue(lhsValue, context, knownValues, knownFlags, flagOps[0].reg, flagDefRef))
                     return false;
 
                 return tryEvaluateCompareCondition(outTaken, lhsValue.value, flagOps[2].valueU64, flagOps[1].opBits, jumpCond);
@@ -445,9 +393,9 @@ namespace
 
                 KnownValue lhsValue;
                 KnownValue rhsValue;
-                if (!tryGetKnownReachingValue(lhsValue, ssaState, knownValues, knownFlags, flagOps[0].reg, flagDefRef))
+                if (!tryGetKnownReachingValue(lhsValue, context, knownValues, knownFlags, flagOps[0].reg, flagDefRef))
                     return false;
-                if (!tryGetKnownReachingValue(rhsValue, ssaState, knownValues, knownFlags, flagOps[1].reg, flagDefRef))
+                if (!tryGetKnownReachingValue(rhsValue, context, knownValues, knownFlags, flagOps[1].reg, flagDefRef))
                     return false;
 
                 return tryEvaluateCompareCondition(outTaken, lhsValue.value, rhsValue.value, flagOps[2].opBits, jumpCond);
@@ -467,6 +415,7 @@ namespace
     {
         ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
+        const KnownValueContext context{ssaState, storage, operands};
 
         bool          changed        = false;
         MicroInstrRef currentFlagDef = MicroInstrRef::invalid();
@@ -487,10 +436,10 @@ namespace
             if (inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional)
             {
                 bool branchTaken = false;
-                if (tryEvaluateKnownBranch(branchTaken, storage, operands, ssaState, knownValues, knownFlags, currentFlagDef, ops[0].cpuCond))
+                if (tryEvaluateKnownBranch(branchTaken, context, knownValues, knownFlags, currentFlagDef, ops[0].cpuCond))
                 {
-                    uint32_t targetLabelId = 0;
-                    const bool hasTarget   = tryGetJumpTargetLabelId(targetLabelId, inst, ops);
+                    uint32_t   targetLabelId = 0;
+                    const bool hasTarget     = tryGetJumpTargetLabelId(targetLabelId, inst, ops);
 
                     if (!branchTaken)
                     {
@@ -636,7 +585,7 @@ namespace
         if (!cfg.instructionCount() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
             return false;
 
-        std::vector<uint8_t> reachable(cfg.instructionCount(), 0);
+        std::vector<uint8_t>  reachable(cfg.instructionCount(), 0);
         std::vector<uint32_t> stack;
         stack.push_back(0);
         reachable[0] = 1;
@@ -656,7 +605,7 @@ namespace
             }
         }
 
-        bool changed = false;
+        bool       changed         = false;
         const auto instructionRefs = cfg.instructionRefs();
         for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs.size(); ++instructionIndex)
         {

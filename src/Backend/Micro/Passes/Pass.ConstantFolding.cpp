@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
+#include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Support/Memory/MemoryProfile.h"
 
 // Pre-RA constant folding driven by SSA reaching definitions.
@@ -36,62 +37,44 @@ namespace
         MicroOpBits opBits = MicroOpBits::B64;
     };
 
-    bool tryGetKnownValue(KnownValue&                    out,
-                          const std::vector<KnownValue>& knownValues,
-                          const std::vector<uint8_t>&    knownFlags,
-                          uint32_t                       valueId)
+    struct KnownValueTraits
     {
-        if (valueId >= knownFlags.size() || !knownFlags[valueId])
-            return false;
-        out = knownValues[valueId];
-        return true;
+        static bool isValid(const KnownValue&)
+        {
+            return true;
+        }
+
+        static bool same(const KnownValue& lhs, const KnownValue& rhs)
+        {
+            return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
+        }
+    };
+
+    struct KnownValueContext
+    {
+        const MicroSsaState&       ssaState;
+        const MicroStorage&        storage;
+        const MicroOperandStorage& operands;
+    };
+
+    bool tryGetKnownReachingValue(KnownValue&                    outValue,
+                                  const KnownValueContext&       context,
+                                  const std::vector<KnownValue>& knownValues,
+                                  const std::vector<uint8_t>&    knownFlags,
+                                  const MicroReg                 reg,
+                                  const MicroInstrRef            instRef)
+    {
+        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, context.ssaState, knownValues, knownFlags, reg, instRef);
     }
 
-    bool sameKnownValue(const KnownValue& lhs, const KnownValue& rhs)
-    {
-        return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
-    }
-
-    bool tryGetKnownReachingValue(KnownValue&                    out,
+    bool tryGetKnownReachingValue(KnownValue&                    outValue,
                                   const MicroSsaState&           ssaState,
                                   const std::vector<KnownValue>& knownValues,
                                   const std::vector<uint8_t>&    knownFlags,
-                                  MicroReg                       reg,
-                                  MicroInstrRef                  instRef)
+                                  const MicroReg                 reg,
+                                  const MicroInstrRef            instRef)
     {
-        const auto reaching = ssaState.reachingDef(reg, instRef);
-        if (!reaching.valid())
-            return false;
-        return tryGetKnownValue(out, knownValues, knownFlags, reaching.valueId);
-    }
-
-    bool tryInferPhiConstant(KnownValue&                    out,
-                             const MicroSsaState::PhiInfo&  phiInfo,
-                             const std::vector<KnownValue>& knownValues,
-                             const std::vector<uint8_t>&    knownFlags)
-    {
-        bool       hasCandidate = false;
-        KnownValue candidate;
-
-        for (const uint32_t incomingValueId : phiInfo.incomingValueIds)
-        {
-            KnownValue incomingValue;
-            if (!tryGetKnownValue(incomingValue, knownValues, knownFlags, incomingValueId))
-                return false;
-            if (!hasCandidate)
-            {
-                candidate    = incomingValue;
-                hasCandidate = true;
-                continue;
-            }
-            if (!sameKnownValue(candidate, incomingValue))
-                return false;
-        }
-
-        if (!hasCandidate)
-            return false;
-        out = candidate;
-        return true;
+        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, ssaState, knownValues, knownFlags, reg, instRef);
     }
 
     uint64_t extendBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned)
@@ -142,21 +125,20 @@ namespace
         return false;
     }
 
-    bool tryInferInstructionConstant(KnownValue&                     out,
-                                     const MicroSsaState&            ssaState,
-                                     const MicroStorage&             storage,
-                                     const MicroOperandStorage&      operands,
+    bool tryInferInstructionConstant(KnownValue&              outValue,
+                                     const KnownValueContext& context,
+                                     const uint32_t,
+                                     const MicroSsaState::ValueInfo& valueInfo,
                                      const std::vector<KnownValue>&  knownValues,
-                                     const std::vector<uint8_t>&     knownFlags,
-                                     const MicroSsaState::ValueInfo& valueInfo)
+                                     const std::vector<uint8_t>&     knownFlags)
     {
         if (!valueInfo.instRef.isValid())
             return false;
 
-        const MicroInstr* inst = storage.ptr(valueInfo.instRef);
+        const MicroInstr* inst = context.storage.ptr(valueInfo.instRef);
         if (!inst)
             return false;
-        const MicroInstrOperand* ops = inst->ops(operands);
+        const MicroInstrOperand* ops = inst->ops(context.operands);
         if (!ops)
             return false;
 
@@ -167,15 +149,15 @@ namespace
                 // we still track the bit pattern so cvtf2f folding can see it.
                 if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
                     return false;
-                out.value  = ops[2].valueU64;
-                out.opBits = ops[1].opBits;
+                outValue.value  = ops[2].valueU64;
+                outValue.opBits = ops[1].opBits;
                 return true;
 
             case MicroInstrOpcode::ClearReg:
                 if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
                     return false;
-                out.value  = 0;
-                out.opBits = ops[1].opBits;
+                outValue.value  = 0;
+                outValue.opBits = ops[1].opBits;
                 return true;
 
             case MicroInstrOpcode::LoadRegReg:
@@ -188,12 +170,12 @@ namespace
                     return false;
 
                 KnownValue src;
-                if (!tryGetKnownReachingValue(src, ssaState, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
+                if (!tryGetKnownReachingValue(src, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                     return false;
 
                 const MicroOpBits moveBits = ops[2].opBits;
-                out.value  = src.value & getBitsMask(moveBits);
-                out.opBits = moveBits;
+                outValue.value             = src.value & getBitsMask(moveBits);
+                outValue.opBits            = moveBits;
                 return true;
             }
 
@@ -203,7 +185,7 @@ namespace
                     return false;
 
                 KnownValue inputValue;
-                if (!tryGetKnownReachingValue(inputValue, ssaState, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
+                if (!tryGetKnownReachingValue(inputValue, context, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
                     return false;
 
                 uint64_t   foldedValue = 0;
@@ -211,8 +193,8 @@ namespace
                 if (status != Math::FoldStatus::Ok)
                     return false;
 
-                out.value  = foldedValue;
-                out.opBits = ops[1].opBits;
+                outValue.value  = foldedValue;
+                outValue.opBits = ops[1].opBits;
                 return true;
             }
 
@@ -226,7 +208,7 @@ namespace
                 if (ops[3].microOp == MicroOp::ConvertFloatToFloat && valueInfo.reg.isVirtualFloat())
                 {
                     KnownValue srcValue;
-                    if (!tryGetKnownReachingValue(srcValue, ssaState, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
+                    if (!tryGetKnownReachingValue(srcValue, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                         return false;
 
                     const MicroOpBits srcBits = ops[2].opBits;
@@ -238,8 +220,8 @@ namespace
                     if (!convertFloatBitPattern(converted, dstBits, srcValue.value, srcBits))
                         return false;
 
-                    out.value  = converted;
-                    out.opBits = dstBits;
+                    outValue.value  = converted;
+                    outValue.opBits = dstBits;
                     return true;
                 }
 
@@ -248,9 +230,9 @@ namespace
 
                 KnownValue lhs;
                 KnownValue rhs;
-                if (!tryGetKnownReachingValue(lhs, ssaState, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
+                if (!tryGetKnownReachingValue(lhs, context, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
                     return false;
-                if (!tryGetKnownReachingValue(rhs, ssaState, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
+                if (!tryGetKnownReachingValue(rhs, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                     return false;
 
                 uint64_t   foldedValue = 0;
@@ -258,8 +240,8 @@ namespace
                 if (status != Math::FoldStatus::Ok)
                     return false;
 
-                out.value  = foldedValue;
-                out.opBits = ops[2].opBits;
+                outValue.value  = foldedValue;
+                outValue.opBits = ops[2].opBits;
                 return true;
             }
 
@@ -270,12 +252,12 @@ namespace
                     return false;
 
                 KnownValue src;
-                if (!tryGetKnownReachingValue(src, ssaState, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
+                if (!tryGetKnownReachingValue(src, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                     return false;
 
                 const bool isSigned = inst->op == MicroInstrOpcode::LoadSignedExtRegReg;
-                out.value  = extendBits(src.value, ops[3].opBits, ops[2].opBits, isSigned);
-                out.opBits = ops[2].opBits;
+                outValue.value      = extendBits(src.value, ops[3].opBits, ops[2].opBits, isSigned);
+                outValue.opBits     = ops[2].opBits;
                 return true;
             }
 
@@ -290,42 +272,8 @@ namespace
                             const MicroStorage&        storage,
                             const MicroOperandStorage& operands)
     {
-        knownValues.assign(ssaState.values().size(), {});
-        knownFlags.assign(ssaState.values().size(), 0);
-
-        bool changed = true;
-        while (changed)
-        {
-            changed           = false;
-            const auto values = ssaState.values();
-            for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
-            {
-                if (knownFlags[valueId])
-                    continue;
-
-                const auto& valueInfo = values[valueId];
-                KnownValue  knownValue;
-                bool        inferred = false;
-
-                if (valueInfo.isPhi())
-                {
-                    const auto* phiInfo = ssaState.phiInfoForValue(valueId);
-                    if (phiInfo)
-                        inferred = tryInferPhiConstant(knownValue, *phiInfo, knownValues, knownFlags);
-                }
-                else
-                {
-                    inferred = tryInferInstructionConstant(knownValue, ssaState, storage, operands, knownValues, knownFlags, valueInfo);
-                }
-
-                if (!inferred)
-                    continue;
-
-                knownValues[valueId] = knownValue;
-                knownFlags[valueId]  = 1;
-                changed              = true;
-            }
-        }
+        const KnownValueContext context{ssaState, storage, operands};
+        computeSsaValueFixedPoint<KnownValue, KnownValueTraits>(knownValues, knownFlags, ssaState, context, tryInferInstructionConstant);
     }
 
     bool tryFoldCopyFromKnown(const MicroSsaState&           ssaState,

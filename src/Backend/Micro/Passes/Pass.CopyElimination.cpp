@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
+#include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Support/Memory/MemoryProfile.h"
 
 // Pre-RA copy elimination on virtual registers.
@@ -39,6 +40,26 @@ namespace
         }
     };
 
+    struct CanonicalValueTraits
+    {
+        static bool isValid(const CanonicalValue& value)
+        {
+            return value.valid();
+        }
+
+        static bool same(const CanonicalValue& lhs, const CanonicalValue& rhs)
+        {
+            return lhs.reg == rhs.reg && lhs.valueId == rhs.valueId;
+        }
+    };
+
+    struct CanonicalValueContext
+    {
+        const MicroSsaState&       ssaState;
+        const MicroStorage&        storage;
+        const MicroOperandStorage& operands;
+    };
+
     bool isCopyInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         return ops &&
@@ -58,86 +79,31 @@ namespace
         return isCopyInstruction(inst, ops) && ops[0].reg == ops[1].reg;
     }
 
-    bool tryGetCanonicalValue(CanonicalValue&                    outValue,
-                              const std::vector<CanonicalValue>& canonicalValues,
-                              const std::vector<uint8_t>&        canonicalFlags,
-                              const uint32_t                     valueId)
-    {
-        if (valueId >= canonicalFlags.size() || !canonicalFlags[valueId])
-            return false;
-
-        outValue = canonicalValues[valueId];
-        return outValue.valid();
-    }
-
     bool tryGetCanonicalReachingValue(CanonicalValue&                    outValue,
-                                      const MicroSsaState&               ssaState,
+                                      const CanonicalValueContext&       context,
                                       const std::vector<CanonicalValue>& canonicalValues,
                                       const std::vector<uint8_t>&        canonicalFlags,
                                       const MicroReg                     reg,
                                       const MicroInstrRef                instRef)
     {
-        const auto reachingDef = ssaState.reachingDef(reg, instRef);
-        if (!reachingDef.valid())
-            return false;
-
-        return tryGetCanonicalValue(outValue, canonicalValues, canonicalFlags, reachingDef.valueId);
-    }
-
-    bool sameCanonicalValue(const CanonicalValue& lhs, const CanonicalValue& rhs)
-    {
-        return lhs.reg == rhs.reg && lhs.valueId == rhs.valueId;
-    }
-
-    bool tryInferPhiCanonical(CanonicalValue&                    outValue,
-                              const MicroSsaState::PhiInfo&      phiInfo,
-                              const std::vector<CanonicalValue>& canonicalValues,
-                              const std::vector<uint8_t>&        canonicalFlags)
-    {
-        bool           hasCandidate = false;
-        CanonicalValue candidate;
-
-        for (const uint32_t incomingValueId : phiInfo.incomingValueIds)
-        {
-            CanonicalValue incomingValue;
-            if (!tryGetCanonicalValue(incomingValue, canonicalValues, canonicalFlags, incomingValueId))
-                return false;
-
-            if (!hasCandidate)
-            {
-                candidate    = incomingValue;
-                hasCandidate = true;
-                continue;
-            }
-
-            if (!sameCanonicalValue(candidate, incomingValue))
-                return false;
-        }
-
-        if (!hasCandidate)
-            return false;
-
-        outValue = candidate;
-        return true;
+        return tryGetSsaReachingValue<CanonicalValue, CanonicalValueTraits>(outValue, context.ssaState, canonicalValues, canonicalFlags, reg, instRef);
     }
 
     bool tryInferInstructionCanonical(CanonicalValue&                    outValue,
-                                      const MicroSsaState&               ssaState,
-                                      const MicroStorage&                storage,
-                                      const MicroOperandStorage&         operands,
-                                      const std::vector<CanonicalValue>& canonicalValues,
-                                      const std::vector<uint8_t>&        canonicalFlags,
+                                      const CanonicalValueContext&       context,
                                       const uint32_t                     valueId,
-                                      const MicroSsaState::ValueInfo&    valueInfo)
+                                      const MicroSsaState::ValueInfo&    valueInfo,
+                                      const std::vector<CanonicalValue>& canonicalValues,
+                                      const std::vector<uint8_t>&        canonicalFlags)
     {
         if (!valueInfo.instRef.isValid())
             return false;
 
-        const MicroInstr* inst = storage.ptr(valueInfo.instRef);
+        const MicroInstr* inst = context.storage.ptr(valueInfo.instRef);
         if (!inst)
             return false;
 
-        const MicroInstrOperand* ops = inst->ops(operands);
+        const MicroInstrOperand* ops = inst->ops(context.operands);
         if (!ops)
             return false;
 
@@ -149,10 +115,10 @@ namespace
         }
 
         CanonicalValue srcValue;
-        if (!tryGetCanonicalReachingValue(srcValue, ssaState, canonicalValues, canonicalFlags, ops[1].reg, valueInfo.instRef))
+        if (!tryGetCanonicalReachingValue(srcValue, context, canonicalValues, canonicalFlags, ops[1].reg, valueInfo.instRef))
             return false;
 
-        const auto rootReachingDef = ssaState.reachingDef(srcValue.reg, valueInfo.instRef);
+        const auto rootReachingDef = context.ssaState.reachingDef(srcValue.reg, valueInfo.instRef);
         if (!rootReachingDef.valid() || rootReachingDef.valueId != srcValue.valueId)
             return false;
 
@@ -166,42 +132,8 @@ namespace
                                 const MicroStorage&          storage,
                                 const MicroOperandStorage&   operands)
     {
-        outValues.assign(ssaState.values().size(), {});
-        outFlags.assign(ssaState.values().size(), 0);
-
-        bool changed = true;
-        while (changed)
-        {
-            changed           = false;
-            const auto values = ssaState.values();
-            for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
-            {
-                if (outFlags[valueId])
-                    continue;
-
-                const auto&    valueInfo = values[valueId];
-                CanonicalValue canonicalValue;
-                bool           inferred = false;
-
-                if (valueInfo.isPhi())
-                {
-                    const auto* phiInfo = ssaState.phiInfoForValue(valueId);
-                    if (phiInfo)
-                        inferred = tryInferPhiCanonical(canonicalValue, *phiInfo, outValues, outFlags);
-                }
-                else
-                {
-                    inferred = tryInferInstructionCanonical(canonicalValue, ssaState, storage, operands, outValues, outFlags, valueId, valueInfo);
-                }
-
-                if (!inferred)
-                    continue;
-
-                outValues[valueId] = canonicalValue;
-                outFlags[valueId]  = 1;
-                changed            = true;
-            }
-        }
+        const CanonicalValueContext context{ssaState, storage, operands};
+        computeSsaValueFixedPoint<CanonicalValue, CanonicalValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionCanonical);
     }
 
     void mergeVirtualForbiddenRegs(MicroBuilder& builder, const MicroReg fromReg, const MicroReg toReg)
@@ -223,9 +155,10 @@ namespace
                               MicroStorage&                      storage,
                               MicroOperandStorage&               operands)
     {
-        bool       changed = false;
-        const auto view    = storage.view();
-        const auto endIt   = view.end();
+        const CanonicalValueContext context{ssaState, storage, operands};
+        bool                        changed = false;
+        const auto                  view    = storage.view();
+        const auto                  endIt   = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
             const MicroInstrRef                  instRef = it.current;
@@ -240,7 +173,7 @@ namespace
 
                 const MicroReg oldReg = *ref.reg;
                 CanonicalValue canonicalValue;
-                if (!tryGetCanonicalReachingValue(canonicalValue, ssaState, canonicalValues, canonicalFlags, oldReg, instRef))
+                if (!tryGetCanonicalReachingValue(canonicalValue, context, canonicalValues, canonicalFlags, oldReg, instRef))
                     continue;
                 if (!canonicalValue.valid() || canonicalValue.reg == oldReg)
                     continue;

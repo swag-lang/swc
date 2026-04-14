@@ -167,6 +167,7 @@ func addFoodItem(elf: *Elf, name: string, calories: u32)
     elf.itemCount += 1
 }
 
+#[Swag.PrintMicro]
 func makeElf(id: u32, cals: const [..] u32)->Elf
 {
     var elf: Elf

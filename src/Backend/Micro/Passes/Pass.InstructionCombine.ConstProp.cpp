@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Forward a LoadRegImm into its consumer so the materializing register
 // disappears. We rewrite only the consumer; when every use of the
@@ -38,7 +38,7 @@ namespace InstructionCombine
                 if (!phi || phi->incomingValueIds.empty())
                     return false;
 
-                uint64_t candidate   = 0;
+                uint64_t candidate    = 0;
                 bool     hasCandidate = false;
                 for (const uint32_t incomingId : phi->incomingValueIds)
                 {
@@ -131,18 +131,18 @@ namespace InstructionCombine
         {
             switch (in)
             {
-                case MicroCond::Equal:          out = MicroCond::Equal;          return true;
-                case MicroCond::NotEqual:       out = MicroCond::NotEqual;       return true;
-                case MicroCond::Zero:           out = MicroCond::Zero;           return true;
-                case MicroCond::NotZero:        out = MicroCond::NotZero;        return true;
-                case MicroCond::Above:          out = MicroCond::Below;          return true;
-                case MicroCond::AboveOrEqual:   out = MicroCond::BelowOrEqual;   return true;
-                case MicroCond::Below:          out = MicroCond::Above;          return true;
-                case MicroCond::BelowOrEqual:   out = MicroCond::AboveOrEqual;   return true;
-                case MicroCond::Greater:        out = MicroCond::Less;           return true;
-                case MicroCond::GreaterOrEqual: out = MicroCond::LessOrEqual;    return true;
-                case MicroCond::Less:           out = MicroCond::Greater;        return true;
-                case MicroCond::LessOrEqual:    out = MicroCond::GreaterOrEqual; return true;
+                case MicroCond::Equal: out = MicroCond::Equal; return true;
+                case MicroCond::NotEqual: out = MicroCond::NotEqual; return true;
+                case MicroCond::Zero: out = MicroCond::Zero; return true;
+                case MicroCond::NotZero: out = MicroCond::NotZero; return true;
+                case MicroCond::Above: out = MicroCond::Below; return true;
+                case MicroCond::AboveOrEqual: out = MicroCond::BelowOrEqual; return true;
+                case MicroCond::Below: out = MicroCond::Above; return true;
+                case MicroCond::BelowOrEqual: out = MicroCond::AboveOrEqual; return true;
+                case MicroCond::Greater: out = MicroCond::Less; return true;
+                case MicroCond::GreaterOrEqual: out = MicroCond::LessOrEqual; return true;
+                case MicroCond::Less: out = MicroCond::Greater; return true;
+                case MicroCond::LessOrEqual: out = MicroCond::GreaterOrEqual; return true;
                 default:
                     return false;
             }
@@ -215,7 +215,11 @@ namespace InstructionCombine
                     if (ctx.isClaimed(walker.current))
                         return false;
 
-                    out.push_back({walker.current, dstCond, condIdx});
+                    FlagConsumer consumer;
+                    consumer.ref         = walker.current;
+                    consumer.swappedCond = dstCond;
+                    consumer.condIdx     = condIdx;
+                    out.push_back(consumer);
                 }
 
                 // Once the flags are clobbered we can stop scanning: later
@@ -298,12 +302,13 @@ namespace InstructionCombine
                 continue;
 
             MicroInstrOperand rewritten[Action::K_MAX_OPS] = {};
-            const uint8_t     numOps = consumerInst->numOperands;
+            const uint8_t     numOps                       = consumerInst->numOperands;
             for (uint8_t i = 0; i < numOps; ++i)
                 rewritten[i] = consumerOps[i];
             rewritten[consumer.condIdx].cpuCond = consumer.swappedCond;
 
-            ctx.emitRewrite(consumer.ref, consumerInst->op, {rewritten, numOps});
+            const std::span rewrittenOps(rewritten, numOps);
+            ctx.emitRewrite(consumer.ref, consumerInst->op, rewrittenOps);
         }
 
         return true;

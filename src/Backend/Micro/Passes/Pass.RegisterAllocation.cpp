@@ -152,6 +152,21 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     }
 }
 
+uint32_t MicroRegisterAllocationPass::allocRequestPriority(const AllocRequest& request)
+{
+    if (request.isUse && request.isDef)
+        return 0;
+    if (request.isUse)
+        return 1;
+
+    return 2;
+}
+
+bool MicroRegisterAllocationPass::compareAllocRequests(const AllocRequest& lhs, const AllocRequest& rhs)
+{
+    return allocRequestPriority(lhs) < allocRequestPriority(rhs);
+}
+
 void MicroRegisterAllocationPass::coalesceLocalCopies() const
 {
     SWC_ASSERT(context_ != nullptr);
@@ -1507,7 +1522,10 @@ void MicroRegisterAllocationPass::recordDestructiveAlias(SmallVector<MicroReg>& 
             return;
     }
 
-    concreteAliases.push_back({baseReg, dstReg});
+    DestructiveAlias alias;
+    alias.virtKey = baseReg;
+    alias.physReg = dstReg;
+    concreteAliases.push_back(alias);
 }
 
 void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<MicroReg>&         liveBases,
@@ -1875,14 +1893,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 request.preferredPhysReg = srcReg;
         }
 
-        std::ranges::stable_sort(allocRequests,
-                                 [](const AllocRequest& lhs, const AllocRequest& rhs) {
-                                     const auto lhsPriority = lhs.isUse && lhs.isDef ? 0u : lhs.isUse ? 1u
-                                                                                                      : 2u;
-                                     const auto rhsPriority = rhs.isUse && rhs.isDef ? 0u : rhs.isUse ? 1u
-                                                                                                      : 2u;
-                                     return lhsPriority < rhsPriority;
-                                 });
+        std::stable_sort(allocRequests.begin(), allocRequests.end(), compareAllocRequests);
 
         SmallVector<MicroReg> mentionedConcreteRegs;
         mentionedConcreteRegs.reserve(instructionUseDefs_[idx].uses.size() + instructionUseDefs_[idx].defs.size());
@@ -2009,8 +2020,11 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (liveAcrossCall && !request.needsPersistent)
                 markCallSpill(request.virtKey);
 
-            const auto physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, remapForbiddenPhysRegs, stamp, stackDepth, pending_);
-            assignedPhysRegs.push_back({request.virtKey, physReg});
+            const auto      physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, remapForbiddenPhysRegs, stamp, stackDepth, pending_);
+            AssignedPhysReg assignedPhysReg;
+            assignedPhysReg.virtKey = request.virtKey;
+            assignedPhysReg.physReg = physReg;
+            assignedPhysRegs.push_back(assignedPhysReg);
 
             if (liveAcrossCall && !isPersistentPhysReg(physReg))
                 markCallSpill(request.virtKey);

@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
-#include "Backend/Micro/MicroStorage.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroStorage.h"
+#include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Post-RA variant of the pre-RA ConstProp rules. Register allocation and
 // spill-code insertion regularly introduce `LoadRegImm r, imm` immediately
@@ -98,11 +98,11 @@ namespace PostRAPeephole
 
                     const MicroOpBits bits = ops[2].opBits;
                     const uint64_t    off  = ops[3].valueU64;
-                    out.newOp      = MicroInstrOpcode::LoadMemImm;
-                    out.numOps     = 4;
-                    out.ops[0].reg      = base;
-                    out.ops[1].opBits   = bits;
-                    out.ops[2].valueU64 = off;
+                    out.newOp              = MicroInstrOpcode::LoadMemImm;
+                    out.numOps             = 4;
+                    out.ops[0].reg         = base;
+                    out.ops[1].opBits      = bits;
+                    out.ops[2].valueU64    = off;
                     out.ops[3].setImmediateValue(ApInt(imm & getBitsMask(bits), getNumBits(bits)));
                     return true;
                 }
@@ -118,10 +118,10 @@ namespace PostRAPeephole
                         return false;
 
                     const MicroOpBits bits = ops[2].opBits;
-                    out.newOp      = MicroInstrOpcode::CmpRegImm;
-                    out.numOps     = 3;
-                    out.ops[0].reg    = ops[0].reg;
-                    out.ops[1].opBits = bits;
+                    out.newOp              = MicroInstrOpcode::CmpRegImm;
+                    out.numOps             = 3;
+                    out.ops[0].reg         = ops[0].reg;
+                    out.ops[1].opBits      = bits;
                     out.ops[2].setImmediateValue(ApInt(imm & getBitsMask(bits), getNumBits(bits)));
                     return true;
                 }
@@ -135,11 +135,11 @@ namespace PostRAPeephole
                         return false;
 
                     const MicroOpBits bits = ops[2].opBits;
-                    out.newOp      = MicroInstrOpcode::OpBinaryRegImm;
-                    out.numOps     = 4;
-                    out.ops[0].reg     = ops[0].reg;
-                    out.ops[1].opBits  = bits;
-                    out.ops[2].microOp = ops[3].microOp;
+                    out.newOp              = MicroInstrOpcode::OpBinaryRegImm;
+                    out.numOps             = 4;
+                    out.ops[0].reg         = ops[0].reg;
+                    out.ops[1].opBits      = bits;
+                    out.ops[2].microOp     = ops[3].microOp;
                     out.ops[3].setImmediateValue(ApInt(imm & getBitsMask(bits), getNumBits(bits)));
                     return true;
                 }
@@ -153,10 +153,10 @@ namespace PostRAPeephole
                         return false;
 
                     const MicroOpBits bits = ops[2].opBits;
-                    out.newOp      = MicroInstrOpcode::LoadRegImm;
-                    out.numOps     = 3;
-                    out.ops[0].reg    = ops[0].reg;
-                    out.ops[1].opBits = bits;
+                    out.newOp              = MicroInstrOpcode::LoadRegImm;
+                    out.numOps             = 3;
+                    out.ops[0].reg         = ops[0].reg;
+                    out.ops[1].opBits      = bits;
                     out.ops[2].setImmediateValue(ApInt(imm & getBitsMask(bits), getNumBits(bits)));
                     return true;
                 }
@@ -249,7 +249,8 @@ namespace PostRAPeephole
         if (!ctx.claimAll({defRef, consumerRef}))
             return false;
 
-        ctx.emitRewrite(consumerRef, rewrite.newOp, {rewrite.ops, rewrite.numOps});
+        const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
+        ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps);
         ctx.emitErase(defRef);
         return true;
     }

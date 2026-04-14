@@ -436,7 +436,12 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
                     continue;
 
                 if (!containsSavedSlot(reg))
-                    savedRegSlots_.push_back({.reg = reg, .offset = 0, .slotBits = MicroOpBits::B128});
+                {
+                    SavedRegSlot savedSlot;
+                    savedSlot.reg      = reg;
+                    savedSlot.slotBits = MicroOpBits::B128;
+                    savedRegSlots_.push_back(savedSlot);
+                }
             }
         }
     }

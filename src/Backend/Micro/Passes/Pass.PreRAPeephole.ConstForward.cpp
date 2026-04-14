@@ -55,10 +55,10 @@ namespace PreRaPeephole
         {
             if (preferPtrLoad && bits == MicroOpBits::B64)
             {
-                out.newOp          = MicroInstrOpcode::LoadRegPtrImm;
-                out.numOps         = 3;
-                out.ops[0].reg     = dst;
-                out.ops[1].opBits  = MicroOpBits::B64;
+                out.newOp           = MicroInstrOpcode::LoadRegPtrImm;
+                out.numOps          = 3;
+                out.ops[0].reg      = dst;
+                out.ops[1].opBits   = MicroOpBits::B64;
                 out.ops[2].valueU64 = value;
                 return;
             }
@@ -92,10 +92,10 @@ namespace PreRaPeephole
                 case MicroInstrOpcode::LoadMemReg:
                     if (ops[1].reg == producer.reg)
                     {
-                        out.newOp          = MicroInstrOpcode::LoadMemImm;
-                        out.numOps         = 4;
-                        out.ops[0].reg     = ops[0].reg;
-                        out.ops[1].opBits  = ops[2].opBits;
+                        out.newOp           = MicroInstrOpcode::LoadMemImm;
+                        out.numOps          = 4;
+                        out.ops[0].reg      = ops[0].reg;
+                        out.ops[1].opBits   = ops[2].opBits;
                         out.ops[2].valueU64 = ops[3].valueU64;
                         setMaskedImmediateValue(out.ops[3], producer.value, ops[2].opBits);
                         return true;
@@ -117,10 +117,10 @@ namespace PreRaPeephole
                 case MicroInstrOpcode::CmpMemReg:
                     if (ops[1].reg == producer.reg)
                     {
-                        out.newOp          = MicroInstrOpcode::CmpMemImm;
-                        out.numOps         = 4;
-                        out.ops[0].reg     = ops[0].reg;
-                        out.ops[1].opBits  = ops[2].opBits;
+                        out.newOp           = MicroInstrOpcode::CmpMemImm;
+                        out.numOps          = 4;
+                        out.ops[0].reg      = ops[0].reg;
+                        out.ops[1].opBits   = ops[2].opBits;
                         out.ops[2].valueU64 = ops[3].valueU64;
                         setMaskedImmediateValue(out.ops[3], producer.value, ops[2].opBits);
                         return true;
@@ -130,10 +130,10 @@ namespace PreRaPeephole
                 case MicroInstrOpcode::OpBinaryRegReg:
                     if (ops[1].reg == producer.reg && ops[3].microOp != MicroOp::Exchange)
                     {
-                        out.newOp         = MicroInstrOpcode::OpBinaryRegImm;
-                        out.numOps        = 4;
-                        out.ops[0].reg    = ops[0].reg;
-                        out.ops[1].opBits = ops[2].opBits;
+                        out.newOp          = MicroInstrOpcode::OpBinaryRegImm;
+                        out.numOps         = 4;
+                        out.ops[0].reg     = ops[0].reg;
+                        out.ops[1].opBits  = ops[2].opBits;
                         out.ops[2].microOp = ops[3].microOp;
                         setMaskedImmediateValue(out.ops[3], producer.value, ops[2].opBits);
                         return true;
@@ -143,11 +143,11 @@ namespace PreRaPeephole
                 case MicroInstrOpcode::OpBinaryMemReg:
                     if (ops[1].reg == producer.reg && ops[3].microOp != MicroOp::Exchange)
                     {
-                        out.newOp          = MicroInstrOpcode::OpBinaryMemImm;
-                        out.numOps         = 5;
-                        out.ops[0].reg     = ops[0].reg;
-                        out.ops[1].opBits  = ops[2].opBits;
-                        out.ops[2].microOp = ops[3].microOp;
+                        out.newOp           = MicroInstrOpcode::OpBinaryMemImm;
+                        out.numOps          = 5;
+                        out.ops[0].reg      = ops[0].reg;
+                        out.ops[1].opBits   = ops[2].opBits;
+                        out.ops[2].microOp  = ops[3].microOp;
                         out.ops[3].valueU64 = ops[4].valueU64;
                         setMaskedImmediateValue(out.ops[4], producer.value, ops[2].opBits);
                         return true;
@@ -318,7 +318,8 @@ namespace PreRaPeephole
         if (!ctx.claimAll({consumerRef}))
             return false;
 
-        ctx.emitRewrite(consumerRef, rewrite.newOp, {rewrite.ops, rewrite.numOps});
+        const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
+        ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps);
         return true;
     }
 }

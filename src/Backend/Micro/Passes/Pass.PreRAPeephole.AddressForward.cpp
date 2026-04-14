@@ -28,12 +28,12 @@ namespace PreRaPeephole
                 out.ops[idx] = ops[idx];
         }
 
-        bool buildAddrRewrite(ConsumerRewrite& out,
-                              const MicroInstr& consumer,
+        bool buildAddrRewrite(ConsumerRewrite&         out,
+                              const MicroInstr&        consumer,
                               const MicroInstrOperand* ops,
-                              const MicroReg addrReg,
-                              const MicroReg baseReg,
-                              const uint64_t addrOff)
+                              const MicroReg           addrReg,
+                              const MicroReg           baseReg,
+                              const uint64_t           addrOff)
         {
             if (!ops)
                 return false;
@@ -223,15 +223,15 @@ namespace PreRaPeephole
             }
         }
 
-        bool buildAddrAmcRewrite(ConsumerRewrite& out,
-                                 const MicroInstr& consumer,
+        bool buildAddrAmcRewrite(ConsumerRewrite&         out,
+                                 const MicroInstr&        consumer,
                                  const MicroInstrOperand* ops,
-                                 const MicroReg addrReg,
-                                 const MicroReg baseReg,
-                                 const MicroReg indexReg,
-                                 const MicroOpBits addrBits,
-                                 const uint64_t scale,
-                                 const uint64_t add)
+                                 const MicroReg           addrReg,
+                                 const MicroReg           baseReg,
+                                 const MicroReg           indexReg,
+                                 const MicroOpBits        addrBits,
+                                 const uint64_t           scale,
+                                 const uint64_t           add)
         {
             if (!ops)
                 return false;
@@ -364,7 +364,8 @@ namespace PreRaPeephole
         if (!ctx.claimAll({consumerRef}))
             return false;
 
-        ctx.emitRewrite(consumerRef, rewrite.newOp, {rewrite.ops, rewrite.numOps}, rewrite.allocOps);
+        const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
+        ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps, rewrite.allocOps);
         return true;
     }
 
@@ -404,7 +405,8 @@ namespace PreRaPeephole
         if (!ctx.claimAll({consumerRef}))
             return false;
 
-        ctx.emitRewrite(consumerRef, rewrite.newOp, {rewrite.ops, rewrite.numOps}, rewrite.allocOps);
+        const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
+        ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps, rewrite.allocOps);
         return true;
     }
 }

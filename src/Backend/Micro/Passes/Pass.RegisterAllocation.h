@@ -20,20 +20,20 @@ public:
     struct VRegState
     {
         MicroReg          phys;
-        uint64_t          spillOffset      = 0;
-        MicroOpBits       spillBits        = MicroOpBits::B64;
-        MicroInstrOperand rematImmediate   = {};
-        MicroOpBits       rematBits        = MicroOpBits::B64;
+        uint64_t          spillOffset    = 0;
+        MicroOpBits       spillBits      = MicroOpBits::B64;
+        MicroInstrOperand rematImmediate = {};
+        MicroOpBits       rematBits      = MicroOpBits::B64;
         // Original instruction that defined a rematerializable value. If the value
         // is evicted or expires before any user reads its physical mapping, the
         // defining instruction is unreachable and gets pruned at the end of RA.
-        MicroInstrRef     rematDefInstRef  = MicroInstrRef::invalid();
-        uint32_t          mappedListIndex  = std::numeric_limits<uint32_t>::max();
-        bool              mapped           = false;
-        bool              hasSpill         = false;
-        bool              dirty            = false;
-        bool              rematerializable = false;
-        bool              rematDefConsumed = false;
+        MicroInstrRef rematDefInstRef  = MicroInstrRef::invalid();
+        uint32_t      mappedListIndex  = std::numeric_limits<uint32_t>::max();
+        bool          mapped           = false;
+        bool          hasSpill         = false;
+        bool          dirty            = false;
+        bool          rematerializable = false;
+        bool          rematDefConsumed = false;
     };
 
 private:
@@ -81,6 +81,8 @@ private:
     bool             requiresCallSpill(MicroReg key) const;
     void             markCallSpill(MicroReg key);
     void             clearCallSpill(MicroReg key);
+    static uint32_t  allocRequestPriority(const AllocRequest& request);
+    static bool      compareAllocRequests(const AllocRequest& lhs, const AllocRequest& rhs);
     static bool      containsKey(MicroRegSpan keys, MicroReg key);
     static void      appendUniqueReg(SmallVector<MicroReg>& regs, MicroReg reg);
     bool             isPersistentPhysReg(MicroReg reg) const;

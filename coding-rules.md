@@ -13,8 +13,6 @@
 ### 2. Function Design
 
 - Avoid functions with **too many parameters**.
-    - If a function declaration or call spans multiple lines, it likely needs refactoring.
-    - Whatever, do not span parameters and call arguments across multiple lines. Compact them.
 - Group related parameters into **structs or objects** when appropriate.
 - When returning values via parameters:
     - Place **output parameters first**, after global/context parameters (e.g., managers).
@@ -34,7 +32,15 @@
 
 ---
 
-### 4. Code Reuse
+### 4. Formatting
+
+- Function declarations must be written on a **single line** (no multi-line parameter lists).
+- Function calls must be written on a **single line** (no multi-line arguments).
+- There's no theorical limit to the length of a line, but keep it short and readable.
+
+---
+
+### 5. Code Reuse
 
 - Eliminate duplication:
     - Extract **helper functions**
@@ -43,7 +49,7 @@
 
 ---
 
-### 5. Assertions vs Defensive Code
+### 6. Assertions vs Defensive Code
 
 - Avoid unnecessary defensive programming.
 - Prefer using `SWC_ASSERT` to enforce assumptions and invariants.
@@ -51,7 +57,7 @@
 
 ---
 
-### 6. Comments
+### 7. Comments
 
 - Write comments like an experienced developer:
     - Explain **why**, not **what** (the code should already show what it does).
@@ -68,7 +74,7 @@
 
 ---
 
-### 7. General Principles
+### 8. General Principles
 
 - Prioritize **readability over cleverness**.
 - Keep functions **small and focused**.

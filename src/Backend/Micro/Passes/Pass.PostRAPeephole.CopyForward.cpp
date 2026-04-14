@@ -1,7 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
-#include "Backend/Micro/MicroStorage.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Post-RA copy coalescing: when a value is produced into a scratch register
 // only to be immediately moved to another physical register, retarget the
@@ -194,7 +193,7 @@ namespace PostRAPeephole
             // Build the retargeted instruction in a scratch buffer and ask
             // the encoder whether it is legal before committing.
             MicroInstrOperand probeOps[Action::K_MAX_OPS] = {};
-            const uint8_t     numOps                     = prev->numOperands;
+            const uint8_t     numOps                      = prev->numOperands;
             if (numOps > Action::K_MAX_OPS)
                 return false;
             for (uint8_t i = 0; i < numOps; ++i)
@@ -219,7 +218,8 @@ namespace PostRAPeephole
             newOps[i] = prevOps[i];
         newOps[0].reg = dst;
 
-        ctx.emitRewrite(prevRef, prev->op, {newOps, numOps});
+        const std::span rewrittenOps(newOps, numOps);
+        ctx.emitRewrite(prevRef, prev->op, rewrittenOps);
         ctx.emitErase(copyRef);
         return true;
     }

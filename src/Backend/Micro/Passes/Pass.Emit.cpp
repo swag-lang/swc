@@ -66,7 +66,10 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits);
             jump.valid = true;
             SWC_ASSERT(ops[2].valueU64 <= std::numeric_limits<uint32_t>::max());
-            pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64))});
+            PendingLabelJump pendingJump;
+            pendingJump.jump     = jump;
+            pendingJump.labelRef = MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64));
+            pendingLabelJumps_.push_back(pendingJump);
             break;
         }
         case MicroInstrOpcode::JumpCondImm:

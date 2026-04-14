@@ -29,6 +29,7 @@
     - Avoids repeating complex or verbose types
     - Reduces redundancy
 - Use explicit types when they better communicate intent or avoid ambiguity.
+- Do not use references in structs or classes fields, prefer pointers.
 
 ---
 

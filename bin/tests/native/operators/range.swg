@@ -1,6 +1,5 @@
 #global fileprivate
 
-#[Swag.PrintMicro]
 #test
 {
     var countTo = 0

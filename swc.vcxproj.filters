@@ -318,6 +318,9 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Flags.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.ConstForward.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Trivial.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>

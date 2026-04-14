@@ -32,6 +32,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemImm, tryEraseDeadCompare);
+        r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         return r;
     }
 
@@ -66,6 +67,7 @@ Result MicroPostRAPeepholePass::run(MicroPassContext& context)
     Context ctx;
     ctx.storage  = context.instructions;
     ctx.operands = context.operands;
+    ctx.encoder  = context.encoder;
 
     runPerInstructionPatterns(ctx);
 

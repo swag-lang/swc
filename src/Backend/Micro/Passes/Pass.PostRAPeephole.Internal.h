@@ -6,6 +6,7 @@ SWC_BEGIN_NAMESPACE();
 
 class MicroStorage;
 class MicroOperandStorage;
+class Encoder;
 
 namespace PostRAPeephole
 {
@@ -25,6 +26,7 @@ namespace PostRAPeephole
     {
         MicroStorage*                storage  = nullptr;
         MicroOperandStorage*         operands = nullptr;
+        const Encoder*               encoder  = nullptr;
         std::unordered_set<uint32_t> claimed;
         SmallVector<Action, 16>      actions;
 
@@ -58,6 +60,7 @@ namespace PostRAPeephole
 
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
 }
 
 SWC_END_NAMESPACE();

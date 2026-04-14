@@ -1,18 +1,127 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroSsaState.h"
+#include "Support/Memory/MemoryProfile.h"
 
 // Pre-RA dead code elimination on virtual registers.
-// Eliminates side-effect-free instructions whose results are not live.
-// Example: add v1, 4; ... (v1 never used) -> remove add.
-// Example: mov v2, v3; ... (v2 never used) -> remove mov.
+//
+// Removes side-effect-free instructions whose virtual-register results are
+// never consumed (transitively, across the SSA use graph). Iterates to a
+// fixed point so that erasing one instruction can expose its operands as
+// newly dead.
+//
+// An instruction is a candidate when:
+//   - it is not a terminator, jump, call, or label,
+//   - it does not write memory,
+//   - it does not define CPU flags (flag liveness is not tracked here),
+//   - it defines at least one virtual register, and
+//   - every defined virtual register is dead after the instruction.
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool hasObservableSideEffect(const MicroInstr& inst, const MicroInstrUseDef& useDef)
+    {
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+            return true;
+        if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
+            return true;
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+            return true;
+        if (info.flags.has(MicroInstrFlagsE::WritesMemory))
+            return true;
+        if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            return true;
+        if (useDef.isCall)
+            return true;
+        if (inst.op == MicroInstrOpcode::Label)
+            return true;
+        return false;
+    }
+
+    bool allDefsAreDeadVirtualRegs(const MicroInstrUseDef& useDef,
+                                   const MicroSsaState&    ssaState,
+                                   const MicroInstrRef     instRef)
+    {
+        if (useDef.defs.empty())
+            return false;
+
+        for (const MicroReg def : useDef.defs)
+        {
+            if (!def.isVirtual())
+                return false;
+            if (ssaState.isRegUsedAfter(def, instRef))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool eliminateDeadInstructions(MicroStorage& storage, const MicroSsaState& ssaState)
+    {
+        bool       changed = false;
+        const auto view    = storage.view();
+        const auto endIt   = view.end();
+        for (auto it = view.begin(); it != endIt;)
+        {
+            const MicroInstrRef instRef = it.current;
+            const MicroInstr&   inst    = *it;
+            ++it;
+
+            const MicroInstrUseDef* useDef = ssaState.instrUseDef(instRef);
+            if (!useDef)
+                continue;
+
+            if (hasObservableSideEffect(inst, *useDef))
+                continue;
+
+            if (!allDefsAreDeadVirtualRegs(*useDef, ssaState, instRef))
+                continue;
+
+            changed |= storage.erase(instRef);
+        }
+
+        return changed;
+    }
+}
+
 Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
 {
+    SWC_MEM_SCOPE("Backend/MicroLower/DCE");
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
+    SWC_ASSERT(context.builder != nullptr);
+
+    MicroStorage&        storage  = *context.instructions;
+    MicroOperandStorage& operands = *context.operands;
+
+    MicroSsaState        localSsaState;
+    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    if (!ssaState || !ssaState->isValid())
+        return Result::Continue;
+
+    if (!eliminateDeadInstructions(storage, *ssaState))
+        return Result::Continue;
+
+    context.passChanged = true;
+
+    // Each erasure may free up further candidates; iterate on a freshly
+    // rebuilt SSA until the set of dead instructions stabilises.
+    while (true)
+    {
+        MicroSsaState rebuilt;
+        rebuilt.build(*context.builder, storage, operands, context.encoder);
+        if (!rebuilt.isValid())
+            break;
+
+        if (!eliminateDeadInstructions(storage, rebuilt))
+            break;
+    }
+
     return Result::Continue;
 }
 

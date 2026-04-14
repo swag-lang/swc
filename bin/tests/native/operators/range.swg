@@ -1,4 +1,4 @@
-#global fileprivate //
+#global fileprivate
 
 #test
 {
@@ -13,7 +13,6 @@
     @assert(countSingle == 1)
 }
 
-#[Swag.PrintMicro]
 #test
 {
     var a: f32

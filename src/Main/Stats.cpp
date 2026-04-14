@@ -168,9 +168,14 @@ namespace
         return std::format("{}{} ({:+.2f}%)", sign, Utf8Helper::toNiceBigNumber(abs), pct);
     }
 
+    std::string formatMicroInstrTotalWithDelta(const size_t currentCount, const size_t previousCount)
+    {
+        const int64_t delta = static_cast<int64_t>(currentCount) - static_cast<int64_t>(previousCount);
+        return std::format("{} ({})", Utf8Helper::toNiceBigNumber(currentCount), formatMicroInstrDelta(delta, previousCount));
+    }
+
     struct MicroStageTransition
     {
-        const char* deltaLabel = nullptr;
         const char* countLabel = nullptr;
         size_t      previousCount = 0;
         size_t      currentCount  = 0;
@@ -223,20 +228,16 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrInitial", colorMsg, Utf8Helper::toNiceBigNumber(numMicroInitial));
 
     const std::array<MicroStageTransition, 6> transitions = {
-        MicroStageTransition{"count.micro.startDelta", "count.micro.instrAfterStart", numMicroInitial, numMicroAfterStart},
-        MicroStageTransition{"count.micro.preRAOptimDelta", "count.micro.instrAfterPreRAOptim", numMicroAfterStart, numMicroAfterPreRAOptim},
-        MicroStageTransition{"count.micro.raDelta", "count.micro.instrAfterRA", numMicroAfterPreRAOptim, numMicroAfterRA},
-        MicroStageTransition{"count.micro.postRASetupDelta", "count.micro.instrAfterPostRASetup", numMicroAfterRA, numMicroAfterPostRASetup},
-        MicroStageTransition{"count.micro.postRAOptimDelta", "count.micro.instrAfterPostRAOptim", numMicroAfterPostRASetup, numMicroAfterPostRAOptim},
-        MicroStageTransition{"count.micro.finalCleanupDelta", "count.micro.instrFinal", numMicroAfterPostRAOptim, numMicroFinal},
+        MicroStageTransition{"count.micro.instrAfterStart", numMicroInitial, numMicroAfterStart},
+        MicroStageTransition{"count.micro.instrAfterPreRAOptim", numMicroAfterStart, numMicroAfterPreRAOptim},
+        MicroStageTransition{"count.micro.instrAfterRA", numMicroAfterPreRAOptim, numMicroAfterRA},
+        MicroStageTransition{"count.micro.instrAfterPostRASetup", numMicroAfterRA, numMicroAfterPostRASetup},
+        MicroStageTransition{"count.micro.instrAfterPostRAOptim", numMicroAfterPostRASetup, numMicroAfterPostRAOptim},
+        MicroStageTransition{"count.micro.instrFinal", numMicroAfterPostRAOptim, numMicroFinal},
     };
 
     for (const MicroStageTransition& transition : transitions)
-    {
-        const int64_t delta = static_cast<int64_t>(transition.currentCount) - static_cast<int64_t>(transition.previousCount);
-        Logger::printHeaderDot(ctx, colorHeader, transition.deltaLabel, colorMsg, formatMicroInstrDelta(delta, transition.previousCount));
-        Logger::printHeaderDot(ctx, colorHeader, transition.countLabel, colorMsg, Utf8Helper::toNiceBigNumber(transition.currentCount));
-    }
+        Logger::printHeaderDot(ctx, colorHeader, transition.countLabel, colorMsg, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
 
     const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, formatMicroInstrDelta(pipelineDelta, numMicroInitial));

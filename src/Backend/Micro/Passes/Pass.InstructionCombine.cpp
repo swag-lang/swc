@@ -7,59 +7,60 @@
 
 // Pre-RA instruction combiner on virtual registers.
 //
-// Tier-1 patterns (run inside the optimization fixed-point loop, so multi-step
-// chains converge across iterations):
+// Architecture
+// ------------
+// A small pattern-dispatch framework: every combine rule is a self-contained
+// function that receives a CombineCtx and an anchor instruction, decides
+// whether it applies, and emits typed Actions describing the rewrite. Patterns
+// are registered against the opcode(s) they anchor on, so the scan loop does
+// one O(1) table lookup per instruction instead of a cascading if/else.
+// SSA queries run on the un-mutated IR throughout the scan; actions are
+// applied as a batch at the end, after which the pass manager invalidates
+// the shared SSA and the next loop iteration rebuilds it.
 //
-//   Identity removal (current value preserved, kill the op):
-//     v op 0     for op in {Add, Sub, Or, Xor, Shl, Shr, Sar, Rol, Ror}
-//     v and ~0   (mask for current opBits)
+// Patterns (each in its own try* function):
 //
-//   Absorbing element:
-//     v and 0    -> ClearReg v
-//     v or  ~0   -> LoadRegImm v, ~0
-//
-//   Same-op constant reassociation across a single-use SSA chain:
+//   Identity / absorb / reassociate on OpBinaryRegImm
+//     v op 0, v and ~0                              (drop if v's dead)
+//     v and 0     -> ClearReg v
+//     v or  ~0    -> LoadRegImm v, mask
 //     v op c1 ; v op c2  -> v op fold(op, c1, c2)
-//   for op in {Add(+Sub), Sub(+Add), Mul, And, Or, Xor, Shl, Shr, Sar}.
 //
-//   Idempotent reg-reg patterns:
-//     v op v   for op in {And, Or}                 -> remove (v unchanged)
-//     v op v   for op in {Sub, Xor}                -> ClearReg v
+//   Idempotent reg/reg on OpBinaryRegReg
+//     v and v, v or v                               (drop if dead)
+//     v - v, v ^ v                                  -> ClearReg v
 //
-// Tier-2 memory-op fusion (load/modify/store collapse):
+//   Memory-op fusion on LoadRegMem (triple: load + op + store)
+//     LoadRegMem vt, [b+o]
+//     OpBinaryRegImm/OpBinaryRegReg vt, ...
+//     LoadMemReg [b+o], vt
+//       -> OpBinaryMemImm / OpBinaryMemReg [b+o], ...
 //
-//     LoadRegMem  vt, [base + off]
-//     OpBinaryRegImm vt, op, imm
-//     LoadMemReg  [base + off], vt
-//   ->
-//     OpBinaryMemImm [base + off], op, imm
+//   Addressing-mode fold on LoadMemReg / LoadRegMem
+//     reg = base ; reg += imm ; [reg] = src
+//       -> [base + imm] = src  (and the symmetric load form)
 //
-// Requires the three instructions to be consecutive (no aliasing window),
-// matching base reg / offset / opBits, and 'vt' to be single-use across both
-// SSA value-IDs (the load's def used only by the op, the op's def used only by
-// the store). The middle instruction is rewritten in place — that needs a new
-// operand block since OpBinaryMemImm has 5 operands vs. OpBinaryRegImm's 4 —
-// and the bracketing load/store are erased. Net win: 2 instructions removed
-// plus 1 fewer virtual register live range, which is the dominant lever for
-// reducing 'count.micro.raDelta'.
+//   Dead zero/sign extends on LoadZeroExtRegReg / LoadSignedExtRegReg
+//     If every user of the extended value reads <= srcBits, drop the extend
+//     (or narrow it to a plain LoadRegReg at srcBits).
 //
-// SSA staleness: the pass collects rewrite plans during a forward scan over
-// the live IR, then applies them. Each plan touches at most two instructions
-// (current + one reaching def), and we never queue a rewrite whose source has
-// already been claimed by another plan. After mutation the pass manager
-// invalidates the SSA state and the next loop iteration rebuilds it.
+//   Store-to-load forwarding (whole-IR cache scan, not anchored)
+//     LoadMemReg [b+o], src ; ... ; LoadRegMem dst, [b+o]
+//       -> LoadRegMem becomes LoadRegReg dst, src
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    //===------------------------------------------------------------------===//
+    //  Math / opcode helpers
+    //===------------------------------------------------------------------===//
+
     bool isSameOpBitsInt(MicroOpBits a, MicroOpBits b)
     {
         return a == b && a != MicroOpBits::Zero && a != MicroOpBits::B128;
     }
 
-    // True if 'imm' is the right identity for 'op' applied as 'v op imm'
-    // (i.e., the result equals v).
     bool isRightIdentity(MicroOp op, MicroOpBits opBits, uint64_t imm)
     {
         const uint64_t mask = getBitsMask(opBits);
@@ -89,8 +90,6 @@ namespace
         }
     }
 
-    // True if 'v op imm' is a constant regardless of v. 'outResult' receives
-    // that constant (already masked to opBits).
     bool isRightAbsorbing(MicroOp op, MicroOpBits opBits, uint64_t imm, uint64_t& outResult)
     {
         const uint64_t mask = getBitsMask(opBits);
@@ -128,9 +127,6 @@ namespace
         return false;
     }
 
-    // Returns true when 'first' followed by 'second' on the same destination can
-    // be reassociated into a single op. 'outOp' is the resulting op kind, and
-    // 'outImm' is the combined immediate. A few patterns mix Add/Sub.
     bool tryReassociate(MicroOp     firstOp,
                         uint64_t    firstImm,
                         MicroOp     secondOp,
@@ -149,8 +145,6 @@ namespace
             return value & mask;
         };
 
-        // Add/Sub family. Compute the net signed contribution, then pick the
-        // shorter encoding (Add or Sub of the smaller size under 'mask').
         if ((firstOp == MicroOp::Add || firstOp == MicroOp::Subtract) &&
             (secondOp == MicroOp::Add || secondOp == MicroOp::Subtract))
         {
@@ -159,12 +153,12 @@ namespace
             const bool     firstIsSub  = firstOp == MicroOp::Subtract;
             const bool     secondIsSub = secondOp == MicroOp::Subtract;
 
-            uint64_t addImm = 0; // immediate when encoded as Add.
+            uint64_t addImm = 0;
             if (firstIsSub == secondIsSub)
                 addImm = firstIsSub ? ((0u - (a + b)) & mask) : ((a + b) & mask);
-            else if (firstIsSub) // -a + b == b - a
+            else if (firstIsSub)
                 addImm = (b - a) & mask;
-            else // +a - b == a - b
+            else
                 addImm = (a - b) & mask;
 
             const uint64_t subImm = (0u - addImm) & mask;
@@ -181,7 +175,6 @@ namespace
             return true;
         }
 
-        // Bitwise / multiply families: same-op only.
         if (firstOp != secondOp)
             return false;
 
@@ -218,175 +211,6 @@ namespace
         }
     }
 
-    struct CombinePlan
-    {
-        enum class Kind : uint8_t
-        {
-            EraseCurrent,            // remove 'current' (identity op).
-            RewriteCurrentToClear,   // 'current' becomes ClearReg.
-            RewriteCurrentToLoadImm, // 'current' becomes LoadRegImm with 'newImm'.
-            ReassociateChain,        // erase 'current', rewrite 'previous' op+imm.
-            MemoryFold,              // erase 'previous' (load) + 'current' (store),
-                                     // rewrite 'middle' to OpBinaryMemImm.
-        };
-
-        Kind          kind        = Kind::EraseCurrent;
-        MicroInstrRef current     = MicroInstrRef::invalid();
-        MicroInstrRef previous    = MicroInstrRef::invalid();
-        MicroInstrRef middle      = MicroInstrRef::invalid();
-        MicroOp       newOp       = MicroOp::Add;
-        uint64_t      newImm      = 0;
-        uint64_t      memOff      = 0;
-        MicroReg      memBase     = MicroReg::invalid();
-        MicroReg      rhsReg      = MicroReg::invalid();
-        MicroOpBits   opBits      = MicroOpBits::B64;
-        bool          midIsRegReg = false;
-    };
-
-    // Look up the SSA reaching-def of 'reg' just before 'instRef' and decide
-    // whether it is a single-use, same-shape OpBinaryRegImm we can reassociate.
-    bool tryPlanReassociate(CombinePlan&               plan,
-                            const MicroSsaState&       ssa,
-                            const MicroOperandStorage& operands,
-                            MicroInstrRef              currentRef,
-                            const MicroInstrOperand*   curOps)
-    {
-        const MicroReg dst    = curOps[0].reg;
-        const MicroOp  curOp  = curOps[2].microOp;
-        const auto     opBits = curOps[1].opBits;
-        const uint64_t curImm = curOps[3].valueU64;
-
-        const auto reaching = ssa.reachingDef(dst, currentRef);
-        if (!reaching.valid() || reaching.isPhi || !reaching.inst)
-            return false;
-        if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm)
-            return false;
-
-        const auto* prevOps = reaching.inst->ops(operands);
-        if (!prevOps || reaching.inst->numOperands < 4)
-            return false;
-        if (prevOps[0].reg != dst)
-            return false;
-        if (!isSameOpBitsInt(prevOps[1].opBits, opBits))
-            return false;
-
-        // Single-use: only the current instruction reads the previous def.
-        const auto* valueInfo = ssa.valueInfo(reaching.valueId);
-        if (!valueInfo || valueInfo->uses.size() != 1)
-            return false;
-
-        auto     combinedOp  = MicroOp::Add;
-        uint64_t combinedImm = 0;
-        if (!tryReassociate(prevOps[2].microOp, prevOps[3].valueU64, curOp, curImm, opBits, combinedOp, combinedImm))
-            return false;
-
-        plan.kind     = CombinePlan::Kind::ReassociateChain;
-        plan.current  = currentRef;
-        plan.previous = reaching.instRef;
-        plan.newOp    = combinedOp;
-        plan.newImm   = combinedImm;
-        plan.opBits   = opBits;
-        return true;
-    }
-
-    bool tryPlanRegImm(CombinePlan&               plan,
-                       const MicroSsaState*       ssa,
-                       const MicroOperandStorage& operands,
-                       MicroInstrRef              instRef,
-                       const MicroInstr&          inst,
-                       const MicroInstrOperand*   ops)
-    {
-        if (inst.op != MicroInstrOpcode::OpBinaryRegImm || inst.numOperands < 4 || !ops)
-            return false;
-        if (!ops[0].reg.isVirtualInt())
-            return false;
-
-        const MicroOp     op     = ops[2].microOp;
-        const MicroOpBits opBits = ops[1].opBits;
-        const uint64_t    imm    = ops[3].valueU64;
-
-        // Identity: erase iff the register isn't observed afterwards. (Mirrors
-        // StrengthReduction's add-zero handling — cheaper than asserting flag
-        // liveness, which the post-RA peephole revisits anyway.)
-        if (isRightIdentity(op, opBits, imm))
-        {
-            if (ssa && !ssa->isRegUsedAfter(ops[0].reg, instRef))
-            {
-                plan.kind    = CombinePlan::Kind::EraseCurrent;
-                plan.current = instRef;
-                return true;
-            }
-        }
-
-        // Absorbing element: rewrite to a constant materialization.
-        uint64_t absorbed = 0;
-        if (isRightAbsorbing(op, opBits, imm, absorbed))
-        {
-            if (absorbed == 0)
-            {
-                plan.kind    = CombinePlan::Kind::RewriteCurrentToClear;
-                plan.current = instRef;
-                plan.opBits  = opBits;
-            }
-            else
-            {
-                plan.kind    = CombinePlan::Kind::RewriteCurrentToLoadImm;
-                plan.current = instRef;
-                plan.newImm  = absorbed;
-                plan.opBits  = opBits;
-            }
-            return true;
-        }
-
-        if (ssa && tryPlanReassociate(plan, *ssa, operands, instRef, ops))
-            return true;
-
-        return false;
-    }
-
-    bool tryPlanRegReg(CombinePlan&             plan,
-                       MicroInstrRef            instRef,
-                       const MicroInstr&        inst,
-                       const MicroInstrOperand* ops,
-                       const MicroSsaState*     ssa)
-    {
-        if (inst.op != MicroInstrOpcode::OpBinaryRegReg || inst.numOperands < 4 || !ops)
-            return false;
-        if (ops[0].reg != ops[1].reg)
-            return false;
-        if (!ops[0].reg.isVirtualInt())
-            return false;
-
-        const MicroOp op     = ops[3].microOp;
-        const auto    opBits = ops[2].opBits;
-        switch (op)
-        {
-            case MicroOp::And:
-            case MicroOp::Or:
-                // v op v == v: erase if dead, otherwise leave (rewriting to a
-                // self-copy gains nothing pre-RA).
-                if (ssa && !ssa->isRegUsedAfter(ops[0].reg, instRef))
-                {
-                    plan.kind    = CombinePlan::Kind::EraseCurrent;
-                    plan.current = instRef;
-                    return true;
-                }
-                return false;
-
-            case MicroOp::Subtract:
-            case MicroOp::Xor:
-                plan.kind    = CombinePlan::Kind::RewriteCurrentToClear;
-                plan.current = instRef;
-                plan.opBits  = opBits;
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
-    // op kind allowed inside a memory-fold (must have an OpBinaryMemImm form
-    // with the same arithmetic).
     bool isMemFoldableOp(MicroOp op)
     {
         switch (op)
@@ -419,19 +243,615 @@ namespace
         return MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::WritesMemory);
     }
 
-    // Local store-to-load forwarding. For each `LoadMemReg [base+off], src` we
-    // remember (base, off, bits, src). If a later `LoadRegMem dst, [base+off]`
-    // with matching base/offset/bits shows up before that slot gets overwritten
-    // or `src` gets redefined, the reload reads the exact value we just stored
-    // — rewrite it as `LoadRegReg dst, src` and skip the memory round-trip.
-    // Any writing to memory we can't prove disjoint, any call, and any branch or
-    // label flushes the cache conservatively. The cache is small and scanned
-    // linearly; patterns that escape the window converge on the next loop
-    // iteration after other passes tighten the window.
-    bool forwardStoresToLoads(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState* ssa)
+    // Returns the bit-width at which 'useInst' reads 'reg'. Zero means the
+    // caller should treat the use as full-width (safe default).
+    MicroOpBits useReadBits(const MicroInstr& useInst, const MicroInstrOperand* useOps, MicroReg reg)
     {
-        if (!ssa)
+        if (!useOps)
+            return MicroOpBits::Zero;
+
+        switch (useInst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::CmpRegReg:
+                return useOps[2].opBits;
+
+            case MicroInstrOpcode::CmpRegImm:
+            case MicroInstrOpcode::OpBinaryRegImm:
+                return useOps[1].opBits;
+
+            case MicroInstrOpcode::OpBinaryRegReg:
+                return useOps[2].opBits;
+
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+                return useOps[1].reg == reg ? useOps[3].opBits : MicroOpBits::Zero;
+
+            default:
+                return MicroOpBits::Zero;
+        }
+    }
+
+    //===------------------------------------------------------------------===//
+    //  Action + Context
+    //===------------------------------------------------------------------===//
+
+    // A single rewrite command. Patterns emit actions; the apply phase runs
+    // them sequentially once the scan completes.
+    struct Action
+    {
+        static constexpr uint8_t K_MAX_OPS = 5;
+
+        MicroInstrRef     ref            = MicroInstrRef::invalid();
+        MicroInstrOpcode  newOp          = MicroInstrOpcode::Nop;
+        uint8_t           numOps         = 0;
+        MicroInstrOperand ops[K_MAX_OPS] = {};
+        bool              erase          = false;
+        bool              allocOps       = false; // allocate a new operand block (grow beyond existing).
+    };
+
+    struct CombineCtx
+    {
+        MicroStorage&        storage;
+        MicroOperandStorage& operands;
+        const MicroSsaState* ssa;
+
+        // Any instruction that a prior pattern already scheduled a rewrite for.
+        // Patterns must claim every instruction they plan to touch before
+        // emitting actions; if any claim fails the pattern aborts.
+        std::unordered_set<uint32_t> claimed;
+
+        SmallVector<Action, 16> actions;
+
+        bool isClaimed(MicroInstrRef r) const { return claimed.contains(r.get()); }
+
+        // Try to claim a batch atomically: succeeds only if none of the refs
+        // were previously claimed. Returns false without side-effects on failure.
+        bool claimAll(std::initializer_list<MicroInstrRef> refs)
+        {
+            for (const MicroInstrRef r : refs)
+                if (isClaimed(r))
+                    return false;
+            for (const MicroInstrRef r : refs)
+                claimed.insert(r.get());
+            return true;
+        }
+
+        void emitErase(MicroInstrRef r)
+        {
+            Action a;
+            a.ref   = r;
+            a.erase = true;
+            actions.push_back(a);
+        }
+
+        void emitRewrite(MicroInstrRef                      r,
+                         MicroInstrOpcode                   newOp,
+                         std::span<const MicroInstrOperand> newOps,
+                         bool                               allocNewBlock = false)
+        {
+            SWC_ASSERT(newOps.size() <= Action::K_MAX_OPS);
+            Action a;
+            a.ref      = r;
+            a.newOp    = newOp;
+            a.numOps   = static_cast<uint8_t>(newOps.size());
+            a.allocOps = allocNewBlock;
+            for (size_t i = 0; i < newOps.size(); ++i)
+                a.ops[i] = newOps[i];
+            actions.push_back(a);
+        }
+    };
+
+    void applyAction(const Action& a, const CombineCtx& ctx)
+    {
+        if (a.erase)
+        {
+            ctx.storage.erase(a.ref);
+            return;
+        }
+
+        MicroInstr* inst = ctx.storage.ptr(a.ref);
+        SWC_ASSERT(inst);
+
+        if (a.allocOps)
+        {
+            const auto [newRef, opsBlock] = ctx.operands.emplaceUninitArray(a.numOps);
+            for (uint8_t i = 0; i < a.numOps; ++i)
+                opsBlock[i] = a.ops[i];
+            inst->opsRef = newRef;
+        }
+        else if (a.numOps > 0)
+        {
+            MicroInstrOperand* existing = inst->ops(ctx.operands);
+            SWC_ASSERT(existing);
+            for (uint8_t i = 0; i < a.numOps; ++i)
+                existing[i] = a.ops[i];
+        }
+
+        inst->op          = a.newOp;
+        inst->numOperands = a.numOps;
+    }
+
+    //===------------------------------------------------------------------===//
+    //  Patterns
+    //===------------------------------------------------------------------===//
+
+    // OpBinaryRegImm: identity, absorbing, and reassociation chains.
+    bool tryOpBinaryRegImm(CombineCtx& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (inst.numOperands < 4 || ctx.isClaimed(ref))
             return false;
+
+        const MicroInstrOperand* ops = inst.ops(ctx.operands);
+        if (!ops || !ops[0].reg.isVirtualInt())
+            return false;
+
+        const MicroReg    dst    = ops[0].reg;
+        const MicroOpBits opBits = ops[1].opBits;
+        const MicroOp     op     = ops[2].microOp;
+        const uint64_t    imm    = ops[3].valueU64;
+
+        // Identity: erase when result is unused afterward.
+        if (isRightIdentity(op, opBits, imm))
+        {
+            if (ctx.ssa && !ctx.ssa->isRegUsedAfter(dst, ref))
+            {
+                if (!ctx.claimAll({ref}))
+                    return false;
+                ctx.emitErase(ref);
+                return true;
+            }
+        }
+
+        // Absorbing element: rewrite to a constant materializer.
+        uint64_t absorbed = 0;
+        if (isRightAbsorbing(op, opBits, imm, absorbed))
+        {
+            if (!ctx.claimAll({ref}))
+                return false;
+
+            if (absorbed == 0)
+            {
+                MicroInstrOperand clearOps[2];
+                clearOps[0].reg    = dst;
+                clearOps[1].opBits = opBits;
+                ctx.emitRewrite(ref, MicroInstrOpcode::ClearReg, clearOps);
+            }
+            else
+            {
+                MicroInstrOperand loadOps[3];
+                loadOps[0].reg      = dst;
+                loadOps[1].opBits   = opBits;
+                loadOps[2].valueU64 = absorbed;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegImm, loadOps);
+            }
+            return true;
+        }
+
+        // Reassociate with a preceding single-use OpBinaryRegImm on the same reg.
+        if (!ctx.ssa)
+            return false;
+
+        const auto reaching = ctx.ssa->reachingDef(dst, ref);
+        if (!reaching.valid() || reaching.isPhi || !reaching.inst)
+            return false;
+        if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm || reaching.inst->numOperands < 4)
+            return false;
+
+        const MicroInstrOperand* prevOps = reaching.inst->ops(ctx.operands);
+        if (!prevOps || prevOps[0].reg != dst || !isSameOpBitsInt(prevOps[1].opBits, opBits))
+            return false;
+
+        const auto* valueInfo = ctx.ssa->valueInfo(reaching.valueId);
+        if (!valueInfo || valueInfo->uses.size() != 1)
+            return false;
+
+        MicroOp  combinedOp  = MicroOp::Add;
+        uint64_t combinedImm = 0;
+        if (!tryReassociate(prevOps[2].microOp, prevOps[3].valueU64, op, imm, opBits, combinedOp, combinedImm))
+            return false;
+
+        if (!ctx.claimAll({ref, reaching.instRef}))
+            return false;
+
+        MicroInstrOperand rewritten[4];
+        rewritten[0].reg      = dst;
+        rewritten[1].opBits   = opBits;
+        rewritten[2].microOp  = combinedOp;
+        rewritten[3].valueU64 = combinedImm;
+        ctx.emitRewrite(reaching.instRef, MicroInstrOpcode::OpBinaryRegImm, rewritten);
+        ctx.emitErase(ref);
+        return true;
+    }
+
+    // OpBinaryRegReg: idempotent self-ops.
+    bool tryOpBinaryRegReg(CombineCtx& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (inst.numOperands < 4 || ctx.isClaimed(ref))
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(ctx.operands);
+        if (!ops || ops[0].reg != ops[1].reg || !ops[0].reg.isVirtualInt())
+            return false;
+
+        const MicroReg    dst    = ops[0].reg;
+        const MicroOpBits opBits = ops[2].opBits;
+        const MicroOp     op     = ops[3].microOp;
+
+        switch (op)
+        {
+            case MicroOp::And:
+            case MicroOp::Or:
+                if (ctx.ssa && !ctx.ssa->isRegUsedAfter(dst, ref))
+                {
+                    if (!ctx.claimAll({ref}))
+                        return false;
+                    ctx.emitErase(ref);
+                    return true;
+                }
+                return false;
+
+            case MicroOp::Subtract:
+            case MicroOp::Xor:
+            {
+                if (!ctx.claimAll({ref}))
+                    return false;
+                MicroInstrOperand clearOps[2];
+                clearOps[0].reg    = dst;
+                clearOps[1].opBits = opBits;
+                ctx.emitRewrite(ref, MicroInstrOpcode::ClearReg, clearOps);
+                return true;
+            }
+
+            default:
+                return false;
+        }
+    }
+
+    // LoadRegMem: memory-fold triple (load + modify + store).
+    bool tryMemoryFoldTriple(CombineCtx& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (loadInst.numOperands < 4 || ctx.isClaimed(loadRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(ctx.operands);
+        if (!loadOps)
+            return false;
+
+        const MicroReg    vt       = loadOps[0].reg;
+        const MicroReg    base     = loadOps[1].reg;
+        const MicroOpBits loadBits = loadOps[2].opBits;
+        const uint64_t    loadOff  = loadOps[3].valueU64;
+
+        if (!vt.isVirtualInt())
+            return false;
+
+        constexpr uint32_t K_MAX_WINDOW = 16;
+
+        // Find the anchor position in the view to walk forward from it.
+        const auto view  = ctx.storage.view();
+        const auto endIt = view.end();
+        auto       walker = view.begin();
+        for (; walker != endIt && walker.current != loadRef; ++walker)
+        {
+        }
+        if (walker == endIt)
+            return false;
+        ++walker;
+
+        MicroInstrRef     midRef   = MicroInstrRef::invalid();
+        const MicroInstr* midInst  = nullptr;
+        bool              foundMid = false;
+
+        for (uint32_t step = 0; step < K_MAX_WINDOW && walker != endIt; ++step, ++walker)
+        {
+            const MicroInstr& w = *walker;
+
+            // Match the store first — it writes memory itself, which would
+            // otherwise trip the generic aborts below.
+            if (foundMid && w.op == MicroInstrOpcode::LoadMemReg && w.numOperands >= 4)
+            {
+                const MicroInstrOperand* sOps = w.ops(ctx.operands);
+                if (!sOps || sOps[0].reg != base || sOps[1].reg != vt ||
+                    sOps[2].opBits != loadBits || sOps[3].valueU64 != loadOff)
+                    return false;
+
+                const MicroInstrOperand* opOps = midInst->ops(ctx.operands);
+                if (!opOps || midInst->numOperands < 4)
+                    return false;
+
+                const bool middleIsRegImm = midInst->op == MicroInstrOpcode::OpBinaryRegImm;
+                const bool middleIsRegReg = midInst->op == MicroInstrOpcode::OpBinaryRegReg;
+                if (!middleIsRegImm && !middleIsRegReg)
+                    return false;
+
+                const MicroOpBits opBits  = middleIsRegImm ? opOps[1].opBits : opOps[2].opBits;
+                const MicroOp     microOp = middleIsRegImm ? opOps[2].microOp : opOps[3].microOp;
+                const uint64_t    opImm   = middleIsRegImm ? opOps[3].valueU64 : 0;
+                const MicroReg    rhsReg  = middleIsRegReg ? opOps[1].reg : MicroReg::invalid();
+
+                if (opBits != loadBits || !isMemFoldableOp(microOp))
+                    return false;
+                if (middleIsRegReg && (rhsReg == base || rhsReg == vt))
+                    return false;
+
+                uint32_t loadValueId = 0;
+                if (!ctx.ssa->defValue(vt, loadRef, loadValueId))
+                    return false;
+                const auto* loadValue = ctx.ssa->valueInfo(loadValueId);
+                if (!loadValue || loadValue->uses.size() != 1)
+                    return false;
+
+                uint32_t opValueId = 0;
+                if (!ctx.ssa->defValue(vt, midRef, opValueId))
+                    return false;
+                const auto* opValue = ctx.ssa->valueInfo(opValueId);
+                if (!opValue || opValue->uses.size() != 1)
+                    return false;
+
+                const MicroInstrRef storeRef = walker.current;
+                if (!ctx.claimAll({loadRef, midRef, storeRef}))
+                    return false;
+
+                MicroInstrOperand newOps[5];
+                if (middleIsRegReg)
+                {
+                    // OpBinaryMemReg: [memReg, reg, opBits, microOp, memOffset].
+                    newOps[0].reg      = base;
+                    newOps[1].reg      = rhsReg;
+                    newOps[2].opBits   = opBits;
+                    newOps[3].microOp  = microOp;
+                    newOps[4].valueU64 = loadOff;
+                    ctx.emitRewrite(midRef, MicroInstrOpcode::OpBinaryMemReg, newOps, /*allocNewBlock=*/true);
+                }
+                else
+                {
+                    // OpBinaryMemImm: [memReg, opBits, microOp, memOffset, imm].
+                    newOps[0].reg      = base;
+                    newOps[1].opBits   = opBits;
+                    newOps[2].microOp  = microOp;
+                    newOps[3].valueU64 = loadOff;
+                    newOps[4].valueU64 = opImm;
+                    ctx.emitRewrite(midRef, MicroInstrOpcode::OpBinaryMemImm, newOps, /*allocNewBlock=*/true);
+                }
+                ctx.emitErase(loadRef);
+                ctx.emitErase(storeRef);
+                return true;
+            }
+
+            if (isControlOrCall(w) || writesMemory(w))
+                return false;
+
+            const auto* useDef   = ctx.ssa->instrUseDef(walker.current);
+            const bool  defsVt   = useDef && microRegSpanContains(useDef->defs, vt);
+            const bool  defsBase = useDef && microRegSpanContains(useDef->defs, base);
+            const bool  usesVt   = useDef && microRegSpanContains(useDef->uses, vt);
+
+            if (defsBase)
+                return false;
+
+            if (!foundMid)
+            {
+                if (usesVt || defsVt)
+                {
+                    if ((w.op == MicroInstrOpcode::OpBinaryRegImm ||
+                         w.op == MicroInstrOpcode::OpBinaryRegReg) &&
+                        w.numOperands >= 4)
+                    {
+                        const MicroInstrOperand* wOps = w.ops(ctx.operands);
+                        if (wOps && wOps[0].reg == vt)
+                        {
+                            midRef   = walker.current;
+                            midInst  = &w;
+                            foundMid = true;
+                            continue;
+                        }
+                    }
+                    return false;
+                }
+            }
+            else
+            {
+                if (usesVt || defsVt)
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
+    // Zero/sign extend whose upper bits are never read. Collapses to a plain
+    // LoadRegReg at srcBits, or an erase when dst == src.
+    bool tryNarrowExtend(CombineCtx& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (inst.numOperands < 4 || ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(ctx.operands);
+        if (!ops)
+            return false;
+
+        const MicroReg    dst     = ops[0].reg;
+        const MicroReg    src     = ops[1].reg;
+        const MicroOpBits dstBits = ops[2].opBits;
+        const MicroOpBits srcBits = ops[3].opBits;
+
+        if (!dst.isVirtual() || dstBits == srcBits || srcBits == MicroOpBits::Zero)
+            return false;
+
+        uint32_t valueId = 0;
+        if (!ctx.ssa->defValue(dst, ref, valueId))
+            return false;
+
+        const auto* valueInfo = ctx.ssa->valueInfo(valueId);
+        if (!valueInfo || valueInfo->uses.empty())
+            return false;
+
+        const uint32_t srcBitsNum = getNumBits(srcBits);
+        for (const auto& useSite : valueInfo->uses)
+        {
+            if (useSite.kind != MicroSsaState::UseSite::Kind::Instruction)
+                return false;
+            const MicroInstr* useInst = ctx.storage.ptr(useSite.instRef);
+            if (!useInst)
+                return false;
+            const MicroInstrOperand* useOps  = useInst->ops(ctx.operands);
+            const MicroOpBits        useBits = useReadBits(*useInst, useOps, dst);
+            if (useBits == MicroOpBits::Zero || getNumBits(useBits) > srcBitsNum)
+                return false;
+        }
+
+        if (!ctx.claimAll({ref}))
+            return false;
+
+        if (dst == src)
+        {
+            ctx.emitErase(ref);
+        }
+        else
+        {
+            MicroInstrOperand moveOps[3];
+            moveOps[0].reg    = dst;
+            moveOps[1].reg    = src;
+            moveOps[2].opBits = srcBits;
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, moveOps);
+        }
+        return true;
+    }
+
+    // Fold a constant-offset computation into a memory operand's offset. Anchor
+    // on a store (LoadMemReg) or a load (LoadRegMem) and look backward through
+    // SSA for:
+    //
+    //     base' = OpBinaryRegImm(base', ADD/SUB, imm)              (single-use)
+    //     [optionally] base' = LoadRegReg origBase                  (single-use)
+    //
+    // On success: rewrite the memory instruction's base to origBase (or the
+    // add's source if the copy isn't present), adjust its offset by ±imm, and
+    // erase the intermediate chain.
+    bool tryFoldMemoryAddressing(CombineCtx& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref) || inst.numOperands < 4)
+            return false;
+
+        uint8_t baseIdx;
+        uint8_t offIdx;
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadMemReg:
+                baseIdx = 0;
+                offIdx  = 3;
+                break;
+            case MicroInstrOpcode::LoadRegMem:
+                baseIdx = 1;
+                offIdx  = 3;
+                break;
+            default:
+                return false;
+        }
+
+        const MicroInstrOperand* ops = inst.ops(ctx.operands);
+        if (!ops)
+            return false;
+
+        const MicroReg baseReg = ops[baseIdx].reg;
+        const uint64_t baseOff = ops[offIdx].valueU64;
+        if (!baseReg.isVirtual())
+            return false;
+
+        const auto reaching = ctx.ssa->reachingDef(baseReg, ref);
+        if (!reaching.valid() || reaching.isPhi || !reaching.inst)
+            return false;
+        if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm || reaching.inst->numOperands < 4)
+            return false;
+
+        const MicroInstrOperand* addOps = reaching.inst->ops(ctx.operands);
+        if (!addOps || addOps[0].reg != baseReg)
+            return false;
+
+        const MicroOpBits addBits = addOps[1].opBits;
+        const MicroOp     addOp   = addOps[2].microOp;
+        const uint64_t    addImm  = addOps[3].valueU64;
+        if (addBits != MicroOpBits::B64)
+            return false;
+        if (addOp != MicroOp::Add && addOp != MicroOp::Subtract)
+            return false;
+
+        // Intermediate must feed only this memory op.
+        const auto* addValue = ctx.ssa->valueInfo(reaching.valueId);
+        if (!addValue || addValue->uses.size() != 1)
+            return false;
+
+        // Follow one more step backward: if baseReg's own incoming value is a
+        // plain single-use LoadRegReg, we can eliminate the copy too and point
+        // the memory op directly at the original base register.
+        MicroInstrRef copyRef     = MicroInstrRef::invalid();
+        MicroReg      originalReg = baseReg;
+        {
+            const auto copyReaching = ctx.ssa->reachingDef(baseReg, reaching.instRef);
+            if (copyReaching.valid() && !copyReaching.isPhi && copyReaching.inst &&
+                copyReaching.inst->op == MicroInstrOpcode::LoadRegReg &&
+                copyReaching.inst->numOperands >= 3)
+            {
+                const MicroInstrOperand* cOps = copyReaching.inst->ops(ctx.operands);
+                if (cOps && cOps[0].reg == baseReg)
+                {
+                    const auto* copyValue = ctx.ssa->valueInfo(copyReaching.valueId);
+                    if (copyValue && copyValue->uses.size() == 1)
+                    {
+                        const MicroReg candidate = cOps[1].reg;
+                        // Soundness: the copy's source must still hold the same
+                        // SSA value at the memory op — otherwise substituting it
+                        // in would read a newer value and change semantics.
+                        const auto srcAtCopy = ctx.ssa->reachingDef(candidate, copyReaching.instRef);
+                        const auto srcAtMem  = ctx.ssa->reachingDef(candidate, ref);
+                        if (srcAtCopy.valid() && srcAtMem.valid() &&
+                            srcAtCopy.valueId == srcAtMem.valueId)
+                        {
+                            copyRef     = copyReaching.instRef;
+                            originalReg = candidate;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 64-bit wrapping arithmetic matches native address behavior.
+        const uint64_t newOff = (addOp == MicroOp::Add) ? baseOff + addImm : baseOff - addImm;
+
+        if (!ctx.claimAll({ref, reaching.instRef}))
+            return false;
+        if (copyRef.isValid() && !ctx.claimAll({copyRef}))
+            return false;
+
+        MicroInstrOperand newMemOps[4];
+        for (uint8_t i = 0; i < 4; ++i)
+            newMemOps[i] = ops[i];
+        newMemOps[baseIdx].reg     = originalReg;
+        newMemOps[offIdx].valueU64 = newOff;
+        ctx.emitRewrite(ref, inst.op, newMemOps);
+
+        ctx.emitErase(reaching.instRef);
+        if (copyRef.isValid())
+            ctx.emitErase(copyRef);
+        return true;
+    }
+
+    //===------------------------------------------------------------------===//
+    //  Whole-IR scans (not per-instruction anchored)
+    //===------------------------------------------------------------------===//
+
+    // Store-to-load forwarding. Maintain a small cache of (base, off, bits) ->
+    // source reg from recent LoadMemReg stores. When a matching LoadRegMem
+    // shows up and its source is still live, rewrite it as LoadRegReg and
+    // skip the memory round-trip. Any store we can't prove disjoint, any
+    // control transfer, and any redefinition of a cached base/src flushes
+    // the relevant entries.
+    void runStoreToLoadForwarding(CombineCtx& ctx)
+    {
+        if (!ctx.ssa)
+            return;
 
         struct CacheEntry
         {
@@ -442,7 +862,7 @@ namespace
         };
         SmallVector<CacheEntry, 8> cache;
 
-        const auto dropEntriesUsing = [&](MicroReg reg) {
+        const auto dropUsing = [&](MicroReg reg) {
             for (uint32_t i = 0; i < cache.size();)
             {
                 if (cache[i].base == reg || cache[i].src == reg)
@@ -452,15 +872,14 @@ namespace
             }
         };
 
-        bool       changed = false;
-        const auto view    = storage.view();
-        const auto endIt   = view.end();
+        const auto view  = ctx.storage.view();
+        const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
             MicroInstr&              inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(operands);
+            const MicroInstrOperand* ops  = inst.ops(ctx.operands);
 
-            if (inst.op == MicroInstrOpcode::LoadRegMem && inst.numOperands >= 4 && ops)
+            if (inst.op == MicroInstrOpcode::LoadRegMem && inst.numOperands >= 4 && ops && !ctx.isClaimed(it.current))
             {
                 const MicroReg    dst  = ops[0].reg;
                 const MicroReg    base = ops[1].reg;
@@ -471,12 +890,14 @@ namespace
                 {
                     if (e.base == base && e.off == off && e.bits == bits && e.src.isValid() && e.src != dst)
                     {
-                        MicroInstrOperand* mOps = inst.ops(operands);
-                        mOps[1].reg             = e.src;
-                        mOps[2].opBits          = bits;
-                        inst.op                 = MicroInstrOpcode::LoadRegReg;
-                        inst.numOperands        = 3;
-                        changed                 = true;
+                        if (!ctx.claimAll({it.current}))
+                            break;
+
+                        MicroInstrOperand moveOps[3];
+                        moveOps[0].reg    = dst;
+                        moveOps[1].reg    = e.src;
+                        moveOps[2].opBits = bits;
+                        ctx.emitRewrite(it.current, MicroInstrOpcode::LoadRegReg, moveOps);
                         break;
                     }
                 }
@@ -485,9 +906,15 @@ namespace
 
             if (inst.op == MicroInstrOpcode::LoadMemReg && inst.numOperands >= 4 && ops)
             {
-                // A store we can exactly model. Without alias info, any previous
-                // entry could overlap — flush the cache, then install this one.
+                // Any previous entry might alias this slot (no alias info), so
+                // flush regardless.
                 cache.clear();
+                // A claimed store will be erased by another pattern (e.g.
+                // memory-fold), and its source register's defining instructions
+                // are typically erased with it. Caching the source here would
+                // let a later load forward to a register with no live def.
+                if (ctx.isClaimed(it.current))
+                    continue;
                 const MicroReg    base = ops[0].reg;
                 const MicroReg    src  = ops[1].reg;
                 const MicroOpBits bits = ops[2].opBits;
@@ -502,331 +929,52 @@ namespace
                 continue;
             }
 
-            const auto* useDef = ssa->instrUseDef(it.current);
+            const auto* useDef = ctx.ssa->instrUseDef(it.current);
             if (useDef)
             {
                 for (const MicroReg def : useDef->defs)
-                    dropEntriesUsing(def);
+                    dropUsing(def);
             }
         }
-
-        return changed;
     }
 
-    // Returns the bit-width at which 'useInst' reads 'reg'. Returns Zero when
-    // we cannot determine a narrow read (call, push, unrecognized opcode) —
-    // callers should treat that as "full width, don't narrow".
-    MicroOpBits useReadBits(const MicroInstr& useInst, const MicroInstrOperand* useOps, MicroReg reg)
-    {
-        if (!useOps)
-            return MicroOpBits::Zero;
+    //===------------------------------------------------------------------===//
+    //  Dispatch
+    //===------------------------------------------------------------------===//
 
-        switch (useInst.op)
+    using PatternFn = bool (*)(CombineCtx&, MicroInstrRef, const MicroInstr&);
+
+    struct PatternRegistry
+    {
+        static constexpr size_t K_OPCODE_COUNT = MICRO_INSTR_OPCODE_INFOS.size();
+
+        std::array<SmallVector<PatternFn, 2>, K_OPCODE_COUNT> byOpcode;
+
+        void reg(MicroInstrOpcode op, PatternFn fn)
         {
-            case MicroInstrOpcode::LoadRegReg:
-            case MicroInstrOpcode::LoadMemReg:
-            case MicroInstrOpcode::CmpRegReg:
-                return useOps[2].opBits;
-
-            case MicroInstrOpcode::CmpRegImm:
-                return useOps[1].opBits;
-
-            case MicroInstrOpcode::OpBinaryRegImm:
-                return useOps[1].opBits;
-
-            case MicroInstrOpcode::OpBinaryRegReg:
-                return useOps[2].opBits;
-
-            case MicroInstrOpcode::LoadSignedExtRegReg:
-            case MicroInstrOpcode::LoadZeroExtRegReg:
-                // The extend explicitly reads 'srcBits' of its source.
-                return useOps[1].reg == reg ? useOps[3].opBits : MicroOpBits::Zero;
-
-            case MicroInstrOpcode::LoadMemImm:
-                // Only a memory base: reg is used as a pointer, full width.
-                return MicroOpBits::Zero;
-
-            default:
-                return MicroOpBits::Zero;
+            byOpcode[static_cast<size_t>(op)].push_back(fn);
         }
-    }
 
-    // Zero/Sign-extend whose upper bits nobody reads. If every use of the
-    // extended value reads at most `srcBits`, the extend is a no-op at the
-    // observed widths and collapses to a plain `LoadRegReg dst, src, srcBits`
-    // (or is erased outright when `dst == src`).
-    bool narrowDeadExtends(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState* ssa)
-    {
-        if (!ssa)
-            return false;
-
-        bool       changed = false;
-        const auto view    = storage.view();
-        const auto endIt   = view.end();
-
-        SmallVector<MicroInstrRef, 8> pendingErase;
-
-        for (auto it = view.begin(); it != endIt; ++it)
+        std::span<PatternFn const> patternsFor(MicroInstrOpcode op) const
         {
-            MicroInstr& inst = *it;
-            if ((inst.op != MicroInstrOpcode::LoadZeroExtRegReg && inst.op != MicroInstrOpcode::LoadSignedExtRegReg) || inst.numOperands < 4)
-                continue;
-
-            MicroInstrOperand* ops = inst.ops(operands);
-            if (!ops)
-                continue;
-
-            const MicroReg    dst     = ops[0].reg;
-            const MicroReg    src     = ops[1].reg;
-            const MicroOpBits dstBits = ops[2].opBits;
-            const MicroOpBits srcBits = ops[3].opBits;
-
-            if (!dst.isVirtual() || dstBits == srcBits || srcBits == MicroOpBits::Zero)
-                continue;
-
-            uint32_t valueId = 0;
-            if (!ssa->defValue(dst, it.current, valueId))
-                continue;
-
-            const auto* valueInfo = ssa->valueInfo(valueId);
-            if (!valueInfo || valueInfo->uses.empty())
-                continue;
-
-            const uint32_t srcBitsNum = getNumBits(srcBits);
-            bool           allNarrow  = true;
-            for (const auto& useSite : valueInfo->uses)
-            {
-                if (useSite.kind != MicroSsaState::UseSite::Kind::Instruction)
-                {
-                    allNarrow = false;
-                    break;
-                }
-                const MicroInstr* useInst = storage.ptr(useSite.instRef);
-                if (!useInst)
-                {
-                    allNarrow = false;
-                    break;
-                }
-                const MicroInstrOperand* useOps  = useInst->ops(operands);
-                const MicroOpBits        useBits = useReadBits(*useInst, useOps, dst);
-                if (useBits == MicroOpBits::Zero || getNumBits(useBits) > srcBitsNum)
-                {
-                    allNarrow = false;
-                    break;
-                }
-            }
-
-            if (!allNarrow)
-                continue;
-
-            if (dst == src)
-            {
-                pendingErase.push_back(it.current);
-            }
-            else
-            {
-                // LoadRegReg layout: [dst, src, opBits].
-                ops[2].opBits    = srcBits;
-                inst.op          = MicroInstrOpcode::LoadRegReg;
-                inst.numOperands = 3;
-            }
-            changed = true;
+            return byOpcode[static_cast<size_t>(op)].span();
         }
+    };
 
-        for (const MicroInstrRef ref : pendingErase)
-            storage.erase(ref);
-
-        return changed;
-    }
-
-    // Returns true and fills 'plan' when a load/modify/store triple bracketing
-    // 'vt' can be collapsed to OpBinaryMemImm (middle = OpBinaryRegImm) or
-    // OpBinaryMemReg (middle = OpBinaryRegReg). The triple need not be strictly
-    // consecutive — intervening instructions are allowed as long as they do
-    // not write memory (potential alias of [base+off]), do not redefine 'vt' or
-    // 'base', and (between op and store) do not use 'vt'.
-    bool tryPlanMemoryFold(CombinePlan&               plan,
-                           const MicroSsaState*       ssa,
-                           const MicroOperandStorage& operands,
-                           MicroInstrRef              loadRef,
-                           const MicroInstr&          loadInst,
-                           MicroInstrRef              opRef,
-                           const MicroInstr&          opInst,
-                           MicroInstrRef              storeRef,
-                           const MicroInstr&          storeInst)
+    const PatternRegistry& registry()
     {
-        if (!ssa)
-            return false;
-        if (loadInst.op != MicroInstrOpcode::LoadRegMem || storeInst.op != MicroInstrOpcode::LoadMemReg)
-            return false;
-
-        const bool middleIsRegImm = opInst.op == MicroInstrOpcode::OpBinaryRegImm;
-        const bool middleIsRegReg = opInst.op == MicroInstrOpcode::OpBinaryRegReg;
-        if (!middleIsRegImm && !middleIsRegReg)
-            return false;
-        if (loadInst.numOperands < 4 || opInst.numOperands < 4 || storeInst.numOperands < 4)
-            return false;
-
-        const auto* loadOps  = loadInst.ops(operands);
-        const auto* opOps    = opInst.ops(operands);
-        const auto* storeOps = storeInst.ops(operands);
-        if (!loadOps || !opOps || !storeOps)
-            return false;
-
-        // Layout reminders:
-        //   LoadRegMem    : [dst, base, opBits, off]
-        //   OpBinaryRegImm: [reg, opBits, microOp, imm]
-        //   OpBinaryRegReg: [dst, src, opBits, microOp]
-        //   LoadMemReg    : [base, src, opBits, off]
-        const MicroReg    vt       = loadOps[0].reg;
-        const MicroReg    loadBase = loadOps[1].reg;
-        const MicroOpBits loadBits = loadOps[2].opBits;
-        const uint64_t    loadOff  = loadOps[3].valueU64;
-
-        const MicroReg    opReg   = opOps[0].reg;
-        const MicroOpBits opBits  = middleIsRegImm ? opOps[1].opBits : opOps[2].opBits;
-        const MicroOp     microOp = middleIsRegImm ? opOps[2].microOp : opOps[3].microOp;
-        const uint64_t    opImm   = middleIsRegImm ? opOps[3].valueU64 : 0;
-        const MicroReg    rhsReg  = middleIsRegReg ? opOps[1].reg : MicroReg::invalid();
-
-        const MicroReg    storeBase = storeOps[0].reg;
-        const MicroReg    storeSrc  = storeOps[1].reg;
-        const MicroOpBits storeBits = storeOps[2].opBits;
-        const uint64_t    storeOff  = storeOps[3].valueU64;
-
-        if (vt != opReg || vt != storeSrc)
-            return false;
-        if (!vt.isVirtualInt())
-            return false;
-        if (loadBase != storeBase)
-            return false;
-        if (loadOff != storeOff)
-            return false;
-        if (loadBits != opBits || opBits != storeBits)
-            return false;
-        if (!isMemFoldableOp(microOp))
-            return false;
-        // For the reg/reg form, the rhs must not alias the destination address
-        // base — same reg would change semantics under destructive in-place ops.
-        if (middleIsRegReg && (rhsReg == loadBase || rhsReg == vt))
-            return false;
-
-        // SSA single-use checks: the load's def feeds only the op; the op's
-        // def feeds only the store. Anything else means another reader exists
-        // and we cannot drop the bracketing load/store.
-        uint32_t loadValueId = 0;
-        if (!ssa->defValue(vt, loadRef, loadValueId))
-            return false;
-        const auto* loadValue = ssa->valueInfo(loadValueId);
-        if (!loadValue || loadValue->uses.size() != 1)
-            return false;
-
-        uint32_t opValueId = 0;
-        if (!ssa->defValue(vt, opRef, opValueId))
-            return false;
-        const auto* opValue = ssa->valueInfo(opValueId);
-        if (!opValue || opValue->uses.size() != 1)
-            return false;
-
-        plan.kind        = CombinePlan::Kind::MemoryFold;
-        plan.previous    = loadRef;
-        plan.middle      = opRef;
-        plan.current     = storeRef;
-        plan.newOp       = microOp;
-        plan.newImm      = opImm;
-        plan.memOff      = loadOff;
-        plan.memBase     = loadBase;
-        plan.opBits      = opBits;
-        plan.midIsRegReg = middleIsRegReg;
-        plan.rhsReg      = rhsReg;
-        return true;
-    }
-
-    void applyPlan(MicroStorage& storage, MicroOperandStorage& operands, const CombinePlan& plan)
-    {
-        switch (plan.kind)
-        {
-            case CombinePlan::Kind::EraseCurrent:
-                storage.erase(plan.current);
-                return;
-
-            case CombinePlan::Kind::RewriteCurrentToClear:
-            {
-                MicroInstr* inst = storage.ptr(plan.current);
-                SWC_ASSERT(inst);
-                MicroInstrOperand* ops = inst->ops(operands);
-                SWC_ASSERT(ops && inst->numOperands >= 1);
-                // ClearReg layout: [reg, opBits].
-                if (inst->numOperands < 2)
-                    return;
-                inst->op          = MicroInstrOpcode::ClearReg;
-                ops[1].opBits     = plan.opBits;
-                inst->numOperands = 2;
-                return;
-            }
-
-            case CombinePlan::Kind::RewriteCurrentToLoadImm:
-            {
-                MicroInstr* inst = storage.ptr(plan.current);
-                SWC_ASSERT(inst);
-                MicroInstrOperand* ops = inst->ops(operands);
-                SWC_ASSERT(ops && inst->numOperands >= 3);
-                // LoadRegImm layout: [reg, opBits, imm].
-                inst->op          = MicroInstrOpcode::LoadRegImm;
-                ops[1].opBits     = plan.opBits;
-                ops[2].valueU64   = plan.newImm;
-                inst->numOperands = 3;
-                return;
-            }
-
-            case CombinePlan::Kind::ReassociateChain:
-            {
-                const MicroInstr* prev = storage.ptr(plan.previous);
-                SWC_ASSERT(prev && prev->op == MicroInstrOpcode::OpBinaryRegImm);
-                MicroInstrOperand* prevOps = prev->ops(operands);
-                SWC_ASSERT(prevOps && prev->numOperands >= 4);
-                prevOps[2].microOp  = plan.newOp;
-                prevOps[3].valueU64 = plan.newImm;
-                storage.erase(plan.current);
-                return;
-            }
-
-            case CombinePlan::Kind::MemoryFold:
-            {
-                // Rewrite the middle in place with a fresh operand block
-                // (OpBinaryMemImm/MemReg both need 5 ops, more than the
-                // original 4-op middle had allocated).
-                MicroInstr* mid = storage.ptr(plan.middle);
-                SWC_ASSERT(mid);
-
-                const auto [newRef, newOps] = operands.emplaceUninitArray(5);
-                if (plan.midIsRegReg)
-                {
-                    // OpBinaryMemReg layout: [memReg, reg, opBits, microOp, memOffset].
-                    newOps[0].reg      = plan.memBase;
-                    newOps[1].reg      = plan.rhsReg;
-                    newOps[2].opBits   = plan.opBits;
-                    newOps[3].microOp  = plan.newOp;
-                    newOps[4].valueU64 = plan.memOff;
-                    mid->op            = MicroInstrOpcode::OpBinaryMemReg;
-                }
-                else
-                {
-                    // OpBinaryMemImm layout: [memReg, opBits, microOp, memOffset, imm].
-                    newOps[0].reg      = plan.memBase;
-                    newOps[1].opBits   = plan.opBits;
-                    newOps[2].microOp  = plan.newOp;
-                    newOps[3].valueU64 = plan.memOff;
-                    newOps[4].valueU64 = plan.newImm;
-                    mid->op            = MicroInstrOpcode::OpBinaryMemImm;
-                }
-                mid->opsRef      = newRef;
-                mid->numOperands = 5;
-
-                storage.erase(plan.previous);
-                storage.erase(plan.current);
-            }
-        }
+        static const PatternRegistry r = [] {
+            PatternRegistry out;
+            out.reg(MicroInstrOpcode::OpBinaryRegImm,      tryOpBinaryRegImm);
+            out.reg(MicroInstrOpcode::OpBinaryRegReg,      tryOpBinaryRegReg);
+            out.reg(MicroInstrOpcode::LoadRegMem,          tryMemoryFoldTriple);
+            out.reg(MicroInstrOpcode::LoadRegMem,          tryFoldMemoryAddressing);
+            out.reg(MicroInstrOpcode::LoadMemReg,          tryFoldMemoryAddressing);
+            out.reg(MicroInstrOpcode::LoadZeroExtRegReg,   tryNarrowExtend);
+            out.reg(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowExtend);
+            return out;
+        }();
+        return r;
     }
 }
 
@@ -836,187 +984,38 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    MicroStorage&        storage  = *context.instructions;
-    MicroOperandStorage& operands = *context.operands;
-    MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    MicroSsaState        localSsa;
+    const MicroSsaState* ssa = MicroSsaState::ensureFor(context, localSsa);
 
-    // Collect plans during a single forward scan over the live IR. SSA queries
-    // run against the un-mutated state; plans are applied afterwards. We claim
-    // each "previous" instruction at most once so chains with multiple folds
-    // converge across loop iterations rather than fighting within one.
-    SmallVector<CombinePlan, 16> plans;
-    std::unordered_set<uint32_t> claimedSources;
-    std::unordered_set<uint32_t> claimedInstrs; // any instruction already in a plan.
+    CombineCtx ctx{*context.instructions, *context.operands, ssa, {}, {}};
 
-    const auto view  = storage.view();
-    const auto endIt = view.end();
-
-    // Maximum number of instructions we'll search forward from a LoadRegMem
-    // anchor. Bounded to keep the pass linear in IR size while still catching
-    // the codegen patterns where the rhs materialization sits between the
-    // load and the op.
-    constexpr uint32_t K_MAX_FOLD_WINDOW = 16;
-
+    // Per-instruction dispatch: one table lookup, then each registered pattern
+    // for that opcode gets a shot. Patterns either claim the anchor and emit
+    // actions, or return false and yield to the next pattern.
+    const auto& reg   = registry();
+    const auto  view  = ctx.storage.view();
+    const auto  endIt = view.end();
     for (auto it = view.begin(); it != endIt; ++it)
     {
-        const MicroInstrRef instRef = it.current;
-        const MicroInstr&   inst    = *it;
-        const auto*         ops     = inst.ops(operands);
-
-        CombinePlan plan;
-        bool        planned = false;
-
-        // Memory-fold scan: anchored on each LoadRegMem.
-        if (inst.op == MicroInstrOpcode::LoadRegMem && inst.numOperands >= 4 && ops)
+        for (const PatternFn fn : reg.patternsFor(it->op))
         {
-            const MicroReg    vt       = ops[0].reg;
-            const MicroReg    base     = ops[1].reg;
-            const MicroOpBits loadBits = ops[2].opBits;
-            const uint64_t    loadOff  = ops[3].valueU64;
-
-            if (vt.isVirtualInt() && !claimedInstrs.contains(instRef.get()))
-            {
-                MicroInstrRef     midRef   = MicroInstrRef::invalid();
-                const MicroInstr* midInst  = nullptr;
-                bool              foundMid = false;
-                bool              aborted  = false;
-
-                auto walker = it;
-                ++walker;
-                for (uint32_t step = 0; step < K_MAX_FOLD_WINDOW && walker != endIt && !aborted; ++step, ++walker)
-                {
-                    const MicroInstr& w = *walker;
-
-                    // Match the store FIRST (it writes memory itself, so the
-                    // generic writesMemory abort would otherwise reject it).
-                    if (foundMid && w.op == MicroInstrOpcode::LoadMemReg && w.numOperands >= 4)
-                    {
-                        const auto* sOps = w.ops(operands);
-                        if (sOps && sOps[0].reg == base && sOps[1].reg == vt &&
-                            sOps[2].opBits == loadBits && sOps[3].valueU64 == loadOff)
-                        {
-                            if (tryPlanMemoryFold(plan, ssaState, operands,
-                                                  instRef, inst,
-                                                  midRef, *midInst,
-                                                  walker.current, w))
-                            {
-                                const uint32_t a = instRef.get();
-                                const uint32_t b = midRef.get();
-                                const uint32_t c = walker.current.get();
-                                if (!claimedInstrs.contains(a) &&
-                                    !claimedInstrs.contains(b) &&
-                                    !claimedInstrs.contains(c))
-                                {
-                                    claimedInstrs.insert(a);
-                                    claimedInstrs.insert(b);
-                                    claimedInstrs.insert(c);
-                                    plans.push_back(plan);
-                                    planned = true;
-                                }
-                            }
-                            break;
-                        }
-                        // A write to a different address aborts (potential alias).
-                        aborted = true;
-                        break;
-                    }
-
-                    if (isControlOrCall(w) || writesMemory(w))
-                    {
-                        aborted = true;
-                        break;
-                    }
-
-                    const auto* useDef   = ssaState ? ssaState->instrUseDef(walker.current) : nullptr;
-                    const bool  defsVt   = useDef && microRegSpanContains(useDef->defs, vt);
-                    const bool  defsBase = useDef && microRegSpanContains(useDef->defs, base);
-                    const bool  usesVt   = useDef && microRegSpanContains(useDef->uses, vt);
-
-                    if (defsBase)
-                    {
-                        aborted = true;
-                        break;
-                    }
-
-                    if (!foundMid)
-                    {
-                        if (usesVt || defsVt)
-                        {
-                            // Must be exactly the candidate middle.
-                            if ((w.op == MicroInstrOpcode::OpBinaryRegImm ||
-                                 w.op == MicroInstrOpcode::OpBinaryRegReg) &&
-                                w.numOperands >= 4)
-                            {
-                                const auto* wOps = w.ops(operands);
-                                if (wOps && wOps[0].reg == vt)
-                                {
-                                    midRef   = walker.current;
-                                    midInst  = &w;
-                                    foundMid = true;
-                                    continue;
-                                }
-                            }
-                            aborted = true;
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        // After the middle we must not see another use of vt
-                        // (that would bind vt's post-op value, blocking the
-                        // collapse) until we hit the matching store.
-                        if (usesVt || defsVt)
-                        {
-                            aborted = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!planned)
-        {
-            if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
-                planned = tryPlanRegImm(plan, ssaState, operands, instRef, inst, ops);
-            else if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
-                planned = tryPlanRegReg(plan, instRef, inst, ops, ssaState);
-
-            if (planned)
-            {
-                if (plan.kind == CombinePlan::Kind::ReassociateChain)
-                {
-                    const uint32_t prevSlot = plan.previous.get();
-                    if (!claimedSources.insert(prevSlot).second ||
-                        claimedInstrs.contains(prevSlot) ||
-                        claimedInstrs.contains(plan.current.get()))
-                    {
-                        planned = false;
-                    }
-                }
-
-                if (planned)
-                {
-                    claimedInstrs.insert(plan.current.get());
-                    if (plan.previous.isValid())
-                        claimedInstrs.insert(plan.previous.get());
-                    plans.push_back(plan);
-                }
-            }
+            if (fn(ctx, it.current, *it))
+                break;
         }
     }
 
-    for (const CombinePlan& plan : plans)
-        applyPlan(storage, operands, plan);
+    // Whole-IR scans: maintain per-position state (a small cache) and don't
+    // fit the anchor-per-instruction model. They emit into the same action
+    // queue, so claim tracking works uniformly.
+    runStoreToLoadForwarding(ctx);
 
-    const bool mutatedPlans   = !plans.empty();
-    const bool forwardedLoads = forwardStoresToLoads(storage, operands, ssaState);
-    const bool narrowedExt    = narrowDeadExtends(storage, operands, ssaState);
+    if (ctx.actions.empty())
+        return Result::Continue;
 
-    if (mutatedPlans || forwardedLoads || narrowedExt)
-        context.passChanged = true;
+    for (const Action& a : ctx.actions)
+        applyAction(a, ctx);
 
+    context.passChanged = true;
     return Result::Continue;
 }
 

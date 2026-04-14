@@ -446,8 +446,8 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     addPostRASetupPass(*prologEpilogPass_);
     if (optimize)
     {
-        addPostRAOptimPass(*postRADeadCodeElimPass_);
         addPostRAOptimPass(*postRAPeepholePass_);
+        addPostRAOptimPass(*postRADeadCodeElimPass_);
     }
     addFinalPass(*prologEpilogSanitizePass_);
     addFinalPass(*emitPass_);

@@ -165,6 +165,7 @@
         <ClCompile Include="src\Unittest\Test.Micro.Ssa.cpp"/>
         <ClCompile Include="src\Unittest\Test.Micro.StrengthReduction.cpp"/>
         <ClCompile Include="src\Unittest\Test.Micro.InstructionCombine.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Micro.PostRAPeephole.cpp"/>
         <ClCompile Include="src\Unittest\Test.Native.NativeArtifact.cpp" />
         <ClCompile Include="src\Unittest\Test.Support.PagedStore.cpp" />
         <ClCompile Include="src\Support\Thread\Job.cpp" />
@@ -211,6 +212,9 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Common.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Flags.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Trivial.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.cpp" />
@@ -449,6 +453,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.Internal.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Internal.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h" />
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.h" />

@@ -95,6 +95,7 @@ public:
     const MicroInstr*                     ptr(MicroInstrRef ref) const noexcept;
     std::pair<MicroInstrRef, MicroInstr*> emplaceUninit();
     bool                                  erase(MicroInstrRef ref);
+    MicroInstrRef                         findNextInstructionRef(MicroInstrRef afterRef) const noexcept;
     MicroInstrRef                         findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
     MicroInstrRef                         insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
     MicroInstrRef                         insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData, bool debugNoStep = false);

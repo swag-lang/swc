@@ -258,6 +258,21 @@ bool MicroStorage::erase(MicroInstrRef ref)
     return true;
 }
 
+MicroInstrRef MicroStorage::findNextInstructionRef(MicroInstrRef afterRef) const noexcept
+{
+    if (afterRef.isInvalid())
+        return head_;
+
+    if (afterRef.get() >= nodes_.size())
+        return MicroInstrRef::invalid();
+
+    const Node& node = nodes_[afterRef.get()];
+    if (!node.alive)
+        return MicroInstrRef::invalid();
+
+    return node.next;
+}
+
 MicroInstrRef MicroStorage::findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept
 {
     if (beforeRef.isInvalid())

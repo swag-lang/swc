@@ -33,6 +33,7 @@ namespace
         r.add(MicroInstrOpcode::CmpMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
+        r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         return r;
     }
 

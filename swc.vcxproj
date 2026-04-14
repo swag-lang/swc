@@ -214,6 +214,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.ConstForward.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.CopyForward.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Common.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Flags.cpp" />
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Trivial.cpp" />

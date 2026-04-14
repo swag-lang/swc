@@ -61,6 +61,7 @@ namespace PostRAPeephole
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryForwardCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
 }
 
 SWC_END_NAMESPACE();

@@ -5,9 +5,13 @@
 // LoadMemReg just wrote, and the store's source is still live/unchanged,
 // rewrite the load as a plain LoadRegReg and skip the memory round-trip.
 //
-// Without alias information over spill/temp slots, we flush the cache on any
-// memory-writing instruction we can't prove disjoint, on any call or branch,
-// and whenever a cached base/src register gets redefined.
+// Alias model: two memory accesses are disjoint when their base registers
+// are the *same* MicroReg and their byte ranges don't overlap. Different
+// bases are treated as possibly-aliasing. `dropEntriesReferencing` already
+// evicts cache entries whose base reg was redefined, so "same base" also
+// implies "same pointer value at the point of the later access."
+// Calls, branches, labels, and unclassified memory writers still flush the
+// whole cache.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -30,6 +34,34 @@ namespace InstructionCombine
             for (uint32_t i = 0; i < cache.size();)
             {
                 if (cache[i].base == reg || cache[i].src == reg)
+                    cache.erase(cache.begin() + i);
+                else
+                    ++i;
+            }
+        }
+
+        // Byte-range overlap test. Only meaningful when the two accesses
+        // share the same base register — different bases are handled by
+        // the caller as "may alias" since we have no pointer-provenance
+        // information.
+        bool rangesOverlap(uint64_t offA, MicroOpBits bitsA, uint64_t offB, MicroOpBits bitsB)
+        {
+            const uint64_t endA = offA + getNumBytes(bitsA);
+            const uint64_t endB = offB + getNumBytes(bitsB);
+            return !(endA <= offB || endB <= offA);
+        }
+
+        // A newly-emitted store kills cache entries that might refer to the
+        // same bytes. Same-base + non-overlapping ranges are proven disjoint
+        // and survive; everything else we can't disprove gets evicted.
+        void invalidateAliasedEntries(Cache& cache, MicroReg base, uint64_t off, MicroOpBits bits)
+        {
+            for (uint32_t i = 0; i < cache.size();)
+            {
+                const CacheEntry& e         = cache[i];
+                const bool        sameBase  = e.base == base;
+                const bool        disjoint  = sameBase && !rangesOverlap(e.off, e.bits, off, bits);
+                if (!sameBase || !disjoint)
                     cache.erase(cache.begin() + i);
                 else
                     ++i;
@@ -78,25 +110,36 @@ namespace InstructionCombine
             const MicroInstr&        inst = *it;
             const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
 
-            if (inst.op == MicroInstrOpcode::LoadRegMem && inst.numOperands >= 4 && ops && !ctx.isClaimed(it.current))
+            if (inst.op == MicroInstrOpcode::LoadRegMem && inst.numOperands >= 4 && ops)
             {
-                forwardLoad(ctx, cache, it.current, ops);
+                if (!ctx.isClaimed(it.current))
+                    forwardLoad(ctx, cache, it.current, ops);
+                // The load redefines its destination register; any cache entry
+                // whose `src` refers to it is now stale and must be dropped
+                // before a later load could reach for it.
+                dropEntriesReferencing(cache, ops[0].reg);
                 continue;
             }
 
             if (inst.op == MicroInstrOpcode::LoadMemReg && inst.numOperands >= 4 && ops)
             {
-                // Any prior entry might alias this slot (no alias info), flush first.
-                cache.clear();
+                const MicroReg    base = ops[0].reg;
+                const MicroOpBits bits = ops[2].opBits;
+                const uint64_t    off  = ops[3].valueU64;
+
+                // Only evict entries that could alias this store's byte range.
+                invalidateAliasedEntries(cache, base, off, bits);
+
                 // A claimed store will be erased by another pattern; caching it
                 // would let a later load forward to a register with no live def.
                 if (ctx.isClaimed(it.current))
                     continue;
+
                 CacheEntry entry;
-                entry.base = ops[0].reg;
+                entry.base = base;
                 entry.src  = ops[1].reg;
-                entry.bits = ops[2].opBits;
-                entry.off  = ops[3].valueU64;
+                entry.bits = bits;
+                entry.off  = off;
                 cache.push_back(entry);
                 continue;
             }

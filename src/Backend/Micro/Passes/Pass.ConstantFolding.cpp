@@ -165,14 +165,14 @@ namespace
             case MicroInstrOpcode::LoadRegImm:
                 // Pre-legalize, LoadRegImm can target a float reg directly;
                 // we still track the bit pattern so cvtf2f folding can see it.
-                if (inst->numOperands < 3 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
                     return false;
                 out.value  = ops[2].valueU64;
                 out.opBits = ops[1].opBits;
                 return true;
 
             case MicroInstrOpcode::ClearReg:
-                if (inst->numOperands < 2 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
                     return false;
                 out.value  = 0;
                 out.opBits = ops[1].opBits;
@@ -184,7 +184,7 @@ namespace
                 // `opBits` bits of the source. Narrower moves yield a narrower
                 // known value; the lattice records the carried width so later
                 // uses (extends, cvtf2f) can reason about it precisely.
-                if (inst->numOperands < 3 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtual())
                     return false;
 
                 KnownValue src;
@@ -199,7 +199,7 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegImm:
             {
-                if (inst->numOperands < 4 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
                 KnownValue inputValue;
@@ -218,7 +218,7 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegReg:
             {
-                if (inst->numOperands < 4 || ops[0].reg != valueInfo.reg)
+                if (ops[0].reg != valueInfo.reg)
                     return false;
 
                 // cvtf2f: both operands are float virtual regs. If the source's
@@ -266,7 +266,7 @@ namespace
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
             {
-                if (inst->numOperands < 4 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
                 KnownValue src;
@@ -337,7 +337,7 @@ namespace
     {
         if (inst.op != MicroInstrOpcode::LoadRegReg)
             return false;
-        if (!ops || inst.numOperands < 3)
+        if (!ops)
             return false;
         if (!ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
             return false;
@@ -364,7 +364,7 @@ namespace
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
-        if (!ops || inst.numOperands < 4)
+        if (!ops)
             return false;
         if (!ops[0].reg.isVirtualInt())
             return false;
@@ -394,7 +394,7 @@ namespace
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
             return false;
-        if (!ops || inst.numOperands < 4)
+        if (!ops)
             return false;
 
         // cvtf2f(const) path.
@@ -454,7 +454,7 @@ namespace
     {
         if (inst.op != MicroInstrOpcode::LoadSignedExtRegReg && inst.op != MicroInstrOpcode::LoadZeroExtRegReg)
             return false;
-        if (!ops || inst.numOperands < 4)
+        if (!ops)
             return false;
         if (!ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
             return false;

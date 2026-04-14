@@ -29,23 +29,19 @@ namespace PreRaPeephole
             switch (defInst.op)
             {
                 case MicroInstrOpcode::LoadRegImm:
-                    if (defInst.numOperands < 3 || defOps[2].hasWideImmediateValue())
+                    if (defOps[2].hasWideImmediateValue())
                         return false;
                     out.reg   = defOps[0].reg;
                     out.value = defOps[2].valueU64;
                     return out.reg.isVirtualInt();
 
                 case MicroInstrOpcode::LoadRegPtrImm:
-                    if (defInst.numOperands < 3)
-                        return false;
                     out.reg           = defOps[0].reg;
                     out.value         = defOps[2].valueU64;
                     out.preferPtrLoad = true;
                     return out.reg.isVirtualInt();
 
                 case MicroInstrOpcode::ClearReg:
-                    if (defInst.numOperands < 2)
-                        return false;
                     out.reg   = defOps[0].reg;
                     out.value = 0;
                     return out.reg.isVirtualInt();
@@ -94,7 +90,7 @@ namespace PreRaPeephole
             switch (consumer.op)
             {
                 case MicroInstrOpcode::LoadMemReg:
-                    if (consumer.numOperands >= 4 && ops[1].reg == producer.reg)
+                    if (ops[1].reg == producer.reg)
                     {
                         out.newOp          = MicroInstrOpcode::LoadMemImm;
                         out.numOps         = 4;
@@ -107,7 +103,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::CmpRegReg:
-                    if (consumer.numOperands >= 3 && ops[1].reg == producer.reg)
+                    if (ops[1].reg == producer.reg)
                     {
                         out.newOp         = MicroInstrOpcode::CmpRegImm;
                         out.numOps        = 3;
@@ -119,7 +115,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::CmpMemReg:
-                    if (consumer.numOperands >= 4 && ops[1].reg == producer.reg)
+                    if (ops[1].reg == producer.reg)
                     {
                         out.newOp          = MicroInstrOpcode::CmpMemImm;
                         out.numOps         = 4;
@@ -132,7 +128,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::OpBinaryRegReg:
-                    if (consumer.numOperands >= 4 && ops[1].reg == producer.reg && ops[3].microOp != MicroOp::Exchange)
+                    if (ops[1].reg == producer.reg && ops[3].microOp != MicroOp::Exchange)
                     {
                         out.newOp         = MicroInstrOpcode::OpBinaryRegImm;
                         out.numOps        = 4;
@@ -145,7 +141,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::OpBinaryMemReg:
-                    if (consumer.numOperands >= 5 && ops[1].reg == producer.reg && ops[3].microOp != MicroOp::Exchange)
+                    if (ops[1].reg == producer.reg && ops[3].microOp != MicroOp::Exchange)
                     {
                         out.newOp          = MicroInstrOpcode::OpBinaryMemImm;
                         out.numOps         = 5;
@@ -159,7 +155,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadRegReg:
-                    if (consumer.numOperands >= 3 && ops[1].reg == producer.reg)
+                    if (ops[1].reg == producer.reg)
                     {
                         emitLoadRegConstant(out, ops[0].reg, ops[2].opBits, producer.value, producer.preferPtrLoad);
                         return true;
@@ -167,7 +163,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAmcMemReg:
-                    if (consumer.numOperands >= 8 && ops[2].reg == producer.reg)
+                    if (ops[2].reg == producer.reg)
                     {
                         out.newOp           = MicroInstrOpcode::LoadAmcMemImm;
                         out.numOps          = 8;
@@ -189,7 +185,7 @@ namespace PreRaPeephole
 
         bool buildExtendRewrite(ConsumerRewrite& out, const MicroInstr& consumer, const MicroInstrOperand* ops, const ConstantProducer& producer)
         {
-            if (!ops || consumer.numOperands < 4 || ops[1].reg != producer.reg)
+            if (!ops || ops[1].reg != producer.reg)
                 return false;
 
             if (consumer.op != MicroInstrOpcode::LoadSignedExtRegReg &&
@@ -207,7 +203,7 @@ namespace PreRaPeephole
             switch (consumer.op)
             {
                 case MicroInstrOpcode::LoadAddrRegMem:
-                    if (consumer.numOperands >= 4 && ops[1].reg == producer.reg)
+                    if (ops[1].reg == producer.reg)
                     {
                         emitAddressConstant(out, ops[0].reg, ops[2].opBits, producer.value + ops[3].valueU64);
                         return true;
@@ -215,7 +211,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAmcRegMem:
-                    if (consumer.numOperands >= 8 && ops[2].reg == producer.reg && ops[1].reg.isAnyInt())
+                    if (ops[2].reg == producer.reg && ops[1].reg.isAnyInt())
                     {
                         out.newOp           = MicroInstrOpcode::LoadRegMem;
                         out.numOps          = 4;
@@ -228,7 +224,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAmcMemReg:
-                    if (consumer.numOperands >= 8 && ops[1].reg == producer.reg && ops[0].reg.isAnyInt())
+                    if (ops[1].reg == producer.reg && ops[0].reg.isAnyInt())
                     {
                         out.newOp           = MicroInstrOpcode::LoadMemReg;
                         out.numOps          = 4;
@@ -241,7 +237,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAmcMemImm:
-                    if (consumer.numOperands >= 8 && ops[1].reg == producer.reg && ops[0].reg.isAnyInt())
+                    if (ops[1].reg == producer.reg && ops[0].reg.isAnyInt())
                     {
                         out.newOp           = MicroInstrOpcode::LoadMemImm;
                         out.numOps          = 4;
@@ -254,7 +250,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAddrAmcRegMem:
-                    if (consumer.numOperands >= 8 && ops[2].reg == producer.reg)
+                    if (ops[2].reg == producer.reg)
                     {
                         const uint64_t offset = ops[6].valueU64 + producer.value * ops[5].valueU64;
                         if (ops[1].reg.isAnyInt())

@@ -42,7 +42,7 @@ namespace InstructionCombine
             const auto reaching = ctx.ssa->reachingDef(dst, ref);
             if (!reaching.valid() || reaching.isPhi || !reaching.inst)
                 return false;
-            if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm || reaching.inst->numOperands < 4)
+            if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm)
                 return false;
 
             const MicroInstrOperand* prevOps = reaching.inst->ops(*ctx.operands);
@@ -74,7 +74,7 @@ namespace InstructionCombine
 
     bool tryOpBinaryRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (inst.numOperands < 4 || ctx.isClaimed(ref))
+        if (ctx.isClaimed(ref))
             return false;
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);

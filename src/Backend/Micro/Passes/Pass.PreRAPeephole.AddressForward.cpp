@@ -54,7 +54,7 @@ namespace PreRaPeephole
             switch (consumer.op)
             {
                 case MicroInstrOpcode::LoadRegReg:
-                    if (consumer.numOperands >= 3 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         out.newOp           = MicroInstrOpcode::LoadAddrRegMem;
                         out.numOps          = 4;
@@ -68,7 +68,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadRegMem:
-                    if (consumer.numOperands >= 4 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[1].reg      = baseReg;
@@ -79,7 +79,7 @@ namespace PreRaPeephole
 
                 case MicroInstrOpcode::LoadSignedExtRegMem:
                 case MicroInstrOpcode::LoadZeroExtRegMem:
-                    if (consumer.numOperands >= 5 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[1].reg      = baseReg;
@@ -89,7 +89,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadMemReg:
-                    if (consumer.numOperands >= 4 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -99,7 +99,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadMemImm:
-                    if (consumer.numOperands >= 4 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -109,7 +109,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::CmpMemReg:
-                    if (consumer.numOperands >= 4 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -119,7 +119,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::CmpMemImm:
-                    if (consumer.numOperands >= 4 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -129,7 +129,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::OpUnaryMem:
-                    if (consumer.numOperands >= 4 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -139,7 +139,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::OpBinaryRegMem:
-                    if (consumer.numOperands >= 5 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[1].reg      = baseReg;
@@ -149,7 +149,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::OpBinaryMemReg:
-                    if (consumer.numOperands >= 5 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -159,7 +159,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::OpBinaryMemImm:
-                    if (consumer.numOperands >= 5 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -169,7 +169,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAddrRegMem:
-                    if (consumer.numOperands >= 4 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[1].reg      = baseReg;
@@ -179,7 +179,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAmcRegMem:
-                    if (consumer.numOperands >= 8 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[1].reg      = baseReg;
@@ -189,7 +189,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAmcMemReg:
-                    if (consumer.numOperands >= 8 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -199,7 +199,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAmcMemImm:
-                    if (consumer.numOperands >= 8 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
@@ -209,7 +209,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAddrAmcRegMem:
-                    if (consumer.numOperands >= 8 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[1].reg      = baseReg;
@@ -239,7 +239,7 @@ namespace PreRaPeephole
             switch (consumer.op)
             {
                 case MicroInstrOpcode::LoadRegReg:
-                    if (consumer.numOperands >= 3 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         out.newOp           = MicroInstrOpcode::LoadAddrAmcRegMem;
                         out.numOps          = 8;
@@ -256,7 +256,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadRegMem:
-                    if (consumer.numOperands >= 4 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         if (!isEncodableAmcScale(scale))
                             return false;
@@ -275,7 +275,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadMemReg:
-                    if (consumer.numOperands >= 4 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         if (!isEncodableAmcScale(scale))
                             return false;
@@ -294,7 +294,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadMemImm:
-                    if (consumer.numOperands >= 4 && ops[0].reg == addrReg)
+                    if (ops[0].reg == addrReg)
                     {
                         if (!isEncodableAmcScale(scale))
                             return false;
@@ -313,7 +313,7 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAddrRegMem:
-                    if (consumer.numOperands >= 4 && ops[1].reg == addrReg)
+                    if (ops[1].reg == addrReg)
                     {
                         out.newOp           = MicroInstrOpcode::LoadAddrAmcRegMem;
                         out.numOps          = 8;
@@ -337,7 +337,7 @@ namespace PreRaPeephole
 
     bool tryForwardLoadAddr(Context& ctx, const MicroInstrRef defRef, const MicroInstr& defInst)
     {
-        if (defInst.op != MicroInstrOpcode::LoadAddrRegMem || defInst.numOperands < 4 || ctx.isClaimed(defRef))
+        if (defInst.op != MicroInstrOpcode::LoadAddrRegMem || ctx.isClaimed(defRef))
             return false;
 
         const MicroInstrOperand* defOps = defInst.ops(*ctx.operands);
@@ -370,7 +370,7 @@ namespace PreRaPeephole
 
     bool tryForwardLoadAddrAmc(Context& ctx, const MicroInstrRef defRef, const MicroInstr& defInst)
     {
-        if (defInst.op != MicroInstrOpcode::LoadAddrAmcRegMem || defInst.numOperands < 8 || ctx.isClaimed(defRef))
+        if (defInst.op != MicroInstrOpcode::LoadAddrAmcRegMem || ctx.isClaimed(defRef))
             return false;
 
         const MicroInstrOperand* defOps = defInst.ops(*ctx.operands);

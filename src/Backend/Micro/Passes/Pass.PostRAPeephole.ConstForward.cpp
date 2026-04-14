@@ -90,8 +90,6 @@ namespace PostRAPeephole
                 case MicroInstrOpcode::LoadMemReg:
                 {
                     // [base, value, opBits, off] -> LoadMemImm [base, opBits, off, imm]
-                    if (consumer.numOperands < 4)
-                        return false;
                     const MicroReg base = ops[0].reg;
                     if (base == immReg || ops[1].reg != immReg)
                         return false;
@@ -114,8 +112,6 @@ namespace PostRAPeephole
                     // [a, b, opBits] -> CmpRegImm [a, opBits, imm]. Only fold when
                     // `immReg` is the RHS; swapping operands here would also
                     // require rewriting every flag consumer downstream.
-                    if (consumer.numOperands < 3)
-                        return false;
                     if (ops[0].reg == immReg || ops[1].reg != immReg)
                         return false;
                     if (!ops[0].reg.isAnyInt())
@@ -133,8 +129,6 @@ namespace PostRAPeephole
                 case MicroInstrOpcode::OpBinaryRegReg:
                 {
                     // [dst, rhs, opBits, microOp] -> OpBinaryRegImm [dst, opBits, microOp, imm]
-                    if (consumer.numOperands < 4)
-                        return false;
                     if (ops[0].reg == immReg || ops[1].reg != immReg)
                         return false;
                     if (!ops[0].reg.isAnyInt())
@@ -153,8 +147,6 @@ namespace PostRAPeephole
                 case MicroInstrOpcode::LoadRegReg:
                 {
                     // [dst, src, opBits] -> LoadRegImm [dst, opBits, imm]
-                    if (consumer.numOperands < 3)
-                        return false;
                     if (ops[0].reg == immReg || ops[1].reg != immReg)
                         return false;
                     if (!ops[0].reg.isAnyInt())
@@ -177,7 +169,7 @@ namespace PostRAPeephole
 
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst)
     {
-        if (defInst.op != MicroInstrOpcode::LoadRegImm || defInst.numOperands < 3)
+        if (defInst.op != MicroInstrOpcode::LoadRegImm)
             return false;
         if (ctx.isClaimed(defRef))
             return false;

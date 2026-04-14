@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -42,8 +42,7 @@ namespace
     bool isCopyInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         return ops &&
-               inst.op == MicroInstrOpcode::LoadRegReg &&
-               inst.numOperands >= 3;
+               inst.op == MicroInstrOpcode::LoadRegReg;
     }
 
     bool isExactVirtualIntCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
@@ -59,7 +58,7 @@ namespace
         return isCopyInstruction(inst, ops) && ops[0].reg == ops[1].reg;
     }
 
-    bool tryGetCanonicalValue(CanonicalValue& outValue,
+    bool tryGetCanonicalValue(CanonicalValue&                    outValue,
                               const std::vector<CanonicalValue>& canonicalValues,
                               const std::vector<uint8_t>&        canonicalFlags,
                               const uint32_t                     valueId)
@@ -71,12 +70,12 @@ namespace
         return outValue.valid();
     }
 
-    bool tryGetCanonicalReachingValue(CanonicalValue&                      outValue,
-                                      const MicroSsaState&                ssaState,
-                                      const std::vector<CanonicalValue>&  canonicalValues,
-                                      const std::vector<uint8_t>&         canonicalFlags,
-                                      const MicroReg                      reg,
-                                      const MicroInstrRef                 instRef)
+    bool tryGetCanonicalReachingValue(CanonicalValue&                    outValue,
+                                      const MicroSsaState&               ssaState,
+                                      const std::vector<CanonicalValue>& canonicalValues,
+                                      const std::vector<uint8_t>&        canonicalFlags,
+                                      const MicroReg                     reg,
+                                      const MicroInstrRef                instRef)
     {
         const auto reachingDef = ssaState.reachingDef(reg, instRef);
         if (!reachingDef.valid())
@@ -90,10 +89,10 @@ namespace
         return lhs.reg == rhs.reg && lhs.valueId == rhs.valueId;
     }
 
-    bool tryInferPhiCanonical(CanonicalValue&                     outValue,
-                              const MicroSsaState::PhiInfo&       phiInfo,
-                              const std::vector<CanonicalValue>&  canonicalValues,
-                              const std::vector<uint8_t>&         canonicalFlags)
+    bool tryInferPhiCanonical(CanonicalValue&                    outValue,
+                              const MicroSsaState::PhiInfo&      phiInfo,
+                              const std::vector<CanonicalValue>& canonicalValues,
+                              const std::vector<uint8_t>&        canonicalFlags)
     {
         bool           hasCandidate = false;
         CanonicalValue candidate;
@@ -122,7 +121,7 @@ namespace
         return true;
     }
 
-    bool tryInferInstructionCanonical(CanonicalValue&                     outValue,
+    bool tryInferInstructionCanonical(CanonicalValue&                    outValue,
                                       const MicroSsaState&               ssaState,
                                       const MicroStorage&                storage,
                                       const MicroOperandStorage&         operands,
@@ -163,9 +162,9 @@ namespace
 
     void computeCanonicalValues(std::vector<CanonicalValue>& outValues,
                                 std::vector<uint8_t>&        outFlags,
-                                const MicroSsaState&        ssaState,
-                                const MicroStorage&         storage,
-                                const MicroOperandStorage&  operands)
+                                const MicroSsaState&         ssaState,
+                                const MicroStorage&          storage,
+                                const MicroOperandStorage&   operands)
     {
         outValues.assign(ssaState.values().size(), {});
         outFlags.assign(ssaState.values().size(), 0);
@@ -173,14 +172,14 @@ namespace
         bool changed = true;
         while (changed)
         {
-            changed = false;
+            changed           = false;
             const auto values = ssaState.values();
             for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
             {
                 if (outFlags[valueId])
                     continue;
 
-                const auto& valueInfo = values[valueId];
+                const auto&    valueInfo = values[valueId];
                 CanonicalValue canonicalValue;
                 bool           inferred = false;
 
@@ -225,12 +224,12 @@ namespace
                               MicroOperandStorage&               operands)
     {
         bool       changed = false;
-        const auto view  = storage.view();
-        const auto endIt = view.end();
+        const auto view    = storage.view();
+        const auto endIt   = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            const MicroInstrRef instRef = it.current;
-            MicroInstr&         inst    = *it;
+            const MicroInstrRef                  instRef = it.current;
+            MicroInstr&                          inst    = *it;
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(operands, refs, nullptr);
 
@@ -263,9 +262,9 @@ namespace
 
     bool eraseDeadCopies(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState)
     {
-        bool changed = false;
-        const auto view  = storage.view();
-        const auto endIt = view.end();
+        bool       changed = false;
+        const auto view    = storage.view();
+        const auto endIt   = view.end();
         for (auto it = view.begin(); it != endIt;)
         {
             const MicroInstrRef instRef = it.current;

@@ -165,7 +165,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         MicroInstr&         inst           = *it;
         ++it;
 
-        if (inst.op != MicroInstrOpcode::LoadRegReg || inst.numOperands < 3)
+        if (inst.op != MicroInstrOpcode::LoadRegReg)
             continue;
 
         const MicroInstrOperand* const ops = inst.ops(*operands_);
@@ -1763,7 +1763,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         rebuildCurrentConcreteLiveOutRegs();
         advanceCurrentPositionCursors(idx);
 
-        if (it->op == MicroInstrOpcode::Label && it->numOperands >= 1)
+        if (it->op == MicroInstrOpcode::Label)
         {
             const MicroInstrOperand* const ops = it->ops(*operands_);
             const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[0].valueU64));
@@ -2065,7 +2065,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         expireDeadMappings(stamp);
 
-        if (it->op == MicroInstrOpcode::JumpCond && it->numOperands >= 3)
+        if (it->op == MicroInstrOpcode::JumpCond)
         {
             const MicroInstrOperand* const ops = it->ops(*operands_);
             const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[2].valueU64));

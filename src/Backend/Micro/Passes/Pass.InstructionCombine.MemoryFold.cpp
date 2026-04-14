@@ -38,7 +38,7 @@ namespace InstructionCombine
                                    const MicroInstr&        mid,
                                    const MicroInstrOperand* opOps)
         {
-            if (!opOps || mid.numOperands < 4)
+            if (!opOps)
                 return false;
 
             out.middleIsRegImm = mid.op == MicroInstrOpcode::OpBinaryRegImm;
@@ -60,7 +60,7 @@ namespace InstructionCombine
                           MicroOpBits              loadBits,
                           uint64_t                 loadOff)
         {
-            if (store.op != MicroInstrOpcode::LoadMemReg || store.numOperands < 4 || !storeOps)
+            if (store.op != MicroInstrOpcode::LoadMemReg || !storeOps)
                 return false;
             return storeOps[0].reg == base &&
                    storeOps[1].reg == vt &&
@@ -121,7 +121,7 @@ namespace InstructionCombine
 
     bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
     {
-        if (loadInst.numOperands < 4 || ctx.isClaimed(loadRef) || !ctx.ssa)
+        if (ctx.isClaimed(loadRef) || !ctx.ssa)
             return false;
 
         const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
@@ -192,9 +192,8 @@ namespace InstructionCombine
 
             if (usesVt || defsVt)
             {
-                if ((w.op == MicroInstrOpcode::OpBinaryRegImm ||
-                     w.op == MicroInstrOpcode::OpBinaryRegReg) &&
-                    w.numOperands >= 4)
+                if (w.op == MicroInstrOpcode::OpBinaryRegImm ||
+                    w.op == MicroInstrOpcode::OpBinaryRegReg)
                 {
                     const MicroInstrOperand* wOps = w.ops(*ctx.operands);
                     if (wOps && wOps[0].reg == vt)

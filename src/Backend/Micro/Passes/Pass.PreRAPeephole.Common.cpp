@@ -139,7 +139,7 @@ namespace PreRaPeephole
 
     bool buildUseOnlyRegRewrite(Action& outAction, const MicroInstr& consumer, const MicroInstrOperand* ops, const MicroReg fromReg, const MicroReg toReg)
     {
-        if (!ops || consumer.numOperands == 0 || consumer.numOperands > Action::K_MAX_OPS)
+        if (!ops || consumer.numOperands > Action::K_MAX_OPS)
             return false;
 
         outAction.newOp  = consumer.op;

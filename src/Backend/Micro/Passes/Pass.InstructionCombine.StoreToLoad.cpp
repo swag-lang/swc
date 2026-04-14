@@ -110,7 +110,7 @@ namespace InstructionCombine
             const MicroInstr&        inst = *it;
             const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
 
-            if (inst.op == MicroInstrOpcode::LoadRegMem && inst.numOperands >= 4 && ops)
+            if (inst.op == MicroInstrOpcode::LoadRegMem && ops)
             {
                 if (!ctx.isClaimed(it.current))
                     forwardLoad(ctx, cache, it.current, ops);
@@ -121,7 +121,7 @@ namespace InstructionCombine
                 continue;
             }
 
-            if (inst.op == MicroInstrOpcode::LoadMemReg && inst.numOperands >= 4 && ops)
+            if (inst.op == MicroInstrOpcode::LoadMemReg && ops)
             {
                 const MicroReg    base = ops[0].reg;
                 const MicroOpBits bits = ops[2].opBits;

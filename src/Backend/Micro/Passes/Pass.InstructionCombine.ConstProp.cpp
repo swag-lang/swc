@@ -64,7 +64,7 @@ namespace InstructionCombine
                 return false;
 
             const MicroInstr* inst = ctx.storage->ptr(info->instRef);
-            if (!inst || inst->op != MicroInstrOpcode::LoadRegImm || inst->numOperands < 3)
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegImm)
                 return false;
 
             const MicroInstrOperand* immOps = inst->ops(*ctx.operands);
@@ -90,7 +90,7 @@ namespace InstructionCombine
 
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst)
     {
-        if (storeInst.numOperands < 4 || ctx.isClaimed(storeRef) || !ctx.ssa)
+        if (ctx.isClaimed(storeRef) || !ctx.ssa)
             return false;
 
         const MicroInstrOperand* storeOps = storeInst.ops(*ctx.operands);
@@ -238,7 +238,7 @@ namespace InstructionCombine
 
     bool tryFoldConstCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
     {
-        if (cmpInst.numOperands < 3 || ctx.isClaimed(cmpRef) || !ctx.ssa)
+        if (ctx.isClaimed(cmpRef) || !ctx.ssa)
             return false;
 
         const MicroInstrOperand* cmpOps = cmpInst.ops(*ctx.operands);
@@ -311,7 +311,7 @@ namespace InstructionCombine
 
     bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst)
     {
-        if (binInst.numOperands < 4 || ctx.isClaimed(binRef) || !ctx.ssa)
+        if (ctx.isClaimed(binRef) || !ctx.ssa)
             return false;
 
         const MicroInstrOperand* binOps = binInst.ops(*ctx.operands);
@@ -351,7 +351,7 @@ namespace InstructionCombine
     // that CopyElimination skips when the source/destination widths differ).
     bool tryFoldConstCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (copyInst.numOperands < 3 || ctx.isClaimed(copyRef) || !ctx.ssa)
+        if (ctx.isClaimed(copyRef) || !ctx.ssa)
             return false;
 
         const MicroInstrOperand* copyOps = copyInst.ops(*ctx.operands);

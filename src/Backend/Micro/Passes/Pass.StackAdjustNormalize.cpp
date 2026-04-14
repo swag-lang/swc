@@ -63,7 +63,7 @@ namespace
     bool tryParseStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, StackAdjustInfo& outInfo)
     {
         outInfo = {};
-        if (!ops || inst.op != MicroInstrOpcode::OpBinaryRegImm || inst.numOperands < 4)
+        if (!ops || inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
         if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B64)
             return false;
@@ -86,7 +86,7 @@ namespace
     bool tryGetJumpTargetLabelId(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t& outLabelId)
     {
         outLabelId = 0;
-        if (!ops || inst.numOperands < 3)
+        if (!ops)
             return false;
         if (inst.op != MicroInstrOpcode::JumpCond && inst.op != MicroInstrOpcode::JumpCondImm)
             return false;
@@ -150,8 +150,6 @@ namespace
                 return true;
         }
 
-        if (inst.numOperands < 7)
-            return true;
         if (ops[amcBaseIndex].reg != stackPointer)
             return true;
         return tryAddOffset(ops[6].valueU64, delta, apply);
@@ -161,7 +159,7 @@ namespace
     {
         outDstReg = MicroReg::invalid();
 
-        if (!ops || inst.op != MicroInstrOpcode::LoadRegReg || inst.numOperands < 3)
+        if (!ops || inst.op != MicroInstrOpcode::LoadRegReg)
             return true;
         if (ops[1].reg != stackPointer)
             return true;
@@ -191,7 +189,7 @@ namespace
         {
             const MicroInstrOperand* const ops = it->ops(*context.operands);
 
-            if (it->op == MicroInstrOpcode::Label && it->numOperands >= 1 && ops && ops[0].valueU64 <= std::numeric_limits<uint32_t>::max())
+            if (it->op == MicroInstrOpcode::Label && ops && ops[0].valueU64 <= std::numeric_limits<uint32_t>::max())
             {
                 const uint32_t labelId = static_cast<uint32_t>(ops[0].valueU64);
                 const auto     labelIt = labelDepthById.find(labelId);

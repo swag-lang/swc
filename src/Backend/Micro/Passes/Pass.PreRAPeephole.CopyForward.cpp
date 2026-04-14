@@ -7,7 +7,7 @@ namespace PreRaPeephole
 {
     bool tryForwardCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3 || ctx.isClaimed(copyRef))
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(copyRef))
             return false;
 
         const MicroInstrOperand* copyOps = copyInst.ops(*ctx.operands);

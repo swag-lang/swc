@@ -44,13 +44,9 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadRegReg:
-                if (inst.numOperands < 3)
-                    return false;
                 return ops[0].reg == conv.framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64;
 
             case MicroInstrOpcode::LoadAddrRegMem:
-                if (inst.numOperands < 4)
-                    return false;
                 return ops[0].reg == conv.framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64;
 
             default:
@@ -61,7 +57,7 @@ namespace
     bool isStackAdjustWithOp(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroOp expectedOp, uint64_t& outImmediate)
     {
         outImmediate = 0;
-        if (!ops || inst.op != MicroInstrOpcode::OpBinaryRegImm || inst.numOperands < 4)
+        if (!ops || inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
         if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B64)
             return false;
@@ -84,15 +80,13 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::Push:
-                return inst.numOperands >= 1;
+                return true;
 
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::LoadAddrRegMem:
                 return isFramePointerSetupInstruction(conv, inst, ops, stackPointer);
 
             case MicroInstrOpcode::LoadMemReg:
-                if (inst.numOperands < 4)
-                    return false;
                 return ops[0].reg == stackPointer;
 
             case MicroInstrOpcode::OpBinaryRegImm:
@@ -114,11 +108,9 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::Pop:
-                return inst.numOperands >= 1;
+                return true;
 
             case MicroInstrOpcode::LoadRegMem:
-                if (inst.numOperands < 4)
-                    return false;
                 return ops[1].reg == stackPointer;
 
             case MicroInstrOpcode::OpBinaryRegImm:
@@ -191,7 +183,6 @@ namespace
 
             if (it->op == MicroInstrOpcode::Push &&
                 ops &&
-                it->numOperands >= 1 &&
                 ops[0].reg == conv.framePointer &&
                 framePointerPushRef.isInvalid())
             {

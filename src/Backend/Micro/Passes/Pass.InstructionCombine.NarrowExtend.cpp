@@ -35,7 +35,7 @@ namespace InstructionCombine
 
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (inst.numOperands < 4 || ctx.isClaimed(ref) || !ctx.ssa)
+        if (ctx.isClaimed(ref) || !ctx.ssa)
             return false;
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);

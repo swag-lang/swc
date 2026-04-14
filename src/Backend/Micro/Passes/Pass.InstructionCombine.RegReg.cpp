@@ -9,7 +9,7 @@ namespace InstructionCombine
 {
     bool tryOpBinaryRegReg(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (inst.numOperands < 4 || ctx.isClaimed(ref))
+        if (ctx.isClaimed(ref))
             return false;
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);

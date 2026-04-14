@@ -53,7 +53,7 @@ namespace InstructionCombine
             const auto reaching = ssa.reachingDef(baseReg, memRef);
             if (!reaching.valid() || reaching.isPhi || !reaching.inst)
                 return false;
-            if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm || reaching.inst->numOperands < 4)
+            if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm)
                 return false;
 
             const MicroInstrOperand* addOps = reaching.inst->ops(operands);
@@ -96,7 +96,7 @@ namespace InstructionCombine
             const auto copyReaching = ssa.reachingDef(baseReg, addRef);
             if (!copyReaching.valid() || copyReaching.isPhi || !copyReaching.inst)
                 return;
-            if (copyReaching.inst->op != MicroInstrOpcode::LoadRegReg || copyReaching.inst->numOperands < 3)
+            if (copyReaching.inst->op != MicroInstrOpcode::LoadRegReg)
                 return;
 
             const MicroInstrOperand* copyOps = copyReaching.inst->ops(operands);
@@ -124,7 +124,7 @@ namespace InstructionCombine
 
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (!ctx.ssa || ctx.isClaimed(ref) || inst.numOperands < 4)
+        if (!ctx.ssa || ctx.isClaimed(ref))
             return false;
 
         MemLayout layout;

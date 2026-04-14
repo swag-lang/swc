@@ -98,7 +98,7 @@ namespace PostRAPeephole
 
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg)
             return false;
         if (ctx.isClaimed(copyRef))
             return false;
@@ -171,7 +171,7 @@ namespace PostRAPeephole
             return false;
 
         const MicroInstrOperand* prevOps = prev->ops(*ctx.operands);
-        if (!prevOps || prev->numOperands < 1)
+        if (!prevOps)
             return false;
 
         // The producer must write exactly `src` at ops[0], with no other defs

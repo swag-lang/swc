@@ -222,7 +222,7 @@ namespace
                 continue;
             }
 
-            if (scanInst.op != MicroInstrOpcode::OpBinaryRegImm || scanInst.numOperands < 4)
+            if (scanInst.op != MicroInstrOpcode::OpBinaryRegImm)
                 continue;
             if (scanOps[0].reg != stackPointerReg || scanOps[1].opBits != MicroOpBits::B64)
                 continue;

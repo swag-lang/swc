@@ -14,6 +14,7 @@
 
 - Avoid functions with **too many parameters**.
     - If a function declaration or call spans multiple lines, it likely needs refactoring.
+    - Whatever, do not span parameters and call arguments across multiple lines. Compact them.
 - Group related parameters into **structs or objects** when appropriate.
 - When returning values via parameters:
     - Place **output parameters first**, after global/context parameters (e.g., managers).

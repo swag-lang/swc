@@ -109,7 +109,7 @@ namespace
         switch (inst->op)
         {
             case MicroInstrOpcode::LoadRegImm:
-                if (inst->numOperands < 3 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
                 out.value  = ops[2].valueU64;
@@ -117,7 +117,7 @@ namespace
                 return true;
 
             case MicroInstrOpcode::ClearReg:
-                if (inst->numOperands < 2 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
                 out.value  = 0;
@@ -126,7 +126,7 @@ namespace
 
             case MicroInstrOpcode::LoadRegReg:
             {
-                if (inst->numOperands < 3 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64)
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64)
                     return false;
 
                 return tryGetKnownReachingValue(out, ssaState, knownValues, knownFlags, ops[1].reg, valueInfo.instRef);
@@ -134,7 +134,7 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegImm:
             {
-                if (inst->numOperands < 4 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
                 KnownValue inputValue;
@@ -153,7 +153,7 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegReg:
             {
-                if (inst->numOperands < 4 || ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
                 KnownValue lhs;
@@ -223,7 +223,7 @@ namespace
     bool tryGetLabelId(uint32_t& outLabelId, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         outLabelId = 0;
-        if (inst.op != MicroInstrOpcode::Label || !ops || inst.numOperands < 1 || ops[0].valueU64 > std::numeric_limits<uint32_t>::max())
+        if (inst.op != MicroInstrOpcode::Label || !ops || ops[0].valueU64 > std::numeric_limits<uint32_t>::max())
             return false;
 
         outLabelId = static_cast<uint32_t>(ops[0].valueU64);
@@ -233,7 +233,7 @@ namespace
     bool tryGetJumpTargetLabelId(uint32_t& outLabelId, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         outLabelId = 0;
-        if (inst.op != MicroInstrOpcode::JumpCond || !ops || inst.numOperands < 3 || ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
+        if (inst.op != MicroInstrOpcode::JumpCond || !ops || ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
             return false;
 
         outLabelId = static_cast<uint32_t>(ops[2].valueU64);
@@ -428,7 +428,7 @@ namespace
         {
             case MicroInstrOpcode::CmpRegImm:
             {
-                if (flagDefInst->numOperands < 3 || !flagOps[0].reg.isVirtualInt())
+                if (!flagOps[0].reg.isVirtualInt())
                     return false;
 
                 KnownValue lhsValue;
@@ -440,7 +440,7 @@ namespace
 
             case MicroInstrOpcode::CmpRegReg:
             {
-                if (flagDefInst->numOperands < 3 || !flagOps[0].reg.isVirtualInt() || !flagOps[1].reg.isVirtualInt())
+                if (!flagOps[0].reg.isVirtualInt() || !flagOps[1].reg.isVirtualInt())
                     return false;
 
                 KnownValue lhsValue;
@@ -454,9 +454,6 @@ namespace
             }
 
             case MicroInstrOpcode::ClearReg:
-                if (flagDefInst->numOperands < 2)
-                    return false;
-
                 return tryEvaluateCompareCondition(outTaken, 0, 0, flagOps[1].opBits, jumpCond);
 
             default:
@@ -487,7 +484,7 @@ namespace
                 continue;
             }
 
-            if (inst.op == MicroInstrOpcode::JumpCond && ops && inst.numOperands >= 3 && ops[0].cpuCond != MicroCond::Unconditional)
+            if (inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional)
             {
                 bool branchTaken = false;
                 if (tryEvaluateKnownBranch(branchTaken, storage, operands, ssaState, knownValues, knownFlags, currentFlagDef, ops[0].cpuCond))
@@ -536,7 +533,7 @@ namespace
         bool changed = false;
         for (MicroInstr& inst : storage.view())
         {
-            if (inst.op != MicroInstrOpcode::JumpCond || inst.numOperands < 3)
+            if (inst.op != MicroInstrOpcode::JumpCond)
                 continue;
 
             MicroInstrOperand* ops = inst.ops(operands);
@@ -572,7 +569,7 @@ namespace
             const MicroInstr&   inst    = *it;
             ++it;
 
-            if (inst.op != MicroInstrOpcode::JumpCond || inst.numOperands < 3)
+            if (inst.op != MicroInstrOpcode::JumpCond)
                 continue;
 
             const MicroInstrOperand* ops = inst.ops(operands);

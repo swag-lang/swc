@@ -225,22 +225,22 @@ void Stats::print(const TaskContext& ctx) const
     const size_t numMicroAfterPostRAOptim = numMicroInstrAfterPostRAOptim.load();
     const size_t numMicroFinal            = numMicroInstrFinal.load();
 
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrInitial", colorMsg, Utf8Helper::toNiceBigNumber(numMicroInitial));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrInitialLowered", colorMsg, Utf8Helper::toNiceBigNumber(numMicroInitial));
 
     const std::array<MicroStageTransition, 6> transitions = {
-        MicroStageTransition{"count.micro.instrAfterStart", numMicroInitial, numMicroAfterStart},
-        MicroStageTransition{"count.micro.instrAfterPreRAOptim", numMicroAfterStart, numMicroAfterPreRAOptim},
-        MicroStageTransition{"count.micro.instrAfterRA", numMicroAfterPreRAOptim, numMicroAfterRA},
-        MicroStageTransition{"count.micro.instrAfterPostRASetup", numMicroAfterRA, numMicroAfterPostRASetup},
-        MicroStageTransition{"count.micro.instrAfterPostRAOptim", numMicroAfterPostRASetup, numMicroAfterPostRAOptim},
-        MicroStageTransition{"count.micro.instrFinal", numMicroAfterPostRAOptim, numMicroFinal},
+        MicroStageTransition{"count.micro.instrAfterStackAdjustNormalize", numMicroInitial, numMicroAfterStart},
+        MicroStageTransition{"count.micro.instrAfterPreRAOptimLoop", numMicroAfterStart, numMicroAfterPreRAOptim},
+        MicroStageTransition{"count.micro.instrAfterLegalizeRegAllocLoop", numMicroAfterPreRAOptim, numMicroAfterRA},
+        MicroStageTransition{"count.micro.instrAfterPrologEpilogSetup", numMicroAfterRA, numMicroAfterPostRASetup},
+        MicroStageTransition{"count.micro.instrAfterPostRAOptimPasses", numMicroAfterPostRASetup, numMicroAfterPostRAOptim},
+        MicroStageTransition{"count.micro.instrFinalAfterSanitizeEmit", numMicroAfterPostRAOptim, numMicroFinal},
     };
 
     for (const MicroStageTransition& transition : transitions)
         Logger::printHeaderDot(ctx, colorHeader, transition.countLabel, colorMsg, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
 
     const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, formatMicroInstrDelta(pipelineDelta, numMicroInitial));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDeltaInitialToFinal", colorMsg, formatMicroInstrDelta(pipelineDelta, numMicroInitial));
 
     // Time
     Logger::print(ctx, "\n");

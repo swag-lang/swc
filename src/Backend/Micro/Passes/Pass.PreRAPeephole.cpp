@@ -23,8 +23,12 @@ namespace
     PatternRegistry buildRegistry()
     {
         PatternRegistry r;
-        r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
+        r.add(MicroInstrOpcode::LoadRegImm, tryForwardConstantLike);
+        r.add(MicroInstrOpcode::LoadRegPtrImm, tryForwardConstantLike);
+        r.add(MicroInstrOpcode::ClearReg, tryForwardConstantLike);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
+        r.add(MicroInstrOpcode::LoadAddrRegMem, tryForwardLoadAddr);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryForwardLoadAddrAmc);
         return r;
     }
 

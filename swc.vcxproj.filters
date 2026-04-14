@@ -336,6 +336,9 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.AddressForward.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.Common.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>

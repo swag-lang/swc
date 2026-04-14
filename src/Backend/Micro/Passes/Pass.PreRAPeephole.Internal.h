@@ -11,7 +11,7 @@ namespace PreRaPeephole
 {
     struct Action
     {
-        static constexpr uint8_t K_MAX_OPS = 5;
+        static constexpr uint8_t K_MAX_OPS = 8;
 
         MicroInstrRef     ref            = MicroInstrRef::invalid();
         MicroInstrOpcode  newOp          = MicroInstrOpcode::Nop;
@@ -49,10 +49,16 @@ namespace PreRaPeephole
         std::span<const PatternFn> patternsFor(MicroInstrOpcode op) const;
     };
 
+    bool     buildUseOnlyRegRewrite(Action& outAction, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg fromReg, MicroReg toReg);
+    uint64_t extendBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned);
+    void     setMaskedImmediateValue(MicroInstrOperand& op, uint64_t value, MicroOpBits bits);
+
     void applyAction(Context& ctx, const Action& action);
 
-    bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryForwardConstantLike(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryForwardLoadAddr(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryForwardLoadAddrAmc(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
 }
 
 SWC_END_NAMESPACE();

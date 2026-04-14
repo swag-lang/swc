@@ -37,6 +37,7 @@
 - Function declarations must be written on a **single line** (no multi-line parameter lists).
 - Function calls must be written on a **single line** (no multi-line arguments).
 - There's no theorical limit to the length of a line, but keep it short and readable.
+- If a function declaration is very long, then refactor it to reduce the number of parameters.
 
 ---
 

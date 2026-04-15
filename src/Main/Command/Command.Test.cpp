@@ -118,13 +118,143 @@ namespace
         return false;
     }
 
-    bool shouldRunJitFunction(const CompilerInstance& compiler, const SymbolFunction& function)
+    struct JitFunctionSelection
     {
-        if (shouldSkipFunctionForTests(compiler, function))
-            return false;
+        std::unordered_set<const SymbolFunction*> skippedFunctions;
+        std::unordered_set<const SymbolFunction*> functions;
+        uint32_t                                  expectedTestCount = 0;
+    };
 
+    using ReverseDependencyMap = std::unordered_map<const SymbolFunction*, std::vector<const SymbolFunction*>>;
+
+    struct TestFunctionGraph
+    {
+        std::unordered_set<const SymbolFunction*> visited;
+        ReverseDependencyMap                      reverseDependencies;
+        std::vector<const SymbolFunction*>        selfSkippedFunctions;
+    };
+
+    bool functionRunsJitSource(const CompilerInstance& compiler, const SymbolFunction& function)
+    {
         const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
         return !file || file->ast().srcView().runsJit();
+    }
+
+    void collectTestFunctionGraph(TestFunctionGraph& graph, const CompilerInstance& compiler, const SymbolFunction* root)
+    {
+        SmallVector<const SymbolFunction*> stack;
+        stack.push_back(root);
+
+        while (!stack.empty())
+        {
+            const SymbolFunction* const function = stack.back();
+            stack.pop_back();
+            if (!function)
+                continue;
+            if (!graph.visited.insert(function).second)
+                continue;
+            if (function->isIgnored() || functionHasSourceError(compiler, *function))
+            {
+                graph.selfSkippedFunctions.push_back(function);
+                continue;
+            }
+
+            SmallVector<SymbolFunction*> dependencies;
+            function->appendCallDependencies(dependencies);
+            for (const SymbolFunction* dependency : dependencies)
+            {
+                if (!dependency || dependency == function)
+                    continue;
+                graph.reverseDependencies[dependency].push_back(function);
+                stack.push_back(dependency);
+            }
+        }
+    }
+
+    void propagateSkippedFunctions(JitFunctionSelection& selection, const TestFunctionGraph& graph)
+    {
+        SmallVector<const SymbolFunction*> stack;
+        for (const SymbolFunction* function : graph.selfSkippedFunctions)
+        {
+            if (selection.skippedFunctions.insert(function).second)
+                stack.push_back(function);
+        }
+
+        while (!stack.empty())
+        {
+            const SymbolFunction* const function = stack.back();
+            stack.pop_back();
+
+            const auto parents = graph.reverseDependencies.find(function);
+            if (parents == graph.reverseDependencies.end())
+                continue;
+
+            for (const SymbolFunction* parent : parents->second)
+            {
+                if (selection.skippedFunctions.insert(parent).second)
+                    stack.push_back(parent);
+            }
+        }
+    }
+
+    bool shouldRunJitFunction(const JitFunctionSelection& selection, const SymbolFunction& function)
+    {
+        return selection.functions.contains(&function);
+    }
+
+    void tryAddJitFunction(JitFunctionSelection& selection, const CompilerInstance& compiler, SymbolFunction* function)
+    {
+        if (!function)
+            return;
+        if (!functionRunsJitSource(compiler, *function))
+            return;
+        if (selection.skippedFunctions.contains(function))
+            return;
+
+        selection.functions.insert(function);
+    }
+
+    JitFunctionSelection selectJitFunctions(const CompilerInstance& compiler)
+    {
+        JitFunctionSelection selection;
+        TestFunctionGraph    graph;
+        graph.visited.reserve(compiler.nativeCodeSegment().size());
+        graph.reverseDependencies.reserve(compiler.nativeCodeSegment().size());
+        selection.skippedFunctions.reserve(compiler.nativeCodeSegment().size());
+        selection.functions.reserve(compiler.nativeCodeSegment().size());
+
+        for (const SymbolFunction* function : compiler.nativeCodeSegment())
+        {
+            if (function && functionRunsJitSource(compiler, *function))
+                collectTestFunctionGraph(graph, compiler, function);
+        }
+
+        for (const SymbolFunction* function : compiler.nativeTestFunctions())
+        {
+            if (function && functionRunsJitSource(compiler, *function))
+                collectTestFunctionGraph(graph, compiler, function);
+        }
+
+        propagateSkippedFunctions(selection, graph);
+
+        for (SymbolFunction* function : compiler.nativeCodeSegment())
+            tryAddJitFunction(selection, compiler, function);
+
+        for (SymbolFunction* function : compiler.nativeTestFunctions())
+        {
+            tryAddJitFunction(selection, compiler, function);
+            if (function && shouldRunJitFunction(selection, *function))
+                selection.expectedTestCount++;
+        }
+
+        return selection;
+    }
+
+    void filterJitFunctions(std::vector<SymbolFunction*>& functions, const JitFunctionSelection& selection)
+    {
+        std::erase_if(functions, [&](const SymbolFunction* function) {
+            return function == nullptr || !shouldRunJitFunction(selection, *function);
+        });
     }
 
     bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)
@@ -143,18 +273,6 @@ namespace
         diag.addArgument(Diagnostic::ARG_VALUE, actualCount);
         diag.report(ctx);
         return false;
-    }
-
-    uint32_t expectedJitTestCount(const CompilerInstance& compiler)
-    {
-        uint32_t result = 0;
-        for (const SymbolFunction* function : compiler.nativeTestFunctions())
-        {
-            if (function && shouldRunJitFunction(compiler, *function))
-                result++;
-        }
-
-        return result;
     }
 
     bool hasArtifactEntryPoints(const CompilerInstance& compiler)
@@ -292,8 +410,8 @@ namespace
 
         SWC_MEM_SCOPE("Backend/JIT");
         TaskContext                 ctx(compiler);
-        const uint32_t              expectedTestCount = expectedJitTestCount(compiler);
         TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::JIT);
+        uint32_t                    expectedTestCount = 0;
 
         std::vector<SymbolFunction*> allFunctions;
         std::vector<SymbolFunction*> initFunctions;
@@ -306,13 +424,16 @@ namespace
             if (nativeBuilder.prepare() != Result::Continue)
                 return false;
 
-            allFunctions = compiler.nativeCodeSegment();
-            std::erase_if(allFunctions, [&](const SymbolFunction* function) {
-                return function == nullptr || !shouldRunJitFunction(compiler, *function);
-            });
+            const JitFunctionSelection jitSelection = selectJitFunctions(compiler);
+            expectedTestCount                      = jitSelection.expectedTestCount;
+            allFunctions                           = compiler.nativeCodeSegment();
             initFunctions    = std::move(nativeBuilder.initFunctions);
             preMainFunctions = std::move(nativeBuilder.preMainFunctions);
             testFunctions    = std::move(nativeBuilder.testFunctions);
+            filterJitFunctions(allFunctions, jitSelection);
+            filterJitFunctions(initFunctions, jitSelection);
+            filterJitFunctions(preMainFunctions, jitSelection);
+            filterJitFunctions(testFunctions, jitSelection);
         }
 
         sortAndUniqueFunctions(allFunctions, ctx);

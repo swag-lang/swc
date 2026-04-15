@@ -59,6 +59,7 @@ public:
     struct PhiInfo
     {
         MicroReg                 reg           = MicroReg::invalid();
+        uint32_t                 regIndex      = K_INVALID_VALUE;
         uint32_t                 blockIndex    = 0;
         uint32_t                 resultValueId = K_INVALID_VALUE;
         SmallVector<uint32_t, 2> predecessorBlocks;
@@ -92,6 +93,8 @@ private:
         MicroInstrRef               instRef = MicroInstrRef::invalid();
         MicroInstrUseDef            useDef;
         SmallVector4<RegValueEntry> defValues;
+        SmallVector4<uint32_t>      useRegIndices;
+        SmallVector4<uint32_t>      defRegIndices;
     };
 
     struct BlockInfo
@@ -132,11 +135,11 @@ private:
     void     renameIntoSsa();
     void     renameBlock(uint32_t blockIndex, RenameState& state);
     void     captureCurrentValues(SmallVector8<RegValueEntry>& out, const RenameState& state) const;
-    uint32_t currentValue(const RenameState& state, MicroReg reg) const;
+    static uint32_t currentValue(const RenameState& state, uint32_t regIndex);
     void     assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const RenameState& state);
-    void     pushCurrentValue(std::vector<RestorePoint>& restores, RenameState& state, MicroReg reg, uint32_t valueId);
+    static void pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId);
     uint32_t createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
-    uint32_t ensurePhi(uint32_t blockIndex, MicroReg reg);
+    uint32_t createPhi(uint32_t blockIndex, MicroReg reg, uint32_t regIndex);
     void     appendValueUse(uint32_t valueId, const UseSite& useSite);
     bool     isValueTransitivelyUsed(uint32_t valueId) const;
 
@@ -152,6 +155,7 @@ private:
     std::vector<BlockInfo>     blocks_;
     std::vector<ValueInfo>     valueInfos_;
     std::vector<PhiInfo>       phiInfos_;
+    uint32_t                   trackedDefCount_ = 0;
     bool                       valid_ = false;
 };
 

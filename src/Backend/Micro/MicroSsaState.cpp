@@ -84,16 +84,28 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         SWC_ASSERT(inst != nullptr);
         info.useDef = inst->collectUseDef(operands, encoder);
 
-        for (const MicroReg reg : info.useDef.uses)
-        {
-            if (isTrackedReg(reg))
-                trackedRegs_.ensure(reg);
-        }
-
         for (const MicroReg reg : info.useDef.defs)
         {
-            if (isTrackedReg(reg))
-                trackedRegs_.ensure(reg);
+            if (!isTrackedReg(reg))
+                continue;
+
+            const uint32_t regIndex = trackedRegs_.ensure(reg);
+            info.defRegIndices.push_back(regIndex);
+            ++trackedDefCount_;
+        }
+    }
+
+    for (const MicroInstrRef instRef : instructionRefs_)
+    {
+        InstrInfo& info = instrInfos_[instRef.get()];
+        for (const MicroReg reg : info.useDef.uses)
+        {
+            if (!isTrackedReg(reg))
+                continue;
+
+            const uint32_t regIndex = trackedRegs_.find(reg);
+            if (regIndex != MicroDenseRegIndex::K_INVALID_INDEX)
+                info.useRegIndices.push_back(regIndex);
         }
     }
 
@@ -130,6 +142,7 @@ void MicroSsaState::clear()
     blocks_.clear();
     valueInfos_.clear();
     phiInfos_.clear();
+    trackedDefCount_ = 0;
     valid_ = false;
 }
 
@@ -336,6 +349,11 @@ void MicroSsaState::computeDominators()
     std::vector<uint32_t> dfsIter;
     std::vector<uint32_t> postOrder;
     std::vector           rpoPosition(blocks_.size(), K_INVALID);
+    std::vector<uint32_t> rpoStamp(blocks_.size(), 0);
+    uint32_t              currentRpoStamp = 1;
+    dfsStack.reserve(blocks_.size());
+    dfsIter.reserve(blocks_.size());
+    postOrder.reserve(blocks_.size());
 
     size_t rootCursor = 0;
     while (true)
@@ -394,10 +412,20 @@ void MicroSsaState::computeDominators()
             dfsIter.pop_back();
         }
 
-        std::ranges::fill(rpoPosition, K_INVALID);
+        if (currentRpoStamp == std::numeric_limits<uint32_t>::max())
+        {
+            std::ranges::fill(rpoStamp, 0);
+            currentRpoStamp = 1;
+        }
+
+        const uint32_t rpoComponentStamp = currentRpoStamp++;
         const uint32_t rpoSize = static_cast<uint32_t>(postOrder.size());
         for (uint32_t i = 0; i < rpoSize; ++i)
-            rpoPosition[postOrder[rpoSize - 1 - i]] = i;
+        {
+            const uint32_t blockIndex = postOrder[rpoSize - 1 - i];
+            rpoPosition[blockIndex]   = i;
+            rpoStamp[blockIndex]      = rpoComponentStamp;
+        }
 
         idomValues[rootBlock] = rootBlock;
         bool changed          = true;
@@ -411,7 +439,7 @@ void MicroSsaState::computeDominators()
 
                 for (const uint32_t predecessorBlock : blocks_[blockIndex].predecessors)
                 {
-                    if (rpoPosition[predecessorBlock] == K_INVALID)
+                    if (rpoStamp[predecessorBlock] != rpoComponentStamp)
                         continue;
                     if (idomValues[predecessorBlock] == K_INVALID_BLOCK)
                         continue;
@@ -471,13 +499,8 @@ void MicroSsaState::placePhiNodes()
         {
             const MicroInstrRef instRef = instructionRefs_[instructionIndex];
             const InstrInfo&    info    = instrInfos_[instRef.get()];
-            for (const MicroReg reg : info.useDef.defs)
+            for (const uint32_t regIndex : info.defRegIndices)
             {
-                if (!isTrackedReg(reg))
-                    continue;
-
-                const uint32_t regIndex = trackedRegs_.find(reg);
-                SWC_ASSERT(regIndex != MicroDenseRegIndex::K_INVALID_INDEX);
                 auto& regDefBlocks = defBlocksByReg[regIndex];
                 if (regDefBlocks.empty() || regDefBlocks.back() != blockIndex)
                     regDefBlocks.push_back(blockIndex);
@@ -524,7 +547,7 @@ void MicroSsaState::placePhiNodes()
                 if (hasPhiStamp[frontierBlock] == currentStamp)
                     continue;
 
-                ensurePhi(frontierBlock, reg);
+                createPhi(frontierBlock, reg, regIndex);
                 hasPhiStamp[frontierBlock] = currentStamp;
 
                 if (inWorkStamp[frontierBlock] != currentStamp)
@@ -540,6 +563,7 @@ void MicroSsaState::placePhiNodes()
 void MicroSsaState::renameIntoSsa()
 {
     valueInfos_.clear();
+    valueInfos_.reserve(static_cast<size_t>(trackedDefCount_) + phiInfos_.size());
 
     RenameState  state;
     const size_t trackedRegCount = trackedRegs_.regs().size();
@@ -556,30 +580,28 @@ void MicroSsaState::renameIntoSsa()
 
 void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 {
-    BlockInfo&                block = blocks_[blockIndex];
-    std::vector<RestorePoint> restores;
+    BlockInfo&                 block = blocks_[blockIndex];
+    SmallVector8<RestorePoint> restores;
     restores.reserve(block.phis.size() + (block.instructionEnd - block.instructionBegin));
 
     for (const uint32_t phiIndex : block.phis)
     {
         PhiInfo& phi      = phiInfos_[phiIndex];
         phi.resultValueId = createValue(phi.reg, blockIndex, MicroInstrRef::invalid(), phiIndex);
-        pushCurrentValue(restores, state, phi.reg, phi.resultValueId);
+        pushCurrentValue(restores, state, phi.regIndex, phi.resultValueId);
     }
 
     captureCurrentValues(block.entryValues, state);
 
+    const auto& regs = trackedRegs_.regs();
     for (uint32_t instructionIndex = block.instructionBegin; instructionIndex < block.instructionEnd; ++instructionIndex)
     {
         const MicroInstrRef instRef = instructionRefs_[instructionIndex];
         InstrInfo&          info    = instrInfos_[instRef.get()];
 
-        for (const MicroReg reg : info.useDef.uses)
+        for (const uint32_t regIndex : info.useRegIndices)
         {
-            if (!isTrackedReg(reg))
-                continue;
-
-            const uint32_t valueId = currentValue(state, reg);
+            const uint32_t valueId = currentValue(state, regIndex);
             if (valueId == K_INVALID_VALUE)
                 continue;
 
@@ -591,14 +613,13 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
         }
 
         info.defValues.clear();
-        for (const MicroReg reg : info.useDef.defs)
+        for (const uint32_t regIndex : info.defRegIndices)
         {
-            if (!isTrackedReg(reg))
-                continue;
-
+            SWC_ASSERT(regIndex < regs.size());
+            const MicroReg reg     = regs[regIndex];
             const uint32_t valueId = createValue(reg, blockIndex, instRef, K_INVALID_PHI);
             info.defValues.push_back(RegValueEntry{reg, valueId});
-            pushCurrentValue(restores, state, reg, valueId);
+            pushCurrentValue(restores, state, regIndex, valueId);
         }
     }
 
@@ -646,10 +667,9 @@ void MicroSsaState::captureCurrentValues(SmallVector8<RegValueEntry>& out, const
     }
 }
 
-uint32_t MicroSsaState::currentValue(const RenameState& state, const MicroReg reg) const
+uint32_t MicroSsaState::currentValue(const RenameState& state, const uint32_t regIndex)
 {
-    const uint32_t regIndex = trackedRegs_.find(reg);
-    if (regIndex == MicroDenseRegIndex::K_INVALID_INDEX || regIndex >= state.currentValues.size())
+    if (regIndex >= state.currentValues.size())
         return K_INVALID_VALUE;
 
     return state.currentValues[regIndex];
@@ -659,23 +679,24 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
 {
     SWC_ASSERT(successorBlock < blocks_.size());
     BlockInfo& successor = blocks_[successorBlock];
+    uint32_t   predSlot  = K_INVALID;
+    for (uint32_t idx = 0; idx < successor.predecessors.size(); ++idx)
+    {
+        if (successor.predecessors[idx] == predecessorBlock)
+        {
+            predSlot = idx;
+            break;
+        }
+    }
+
+    if (predSlot == K_INVALID)
+        return;
+
     for (const uint32_t phiIndex : successor.phis)
     {
-        PhiInfo& phi      = phiInfos_[phiIndex];
-        uint32_t predSlot = K_INVALID;
-        for (uint32_t idx = 0; idx < phi.predecessorBlocks.size(); ++idx)
-        {
-            if (phi.predecessorBlocks[idx] == predecessorBlock)
-            {
-                predSlot = idx;
-                break;
-            }
-        }
-
-        if (predSlot == K_INVALID)
-            continue;
-
-        const uint32_t valueId = currentValue(state, phi.reg);
+        PhiInfo& phi = phiInfos_[phiIndex];
+        SWC_ASSERT(predSlot < phi.incomingValueIds.size());
+        const uint32_t valueId = currentValue(state, phi.regIndex);
         if (valueId == K_INVALID_VALUE)
             continue;
 
@@ -688,10 +709,8 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
     }
 }
 
-void MicroSsaState::pushCurrentValue(std::vector<RestorePoint>& restores, RenameState& state, const MicroReg reg, const uint32_t valueId)
+void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, const uint32_t regIndex, const uint32_t valueId)
 {
-    const uint32_t regIndex = trackedRegs_.find(reg);
-    SWC_ASSERT(regIndex != MicroDenseRegIndex::K_INVALID_INDEX);
     SWC_ASSERT(regIndex < state.currentValues.size());
     SWC_ASSERT(regIndex < state.activePositions.size());
 
@@ -706,6 +725,7 @@ void MicroSsaState::pushCurrentValue(std::vector<RestorePoint>& restores, Rename
     }
     else
     {
+        SWC_ASSERT(state.activePositions[regIndex] == K_INVALID);
         state.activePositions[regIndex] = static_cast<uint32_t>(state.activeRegIndices.size());
         state.activeRegIndices.push_back(regIndex);
     }
@@ -727,18 +747,13 @@ uint32_t MicroSsaState::createValue(const MicroReg reg, const uint32_t blockInde
     return valueId;
 }
 
-uint32_t MicroSsaState::ensurePhi(const uint32_t blockIndex, const MicroReg reg)
+uint32_t MicroSsaState::createPhi(const uint32_t blockIndex, const MicroReg reg, const uint32_t regIndex)
 {
     BlockInfo& block = blocks_[blockIndex];
-    for (const uint32_t phiIndex : block.phis)
-    {
-        if (phiInfos_[phiIndex].reg == reg)
-            return phiIndex;
-    }
-
     const uint32_t phiIndex = static_cast<uint32_t>(phiInfos_.size());
     PhiInfo        phi;
     phi.reg        = reg;
+    phi.regIndex   = regIndex;
     phi.blockIndex = blockIndex;
     phi.predecessorBlocks.assign(block.predecessors.begin(), block.predecessors.end());
     phi.incomingValueIds.resize(phi.predecessorBlocks.size(), K_INVALID_VALUE);

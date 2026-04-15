@@ -73,16 +73,70 @@ namespace
 
         const ConstantValue& defaultValue = codeGen.cstMgr().get(defaultValueRef);
 
+        ByteSpan rawBytes;
         if (defaultValue.isStruct())
         {
             SWC_ASSERT(defaultValue.getStruct().size() == localSize);
+            rawBytes = defaultValue.getStruct();
         }
         else if (defaultValue.isArray())
         {
             SWC_ASSERT(defaultValue.getArray().size() == localSize);
+            rawBytes = defaultValue.getArray();
         }
         else
             return false;
+
+        // Classify the payload so we can avoid materializing a static constant + memcpy
+        // for the common cases where the default is mostly (or entirely) zero.
+        bool allZero = true;
+        for (const std::byte b : rawBytes)
+        {
+            if (b != std::byte{})
+            {
+                allZero = false;
+                break;
+            }
+        }
+        if (allZero)
+        {
+            CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, localSize);
+            return true;
+        }
+
+        constexpr uint32_t sparseChunkSize  = 8;
+        constexpr uint32_t sparseStoreLimit = 4;
+        if (localSize >= sparseChunkSize * 2 && (localSize % sparseChunkSize) == 0)
+        {
+            uint32_t nonZeroChunks = 0;
+            for (uint32_t off = 0; off < localSize; off += sparseChunkSize)
+            {
+                for (uint32_t i = 0; i < sparseChunkSize; ++i)
+                {
+                    if (rawBytes[off + i] != std::byte{})
+                    {
+                        ++nonZeroChunks;
+                        break;
+                    }
+                }
+                if (nonZeroChunks > sparseStoreLimit)
+                    break;
+            }
+            if (nonZeroChunks <= sparseStoreLimit)
+            {
+                MicroBuilder& builder = codeGen.builder();
+                CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, localSize);
+                for (uint32_t off = 0; off < localSize; off += sparseChunkSize)
+                {
+                    uint64_t value = 0;
+                    for (uint32_t i = 0; i < sparseChunkSize; ++i)
+                        value |= static_cast<uint64_t>(static_cast<uint8_t>(rawBytes[off + i])) << (i * 8);
+                    if (value != 0)
+                        builder.emitLoadMemImm(dstReg, off, ApInt(value, 64), MicroOpBits::B64);
+                }
+                return true;
+            }
+        }
 
         const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, symVar.typeRef());
         if (safeDefaultValueRef.isInvalid())

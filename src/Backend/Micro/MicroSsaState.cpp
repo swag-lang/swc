@@ -629,7 +629,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
     for (const uint32_t childBlock : block.domChildren)
         renameBlock(childBlock, state);
 
-    for (auto& restore : std::views::reverse(restores))
+    for (const auto& restore : std::views::reverse(restores))
     {
         if (!restore.hadPrevious)
         {

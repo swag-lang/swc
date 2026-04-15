@@ -57,6 +57,12 @@ namespace
         void*    target = nullptr;
     };
 
+    struct JITRelocationPatchContext
+    {
+        std::unordered_set<uint64_t>                         visitedConstantAllocations;
+        std::unordered_map<const SymbolFunction*, uint64_t> resolvedFunctionAddresses;
+    };
+
     Utf8 relocationSymbolName(const TaskContext& ctx, const Symbol* symbol)
     {
         if (!symbol)
@@ -232,7 +238,7 @@ namespace
         return outArg;
     }
 
-    Result resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure)
+    Result resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
     {
         outTargetAddress = reloc.targetAddress;
         if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
@@ -264,6 +270,16 @@ namespace
         }
 
         auto& targetFunction = targetSymbol->cast<SymbolFunction>();
+        if (patchContext)
+        {
+            const auto cacheIt = patchContext->resolvedFunctionAddresses.find(&targetFunction);
+            if (cacheIt != patchContext->resolvedFunctionAddresses.end())
+            {
+                outTargetAddress = cacheIt->second;
+                return Result::Continue;
+            }
+        }
+
         void* entryAddress   = targetFunction.jitPatchAddress();
         if (!entryAddress)
         {
@@ -293,10 +309,13 @@ namespace
         }
 
         outTargetAddress = reinterpret_cast<uint64_t>(entryAddress);
+        if (patchContext)
+            patchContext->resolvedFunctionAddresses.try_emplace(&targetFunction, outTargetAddress);
+
         return outTargetAddress != 0 ? Result::Continue : Result::Error;
     }
 
-    bool resolveForeignFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure)
+    bool resolveForeignFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
     {
         outTargetAddress = reloc.targetAddress;
         if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
@@ -339,6 +358,16 @@ namespace
             return false;
         }
 
+        if (patchContext)
+        {
+            const auto cacheIt = patchContext->resolvedFunctionAddresses.find(&targetFunction);
+            if (cacheIt != patchContext->resolvedFunctionAddresses.end())
+            {
+                outTargetAddress = cacheIt->second;
+                return true;
+            }
+        }
+
         const std::string_view moduleName = targetFunction.foreignModuleName();
         if (moduleName.empty())
         {
@@ -379,10 +408,13 @@ namespace
         }
 
         outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
+        if (patchContext)
+            patchContext->resolvedFunctionAddresses.try_emplace(&targetFunction, outTargetAddress);
+
         return outTargetAddress != 0;
     }
 
-    Result resolveRelocationTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure)
+    Result resolveRelocationTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
     {
         switch (reloc.kind)
         {
@@ -391,10 +423,10 @@ namespace
                 return Result::Continue;
 
             case MicroRelocation::Kind::LocalFunctionAddress:
-                return resolveLocalFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, ownerFunction, outFailure);
+                return resolveLocalFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, ownerFunction, outFailure, patchContext);
 
             case MicroRelocation::Kind::ForeignFunctionAddress:
-                return resolveForeignFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, outFailure) ? Result::Continue : Result::Error;
+                return resolveForeignFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, outFailure, patchContext) ? Result::Continue : Result::Error;
 
             case MicroRelocation::Kind::CompilerAddress:
                 outTargetAddress = reinterpret_cast<uint64_t>(ctx.compiler().dataSegmentAddress(DataSegmentKind::Compiler, static_cast<uint32_t>(reloc.targetAddress)));
@@ -472,11 +504,7 @@ namespace
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
-    Result patchConstantFunctionRelocationsRec(TaskContext&                  ctx,
-                                               const SymbolFunction*         ownerFunction,
-                                               uint32_t                      shardIndex,
-                                               uint32_t                      sourceOffset,
-                                               std::unordered_set<uint64_t>& visited)
+    Result patchConstantFunctionRelocationsRec(TaskContext& ctx, JITRelocationPatchContext& patchContext, const SymbolFunction* ownerFunction, const uint32_t shardIndex, const uint32_t sourceOffset)
     {
         DataSegment&          segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
         DataSegmentAllocation allocation;
@@ -484,7 +512,7 @@ namespace
             return Result::Continue;
 
         const uint64_t visitKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
-        if (!visited.insert(visitKey).second)
+        if (!patchContext.visitedConstantAllocations.insert(visitKey).second)
             return Result::Continue;
 
         SmallVector<ConstantFunctionPatch>     patches;
@@ -494,7 +522,7 @@ namespace
         {
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
-                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, ownerFunction, shardIndex, relocation.targetOffset, visited));
+                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, shardIndex, relocation.targetOffset));
                 continue;
             }
 
@@ -508,7 +536,7 @@ namespace
 
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
-            const Result             resolveResult = targetFunction->isForeign() ? (resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) ? Result::Continue : Result::Error) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, ownerFunction, &failure);
+            const Result             resolveResult = targetFunction->isForeign() ? (resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure, &patchContext) ? Result::Continue : Result::Error) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, ownerFunction, &failure, &patchContext);
             if (resolveResult == Result::Pause)
                 return Result::Pause;
             if (resolveResult != Result::Continue)
@@ -541,7 +569,7 @@ namespace
         return Result::Continue;
     }
 
-    Result patchConstantFunctionRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, const ConstantRef constantRef, const void* ptr)
+    Result patchConstantFunctionRelocations(TaskContext& ctx, JITRelocationPatchContext& patchContext, const SymbolFunction* ownerFunction, const ConstantRef constantRef, const void* ptr)
     {
         if (!ptr)
             return Result::Continue;
@@ -550,8 +578,7 @@ namespace
         if (!ctx.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, constantRef, ptr))
             return Result::Continue;
 
-        std::unordered_set<uint64_t> visited;
-        return patchConstantFunctionRelocationsRec(ctx, ownerFunction, sourceRef.shardIndex, sourceRef.offset, visited);
+        return patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, sourceRef.shardIndex, sourceRef.offset);
     }
 
     Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
@@ -563,11 +590,15 @@ namespace
         const uint8_t* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         SWC_ASSERT(basePtr != nullptr);
 
+        JITRelocationPatchContext patchContext;
+        patchContext.visitedConstantAllocations.reserve(relocations.size());
+        patchContext.resolvedFunctionAddresses.reserve(relocations.size());
+
         for (const MicroRelocation& reloc : relocations)
         {
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
-            const Result             resolveResult = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr, ownerFunction, &failure);
+            const Result             resolveResult = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr, ownerFunction, &failure, &patchContext);
             if (resolveResult == Result::Pause)
                 return Result::Pause;
             if (resolveResult != Result::Continue)
@@ -587,7 +618,7 @@ namespace
             }
 
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
-                SWC_RESULT(patchConstantFunctionRelocations(ctx, ownerFunction, reloc.constantRef, reinterpret_cast<const void*>(targetAddress)));
+                SWC_RESULT(patchConstantFunctionRelocations(ctx, patchContext, ownerFunction, reloc.constantRef, reinterpret_cast<const void*>(targetAddress)));
 
             patchAbsolute64(writableCode, reloc, targetAddress);
         }
@@ -635,6 +666,9 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 {
     const TaskScopedContext scopedContext(ctx);
     const auto              globals = ctx.compiler().nativeGlobalVariablesSnapshot();
+    JITRelocationPatchContext patchContext;
+    patchContext.resolvedFunctionAddresses.reserve(globals.size());
+
     for (const SymbolVariable* symVar : globals)
     {
         if (!symVar)
@@ -657,7 +691,7 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 
         uint64_t                 targetAddress = 0;
         RelocationResolveFailure failure;
-        const Result             resolveResult = targetFunction->isForeign() ? (resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure) ? Result::Continue : Result::Error) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, nullptr, &failure);
+        const Result             resolveResult = targetFunction->isForeign() ? (resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure, &patchContext) ? Result::Continue : Result::Error) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, nullptr, &failure, &patchContext);
         if (resolveResult == Result::Pause)
             return Result::Pause;
         if (resolveResult != Result::Continue)

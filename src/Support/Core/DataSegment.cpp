@@ -185,9 +185,22 @@ void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocat
     if (!size)
         return;
 
+    {
+        const std::shared_lock lock(mutex_);
+        if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
+        {
+            copyRelocationsLocked(outRelocations, offset, size);
+            return;
+        }
+    }
+
     const std::unique_lock lock(mutex_);
     rebuildRelocationsByOffsetLocked();
+    copyRelocationsLocked(outRelocations, offset, size);
+}
 
+void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, const uint32_t offset, const uint32_t size) const
+{
     const auto begin = std::ranges::lower_bound(relocationsByOffset_, offset, {}, [this](const uint32_t index) {
         return relocations_[index].offset;
     });

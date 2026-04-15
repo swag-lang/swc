@@ -133,6 +133,7 @@ private:
     std::byte*                                                             findPtrLocked(Ref ref, uint32_t size) noexcept;
     const std::byte*                                                       findPtrLocked(Ref ref, uint32_t size) const noexcept;
     Ref                                                                    findLargeBlockRefLocked(const void* ptr) const noexcept;
+    void                                                                   copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
     void                                                                   rebuildRelocationsByOffsetLocked() const;
     void                                                                   recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
     PagedStore                                                             store_;

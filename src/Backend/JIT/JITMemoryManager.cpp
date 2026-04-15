@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-static constexpr uint32_t DEFAULT_BLOCK_SIZE = 4 * 1024;
+static constexpr uint32_t DEFAULT_BLOCK_SIZE = 64 * 1024;
 
 namespace
 {
@@ -28,11 +28,60 @@ JITMemoryManager::~JITMemoryManager()
     const std::unique_lock lock(mutex_);
     for (const auto& block : blocks_)
     {
-        if (block.ptr)
-            Os::freeExecutableMemory(block.ptr);
+        if (block->ptr)
+            Os::freeExecutableMemory(block->ptr);
     }
 
     blocks_.clear();
+    currentBlock_.store(nullptr, std::memory_order_relaxed);
+}
+
+bool JITMemoryManager::tryAllocateFromBlock(std::byte*& outPtr, Block& block, const uint32_t allocationSize)
+{
+    uint32_t allocated = block.allocated.load(std::memory_order_relaxed);
+    while (allocated <= block.size && block.size - allocated >= allocationSize)
+    {
+        const uint32_t newAllocated = allocated + allocationSize;
+        if (block.allocated.compare_exchange_weak(allocated, newAllocated, std::memory_order_acq_rel, std::memory_order_relaxed))
+        {
+            outPtr = static_cast<std::byte*>(block.ptr) + allocated;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+std::byte* JITMemoryManager::allocateSlow(const uint32_t allocationSize)
+{
+    std::byte* dst = nullptr;
+    {
+        const std::unique_lock lock(mutex_);
+        for (const auto& block : blocks_)
+        {
+            if (tryAllocateFromBlock(dst, *block, allocationSize))
+            {
+                currentBlock_.store(block.get(), std::memory_order_release);
+                return dst;
+            }
+        }
+
+        const uint32_t blockSize = std::max(DEFAULT_BLOCK_SIZE, allocationSize);
+        void*          ptr       = Os::allocExecutableMemory(blockSize);
+        SWC_ASSERT(ptr);
+
+        auto block = std::make_unique<Block>();
+        block->ptr  = ptr;
+        block->size = blockSize;
+
+        Block* const blockPtr = block.get();
+        blocks_.push_back(std::move(block));
+        const bool allocated = tryAllocateFromBlock(dst, *blockPtr, allocationSize);
+        SWC_ASSERT(allocated);
+        currentBlock_.store(blockPtr, std::memory_order_release);
+    }
+
+    return dst;
 }
 
 void JITMemoryManager::allocateWithCodeSize(JITMemory& outExecutableMemory, const uint32_t allocationSize, const uint32_t codeSize)
@@ -46,31 +95,15 @@ void JITMemoryManager::allocateWithCodeSize(JITMemory& outExecutableMemory, cons
     const uint32_t requestSize      = allocationSize;
     const uint32_t requestSizeAlign = alignUp(requestSize, pageSize);
 
-    const std::unique_lock lock(mutex_);
-
-    Block* targetBlock = nullptr;
-    for (auto& block : blocks_)
+    std::byte* dst = nullptr;
+    if (Block* const block = currentBlock_.load(std::memory_order_acquire))
     {
-        if (block.size - block.allocated >= requestSizeAlign)
-        {
-            targetBlock = &block;
-            break;
-        }
+        if (!tryAllocateFromBlock(dst, *block, requestSizeAlign))
+            dst = nullptr;
     }
 
-    if (!targetBlock)
-    {
-        const uint32_t blockSize = std::max(DEFAULT_BLOCK_SIZE, alignUp(requestSizeAlign, pageSize));
-        void*          ptr       = Os::allocExecutableMemory(blockSize);
-        SWC_ASSERT(ptr);
-
-        blocks_.push_back({.ptr = ptr, .size = blockSize, .allocated = 0});
-        targetBlock = &blocks_.back();
-    }
-
-    SWC_ASSERT(targetBlock);
-    std::byte* const dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
-    targetBlock->allocated += requestSizeAlign;
+    if (!dst)
+        dst = allocateSlow(requestSizeAlign);
 
     outExecutableMemory.ptr_              = dst;
     outExecutableMemory.size_             = codeSize;

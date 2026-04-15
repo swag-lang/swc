@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/JIT/JITMemory.h"
 #include "Support/Core/ByteSpan.h"
+#include <atomic>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,13 +23,17 @@ public:
 private:
     struct Block
     {
-        void*    ptr       = nullptr;
-        uint32_t size      = 0;
-        uint32_t allocated = 0;
+        void*                 ptr       = nullptr;
+        uint32_t              size      = 0;
+        std::atomic<uint32_t> allocated = 0;
     };
 
-    std::mutex         mutex_;
-    std::vector<Block> blocks_;
+    static bool tryAllocateFromBlock(std::byte*& outPtr, Block& block, uint32_t allocationSize);
+    std::byte*  allocateSlow(uint32_t allocationSize);
+
+    std::mutex                          mutex_;
+    std::vector<std::unique_ptr<Block>> blocks_;
+    std::atomic<Block*>                 currentBlock_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

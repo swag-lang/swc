@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
@@ -90,30 +91,32 @@ private:
     {
         MicroInstrRef               instRef = MicroInstrRef::invalid();
         MicroInstrUseDef            useDef;
-        SmallVector4<RegValueEntry> reachingValues;
         SmallVector4<RegValueEntry> defValues;
     };
 
     struct BlockInfo
     {
-        uint32_t                 instructionBegin = 0;
-        uint32_t                 instructionEnd   = 0;
-        SmallVector<uint32_t, 2> predecessors;
-        SmallVector<uint32_t, 2> successors;
-        SmallVector<uint32_t, 2> domChildren;
-        SmallVector<uint32_t, 2> dominanceFrontier;
-        SmallVector<uint32_t, 2> phis;
-        uint32_t                 idom = std::numeric_limits<uint32_t>::max();
+        uint32_t                    instructionBegin = 0;
+        uint32_t                    instructionEnd   = 0;
+        SmallVector<uint32_t, 2>    predecessors;
+        SmallVector<uint32_t, 2>    successors;
+        SmallVector<uint32_t, 2>    domChildren;
+        SmallVector<uint32_t, 2>    dominanceFrontier;
+        SmallVector<uint32_t, 2>    phis;
+        SmallVector8<RegValueEntry> entryValues;
+        uint32_t                    idom = std::numeric_limits<uint32_t>::max();
     };
 
     struct RenameState
     {
-        std::unordered_map<MicroReg, uint32_t> currentValues;
+        std::vector<uint32_t> currentValues;
+        std::vector<uint32_t> activeRegIndices;
+        std::vector<uint32_t> activePositions;
     };
 
     struct RestorePoint
     {
-        MicroReg reg         = MicroReg::invalid();
+        uint32_t regIndex    = K_INVALID_VALUE;
         uint32_t previousId  = K_INVALID_VALUE;
         bool     hadPrevious = false;
     };
@@ -123,25 +126,28 @@ private:
     static bool     isTrackedReg(MicroReg reg);
     static uint32_t findRegValue(std::span<const RegValueEntry> entries, MicroReg reg);
 
-    void        buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
-    void        computeDominators();
-    void        placePhiNodes();
-    void        renameIntoSsa();
-    void        renameBlock(uint32_t blockIndex, RenameState& state);
-    static void captureReachingValues(SmallVector4<RegValueEntry>& out, const std::unordered_map<MicroReg, uint32_t>& currentValues);
-    void        assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const std::unordered_map<MicroReg, uint32_t>& currentValues);
-    static void pushCurrentValue(std::vector<RestorePoint>& restores, RenameState& state, MicroReg reg, uint32_t valueId);
-    uint32_t    createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
-    uint32_t    ensurePhi(uint32_t blockIndex, MicroReg reg);
-    void        appendValueUse(uint32_t valueId, const UseSite& useSite);
-    bool        isValueTransitivelyUsed(uint32_t valueId) const;
+    void     buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
+    void     computeDominators();
+    void     placePhiNodes();
+    void     renameIntoSsa();
+    void     renameBlock(uint32_t blockIndex, RenameState& state);
+    void     captureCurrentValues(SmallVector8<RegValueEntry>& out, const RenameState& state) const;
+    uint32_t currentValue(const RenameState& state, MicroReg reg) const;
+    void     assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const RenameState& state);
+    void     pushCurrentValue(std::vector<RestorePoint>& restores, RenameState& state, MicroReg reg, uint32_t valueId);
+    uint32_t createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
+    uint32_t ensurePhi(uint32_t blockIndex, MicroReg reg);
+    void     appendValueUse(uint32_t valueId, const UseSite& useSite);
+    bool     isValueTransitivelyUsed(uint32_t valueId) const;
 
     MicroBuilder*              builder_  = nullptr;
     MicroStorage*              storage_  = nullptr;
     MicroOperandStorage*       operands_ = nullptr;
     const Encoder*             encoder_  = nullptr;
+    MicroDenseRegIndex         trackedRegs_;
     std::vector<InstrInfo>     instrInfos_;
     std::vector<MicroInstrRef> instructionRefs_;
+    std::vector<uint32_t>      instructionIndexBySlot_;
     std::vector<uint32_t>      instructionToBlock_;
     std::vector<BlockInfo>     blocks_;
     std::vector<ValueInfo>     valueInfos_;

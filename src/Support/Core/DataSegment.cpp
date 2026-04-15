@@ -254,6 +254,11 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
 
         const uint32_t   offset = block.offset;
         std::byte* const ptr    = block.storage.get();
+        const auto       begin  = reinterpret_cast<uintptr_t>(ptr);
+        largeBlockRanges_[begin] = {
+            .offsetEnd   = begin + size,
+            .blockOffset = offset,
+        };
         largeBlocks_.push_back(std::move(block));
         recordAllocation(offset, size, align);
         return {offset, ptr};
@@ -307,14 +312,19 @@ const std::byte* DataSegment::findPtrLocked(const Ref ref, const uint32_t size) 
 
 Ref DataSegment::findLargeBlockRefLocked(const void* ptr) const noexcept
 {
-    const auto* bytePtr = static_cast<const std::byte*>(ptr);
-    for (const LargeBlock& block : largeBlocks_)
-    {
-        if (bytePtr >= block.storage.get() && bytePtr < block.storage.get() + block.size)
-            return block.offset + static_cast<uint32_t>(bytePtr - block.storage.get());
-    }
+    if (!ptr || largeBlockRanges_.empty())
+        return INVALID_REF;
 
-    return INVALID_REF;
+    const auto address = reinterpret_cast<uintptr_t>(ptr);
+    const auto nextIt  = largeBlockRanges_.upper_bound(address);
+    if (nextIt == largeBlockRanges_.begin())
+        return INVALID_REF;
+
+    const auto it = std::prev(nextIt);
+    if (address >= it->second.offsetEnd)
+        return INVALID_REF;
+
+    return it->second.blockOffset + static_cast<uint32_t>(address - it->first);
 }
 
 void DataSegment::rebuildRelocationsByOffsetLocked() const

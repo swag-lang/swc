@@ -159,6 +159,14 @@ private:
         const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(storage); }
     };
 
+    struct PageRange
+    {
+        uintptr_t   begin = 0;
+        uintptr_t   end   = 0;
+        uint32_t    index = 0;
+        const Page* page  = nullptr;
+    };
+
     struct SpanHdrRaw
     {
         uint32_t total = 0;
@@ -189,6 +197,7 @@ private:
     }
 
     const std::vector<Page*>* snapshotPages() const noexcept;
+    const std::vector<PageRange>* snapshotPageRanges() const noexcept;
     void                      publishPages();
 
     uint32_t       publishedPageCount() const noexcept;
@@ -198,7 +207,9 @@ private:
 
     std::vector<std::unique_ptr<Page>>                     pagesStorage_;
     std::vector<std::unique_ptr<const std::vector<Page*>>> publishedPagesStorage_;
+    std::vector<std::unique_ptr<const std::vector<PageRange>>> publishedPageRangesStorage_;
     std::atomic<const std::vector<Page*>*>                 publishedPages_{nullptr};
+    std::atomic<const std::vector<PageRange>*>             publishedPageRanges_{nullptr};
     uint64_t                                               totalBytes_    = 0;
     uint32_t                                               pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
     Page*                                                  curPage_       = nullptr;

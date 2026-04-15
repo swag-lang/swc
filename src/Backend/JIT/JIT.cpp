@@ -541,18 +541,17 @@ namespace
         return Result::Continue;
     }
 
-    Result patchConstantFunctionRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, const void* ptr)
+    Result patchConstantFunctionRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, const ConstantRef constantRef, const void* ptr)
     {
         if (!ptr)
             return Result::Continue;
 
-        uint32_t  shardIndex = 0;
-        const Ref sourceRef  = ctx.compiler().cstMgr().findDataSegmentRef(shardIndex, ptr);
-        if (sourceRef == INVALID_REF)
+        DataSegmentRef sourceRef;
+        if (!ctx.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, constantRef, ptr))
             return Result::Continue;
 
         std::unordered_set<uint64_t> visited;
-        return patchConstantFunctionRelocationsRec(ctx, ownerFunction, shardIndex, sourceRef, visited);
+        return patchConstantFunctionRelocationsRec(ctx, ownerFunction, sourceRef.shardIndex, sourceRef.offset, visited);
     }
 
     Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
@@ -588,7 +587,7 @@ namespace
             }
 
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
-                SWC_RESULT(patchConstantFunctionRelocations(ctx, ownerFunction, reinterpret_cast<const void*>(targetAddress)));
+                SWC_RESULT(patchConstantFunctionRelocations(ctx, ownerFunction, reloc.constantRef, reinterpret_cast<const void*>(targetAddress)));
 
             patchAbsolute64(writableCode, reloc, targetAddress);
         }

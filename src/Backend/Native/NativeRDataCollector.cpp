@@ -77,20 +77,11 @@ Result NativeRDataCollector::enqueueConstantRelocation(const Utf8& ownerName, co
         return enqueueSourceOffset(ownerName, relocation.constantShard, relocation.constantOffset);
     }
 
-    return enqueuePointer(ownerName, reinterpret_cast<const void*>(relocation.targetAddress));
-}
-
-Result NativeRDataCollector::enqueuePointer(const Utf8& ownerName, const void* ptr)
-{
-    if (!ptr)
-        return Result::Continue;
-
-    uint32_t  shardIndex = 0;
-    const Ref sourceRef  = builder_->compiler().cstMgr().findDataSegmentRef(shardIndex, ptr);
-    if (sourceRef == INVALID_REF)
+    DataSegmentRef sourceRef;
+    if (!builder_->compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress)))
         return builder_->reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
 
-    return enqueueSourceOffset(ownerName, shardIndex, sourceRef);
+    return enqueueSourceOffset(ownerName, sourceRef.shardIndex, sourceRef.offset);
 }
 
 Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const uint32_t shardIndex, const uint32_t sourceOffset)

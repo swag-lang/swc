@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    ConstantValue makeMaterializedConstantValue(Sema& sema, TypeRef typeRef, ByteSpan storedBytes)
+    ConstantValue makeMaterializedConstantValue(Sema& sema, TypeRef typeRef, ByteSpan storedBytes, DataSegmentRef dataSegmentRef)
     {
         TaskContext&    ctx            = sema.ctx();
         const TypeInfo& originalType   = ctx.typeMgr().get(typeRef);
@@ -36,6 +36,7 @@ namespace
         if (!result.isValid())
             return result;
 
+        result.setDataSegmentRef(dataSegmentRef);
         if (originalType.isEnum())
         {
             const ConstantRef storageRef = sema.cstMgr().addConstant(ctx, result);
@@ -63,12 +64,11 @@ namespace
         if (!ptr)
             return true;
 
-        uint32_t  shardIndex = 0;
-        const Ref targetRef  = sema.cstMgr().findDataSegmentRef(shardIndex, ptr);
-        if (targetRef == INVALID_REF)
+        DataSegmentRef ref;
+        if (!sema.cstMgr().resolveDataSegmentRef(ref, ptr))
             return false;
 
-        return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, shardIndex);
+        return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, ref.shardIndex);
     }
 
     bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, ByteSpan payload)
@@ -212,8 +212,9 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
         return ConstantRef::invalid();
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
-    const ByteSpan      storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
-    const ConstantValue result      = makeMaterializedConstantValue(sema, typeRef, storedBytes);
+    const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
+    const ByteSpan       storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
+    const ConstantValue  result      = makeMaterializedConstantValue(sema, typeRef, storedBytes, dataRef);
     if (!result.isValid())
         return ConstantRef::invalid();
 
@@ -258,8 +259,9 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     rtLoc->colEnd    = codeRange.column + codeRange.len;
 
     const auto          bytes  = ByteSpan{storage, sizeof(Runtime::SourceCodeLocation)};
-    const ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
-    outCstRef                  = sema.cstMgr().addConstant(ctx, cstVal);
+    ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
+    cstVal.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
+    outCstRef = sema.cstMgr().addConstant(ctx, cstVal);
     return Result::Continue;
 }
 

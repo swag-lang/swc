@@ -30,21 +30,20 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    void resolveConstantSource(uint32_t& outShardIndex, uint32_t& outOffset, TaskContext* ctx, const bool hasConstantTarget, const uint64_t value)
+    void resolveConstantSource(uint32_t& outShardIndex, uint32_t& outOffset, TaskContext* ctx, const ConstantRef constantRef, const uint64_t value)
     {
         outShardIndex = INVALID_REF;
         outOffset     = INVALID_REF;
 
-        if (!hasConstantTarget || !value || !ctx || !ctx->hasCompiler())
+        if (!constantRef.isValid() || !value || !ctx || !ctx->hasCompiler())
             return;
 
-        uint32_t  shardIndex = 0;
-        const Ref offset     = ctx->cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
-        if (offset == INVALID_REF)
+        DataSegmentRef sourceRef;
+        if (!ctx->cstMgr().resolveConstantDataSegmentRef(sourceRef, constantRef, reinterpret_cast<const void*>(value)))
             return;
 
-        outShardIndex = shardIndex;
-        outOffset     = offset;
+        outShardIndex = sourceRef.shardIndex;
+        outOffset     = sourceRef.offset;
     }
 }
 
@@ -459,7 +458,7 @@ void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef
 
     uint32_t constantShard  = INVALID_REF;
     uint32_t constantOffset = INVALID_REF;
-    resolveConstantSource(constantShard, constantOffset, ctx_, hasConstantTarget, value);
+    resolveConstantSource(constantShard, constantOffset, ctx_, hasConstantTarget ? constantRef : ConstantRef::invalid(), value);
 
     addRelocation({
         .kind           = relocationKind,

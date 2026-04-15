@@ -34,6 +34,15 @@ struct DataSegmentAllocation
     uint32_t align  = 1;
 };
 
+struct DataSegmentRef
+{
+    uint32_t shardIndex = INVALID_REF;
+    uint32_t offset     = INVALID_REF;
+
+    bool isValid() const noexcept { return shardIndex != INVALID_REF && offset != INVALID_REF; }
+    bool isInvalid() const noexcept { return !isValid(); }
+};
+
 class DataSegment
 {
 public:
@@ -42,6 +51,12 @@ public:
         uint32_t                     offset = 0;
         uint32_t                     size   = 0;
         std::unique_ptr<std::byte[]> storage;
+    };
+
+    struct LargeBlockRange
+    {
+        uintptr_t offsetEnd   = 0;
+        uint32_t  blockOffset = 0;
     };
 
     std::pair<ByteSpan, Ref>                  addSpan(ByteSpan value);
@@ -122,6 +137,7 @@ private:
     void                                                                   recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
     PagedStore                                                             store_;
     std::vector<LargeBlock>                                                largeBlocks_;
+    std::map<uintptr_t, LargeBlockRange>                                    largeBlockRanges_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> stringMap_;
     std::vector<DataSegmentRelocation>                                     relocations_;
     mutable std::vector<uint32_t>                                           relocationsByOffset_;

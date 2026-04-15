@@ -14,7 +14,7 @@ public:
     ConstantRef      addInt(const TaskContext& ctx, uint64_t value);
     std::string_view addString(const TaskContext& ctx, std::string_view str);
     ConstantRef      addConstant(const TaskContext& ctx, const ConstantValue& value);
-    std::string_view addPayloadBuffer(std::string_view payload);
+    std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef = nullptr);
 
     ConstantRef          cstNull() const { return cstNull_; }
     ConstantRef          cstUndefined() const { return cstUndefined_; }
@@ -28,7 +28,8 @@ public:
     TypeRef              makeTypeValue(Sema& sema, ConstantRef cstRef) const;
     DataSegment&         shardDataSegment(uint32_t index);
     const DataSegment&   shardDataSegment(uint32_t index) const;
-    Ref                  findDataSegmentRef(uint32_t& outShardIndex, const void* ptr) const noexcept;
+    bool                 resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
+    bool                 resolveConstantDataSegmentRef(DataSegmentRef& outRef, ConstantRef cstRef, const void* ptr) const noexcept;
 
     struct Shard
     {

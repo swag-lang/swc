@@ -395,7 +395,18 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
             uint32_t shardIndex = relocation.constantShard;
             Ref      ref        = relocation.constantOffset;
             if (!relocation.hasConstantSource())
-                ref = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
+            {
+                DataSegmentRef sourceRef;
+                if (builder_.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress)))
+                {
+                    shardIndex = sourceRef.shardIndex;
+                    ref        = sourceRef.offset;
+                }
+                else
+                {
+                    ref = INVALID_REF;
+                }
+            }
             if (ref == INVALID_REF || shardIndex >= ConstantManager::SHARD_COUNT)
                 return builder_.reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
 

@@ -88,6 +88,33 @@ namespace
                 SWC_UNREACHABLE();
         }
     }
+
+    bool resolveDataSegmentByteRange(DataSegmentRef& outRef, const DataSegmentRef baseRef, const void* basePtr, const uint64_t size, const void* ptr) noexcept
+    {
+        outRef = {};
+        if (baseRef.isInvalid() || !basePtr || !ptr || !size)
+            return false;
+
+        const auto baseAddress = reinterpret_cast<uintptr_t>(basePtr);
+        const auto ptrAddress  = reinterpret_cast<uintptr_t>(ptr);
+        if (ptrAddress < baseAddress)
+            return false;
+
+        const uint64_t delta = ptrAddress - baseAddress;
+        if (delta >= size)
+            return false;
+
+        const uint64_t offset = static_cast<uint64_t>(baseRef.offset) + delta;
+        SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
+        if (offset > std::numeric_limits<uint32_t>::max())
+            return false;
+
+        outRef = {
+            .shardIndex = baseRef.shardIndex,
+            .offset     = static_cast<uint32_t>(offset),
+        };
+        return true;
+    }
 }
 
 ByteSpan ConstantValue::normalizePayloadBytes(ByteSpan bytes) noexcept
@@ -103,6 +130,7 @@ ConstantValue::ConstantValue()
 ConstantValue::ConstantValue(const ConstantValue& other) :
     kind_(other.kind_),
     typeRef_(other.typeRef_),
+    dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
     payloadBorrowed_(other.payloadBorrowed_)
 {
     switch (kind_)
@@ -158,6 +186,7 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
 ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     kind_(other.kind_),
     typeRef_(other.typeRef_),
+    dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
     payloadBorrowed_(other.payloadBorrowed_)
 {
     switch (kind_)
@@ -210,6 +239,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     }
 
     other.kind_            = ConstantKind::Invalid;
+    other.dataSegmentRef_.store(packDataSegmentRef({}), std::memory_order_relaxed);
     other.payloadBorrowed_ = false;
 }
 
@@ -321,6 +351,73 @@ bool ConstantValue::gt(const ConstantValue& rhs) const noexcept
 const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 {
     return ctx.typeMgr().get(typeRef_);
+}
+
+uint64_t ConstantValue::packDataSegmentRef(const DataSegmentRef ref) noexcept
+{
+    return (static_cast<uint64_t>(ref.shardIndex) << 32) | ref.offset;
+}
+
+DataSegmentRef ConstantValue::unpackDataSegmentRef(const uint64_t packedRef) noexcept
+{
+    return {
+        .shardIndex = static_cast<uint32_t>(packedRef >> 32),
+        .offset     = static_cast<uint32_t>(packedRef),
+    };
+}
+
+DataSegmentRef ConstantValue::dataSegmentRef() const noexcept
+{
+    return unpackDataSegmentRef(dataSegmentRef_.load(std::memory_order_relaxed));
+}
+
+void ConstantValue::setDataSegmentRef(const DataSegmentRef ref) noexcept
+{
+    dataSegmentRef_.store(packDataSegmentRef(ref), std::memory_order_relaxed);
+}
+
+bool ConstantValue::resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept
+{
+    outRef = {};
+    const DataSegmentRef dataSegmentRef = this->dataSegmentRef();
+    if (dataSegmentRef.isInvalid() || !ptr)
+        return false;
+
+    switch (kind_)
+    {
+        case ConstantKind::String:
+        {
+            const std::string_view str = getString();
+            return resolveDataSegmentByteRange(outRef, dataSegmentRef, str.data(), str.size() + 1, ptr);
+        }
+        case ConstantKind::Struct:
+        {
+            const ByteSpan bytes = getStruct();
+            return resolveDataSegmentByteRange(outRef, dataSegmentRef, bytes.data(), bytes.size(), ptr);
+        }
+        case ConstantKind::Array:
+        {
+            const ByteSpan bytes = getArray();
+            return resolveDataSegmentByteRange(outRef, dataSegmentRef, bytes.data(), bytes.size(), ptr);
+        }
+        case ConstantKind::Slice:
+        {
+            const ByteSpan bytes = getSlice();
+            return resolveDataSegmentByteRange(outRef, dataSegmentRef, bytes.data(), bytes.size(), ptr);
+        }
+        case ConstantKind::ValuePointer:
+            if (reinterpret_cast<const void*>(getValuePointer()) != ptr)
+                return false;
+            outRef = dataSegmentRef;
+            return true;
+        case ConstantKind::BlockPointer:
+            if (reinterpret_cast<const void*>(getBlockPointer()) != ptr)
+                return false;
+            outRef = dataSegmentRef;
+            return true;
+        default:
+            return false;
+    }
 }
 
 ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)

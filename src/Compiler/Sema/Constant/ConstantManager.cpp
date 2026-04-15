@@ -40,7 +40,7 @@ std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_
 
 namespace
 {
-    uint32_t resolveBorrowedPayloadShardIndex(const ConstantManager& manager, const ConstantValue& value)
+    bool resolveBorrowedPayloadRef(DataSegmentRef& outRef, const ConstantManager& manager, const ConstantValue& value)
     {
         const void* payloadPtr = nullptr;
         if (value.isStruct())
@@ -51,21 +51,21 @@ namespace
             payloadPtr = value.getSlice().data();
 
         if (!payloadPtr)
-            return ConstantManager::SHARD_COUNT;
+            return false;
 
-        uint32_t shardIndex = 0;
-        if (manager.findDataSegmentRef(shardIndex, payloadPtr) == INVALID_REF)
-            return ConstantManager::SHARD_COUNT;
+        if (value.resolveDataSegmentRef(outRef, payloadPtr))
+            return true;
 
-        return shardIndex;
+        return manager.resolveDataSegmentRef(outRef, payloadPtr);
     }
 
     bool isBorrowedPayloadBackedByDataSegment(const ConstantManager& manager, const ConstantValue& value)
     {
-        return resolveBorrowedPayloadShardIndex(manager, value) < ConstantManager::SHARD_COUNT;
+        DataSegmentRef ref;
+        return resolveBorrowedPayloadRef(ref, manager, value);
     }
 
-    ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
+    ConstantRef addCstFinalize(ConstantManager& manager, ConstantRef cstRef)
     {
 #if SWC_HAS_STATS
         Stats::get().numConstants.fetch_add(1);
@@ -77,76 +77,148 @@ namespace
         return cstRef;
     }
 
-    ConstantRef addCstSpanPayload(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
+    ConstantRef addCstSpanPayload(ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
     {
         ConstantValue stored = value;
+        uint32_t      localIndex = INVALID_REF;
 
-        const std::unique_lock lk(shard.mutex);
-        if (value.isStruct())
         {
-            const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
-            stored.setPayloadStruct(view);
+            const std::unique_lock lk(shard.mutex);
+            if (value.isStruct())
+            {
+                const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
+                stored.setPayloadStruct(view);
+                stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
+            }
+            else if (value.isArray())
+            {
+                const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
+                stored.setPayloadArray(view);
+                stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
+            }
+            else
+            {
+                SWC_ASSERT(value.isSlice());
+                const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
+                stored.setPayloadSlice(view, value.getSliceCount());
+                stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
+            }
+
+            localIndex = shard.dataSegment.add(stored);
         }
-        else if (value.isArray())
+
+        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+        return addCstFinalize(manager, result);
+    }
+
+    ConstantRef addCstString(ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    {
         {
-            const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
-            stored.setPayloadArray(view);
+            const std::shared_lock lk(shard.mutex);
+            if (const auto it = shard.map.find(value); it != shard.map.end())
+                return it->second;
+        }
+
+        ConstantValue strValue;
+        uint32_t      localIndex = INVALID_REF;
+        ConstantRef   result;
+        {
+            const std::unique_lock lk(shard.mutex);
+            if (const auto it = shard.map.find(value); it != shard.map.end())
+                return it->second;
+
+            const std::pair<std::string_view, Ref> res = shard.dataSegment.addString(value.getString());
+            strValue                                  = ConstantValue::makeString(ctx, res.first);
+            strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
+            localIndex = shard.dataSegment.add(strValue);
+            SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+            result = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+            shard.map.emplace(strValue, result);
+        }
+
+        return addCstFinalize(manager, result);
+    }
+
+    void updateStoredDataSegmentRef(ConstantManager::Shard& shard, const ConstantRef cstRef, const DataSegmentRef ref)
+    {
+        if (ref.isInvalid())
+            return;
+
+        const uint32_t localIndex = cstRef.get() & ConstantManager::LOCAL_MASK;
+        ConstantValue* stored     = shard.dataSegment.ptr<ConstantValue>(localIndex);
+        SWC_ASSERT(stored != nullptr);
+        if (!stored)
+            return;
+
+        const DataSegmentRef storedRef = stored->dataSegmentRef();
+        if (storedRef.isValid() && storedRef.shardIndex == ref.shardIndex && storedRef.offset == ref.offset)
+            return;
+
+        stored->setDataSegmentRef(ref);
+    }
+
+    void enrichPointerDataSegmentRef(ConstantManager& manager, ConstantValue& value)
+    {
+        if (!value.isValuePointer() && !value.isBlockPointer())
+            return;
+        if (value.dataSegmentRef().isValid())
+            return;
+
+        const uint64_t ptrValue = value.isValuePointer() ? value.getValuePointer() : value.getBlockPointer();
+        if (!ptrValue)
+            return;
+
+        DataSegmentRef ref;
+        if (manager.resolveDataSegmentRef(ref, reinterpret_cast<const void*>(ptrValue)))
+            value.setDataSegmentRef(ref);
+    }
+
+    ConstantRef addCstOther(ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    {
+        SWC_UNUSED(ctx);
+        ConstantValue stored = value;
+        enrichPointerDataSegmentRef(manager, stored);
+        if ((stored.isStruct() || stored.isArray() || stored.isSlice()) && stored.isPayloadBorrowed())
+        {
+            DataSegmentRef ref;
+            SWC_ASSERT(isBorrowedPayloadBackedByDataSegment(manager, stored));
+            if (resolveBorrowedPayloadRef(ref, manager, stored))
+                stored.setDataSegmentRef(ref);
+        }
+        if (stored.dataSegmentRef().isInvalid())
+        {
+            const std::shared_lock lk(shard.mutex);
+            if (const auto it = shard.map.find(stored); it != shard.map.end())
+                return it->second;
         }
         else
         {
-            SWC_ASSERT(value.isSlice());
-            const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
-            stored.setPayloadSlice(view, value.getSliceCount());
-        }
-
-        const uint32_t localIndex = shard.dataSegment.add(stored);
-        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-        return addCstFinalize(manager, result);
-    }
-
-    ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
-    {
-        {
-            const std::shared_lock lk(shard.mutex);
-            if (const auto it = shard.map.find(value); it != shard.map.end())
+            const std::unique_lock lk(shard.mutex);
+            if (const auto it = shard.map.find(stored); it != shard.map.end())
+            {
+                updateStoredDataSegmentRef(shard, it->second, stored.dataSegmentRef());
                 return it->second;
+            }
         }
 
-        const std::unique_lock lk(shard.mutex);
-        if (const auto it = shard.map.find(value); it != shard.map.end())
-            return it->second;
-
-        const std::pair<std::string_view, Ref> res        = shard.dataSegment.addString(value.getString());
-        const ConstantValue                    strValue   = ConstantValue::makeString(ctx, res.first);
-        const uint32_t                         localIndex = shard.dataSegment.add(strValue);
-        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-        shard.map.emplace(strValue, result);
-        return addCstFinalize(manager, result);
-    }
-
-    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
-    {
-        SWC_UNUSED(ctx);
-        if ((value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed())
-            SWC_ASSERT(isBorrowedPayloadBackedByDataSegment(manager, value));
-
+        uint32_t    localIndex = INVALID_REF;
+        ConstantRef result;
         {
-            const std::shared_lock lk(shard.mutex);
-            if (const auto it = shard.map.find(value); it != shard.map.end())
+            const std::unique_lock lk(shard.mutex);
+            auto [it, inserted] = shard.map.try_emplace(stored, ConstantRef{});
+            if (!inserted)
+            {
+                updateStoredDataSegmentRef(shard, it->second, stored.dataSegmentRef());
                 return it->second;
+            }
+
+            localIndex = shard.dataSegment.add(stored);
+            SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+            result     = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+            it->second = result;
         }
 
-        const std::unique_lock lk(shard.mutex);
-        auto [it, inserted] = shard.map.try_emplace(value, ConstantRef{});
-        if (!inserted)
-            return it->second;
-
-        const uint32_t localIndex = shard.dataSegment.add(value);
-        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-        it->second = result;
         return addCstFinalize(manager, result);
     }
 
@@ -210,13 +282,15 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     uint32_t   shardIndex          = value.hash() & (SHARD_COUNT - 1);
     const bool isSpanValue         = value.isStruct() || value.isArray() || value.isSlice();
     bool       keepBorrowedPayload = false;
+    ConstantValue valueToAdd       = value;
     if (isSpanValue && value.isPayloadBorrowed())
     {
-        const uint32_t payloadShardIndex = resolveBorrowedPayloadShardIndex(*this, value);
-        if (payloadShardIndex < SHARD_COUNT)
+        DataSegmentRef payloadRef;
+        if (resolveBorrowedPayloadRef(payloadRef, *this, valueToAdd))
         {
-            shardIndex          = payloadShardIndex;
+            shardIndex          = payloadRef.shardIndex;
             keepBorrowedPayload = true;
+            valueToAdd.setDataSegmentRef(payloadRef);
         }
     }
 
@@ -226,22 +300,26 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
     if (isSpanValue)
     {
         if (keepBorrowedPayload)
-            return addCstOther(*this, shard, shardIndex, ctx, value);
-        return addCstSpanPayload(*this, shard, shardIndex, value);
+            return addCstOther(*this, shard, shardIndex, ctx, valueToAdd);
+        return addCstSpanPayload(*this, shard, shardIndex, valueToAdd);
     }
 
-    if (value.isString())
-        return addCstString(*this, shard, shardIndex, ctx, value);
+    if (valueToAdd.isString())
+        return addCstString(*this, shard, shardIndex, ctx, valueToAdd);
 
-    return addCstOther(*this, shard, shardIndex, ctx, value);
+    return addCstOther(*this, shard, shardIndex, ctx, valueToAdd);
 }
 
-std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
+std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef)
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
-    return shard.dataSegment.addString(payload).first;
+    const auto [view, ref] = shard.dataSegment.addString(payload);
+    const DataSegmentRef dataRef{.shardIndex = shardIndex, .offset = ref};
+    if (outRef)
+        *outRef = dataRef;
+    return view;
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const
@@ -286,8 +364,10 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
 
     // Keep the precise generated runtime payload type (TypeInfoNative, TypeInfoArray, ...).
     const uint64_t      ptrValue = reinterpret_cast<uint64_t>(infoResult.span.data());
-    const ConstantValue value    = ConstantValue::makeValuePointer(ctx, infoResult.rtTypeRef, ptrValue, TypeInfoFlagsE::Const);
-    outRef                       = addConstant(sema.ctx(), value);
+    ConstantValue       value    = ConstantValue::makeValuePointer(ctx, infoResult.rtTypeRef, ptrValue, TypeInfoFlagsE::Const);
+    const DataSegmentRef dataRef{.shardIndex = shardIndex, .offset = infoResult.offset};
+    value.setDataSegmentRef(dataRef);
+    outRef = addConstant(sema.ctx(), value);
     return Result::Continue;
 }
 
@@ -324,23 +404,42 @@ const DataSegment& ConstantManager::shardDataSegment(const uint32_t index) const
     return shards_[index].dataSegment;
 }
 
-Ref ConstantManager::findDataSegmentRef(uint32_t& outShardIndex, const void* ptr) const noexcept
+bool ConstantManager::resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept
 {
-    outShardIndex = 0;
+    outRef = {};
     if (!ptr)
-        return INVALID_REF;
+        return false;
 
-    for (uint32_t i = 0; i < SHARD_COUNT; ++i)
+    for (uint32_t shardIndex = 0; shardIndex < SHARD_COUNT; ++shardIndex)
     {
-        const Ref ref = shards_[i].dataSegment.findRef(ptr);
+        const Ref ref = shards_[shardIndex].dataSegment.findRef(ptr);
         if (ref == INVALID_REF)
             continue;
 
-        outShardIndex = i;
-        return ref;
+        outRef = {
+            .shardIndex = shardIndex,
+            .offset     = ref,
+        };
+        return true;
     }
 
-    return INVALID_REF;
+    return false;
+}
+
+bool ConstantManager::resolveConstantDataSegmentRef(DataSegmentRef& outRef, const ConstantRef cstRef, const void* ptr) const noexcept
+{
+    outRef = {};
+    if (cstRef.isValid())
+    {
+        const ConstantValue& cst = get(cstRef);
+        if (cst.resolveDataSegmentRef(outRef, ptr))
+        {
+            if (outRef.shardIndex < SHARD_COUNT && shards_[outRef.shardIndex].dataSegment.findRef(ptr) == outRef.offset)
+                return true;
+        }
+    }
+
+    return resolveDataSegmentRef(outRef, ptr);
 }
 
 SWC_END_NAMESPACE();

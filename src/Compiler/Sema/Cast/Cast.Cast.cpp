@@ -1413,17 +1413,17 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, anyTypeRef, castRequest.errorNodeRef));
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
-    uint32_t  shardIndex     = 0;
-    const Ref typeInfoOffset = sema.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
-    SWC_ASSERT(typeInfoOffset != INVALID_REF);
-    if (typeInfoOffset == INVALID_REF)
+    DataSegmentRef typeInfoRef;
+    const bool     hasTypeInfoRef = sema.cstMgr().resolveConstantDataSegmentRef(typeInfoRef, typeInfoCstRef, reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
+    SWC_ASSERT(hasTypeInfoRef);
+    if (!hasTypeInfoRef)
         return Result::Error;
 
-    DataSegment& segment            = sema.cstMgr().shardDataSegment(shardIndex);
+    DataSegment& segment            = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex);
     const auto [anyOffset, storage] = segment.reserveBytes(sizeof(Runtime::Any), alignof(Runtime::Any), true);
     auto* const runtimeAny          = reinterpret_cast<Runtime::Any*>(storage);
-    runtimeAny->type                = segment.ptr<Runtime::TypeInfo>(typeInfoOffset);
-    segment.addRelocation(anyOffset + offsetof(Runtime::Any, type), typeInfoOffset);
+    runtimeAny->type                = segment.ptr<Runtime::TypeInfo>(typeInfoRef.offset);
+    segment.addRelocation(anyOffset + offsetof(Runtime::Any, type), typeInfoRef.offset);
 
     if (!srcCst.isNull())
     {
@@ -1442,7 +1442,8 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         }
     }
 
-    const ConstantValue anyCst = ConstantValue::makeStructBorrowed(ctx, dstTypeRef, ByteSpan{storage, sizeof(Runtime::Any)});
+    ConstantValue anyCst = ConstantValue::makeStructBorrowed(ctx, dstTypeRef, ByteSpan{storage, sizeof(Runtime::Any)});
+    anyCst.setDataSegmentRef({.shardIndex = typeInfoRef.shardIndex, .offset = anyOffset});
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, anyCst));
     return Result::Continue;
 }

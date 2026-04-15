@@ -32,12 +32,11 @@ namespace
         if (!ptr)
             return true;
 
-        uint32_t  shardIndex = 0;
-        const Ref targetRef  = codeGen.cstMgr().findDataSegmentRef(shardIndex, ptr);
-        if (targetRef == INVALID_REF)
+        DataSegmentRef ref;
+        if (!codeGen.cstMgr().resolveDataSegmentRef(ref, ptr))
             return false;
 
-        return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, shardIndex);
+        return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, ref.shardIndex);
     }
 
     bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, CodeGen& codeGen, ByteSpan payload)
@@ -207,9 +206,8 @@ ConstantRef CodeGenConstantHelpers::ensureStaticPayloadConstant(CodeGen& codeGen
 
     if (cst.isPayloadBorrowed())
     {
-        uint32_t  shardIndex = 0;
-        const Ref payloadRef = codeGen.cstMgr().findDataSegmentRef(shardIndex, payload.data());
-        if (payloadRef != INVALID_REF)
+        DataSegmentRef payloadRef;
+        if (codeGen.cstMgr().resolveConstantDataSegmentRef(payloadRef, cstRef, payload.data()))
             return cstRef;
     }
 
@@ -264,32 +262,40 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const ByteSpan storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
+    const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
     if (typeInfo.isArray())
-        return codeGen.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, typeRef, storedBytes));
+    {
+        ConstantValue value = ConstantValue::makeArrayBorrowed(ctx, typeRef, storedBytes);
+        value.setDataSegmentRef(dataRef);
+        return codeGen.cstMgr().addConstant(ctx, value);
+    }
 
-    return codeGen.cstMgr().addConstant(ctx, ConstantValue::makeStructBorrowed(ctx, typeRef, storedBytes));
+    ConstantValue value = ConstantValue::makeStructBorrowed(ctx, typeRef, storedBytes);
+    value.setDataSegmentRef(dataRef);
+    return codeGen.cstMgr().addConstant(ctx, value);
 }
 
 ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
 {
-    uint32_t targetShardIndex = 0;
-    Ref      targetOffset     = INVALID_REF;
+    DataSegmentRef targetRef;
     if (targetPtr)
-        targetOffset = codeGen.cstMgr().findDataSegmentRef(targetShardIndex, targetPtr);
+        codeGen.cstMgr().resolveDataSegmentRef(targetRef, targetPtr);
 
-    if (targetPtr && targetOffset == INVALID_REF)
+    if (targetPtr && targetRef.isInvalid())
         return ConstantRef::invalid();
 
-    DataSegment& segment         = codeGen.cstMgr().shardDataSegment(targetOffset == INVALID_REF ? 0 : targetShardIndex);
+    const uint32_t shardIndex    = targetRef.isInvalid() ? 0 : targetRef.shardIndex;
+    DataSegment&   segment       = codeGen.cstMgr().shardDataSegment(shardIndex);
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
     auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
     runtimeValue->ptr            = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
     runtimeValue->count          = count;
 
-    if (targetOffset != INVALID_REF)
-        segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetOffset);
+    if (targetRef.isValid())
+        segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetRef.offset);
 
-    const ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
+    ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
+    runtimeValueCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
     return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
 }
 

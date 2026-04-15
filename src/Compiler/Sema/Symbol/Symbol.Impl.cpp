@@ -115,9 +115,11 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
 
-    uint32_t  shardIndex     = 0;
-    const Ref typeInfoOffset = sema.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
-    SWC_ASSERT(typeInfoOffset != INVALID_REF);
+    DataSegmentRef typeInfoRef;
+    const bool     hasTypeInfoRef = sema.cstMgr().resolveConstantDataSegmentRef(typeInfoRef, typeInfoCstRef, reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
+    SWC_ASSERT(hasTypeInfoRef);
+    if (!hasTypeInfoRef)
+        return Result::Error;
 
     const auto&    methods      = itfSym->functions();
     const uint32_t slotCount    = static_cast<uint32_t>(methods.size()) + 1;
@@ -147,11 +149,12 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         return Result::Continue;
     }
 
-    DataSegment& segment                   = sema.cstMgr().shardDataSegment(shardIndex);
+    const uint32_t shardIndex              = typeInfoRef.shardIndex;
+    DataSegment&   segment                 = sema.cstMgr().shardDataSegment(shardIndex);
     const auto [tableOffset, tableStorage] = segment.reserveSpan<void*>(slotCount);
     SWC_ASSERT(tableStorage != nullptr);
     tableStorage[0] = reinterpret_cast<void*>(typeInfoCst.getValuePointer());
-    segment.addRelocation(tableOffset, typeInfoOffset);
+    segment.addRelocation(tableOffset, typeInfoRef.offset);
 
     for (uint32_t i = 0; i < implMethods.size(); ++i)
     {
@@ -159,9 +162,10 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         segment.addFunctionRelocation(tableOffset + (i + 1) * sizeof(void*), implMethods[i]);
     }
 
-    const ByteSpan      tableBytes{reinterpret_cast<const std::byte*>(tableStorage), static_cast<size_t>(slotCount) * sizeof(void*)};
-    const ConstantValue tableCst = ConstantValue::makeArrayBorrowed(ctx, tableTypeRef, tableBytes);
-    interfaceMethodTableRef_     = sema.cstMgr().addConstant(ctx, tableCst);
+    const ByteSpan tableBytes{reinterpret_cast<const std::byte*>(tableStorage), static_cast<size_t>(slotCount) * sizeof(void*)};
+    ConstantValue  tableCst = ConstantValue::makeArrayBorrowed(ctx, tableTypeRef, tableBytes);
+    tableCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = tableOffset});
+    interfaceMethodTableRef_ = sema.cstMgr().addConstant(ctx, tableCst);
     SWC_ASSERT(interfaceMethodTableRef_.isValid());
     outRef = interfaceMethodTableRef_;
     return Result::Continue;

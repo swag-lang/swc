@@ -35,8 +35,8 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedStructPayloadOutsideDataSegment)
     if (!stored.isStruct() || stored.typeRef() != ctx.typeMgr().typeString())
         return Result::Error;
 
-    uint32_t shardIndex = 0;
-    if (ctx.cstMgr().findDataSegmentRef(shardIndex, stored.getStruct().data()) == INVALID_REF)
+    DataSegmentRef storedRef;
+    if (!ctx.cstMgr().resolveConstantDataSegmentRef(storedRef, cstRef, stored.getStruct().data()))
         return Result::Error;
     if (stored.getStruct().data() == reinterpret_cast<const std::byte*>(&runtimeString))
         return Result::Error;
@@ -70,8 +70,8 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
     if (!stored.isArray() || stored.typeRef() != arrayTypeRef)
         return Result::Error;
 
-    uint32_t shardIndex = 0;
-    if (ctx.cstMgr().findDataSegmentRef(shardIndex, stored.getArray().data()) == INVALID_REF)
+    DataSegmentRef storedRef;
+    if (!ctx.cstMgr().resolveConstantDataSegmentRef(storedRef, cstRef, stored.getArray().data()))
         return Result::Error;
     if (stored.getArray().data() == source.data())
         return Result::Error;
@@ -97,8 +97,8 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedSlicePayloadOutsideDataSegment)
     if (!stored.isSlice())
         return Result::Error;
 
-    uint32_t shardIndex = 0;
-    if (ctx.cstMgr().findDataSegmentRef(shardIndex, stored.getSlice().data()) == INVALID_REF)
+    DataSegmentRef storedRef;
+    if (!ctx.cstMgr().resolveConstantDataSegmentRef(storedRef, cstRef, stored.getSlice().data()))
         return Result::Error;
     if (stored.getSlice().data() == source.data())
         return Result::Error;

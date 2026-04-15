@@ -1,7 +1,9 @@
 #pragma once
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
+#include <atomic>
 
 SWC_BEGIN_NAMESPACE();
 class TaskContext;
@@ -59,6 +61,9 @@ public:
     ConstantKind kind() const { return kind_; }
     TypeRef      typeRef() const { return typeRef_; }
     void         setTypeRef(TypeRef ref) { typeRef_ = ref; }
+    DataSegmentRef dataSegmentRef() const noexcept;
+    void           setDataSegmentRef(DataSegmentRef ref) noexcept;
+    bool           resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
     bool         isValid() const { return kind_ != ConstantKind::Invalid; }
     bool         isBool() const { return kind_ == ConstantKind::Bool; }
     bool         isChar() const { return kind_ == ConstantKind::Char; }
@@ -249,9 +254,12 @@ public:
 
 private:
     static ByteSpan normalizePayloadBytes(ByteSpan bytes) noexcept;
+    static uint64_t packDataSegmentRef(DataSegmentRef ref) noexcept;
+    static DataSegmentRef unpackDataSegmentRef(uint64_t packedRef) noexcept;
 
-    ConstantKind kind_    = ConstantKind::Invalid;
-    TypeRef      typeRef_ = TypeRef::invalid();
+    ConstantKind          kind_    = ConstantKind::Invalid;
+    TypeRef               typeRef_ = TypeRef::invalid();
+    std::atomic<uint64_t> dataSegmentRef_{packDataSegmentRef({})};
 
     // For Struct/Array/Slice only. When borrowed, the ByteSpan points to external storage whose lifetime must outlive
     // the constant (typically memory already stored in a `DataSegment`).

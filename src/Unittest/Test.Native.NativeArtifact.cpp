@@ -150,7 +150,8 @@ namespace
         outStorage = runtimeStringStorage;
 
         const ByteSpan bytes{reinterpret_cast<const std::byte*>(runtimeStringStorage), sizeof(Runtime::String)};
-        const auto     makeStructBorrowed = ConstantValue::makeStructBorrowed(ctx, compiler.typeMgr().typeString(), bytes);
+        auto           makeStructBorrowed = ConstantValue::makeStructBorrowed(ctx, compiler.typeMgr().typeString(), bytes);
+        makeStructBorrowed.setDataSegmentRef({.shardIndex = 0, .offset = runtimeStringOffset});
         return compiler.cstMgr().addConstant(ctx, makeStructBorrowed);
     }
 
@@ -334,6 +335,7 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
                                                                 fixture.compiler->typeMgr().typeU8(),
                                                                 reinterpret_cast<uint64_t>(rootStorage),
                                                                 TypeInfoFlagsE::Const);
+    value.setDataSegmentRef({.shardIndex = 0, .offset = rootOffset});
     const ConstantRef rootRef = fixture.compiler->cstMgr().addConstant(*fixture.compilerCtx, value);
 
     MachineCode code = makeConstantAddressCode(rootRef, rootStorage);
@@ -386,6 +388,7 @@ SWC_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
                                                                 fixture.compiler->typeMgr().typeVoid(),
                                                                 reinterpret_cast<uint64_t>(tableStorage),
                                                                 TypeInfoFlagsE::Const);
+    value.setDataSegmentRef({.shardIndex = 0, .offset = tableOffset});
     const ConstantRef rootRef = fixture.compiler->cstMgr().addConstant(*fixture.compilerCtx, value);
 
     MachineCode ownerCode = makeConstantAddressCode(rootRef, tableStorage);

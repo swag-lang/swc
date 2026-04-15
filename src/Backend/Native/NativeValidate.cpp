@@ -174,7 +174,15 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     uint32_t shardIndex = relocation.constantShard;
     Ref      baseOffset = relocation.constantOffset;
     if (!relocation.hasConstantSource())
-        baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
+    {
+        DataSegmentRef sourceRef;
+        const bool     hasSourceRef = builder_.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress));
+        SWC_ASSERT(hasSourceRef);
+        if (!hasSourceRef)
+            return;
+        shardIndex = sourceRef.shardIndex;
+        baseOffset = sourceRef.offset;
+    }
     SWC_ASSERT(baseOffset != INVALID_REF);
     SWC_ASSERT(shardIndex < ConstantManager::SHARD_COUNT);
 
@@ -183,34 +191,38 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (constant.kind() == ConstantKind::Struct)
     {
         const ByteSpan payload           = constant.getStruct();
-        uint32_t       payloadShardIndex = 0;
-        const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
-        SWC_ASSERT(payloadOffset != INVALID_REF);
-        SWC_ASSERT(payloadShardIndex == shardIndex);
+        DataSegmentRef payloadRef;
+        const bool     hasPayloadRef = builder_.compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
+        SWC_ASSERT(hasPayloadRef);
+        SWC_ASSERT(payloadRef.shardIndex == shardIndex);
+        if (!hasPayloadRef)
+            return;
 
         DataSegmentAllocation allocation;
         SWC_ASSERT(segment.findAllocation(allocation, baseOffset));
-        SWC_ASSERT(allocation.offset == payloadOffset);
+        SWC_ASSERT(allocation.offset == payloadRef.offset);
         SWC_ASSERT(allocation.size >= payload.size());
 
-        validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
+        validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadRef.offset, payload);
         return;
     }
 
     if (constant.kind() == ConstantKind::Array)
     {
         const ByteSpan payload           = constant.getArray();
-        uint32_t       payloadShardIndex = 0;
-        const Ref      payloadOffset     = builder_.compiler().cstMgr().findDataSegmentRef(payloadShardIndex, payload.data());
-        SWC_ASSERT(payloadOffset != INVALID_REF);
-        SWC_ASSERT(payloadShardIndex == shardIndex);
+        DataSegmentRef payloadRef;
+        const bool     hasPayloadRef = builder_.compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
+        SWC_ASSERT(hasPayloadRef);
+        SWC_ASSERT(payloadRef.shardIndex == shardIndex);
+        if (!hasPayloadRef)
+            return;
 
         DataSegmentAllocation allocation;
         SWC_ASSERT(segment.findAllocation(allocation, baseOffset));
-        SWC_ASSERT(allocation.offset == payloadOffset);
+        SWC_ASSERT(allocation.offset == payloadRef.offset);
         SWC_ASSERT(allocation.size >= payload.size());
 
-        validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadOffset, payload);
+        validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadRef.offset, payload);
         return;
     }
 

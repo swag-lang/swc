@@ -56,15 +56,14 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     }
 
     {
-        // Register every completed payload in this cache so nested typeinfos can be
-        // resolved back to their semantic TypeRef as well.
         const std::scoped_lock lk2(ptrToTypeMutex_);
         for (const auto& [cachedTypeRef, entry] : cache.entries)
         {
             if (entry.state != TypeGenCache::State::Done)
                 continue;
 
-            ptrToType_[storage.ptr<std::byte>(entry.offset)] = cachedTypeRef;
+            auto* const ptr = storage.ptr<std::byte>(entry.offset);
+            ptrToType_[ptr] = cachedTypeRef;
         }
     }
 

@@ -314,9 +314,8 @@ namespace
             return;
         }
 
-        uint32_t  shardIndex = 0;
-        const Ref ref        = codeGen.cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
-        if (ref != INVALID_REF)
+        DataSegmentRef sourceRef;
+        if (codeGen.cstMgr().resolveConstantDataSegmentRef(sourceRef, cstRef, reinterpret_cast<const void*>(value)))
             codeGen.builder().emitLoadRegPtrReloc(reg, value, cstRef);
         else
             codeGen.builder().emitLoadRegPtrImm(reg, value);

@@ -23,20 +23,24 @@ PagedStore::PagedStore(uint32_t pageSize) :
 PagedStore::PagedStore(PagedStore&& other) noexcept :
     pagesStorage_(std::move(other.pagesStorage_)),
     publishedPagesStorage_(std::move(other.publishedPagesStorage_)),
+    publishedPageRangesStorage_(std::move(other.publishedPageRangesStorage_)),
     totalBytes_(other.totalBytes_),
     pageSizeValue_(other.pageSizeValue_),
     curPage_(other.curPage_),
     curPageIndex_(other.curPageIndex_),
     lastPtr_(other.lastPtr_)
 {
-    const auto* pages = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
+    const auto* pages      = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
+    const auto* pageRanges = publishedPageRangesStorage_.empty() ? nullptr : publishedPageRangesStorage_.back().get();
     publishedPages_.store(pages, std::memory_order_release);
+    publishedPageRanges_.store(pageRanges, std::memory_order_release);
 
     other.totalBytes_   = 0;
     other.curPage_      = nullptr;
     other.curPageIndex_ = 0;
     other.lastPtr_      = nullptr;
     other.publishedPagesStorage_.clear();
+    other.publishedPageRangesStorage_.clear();
     other.publishPages();
 }
 
@@ -46,10 +50,15 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
     {
         std::swap(pagesStorage_, other.pagesStorage_);
         std::swap(publishedPagesStorage_, other.publishedPagesStorage_);
-        const auto* leftSnapshot  = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
-        const auto* rightSnapshot = other.publishedPagesStorage_.empty() ? nullptr : other.publishedPagesStorage_.back().get();
+        std::swap(publishedPageRangesStorage_, other.publishedPageRangesStorage_);
+        const auto* leftSnapshot       = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
+        const auto* rightSnapshot      = other.publishedPagesStorage_.empty() ? nullptr : other.publishedPagesStorage_.back().get();
+        const auto* leftRangeSnapshot  = publishedPageRangesStorage_.empty() ? nullptr : publishedPageRangesStorage_.back().get();
+        const auto* rightRangeSnapshot = other.publishedPageRangesStorage_.empty() ? nullptr : other.publishedPageRangesStorage_.back().get();
         publishedPages_.store(leftSnapshot, std::memory_order_release);
         other.publishedPages_.store(rightSnapshot, std::memory_order_release);
+        publishedPageRanges_.store(leftRangeSnapshot, std::memory_order_release);
+        other.publishedPageRanges_.store(rightRangeSnapshot, std::memory_order_release);
         std::swap(totalBytes_, other.totalBytes_);
         std::swap(pageSizeValue_, other.pageSizeValue_);
         std::swap(curPage_, other.curPage_);
@@ -505,20 +514,25 @@ PagedStore::Page* PagedStore::newPage()
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
-    const auto* bPtr  = static_cast<const uint8_t*>(ptr);
-    const auto  pages = snapshotPages();
-    for (uint32_t j = 0; j < pages->size(); j++)
-    {
-        const Page* page     = (*pages)[j];
-        const auto  pageUsed = page->used.load(std::memory_order_relaxed);
-        if (bPtr >= page->bytes() && bPtr < page->bytes() + pageUsed)
-        {
-            const auto offset = static_cast<uint32_t>(bPtr - page->bytes());
-            return makeRef(pageSizeValue_, j, offset);
-        }
-    }
+    if (!ptr)
+        return std::numeric_limits<Ref>::max();
 
-    return std::numeric_limits<Ref>::max();
+    const auto address = reinterpret_cast<uintptr_t>(ptr);
+    const auto ranges  = snapshotPageRanges();
+    const auto nextIt  = std::ranges::upper_bound(*ranges, address, {}, &PageRange::begin);
+    if (nextIt == ranges->begin())
+        return std::numeric_limits<Ref>::max();
+
+    const PageRange& range = *std::prev(nextIt);
+    if (address >= range.end || !range.page)
+        return std::numeric_limits<Ref>::max();
+
+    const uint32_t offset   = static_cast<uint32_t>(address - range.begin);
+    const uint32_t pageUsed = range.page->used.load(std::memory_order_relaxed);
+    if (offset >= pageUsed)
+        return std::numeric_limits<Ref>::max();
+
+    return makeRef(pageSizeValue_, range.index, offset);
 }
 
 Ref PagedStore::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
@@ -562,16 +576,39 @@ const std::vector<PagedStore::Page*>* PagedStore::snapshotPages() const noexcept
     return pages;
 }
 
+const std::vector<PagedStore::PageRange>* PagedStore::snapshotPageRanges() const noexcept
+{
+    const auto* ranges = publishedPageRanges_.load(std::memory_order_acquire);
+    SWC_ASSERT(ranges != nullptr);
+    return ranges;
+}
+
 void PagedStore::publishPages()
 {
     auto pages = std::make_unique<std::vector<Page*>>();
     pages->reserve(pagesStorage_.size());
-    for (const std::unique_ptr<Page>& page : pagesStorage_)
+    auto pageRanges = std::make_unique<std::vector<PageRange>>();
+    pageRanges->reserve(pagesStorage_.size());
+    for (uint32_t index = 0; index < pagesStorage_.size(); ++index)
+    {
+        const std::unique_ptr<Page>& page = pagesStorage_[index];
         pages->push_back(page.get());
+        const auto begin = reinterpret_cast<uintptr_t>(page->bytes());
+        pageRanges->push_back({
+            .begin = begin,
+            .end   = begin + pageSizeValue_,
+            .index = index,
+            .page  = page.get(),
+        });
+    }
+    std::ranges::sort(*pageRanges, {}, &PageRange::begin);
 
     publishedPagesStorage_.push_back(std::move(pages));
     const auto* published = publishedPagesStorage_.back().get();
+    publishedPageRangesStorage_.push_back(std::move(pageRanges));
+    const auto* publishedRanges = publishedPageRangesStorage_.back().get();
     publishedPages_.store(published, std::memory_order_release);
+    publishedPageRanges_.store(publishedRanges, std::memory_order_release);
 }
 
 uint32_t PagedStore::publishedPageCount() const noexcept

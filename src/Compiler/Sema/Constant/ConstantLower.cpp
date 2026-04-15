@@ -143,12 +143,11 @@ namespace
         if (!sourcePtr)
             return Result::Continue;
 
-        uint32_t  shardIndex = 0;
-        const Ref targetRef  = sema.cstMgr().findDataSegmentRef(shardIndex, sourcePtr);
-        SWC_INTERNAL_CHECK(targetRef != INVALID_REF);
-        SWC_INTERNAL_CHECK(&segment == &sema.cstMgr().shardDataSegment(shardIndex));
+        DataSegmentRef targetRef;
+        SWC_INTERNAL_CHECK(sema.cstMgr().resolveDataSegmentRef(targetRef, sourcePtr));
+        SWC_INTERNAL_CHECK(&segment == &sema.cstMgr().shardDataSegment(targetRef.shardIndex));
 
-        outOffset = targetRef;
+        outOffset = targetRef.offset;
         return Result::Continue;
     }
 

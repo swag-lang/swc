@@ -36,6 +36,13 @@ namespace
         Stats::get().numConstantSlowPathCalls.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
+
+    void recordConstantMaterializedPayloadFastPath()
+    {
+#if SWC_HAS_STATS
+        Stats::get().numConstantMaterializedPayloadFastPath.fetch_add(1, std::memory_order_relaxed);
+#endif
+    }
 }
 
 ConstantManager::ConstantManager()
@@ -126,30 +133,27 @@ namespace
         ConstantValue stored = value;
         uint32_t      localIndex = INVALID_REF;
 
+        if (value.isStruct())
         {
-            const std::unique_lock lk(shard.mutex);
-            if (value.isStruct())
-            {
-                const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
-                stored.setPayloadStruct(view);
-                stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
-            }
-            else if (value.isArray())
-            {
-                const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
-                stored.setPayloadArray(view);
-                stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
-            }
-            else
-            {
-                SWC_ASSERT(value.isSlice());
-                const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
-                stored.setPayloadSlice(view, value.getSliceCount());
-                stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
-            }
-
-            localIndex = shard.dataSegment.add(stored);
+            const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
+            stored.setPayloadStruct(view);
+            stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
         }
+        else if (value.isArray())
+        {
+            const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
+            stored.setPayloadArray(view);
+            stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
+        }
+        else
+        {
+            SWC_ASSERT(value.isSlice());
+            const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
+            stored.setPayloadSlice(view, value.getSliceCount());
+            stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
+        }
+
+        localIndex = shard.dataSegment.add(stored);
 
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
@@ -375,6 +379,24 @@ ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const Const
         return addCstString(*this, shard, shardIndex, ctx, valueToAdd);
 
     return addCstOther(*this, shard, shardIndex, ctx, valueToAdd);
+}
+
+ConstantRef ConstantManager::addMaterializedPayloadConstant(const ConstantValue& value)
+{
+    SWC_ASSERT(value.isStruct() || value.isArray() || value.isSlice());
+    SWC_ASSERT(value.isPayloadBorrowed());
+
+    const DataSegmentRef dataRef = value.dataSegmentRef();
+    SWC_ASSERT(dataRef.isValid());
+    SWC_ASSERT(dataRef.shardIndex < SHARD_COUNT);
+
+    Shard&         shard      = shards_[dataRef.shardIndex];
+    const uint32_t localIndex = shard.dataSegment.add(value);
+    SWC_ASSERT(localIndex < LOCAL_MASK);
+
+    recordConstantMaterializedPayloadFastPath();
+    const ConstantRef result{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
+    return addCstFinalize(*this, result);
 }
 
 ConstantRef ConstantManager::cachedS32(int32_t value) const

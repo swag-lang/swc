@@ -218,6 +218,9 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     if (!result.isValid())
         return ConstantRef::invalid();
 
+    if (dataRef.isValid() && (result.isStruct() || result.isArray() || result.isSlice()) && result.isPayloadBorrowed())
+        return sema.cstMgr().addMaterializedPayloadConstant(result);
+
     return sema.cstMgr().addConstant(ctx, result);
 }
 
@@ -261,7 +264,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     const auto          bytes  = ByteSpan{storage, sizeof(Runtime::SourceCodeLocation)};
     ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
     cstVal.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
-    outCstRef = sema.cstMgr().addConstant(ctx, cstVal);
+    outCstRef = sema.cstMgr().addMaterializedPayloadConstant(cstVal);
     return Result::Continue;
 }
 

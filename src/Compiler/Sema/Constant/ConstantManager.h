@@ -18,6 +18,8 @@ public:
     ConstantRef      addInt(const TaskContext& ctx, uint64_t value);
     std::string_view addString(const TaskContext& ctx, std::string_view str);
     ConstantRef      addConstant(const TaskContext& ctx, const ConstantValue& value);
+    // Fresh materialized payloads already live in a DataSegment and cannot be deduplicated by the pointer-identity map.
+    ConstantRef      addMaterializedPayloadConstant(const ConstantValue& value);
     std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef = nullptr);
 
     ConstantRef          cstNull() const { return cstNull_; }

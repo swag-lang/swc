@@ -1444,7 +1444,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
 
     ConstantValue anyCst = ConstantValue::makeStructBorrowed(ctx, dstTypeRef, ByteSpan{storage, sizeof(Runtime::Any)});
     anyCst.setDataSegmentRef({.shardIndex = typeInfoRef.shardIndex, .offset = anyOffset});
-    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, anyCst));
+    castRequest.setConstantFoldingResult(sema.cstMgr().addMaterializedPayloadConstant(anyCst));
     return Result::Continue;
 }
 

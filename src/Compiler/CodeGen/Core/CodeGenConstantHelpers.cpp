@@ -267,12 +267,12 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     {
         ConstantValue value = ConstantValue::makeArrayBorrowed(ctx, typeRef, storedBytes);
         value.setDataSegmentRef(dataRef);
-        return codeGen.cstMgr().addConstant(ctx, value);
+        return dataRef.isValid() ? codeGen.cstMgr().addMaterializedPayloadConstant(value) : codeGen.cstMgr().addConstant(ctx, value);
     }
 
     ConstantValue value = ConstantValue::makeStructBorrowed(ctx, typeRef, storedBytes);
     value.setDataSegmentRef(dataRef);
-    return codeGen.cstMgr().addConstant(ctx, value);
+    return dataRef.isValid() ? codeGen.cstMgr().addMaterializedPayloadConstant(value) : codeGen.cstMgr().addConstant(ctx, value);
 }
 
 ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
@@ -296,7 +296,7 @@ ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& co
 
     ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
     runtimeValueCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
-    return codeGen.cstMgr().addConstant(codeGen.ctx(), runtimeValueCst);
+    return codeGen.cstMgr().addMaterializedPayloadConstant(runtimeValueCst);
 }
 
 Result CodeGenConstantHelpers::loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)

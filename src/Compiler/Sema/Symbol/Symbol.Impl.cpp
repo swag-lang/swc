@@ -165,7 +165,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     const ByteSpan tableBytes{reinterpret_cast<const std::byte*>(tableStorage), static_cast<size_t>(slotCount) * sizeof(void*)};
     ConstantValue  tableCst = ConstantValue::makeArrayBorrowed(ctx, tableTypeRef, tableBytes);
     tableCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = tableOffset});
-    interfaceMethodTableRef_ = sema.cstMgr().addConstant(ctx, tableCst);
+    interfaceMethodTableRef_ = sema.cstMgr().addMaterializedPayloadConstant(tableCst);
     SWC_ASSERT(interfaceMethodTableRef_.isValid());
     outRef = interfaceMethodTableRef_;
     return Result::Continue;

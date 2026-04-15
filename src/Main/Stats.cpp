@@ -214,6 +214,7 @@ void Stats::print(const TaskContext& ctx) const
         Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantSmallScalarCacheHits", colorMsg, Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheHits.load()));
         Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantSmallScalarCacheMisses", colorMsg, Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheMisses.load()));
         Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantSlowPathCalls", colorMsg, Utf8Helper::toNiceBigNumber(numConstantSlowPathCalls.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantMaterializedPayloadFastPath", colorMsg, Utf8Helper::toNiceBigNumber(numConstantMaterializedPayloadFastPath.load()));
         Logger::printHeaderDot(ctx, colorHeader, "count.sema.numTypes", colorMsg, Utf8Helper::toNiceBigNumber(numTypes.load()));
         Logger::printHeaderDot(ctx, colorHeader, "count.sema.numIdentifiers", colorMsg, Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
         Logger::printHeaderDot(ctx, colorHeader, "count.sema.numSymbols", colorMsg, Utf8Helper::toNiceBigNumber(numSymbols.load()));

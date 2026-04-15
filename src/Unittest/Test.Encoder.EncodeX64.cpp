@@ -195,6 +195,7 @@ namespace
         ENCODE_CASE("clear_reg_r9_b32", "45 31 C9", b.emitClearReg(R9, MicroOpBits::B32););
         ENCODE_CASE("clear_reg_r11_b64", "4D 31 DB", b.emitClearReg(R11, MicroOpBits::B64););
         ENCODE_CASE("clear_reg_xmm1_b64", "66 0F 57 C9", b.emitClearReg(XMM1, MicroOpBits::B64););
+        ENCODE_CASE("clear_reg_xmm1_b128", "0F 57 C9", b.emitClearReg(XMM1, MicroOpBits::B128););
         return Result::Continue;
     }
 

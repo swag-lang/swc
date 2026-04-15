@@ -129,19 +129,19 @@ private:
     static bool     isTrackedReg(MicroReg reg);
     static uint32_t findRegValue(std::span<const RegValueEntry> entries, MicroReg reg);
 
-    void     buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
-    void     computeDominators();
-    void     placePhiNodes();
-    void     renameIntoSsa();
-    void     renameBlock(uint32_t blockIndex, RenameState& state);
-    void     captureCurrentValues(SmallVector8<RegValueEntry>& out, const RenameState& state) const;
+    void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
+    void            computeDominators();
+    void            placePhiNodes();
+    void            renameIntoSsa();
+    void            renameBlock(uint32_t blockIndex, RenameState& state);
+    void            captureCurrentValues(SmallVector8<RegValueEntry>& out, const RenameState& state) const;
     static uint32_t currentValue(const RenameState& state, uint32_t regIndex);
-    void     assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const RenameState& state);
-    static void pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId);
-    uint32_t createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
-    uint32_t createPhi(uint32_t blockIndex, MicroReg reg, uint32_t regIndex);
-    void     appendValueUse(uint32_t valueId, const UseSite& useSite);
-    bool     isValueTransitivelyUsed(uint32_t valueId) const;
+    void            assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const RenameState& state);
+    static void     pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId);
+    uint32_t        createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
+    uint32_t        createPhi(uint32_t blockIndex, MicroReg reg, uint32_t regIndex);
+    void            appendValueUse(uint32_t valueId, const UseSite& useSite);
+    bool            isValueTransitivelyUsed(uint32_t valueId) const;
 
     MicroBuilder*              builder_  = nullptr;
     MicroStorage*              storage_  = nullptr;
@@ -156,7 +156,7 @@ private:
     std::vector<ValueInfo>     valueInfos_;
     std::vector<PhiInfo>       phiInfos_;
     uint32_t                   trackedDefCount_ = 0;
-    bool                       valid_ = false;
+    bool                       valid_           = false;
 };
 
 SWC_END_NAMESPACE();

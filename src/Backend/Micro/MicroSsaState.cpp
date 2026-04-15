@@ -143,7 +143,7 @@ void MicroSsaState::clear()
     valueInfos_.clear();
     phiInfos_.clear();
     trackedDefCount_ = 0;
-    valid_ = false;
+    valid_           = false;
 }
 
 void MicroSsaState::invalidate()
@@ -419,7 +419,7 @@ void MicroSsaState::computeDominators()
         }
 
         const uint32_t rpoComponentStamp = currentRpoStamp++;
-        const uint32_t rpoSize = static_cast<uint32_t>(postOrder.size());
+        const uint32_t rpoSize           = static_cast<uint32_t>(postOrder.size());
         for (uint32_t i = 0; i < rpoSize; ++i)
         {
             const uint32_t blockIndex = postOrder[rpoSize - 1 - i];
@@ -749,7 +749,7 @@ uint32_t MicroSsaState::createValue(const MicroReg reg, const uint32_t blockInde
 
 uint32_t MicroSsaState::createPhi(const uint32_t blockIndex, const MicroReg reg, const uint32_t regIndex)
 {
-    BlockInfo& block = blocks_[blockIndex];
+    BlockInfo&     block    = blocks_[blockIndex];
     const uint32_t phiIndex = static_cast<uint32_t>(phiInfos_.size());
     PhiInfo        phi;
     phi.reg        = reg;

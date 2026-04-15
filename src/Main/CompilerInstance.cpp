@@ -26,7 +26,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-bool CompilerInstance::dbgDevMode = false;
+bool CompilerInstance::dbgDevStop = false;
 
 namespace
 {

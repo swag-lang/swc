@@ -156,7 +156,7 @@ public:
         return ptr;
     }
 
-    static bool dbgDevMode;
+    static bool dbgDevStop;
 
 private:
     SourceFile& addResolvedFile(fs::path path, FileFlags flags);

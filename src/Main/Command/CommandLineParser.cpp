@@ -699,9 +699,8 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Testing, "test", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Restrict --verbose-verify output to messages or diagnostic IDs matching a specific string.");
 
     addArg(HelpOptionGroup::Development, "all", "--verbose-info", "-vi", CommandLineType::Bool, &cmdLine_->verboseInfo, nullptr, "Print computed command, environment, toolchain and native artifact information before running the command.");
-    addArg(HelpOptionGroup::Development, "all", "--dev-mode", "-dm", CommandLineType::Bool, &CompilerInstance::dbgDevMode, nullptr, "Open a message box when an error is reported.");
-
-    addArg(HelpOptionGroup::Development, "all", "--dev-full", nullptr, CommandLineType::Bool, &cmdLine_->devFull, nullptr, "Force every compiled development test and validation.");
+    addArg(HelpOptionGroup::Development, "all", "--dev-stop", "-ds", CommandLineType::Bool, &CompilerInstance::dbgDevStop, nullptr, "Open a message box when an error is reported.");
+    addArg(HelpOptionGroup::Development, "all", "--dev-full", "-df", CommandLineType::Bool, &cmdLine_->devFull, nullptr, "Force every compiled development test and validation.");
 
 #if SWC_HAS_UNITTEST
     addArg(HelpOptionGroup::Development, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal C++ unit tests before executing command.");

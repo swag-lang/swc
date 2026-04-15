@@ -781,7 +781,7 @@ namespace Os
         const Utf8 logMsg = std::format("panic: {}\n", expr.empty() ? "<null>" : expr);
         Logger::printStdErr(LogColor::Red, logMsg);
 
-        if (!CompilerInstance::dbgDevMode)
+        if (!CompilerInstance::dbgDevStop)
             exit(ExitCode::PanicBox);
 
         const Utf8 boxMsg = std::format("{}\n\nPress 'Cancel' to exit\nPress 'Retry' to break\n", expr);

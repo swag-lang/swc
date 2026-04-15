@@ -259,6 +259,8 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
         // All deps are Done => wire relocations, then mark Done.
         wireRelocations(sema, cache, storage, key, entry, kind);
         entry.state = TypeGenCache::State::Done;
+        if (!entry.backRefPublished)
+            cache.pendingBackRefs.push_back(key);
     }
 
     const auto it = cache.entries.find(typeRef);

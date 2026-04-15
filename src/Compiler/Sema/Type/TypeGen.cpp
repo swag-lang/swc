@@ -53,17 +53,27 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     {
         const std::scoped_lock lk(cache.mutex);
         SWC_RESULT(processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
-    }
 
-    {
-        const std::scoped_lock lk2(ptrToTypeMutex_);
-        for (const auto& [cachedTypeRef, entry] : cache.entries)
+        if (!cache.pendingBackRefs.empty())
         {
-            if (entry.state != TypeGenCache::State::Done)
-                continue;
+            const std::scoped_lock lk2(ptrToTypeMutex_);
+            for (const TypeRef cachedTypeRef : cache.pendingBackRefs)
+            {
+                auto it = cache.entries.find(cachedTypeRef);
+                SWC_ASSERT(it != cache.entries.end());
+                if (it == cache.entries.end())
+                    continue;
 
-            auto* const ptr = storage.ptr<std::byte>(entry.offset);
-            ptrToType_[ptr] = cachedTypeRef;
+                auto& entry = it->second;
+                if (entry.state != TypeGenCache::State::Done || entry.backRefPublished)
+                    continue;
+
+                const auto* ptr        = storage.ptr<std::byte>(entry.offset);
+                ptrToType_[ptr]        = cachedTypeRef;
+                entry.backRefPublished = true;
+            }
+
+            cache.pendingBackRefs.clear();
         }
     }
 

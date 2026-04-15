@@ -2,6 +2,7 @@
 #include "Compiler/Parser/Ast/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();
+
 class Sema;
 class DataSegment;
 class TypeManager;
@@ -35,7 +36,8 @@ public:
         {
             uint32_t             offset = 0;
             TypeRef              rtTypeRef;
-            State                state = State::CommonInit;
+            State                state            = State::CommonInit;
+            bool                 backRefPublished = false;
             SmallVector<TypeRef> deps;
             uint32_t             enumValuesOffset   = 0;
             uint32_t             enumValuesCount    = 0;
@@ -53,6 +55,7 @@ public:
 
         mutable std::mutex                 mutex;
         std::unordered_map<TypeRef, Entry> entries;
+        SmallVector<TypeRef>               pendingBackRefs;
     };
 
     Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);

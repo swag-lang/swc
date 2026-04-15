@@ -116,7 +116,7 @@ namespace
         return resolveBorrowedPayloadRef(ref, manager, value);
     }
 
-    ConstantRef addCstFinalize(ConstantManager& manager, ConstantRef cstRef)
+    ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
     {
 #if SWC_HAS_STATS
         Stats::get().numConstants.fetch_add(1);
@@ -128,9 +128,9 @@ namespace
         return cstRef;
     }
 
-    ConstantRef addCstSpanPayload(ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
+    ConstantRef addCstSpanPayload(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
     {
-        ConstantValue stored = value;
+        ConstantValue stored     = value;
         uint32_t      localIndex = INVALID_REF;
 
         if (value.isStruct())
@@ -160,7 +160,7 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstString(ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         {
             const std::shared_lock lk(shard.mutex);
@@ -168,16 +168,16 @@ namespace
                 return it->second;
         }
 
-        ConstantValue strValue;
-        uint32_t      localIndex = INVALID_REF;
-        ConstantRef   result;
+        uint32_t    localIndex = INVALID_REF;
+        ConstantRef result;
+
         {
             const std::unique_lock lk(shard.mutex);
             if (const auto it = shard.map.find(value); it != shard.map.end())
                 return it->second;
 
-            const std::pair<std::string_view, Ref> res = shard.dataSegment.addString(value.getString());
-            strValue                                  = ConstantValue::makeString(ctx, res.first);
+            const std::pair<std::string_view, Ref> res      = shard.dataSegment.addString(value.getString());
+            ConstantValue                          strValue = ConstantValue::makeString(ctx, res.first);
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
             localIndex = shard.dataSegment.add(strValue);
             SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
@@ -206,7 +206,7 @@ namespace
         stored->setDataSegmentRef(ref);
     }
 
-    void enrichPointerDataSegmentRef(ConstantManager& manager, ConstantValue& value)
+    void enrichPointerDataSegmentRef(const ConstantManager& manager, ConstantValue& value)
     {
         if (!value.isValuePointer() && !value.isBlockPointer())
             return;
@@ -222,7 +222,7 @@ namespace
             value.setDataSegmentRef(ref);
     }
 
-    ConstantRef addCstOther(ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         SWC_UNUSED(ctx);
         ConstantValue stored = value;
@@ -350,10 +350,10 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const ConstantValue& value)
 {
     recordConstantSlowPathCall();
-    uint32_t   shardIndex          = Math::hash(value.hash()) & (SHARD_COUNT - 1);
-    const bool isSpanValue         = value.isStruct() || value.isArray() || value.isSlice();
-    bool       keepBorrowedPayload = false;
-    ConstantValue valueToAdd       = value;
+    uint32_t      shardIndex          = Math::hash(value.hash()) & (SHARD_COUNT - 1);
+    const bool    isSpanValue         = value.isStruct() || value.isArray() || value.isSlice();
+    bool          keepBorrowedPayload = false;
+    ConstantValue valueToAdd          = value;
     if (isSpanValue && value.isPayloadBorrowed())
     {
         DataSegmentRef payloadRef;
@@ -438,6 +438,22 @@ ConstantRef ConstantManager::publishSmallScalarCache(const uint32_t cacheIndex, 
     return cached;
 }
 
+ConstantRef ConstantManager::publishTypeInfoCache(Shard& shard, const TypeRef typeRef, const ConstantRef cstRef)
+{
+    SWC_ASSERT(typeRef.isValid());
+    SWC_ASSERT(cstRef.isValid());
+
+    const std::unique_lock lk(shard.typeInfoMutex);
+    auto [it, inserted] = shard.typeInfoMap.try_emplace(typeRef, cstRef);
+    if (!inserted)
+    {
+        SWC_ASSERT(it->second == cstRef);
+        return it->second;
+    }
+
+    return cstRef;
+}
+
 ConstantRef ConstantManager::tryGetBuiltinConstant(const TaskContext& ctx, const ConstantValue& value) const
 {
     if (value.isBool() && value.typeRef() == ctx.typeMgr().typeBool())
@@ -471,6 +487,17 @@ ConstantRef ConstantManager::tryGetSmallScalarCache(const uint32_t cacheIndex) c
 
     recordConstantSmallScalarCacheHit();
     return constantRefFromRaw(raw);
+}
+
+ConstantRef ConstantManager::tryGetTypeInfoCache(const Shard& shard, const TypeRef typeRef)
+{
+    SWC_ASSERT(typeRef.isValid());
+
+    const std::shared_lock lk(shard.typeInfoMutex);
+    const auto             it = shard.typeInfoMap.find(typeRef);
+    if (it == shard.typeInfoMap.end())
+        return ConstantRef::invalid();
+    return it->second;
 }
 
 bool ConstantManager::smallScalarCacheIndex(uint32_t& outIndex, const TaskContext& ctx, const ConstantValue& value) const
@@ -527,7 +554,7 @@ bool ConstantManager::smallScalarCacheIndex(uint32_t& outIndex, const TaskContex
     return true;
 }
 
-uint32_t ConstantManager::smallIntTypeIndex(const TaskContext& ctx, TypeRef typeRef) const
+uint32_t ConstantManager::smallIntTypeIndex(const TaskContext& ctx, TypeRef typeRef)
 {
     const TypeManager& typeMgr = ctx.typeMgr();
     if (typeRef == typeMgr.typeInt())
@@ -559,7 +586,7 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, Dat
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    Shard& shard = shards_[shardIndex];
+    Shard& shard           = shards_[shardIndex];
     const auto [view, ref] = shard.dataSegment.addString(payload);
     const DataSegmentRef dataRef{.shardIndex = shardIndex, .offset = ref};
     if (outRef)
@@ -599,20 +626,28 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
 
-    TypeGen::TypeGenResult infoResult;
-
+    if (const ConstantRef cached = tryGetTypeInfoCache(shard, typeRef); cached.isValid())
     {
-        const std::unique_lock lk(shard.mutex);
-        SWC_RESULT(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
-        SWC_ASSERT(infoResult.span.data());
+        outRef = cached;
+        return Result::Continue;
+    }
+
+    TypeGen::TypeGenResult infoResult;
+    SWC_RESULT(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
+    SWC_ASSERT(infoResult.span.data());
+
+    if (const ConstantRef cached = tryGetTypeInfoCache(shard, typeRef); cached.isValid())
+    {
+        outRef = cached;
+        return Result::Continue;
     }
 
     // Keep the precise generated runtime payload type (TypeInfoNative, TypeInfoArray, ...).
-    const uint64_t      ptrValue = reinterpret_cast<uint64_t>(infoResult.span.data());
-    ConstantValue       value    = ConstantValue::makeValuePointer(ctx, infoResult.rtTypeRef, ptrValue, TypeInfoFlagsE::Const);
+    const uint64_t       ptrValue = reinterpret_cast<uint64_t>(infoResult.span.data());
+    ConstantValue        value    = ConstantValue::makeValuePointer(ctx, infoResult.rtTypeRef, ptrValue, TypeInfoFlagsE::Const);
     const DataSegmentRef dataRef{.shardIndex = shardIndex, .offset = infoResult.offset};
     value.setDataSegmentRef(dataRef);
-    outRef = addConstant(sema.ctx(), value);
+    outRef = publishTypeInfoCache(shard, typeRef, addConstant(sema.ctx(), value));
     return Result::Continue;
 }
 

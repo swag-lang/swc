@@ -232,9 +232,22 @@ Result MicroCopyEliminationPass::run(MicroPassContext& context)
 
     const bool rewroteUses = rewriteCanonicalUses(context.builder, *ssaState, canonicalValues, canonicalFlags, storage, operands);
 
-    MicroSsaState updatedSsaState;
-    updatedSsaState.build(*context.builder, storage, operands, context.encoder);
-    const bool erasedCopies = eraseDeadCopies(storage, operands, updatedSsaState);
+    if (rewroteUses)
+    {
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        else
+            localSsaState.invalidate();
+
+        ssaState = MicroSsaState::ensureFor(context, localSsaState);
+        if (!ssaState || !ssaState->isValid())
+        {
+            context.passChanged = true;
+            return Result::Continue;
+        }
+    }
+
+    const bool erasedCopies = eraseDeadCopies(storage, operands, *ssaState);
 
     if (rewroteUses || erasedCopies)
         context.passChanged = true;

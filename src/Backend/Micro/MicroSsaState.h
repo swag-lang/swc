@@ -68,9 +68,10 @@ public:
 
     void build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
 
-    // Returns the shared SSA from the pass context if available; otherwise builds
-    // it into 'localState' and returns that. Used by passes that may run either
-    // inside the pre-RA optimization loop (shared SSA) or standalone.
+    // Returns the shared SSA from the pass context if available, rebuilding it
+    // lazily if invalid. Otherwise builds it into 'localState' and returns that.
+    // Used by passes that may run either inside the pre-RA optimization loop
+    // (shared SSA) or standalone.
     static const MicroSsaState* ensureFor(const MicroPassContext& context, MicroSsaState& localState);
 
     void clear();
@@ -84,8 +85,8 @@ public:
     const ValueInfo*           valueInfo(uint32_t valueId) const;
     const PhiInfo*             phiInfo(uint32_t phiIndex) const;
     const PhiInfo*             phiInfoForValue(uint32_t valueId) const;
-    std::span<const ValueInfo> values() const { return valueInfos_; }
-    std::span<const PhiInfo>   phis() const { return phiInfos_; }
+    std::span<const ValueInfo> values() const { return std::span(valueInfos_.data(), valueInfoCount_); }
+    std::span<const PhiInfo>   phis() const { return std::span(phiInfos_.data(), phiInfoCount_); }
 
 private:
     struct InstrInfo
@@ -129,6 +130,8 @@ private:
     static bool     isTrackedReg(MicroReg reg);
     static uint32_t findRegValue(std::span<const RegValueEntry> entries, MicroReg reg);
 
+    void            resetForBuild(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
+    void            resetInstructionInfos(uint32_t slotCount);
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
     void            computeDominators();
     void            placePhiNodes();
@@ -155,7 +158,12 @@ private:
     std::vector<BlockInfo>     blocks_;
     std::vector<ValueInfo>     valueInfos_;
     std::vector<PhiInfo>       phiInfos_;
+    mutable std::vector<uint32_t> useVisitStamps_;
+    mutable std::vector<uint32_t> useVisitStack_;
     uint32_t                   trackedDefCount_ = 0;
+    uint32_t                   valueInfoCount_  = 0;
+    uint32_t                   phiInfoCount_    = 0;
+    mutable uint32_t           useVisitStamp_    = 1;
     bool                       valid_           = false;
 };
 

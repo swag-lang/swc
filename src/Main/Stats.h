@@ -41,6 +41,13 @@ struct Stats
     std::atomic<size_t> numMicroInstrAfterPostRaOptim = 0;
     std::atomic<size_t> numMicroInstrFinal            = 0;
     std::atomic<size_t> numCodeGenFunctions           = 0;
+    std::atomic<size_t>   numMicroSsaBuilds          = 0;
+    std::atomic<size_t>   numMicroSsaInvalidations   = 0;
+    std::atomic<uint64_t> timeMicroSsaBuild          = 0;
+    std::atomic<uint64_t> timeMicroSsaBlocks         = 0;
+    std::atomic<uint64_t> timeMicroSsaDominators     = 0;
+    std::atomic<uint64_t> timeMicroSsaPhiPlacement   = 0;
+    std::atomic<uint64_t> timeMicroSsaRename         = 0;
 #endif // SWC_HAS_STATS
 
     static Stats& get()

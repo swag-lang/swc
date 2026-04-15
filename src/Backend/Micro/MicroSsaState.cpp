@@ -3,6 +3,8 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Main/Stats.h"
+#include "Support/Core/Timer.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -58,17 +60,16 @@ uint32_t MicroSsaState::findRegValue(const std::span<const RegValueEntry> entrie
 
 void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
 {
-    clear();
+#if SWC_HAS_STATS
+    Stats::get().numMicroSsaBuilds.fetch_add(1, std::memory_order_relaxed);
+    const Timer buildTimer(&Stats::get().timeMicroSsaBuild);
+#endif
 
-    builder_  = &builder;
-    storage_  = &storage;
-    operands_ = &operands;
-    encoder_  = encoder;
+    resetForBuild(builder, storage, operands, encoder);
 
     const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
     const auto                   instructionRefs  = controlFlowGraph.instructionRefs();
     instructionRefs_.assign(instructionRefs.begin(), instructionRefs.end());
-    instrInfos_.resize(storage.slotCount());
     instructionIndexBySlot_.assign(storage.slotCount(), K_INVALID);
 
     for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
@@ -109,10 +110,30 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         }
     }
 
-    buildBlocks(controlFlowGraph);
-    computeDominators();
-    placePhiNodes();
-    renameIntoSsa();
+    {
+#if SWC_HAS_STATS
+        const Timer timer(&Stats::get().timeMicroSsaBlocks);
+#endif
+        buildBlocks(controlFlowGraph);
+    }
+    {
+#if SWC_HAS_STATS
+        const Timer timer(&Stats::get().timeMicroSsaDominators);
+#endif
+        computeDominators();
+    }
+    {
+#if SWC_HAS_STATS
+        const Timer timer(&Stats::get().timeMicroSsaPhiPlacement);
+#endif
+        placePhiNodes();
+    }
+    {
+#if SWC_HAS_STATS
+        const Timer timer(&Stats::get().timeMicroSsaRename);
+#endif
+        renameIntoSsa();
+    }
 
     valid_ = true;
 }
@@ -120,12 +141,60 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 const MicroSsaState* MicroSsaState::ensureFor(const MicroPassContext& context, MicroSsaState& localState)
 {
     if (context.ssaState)
+    {
+        if (!context.ssaState->isValid())
+        {
+            if (!context.builder || !context.instructions || !context.operands)
+                return nullptr;
+
+            context.ssaState->build(*context.builder, *context.instructions, *context.operands, context.encoder);
+        }
+
         return context.ssaState;
+    }
     if (!context.builder || !context.instructions || !context.operands)
         return nullptr;
 
-    localState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+    if (!localState.isValid())
+        localState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+
     return &localState;
+}
+
+void MicroSsaState::resetForBuild(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
+{
+    valid_    = false;
+    builder_  = &builder;
+    storage_  = &storage;
+    operands_ = &operands;
+    encoder_  = encoder;
+
+    trackedRegs_.clear();
+    instructionRefs_.clear();
+    instructionIndexBySlot_.clear();
+    instructionToBlock_.clear();
+    blocks_.clear();
+    trackedDefCount_ = 0;
+    valueInfoCount_  = 0;
+    phiInfoCount_    = 0;
+
+    resetInstructionInfos(storage.slotCount());
+}
+
+void MicroSsaState::resetInstructionInfos(const uint32_t slotCount)
+{
+    if (instrInfos_.size() < slotCount)
+        instrInfos_.resize(slotCount);
+
+    for (uint32_t slot = 0; slot < slotCount; ++slot)
+    {
+        InstrInfo& info = instrInfos_[slot];
+        info.instRef    = MicroInstrRef::invalid();
+        info.useDef     = {};
+        info.defValues.clear();
+        info.useRegIndices.clear();
+        info.defRegIndices.clear();
+    }
 }
 
 void MicroSsaState::clear()
@@ -142,12 +211,22 @@ void MicroSsaState::clear()
     blocks_.clear();
     valueInfos_.clear();
     phiInfos_.clear();
+    useVisitStamps_.clear();
+    useVisitStack_.clear();
     trackedDefCount_ = 0;
+    valueInfoCount_  = 0;
+    phiInfoCount_    = 0;
+    useVisitStamp_   = 1;
     valid_           = false;
 }
 
 void MicroSsaState::invalidate()
 {
+#if SWC_HAS_STATS
+    if (valid_)
+        Stats::get().numMicroSsaInvalidations.fetch_add(1, std::memory_order_relaxed);
+#endif
+
     valid_ = false;
 }
 
@@ -211,6 +290,10 @@ const MicroInstrUseDef* MicroSsaState::instrUseDef(const MicroInstrRef instRef) 
         return nullptr;
 
     const uint32_t slot = instRef.get();
+    if (slot >= instructionIndexBySlot_.size())
+        return nullptr;
+    if (instructionIndexBySlot_[slot] == K_INVALID)
+        return nullptr;
     SWC_ASSERT(slot < instrInfos_.size());
     return &instrInfos_[slot].useDef;
 }
@@ -222,6 +305,10 @@ bool MicroSsaState::defValue(const MicroReg reg, const MicroInstrRef instRef, ui
         return false;
 
     const uint32_t slot = instRef.get();
+    if (slot >= instructionIndexBySlot_.size())
+        return false;
+    if (instructionIndexBySlot_[slot] == K_INVALID)
+        return false;
     SWC_ASSERT(slot < instrInfos_.size());
     outValueId = findRegValue(instrInfos_[slot].defValues, reg);
     return outValueId != K_INVALID_VALUE;
@@ -229,14 +316,14 @@ bool MicroSsaState::defValue(const MicroReg reg, const MicroInstrRef instRef, ui
 
 const MicroSsaState::ValueInfo* MicroSsaState::valueInfo(const uint32_t valueId) const
 {
-    if (valueId >= valueInfos_.size())
+    if (valueId >= valueInfoCount_)
         return nullptr;
     return &valueInfos_[valueId];
 }
 
 const MicroSsaState::PhiInfo* MicroSsaState::phiInfo(const uint32_t phiIndex) const
 {
-    if (phiIndex >= phiInfos_.size())
+    if (phiIndex >= phiInfoCount_)
         return nullptr;
     return &phiInfos_[phiIndex];
 }
@@ -562,8 +649,8 @@ void MicroSsaState::placePhiNodes()
 
 void MicroSsaState::renameIntoSsa()
 {
-    valueInfos_.clear();
-    valueInfos_.reserve(static_cast<size_t>(trackedDefCount_) + phiInfos_.size());
+    valueInfoCount_ = 0;
+    valueInfos_.reserve(static_cast<size_t>(trackedDefCount_) + phiInfoCount_);
 
     RenameState  state;
     const size_t trackedRegCount = trackedRegs_.regs().size();
@@ -736,13 +823,16 @@ void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, Renam
 
 uint32_t MicroSsaState::createValue(const MicroReg reg, const uint32_t blockIndex, const MicroInstrRef instRef, const uint32_t phiIndex)
 {
-    const uint32_t valueId = static_cast<uint32_t>(valueInfos_.size());
-    valueInfos_.push_back(ValueInfo{
-        .reg        = reg,
-        .instRef    = instRef,
-        .blockIndex = blockIndex,
-        .phiIndex   = phiIndex,
-    });
+    const uint32_t valueId = valueInfoCount_++;
+    if (valueId >= valueInfos_.size())
+        valueInfos_.push_back({});
+
+    ValueInfo& info = valueInfos_[valueId];
+    info.reg        = reg;
+    info.instRef    = instRef;
+    info.blockIndex = blockIndex;
+    info.phiIndex   = phiIndex;
+    info.uses.clear();
 
     return valueId;
 }
@@ -750,41 +840,55 @@ uint32_t MicroSsaState::createValue(const MicroReg reg, const uint32_t blockInde
 uint32_t MicroSsaState::createPhi(const uint32_t blockIndex, const MicroReg reg, const uint32_t regIndex)
 {
     BlockInfo&     block    = blocks_[blockIndex];
-    const uint32_t phiIndex = static_cast<uint32_t>(phiInfos_.size());
-    PhiInfo        phi;
-    phi.reg        = reg;
-    phi.regIndex   = regIndex;
-    phi.blockIndex = blockIndex;
+    const uint32_t phiIndex = phiInfoCount_++;
+    if (phiIndex >= phiInfos_.size())
+        phiInfos_.push_back({});
+
+    PhiInfo& phi     = phiInfos_[phiIndex];
+    phi.reg          = reg;
+    phi.regIndex     = regIndex;
+    phi.blockIndex   = blockIndex;
+    phi.resultValueId = K_INVALID_VALUE;
+    phi.predecessorBlocks.clear();
     phi.predecessorBlocks.assign(block.predecessors.begin(), block.predecessors.end());
+    phi.incomingValueIds.clear();
     phi.incomingValueIds.resize(phi.predecessorBlocks.size(), K_INVALID_VALUE);
-    phiInfos_.push_back(std::move(phi));
     block.phis.push_back(phiIndex);
     return phiIndex;
 }
 
 void MicroSsaState::appendValueUse(const uint32_t valueId, const UseSite& useSite)
 {
-    SWC_ASSERT(valueId < valueInfos_.size());
+    SWC_ASSERT(valueId < valueInfoCount_);
     valueInfos_[valueId].uses.push_back(useSite);
 }
 
 bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
 {
-    if (valueId >= valueInfos_.size())
+    if (valueId >= valueInfoCount_)
         return false;
 
-    std::vector<uint8_t>  visited(valueInfos_.size(), 0);
-    std::vector<uint32_t> stack;
-    stack.push_back(valueId);
-
-    while (!stack.empty())
+    if (useVisitStamps_.size() < valueInfoCount_)
+        useVisitStamps_.resize(valueInfoCount_, 0);
+    if (useVisitStamp_ == std::numeric_limits<uint32_t>::max())
     {
-        const uint32_t currentValueId = stack.back();
-        stack.pop_back();
+        std::ranges::fill(useVisitStamps_, 0);
+        useVisitStamp_ = 1;
+    }
 
-        if (visited[currentValueId])
+    const uint32_t visitStamp = useVisitStamp_++;
+    useVisitStack_.clear();
+    useVisitStack_.push_back(valueId);
+
+    while (!useVisitStack_.empty())
+    {
+        const uint32_t currentValueId = useVisitStack_.back();
+        useVisitStack_.pop_back();
+
+        SWC_ASSERT(currentValueId < valueInfoCount_);
+        if (useVisitStamps_[currentValueId] == visitStamp)
             continue;
-        visited[currentValueId] = 1;
+        useVisitStamps_[currentValueId] = visitStamp;
 
         const ValueInfo& info = valueInfos_[currentValueId];
         for (const UseSite& useSite : info.uses)
@@ -801,7 +905,7 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
             if (phi->resultValueId == K_INVALID_VALUE)
                 continue;
 
-            stack.push_back(phi->resultValueId);
+            useVisitStack_.push_back(phi->resultValueId);
         }
     }
 

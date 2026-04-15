@@ -34,7 +34,7 @@ struct MicroPassContext
     MicroUseDefMap* useDefMap = nullptr;
 
     // Shared SSA analysis for pre-RA optimization passes.
-    // Built once at the start of the optimization loop, invalidated when a pass mutates the IR.
+    // Built lazily by MicroSsaState::ensureFor and invalidated when a pass mutates the IR.
     MicroSsaState* ssaState = nullptr;
 
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).

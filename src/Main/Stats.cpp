@@ -246,6 +246,8 @@ void Stats::print(const TaskContext& ctx) const
 
         const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
         Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDeltaInitialToFinal", colorMsg, formatMicroInstrDelta(pipelineDelta, numMicroInitial));
+        Logger::printHeaderDot(ctx, colorHeader, "count.micro.ssaBuilds", colorMsg, Utf8Helper::toNiceBigNumber(numMicroSsaBuilds.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.micro.ssaInvalidations", colorMsg, Utf8Helper::toNiceBigNumber(numMicroSsaInvalidations.load()));
 
         // Time
         Logger::print(ctx, "\n");
@@ -255,6 +257,11 @@ void Stats::print(const TaskContext& ctx) const
         Logger::printHeaderDot(ctx, colorHeader, "time.sema.analysis", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
         Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
         Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaBuild", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBuild.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaBlocks", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBlocks.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaDominators", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaDominators.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaPhiPlacement", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaPhiPlacement.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaRename", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaRename.load())));
     }
 
     // Memory profile

@@ -296,21 +296,12 @@ namespace
 
         MicroSsaState ssaState;
         const bool    useSharedSsa = buildSsa && context.builder && context.instructions && context.operands;
-        const auto    refreshSsa   = [&] {
-            if (useSharedSsa && !ssaState.isValid())
-                ssaState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
-        };
         if (useSharedSsa)
-        {
-            refreshSsa();
             context.ssaState = &ssaState;
-        }
 
         bool reachedFixedPoint = false;
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
-            refreshSsa();
-
             bool iterationMutated = false;
 #if SWC_HAS_VALIDATE_MICRO
             std::vector<LoopPassTraceEntry> iterationTrace;
@@ -319,7 +310,6 @@ namespace
 #endif
             for (MicroPass* pass : passes)
             {
-                refreshSsa();
                 SWC_RESULT(runPass(context, *pass, verifyCache));
                 iterationMutated = iterationMutated || context.passChanged;
 #if SWC_HAS_VALIDATE_MICRO

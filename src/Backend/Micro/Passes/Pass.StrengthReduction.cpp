@@ -86,12 +86,9 @@ namespace
         return true;
     }
 
-    bool tryReduceAddSubZero(const MicroInstrOperand* ops, uint64_t immediate, MicroStorage& storage, MicroInstrRef instRef, const MicroSsaState* ssaState)
+    bool tryReduceAddSubZero(const MicroInstrOperand* ops, MicroStorage& storage, MicroInstrRef instRef, const MicroSsaState& ssaState)
     {
-        if (immediate != 0)
-            return false;
-
-        if (ssaState && !ssaState->isRegUsedAfter(ops[0].reg, instRef))
+        if (!ssaState.isRegUsedAfter(ops[0].reg, instRef))
         {
             storage.erase(instRef);
             return true;
@@ -110,7 +107,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
     MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    const MicroSsaState* ssaState = nullptr;
 
     const auto view  = storage.view();
     const auto endIt = view.end();
@@ -146,7 +143,13 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
 
             case MicroOp::Add:
             case MicroOp::Subtract:
-                changed = tryReduceAddSubZero(ops, immediate, storage, instRef, ssaState);
+                if (immediate == 0)
+                {
+                    if (!ssaState)
+                        ssaState = MicroSsaState::ensureFor(context, localSsaState);
+                    if (ssaState && ssaState->isValid())
+                        changed = tryReduceAddSubZero(ops, storage, instRef, *ssaState);
+                }
                 break;
 
             case MicroOp::DivideUnsigned:

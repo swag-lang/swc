@@ -102,12 +102,16 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     // rebuilt SSA until the set of dead instructions stabilises.
     while (true)
     {
-        MicroSsaState rebuilt;
-        rebuilt.build(*context.builder, storage, operands, context.encoder);
-        if (!rebuilt.isValid())
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        else
+            localSsaState.invalidate();
+
+        ssaState = MicroSsaState::ensureFor(context, localSsaState);
+        if (!ssaState || !ssaState->isValid())
             break;
 
-        if (!eliminateDeadInstructions(storage, rebuilt))
+        if (!eliminateDeadInstructions(storage, *ssaState))
             break;
     }
 

@@ -25,7 +25,7 @@ struct MicroPassContext
     CallConvKind          callConvKind            = CallConvKind::Host;
     bool                  preservePersistentRegs  = false;
     bool                  forceFramePointer       = false;
-    bool                  microVerify             = false;
+    bool                  validateMicro           = false;
     bool                  usesIntReturnRegOnRet   = true;
     bool                  usesFloatReturnRegOnRet = true;
 

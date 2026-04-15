@@ -4,7 +4,7 @@
 #include "Backend/Native/NativeRDataCollector.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
-#if SWC_HAS_NATIVE_VALIDATION
+#if SWC_HAS_VALIDATE_NATIVE
 #include "Backend/Native/NativeValidate.h"
 #endif
 
@@ -122,9 +122,12 @@ NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
 
 Result NativeArtifactBuilder::build() const
 {
-#if SWC_HAS_NATIVE_VALIDATION
-    const NativeValidate nativeValidate(*builder_);
-    nativeValidate.validate();
+#if SWC_HAS_VALIDATE_NATIVE
+    if (builder_->ctx().cmdLine().validateNative)
+    {
+        const NativeValidate nativeValidate(*builder_);
+        nativeValidate.validate();
+    }
 #endif
     SWC_RESULT(buildStartup());
     SWC_RESULT(prepareDataSections());

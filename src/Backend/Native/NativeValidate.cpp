@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeValidate.h"
 
-#if SWC_HAS_NATIVE_VALIDATION
+#if SWC_HAS_VALIDATE_NATIVE
 
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Type/TypeGen.h"

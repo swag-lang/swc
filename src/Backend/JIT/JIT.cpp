@@ -787,8 +787,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     builder.emitRet();
 
     MachineCode  loweredCode;
-    const Result lowerResult = loweredCode.emit(ctx, builder);
-    SWC_ASSERT(lowerResult == Result::Continue);
+    SWC_RESULT(loweredCode.emit(ctx, builder));
 
     JITMemory executableMemory;
     SWC_RESULT(emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, loweredCode.unwindInfo));

@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Backend/Micro/MicroVerify.h"
+
+#if SWC_HAS_VALIDATE_MICRO
+
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -27,11 +30,7 @@ namespace
         if (!context.taskContext)
             return false;
 
-#if SWC_DEV_MODE
-        return context.taskContext->cmdLine().microVerify;
-#else
-        return false;
-#endif
+        return context.taskContext->cmdLine().validateMicro;
     }
 
     Result reportError(const MicroPassContext& context, std::string_view phase, std::string_view message)
@@ -476,12 +475,7 @@ namespace
 
 bool MicroVerify::isEnabled(const MicroPassContext& context)
 {
-#if SWC_DEV_MODE
-    return context.microVerify;
-#else
-    (void) context;
-    return false;
-#endif
+    return context.validateMicro;
 }
 
 Result MicroVerify::reportError(const MicroPassContext& context, std::string_view phase, std::string_view message)
@@ -845,3 +839,5 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
 }
 
 SWC_END_NAMESPACE();
+
+#endif

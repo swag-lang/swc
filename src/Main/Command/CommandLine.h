@@ -71,15 +71,24 @@ struct CommandLine
     bool output           = true;
     bool runtime          = true;
 
+    bool devFull = false;
+
 #if SWC_HAS_UNITTEST
     bool unittest        = true;
     bool verboseUnittest = false;
 #endif
 
-#ifdef SWC_DEV_MODE
-    bool     microVerify = false;
-    bool     randomize   = false;
-    uint32_t randSeed    = 0;
+#if SWC_HAS_VALIDATE_MICRO
+    bool validateMicro = false;
+#endif
+
+#if SWC_HAS_VALIDATE_NATIVE
+    bool validateNative = false;
+#endif
+
+#if SWC_DEV_MODE
+    bool     randomize = false;
+    uint32_t randSeed  = 0;
 #endif
 
     uint32_t                        syntaxColorLum  = 0;

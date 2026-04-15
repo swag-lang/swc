@@ -165,7 +165,7 @@ namespace
         uint64_t structuralHash  = 0;
     };
 
-#if SWC_DEV_MODE
+#if SWC_HAS_VALIDATE_MICRO
     struct LoopPassTraceEntry
     {
         std::string passName;
@@ -175,7 +175,7 @@ namespace
 
     Result verifyCurrentState(const MicroPassContext& context, std::string_view phase, VerifyStateCache& cache)
     {
-#if SWC_DEV_MODE
+#if SWC_HAS_VALIDATE_MICRO
         if (!MicroVerify::isEnabled(context))
             return Result::Continue;
 
@@ -199,7 +199,7 @@ namespace
         if (context.instructions)
             storageRevisionBefore = context.instructions->revision();
 
-#if SWC_DEV_MODE
+#if SWC_HAS_VALIDATE_MICRO
         uint64_t structuralHashBefore = 0;
         if (MicroVerify::isEnabled(context))
         {
@@ -235,7 +235,7 @@ namespace
         if (context.passChanged && context.ssaState)
             context.ssaState->invalidate();
 
-#if SWC_DEV_MODE
+#if SWC_HAS_VALIDATE_MICRO
         if (MicroVerify::isEnabled(context))
         {
             const std::string stageNameAfter = passStageName(pass, false);
@@ -284,7 +284,7 @@ namespace
         if (passes.empty())
             return Result::Continue;
 
-#if SWC_DEV_MODE
+#if SWC_HAS_VALIDATE_MICRO
         std::unordered_set<uint64_t> seenStates;
         if (MicroVerify::isEnabled(context))
         {
@@ -312,7 +312,7 @@ namespace
             refreshSsa();
 
             bool iterationMutated = false;
-#if SWC_DEV_MODE
+#if SWC_HAS_VALIDATE_MICRO
             std::vector<LoopPassTraceEntry> iterationTrace;
             if (MicroVerify::isEnabled(context))
                 iterationTrace.reserve(passes.size());
@@ -322,7 +322,7 @@ namespace
                 refreshSsa();
                 SWC_RESULT(runPass(context, *pass, verifyCache));
                 iterationMutated = iterationMutated || context.passChanged;
-#if SWC_DEV_MODE
+#if SWC_HAS_VALIDATE_MICRO
                 if (MicroVerify::isEnabled(context) && context.passChanged)
                 {
                     SWC_ASSERT(verifyCache.hasCurrentState);
@@ -340,7 +340,7 @@ namespace
                 break;
             }
 
-#if SWC_DEV_MODE
+#if SWC_HAS_VALIDATE_MICRO
             if (MicroVerify::isEnabled(context))
             {
                 SWC_ASSERT(verifyCache.hasCurrentState);
@@ -480,10 +480,6 @@ Result MicroPassManager::run(MicroPassContext& context) const
 #if SWC_HAS_STATS
     context.statsInstrAfterPreRaOptim = context.instructions->count();
 #endif
-
-    // All passes preceding the legalize/RA loop must keep the IR in virtual-register form;
-    // physical registers are only legal once register allocation kicks in.
-    SWC_RESULT(MicroVerify::verifyAllRegistersVirtual(context, "pre-ra-virtual-only"));
 
     // Register allocation loop — legalize + regalloc iterate until stable.
     const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);

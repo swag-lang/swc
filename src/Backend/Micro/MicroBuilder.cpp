@@ -753,9 +753,9 @@ Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder,
     context.passPrintOptions        = printPassOptions_;
     context.usesIntReturnRegOnRet   = usesIntReturnRegOnRet_;
     context.usesFloatReturnRegOnRet = usesFloatReturnRegOnRet_;
-#if SWC_DEV_MODE
-    if (!context.microVerify && ctx_)
-        context.microVerify = ctx_->cmdLine().microVerify;
+#if SWC_HAS_VALIDATE_MICRO
+    if (!context.validateMicro && ctx_)
+        context.validateMicro = ctx_->cmdLine().validateMicro;
 #endif
 
     return passes.run(context);

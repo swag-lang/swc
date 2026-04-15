@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-#if SWC_HAS_NATIVE_VALIDATION
+#if SWC_HAS_VALIDATE_NATIVE
 
 class NativeValidate final
 {

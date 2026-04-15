@@ -552,6 +552,19 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     else
         SWC_UNREACHABLE();
 
+    if (cmdLine_->devFull)
+    {
+#if SWC_HAS_UNITTEST
+        cmdLine_->unittest = true;
+#endif
+#if SWC_HAS_VALIDATE_MICRO
+        cmdLine_->validateMicro = true;
+#endif
+#if SWC_HAS_VALIDATE_NATIVE
+        cmdLine_->validateNative = true;
+#endif
+    }
+
 #if SWC_DEV_MODE
     if (cmdLine_->randSeed)
         cmdLine_->randomize = true;
@@ -688,13 +701,22 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Development, "all", "--verbose-info", "-vi", CommandLineType::Bool, &cmdLine_->verboseInfo, nullptr, "Print computed command, environment, toolchain and native artifact information before running the command.");
     addArg(HelpOptionGroup::Development, "all", "--dev-mode", "-dm", CommandLineType::Bool, &CompilerInstance::dbgDevMode, nullptr, "Open a message box when an error is reported.");
 
+    addArg(HelpOptionGroup::Development, "all", "--dev-full", nullptr, CommandLineType::Bool, &cmdLine_->devFull, nullptr, "Force every compiled development test and validation.");
+
 #if SWC_HAS_UNITTEST
     addArg(HelpOptionGroup::Development, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal C++ unit tests before executing command.");
     addArg(HelpOptionGroup::Development, "all", "--verbose-unittest", "-vu", CommandLineType::Bool, &cmdLine_->verboseUnittest, nullptr, "Print each internal unit test status.");
 #endif
 
+#if SWC_HAS_VALIDATE_MICRO
+    addArg(HelpOptionGroup::Development, "all", "--validate-micro", nullptr, CommandLineType::Bool, &cmdLine_->validateMicro, nullptr, "Run Micro IR legality and pass-invariant validation.");
+#endif
+
+#if SWC_HAS_VALIDATE_NATIVE
+    addArg(HelpOptionGroup::Development, "all", "--validate-native", nullptr, CommandLineType::Bool, &cmdLine_->validateNative, nullptr, "Run native backend validation, including constant relocation validation.");
+#endif
+
 #if SWC_DEV_MODE
-    addArg(HelpOptionGroup::Development, "all", "--micro-verify", nullptr, CommandLineType::Bool, &cmdLine_->microVerify, nullptr, "Run dev-only Micro IR legality and pass-invariant verification. Intended for backend validation and slower than normal compilation.");
     addArg(HelpOptionGroup::Development, "all", "--randomize", "-rz", CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize single-threaded job scheduling. Forces --num-cores=1.");
     addArg(HelpOptionGroup::Development, "all", "--seed", "-rs", CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set the seed for --randomize. Forces --randomize and --num-cores=1.");
 #endif

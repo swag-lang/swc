@@ -180,13 +180,22 @@ namespace
         printInfoLine(ctx, "output", boolToUtf8(cmdLine.output));
         printInfoLine(ctx, "runtime", boolToUtf8(cmdLine.runtime));
 
+        printInfoLine(ctx, "devFull", boolToUtf8(cmdLine.devFull));
+
 #if SWC_HAS_UNITTEST
         printInfoLine(ctx, "unittest", boolToUtf8(cmdLine.unittest));
         printInfoLine(ctx, "verboseUnittest", boolToUtf8(cmdLine.verboseUnittest));
 #endif
 
-#ifdef SWC_DEV_MODE
-        printInfoLine(ctx, "microVerify", boolToUtf8(cmdLine.microVerify));
+#if SWC_HAS_VALIDATE_MICRO
+        printInfoLine(ctx, "validateMicro", boolToUtf8(cmdLine.validateMicro));
+#endif
+
+#if SWC_HAS_VALIDATE_NATIVE
+        printInfoLine(ctx, "validateNative", boolToUtf8(cmdLine.validateNative));
+#endif
+
+#if SWC_DEV_MODE
         printInfoLine(ctx, "randomize", boolToUtf8(cmdLine.randomize));
         printInfoLine(ctx, "randSeed", std::to_string(cmdLine.randSeed));
 #endif

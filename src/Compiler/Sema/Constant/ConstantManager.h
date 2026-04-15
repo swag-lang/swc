@@ -2,6 +2,8 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Support/Core/DataSegment.h"
+#include <array>
+#include <atomic>
 
 SWC_BEGIN_NAMESPACE();
 class CompilerInstance;
@@ -9,6 +11,8 @@ class CompilerInstance;
 class ConstantManager
 {
 public:
+    ConstantManager();
+
     void             setup(const TaskContext& ctx);
     ConstantRef      addS32(const TaskContext& ctx, int32_t value);
     ConstantRef      addInt(const TaskContext& ctx, uint64_t value);
@@ -44,7 +48,23 @@ public:
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
 
 private:
+    ConstantRef addConstantSlow(const TaskContext& ctx, const ConstantValue& value);
+    ConstantRef cachedS32(int32_t value) const;
+    ConstantRef constantRefFromRaw(uint32_t raw) const;
+    ConstantRef publishSmallScalarCache(uint32_t cacheIndex, ConstantRef cstRef);
+    ConstantRef tryGetBuiltinConstant(const TaskContext& ctx, const ConstantValue& value) const;
+    ConstantRef tryGetSmallScalarCache(uint32_t cacheIndex) const;
+    bool        smallScalarCacheIndex(uint32_t& outIndex, const TaskContext& ctx, const ConstantValue& value) const;
+    uint32_t    smallIntTypeIndex(const TaskContext& ctx, TypeRef typeRef) const;
+
+    static constexpr int32_t  SMALL_INT_MIN          = -128;
+    static constexpr int32_t  SMALL_INT_MAX          = 1024;
+    static constexpr uint32_t SMALL_INT_RANGE        = static_cast<uint32_t>(SMALL_INT_MAX - SMALL_INT_MIN + 1);
+    static constexpr uint32_t SMALL_INT_TYPE_COUNT   = 11;
+    static constexpr uint32_t SMALL_SCALAR_CACHE_LEN = SMALL_INT_TYPE_COUNT * SMALL_INT_RANGE;
+
     Shard shards_[SHARD_COUNT];
+    std::array<std::atomic<uint32_t>, SMALL_SCALAR_CACHE_LEN> smallScalarRefs_;
 
     ConstantRef cstBool_true_  = ConstantRef::invalid();
     ConstantRef cstBool_false_ = ConstantRef::invalid();

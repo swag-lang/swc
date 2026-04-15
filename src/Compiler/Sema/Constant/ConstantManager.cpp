@@ -3,8 +3,46 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/Stats.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    void recordConstantBuiltinFastHit()
+    {
+#if SWC_HAS_STATS
+        Stats::get().numConstantBuiltinFastHits.fetch_add(1, std::memory_order_relaxed);
+#endif
+    }
+
+    void recordConstantSmallScalarCacheHit()
+    {
+#if SWC_HAS_STATS
+        Stats::get().numConstantSmallScalarCacheHits.fetch_add(1, std::memory_order_relaxed);
+#endif
+    }
+
+    void recordConstantSmallScalarCacheMiss()
+    {
+#if SWC_HAS_STATS
+        Stats::get().numConstantSmallScalarCacheMisses.fetch_add(1, std::memory_order_relaxed);
+#endif
+    }
+
+    void recordConstantSlowPathCall()
+    {
+#if SWC_HAS_STATS
+        Stats::get().numConstantSlowPathCalls.fetch_add(1, std::memory_order_relaxed);
+#endif
+    }
+}
+
+ConstantManager::ConstantManager()
+{
+    for (auto& ref : smallScalarRefs_)
+        ref.store(INVALID_REF, std::memory_order_relaxed);
+}
 
 void ConstantManager::setup(const TaskContext& ctx)
 {
@@ -19,6 +57,12 @@ void ConstantManager::setup(const TaskContext& ctx)
 
 ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
 {
+    if (const ConstantRef cstRef = cachedS32(value); cstRef.isValid())
+    {
+        recordConstantBuiltinFastHit();
+        return cstRef;
+    }
+
     return addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(value, 32, false), 32, TypeInfo::Sign::Signed));
 }
 
@@ -279,7 +323,30 @@ namespace
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
-    uint32_t   shardIndex          = value.hash() & (SHARD_COUNT - 1);
+    if (const ConstantRef cstRef = tryGetBuiltinConstant(ctx, value); cstRef.isValid())
+    {
+        recordConstantBuiltinFastHit();
+        return cstRef;
+    }
+
+    uint32_t cacheIndex = INVALID_REF;
+    if (smallScalarCacheIndex(cacheIndex, ctx, value))
+    {
+        if (const ConstantRef cstRef = tryGetSmallScalarCache(cacheIndex); cstRef.isValid())
+            return cstRef;
+
+        recordConstantSmallScalarCacheMiss();
+        const ConstantRef cstRef = addConstantSlow(ctx, value);
+        return publishSmallScalarCache(cacheIndex, cstRef);
+    }
+
+    return addConstantSlow(ctx, value);
+}
+
+ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const ConstantValue& value)
+{
+    recordConstantSlowPathCall();
+    uint32_t   shardIndex          = Math::hash(value.hash()) & (SHARD_COUNT - 1);
     const bool isSpanValue         = value.isStruct() || value.isArray() || value.isSlice();
     bool       keepBorrowedPayload = false;
     ConstantValue valueToAdd       = value;
@@ -308,6 +375,162 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
         return addCstString(*this, shard, shardIndex, ctx, valueToAdd);
 
     return addCstOther(*this, shard, shardIndex, ctx, valueToAdd);
+}
+
+ConstantRef ConstantManager::cachedS32(int32_t value) const
+{
+    switch (value)
+    {
+        case -1:
+            return cstS32_neg1_.isValid() ? cstS32_neg1_ : ConstantRef::invalid();
+        case 0:
+            return cstS32_0_.isValid() ? cstS32_0_ : ConstantRef::invalid();
+        case 1:
+            return cstS32_1_.isValid() ? cstS32_1_ : ConstantRef::invalid();
+        default:
+            return ConstantRef::invalid();
+    }
+}
+
+ConstantRef ConstantManager::constantRefFromRaw(const uint32_t raw) const
+{
+    SWC_ASSERT(raw != INVALID_REF);
+    ConstantRef cstRef{raw};
+#if SWC_HAS_REF_DEBUG_INFO
+    cstRef.dbgPtr = &get(cstRef);
+#endif
+    return cstRef;
+}
+
+ConstantRef ConstantManager::publishSmallScalarCache(const uint32_t cacheIndex, const ConstantRef cstRef)
+{
+    SWC_ASSERT(cacheIndex < smallScalarRefs_.size());
+    SWC_ASSERT(cstRef.isValid());
+
+    uint32_t expected = INVALID_REF;
+    if (smallScalarRefs_[cacheIndex].compare_exchange_strong(expected, cstRef.get(), std::memory_order_release, std::memory_order_acquire))
+        return cstRef;
+
+    const ConstantRef cached = constantRefFromRaw(expected);
+    SWC_ASSERT(cached == cstRef);
+    return cached;
+}
+
+ConstantRef ConstantManager::tryGetBuiltinConstant(const TaskContext& ctx, const ConstantValue& value) const
+{
+    if (value.isBool() && value.typeRef() == ctx.typeMgr().typeBool())
+    {
+        const ConstantRef cstRef = cstBool(value.getBool());
+        return cstRef.isValid() ? cstRef : ConstantRef::invalid();
+    }
+
+    if (value.isNull() && value.typeRef() == ctx.typeMgr().typeNull())
+        return cstNull_.isValid() ? cstNull_ : ConstantRef::invalid();
+
+    if (value.isUndefined() && value.typeRef() == ctx.typeMgr().typeUndefined())
+        return cstUndefined_.isValid() ? cstUndefined_ : ConstantRef::invalid();
+
+    if (!value.isInt() || value.typeRef() != ctx.typeMgr().typeS32())
+        return ConstantRef::invalid();
+
+    const ApsInt& intValue = value.getInt();
+    if (intValue.isUnsigned() || intValue.bitWidth() != 32 || !intValue.fits64())
+        return ConstantRef::invalid();
+
+    return cachedS32(static_cast<int32_t>(intValue.asI64()));
+}
+
+ConstantRef ConstantManager::tryGetSmallScalarCache(const uint32_t cacheIndex) const
+{
+    SWC_ASSERT(cacheIndex < smallScalarRefs_.size());
+    const uint32_t raw = smallScalarRefs_[cacheIndex].load(std::memory_order_acquire);
+    if (raw == INVALID_REF)
+        return ConstantRef::invalid();
+
+    recordConstantSmallScalarCacheHit();
+    return constantRefFromRaw(raw);
+}
+
+bool ConstantManager::smallScalarCacheIndex(uint32_t& outIndex, const TaskContext& ctx, const ConstantValue& value) const
+{
+    outIndex = INVALID_REF;
+    if (!value.isInt())
+        return false;
+
+    const uint32_t typeIndex = smallIntTypeIndex(ctx, value.typeRef());
+    if (typeIndex == INVALID_REF)
+        return false;
+
+    const TypeInfo& type     = ctx.typeMgr().get(value.typeRef());
+    const ApsInt&   intValue = value.getInt();
+    if (type.isIntUnsigned() != intValue.isUnsigned())
+        return false;
+
+    const uint32_t typeBits = type.payloadIntBits();
+    if (typeBits)
+    {
+        if (intValue.bitWidth() != typeBits)
+            return false;
+    }
+    else if (intValue.bitWidth() != ApsInt::maxBitWidth())
+    {
+        return false;
+    }
+
+    int64_t scalarValue = 0;
+    if (intValue.isUnsigned())
+    {
+        if (!intValue.fits64())
+            return false;
+
+        const uint64_t rawValue = intValue.as64();
+        if (rawValue > static_cast<uint64_t>(SMALL_INT_MAX))
+            return false;
+
+        scalarValue = static_cast<int64_t>(rawValue);
+    }
+    else
+    {
+        if (!intValue.fits64())
+            return false;
+
+        scalarValue = intValue.asI64();
+    }
+
+    if (scalarValue < SMALL_INT_MIN || scalarValue > SMALL_INT_MAX)
+        return false;
+
+    outIndex = typeIndex * SMALL_INT_RANGE + static_cast<uint32_t>(scalarValue - SMALL_INT_MIN);
+    SWC_ASSERT(outIndex < smallScalarRefs_.size());
+    return true;
+}
+
+uint32_t ConstantManager::smallIntTypeIndex(const TaskContext& ctx, TypeRef typeRef) const
+{
+    const TypeManager& typeMgr = ctx.typeMgr();
+    if (typeRef == typeMgr.typeInt())
+        return 0;
+    if (typeRef == typeMgr.typeIntSigned())
+        return 1;
+    if (typeRef == typeMgr.typeIntUnsigned())
+        return 2;
+    if (typeRef == typeMgr.typeU8())
+        return 3;
+    if (typeRef == typeMgr.typeU16())
+        return 4;
+    if (typeRef == typeMgr.typeU32())
+        return 5;
+    if (typeRef == typeMgr.typeU64())
+        return 6;
+    if (typeRef == typeMgr.typeS8())
+        return 7;
+    if (typeRef == typeMgr.typeS16())
+        return 8;
+    if (typeRef == typeMgr.typeS32())
+        return 9;
+    if (typeRef == typeMgr.typeS64())
+        return 10;
+    return INVALID_REF;
 }
 
 std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef)

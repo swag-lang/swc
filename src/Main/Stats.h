@@ -25,6 +25,10 @@ struct Stats
     std::atomic<size_t> numAstNodes                   = 0;
     std::atomic<size_t> numVisitedAstNodes            = 0;
     std::atomic<size_t> numConstants                  = 0;
+    std::atomic<size_t> numConstantBuiltinFastHits    = 0;
+    std::atomic<size_t> numConstantSmallScalarCacheHits   = 0;
+    std::atomic<size_t> numConstantSmallScalarCacheMisses = 0;
+    std::atomic<size_t> numConstantSlowPathCalls          = 0;
     std::atomic<size_t> numTypes                      = 0;
     std::atomic<size_t> numIdentifiers                = 0;
     std::atomic<size_t> numSymbols                    = 0;

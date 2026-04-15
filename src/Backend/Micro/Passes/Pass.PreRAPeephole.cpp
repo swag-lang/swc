@@ -34,8 +34,8 @@ namespace
 
     const PatternRegistry& registry()
     {
-        static const PatternRegistry r = buildRegistry();
-        return r;
+        static const PatternRegistry R = buildRegistry();
+        return R;
     }
 
     void runPerInstructionPatterns(Context& ctx)
@@ -54,7 +54,7 @@ namespace
     }
 }
 
-Result MicroPreRAPeepholePass::run(MicroPassContext& context)
+Result MicroPreRaPeepholePass::run(MicroPassContext& context)
 {
     SWC_MEM_SCOPE("Backend/MicroLower/PreRAPeephole");
     SWC_ASSERT(context.instructions != nullptr);

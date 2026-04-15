@@ -219,21 +219,21 @@ void Stats::print(const TaskContext& ctx) const
         Logger::print(ctx, "\n");
         const size_t numMicroInitial          = numMicroInstrInitial.load();
         const size_t numMicroAfterStart       = numMicroInstrAfterStart.load();
-        const size_t numMicroAfterPreRAOptim  = numMicroInstrAfterPreRAOptim.load();
-        const size_t numMicroAfterRA          = numMicroInstrAfterRA.load();
-        const size_t numMicroAfterPostRASetup = numMicroInstrAfterPostRASetup.load();
-        const size_t numMicroAfterPostRAOptim = numMicroInstrAfterPostRAOptim.load();
+        const size_t numMicroAfterPreRaOptim  = numMicroInstrAfterPreRaOptim.load();
+        const size_t numMicroAfterRa          = numMicroInstrAfterRa.load();
+        const size_t numMicroAfterPostRaSetup = numMicroInstrAfterPostRaSetup.load();
+        const size_t numMicroAfterPostRaOptim = numMicroInstrAfterPostRaOptim.load();
         const size_t numMicroFinal            = numMicroInstrFinal.load();
 
         Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrInitialLowered", colorMsg, Utf8Helper::toNiceBigNumber(numMicroInitial));
 
-        const std::array<MicroStageTransition, 6> transitions = {
+        const std::array transitions = {
             MicroStageTransition{"count.micro.instrAfterStackAdjustNormalize", numMicroInitial, numMicroAfterStart},
-            MicroStageTransition{"count.micro.instrAfterPreRAOptimLoop", numMicroAfterStart, numMicroAfterPreRAOptim},
-            MicroStageTransition{"count.micro.instrAfterLegalizeRegAllocLoop", numMicroAfterPreRAOptim, numMicroAfterRA},
-            MicroStageTransition{"count.micro.instrAfterPrologEpilogSetup", numMicroAfterRA, numMicroAfterPostRASetup},
-            MicroStageTransition{"count.micro.instrAfterPostRAOptimPasses", numMicroAfterPostRASetup, numMicroAfterPostRAOptim},
-            MicroStageTransition{"count.micro.instrFinalAfterSanitizeEmit", numMicroAfterPostRAOptim, numMicroFinal},
+            MicroStageTransition{"count.micro.instrAfterPreRAOptimLoop", numMicroAfterStart, numMicroAfterPreRaOptim},
+            MicroStageTransition{"count.micro.instrAfterLegalizeRegAllocLoop", numMicroAfterPreRaOptim, numMicroAfterRa},
+            MicroStageTransition{"count.micro.instrAfterPrologEpilogSetup", numMicroAfterRa, numMicroAfterPostRaSetup},
+            MicroStageTransition{"count.micro.instrAfterPostRAOptimPasses", numMicroAfterPostRaSetup, numMicroAfterPostRaOptim},
+            MicroStageTransition{"count.micro.instrFinalAfterSanitizeEmit", numMicroAfterPostRaOptim, numMicroFinal},
         };
 
         for (const MicroStageTransition& transition : transitions)

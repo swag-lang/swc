@@ -104,7 +104,7 @@ namespace PreRaPeephole
         return storage->findNextInstructionRef(ref);
     }
 
-    void applyAction(Context& ctx, const Action& action)
+    void applyAction(const Context& ctx, const Action& action)
     {
         SWC_ASSERT(ctx.storage != nullptr);
         SWC_ASSERT(ctx.operands != nullptr);

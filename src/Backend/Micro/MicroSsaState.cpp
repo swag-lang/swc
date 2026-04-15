@@ -271,7 +271,7 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
 
 void MicroSsaState::computeDominators()
 {
-    std::vector<uint32_t> idomValues(blocks_.size(), K_INVALID_BLOCK);
+    std::vector idomValues(blocks_.size(), K_INVALID_BLOCK);
     for (BlockInfo& block : blocks_)
     {
         block.idom = K_INVALID_BLOCK;
@@ -297,7 +297,7 @@ void MicroSsaState::computeDominators()
     std::vector<uint32_t> dfsStack;
     std::vector<uint32_t> dfsIter;
     std::vector<uint32_t> postOrder;
-    std::vector<uint32_t> rpoPosition(blocks_.size(), K_INVALID);
+    std::vector           rpoPosition(blocks_.size(), K_INVALID);
 
     size_t rootCursor = 0;
     while (true)

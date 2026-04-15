@@ -45,8 +45,8 @@ namespace
 
     const PatternRegistry& registry()
     {
-        static const PatternRegistry r = buildRegistry();
-        return r;
+        static const PatternRegistry R = buildRegistry();
+        return R;
     }
 
     void runPerInstructionPatterns(Context& ctx)

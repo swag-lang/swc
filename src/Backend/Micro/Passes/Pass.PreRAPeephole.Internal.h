@@ -26,7 +26,7 @@ namespace PreRaPeephole
         MicroStorage*                storage  = nullptr;
         MicroOperandStorage*         operands = nullptr;
         std::unordered_set<uint32_t> claimed;
-        SmallVector<Action, 16>      actions;
+        SmallVector<Action>          actions;
 
         bool                     isClaimed(MicroInstrRef ref) const;
         bool                     claimAll(std::initializer_list<MicroInstrRef> refs);
@@ -53,12 +53,12 @@ namespace PreRaPeephole
     uint64_t extendBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned);
     void     setMaskedImmediateValue(MicroInstrOperand& op, uint64_t value, MicroOpBits bits);
 
-    void applyAction(Context& ctx, const Action& action);
+    void applyAction(const Context& ctx, const Action& action);
 
-    bool tryForwardConstantLike(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryForwardCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryForwardLoadAddr(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryForwardLoadAddrAmc(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryForwardConstantLike(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
+    bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryForwardLoadAddr(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
+    bool tryForwardLoadAddrAmc(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
 }
 
 SWC_END_NAMESPACE();

@@ -156,10 +156,10 @@ Math::FoldStatus MicroPassHelpers::foldBinaryImmediate(uint64_t&   outValue,
     if (!bitWidth)
         return Math::FoldStatus::Unsupported;
 
-    const bool isUnsigned = !isSigned;
-    ApsInt     lhsInt(static_cast<int64_t>(lhs), bitWidth, isUnsigned);
-    ApsInt     rhsInt(static_cast<int64_t>(rhs), bitWidth, isUnsigned);
-    ApsInt     result;
+    const bool   isUnsigned = !isSigned;
+    const ApsInt lhsInt(static_cast<int64_t>(lhs), bitWidth, isUnsigned);
+    const ApsInt rhsInt(static_cast<int64_t>(rhs), bitWidth, isUnsigned);
+    ApsInt       result;
 
     const Math::FoldStatus status = Math::foldBinaryInt(result, lhsInt, rhsInt, foldOp);
     if (status != Math::FoldStatus::Ok)

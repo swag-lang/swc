@@ -12,6 +12,7 @@ namespace InstructionCombine
     {
         bool allUsesFitWithin(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t maxBits)
         {
+            SWC_UNUSED(ssa);
             for (const auto& useSite : valueInfo.uses)
             {
                 if (useSite.kind != MicroSsaState::UseSite::Kind::Instruction)

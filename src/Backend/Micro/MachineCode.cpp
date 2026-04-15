@@ -30,10 +30,10 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 #if SWC_HAS_STATS
     Stats::get().numMicroInstrInitial.fetch_add(passContext.statsInstrInitial, std::memory_order_relaxed);
     Stats::get().numMicroInstrAfterStart.fetch_add(passContext.statsInstrAfterStart, std::memory_order_relaxed);
-    Stats::get().numMicroInstrAfterPreRAOptim.fetch_add(passContext.statsInstrAfterPreRAOptim, std::memory_order_relaxed);
-    Stats::get().numMicroInstrAfterRA.fetch_add(passContext.statsInstrAfterRA, std::memory_order_relaxed);
-    Stats::get().numMicroInstrAfterPostRASetup.fetch_add(passContext.statsInstrAfterPostRASetup, std::memory_order_relaxed);
-    Stats::get().numMicroInstrAfterPostRAOptim.fetch_add(passContext.statsInstrAfterPostRAOptim, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterPreRaOptim.fetch_add(passContext.statsInstrAfterPreRaOptim, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterRa.fetch_add(passContext.statsInstrAfterRa, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterPostRaSetup.fetch_add(passContext.statsInstrAfterPostRaSetup, std::memory_order_relaxed);
+    Stats::get().numMicroInstrAfterPostRaOptim.fetch_add(passContext.statsInstrAfterPostRaOptim, std::memory_order_relaxed);
     Stats::get().numMicroInstrFinal.fetch_add(passContext.statsInstrFinal, std::memory_order_relaxed);
 #endif
 

@@ -114,7 +114,7 @@ private:
     void             queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
     bool             spillOrRematerializeLiveValue(MicroReg physReg, VRegState& regState, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             updateRematerializationForDef(VRegState& regState, MicroReg virtKey, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* instOps) const;
-    void             noteRematDefConsumed(VRegState& regState) const;
+    static void      noteRematDefConsumed(VRegState& regState);
     void             retireRematDef(VRegState& regState);
     void             queueErase(MicroInstrRef instRef);
     void             flushQueuedErasures();

@@ -286,10 +286,10 @@ namespace
         if (!bitWidth)
             return false;
 
-        const ApsInt lhsUnsigned(lhsValue, bitWidth, true);
-        const ApsInt rhsUnsigned(rhsValue, bitWidth, true);
-        const ApsInt lhsSigned(lhsValue, bitWidth, false);
-        const ApsInt rhsSigned(rhsValue, bitWidth, false);
+        const ApsInt lhsUnsigned(std::bit_cast<int64_t>(lhsValue), bitWidth, true);
+        const ApsInt rhsUnsigned(std::bit_cast<int64_t>(rhsValue), bitWidth, true);
+        const ApsInt lhsSigned(std::bit_cast<int64_t>(lhsValue), bitWidth, false);
+        const ApsInt rhsSigned(std::bit_cast<int64_t>(rhsValue), bitWidth, false);
 
         switch (cond)
         {

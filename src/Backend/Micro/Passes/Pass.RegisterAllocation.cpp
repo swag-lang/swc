@@ -972,7 +972,7 @@ void MicroRegisterAllocationPass::clearRematerialization(VRegState& regState)
     regState.rematDefConsumed = false;
 }
 
-void MicroRegisterAllocationPass::noteRematDefConsumed(VRegState& regState) const
+void MicroRegisterAllocationPass::noteRematDefConsumed(VRegState& regState)
 {
     if (regState.rematDefInstRef.isValid())
         regState.rematDefConsumed = true;
@@ -1802,7 +1802,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 request.preferredPhysReg = srcReg;
         }
 
-        std::stable_sort(allocRequests.begin(), allocRequests.end(), compareAllocRequests);
+        std::ranges::stable_sort(allocRequests, compareAllocRequests);
 
         SmallVector<MicroReg> mentionedConcreteRegs;
         mentionedConcreteRegs.reserve(instructionUseDefs_[idx].uses.size() + instructionUseDefs_[idx].defs.size());

@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace PostRAPeephole
+namespace PostRaPeephole
 {
     namespace
     {
@@ -92,7 +92,7 @@ namespace PostRAPeephole
         return storage->findPreviousInstructionRef(ref);
     }
 
-    void applyAction(Context& ctx, const Action& action)
+    void applyAction(const Context& ctx, const Action& action)
     {
         SWC_ASSERT(ctx.storage != nullptr);
         SWC_ASSERT(ctx.operands != nullptr);
@@ -154,7 +154,7 @@ namespace PostRAPeephole
         return true;
     }
 
-    bool isRedundantFallthroughJumpToNextLabel(Context& ctx, MicroInstrRef ref, const MicroInstr& inst, const MicroInstrOperand* ops)
+    bool isRedundantFallthroughJumpToNextLabel(const Context& ctx, MicroInstrRef ref, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::JumpCond || !ops)
             return false;

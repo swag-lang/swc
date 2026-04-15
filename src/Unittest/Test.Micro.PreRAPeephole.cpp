@@ -14,7 +14,7 @@ namespace
 {
     Result runPreRaPeepholePass(MicroBuilder& builder)
     {
-        MicroPreRAPeepholePass pass;
+        MicroPreRaPeepholePass pass;
         MicroPassManager       passManager;
         passManager.addStartPass(pass);
 

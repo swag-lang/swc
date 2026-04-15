@@ -34,7 +34,7 @@ namespace InstructionCombine
         MicroOperandStorage*         operands = nullptr;
         const MicroSsaState*         ssa      = nullptr;
         std::unordered_set<uint32_t> claimed;
-        SmallVector<Action, 16>      actions;
+        SmallVector<Action>          actions;
 
         bool isClaimed(MicroInstrRef ref) const;
 
@@ -76,13 +76,13 @@ namespace InstructionCombine
 
     bool tryOpBinaryRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryOpBinaryRegReg(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryFoldConstStore(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryFoldConstCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryFoldConstCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
+    bool tryFoldConstCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
+    bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
+    bool tryFoldConstCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
 
     //===-- Whole-IR scans --------------------------------------------------===//
 

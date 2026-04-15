@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace PostRAPeephole
+namespace PostRaPeephole
 {
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {

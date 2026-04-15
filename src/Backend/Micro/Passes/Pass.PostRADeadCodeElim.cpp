@@ -112,7 +112,7 @@ namespace
     }
 }
 
-Result MicroPostRADeadCodeElimPass::run(MicroPassContext& context)
+Result MicroPostRaDeadCodeElimPass::run(MicroPassContext& context)
 {
     SWC_MEM_SCOPE("Backend/MicroLower/PostRADCE");
     SWC_ASSERT(context.instructions != nullptr);

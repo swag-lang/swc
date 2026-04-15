@@ -176,7 +176,7 @@ namespace InstructionCombine
             uint8_t       condIdx;
         };
 
-        bool collectFlagConsumersForSwap(SmallVector<FlagConsumer, 4>& out, Context& ctx, MicroInstrRef cmpRef)
+        bool collectFlagConsumersForSwap(SmallVector<FlagConsumer, 4>& out, const Context& ctx, MicroInstrRef cmpRef)
         {
             auto       walker = ctx.storage->view().begin();
             const auto endIt  = ctx.storage->view().end();

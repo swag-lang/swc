@@ -389,7 +389,7 @@ MicroPassManager::MicroPassManager()
     emitPass_                 = std::make_unique<MicroEmitPass>();
 
     // Pre-RA optimization passes
-    preRAPeepholePass_       = std::make_unique<MicroPreRAPeepholePass>();
+    preRaPeepholePass_       = std::make_unique<MicroPreRaPeepholePass>();
     constantFoldingPass_     = std::make_unique<MicroConstantFoldingPass>();
     copyEliminationPass_     = std::make_unique<MicroCopyEliminationPass>();
     instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
@@ -398,8 +398,8 @@ MicroPassManager::MicroPassManager()
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
 
     // Post-RA optimization passes
-    postRAPeepholePass_     = std::make_unique<MicroPostRAPeepholePass>();
-    postRADeadCodeElimPass_ = std::make_unique<MicroPostRADeadCodeElimPass>();
+    postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
+    postRaDeadCodeElimPass_ = std::make_unique<MicroPostRaDeadCodeElimPass>();
 }
 
 MicroPassManager::~MicroPassManager()                                      = default;
@@ -409,10 +409,10 @@ MicroPassManager& MicroPassManager::operator=(MicroPassManager&&) noexcept = def
 void MicroPassManager::clear()
 {
     startPasses_.clear();
-    preRALoopPasses_.clear();
+    preRaLoopPasses_.clear();
     raLoopPasses_.clear();
-    postRASetupPasses_.clear();
-    postRAOptimPasses_.clear();
+    postRaSetupPasses_.clear();
+    postRaOptimPasses_.clear();
     finalPasses_.clear();
 }
 
@@ -430,27 +430,27 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     // Iterates until fixed point before touching register allocation.
     if (optimize)
     {
-        addPreRALoopPass(*preRAPeepholePass_);
-        addPreRALoopPass(*constantFoldingPass_);
-        addPreRALoopPass(*copyEliminationPass_);
-        addPreRALoopPass(*instructionCombinePass_);
-        addPreRALoopPass(*strengthReductionPass_);
-        addPreRALoopPass(*deadCodeEliminationPass_);
-        addPreRALoopPass(*branchSimplifyPass_);
+        addPreRaLoopPass(*preRaPeepholePass_);
+        addPreRaLoopPass(*constantFoldingPass_);
+        addPreRaLoopPass(*copyEliminationPass_);
+        addPreRaLoopPass(*instructionCombinePass_);
+        addPreRaLoopPass(*strengthReductionPass_);
+        addPreRaLoopPass(*deadCodeEliminationPass_);
+        addPreRaLoopPass(*branchSimplifyPass_);
     }
 
     // Phase 3 — Register allocation loop.
     // Legalize can introduce new virtual registers; RegAlloc can introduce spills that
     // need another Legalize pass. They iterate together until stable.
-    addRALoopPass(*legalizePass_);
-    addRALoopPass(*regAllocPass_);
+    addRaLoopPass(*legalizePass_);
+    addRaLoopPass(*regAllocPass_);
 
     // Phase 4 — Post-RA finalization (runs once, on physical registers).
-    addPostRASetupPass(*prologEpilogPass_);
+    addPostRaSetupPass(*prologEpilogPass_);
     if (optimize)
     {
-        addPostRAOptimPass(*postRAPeepholePass_);
-        addPostRAOptimPass(*postRADeadCodeElimPass_);
+        addPostRaOptimPass(*postRaPeepholePass_);
+        addPostRaOptimPass(*postRaDeadCodeElimPass_);
     }
     addFinalPass(*prologEpilogSanitizePass_);
     addFinalPass(*emitPass_);
@@ -475,10 +475,10 @@ Result MicroPassManager::run(MicroPassContext& context) const
     // Pre-RA optimization loop — converges on the virtual-register IR.
     SWC_ASSERT(context.builder);
     const uint32_t preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
-    SWC_RESULT(runLoopPasses(context, preRALoopPasses_, preRaMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
+    SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
 
 #if SWC_HAS_STATS
-    context.statsInstrAfterPreRAOptim = context.instructions->count();
+    context.statsInstrAfterPreRaOptim = context.instructions->count();
 #endif
 
     // All passes preceding the legalize/RA loop must keep the IR in virtual-register form;
@@ -490,19 +490,19 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, false, "ra-legalize-loop", verifyCache));
 
 #if SWC_HAS_STATS
-    context.statsInstrAfterRA = context.instructions->count();
+    context.statsInstrAfterRa = context.instructions->count();
 #endif
 
-    SWC_RESULT(runLinearPasses(context, postRASetupPasses_, verifyCache));
+    SWC_RESULT(runLinearPasses(context, postRaSetupPasses_, verifyCache));
 
 #if SWC_HAS_STATS
-    context.statsInstrAfterPostRASetup = context.instructions->count();
+    context.statsInstrAfterPostRaSetup = context.instructions->count();
 #endif
 
-    SWC_RESULT(runLinearPasses(context, postRAOptimPasses_, verifyCache));
+    SWC_RESULT(runLinearPasses(context, postRaOptimPasses_, verifyCache));
 
 #if SWC_HAS_STATS
-    context.statsInstrAfterPostRAOptim = context.instructions->count();
+    context.statsInstrAfterPostRaOptim = context.instructions->count();
 #endif
 
     SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));

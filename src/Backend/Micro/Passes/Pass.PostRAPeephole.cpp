@@ -20,7 +20,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using namespace PostRAPeephole;
+    using namespace PostRaPeephole;
 
     PatternRegistry buildRegistry()
     {
@@ -59,7 +59,7 @@ namespace
     }
 }
 
-Result MicroPostRAPeepholePass::run(MicroPassContext& context)
+Result MicroPostRaPeepholePass::run(MicroPassContext& context)
 {
     SWC_MEM_SCOPE("Backend/MicroLower/PostRAPeephole");
     SWC_ASSERT(context.instructions != nullptr);

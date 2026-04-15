@@ -19,7 +19,7 @@ class MicroPrologEpilogSanitizePass;
 class MicroEmitPass;
 
 // Pre-RA optimization passes (operate on virtual registers)
-class MicroPreRAPeepholePass;
+class MicroPreRaPeepholePass;
 class MicroConstantFoldingPass;
 class MicroCopyEliminationPass;
 class MicroInstructionCombinePass;
@@ -28,8 +28,8 @@ class MicroDeadCodeEliminationPass;
 class MicroBranchSimplifyPass;
 
 // Post-RA optimization passes (operate on physical registers)
-class MicroPostRAPeepholePass;
-class MicroPostRADeadCodeElimPass;
+class MicroPostRaPeepholePass;
+class MicroPostRaDeadCodeElimPass;
 
 class MicroPassManager
 {
@@ -45,10 +45,10 @@ public:
     void clear();
     void configureDefaultPipeline(bool optimize);
     void addStartPass(MicroPass& pass) { startPasses_.push_back(&pass); }
-    void addPreRALoopPass(MicroPass& pass) { preRALoopPasses_.push_back(&pass); }
-    void addRALoopPass(MicroPass& pass) { raLoopPasses_.push_back(&pass); }
-    void addPostRASetupPass(MicroPass& pass) { postRASetupPasses_.push_back(&pass); }
-    void addPostRAOptimPass(MicroPass& pass) { postRAOptimPasses_.push_back(&pass); }
+    void addPreRaLoopPass(MicroPass& pass) { preRaLoopPasses_.push_back(&pass); }
+    void addRaLoopPass(MicroPass& pass) { raLoopPasses_.push_back(&pass); }
+    void addPostRaSetupPass(MicroPass& pass) { postRaSetupPasses_.push_back(&pass); }
+    void addPostRaOptimPass(MicroPass& pass) { postRaOptimPasses_.push_back(&pass); }
     void addFinalPass(MicroPass& pass) { finalPasses_.push_back(&pass); }
 
     // Back-compat shim: addLoopPass routes to the RA loop (legalize+regalloc).
@@ -58,10 +58,10 @@ public:
 
 private:
     std::vector<MicroPass*> startPasses_;
-    std::vector<MicroPass*> preRALoopPasses_;
+    std::vector<MicroPass*> preRaLoopPasses_;
     std::vector<MicroPass*> raLoopPasses_;
-    std::vector<MicroPass*> postRASetupPasses_;
-    std::vector<MicroPass*> postRAOptimPasses_;
+    std::vector<MicroPass*> postRaSetupPasses_;
+    std::vector<MicroPass*> postRaOptimPasses_;
     std::vector<MicroPass*> finalPasses_;
 
     // Structural passes
@@ -73,7 +73,7 @@ private:
     std::unique_ptr<MicroEmitPass>                 emitPass_;
 
     // Pre-RA optimization passes
-    std::unique_ptr<MicroPreRAPeepholePass>       preRAPeepholePass_;
+    std::unique_ptr<MicroPreRaPeepholePass>       preRaPeepholePass_;
     std::unique_ptr<MicroConstantFoldingPass>     constantFoldingPass_;
     std::unique_ptr<MicroCopyEliminationPass>     copyEliminationPass_;
     std::unique_ptr<MicroInstructionCombinePass>  instructionCombinePass_;
@@ -82,8 +82,8 @@ private:
     std::unique_ptr<MicroBranchSimplifyPass>      branchSimplifyPass_;
 
     // Post-RA optimization passes
-    std::unique_ptr<MicroPostRAPeepholePass>     postRAPeepholePass_;
-    std::unique_ptr<MicroPostRADeadCodeElimPass> postRADeadCodeElimPass_;
+    std::unique_ptr<MicroPostRaPeepholePass>     postRaPeepholePass_;
+    std::unique_ptr<MicroPostRaDeadCodeElimPass> postRaDeadCodeElimPass_;
 };
 
 SWC_END_NAMESPACE();

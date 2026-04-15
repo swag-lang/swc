@@ -49,10 +49,10 @@ struct MicroPassContext
     // Instruction counts captured at each observable pipeline checkpoint.
     size_t statsInstrInitial          = 0;
     size_t statsInstrAfterStart       = 0;
-    size_t statsInstrAfterPreRAOptim  = 0;
-    size_t statsInstrAfterRA          = 0;
-    size_t statsInstrAfterPostRASetup = 0;
-    size_t statsInstrAfterPostRAOptim = 0;
+    size_t statsInstrAfterPreRaOptim  = 0;
+    size_t statsInstrAfterRa          = 0;
+    size_t statsInstrAfterPostRaSetup = 0;
+    size_t statsInstrAfterPostRaOptim = 0;
     size_t statsInstrFinal            = 0;
 #endif
 };

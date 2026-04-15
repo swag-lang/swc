@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 // Lightweight cleanup after register allocation: remove redundant no-op
 // instructions, erase dead compares, and leave room for more target-specific
 // post-RA cleanups without growing one monolithic pass.
-class MicroPostRAPeepholePass final : public MicroPass
+class MicroPostRaPeepholePass final : public MicroPass
 {
 public:
     std::string_view name() const override { return "post-ra-peephole"; }

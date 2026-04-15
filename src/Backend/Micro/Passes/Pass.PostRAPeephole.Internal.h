@@ -8,7 +8,7 @@ class MicroStorage;
 class MicroOperandStorage;
 class Encoder;
 
-namespace PostRAPeephole
+namespace PostRaPeephole
 {
     struct Action
     {
@@ -28,7 +28,7 @@ namespace PostRAPeephole
         MicroOperandStorage*         operands = nullptr;
         const Encoder*               encoder  = nullptr;
         std::unordered_set<uint32_t> claimed;
-        SmallVector<Action, 16>      actions;
+        SmallVector<Action>          actions;
 
         bool                     isClaimed(MicroInstrRef ref) const;
         bool                     claimAll(std::initializer_list<MicroInstrRef> refs);
@@ -52,16 +52,16 @@ namespace PostRAPeephole
         std::span<const PatternFn> patternsFor(MicroInstrOpcode op) const;
     };
 
-    void applyAction(Context& ctx, const Action& action);
+    void applyAction(const Context& ctx, const Action& action);
 
     bool isTriviallyErasableNoEffect(const MicroInstr& inst, const MicroInstrOperand* ops);
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
-    bool isRedundantFallthroughJumpToNextLabel(Context& ctx, MicroInstrRef ref, const MicroInstr& inst, const MicroInstrOperand* ops);
+    bool isRedundantFallthroughJumpToNextLabel(const Context& ctx, MicroInstrRef ref, const MicroInstr& inst, const MicroInstrOperand* ops);
 
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryForwardCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
+    bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
 }
 
 SWC_END_NAMESPACE();

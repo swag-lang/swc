@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace PostRAPeephole
+namespace PostRaPeephole
 {
     namespace
     {

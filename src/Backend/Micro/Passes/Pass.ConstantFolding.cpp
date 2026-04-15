@@ -306,6 +306,7 @@ namespace
 
     bool tryFoldBinaryRegReg(const MicroSsaState& ssaState, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
+        SWC_UNUSED(operands);
         if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
             return false;
         if (!ops)

@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroPreRAPeepholePass final : public MicroPass
+class MicroPreRaPeepholePass final : public MicroPass
 {
 public:
     std::string_view name() const override { return "pre-ra-peephole"; }

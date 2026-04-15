@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 // Typical targets: rematerialized LoadRegReg copies left dead by register
 // allocation, extends feeding an already-folded comparison, narrow moves
 // where the destination is overwritten before any use.
-class MicroPostRADeadCodeElimPass final : public MicroPass
+class MicroPostRaDeadCodeElimPass final : public MicroPass
 {
 public:
     std::string_view name() const override { return "post-ra-dce"; }

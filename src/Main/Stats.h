@@ -30,10 +30,10 @@ struct Stats
     std::atomic<size_t> numSymbols                    = 0;
     std::atomic<size_t> numMicroInstrInitial          = 0;
     std::atomic<size_t> numMicroInstrAfterStart       = 0;
-    std::atomic<size_t> numMicroInstrAfterPreRAOptim  = 0;
-    std::atomic<size_t> numMicroInstrAfterRA          = 0;
-    std::atomic<size_t> numMicroInstrAfterPostRASetup = 0;
-    std::atomic<size_t> numMicroInstrAfterPostRAOptim = 0;
+    std::atomic<size_t> numMicroInstrAfterPreRaOptim  = 0;
+    std::atomic<size_t> numMicroInstrAfterRa          = 0;
+    std::atomic<size_t> numMicroInstrAfterPostRaSetup = 0;
+    std::atomic<size_t> numMicroInstrAfterPostRaOptim = 0;
     std::atomic<size_t> numMicroInstrFinal            = 0;
     std::atomic<size_t> numCodeGenFunctions           = 0;
 #endif // SWC_HAS_STATS

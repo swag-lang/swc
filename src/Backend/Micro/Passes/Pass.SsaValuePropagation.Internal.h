@@ -1,47 +1,41 @@
 #pragma once
 #include "Backend/Micro/MicroSsaState.h"
-#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
-template<typename TValue, typename TTraits, typename TContext>
-using SsaTryInferInstructionFn = bool (*)(TValue&                         outValue,
-                                          const TContext&                 context,
-                                          uint32_t                        valueId,
-                                          const MicroSsaState::ValueInfo& valueInfo,
-                                          const std::vector<TValue>&      values,
-                                          const std::vector<uint8_t>&     flags);
+template<typename T_VALUE, typename T_TRAITS, typename T_CONTEXT>
+using SsaTryInferInstructionFn = bool (*)(T_VALUE& outValue, const T_CONTEXT& context, uint32_t valueId, const MicroSsaState::ValueInfo& valueInfo, const std::vector<T_VALUE>& values, const std::vector<uint8_t>& flags);
 
-template<typename TValue, typename TTraits>
-bool tryGetSsaValue(TValue& outValue, const std::vector<TValue>& values, const std::vector<uint8_t>& flags, const uint32_t valueId)
+template<typename T_VALUE, typename T_TRAITS>
+bool tryGetSsaValue(T_VALUE& outValue, const std::vector<T_VALUE>& values, const std::vector<uint8_t>& flags, const uint32_t valueId)
 {
     if (valueId >= flags.size() || !flags[valueId])
         return false;
 
     outValue = values[valueId];
-    return TTraits::isValid(outValue);
+    return T_TRAITS::isValid(outValue);
 }
 
-template<typename TValue, typename TTraits>
-bool tryGetSsaReachingValue(TValue& outValue, const MicroSsaState& ssaState, const std::vector<TValue>& values, const std::vector<uint8_t>& flags, MicroReg reg, MicroInstrRef instRef)
+template<typename T_VALUE, typename T_TRAITS>
+bool tryGetSsaReachingValue(T_VALUE& outValue, const MicroSsaState& ssaState, const std::vector<T_VALUE>& values, const std::vector<uint8_t>& flags, MicroReg reg, MicroInstrRef instRef)
 {
     const auto reachingDef = ssaState.reachingDef(reg, instRef);
     if (!reachingDef.valid())
         return false;
 
-    return tryGetSsaValue<TValue, TTraits>(outValue, values, flags, reachingDef.valueId);
+    return tryGetSsaValue<T_VALUE, T_TRAITS>(outValue, values, flags, reachingDef.valueId);
 }
 
-template<typename TValue, typename TTraits>
-bool tryInferSsaPhiValue(TValue& outValue, const MicroSsaState::PhiInfo& phiInfo, const std::vector<TValue>& values, const std::vector<uint8_t>& flags)
+template<typename T_VALUE, typename T_TRAITS>
+bool tryInferSsaPhiValue(T_VALUE& outValue, const MicroSsaState::PhiInfo& phiInfo, const std::vector<T_VALUE>& values, const std::vector<uint8_t>& flags)
 {
-    bool   hasCandidate = false;
-    TValue candidate{};
+    bool    hasCandidate = false;
+    T_VALUE candidate{};
 
     for (const uint32_t incomingValueId : phiInfo.incomingValueIds)
     {
-        TValue incomingValue{};
-        if (!tryGetSsaValue<TValue, TTraits>(incomingValue, values, flags, incomingValueId))
+        T_VALUE incomingValue{};
+        if (!tryGetSsaValue<T_VALUE, T_TRAITS>(incomingValue, values, flags, incomingValueId))
             return false;
 
         if (!hasCandidate)
@@ -51,7 +45,7 @@ bool tryInferSsaPhiValue(TValue& outValue, const MicroSsaState::PhiInfo& phiInfo
             continue;
         }
 
-        if (!TTraits::same(candidate, incomingValue))
+        if (!T_TRAITS::same(candidate, incomingValue))
             return false;
     }
 
@@ -62,11 +56,11 @@ bool tryInferSsaPhiValue(TValue& outValue, const MicroSsaState::PhiInfo& phiInfo
     return true;
 }
 
-template<typename TValue, typename TTraits, typename TContext>
-void computeSsaValueFixedPoint(std::vector<TValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const TContext& context, const SsaTryInferInstructionFn<TValue, TTraits, TContext> tryInferInstruction)
+template<typename T_VALUE, typename T_TRAITS, typename T_CONTEXT>
+void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const T_CONTEXT& context, const SsaTryInferInstructionFn<T_VALUE, T_TRAITS, T_CONTEXT> tryInferInstruction)
 {
     const auto values = ssaState.values();
-    outValues.assign(values.size(), TValue{});
+    outValues.assign(values.size(), T_VALUE{});
     outFlags.assign(values.size(), 0);
 
     bool changed = true;
@@ -79,14 +73,14 @@ void computeSsaValueFixedPoint(std::vector<TValue>& outValues, std::vector<uint8
                 continue;
 
             const auto& valueInfo = values[valueId];
-            TValue      inferredValue{};
+            T_VALUE     inferredValue{};
             bool        inferred = false;
 
             if (valueInfo.isPhi())
             {
                 const auto* phiInfo = ssaState.phiInfoForValue(valueId);
                 if (phiInfo)
-                    inferred = tryInferSsaPhiValue<TValue, TTraits>(inferredValue, *phiInfo, outValues, outFlags);
+                    inferred = tryInferSsaPhiValue<T_VALUE, T_TRAITS>(inferredValue, *phiInfo, outValues, outFlags);
             }
             else
             {

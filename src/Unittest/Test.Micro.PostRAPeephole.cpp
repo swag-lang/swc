@@ -13,9 +13,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRAPeepholePass(MicroBuilder& builder)
+    Result runPostRaPeepholePass(MicroBuilder& builder)
     {
-        MicroPostRAPeepholePass pass;
+        MicroPostRaPeepholePass pass;
         MicroPassManager        passManager;
         passManager.addStartPass(pass);
 
@@ -43,7 +43,7 @@ SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
     builder.emitNop();
     builder.emitRet();
 
-    SWC_RESULT(runPostRAPeepholePass(builder));
+    SWC_RESULT(runPostRaPeepholePass(builder));
 
     if (countOpcode(builder, MicroInstrOpcode::Nop) != 0)
         return Result::Error;
@@ -59,7 +59,7 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopy_B64_Erased)
     builder.emitLoadRegReg(conv.intReturn, conv.intReturn, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runPostRAPeepholePass(builder));
+    SWC_RESULT(runPostRaPeepholePass(builder));
 
     if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
@@ -75,7 +75,7 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopy_IntB32_Preserved)
     builder.emitLoadRegReg(conv.intReturn, conv.intReturn, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runPostRAPeepholePass(builder));
+    SWC_RESULT(runPostRaPeepholePass(builder));
 
     if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
@@ -95,7 +95,7 @@ SWC_TEST_BEGIN(PostRAPeephole_FallthroughJumpSkipsTrivialGap)
     builder.placeLabel(nextLabel);
     builder.emitRet();
 
-    SWC_RESULT(runPostRAPeepholePass(builder));
+    SWC_RESULT(runPostRaPeepholePass(builder));
 
     if (countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
@@ -115,7 +115,7 @@ SWC_TEST_BEGIN(PostRAPeephole_DeadCompareBeforeRet_Erased)
     builder.emitCmpRegReg(conv.intRegs[0], conv.intRegs[1], MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runPostRAPeepholePass(builder));
+    SWC_RESULT(runPostRaPeepholePass(builder));
 
     if (countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
         return Result::Error;
@@ -134,7 +134,7 @@ SWC_TEST_BEGIN(PostRAPeephole_DeadCompareAfterRedundantJump_Erased)
     builder.placeLabel(nextLabel);
     builder.emitRet();
 
-    SWC_RESULT(runPostRAPeepholePass(builder));
+    SWC_RESULT(runPostRaPeepholePass(builder));
 
     if (countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
         return Result::Error;
@@ -156,7 +156,7 @@ SWC_TEST_BEGIN(PostRAPeephole_LiveCompareForBranch_Preserved)
     builder.placeLabel(takenLabel);
     builder.emitRet();
 
-    SWC_RESULT(runPostRAPeepholePass(builder));
+    SWC_RESULT(runPostRaPeepholePass(builder));
 
     if (countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 1)
         return Result::Error;

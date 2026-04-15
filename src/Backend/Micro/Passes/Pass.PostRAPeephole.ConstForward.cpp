@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
-#include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Post-RA variant of the pre-RA ConstProp rules. Register allocation and
@@ -13,7 +12,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace PostRAPeephole
+namespace PostRaPeephole
 {
     namespace
     {

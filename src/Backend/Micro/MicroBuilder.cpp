@@ -3,9 +3,11 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroPrinter.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -26,6 +28,23 @@ namespace
         }
 
         SWC_UNREACHABLE();
+    }
+
+    void resolveConstantSource(uint32_t& outShardIndex, uint32_t& outOffset, TaskContext* ctx, const bool hasConstantTarget, const uint64_t value)
+    {
+        outShardIndex = INVALID_REF;
+        outOffset     = INVALID_REF;
+
+        if (!hasConstantTarget || !value || !ctx || !ctx->hasCompiler())
+            return;
+
+        uint32_t  shardIndex = 0;
+        const Ref offset     = ctx->cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(value));
+        if (offset == INVALID_REF)
+            return;
+
+        outShardIndex = shardIndex;
+        outOffset     = offset;
     }
 }
 
@@ -96,9 +115,12 @@ SourceCodeRef MicroBuilder::instructionSourceCodeRef(MicroInstrRef instructionRe
 
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)
 {
+    SWC_ASSERT((relocation.constantShard == INVALID_REF) == (relocation.constantOffset == INVALID_REF));
+
     if (relocation.constantRef.isValid())
     {
         SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
+        SWC_ASSERT(!relocation.hasConstantSource() || relocation.constantShard < ConstantManager::SHARD_COUNT);
     }
     else if (relocation.targetSymbol)
     {
@@ -435,12 +457,18 @@ void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef
     ops[1].opBits          = MicroOpBits::B64;
     ops[2].valueU64        = value;
 
+    uint32_t constantShard  = INVALID_REF;
+    uint32_t constantOffset = INVALID_REF;
+    resolveConstantSource(constantShard, constantOffset, ctx_, hasConstantTarget, value);
+
     addRelocation({
         .kind           = relocationKind,
         .instructionRef = instRef,
         .targetAddress  = value,
         .targetSymbol   = relocationTargetSymbol,
         .constantRef    = constantRef,
+        .constantShard  = constantShard,
+        .constantOffset = constantOffset,
     });
 }
 

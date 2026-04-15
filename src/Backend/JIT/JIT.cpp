@@ -487,15 +487,11 @@ namespace
         if (!visited.insert(visitKey).second)
             return Result::Continue;
 
-        SmallVector<ConstantFunctionPatch> patches;
-        const auto                         relocations = segment.copyRelocations();
+        SmallVector<ConstantFunctionPatch>     patches;
+        std::vector<DataSegmentRelocation>     relocations;
+        segment.copyRelocations(relocations, allocation.offset, allocation.size);
         for (const DataSegmentRelocation& relocation : relocations)
         {
-            if (relocation.offset < allocation.offset)
-                continue;
-            if (relocation.offset - allocation.offset >= allocation.size)
-                continue;
-
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
                 SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, ownerFunction, shardIndex, relocation.targetOffset, visited));

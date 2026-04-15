@@ -41,6 +41,10 @@ struct MicroRelocation
     uint64_t      targetAddress  = 0;
     Symbol*       targetSymbol   = nullptr;
     ConstantRef   constantRef    = ConstantRef::invalid();
+    uint32_t      constantShard  = INVALID_REF;
+    uint32_t      constantOffset = INVALID_REF;
+
+    bool hasConstantSource() const noexcept { return constantShard != INVALID_REF && constantOffset != INVALID_REF; }
 };
 
 class MicroBuilder

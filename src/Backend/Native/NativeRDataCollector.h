@@ -23,6 +23,7 @@ private:
 
     Result collectRoots();
     Result collectCodeRoots(const Utf8& ownerName, std::span<const MicroRelocation> relocations);
+    Result enqueueConstantRelocation(const Utf8& ownerName, const MicroRelocation& relocation);
     Result enqueuePointer(const Utf8& ownerName, const void* ptr);
     Result enqueueSourceOffset(const Utf8& ownerName, uint32_t shardIndex, uint32_t sourceOffset);
     Result emitReachableAllocations();

@@ -171,9 +171,12 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (constant.kind() == ConstantKind::ValuePointer || constant.kind() == ConstantKind::BlockPointer || constant.kind() == ConstantKind::Null)
         return;
 
-    uint32_t  shardIndex = 0;
-    const Ref baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
+    uint32_t shardIndex = relocation.constantShard;
+    Ref      baseOffset = relocation.constantOffset;
+    if (!relocation.hasConstantSource())
+        baseOffset = builder_.compiler().cstMgr().findDataSegmentRef(shardIndex, reinterpret_cast<const void*>(relocation.targetAddress));
     SWC_ASSERT(baseOffset != INVALID_REF);
+    SWC_ASSERT(shardIndex < ConstantManager::SHARD_COUNT);
 
     const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
 

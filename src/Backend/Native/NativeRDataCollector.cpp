@@ -30,6 +30,7 @@ Result NativeRDataCollector::collectRoots()
         SWC_RESULT(collectCodeRoots(ownerName, info.machineCode->codeRelocations));
     }
 
+    std::vector<DataSegmentRelocation> allocationRelocations;
     while (!pending_.empty())
     {
         PendingRDataAllocation pending = std::move(pending_.back());
@@ -40,12 +41,9 @@ Result NativeRDataCollector::collectRoots()
         if (!segment.findAllocation(allocation, pending.sourceOffset) || allocation.offset != pending.sourceOffset)
             return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, pending.ownerName);
 
-        for (const DataSegmentRelocation& relocation : segment.relocations())
+        segment.copyRelocations(allocationRelocations, allocation.offset, allocation.size);
+        for (const DataSegmentRelocation& relocation : allocationRelocations)
         {
-            if (relocation.offset < allocation.offset)
-                continue;
-            if (relocation.offset - allocation.offset >= allocation.size)
-                continue;
             if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset)
                 continue;
 
@@ -63,10 +61,23 @@ Result NativeRDataCollector::collectCodeRoots(const Utf8& ownerName, const std::
         if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
             continue;
 
-        SWC_RESULT(enqueuePointer(ownerName, reinterpret_cast<const void*>(relocation.targetAddress)));
+        SWC_RESULT(enqueueConstantRelocation(ownerName, relocation));
     }
 
     return Result::Continue;
+}
+
+Result NativeRDataCollector::enqueueConstantRelocation(const Utf8& ownerName, const MicroRelocation& relocation)
+{
+    SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
+    if (relocation.hasConstantSource())
+    {
+        if (relocation.constantShard >= ConstantManager::SHARD_COUNT)
+            return builder_->reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
+        return enqueueSourceOffset(ownerName, relocation.constantShard, relocation.constantOffset);
+    }
+
+    return enqueuePointer(ownerName, reinterpret_cast<const void*>(relocation.targetAddress));
 }
 
 Result NativeRDataCollector::enqueuePointer(const Utf8& ownerName, const void* ptr)
@@ -148,11 +159,11 @@ Result NativeRDataCollector::emitReachableAllocations()
         }
     }
 
+    std::vector<DataSegmentRelocation> allocationRelocations;
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
         const DataSegment& segment          = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
         const auto&        allocations      = emittedAllocations[shardIndex];
-        const auto&        relocations      = segment.relocations();
         const auto&        allocationOwners = owners_[shardIndex];
 
         for (size_t i = 0; i < allocations.size(); ++i)
@@ -160,13 +171,9 @@ Result NativeRDataCollector::emitReachableAllocations()
             const DataSegmentAllocation&        allocation = allocations[i];
             const NativeRDataAllocationMapEntry mapping    = builder_->rdataAllocationMap[shardIndex][i];
 
-            for (const DataSegmentRelocation& relocation : relocations)
+            segment.copyRelocations(allocationRelocations, allocation.offset, allocation.size);
+            for (const DataSegmentRelocation& relocation : allocationRelocations)
             {
-                if (relocation.offset < allocation.offset)
-                    continue;
-                if (relocation.offset - allocation.offset >= allocation.size)
-                    continue;
-
                 NativeSectionRelocation record;
                 record.offset = mapping.emittedOffset + (relocation.offset - allocation.offset);
 

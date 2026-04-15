@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
 #include "Support/Report/Logger.h"
@@ -377,11 +378,21 @@ namespace
 
     Result verifyRelocation(const MicroPassContext& context, std::string_view phase, uint32_t relocationIndex, const MicroRelocation& relocation, const MicroInstr& inst)
     {
+        if ((relocation.constantShard == INVALID_REF) != (relocation.constantOffset == INVALID_REF))
+        {
+            return reportError(context, phase, std::format("relocation #{} has incomplete constant source metadata", relocationIndex));
+        }
+
         if (relocation.constantRef.isValid())
         {
             if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
             {
                 return reportError(context, phase, std::format("relocation #{} has constant payload but kind {}", relocationIndex, static_cast<uint32_t>(relocation.kind)));
+            }
+
+            if (relocation.hasConstantSource() && relocation.constantShard >= ConstantManager::SHARD_COUNT)
+            {
+                return reportError(context, phase, std::format("relocation #{} stores out-of-range constant shard {}", relocationIndex, relocation.constantShard));
             }
         }
         else if (relocation.targetSymbol)
@@ -596,6 +607,8 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
             mixHash(hash, static_cast<uint8_t>(relocation.kind));
             mixHash(hash, relocation.targetAddress);
             mixHash(hash, relocation.constantRef.isValid() ? relocation.constantRef.get() : K_HASH_INVALID);
+            mixHash(hash, relocation.constantShard);
+            mixHash(hash, relocation.constantOffset);
             mixHash(hash, relocation.targetSymbol ? reinterpret_cast<uintptr_t>(relocation.targetSymbol) : 0);
 
             if (relocation.instructionRef.isInvalid())
@@ -790,6 +803,8 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
                 mixHash(*outStructuralHash, static_cast<uint8_t>(relocation.kind));
                 mixHash(*outStructuralHash, relocation.targetAddress);
                 mixHash(*outStructuralHash, relocation.constantRef.isValid() ? relocation.constantRef.get() : K_HASH_INVALID);
+                mixHash(*outStructuralHash, relocation.constantShard);
+                mixHash(*outStructuralHash, relocation.constantOffset);
                 mixHash(*outStructuralHash, relocation.targetSymbol ? reinterpret_cast<uintptr_t>(relocation.targetSymbol) : 0);
 
                 const uint32_t refValue = relocation.instructionRef.get();

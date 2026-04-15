@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Core/DataSegment.h"
+#include <numeric>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -64,6 +65,7 @@ void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
         .targetOffset = targetOffset,
         .targetSymbol = nullptr,
     });
+    relocationsByOffsetDirty_ = true;
 }
 
 void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol)
@@ -75,6 +77,7 @@ void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* t
         .targetOffset = INVALID_REF,
         .targetSymbol = targetSymbol,
     });
+    relocationsByOffsetDirty_ = true;
 }
 
 Ref DataSegment::findRef(const void* ptr) const noexcept
@@ -174,6 +177,29 @@ std::vector<DataSegmentRelocation> DataSegment::copyRelocations() const
 {
     const std::shared_lock lock(mutex_);
     return relocations_;
+}
+
+void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, const uint32_t offset, const uint32_t size) const
+{
+    outRelocations.clear();
+    if (!size)
+        return;
+
+    const std::unique_lock lock(mutex_);
+    rebuildRelocationsByOffsetLocked();
+
+    const auto begin = std::ranges::lower_bound(relocationsByOffset_, offset, {}, [this](const uint32_t index) {
+        return relocations_[index].offset;
+    });
+
+    for (auto it = begin; it != relocationsByOffset_.end(); ++it)
+    {
+        const DataSegmentRelocation& relocation = relocations_[*it];
+        if (relocation.offset - offset >= size)
+            break;
+
+        outRelocations.push_back(relocation);
+    }
 }
 
 std::mutex& DataSegment::allocationMutex(const uint32_t allocationOffset) const
@@ -289,6 +315,23 @@ Ref DataSegment::findLargeBlockRefLocked(const void* ptr) const noexcept
     }
 
     return INVALID_REF;
+}
+
+void DataSegment::rebuildRelocationsByOffsetLocked() const
+{
+    if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
+        return;
+
+    relocationsByOffset_.resize(relocations_.size());
+    std::iota(relocationsByOffset_.begin(), relocationsByOffset_.end(), 0u);
+    std::ranges::sort(relocationsByOffset_, [this](const uint32_t lhs, const uint32_t rhs) {
+        const uint32_t lhsOffset = relocations_[lhs].offset;
+        const uint32_t rhsOffset = relocations_[rhs].offset;
+        if (lhsOffset != rhsOffset)
+            return lhsOffset < rhsOffset;
+        return lhs < rhs;
+    });
+    relocationsByOffsetDirty_ = false;
 }
 
 void DataSegment::recordAllocation(const uint32_t offset, const uint32_t size, uint32_t align)

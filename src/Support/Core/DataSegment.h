@@ -60,6 +60,7 @@ public:
     void                                      copyToPreserveOffsets(ByteSpanRW dst) const;
     void                                      restoreFromPreserveOffsets(ByteSpan src) const;
     std::vector<DataSegmentRelocation>        copyRelocations() const;
+    void                                      copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
     const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
     std::mutex&                               allocationMutex(uint32_t allocationOffset) const;
     template<typename T>
@@ -117,11 +118,14 @@ private:
     std::byte*                                                             findPtrLocked(Ref ref, uint32_t size) noexcept;
     const std::byte*                                                       findPtrLocked(Ref ref, uint32_t size) const noexcept;
     Ref                                                                    findLargeBlockRefLocked(const void* ptr) const noexcept;
+    void                                                                   rebuildRelocationsByOffsetLocked() const;
     void                                                                   recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
     PagedStore                                                             store_;
     std::vector<LargeBlock>                                                largeBlocks_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> stringMap_;
     std::vector<DataSegmentRelocation>                                     relocations_;
+    mutable std::vector<uint32_t>                                           relocationsByOffset_;
+    mutable bool                                                           relocationsByOffsetDirty_ = false;
     std::vector<DataSegmentAllocation>                                     allocations_;
     mutable std::shared_mutex                                              mutex_;
     mutable std::mutex                                                     allocationMutexesMutex_;

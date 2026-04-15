@@ -16,6 +16,47 @@ bool MicroPassHelpers::violatesEncoderConformance(const MicroPassContext& contex
     return context.encoder->queryConformanceIssue(issue, inst, ops);
 }
 
+bool MicroPassHelpers::instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops)
+{
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    if (!info.flags.has(MicroInstrFlagsE::UsesCpuFlags))
+        return false;
+
+    if ((inst.op == MicroInstrOpcode::JumpCond || inst.op == MicroInstrOpcode::JumpCondImm) &&
+        ops &&
+        ops[0].cpuCond == MicroCond::Unconditional)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef)
+{
+    for (MicroInstrRef scanRef = storage.findNextInstructionRef(afterRef); scanRef.isValid(); scanRef = storage.findNextInstructionRef(scanRef))
+    {
+        const MicroInstr* scanInst = storage.ptr(scanRef);
+        if (!scanInst)
+            return false;
+
+        const MicroInstrOperand* scanOps = scanInst->ops(operands);
+        if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+            return false;
+
+        const MicroInstrDef& info = MicroInstr::info(scanInst->op);
+        if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) ||
+            info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+            info.flags.has(MicroInstrFlagsE::JumpInstruction))
+        {
+            return true;
+        }
+    }
+
+    return true;
+}
+
 uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage&        storage,
                                                  MicroOperandStorage& operands,
                                                  MicroInstrRef        afterInstRef,
@@ -167,6 +208,86 @@ Math::FoldStatus MicroPassHelpers::foldBinaryImmediate(uint64_t&   outValue,
 
     outValue = result.as64() & getBitsMask(opBits);
     return Math::FoldStatus::Ok;
+}
+
+namespace
+{
+    bool tryFoldAddSub(MicroOp firstOp, uint64_t firstImm, MicroOp secondOp, uint64_t secondImm, MicroOpBits opBits, MicroOp& outOp, uint64_t& outImm)
+    {
+        const uint64_t mask        = getBitsMask(opBits);
+        const uint64_t a           = firstImm & mask;
+        const uint64_t b           = secondImm & mask;
+        const bool     firstIsSub  = firstOp == MicroOp::Subtract;
+        const bool     secondIsSub = secondOp == MicroOp::Subtract;
+
+        uint64_t addImm = 0;
+        if (firstIsSub == secondIsSub)
+            addImm = firstIsSub ? ((0u - (a + b)) & mask) : ((a + b) & mask);
+        else if (firstIsSub)
+            addImm = (b - a) & mask;
+        else
+            addImm = (a - b) & mask;
+
+        const uint64_t subImm = (0u - addImm) & mask;
+        if (addImm <= subImm)
+        {
+            outOp  = MicroOp::Add;
+            outImm = addImm;
+        }
+        else
+        {
+            outOp  = MicroOp::Subtract;
+            outImm = subImm;
+        }
+        return true;
+    }
+
+    bool foldSameBitwise(MicroOp op, uint64_t lhs, uint64_t rhs, MicroOpBits opBits, uint64_t& outImm)
+    {
+        uint64_t   value  = 0;
+        const auto status = MicroPassHelpers::foldBinaryImmediate(value, lhs, rhs, op, opBits);
+        if (status != Math::FoldStatus::Ok)
+            return false;
+        outImm = value & getBitsMask(opBits);
+        return true;
+    }
+}
+
+bool MicroPassHelpers::tryReassociateBinaryImmediate(MicroOp firstOp, uint64_t firstImm, MicroOp secondOp, uint64_t secondImm, MicroOpBits opBits, MicroOp& outOp, uint64_t& outImm)
+{
+    const bool firstIsAddSub  = firstOp == MicroOp::Add || firstOp == MicroOp::Subtract;
+    const bool secondIsAddSub = secondOp == MicroOp::Add || secondOp == MicroOp::Subtract;
+    if (firstIsAddSub && secondIsAddSub)
+        return tryFoldAddSub(firstOp, firstImm, secondOp, secondImm, opBits, outOp, outImm);
+
+    if (firstOp != secondOp)
+        return false;
+
+    switch (firstOp)
+    {
+        case MicroOp::And:
+        case MicroOp::Or:
+        case MicroOp::Xor:
+        case MicroOp::MultiplySigned:
+        case MicroOp::MultiplyUnsigned:
+            outOp = firstOp;
+            return foldSameBitwise(firstOp, firstImm, secondImm, opBits, outImm);
+
+        case MicroOp::ShiftLeft:
+        case MicroOp::ShiftRight:
+        case MicroOp::ShiftArithmeticRight:
+        {
+            const uint64_t sum = firstImm + secondImm;
+            if (sum >= getNumBits(opBits))
+                return false;
+            outOp  = firstOp;
+            outImm = sum;
+            return true;
+        }
+
+        default:
+            return false;
+    }
 }
 
 SWC_END_NAMESPACE();

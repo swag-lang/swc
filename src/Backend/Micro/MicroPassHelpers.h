@@ -10,6 +10,8 @@ struct MicroPassContext;
 namespace MicroPassHelpers
 {
     bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops);
+    bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
+    bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef);
 
     // Replace all uses of 'fromReg' with 'toReg' in instructions after 'afterInstRef',
     // within the same local flow region (stops at redefinition of either register, calls,
@@ -20,6 +22,7 @@ namespace MicroPassHelpers
     // Maps MicroOp to Math::FoldBinaryOp and delegates to Math::foldBinaryInt.
     // Returns Math::FoldStatus::Unsupported if the MicroOp has no fold mapping.
     Math::FoldStatus foldBinaryImmediate(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits);
+    bool             tryReassociateBinaryImmediate(MicroOp firstOp, uint64_t firstImm, MicroOp secondOp, uint64_t secondImm, MicroOpBits opBits, MicroOp& outOp, uint64_t& outImm);
 }
 
 SWC_END_NAMESPACE();

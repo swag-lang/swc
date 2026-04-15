@@ -59,6 +59,7 @@ namespace PreRaPeephole
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardLoadAddr(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryForwardLoadAddrAmc(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
+    bool tryCombineAdjacentRegImm(Context& ctx, MicroInstrRef firstRef, const MicroInstr& firstInst);
 }
 
 SWC_END_NAMESPACE();

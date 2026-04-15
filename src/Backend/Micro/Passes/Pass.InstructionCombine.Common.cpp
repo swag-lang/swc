@@ -79,84 +79,9 @@ namespace InstructionCombine
         return false;
     }
 
-    namespace
-    {
-        bool tryFoldAddSub(MicroOp firstOp, uint64_t firstImm, MicroOp secondOp, uint64_t secondImm, MicroOpBits opBits, MicroOp& outOp, uint64_t& outImm)
-        {
-            const uint64_t mask        = getBitsMask(opBits);
-            const uint64_t a           = firstImm & mask;
-            const uint64_t b           = secondImm & mask;
-            const bool     firstIsSub  = firstOp == MicroOp::Subtract;
-            const bool     secondIsSub = secondOp == MicroOp::Subtract;
-
-            uint64_t addImm = 0;
-            if (firstIsSub == secondIsSub)
-                addImm = firstIsSub ? ((0u - (a + b)) & mask) : ((a + b) & mask);
-            else if (firstIsSub)
-                addImm = (b - a) & mask;
-            else
-                addImm = (a - b) & mask;
-
-            const uint64_t subImm = (0u - addImm) & mask;
-            if (addImm <= subImm)
-            {
-                outOp  = MicroOp::Add;
-                outImm = addImm;
-            }
-            else
-            {
-                outOp  = MicroOp::Subtract;
-                outImm = subImm;
-            }
-            return true;
-        }
-
-        bool foldSameBitwise(MicroOp op, uint64_t lhs, uint64_t rhs, MicroOpBits opBits, uint64_t& outImm)
-        {
-            uint64_t   value  = 0;
-            const auto status = MicroPassHelpers::foldBinaryImmediate(value, lhs, rhs, op, opBits);
-            if (status != Math::FoldStatus::Ok)
-                return false;
-            outImm = value & getBitsMask(opBits);
-            return true;
-        }
-    }
-
     bool tryReassociate(MicroOp firstOp, uint64_t firstImm, MicroOp secondOp, uint64_t secondImm, MicroOpBits opBits, MicroOp& outOp, uint64_t& outImm)
     {
-        const bool firstIsAddSub  = firstOp == MicroOp::Add || firstOp == MicroOp::Subtract;
-        const bool secondIsAddSub = secondOp == MicroOp::Add || secondOp == MicroOp::Subtract;
-        if (firstIsAddSub && secondIsAddSub)
-            return tryFoldAddSub(firstOp, firstImm, secondOp, secondImm, opBits, outOp, outImm);
-
-        if (firstOp != secondOp)
-            return false;
-
-        switch (firstOp)
-        {
-            case MicroOp::And:
-            case MicroOp::Or:
-            case MicroOp::Xor:
-            case MicroOp::MultiplySigned:
-            case MicroOp::MultiplyUnsigned:
-                outOp = firstOp;
-                return foldSameBitwise(firstOp, firstImm, secondImm, opBits, outImm);
-
-            case MicroOp::ShiftLeft:
-            case MicroOp::ShiftRight:
-            case MicroOp::ShiftArithmeticRight:
-            {
-                const uint64_t sum = firstImm + secondImm;
-                if (sum >= getNumBits(opBits))
-                    return false;
-                outOp  = firstOp;
-                outImm = sum;
-                return true;
-            }
-
-            default:
-                return false;
-        }
+        return MicroPassHelpers::tryReassociateBinaryImmediate(firstOp, firstImm, secondOp, secondImm, opBits, outOp, outImm);
     }
 
     bool isMemFoldableOp(MicroOp op)

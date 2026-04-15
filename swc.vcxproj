@@ -225,6 +225,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.Common.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.ConstForward.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.CopyForward.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.RegImm.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp"/>

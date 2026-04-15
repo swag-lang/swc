@@ -324,6 +324,57 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsPointerImmediateIntoAddress)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PreRAPeephole_CombinesAdjacentRegImmAdd)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg addr = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(addr, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(addr, ApInt(0x28, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(addr, ApInt(0xF8, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 0, addr, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPreRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
+        return Result::Error;
+
+    const MicroInstr* addInst = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegImm);
+    if (!addInst)
+        return Result::Error;
+
+    const MicroInstrOperand* ops = addInst->ops(builder.operands());
+    if (!ops || ops[0].reg != addr || ops[1].opBits != MicroOpBits::B64 || ops[2].microOp != MicroOp::Add || ops[3].valueU64 != 0x120)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PreRAPeephole_KeepsAdjacentRegImmAddWhenFlagsAreLive)
+{
+    constexpr MicroReg addr = MicroReg::virtualIntReg(1);
+    constexpr MicroReg cond = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(addr, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(addr, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(addr, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitSetCondReg(cond, MicroCond::NotZero);
+    builder.emitRet();
+
+    SWC_RESULT(runPreRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 2)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PreRAPeephole_FoldsAmcIndexImmediateIntoSimpleLoad)
 {
     constexpr MicroReg base = MicroReg::virtualIntReg(1);

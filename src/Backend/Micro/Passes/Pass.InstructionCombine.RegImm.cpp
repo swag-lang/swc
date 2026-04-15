@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // OpBinaryRegImm combiner: identity / absorbing element / reassociation.
@@ -51,6 +52,8 @@ namespace InstructionCombine
             auto     combinedOp  = MicroOp::Add;
             uint64_t combinedImm = 0;
             if (!tryReassociate(prevOps[2].microOp, prevOps[3].valueU64, op, imm, opBits, combinedOp, combinedImm))
+                return false;
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
                 return false;
 
             if (!ctx.claimAll({ref, reaching.instRef}))

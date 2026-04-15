@@ -48,8 +48,8 @@ namespace PostRAPeephole
 
         std::array<SmallVector<PatternFn, 2>, K_OPCODE_COUNT> byOpcode;
 
-        void add(MicroInstrOpcode op, PatternFn fn);
-        std::span<PatternFn const> patternsFor(MicroInstrOpcode op) const;
+        void                       add(MicroInstrOpcode op, PatternFn fn);
+        std::span<const PatternFn> patternsFor(MicroInstrOpcode op) const;
     };
 
     void applyAction(Context& ctx, const Action& action);

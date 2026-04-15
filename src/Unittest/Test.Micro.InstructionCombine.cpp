@@ -124,7 +124,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_AddAdd)
 
     if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
-    MicroOp  op  = MicroOp::Add;
+    auto     op  = MicroOp::Add;
     uint64_t imm = 0;
     if (!firstBinaryRegImm(builder, op, imm))
         return Result::Error;
@@ -149,7 +149,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_AddSub_PicksAdd)
 
     if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
-    MicroOp  op  = MicroOp::Add;
+    auto     op  = MicroOp::Add;
     uint64_t imm = 0;
     if (!firstBinaryRegImm(builder, op, imm))
         return Result::Error;
@@ -174,7 +174,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_ShiftLeftChain)
 
     if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
-    MicroOp  op  = MicroOp::Add;
+    auto     op  = MicroOp::Add;
     uint64_t imm = 0;
     if (!firstBinaryRegImm(builder, op, imm))
         return Result::Error;
@@ -276,7 +276,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_MulMulSigned)
 
     if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
-    MicroOp  op  = MicroOp::Add;
+    auto     op  = MicroOp::Add;
     uint64_t imm = 0;
     if (!firstBinaryRegImm(builder, op, imm))
         return Result::Error;
@@ -301,7 +301,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_OrOr)
 
     if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
-    MicroOp  op  = MicroOp::Add;
+    auto     op  = MicroOp::Add;
     uint64_t imm = 0;
     if (!firstBinaryRegImm(builder, op, imm))
         return Result::Error;

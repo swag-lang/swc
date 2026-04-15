@@ -85,7 +85,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_FallthroughJumpSkipsTrivialGap)
 {
-    const CallConv&     conv      = CallConv::get(CallConvKind::Host);
+    const CallConv&     conv = CallConv::get(CallConvKind::Host);
     MicroBuilder        builder(ctx);
     const MicroLabelRef nextLabel = builder.createLabel();
 
@@ -125,7 +125,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_DeadCompareAfterRedundantJump_Erased)
 {
-    const CallConv&     conv      = CallConv::get(CallConvKind::Host);
+    const CallConv&     conv = CallConv::get(CallConvKind::Host);
     MicroBuilder        builder(ctx);
     const MicroLabelRef nextLabel = builder.createLabel();
 
@@ -146,7 +146,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_LiveCompareForBranch_Preserved)
 {
-    const CallConv&     conv       = CallConv::get(CallConvKind::Host);
+    const CallConv&     conv = CallConv::get(CallConvKind::Host);
     MicroBuilder        builder(ctx);
     const MicroLabelRef takenLabel = builder.createLabel();
 

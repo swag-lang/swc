@@ -22,20 +22,20 @@ struct Stats
     std::atomic<size_t> memAllocated    = 0;
     std::atomic<size_t> memMaxAllocated = 0;
 
-    std::atomic<size_t> numAstNodes                  = 0;
-    std::atomic<size_t> numVisitedAstNodes           = 0;
-    std::atomic<size_t> numConstants                 = 0;
-    std::atomic<size_t> numTypes                     = 0;
-    std::atomic<size_t> numIdentifiers               = 0;
-    std::atomic<size_t> numSymbols                   = 0;
-    std::atomic<size_t> numMicroInstrInitial           = 0;
-    std::atomic<size_t> numMicroInstrAfterStart        = 0;
-    std::atomic<size_t> numMicroInstrAfterPreRAOptim   = 0;
-    std::atomic<size_t> numMicroInstrAfterRA           = 0;
-    std::atomic<size_t> numMicroInstrAfterPostRASetup  = 0;
+    std::atomic<size_t> numAstNodes                   = 0;
+    std::atomic<size_t> numVisitedAstNodes            = 0;
+    std::atomic<size_t> numConstants                  = 0;
+    std::atomic<size_t> numTypes                      = 0;
+    std::atomic<size_t> numIdentifiers                = 0;
+    std::atomic<size_t> numSymbols                    = 0;
+    std::atomic<size_t> numMicroInstrInitial          = 0;
+    std::atomic<size_t> numMicroInstrAfterStart       = 0;
+    std::atomic<size_t> numMicroInstrAfterPreRAOptim  = 0;
+    std::atomic<size_t> numMicroInstrAfterRA          = 0;
+    std::atomic<size_t> numMicroInstrAfterPostRASetup = 0;
     std::atomic<size_t> numMicroInstrAfterPostRAOptim = 0;
-    std::atomic<size_t> numMicroInstrFinal             = 0;
-    std::atomic<size_t> numCodeGenFunctions            = 0;
+    std::atomic<size_t> numMicroInstrFinal            = 0;
+    std::atomic<size_t> numCodeGenFunctions           = 0;
 #endif // SWC_HAS_STATS
 
     static Stats& get()

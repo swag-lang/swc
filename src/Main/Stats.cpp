@@ -176,7 +176,7 @@ namespace
 
     struct MicroStageTransition
     {
-        const char* countLabel = nullptr;
+        const char* countLabel    = nullptr;
         size_t      previousCount = 0;
         size_t      currentCount  = 0;
     };
@@ -200,56 +200,56 @@ void Stats::print(const TaskContext& ctx) const
 #if SWC_HAS_STATS
     if (ctx.cmdLine().stats)
     {
-    // Frontend counts
-    Logger::print(ctx, "\n");
-    Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numFiles", colorMsg, Utf8Helper::toNiceBigNumber(numFiles.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numTokens", colorMsg, Utf8Helper::toNiceBigNumber(numTokens.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numAstNodes", colorMsg, Utf8Helper::toNiceBigNumber(numAstNodes.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numVisitedAstNodes", colorMsg, Utf8Helper::toNiceBigNumber(numVisitedAstNodes.load()));
+        // Frontend counts
+        Logger::print(ctx, "\n");
+        Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numFiles", colorMsg, Utf8Helper::toNiceBigNumber(numFiles.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numTokens", colorMsg, Utf8Helper::toNiceBigNumber(numTokens.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numAstNodes", colorMsg, Utf8Helper::toNiceBigNumber(numAstNodes.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numVisitedAstNodes", colorMsg, Utf8Helper::toNiceBigNumber(numVisitedAstNodes.load()));
 
-    // Semantic model counts
-    Logger::print(ctx, "\n");
-    Logger::printHeaderDot(ctx, colorHeader, "count.sema.numConstants", colorMsg, Utf8Helper::toNiceBigNumber(numConstants.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "count.sema.numTypes", colorMsg, Utf8Helper::toNiceBigNumber(numTypes.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "count.sema.numIdentifiers", colorMsg, Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "count.sema.numSymbols", colorMsg, Utf8Helper::toNiceBigNumber(numSymbols.load()));
-    Logger::printHeaderDot(ctx, colorHeader, "count.sema.numCodeGenFunctions", colorMsg, Utf8Helper::toNiceBigNumber(numCodeGenFunctions.load()));
+        // Semantic model counts
+        Logger::print(ctx, "\n");
+        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numConstants", colorMsg, Utf8Helper::toNiceBigNumber(numConstants.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numTypes", colorMsg, Utf8Helper::toNiceBigNumber(numTypes.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numIdentifiers", colorMsg, Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numSymbols", colorMsg, Utf8Helper::toNiceBigNumber(numSymbols.load()));
+        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numCodeGenFunctions", colorMsg, Utf8Helper::toNiceBigNumber(numCodeGenFunctions.load()));
 
-    // Backend micro counts
-    Logger::print(ctx, "\n");
-    const size_t numMicroInitial          = numMicroInstrInitial.load();
-    const size_t numMicroAfterStart       = numMicroInstrAfterStart.load();
-    const size_t numMicroAfterPreRAOptim  = numMicroInstrAfterPreRAOptim.load();
-    const size_t numMicroAfterRA          = numMicroInstrAfterRA.load();
-    const size_t numMicroAfterPostRASetup = numMicroInstrAfterPostRASetup.load();
-    const size_t numMicroAfterPostRAOptim = numMicroInstrAfterPostRAOptim.load();
-    const size_t numMicroFinal            = numMicroInstrFinal.load();
+        // Backend micro counts
+        Logger::print(ctx, "\n");
+        const size_t numMicroInitial          = numMicroInstrInitial.load();
+        const size_t numMicroAfterStart       = numMicroInstrAfterStart.load();
+        const size_t numMicroAfterPreRAOptim  = numMicroInstrAfterPreRAOptim.load();
+        const size_t numMicroAfterRA          = numMicroInstrAfterRA.load();
+        const size_t numMicroAfterPostRASetup = numMicroInstrAfterPostRASetup.load();
+        const size_t numMicroAfterPostRAOptim = numMicroInstrAfterPostRAOptim.load();
+        const size_t numMicroFinal            = numMicroInstrFinal.load();
 
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrInitialLowered", colorMsg, Utf8Helper::toNiceBigNumber(numMicroInitial));
+        Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrInitialLowered", colorMsg, Utf8Helper::toNiceBigNumber(numMicroInitial));
 
-    const std::array<MicroStageTransition, 6> transitions = {
-        MicroStageTransition{"count.micro.instrAfterStackAdjustNormalize", numMicroInitial, numMicroAfterStart},
-        MicroStageTransition{"count.micro.instrAfterPreRAOptimLoop", numMicroAfterStart, numMicroAfterPreRAOptim},
-        MicroStageTransition{"count.micro.instrAfterLegalizeRegAllocLoop", numMicroAfterPreRAOptim, numMicroAfterRA},
-        MicroStageTransition{"count.micro.instrAfterPrologEpilogSetup", numMicroAfterRA, numMicroAfterPostRASetup},
-        MicroStageTransition{"count.micro.instrAfterPostRAOptimPasses", numMicroAfterPostRASetup, numMicroAfterPostRAOptim},
-        MicroStageTransition{"count.micro.instrFinalAfterSanitizeEmit", numMicroAfterPostRAOptim, numMicroFinal},
-    };
+        const std::array<MicroStageTransition, 6> transitions = {
+            MicroStageTransition{"count.micro.instrAfterStackAdjustNormalize", numMicroInitial, numMicroAfterStart},
+            MicroStageTransition{"count.micro.instrAfterPreRAOptimLoop", numMicroAfterStart, numMicroAfterPreRAOptim},
+            MicroStageTransition{"count.micro.instrAfterLegalizeRegAllocLoop", numMicroAfterPreRAOptim, numMicroAfterRA},
+            MicroStageTransition{"count.micro.instrAfterPrologEpilogSetup", numMicroAfterRA, numMicroAfterPostRASetup},
+            MicroStageTransition{"count.micro.instrAfterPostRAOptimPasses", numMicroAfterPostRASetup, numMicroAfterPostRAOptim},
+            MicroStageTransition{"count.micro.instrFinalAfterSanitizeEmit", numMicroAfterPostRAOptim, numMicroFinal},
+        };
 
-    for (const MicroStageTransition& transition : transitions)
-        Logger::printHeaderDot(ctx, colorHeader, transition.countLabel, colorMsg, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
+        for (const MicroStageTransition& transition : transitions)
+            Logger::printHeaderDot(ctx, colorHeader, transition.countLabel, colorMsg, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
 
-    const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDeltaInitialToFinal", colorMsg, formatMicroInstrDelta(pipelineDelta, numMicroInitial));
+        const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
+        Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDeltaInitialToFinal", colorMsg, formatMicroInstrDelta(pipelineDelta, numMicroInitial));
 
-    // Time
-    Logger::print(ctx, "\n");
-    Logger::printHeaderDot(ctx, colorHeader, "time.frontend.loadFile", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
-    Logger::printHeaderDot(ctx, colorHeader, "time.frontend.lexer", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLexer.load())));
-    Logger::printHeaderDot(ctx, colorHeader, "time.frontend.parser", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeParser.load())));
-    Logger::printHeaderDot(ctx, colorHeader, "time.sema.analysis", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
-    Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
-    Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
+        // Time
+        Logger::print(ctx, "\n");
+        Logger::printHeaderDot(ctx, colorHeader, "time.frontend.loadFile", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.frontend.lexer", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLexer.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.frontend.parser", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeParser.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.sema.analysis", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
+        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
     }
 
     // Memory profile

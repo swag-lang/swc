@@ -396,8 +396,8 @@ namespace
         const CallConv& conv = CallConv::get(callConvKind);
         SWC_ASSERT(!conv.intTransientRegs.empty());
 
-        const MicroReg     forcedReg   = conv.intTransientRegs.back();
-        constexpr MicroReg rematValue  = MicroReg::virtualIntReg(7600);
+        const MicroReg        forcedReg  = conv.intTransientRegs.back();
+        constexpr MicroReg    rematValue = MicroReg::virtualIntReg(7600);
         SmallVector<MicroReg> forbiddenRegs;
         forbiddenRegs.reserve(conv.intRegs.size());
         for (const MicroReg reg : conv.intRegs)
@@ -528,7 +528,7 @@ namespace
 
     uint32_t countLoadRegImmValue(MicroBuilder& builder, uint64_t value)
     {
-        uint32_t result = 0;
+        uint32_t result   = 0;
         auto&    storeOps = builder.operands();
         for (const auto& inst : builder.instructions().view())
         {

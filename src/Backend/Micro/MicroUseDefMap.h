@@ -21,7 +21,7 @@ public:
     // Per-instruction cached data.
     struct InstrInfo
     {
-        MicroInstrRef instRef  = MicroInstrRef::invalid();
+        MicroInstrRef    instRef = MicroInstrRef::invalid();
         MicroInstrUseDef useDef;
     };
 
@@ -57,11 +57,11 @@ private:
     };
 
     // Per-instruction index (keyed by MicroInstrRef slot index).
-    std::vector<InstrInfo>               instrInfos_;
+    std::vector<InstrInfo> instrInfos_;
     // Order of instructions (for sequential queries).
-    std::vector<MicroInstrRef>           instrOrder_;
+    std::vector<MicroInstrRef> instrOrder_;
     // Per-instruction: index into instrOrder_.
-    std::vector<uint32_t>                instrOrderIndex_;
+    std::vector<uint32_t> instrOrderIndex_;
     // Last reaching definition per register at each instruction.
     // Stored as: instrOrder index -> vector of {reg, defining instRef}.
     std::vector<std::vector<RegDefEntry>> reachingDefs_;

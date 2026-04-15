@@ -48,7 +48,7 @@ namespace InstructionCombine
             if (!valueInfo || valueInfo->uses.size() != 1)
                 return false;
 
-            MicroOp  combinedOp  = MicroOp::Add;
+            auto     combinedOp  = MicroOp::Add;
             uint64_t combinedImm = 0;
             if (!tryReassociate(prevOps[2].microOp, prevOps[3].valueU64, op, imm, opBits, combinedOp, combinedImm))
                 return false;

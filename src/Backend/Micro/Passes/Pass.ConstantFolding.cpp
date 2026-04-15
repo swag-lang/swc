@@ -201,8 +201,8 @@ namespace
                     if (srcValue.opBits != srcBits)
                         return false;
 
-                    uint64_t    converted = 0;
-                    MicroOpBits dstBits   = MicroOpBits::Zero;
+                    uint64_t converted = 0;
+                    auto     dstBits   = MicroOpBits::Zero;
                     if (!convertFloatBitPattern(converted, dstBits, srcValue.value, srcBits))
                         return false;
 
@@ -322,8 +322,8 @@ namespace
             if (srcValue.opBits != srcBits)
                 return false;
 
-            uint64_t    converted = 0;
-            MicroOpBits dstBits   = MicroOpBits::Zero;
+            uint64_t converted = 0;
+            auto     dstBits   = MicroOpBits::Zero;
             if (!convertFloatBitPattern(converted, dstBits, srcValue.value, srcBits))
                 return false;
 

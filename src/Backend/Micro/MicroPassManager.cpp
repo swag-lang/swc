@@ -9,12 +9,12 @@
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
-#include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
-#include "Backend/Micro/Passes/Pass.PreRAPeephole.h"
+#include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
+#include "Backend/Micro/Passes/Pass.PreRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
@@ -389,7 +389,7 @@ MicroPassManager::MicroPassManager()
     emitPass_                 = std::make_unique<MicroEmitPass>();
 
     // Pre-RA optimization passes
-    preRAPeepholePass_      = std::make_unique<MicroPreRAPeepholePass>();
+    preRAPeepholePass_       = std::make_unique<MicroPreRAPeepholePass>();
     constantFoldingPass_     = std::make_unique<MicroConstantFoldingPass>();
     copyEliminationPass_     = std::make_unique<MicroCopyEliminationPass>();
     instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
@@ -398,8 +398,8 @@ MicroPassManager::MicroPassManager()
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
 
     // Post-RA optimization passes
-    postRAPeepholePass_      = std::make_unique<MicroPostRAPeepholePass>();
-    postRADeadCodeElimPass_  = std::make_unique<MicroPostRADeadCodeElimPass>();
+    postRAPeepholePass_     = std::make_unique<MicroPostRAPeepholePass>();
+    postRADeadCodeElimPass_ = std::make_unique<MicroPostRADeadCodeElimPass>();
 }
 
 MicroPassManager::~MicroPassManager()                                      = default;

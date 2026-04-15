@@ -277,7 +277,7 @@ namespace
         // Materialize the local stack base into a virtual register. RegAlloc will assign
         // it a physical register — we constrain it to a persistent (callee-saved) register
         // by forbidding all transient (caller-saved) registers, so it survives calls.
-        const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
+        const MicroReg        frameBaseReg = codeGen.nextVirtualIntRegister();
         SmallVector<MicroReg> forbiddenRegs;
         for (const MicroReg reg : callConv.intTransientRegs)
             forbiddenRegs.push_back(reg);

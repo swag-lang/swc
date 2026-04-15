@@ -24,8 +24,8 @@ void MicroUseDefMap::build(MicroStorage& storage, MicroOperandStorage& operands,
     // Phase 1: collect instruction order and cache use-def per instruction.
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
-        const MicroInstrRef instRef = it.current;
-        const uint32_t      slot    = instRef.get();
+        const MicroInstrRef instRef  = it.current;
+        const uint32_t      slot     = instRef.get();
         const uint32_t      orderIdx = static_cast<uint32_t>(instrOrder_.size());
 
         instrOrder_.push_back(instRef);

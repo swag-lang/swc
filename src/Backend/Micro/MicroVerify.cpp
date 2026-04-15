@@ -505,12 +505,12 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
         if (!inst.numOperands || inst.opsRef.isInvalid())
             continue;
 
-        const MicroInstrOperand* ops   = context.operands->ptr(inst.opsRef);
+        const MicroInstrOperand* ops = context.operands->ptr(inst.opsRef);
         if (!ops)
             continue;
 
-        const MicroInstrDef& info  = MicroInstr::info(inst.op);
-        const auto           modes = resolveRegModes(info, ops);
+        const MicroInstrDef& info   = MicroInstr::info(inst.op);
+        const auto           modes  = resolveRegModes(info, ops);
         const bool           hasMem = info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands);
 
         const auto checkReg = [&](size_t operandIndex, const MicroReg reg) -> Result {

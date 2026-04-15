@@ -93,7 +93,7 @@ SWC_TEST_END()
 // je Alias ; ... ; Alias: jmp Then  -> retarget to Then, then drop dead Alias block.
 SWC_TEST_BEGIN(BranchSimplify_ThreadsJumpThroughEmptyBlock)
 {
-    constexpr MicroReg  v1         = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  v1 = MicroReg::virtualIntReg(1);
     MicroBuilder        builder(ctx);
     const MicroLabelRef labelAlias = builder.createLabel();
     const MicroLabelRef labelThen  = builder.createLabel();
@@ -123,8 +123,8 @@ SWC_TEST_END()
 // load 0 ; cmp 0 ; je Then -> keep only taken path.
 SWC_TEST_BEGIN(BranchSimplify_FoldsKnownTrueBranch)
 {
-    constexpr MicroReg  vCond     = MicroReg::virtualIntReg(1);
-    constexpr MicroReg  vOut      = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  vCond = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vOut  = MicroReg::virtualIntReg(2);
     MicroBuilder        builder(ctx);
     const MicroLabelRef labelThen = builder.createLabel();
     const MicroLabelRef labelJoin = builder.createLabel();
@@ -155,8 +155,8 @@ SWC_TEST_END()
 // load 5 ; cmp 0 ; je Then -> erase branch and dead taken path.
 SWC_TEST_BEGIN(BranchSimplify_FoldsKnownFalseBranch)
 {
-    constexpr MicroReg  vCond     = MicroReg::virtualIntReg(1);
-    constexpr MicroReg  vOut      = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  vCond = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vOut  = MicroReg::virtualIntReg(2);
     MicroBuilder        builder(ctx);
     const MicroLabelRef labelThen = builder.createLabel();
     const MicroLabelRef labelJoin = builder.createLabel();
@@ -187,8 +187,8 @@ SWC_TEST_END()
 // cmp -1, 0 ; jl Neg -> signed compare must fold to taken path.
 SWC_TEST_BEGIN(BranchSimplify_FoldsKnownSignedLessBranch)
 {
-    constexpr MicroReg  vCond     = MicroReg::virtualIntReg(1);
-    constexpr MicroReg  vOut      = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  vCond = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vOut  = MicroReg::virtualIntReg(2);
     MicroBuilder        builder(ctx);
     const MicroLabelRef labelThen = builder.createLabel();
     const MicroLabelRef labelJoin = builder.createLabel();
@@ -217,8 +217,8 @@ SWC_TEST_END()
 // cmp 1, 2 ; jb Then -> unsigned compare must fold to taken path.
 SWC_TEST_BEGIN(BranchSimplify_FoldsKnownUnsignedBelowBranch)
 {
-    constexpr MicroReg  vCond     = MicroReg::virtualIntReg(1);
-    constexpr MicroReg  vOut      = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  vCond = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vOut  = MicroReg::virtualIntReg(2);
     MicroBuilder        builder(ctx);
     const MicroLabelRef labelThen = builder.createLabel();
     const MicroLabelRef labelJoin = builder.createLabel();

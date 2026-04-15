@@ -24,8 +24,8 @@ namespace
 
 SWC_TEST_BEGIN(MicroSsa_PhiAtJoin)
 {
-    const MicroReg v1 = MicroReg::virtualIntReg(1);
-    MicroBuilder   builder(ctx);
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
 
     const MicroLabelRef labelThen = builder.createLabel();
     const MicroLabelRef labelJoin = builder.createLabel();
@@ -66,8 +66,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroSsa_Dominators_HandleEntryAndDescendantJoin)
 {
-    const MicroReg v1 = MicroReg::virtualIntReg(1);
-    MicroBuilder   builder(ctx);
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
 
     const MicroLabelRef labelJoin = builder.createLabel();
 

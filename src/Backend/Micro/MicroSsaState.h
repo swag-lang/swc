@@ -128,7 +128,7 @@ private:
     void        placePhiNodes();
     void        renameIntoSsa();
     void        renameBlock(uint32_t blockIndex, RenameState& state);
-    static void        captureReachingValues(SmallVector4<RegValueEntry>& out, const std::unordered_map<MicroReg, uint32_t>& currentValues);
+    static void captureReachingValues(SmallVector4<RegValueEntry>& out, const std::unordered_map<MicroReg, uint32_t>& currentValues);
     void        assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const std::unordered_map<MicroReg, uint32_t>& currentValues);
     static void pushCurrentValue(std::vector<RestorePoint>& restores, RenameState& state, MicroReg reg, uint32_t valueId);
     uint32_t    createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);

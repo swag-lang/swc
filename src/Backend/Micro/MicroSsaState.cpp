@@ -1,8 +1,8 @@
 #include "pch.h"
+#include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroSsaState.h"
 
 SWC_BEGIN_NAMESPACE();
 

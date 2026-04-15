@@ -17,10 +17,10 @@ bool MicroPassHelpers::violatesEncoderConformance(const MicroPassContext& contex
 }
 
 uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage&        storage,
-                                                  MicroOperandStorage& operands,
-                                                  MicroInstrRef        afterInstRef,
-                                                  MicroReg             fromReg,
-                                                  MicroReg             toReg)
+                                                 MicroOperandStorage& operands,
+                                                 MicroInstrRef        afterInstRef,
+                                                 MicroReg             fromReg,
+                                                 MicroReg             toReg)
 {
     if (!fromReg.isValid() || fromReg.isNoBase())
         return 0;
@@ -39,8 +39,8 @@ uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage&        storage,
 
     for (; it != view.end(); ++it)
     {
-        MicroInstr&              inst   = *it;
-        const MicroInstrUseDef   useDef = inst.collectUseDef(operands, nullptr);
+        MicroInstr&            inst   = *it;
+        const MicroInstrUseDef useDef = inst.collectUseDef(operands, nullptr);
 
         // Stop at control flow barriers.
         if (MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
@@ -66,7 +66,7 @@ uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage&        storage,
 
             if (*ref.reg == fromReg && ref.use)
             {
-                *ref.reg = toReg;
+                *ref.reg           = toReg;
                 replacedInThisInst = true;
             }
         }
@@ -142,10 +142,10 @@ namespace
 }
 
 Math::FoldStatus MicroPassHelpers::foldBinaryImmediate(uint64_t&   outValue,
-                                                        uint64_t    lhs,
-                                                        uint64_t    rhs,
-                                                        MicroOp     op,
-                                                        MicroOpBits opBits)
+                                                       uint64_t    lhs,
+                                                       uint64_t    rhs,
+                                                       MicroOp     op,
+                                                       MicroOpBits opBits)
 {
     Math::FoldBinaryOp foldOp;
     bool               isSigned;

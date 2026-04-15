@@ -28,12 +28,7 @@ namespace PreRaPeephole
                 out.ops[idx] = ops[idx];
         }
 
-        bool buildAddrRewrite(ConsumerRewrite&         out,
-                              const MicroInstr&        consumer,
-                              const MicroInstrOperand* ops,
-                              const MicroReg           addrReg,
-                              const MicroReg           baseReg,
-                              const uint64_t           addrOff)
+        bool buildAddrRewrite(ConsumerRewrite& out, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg addrReg, MicroReg baseReg, uint64_t addrOff)
         {
             if (!ops)
                 return false;
@@ -223,15 +218,7 @@ namespace PreRaPeephole
             }
         }
 
-        bool buildAddrAmcRewrite(ConsumerRewrite&         out,
-                                 const MicroInstr&        consumer,
-                                 const MicroInstrOperand* ops,
-                                 const MicroReg           addrReg,
-                                 const MicroReg           baseReg,
-                                 const MicroReg           indexReg,
-                                 const MicroOpBits        addrBits,
-                                 const uint64_t           scale,
-                                 const uint64_t           add)
+        bool buildAddrAmcRewrite(ConsumerRewrite& out, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg addrReg, MicroReg baseReg, MicroReg indexReg, MicroOpBits addrBits, uint64_t scale, uint64_t add)
         {
             if (!ops)
                 return false;
@@ -391,15 +378,7 @@ namespace PreRaPeephole
             return false;
 
         ConsumerRewrite rewrite;
-        if (!buildAddrAmcRewrite(rewrite,
-                                 *consumer,
-                                 ctx.operandsFor(consumerRef),
-                                 addrReg,
-                                 defOps[1].reg,
-                                 defOps[2].reg,
-                                 defOps[4].opBits,
-                                 defOps[5].valueU64,
-                                 defOps[6].valueU64))
+        if (!buildAddrAmcRewrite(rewrite, *consumer, ctx.operandsFor(consumerRef), addrReg, defOps[1].reg, defOps[2].reg, defOps[4].opBits, defOps[5].valueU64, defOps[6].valueU64))
             return false;
 
         if (!ctx.claimAll({consumerRef}))

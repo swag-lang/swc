@@ -32,12 +32,7 @@ namespace InstructionCombine
             return true;
         }
 
-        bool tryReassociateWithPrevious(Context&                 ctx,
-                                        MicroInstrRef            ref,
-                                        MicroReg                 dst,
-                                        MicroOpBits              opBits,
-                                        MicroOp                  op,
-                                        uint64_t                 imm)
+        bool tryReassociateWithPrevious(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
         {
             const auto reaching = ctx.ssa->reachingDef(dst, ref);
             if (!reaching.valid() || reaching.isPhi || !reaching.inst)

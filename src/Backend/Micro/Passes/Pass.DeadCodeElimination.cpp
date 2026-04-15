@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -25,27 +26,10 @@ namespace
 {
     bool hasObservableSideEffect(const MicroInstr& inst, const MicroInstrUseDef& useDef)
     {
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
-        if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
-            return true;
-        if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
-            return true;
-        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
-            return true;
-        if (info.flags.has(MicroInstrFlagsE::WritesMemory))
-            return true;
-        if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
-            return true;
-        if (useDef.isCall)
-            return true;
-        if (inst.op == MicroInstrOpcode::Label)
-            return true;
-        return false;
+        return useDef.isCall || MicroInstrInfo::hasObservableSideEffect(inst);
     }
 
-    bool allDefsAreDeadVirtualRegs(const MicroInstrUseDef& useDef,
-                                   const MicroSsaState&    ssaState,
-                                   const MicroInstrRef     instRef)
+    bool allDefsAreDeadVirtualRegs(const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, MicroInstrRef instRef)
     {
         if (useDef.defs.empty())
             return false;
@@ -59,6 +43,14 @@ namespace
         }
 
         return true;
+    }
+
+    bool canEraseInstruction(const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, MicroInstrRef instRef)
+    {
+        if (hasObservableSideEffect(inst, useDef))
+            return false;
+
+        return allDefsAreDeadVirtualRegs(useDef, ssaState, instRef);
     }
 
     bool eliminateDeadInstructions(MicroStorage& storage, const MicroSsaState& ssaState)
@@ -76,10 +68,7 @@ namespace
             if (!useDef)
                 continue;
 
-            if (hasObservableSideEffect(inst, *useDef))
-                continue;
-
-            if (!allDefsAreDeadVirtualRegs(*useDef, ssaState, instRef))
+            if (!canEraseInstruction(inst, *useDef, ssaState, instRef))
                 continue;
 
             changed |= storage.erase(instRef);

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -49,10 +49,7 @@ namespace PostRAPeephole
         actions.push_back(action);
     }
 
-    void Context::emitRewrite(MicroInstrRef                      ref,
-                              MicroInstrOpcode                   newOp,
-                              std::span<const MicroInstrOperand> newOps,
-                              bool                               allocNewBlock)
+    void Context::emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock)
     {
         SWC_ASSERT(newOps.size() <= Action::K_MAX_OPS);
 
@@ -133,7 +130,7 @@ namespace PostRAPeephole
         byOpcode[static_cast<size_t>(op)].push_back(fn);
     }
 
-    std::span<PatternFn const> PatternRegistry::patternsFor(MicroInstrOpcode op) const
+    std::span<const PatternFn> PatternRegistry::patternsFor(MicroInstrOpcode op) const
     {
         return byOpcode[static_cast<size_t>(op)].span();
     }

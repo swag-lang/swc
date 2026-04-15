@@ -21,6 +21,17 @@ bool MicroInstrInfo::isUnconditionalJumpInstruction(const MicroInstr& inst, cons
     return true;
 }
 
+bool MicroInstrInfo::hasObservableSideEffect(const MicroInstr& inst)
+{
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    return inst.op == MicroInstrOpcode::Label ||
+           info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+           info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+           info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+           info.flags.has(MicroInstrFlagsE::WritesMemory) ||
+           info.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
+}
+
 bool MicroInstrInfo::isLocalDataflowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef)
 {
     if (inst.op == MicroInstrOpcode::Label)

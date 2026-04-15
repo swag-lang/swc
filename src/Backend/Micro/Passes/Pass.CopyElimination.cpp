@@ -55,9 +55,9 @@ namespace
 
     struct CanonicalValueContext
     {
-        const MicroSsaState&       ssaState;
-        const MicroStorage&        storage;
-        const MicroOperandStorage& operands;
+        const MicroSsaState*       ssaState = nullptr;
+        const MicroStorage*        storage  = nullptr;
+        const MicroOperandStorage* operands = nullptr;
     };
 
     bool isCopyInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
@@ -79,31 +79,26 @@ namespace
         return isCopyInstruction(inst, ops) && ops[0].reg == ops[1].reg;
     }
 
-    bool tryGetCanonicalReachingValue(CanonicalValue&                    outValue,
-                                      const CanonicalValueContext&       context,
-                                      const std::vector<CanonicalValue>& canonicalValues,
-                                      const std::vector<uint8_t>&        canonicalFlags,
-                                      const MicroReg                     reg,
-                                      const MicroInstrRef                instRef)
+    bool tryGetCanonicalReachingValue(CanonicalValue& outValue, const CanonicalValueContext& context, const std::vector<CanonicalValue>& canonicalValues, const std::vector<uint8_t>& canonicalFlags, MicroReg reg, MicroInstrRef instRef)
     {
-        return tryGetSsaReachingValue<CanonicalValue, CanonicalValueTraits>(outValue, context.ssaState, canonicalValues, canonicalFlags, reg, instRef);
+        SWC_ASSERT(context.ssaState != nullptr);
+        return tryGetSsaReachingValue<CanonicalValue, CanonicalValueTraits>(outValue, *context.ssaState, canonicalValues, canonicalFlags, reg, instRef);
     }
 
-    bool tryInferInstructionCanonical(CanonicalValue&                    outValue,
-                                      const CanonicalValueContext&       context,
-                                      const uint32_t                     valueId,
-                                      const MicroSsaState::ValueInfo&    valueInfo,
-                                      const std::vector<CanonicalValue>& canonicalValues,
-                                      const std::vector<uint8_t>&        canonicalFlags)
+    bool tryInferInstructionCanonical(CanonicalValue& outValue, const CanonicalValueContext& context, uint32_t valueId, const MicroSsaState::ValueInfo& valueInfo, const std::vector<CanonicalValue>& canonicalValues, const std::vector<uint8_t>& canonicalFlags)
     {
         if (!valueInfo.instRef.isValid())
             return false;
 
-        const MicroInstr* inst = context.storage.ptr(valueInfo.instRef);
+        SWC_ASSERT(context.ssaState != nullptr);
+        SWC_ASSERT(context.storage != nullptr);
+        SWC_ASSERT(context.operands != nullptr);
+
+        const MicroInstr* inst = context.storage->ptr(valueInfo.instRef);
         if (!inst)
             return false;
 
-        const MicroInstrOperand* ops = inst->ops(context.operands);
+        const MicroInstrOperand* ops = inst->ops(*context.operands);
         if (!ops)
             return false;
 
@@ -118,7 +113,7 @@ namespace
         if (!tryGetCanonicalReachingValue(srcValue, context, canonicalValues, canonicalFlags, ops[1].reg, valueInfo.instRef))
             return false;
 
-        const auto rootReachingDef = context.ssaState.reachingDef(srcValue.reg, valueInfo.instRef);
+        const auto rootReachingDef = context.ssaState->reachingDef(srcValue.reg, valueInfo.instRef);
         if (!rootReachingDef.valid() || rootReachingDef.valueId != srcValue.valueId)
             return false;
 
@@ -126,13 +121,9 @@ namespace
         return true;
     }
 
-    void computeCanonicalValues(std::vector<CanonicalValue>& outValues,
-                                std::vector<uint8_t>&        outFlags,
-                                const MicroSsaState&         ssaState,
-                                const MicroStorage&          storage,
-                                const MicroOperandStorage&   operands)
+    void computeCanonicalValues(std::vector<CanonicalValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
     {
-        const CanonicalValueContext context{ssaState, storage, operands};
+        const CanonicalValueContext context{&ssaState, &storage, &operands};
         computeSsaValueFixedPoint<CanonicalValue, CanonicalValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionCanonical);
     }
 
@@ -148,14 +139,9 @@ namespace
         builder.addVirtualRegForbiddenPhysRegs(toReg, it->second.span());
     }
 
-    bool rewriteCanonicalUses(MicroBuilder*                      builder,
-                              const MicroSsaState&               ssaState,
-                              const std::vector<CanonicalValue>& canonicalValues,
-                              const std::vector<uint8_t>&        canonicalFlags,
-                              MicroStorage&                      storage,
-                              MicroOperandStorage&               operands)
+    bool rewriteCanonicalUses(MicroBuilder* builder, const MicroSsaState& ssaState, const std::vector<CanonicalValue>& canonicalValues, const std::vector<uint8_t>& canonicalFlags, MicroStorage& storage, MicroOperandStorage& operands)
     {
-        const CanonicalValueContext context{ssaState, storage, operands};
+        const CanonicalValueContext context{&ssaState, &storage, &operands};
         bool                        changed = false;
         const auto                  view    = storage.view();
         const auto                  endIt   = view.end();

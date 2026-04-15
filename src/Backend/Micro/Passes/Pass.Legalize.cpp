@@ -358,13 +358,7 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyRewriteLoadFloatRegImm(const MicroPassContext&  context,
-                                     const Encoder&           encoder,
-                                     MicroInstrRef            instRef,
-                                     const MicroInstr&        inst,
-                                     const MicroInstrOperand* ops,
-                                     uint64_t                 stackScratchBaseOffset,
-                                     uint32_t&                nextVirtualIntRegIndex)
+    void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, uint64_t stackScratchBaseOffset, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_UNUSED(encoder);
         SWC_UNUSED(stackScratchBaseOffset);
@@ -840,15 +834,7 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyLegalizeIssue(const MicroPassContext&      context,
-                            const Encoder&               encoder,
-                            MicroInstrRef                instRef,
-                            const MicroInstr&            inst,
-                            MicroInstrOperand*           ops,
-                            const MicroConformanceIssue& issue,
-                            uint64_t                     stackScratchBaseOffset,
-                            uint32_t&                    nextVirtualIntRegIndex,
-                            uint32_t&                    nextVirtualFloatRegIndex)
+    void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, MicroInstrRef instRef, const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset, uint32_t& nextVirtualIntRegIndex, uint32_t& nextVirtualFloatRegIndex)
     {
         // Encoder reports one issue at a time; apply one targeted rewrite/fix.
         switch (issue.kind)

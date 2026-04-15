@@ -23,12 +23,7 @@ bool tryGetSsaValue(TValue& outValue, const std::vector<TValue>& values, const s
 }
 
 template<typename TValue, typename TTraits>
-bool tryGetSsaReachingValue(TValue&                     outValue,
-                            const MicroSsaState&        ssaState,
-                            const std::vector<TValue>&  values,
-                            const std::vector<uint8_t>& flags,
-                            const MicroReg              reg,
-                            const MicroInstrRef         instRef)
+bool tryGetSsaReachingValue(TValue& outValue, const MicroSsaState& ssaState, const std::vector<TValue>& values, const std::vector<uint8_t>& flags, MicroReg reg, MicroInstrRef instRef)
 {
     const auto reachingDef = ssaState.reachingDef(reg, instRef);
     if (!reachingDef.valid())
@@ -38,10 +33,7 @@ bool tryGetSsaReachingValue(TValue&                     outValue,
 }
 
 template<typename TValue, typename TTraits>
-bool tryInferSsaPhiValue(TValue&                       outValue,
-                         const MicroSsaState::PhiInfo& phiInfo,
-                         const std::vector<TValue>&    values,
-                         const std::vector<uint8_t>&   flags)
+bool tryInferSsaPhiValue(TValue& outValue, const MicroSsaState::PhiInfo& phiInfo, const std::vector<TValue>& values, const std::vector<uint8_t>& flags)
 {
     bool   hasCandidate = false;
     TValue candidate{};
@@ -71,11 +63,7 @@ bool tryInferSsaPhiValue(TValue&                       outValue,
 }
 
 template<typename TValue, typename TTraits, typename TContext>
-void computeSsaValueFixedPoint(std::vector<TValue>&                                      outValues,
-                               std::vector<uint8_t>&                                     outFlags,
-                               const MicroSsaState&                                      ssaState,
-                               const TContext&                                           context,
-                               const SsaTryInferInstructionFn<TValue, TTraits, TContext> tryInferInstruction)
+void computeSsaValueFixedPoint(std::vector<TValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const TContext& context, const SsaTryInferInstructionFn<TValue, TTraits, TContext> tryInferInstruction)
 {
     const auto values = ssaState.values();
     outValues.assign(values.size(), TValue{});

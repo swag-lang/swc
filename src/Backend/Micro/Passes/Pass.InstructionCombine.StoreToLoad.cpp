@@ -58,9 +58,9 @@ namespace InstructionCombine
         {
             for (uint32_t i = 0; i < cache.size();)
             {
-                const CacheEntry& e         = cache[i];
-                const bool        sameBase  = e.base == base;
-                const bool        disjoint  = sameBase && !rangesOverlap(e.off, e.bits, off, bits);
+                const CacheEntry& e        = cache[i];
+                const bool        sameBase = e.base == base;
+                const bool        disjoint = sameBase && !rangesOverlap(e.off, e.bits, off, bits);
                 if (!sameBase || !disjoint)
                     cache.erase(cache.begin() + i);
                 else
@@ -68,10 +68,7 @@ namespace InstructionCombine
             }
         }
 
-        bool forwardLoad(Context&                 ctx,
-                         const Cache&             cache,
-                         MicroInstrRef            loadRef,
-                         const MicroInstrOperand* ops)
+        bool forwardLoad(Context& ctx, const Cache& cache, MicroInstrRef loadRef, const MicroInstrOperand* ops)
         {
             const MicroReg    dst  = ops[0].reg;
             const MicroReg    base = ops[1].reg;

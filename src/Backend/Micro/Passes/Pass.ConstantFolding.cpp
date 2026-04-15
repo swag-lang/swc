@@ -52,27 +52,18 @@ namespace
 
     struct KnownValueContext
     {
-        const MicroSsaState&       ssaState;
-        const MicroStorage&        storage;
-        const MicroOperandStorage& operands;
+        const MicroSsaState*       ssaState = nullptr;
+        const MicroStorage*        storage  = nullptr;
+        const MicroOperandStorage* operands = nullptr;
     };
 
-    bool tryGetKnownReachingValue(KnownValue&                    outValue,
-                                  const KnownValueContext&       context,
-                                  const std::vector<KnownValue>& knownValues,
-                                  const std::vector<uint8_t>&    knownFlags,
-                                  const MicroReg                 reg,
-                                  const MicroInstrRef            instRef)
+    bool tryGetKnownReachingValue(KnownValue& outValue, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
     {
-        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, context.ssaState, knownValues, knownFlags, reg, instRef);
+        SWC_ASSERT(context.ssaState != nullptr);
+        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, *context.ssaState, knownValues, knownFlags, reg, instRef);
     }
 
-    bool tryGetKnownReachingValue(KnownValue&                    outValue,
-                                  const MicroSsaState&           ssaState,
-                                  const std::vector<KnownValue>& knownValues,
-                                  const std::vector<uint8_t>&    knownFlags,
-                                  const MicroReg                 reg,
-                                  const MicroInstrRef            instRef)
+    bool tryGetKnownReachingValue(KnownValue& outValue, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
     {
         return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, ssaState, knownValues, knownFlags, reg, instRef);
     }
@@ -94,10 +85,7 @@ namespace
     // Convert an IEEE-754 bit pattern between f32/f64. On success fills the
     // destination bit pattern and its width; returns false for unsupported
     // source widths.
-    bool convertFloatBitPattern(uint64_t&    outBits,
-                                MicroOpBits& outDstBits,
-                                uint64_t     value,
-                                MicroOpBits  srcBits)
+    bool convertFloatBitPattern(uint64_t& outBits, MicroOpBits& outDstBits, uint64_t value, MicroOpBits srcBits)
     {
         if (srcBits == MicroOpBits::B64)
         {
@@ -125,20 +113,18 @@ namespace
         return false;
     }
 
-    bool tryInferInstructionConstant(KnownValue&              outValue,
-                                     const KnownValueContext& context,
-                                     const uint32_t,
-                                     const MicroSsaState::ValueInfo& valueInfo,
-                                     const std::vector<KnownValue>&  knownValues,
-                                     const std::vector<uint8_t>&     knownFlags)
+    bool tryInferInstructionConstant(KnownValue& outValue, const KnownValueContext& context, const uint32_t, const MicroSsaState::ValueInfo& valueInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
     {
         if (!valueInfo.instRef.isValid())
             return false;
 
-        const MicroInstr* inst = context.storage.ptr(valueInfo.instRef);
+        SWC_ASSERT(context.storage != nullptr);
+        SWC_ASSERT(context.operands != nullptr);
+
+        const MicroInstr* inst = context.storage->ptr(valueInfo.instRef);
         if (!inst)
             return false;
-        const MicroInstrOperand* ops = inst->ops(context.operands);
+        const MicroInstrOperand* ops = inst->ops(*context.operands);
         if (!ops)
             return false;
 
@@ -266,22 +252,13 @@ namespace
         }
     }
 
-    void computeKnownValues(std::vector<KnownValue>&   knownValues,
-                            std::vector<uint8_t>&      knownFlags,
-                            const MicroSsaState&       ssaState,
-                            const MicroStorage&        storage,
-                            const MicroOperandStorage& operands)
+    void computeKnownValues(std::vector<KnownValue>& knownValues, std::vector<uint8_t>& knownFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
     {
-        const KnownValueContext context{ssaState, storage, operands};
+        const KnownValueContext context{&ssaState, &storage, &operands};
         computeSsaValueFixedPoint<KnownValue, KnownValueTraits>(knownValues, knownFlags, ssaState, context, tryInferInstructionConstant);
     }
 
-    bool tryFoldCopyFromKnown(const MicroSsaState&           ssaState,
-                              const std::vector<KnownValue>& knownValues,
-                              const std::vector<uint8_t>&    knownFlags,
-                              MicroInstrRef                  instRef,
-                              MicroInstr&                    inst,
-                              MicroInstrOperand*             ops)
+    bool tryFoldCopyFromKnown(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::LoadRegReg)
             return false;
@@ -303,12 +280,7 @@ namespace
         return true;
     }
 
-    bool tryFoldBinaryRegImm(const MicroSsaState&           ssaState,
-                             const std::vector<KnownValue>& knownValues,
-                             const std::vector<uint8_t>&    knownFlags,
-                             MicroInstrRef                  instRef,
-                             MicroInstr&                    inst,
-                             MicroInstrOperand*             ops)
+    bool tryFoldBinaryRegImm(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
@@ -332,13 +304,7 @@ namespace
         return true;
     }
 
-    bool tryFoldBinaryRegReg(const MicroSsaState&           ssaState,
-                             const MicroOperandStorage&     operands,
-                             const std::vector<KnownValue>& knownValues,
-                             const std::vector<uint8_t>&    knownFlags,
-                             MicroInstrRef                  instRef,
-                             MicroInstr&                    inst,
-                             MicroInstrOperand*             ops)
+    bool tryFoldBinaryRegReg(const MicroSsaState& ssaState, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
             return false;
@@ -393,12 +359,7 @@ namespace
         return true;
     }
 
-    bool tryFoldExtend(const MicroSsaState&           ssaState,
-                       const std::vector<KnownValue>& knownValues,
-                       const std::vector<uint8_t>&    knownFlags,
-                       MicroInstrRef                  instRef,
-                       MicroInstr&                    inst,
-                       MicroInstrOperand*             ops)
+    bool tryFoldExtend(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::LoadSignedExtRegReg && inst.op != MicroInstrOpcode::LoadZeroExtRegReg)
             return false;

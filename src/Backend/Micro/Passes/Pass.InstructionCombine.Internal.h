@@ -43,10 +43,7 @@ namespace InstructionCombine
         bool claimAll(std::initializer_list<MicroInstrRef> refs);
 
         void emitErase(MicroInstrRef ref);
-        void emitRewrite(MicroInstrRef                      ref,
-                         MicroInstrOpcode                   newOp,
-                         std::span<const MicroInstrOperand> newOps,
-                         bool                               allocNewBlock = false);
+        void emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock = false);
     };
 
     using PatternFn = bool (*)(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

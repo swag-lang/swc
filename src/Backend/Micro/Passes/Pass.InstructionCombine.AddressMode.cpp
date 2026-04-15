@@ -21,15 +21,17 @@ namespace InstructionCombine
             uint8_t offIdx  = 0;
         };
 
-        bool memoryLayoutFor(MicroInstrOpcode op, MemLayout& out)
+        bool memoryLayoutFor(MemLayout& out, MicroInstrOpcode op)
         {
             switch (op)
             {
                 case MicroInstrOpcode::LoadMemReg:
-                    out = {0, 3};
+                    out.baseIdx = 0;
+                    out.offIdx  = 3;
                     return true;
                 case MicroInstrOpcode::LoadRegMem:
-                    out = {1, 3};
+                    out.baseIdx = 1;
+                    out.offIdx  = 3;
                     return true;
                 default:
                     return false;
@@ -44,20 +46,27 @@ namespace InstructionCombine
             uint64_t          addImm  = 0;
         };
 
-        bool findAdjacentAdd(AddChain&            out,
-                             const MicroSsaState& ssa,
-                             MicroOperandStorage& operands,
-                             MicroReg             baseReg,
-                             MicroInstrRef        memRef)
+        struct AddSearchContext
         {
-            const auto reaching = ssa.reachingDef(baseReg, memRef);
+            const MicroSsaState* ssa      = nullptr;
+            MicroOperandStorage* operands = nullptr;
+            MicroReg             baseReg  = MicroReg::invalid();
+            MicroInstrRef        memRef   = MicroInstrRef::invalid();
+        };
+
+        bool findAdjacentAdd(AddChain& out, const AddSearchContext& ctx)
+        {
+            SWC_ASSERT(ctx.ssa != nullptr);
+            SWC_ASSERT(ctx.operands != nullptr);
+
+            const auto reaching = ctx.ssa->reachingDef(ctx.baseReg, ctx.memRef);
             if (!reaching.valid() || reaching.isPhi || !reaching.inst)
                 return false;
             if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm)
                 return false;
 
-            const MicroInstrOperand* addOps = reaching.inst->ops(operands);
-            if (!addOps || addOps[0].reg != baseReg)
+            const MicroInstrOperand* addOps = reaching.inst->ops(*ctx.operands);
+            if (!addOps || addOps[0].reg != ctx.baseReg)
                 return false;
             if (addOps[1].opBits != MicroOpBits::B64)
                 return false;
@@ -66,7 +75,7 @@ namespace InstructionCombine
             if (addOp != MicroOp::Add && addOp != MicroOp::Subtract)
                 return false;
 
-            const auto* addValue = ssa.valueInfo(reaching.valueId);
+            const auto* addValue = ctx.ssa->valueInfo(reaching.valueId);
             if (!addValue || addValue->uses.size() != 1)
                 return false;
 
@@ -77,33 +86,39 @@ namespace InstructionCombine
             return true;
         }
 
+        struct CopySearchContext
+        {
+            const MicroSsaState* ssa      = nullptr;
+            MicroOperandStorage* operands = nullptr;
+            MicroReg             baseReg  = MicroReg::invalid();
+            MicroInstrRef        addRef   = MicroInstrRef::invalid();
+            MicroInstrRef        memRef   = MicroInstrRef::invalid();
+        };
+
         // If baseReg was just copied from another register via a single-use
         // LoadRegReg AND that source register still holds the same SSA value
         // at the memory op, return the copy's source so we can skip the copy
         // entirely. Otherwise originalReg stays as baseReg (we only erase
         // the add).
-        void findEliminableCopy(MicroInstrRef&       outCopyRef,
-                                MicroReg&            outOriginalReg,
-                                const MicroSsaState& ssa,
-                                MicroOperandStorage& operands,
-                                MicroReg             baseReg,
-                                MicroInstrRef        addRef,
-                                MicroInstrRef        memRef)
+        void findEliminableCopy(MicroInstrRef& outCopyRef, MicroReg& outOriginalReg, const CopySearchContext& ctx)
         {
-            outCopyRef     = MicroInstrRef::invalid();
-            outOriginalReg = baseReg;
+            SWC_ASSERT(ctx.ssa != nullptr);
+            SWC_ASSERT(ctx.operands != nullptr);
 
-            const auto copyReaching = ssa.reachingDef(baseReg, addRef);
+            outCopyRef     = MicroInstrRef::invalid();
+            outOriginalReg = ctx.baseReg;
+
+            const auto copyReaching = ctx.ssa->reachingDef(ctx.baseReg, ctx.addRef);
             if (!copyReaching.valid() || copyReaching.isPhi || !copyReaching.inst)
                 return;
             if (copyReaching.inst->op != MicroInstrOpcode::LoadRegReg)
                 return;
 
-            const MicroInstrOperand* copyOps = copyReaching.inst->ops(operands);
-            if (!copyOps || copyOps[0].reg != baseReg)
+            const MicroInstrOperand* copyOps = copyReaching.inst->ops(*ctx.operands);
+            if (!copyOps || copyOps[0].reg != ctx.baseReg)
                 return;
 
-            const auto* copyValue = ssa.valueInfo(copyReaching.valueId);
+            const auto* copyValue = ctx.ssa->valueInfo(copyReaching.valueId);
             if (!copyValue || copyValue->uses.size() != 1)
                 return;
 
@@ -112,8 +127,8 @@ namespace InstructionCombine
             // Soundness: the copy's source must still hold the same SSA value
             // at the memory op, otherwise substituting it would read a newer
             // value and change semantics.
-            const auto srcAtCopy = ssa.reachingDef(candidate, copyReaching.instRef);
-            const auto srcAtMem  = ssa.reachingDef(candidate, memRef);
+            const auto srcAtCopy = ctx.ssa->reachingDef(candidate, copyReaching.instRef);
+            const auto srcAtMem  = ctx.ssa->reachingDef(candidate, ctx.memRef);
             if (!srcAtCopy.valid() || !srcAtMem.valid() || srcAtCopy.valueId != srcAtMem.valueId)
                 return;
 
@@ -128,7 +143,7 @@ namespace InstructionCombine
             return false;
 
         MemLayout layout;
-        if (!memoryLayoutFor(inst.op, layout))
+        if (!memoryLayoutFor(layout, inst.op))
             return false;
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
@@ -140,13 +155,24 @@ namespace InstructionCombine
         if (!baseReg.isVirtual())
             return false;
 
-        AddChain chain;
-        if (!findAdjacentAdd(chain, *ctx.ssa, *ctx.operands, baseReg, ref))
+        AddChain         chain;
+        AddSearchContext addSearch;
+        addSearch.ssa      = ctx.ssa;
+        addSearch.operands = ctx.operands;
+        addSearch.baseReg  = baseReg;
+        addSearch.memRef   = ref;
+        if (!findAdjacentAdd(chain, addSearch))
             return false;
 
-        MicroInstrRef copyRef;
-        MicroReg      originalReg;
-        findEliminableCopy(copyRef, originalReg, *ctx.ssa, *ctx.operands, baseReg, chain.addRef, ref);
+        MicroInstrRef     copyRef;
+        MicroReg          originalReg;
+        CopySearchContext copySearch;
+        copySearch.ssa      = ctx.ssa;
+        copySearch.operands = ctx.operands;
+        copySearch.baseReg  = baseReg;
+        copySearch.addRef   = chain.addRef;
+        copySearch.memRef   = ref;
+        findEliminableCopy(copyRef, originalReg, copySearch);
 
         // 64-bit wrapping arithmetic matches native address behavior.
         const uint64_t newOff = (chain.addOp == MicroOp::Add) ? baseOff + chain.addImm : baseOff - chain.addImm;

@@ -50,9 +50,9 @@ namespace
 
     struct KnownValueContext
     {
-        const MicroSsaState&       ssaState;
-        const MicroStorage&        storage;
-        const MicroOperandStorage& operands;
+        const MicroSsaState*       ssaState = nullptr;
+        const MicroStorage*        storage  = nullptr;
+        const MicroOperandStorage* operands = nullptr;
     };
 
     struct ProgramLayout
@@ -62,31 +62,25 @@ namespace
         std::unordered_map<uint32_t, uint32_t> labelOrdinalById;
     };
 
-    bool tryGetKnownReachingValue(KnownValue&                    outValue,
-                                  const KnownValueContext&       context,
-                                  const std::vector<KnownValue>& knownValues,
-                                  const std::vector<uint8_t>&    knownFlags,
-                                  const MicroReg                 reg,
-                                  const MicroInstrRef            instRef)
+    bool tryGetKnownReachingValue(KnownValue& outValue, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
     {
-        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, context.ssaState, knownValues, knownFlags, reg, instRef);
+        SWC_ASSERT(context.ssaState != nullptr);
+        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, *context.ssaState, knownValues, knownFlags, reg, instRef);
     }
 
-    bool tryInferInstructionConstant(KnownValue&              outValue,
-                                     const KnownValueContext& context,
-                                     const uint32_t,
-                                     const MicroSsaState::ValueInfo& valueInfo,
-                                     const std::vector<KnownValue>&  knownValues,
-                                     const std::vector<uint8_t>&     knownFlags)
+    bool tryInferInstructionConstant(KnownValue& outValue, const KnownValueContext& context, const uint32_t, const MicroSsaState::ValueInfo& valueInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
     {
         if (!valueInfo.instRef.isValid())
             return false;
 
-        const MicroInstr* inst = context.storage.ptr(valueInfo.instRef);
+        SWC_ASSERT(context.storage != nullptr);
+        SWC_ASSERT(context.operands != nullptr);
+
+        const MicroInstr* inst = context.storage->ptr(valueInfo.instRef);
         if (!inst)
             return false;
 
-        const MicroInstrOperand* ops = inst->ops(context.operands);
+        const MicroInstrOperand* ops = inst->ops(*context.operands);
         if (!ops)
             return false;
 
@@ -166,7 +160,7 @@ namespace
 
     void computeKnownValues(std::vector<KnownValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
     {
-        const KnownValueContext context{ssaState, storage, operands};
+        const KnownValueContext context{&ssaState, &storage, &operands};
         computeSsaValueFixedPoint<KnownValue, KnownValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionConstant);
     }
 
@@ -353,22 +347,20 @@ namespace
         return false;
     }
 
-    bool tryEvaluateKnownBranch(bool&                          outTaken,
-                                const KnownValueContext&       context,
-                                const std::vector<KnownValue>& knownValues,
-                                const std::vector<uint8_t>&    knownFlags,
-                                const MicroInstrRef            flagDefRef,
-                                const MicroCond                jumpCond)
+    bool tryEvaluateKnownBranch(bool& outTaken, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef flagDefRef, MicroCond jumpCond)
     {
         outTaken = false;
         if (!flagDefRef.isValid())
             return false;
 
-        const MicroInstr* flagDefInst = context.storage.ptr(flagDefRef);
+        SWC_ASSERT(context.storage != nullptr);
+        SWC_ASSERT(context.operands != nullptr);
+
+        const MicroInstr* flagDefInst = context.storage->ptr(flagDefRef);
         if (!flagDefInst)
             return false;
 
-        const MicroInstrOperand* flagOps = flagDefInst->ops(context.operands);
+        const MicroInstrOperand* flagOps = flagDefInst->ops(*context.operands);
         if (!flagOps)
             return false;
 
@@ -415,7 +407,7 @@ namespace
     {
         ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
-        const KnownValueContext context{ssaState, storage, operands};
+        const KnownValueContext context{&ssaState, &storage, &operands};
 
         bool          changed        = false;
         MicroInstrRef currentFlagDef = MicroInstrRef::invalid();

@@ -385,11 +385,7 @@ bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKe
     return isLiveInAt(virtKey, positions[cursor]);
 }
 
-bool MicroRegisterAllocationPass::canUsePhysical(MicroReg     virtKey,
-                                                 uint32_t     instructionIndex,
-                                                 MicroReg     physReg,
-                                                 MicroRegSpan forbiddenPhysRegs,
-                                                 bool         allowConcreteLive) const
+bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t instructionIndex, MicroReg physReg, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive) const
 {
     if (!physReg.isInt() && !physReg.isFloat())
         return false;
@@ -402,13 +398,7 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg     virtKey,
     return true;
 }
 
-bool MicroRegisterAllocationPass::tryTakeSpecificPhysical(SmallVector<MicroReg>& pool,
-                                                          MicroReg               virtKey,
-                                                          uint32_t               instructionIndex,
-                                                          MicroReg               preferredPhysReg,
-                                                          MicroRegSpan           forbiddenPhysRegs,
-                                                          bool                   allowConcreteLive,
-                                                          MicroReg&              outPhys) const
+bool MicroRegisterAllocationPass::tryTakeSpecificPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t instructionIndex, MicroReg preferredPhysReg, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys) const
 {
     for (size_t candidateIndex = 0; candidateIndex < pool.size(); ++candidateIndex)
     {
@@ -427,12 +417,7 @@ bool MicroRegisterAllocationPass::tryTakeSpecificPhysical(SmallVector<MicroReg>&
     return false;
 }
 
-bool MicroRegisterAllocationPass::tryTakeAllowedPhysical(SmallVector<MicroReg>& pool,
-                                                         MicroReg               virtKey,
-                                                         uint32_t               instructionIndex,
-                                                         MicroRegSpan           forbiddenPhysRegs,
-                                                         bool                   allowConcreteLive,
-                                                         MicroReg&              outPhys) const
+bool MicroRegisterAllocationPass::tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, MicroReg virtKey, uint32_t instructionIndex, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys) const
 {
     for (size_t index = pool.size(); index > 0; --index)
     {
@@ -1094,11 +1079,7 @@ bool MicroRegisterAllocationPass::spillOrRematerializeLiveValue(MicroReg physReg
     return true;
 }
 
-void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState&                     regState,
-                                                                const MicroReg                 virtKey,
-                                                                const MicroInstrRef            instRef,
-                                                                const MicroInstr&              inst,
-                                                                const MicroInstrOperand* const instOps) const
+void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState& regState, MicroReg virtKey, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* const instOps) const
 {
     clearRematerialization(regState);
     if (!instOps)
@@ -1195,12 +1176,7 @@ void MicroRegisterAllocationPass::mergeLabelStackDepth(std::unordered_map<MicroL
         return;
 }
 
-bool MicroRegisterAllocationPass::isCandidateBetter(MicroReg candidateKey,
-                                                    MicroReg candidateReg,
-                                                    MicroReg currentBestKey,
-                                                    MicroReg currentBestReg,
-                                                    uint32_t instructionIndex,
-                                                    uint32_t stamp) const
+bool MicroRegisterAllocationPass::isCandidateBetter(MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const
 {
     if (!currentBestReg.isValid())
         return true;
@@ -1231,16 +1207,7 @@ bool MicroRegisterAllocationPass::isCandidateBetter(MicroReg candidateKey,
     return candidateKey.hash() > currentBestKey.hash();
 }
 
-bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg     requestVirtKey,
-                                                          uint32_t     instructionIndex,
-                                                          bool         isFloatReg,
-                                                          bool         fromPersistentPool,
-                                                          MicroRegSpan protectedKeys,
-                                                          MicroRegSpan forbiddenPhysRegs,
-                                                          uint32_t     stamp,
-                                                          bool         allowConcreteLive,
-                                                          MicroReg&    outVirtKey,
-                                                          MicroReg&    outPhys) const
+bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const
 {
     // Choose mapped virtual reg that is cheapest to evict under current constraints.
     outVirtKey = MicroReg::invalid();
@@ -1306,10 +1273,7 @@ MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePool
     return FreePools{&freeFloatTransient_, freeFloatPersistent_.empty() ? nullptr : &freeFloatPersistent_};
 }
 
-bool MicroRegisterAllocationPass::tryTakePreferredPhysical(const AllocRequest& request,
-                                                           MicroRegSpan        forbiddenPhysRegs,
-                                                           const bool          allowConcreteLive,
-                                                           MicroReg&           outPhys)
+bool MicroRegisterAllocationPass::tryTakePreferredPhysical(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, const bool allowConcreteLive, MicroReg& outPhys)
 {
     if (!request.preferredPhysReg.isValid())
         return false;
@@ -1317,31 +1281,16 @@ bool MicroRegisterAllocationPass::tryTakePreferredPhysical(const AllocRequest& r
     const FreePools pools = pickFreePools(request);
     SWC_ASSERT(pools.primary != nullptr);
 
-    if (tryTakeSpecificPhysical(*pools.primary,
-                                request.virtKey,
-                                request.instructionIndex,
-                                request.preferredPhysReg,
-                                forbiddenPhysRegs,
-                                allowConcreteLive,
-                                outPhys))
+    if (tryTakeSpecificPhysical(*pools.primary, request.virtKey, request.instructionIndex, request.preferredPhysReg, forbiddenPhysRegs, allowConcreteLive, outPhys))
         return true;
 
     if (!pools.secondary)
         return false;
 
-    return tryTakeSpecificPhysical(*pools.secondary,
-                                   request.virtKey,
-                                   request.instructionIndex,
-                                   request.preferredPhysReg,
-                                   forbiddenPhysRegs,
-                                   allowConcreteLive,
-                                   outPhys);
+    return tryTakeSpecificPhysical(*pools.secondary, request.virtKey, request.instructionIndex, request.preferredPhysReg, forbiddenPhysRegs, allowConcreteLive, outPhys);
 }
 
-bool MicroRegisterAllocationPass::tryTakeFreePhysical(const AllocRequest& request,
-                                                      MicroRegSpan        forbiddenPhysRegs,
-                                                      bool                allowConcreteLive,
-                                                      MicroReg&           outPhys)
+bool MicroRegisterAllocationPass::tryTakeFreePhysical(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, bool allowConcreteLive, MicroReg& outPhys)
 {
     const FreePools pools = pickFreePools(request);
     SWC_ASSERT(pools.primary != nullptr);
@@ -1396,14 +1345,7 @@ void MicroRegisterAllocationPass::mapVirtReg(MicroReg virtKey, MicroReg physReg)
     regState.phys = physReg;
 }
 
-bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest&         request,
-                                                        MicroRegSpan                forbiddenPhysRegs,
-                                                        const uint32_t              stamp,
-                                                        const int64_t               stackDepth,
-                                                        std::vector<PendingInsert>& pending,
-                                                        const bool                  allowLiveSourceSpill,
-                                                        const bool                  allowConcreteLive,
-                                                        MicroReg&                   outPhys)
+bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, const uint32_t stamp, const int64_t stackDepth, std::vector<PendingInsert>& pending, const bool allowLiveSourceSpill, const bool allowConcreteLive, MicroReg& outPhys)
 {
     if (!request.transferSource.isVirtual() || request.transferSource == request.virtKey)
         return false;
@@ -1437,16 +1379,7 @@ bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest&     
     return true;
 }
 
-bool MicroRegisterAllocationPass::selectEvictionCandidateWithFallback(MicroReg     requestVirtKey,
-                                                                      uint32_t     instructionIndex,
-                                                                      bool         isFloatReg,
-                                                                      bool         preferPersistentPool,
-                                                                      MicroRegSpan protectedKeys,
-                                                                      MicroRegSpan forbiddenPhysRegs,
-                                                                      uint32_t     stamp,
-                                                                      bool         allowConcreteLive,
-                                                                      MicroReg&    outVirtKey,
-                                                                      MicroReg&    outPhys) const
+bool MicroRegisterAllocationPass::selectEvictionCandidateWithFallback(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool preferPersistentPool, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const
 {
     if (selectEvictionCandidate(requestVirtKey, instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, allowConcreteLive, outVirtKey, outPhys))
         return true;
@@ -1454,12 +1387,7 @@ bool MicroRegisterAllocationPass::selectEvictionCandidateWithFallback(MicroReg  
     return selectEvictionCandidate(requestVirtKey, instructionIndex, isFloatReg, !preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, allowConcreteLive, outVirtKey, outPhys);
 }
 
-MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&         request,
-                                                       MicroRegSpan                protectedKeys,
-                                                       MicroRegSpan                forbiddenPhysRegs,
-                                                       uint32_t                    stamp,
-                                                       int64_t                     stackDepth,
-                                                       std::vector<PendingInsert>& pending)
+MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
 {
     // Prefer free registers; otherwise evict one candidate and spill if needed.
     MicroReg physReg;
@@ -1496,12 +1424,7 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest&      
     return victimReg;
 }
 
-void MicroRegisterAllocationPass::recordDestructiveAlias(SmallVector<MicroReg>&         liveBases,
-                                                         SmallVector<DestructiveAlias>& concreteAliases,
-                                                         const MicroReg                 dstReg,
-                                                         const MicroReg                 baseReg,
-                                                         const uint32_t                 stamp,
-                                                         const bool                     trackVirtualDestConflict) const
+void MicroRegisterAllocationPass::recordDestructiveAlias(SmallVector<MicroReg>& liveBases, SmallVector<DestructiveAlias>& concreteAliases, MicroReg dstReg, MicroReg baseReg, const uint32_t stamp, const bool trackVirtualDestConflict) const
 {
     if (!baseReg.isVirtual() || !isLiveOut(baseReg, stamp))
         return;
@@ -1528,11 +1451,7 @@ void MicroRegisterAllocationPass::recordDestructiveAlias(SmallVector<MicroReg>& 
     concreteAliases.push_back(alias);
 }
 
-void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<MicroReg>&         liveBases,
-                                                                    SmallVector<DestructiveAlias>& concreteAliases,
-                                                                    const MicroInstr&              inst,
-                                                                    const MicroInstrOperand*       instOps,
-                                                                    const uint32_t                 stamp) const
+void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<MicroReg>& liveBases, SmallVector<DestructiveAlias>& concreteAliases, const MicroInstr& inst, const MicroInstrOperand* instOps, const uint32_t stamp) const
 {
     if (!instOps)
         return;
@@ -1560,13 +1479,7 @@ void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<
     }
 }
 
-MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest&         request,
-                                                    MicroRegSpan                protectedKeys,
-                                                    MicroRegSpan                forbiddenPhysRegs,
-                                                    MicroRegSpan                remapForbiddenPhysRegs,
-                                                    uint32_t                    stamp,
-                                                    int64_t                     stackDepth,
-                                                    std::vector<PendingInsert>& pending)
+MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, MicroRegSpan remapForbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
 {
     // Reuse existing mapping when possible, otherwise allocate and load from spill on use.
     auto& regState = stateForVirtual(request.virtKey);
@@ -1612,11 +1525,7 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest&         
     return physReg;
 }
 
-void MicroRegisterAllocationPass::spillMappedVirtualsForConcreteTouches(const MicroInstrUseDef&     useDef,
-                                                                        MicroRegSpan                protectedKeys,
-                                                                        uint32_t                    stamp,
-                                                                        int64_t                     stackDepth,
-                                                                        std::vector<PendingInsert>& pending)
+void MicroRegisterAllocationPass::spillMappedVirtualsForConcreteTouches(const MicroInstrUseDef& useDef, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
 {
     SmallVector<MicroReg> touchedRegs;
     touchedRegs.reserve(useDef.uses.size() + useDef.defs.size());

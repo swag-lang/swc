@@ -10,12 +10,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        bool allUsesFitWithin(const MicroSsaState&               ssa,
-                              const MicroStorage&                storage,
-                              const MicroOperandStorage&         operands,
-                              const MicroSsaState::ValueInfo&    valueInfo,
-                              MicroReg                           reg,
-                              uint32_t                           maxBits)
+        bool allUsesFitWithin(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t maxBits)
         {
             for (const auto& useSite : valueInfo.uses)
             {

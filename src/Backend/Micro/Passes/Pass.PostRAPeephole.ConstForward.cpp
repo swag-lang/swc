@@ -76,11 +76,7 @@ namespace PostRAPeephole
         // form expects, build the rewritten instruction. Returns false when
         // the pattern doesn't apply or would change semantics (e.g. `immReg`
         // appearing as the consumer's base/dst in addition to its value slot).
-        bool buildRewrite(ConsumerRewrite&         out,
-                          const MicroInstr&        consumer,
-                          const MicroInstrOperand* ops,
-                          MicroReg                 immReg,
-                          uint64_t                 imm)
+        bool buildRewrite(ConsumerRewrite& out, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg immReg, uint64_t imm)
         {
             if (!ops)
                 return false;

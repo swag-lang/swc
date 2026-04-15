@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Load / modify / store triple folding.
 //
@@ -34,9 +34,7 @@ namespace InstructionCombine
             MicroReg    rhsReg         = MicroReg::invalid();
         };
 
-        bool extractMiddleOperands(TripleInfo&              out,
-                                   const MicroInstr&        mid,
-                                   const MicroInstrOperand* opOps)
+        bool extractMiddleOperands(TripleInfo& out, const MicroInstr& mid, const MicroInstrOperand* opOps)
         {
             if (!opOps)
                 return false;
@@ -53,12 +51,7 @@ namespace InstructionCombine
             return true;
         }
 
-        bool storeMatches(const MicroInstr&        store,
-                          const MicroInstrOperand* storeOps,
-                          MicroReg                 base,
-                          MicroReg                 vt,
-                          MicroOpBits              loadBits,
-                          uint64_t                 loadOff)
+        bool storeMatches(const MicroInstr& store, const MicroInstrOperand* storeOps, MicroReg base, MicroReg vt, MicroOpBits loadBits, uint64_t loadOff)
         {
             if (store.op != MicroInstrOpcode::LoadMemReg || !storeOps)
                 return false;
@@ -68,13 +61,7 @@ namespace InstructionCombine
                    storeOps[3].valueU64 == loadOff;
         }
 
-        void emitFoldedTriple(Context&      ctx,
-                              MicroInstrRef loadRef,
-                              MicroInstrRef midRef,
-                              MicroInstrRef storeRef,
-                              MicroReg      base,
-                              uint64_t      loadOff,
-                              TripleInfo const& tri)
+        void emitFoldedTriple(Context& ctx, MicroInstrRef loadRef, MicroInstrRef midRef, MicroInstrRef storeRef, MicroReg base, uint64_t loadOff, const TripleInfo& tri)
         {
             MicroInstrOperand newOps[5];
             if (tri.middleIsRegReg)
@@ -101,9 +88,7 @@ namespace InstructionCombine
             ctx.emitErase(storeRef);
         }
 
-        bool findAnchorPosition(MicroStorage::Iterator& outIter,
-                                MicroStorage&           storage,
-                                MicroInstrRef           anchor)
+        bool findAnchorPosition(MicroStorage::Iterator& outIter, MicroStorage& storage, MicroInstrRef anchor)
         {
             const auto view  = storage.view();
             const auto endIt = view.end();

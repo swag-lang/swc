@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -58,20 +59,23 @@ namespace
     // conditional branch.
     bool hasObservableSideEffect(const MicroInstr& inst)
     {
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
-        if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
-            return true;
-        if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
-            return true;
-        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
-            return true;
-        if (info.flags.has(MicroInstrFlagsE::WritesMemory))
-            return true;
-        if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
-            return true;
-        return inst.op == MicroInstrOpcode::Label ||
+        return MicroInstrInfo::hasObservableSideEffect(inst) ||
                inst.op == MicroInstrOpcode::Push ||
                inst.op == MicroInstrOpcode::Pop;
+    }
+
+    bool allDefsAreDead(const MicroInstrUseDef& useDef, const RegSet& liveOut)
+    {
+        if (useDef.defs.empty())
+            return false;
+
+        for (const MicroReg def : useDef.defs)
+        {
+            if (contains(liveOut, def))
+                return false;
+        }
+
+        return true;
     }
 
     RegSet buildExitLiveOut(const CallConv& conv, const MicroPassContext& context)
@@ -219,19 +223,7 @@ Result MicroPostRADeadCodeElimPass::run(MicroPassContext& context)
             continue;
 
         const MicroInstrUseDef& useDef = useDefs[i];
-        if (useDef.defs.empty())
-            continue;
-
-        bool allDead = true;
-        for (const MicroReg def : useDef.defs)
-        {
-            if (contains(liveOut[i], def))
-            {
-                allDead = false;
-                break;
-            }
-        }
-        if (!allDead)
+        if (!allDefsAreDead(useDef, liveOut[i]))
             continue;
 
         if (storage.erase(instructionRefs[i]))

@@ -81,7 +81,7 @@ namespace Unittest
             else
             {
                 logUnittestStatus(testCtx, test.name, false);
-                if (CompilerInstance::dbgDevMode)
+                if (CompilerInstance::dbgDevStop)
                     Os::panicBox("[DevMode] UNITTEST failed!");
                 hasFailure = true;
                 stage.markFailure();

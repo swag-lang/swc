@@ -176,6 +176,15 @@ std::vector<DataSegmentRelocation> DataSegment::copyRelocations() const
     return relocations_;
 }
 
+std::mutex& DataSegment::allocationMutex(const uint32_t allocationOffset) const
+{
+    const std::scoped_lock lock(allocationMutexesMutex_);
+    auto&                  mutex = allocationMutexes_[allocationOffset];
+    if (!mutex)
+        mutex = std::make_unique<std::mutex>();
+    return *mutex;
+}
+
 std::pair<uint32_t, std::byte*> DataSegment::reserveBytes(uint32_t size, uint32_t align, bool zeroInit)
 {
     if (!size)

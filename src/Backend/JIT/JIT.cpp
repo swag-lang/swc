@@ -51,6 +51,12 @@ namespace
         Utf8                         functionName;
     };
 
+    struct ConstantFunctionPatch
+    {
+        uint32_t offset = 0;
+        void*    target = nullptr;
+    };
+
     Utf8 relocationSymbolName(const TaskContext& ctx, const Symbol* symbol)
     {
         if (!symbol)
@@ -481,7 +487,8 @@ namespace
         if (!visited.insert(visitKey).second)
             return Result::Continue;
 
-        const auto relocations = segment.copyRelocations();
+        SmallVector<ConstantFunctionPatch> patches;
+        const auto                         relocations = segment.copyRelocations();
         for (const DataSegmentRelocation& relocation : relocations)
         {
             if (relocation.offset < allocation.offset)
@@ -518,9 +525,21 @@ namespace
                 return Result::Error;
             }
 
-            auto** storage = segment.ptr<void*>(relocation.offset);
-            SWC_ASSERT(storage != nullptr);
-            *storage = reinterpret_cast<void*>(targetAddress);
+            patches.push_back({
+                .offset = relocation.offset,
+                .target = reinterpret_cast<void*>(targetAddress),
+            });
+        }
+
+        if (!patches.empty())
+        {
+            const std::scoped_lock lock(segment.allocationMutex(allocation.offset));
+            for (const ConstantFunctionPatch& patch : patches)
+            {
+                auto** storage = segment.ptr<void*>(patch.offset);
+                SWC_ASSERT(storage != nullptr);
+                *storage = patch.target;
+            }
         }
 
         return Result::Continue;
@@ -538,13 +557,6 @@ namespace
 
         std::unordered_set<uint64_t> visited;
         return patchConstantFunctionRelocationsRec(ctx, ownerFunction, shardIndex, sourceRef, visited);
-    }
-
-    Result patchConstantFunctionRelocationsThreadSafe(TaskContext& ctx, const SymbolFunction* ownerFunction, const void* ptr)
-    {
-        static std::mutex mutex;
-        const std::scoped_lock lock(mutex);
-        return patchConstantFunctionRelocations(ctx, ownerFunction, ptr);
     }
 
     Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
@@ -580,7 +592,7 @@ namespace
             }
 
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
-                SWC_RESULT(patchConstantFunctionRelocationsThreadSafe(ctx, ownerFunction, reinterpret_cast<const void*>(targetAddress)));
+                SWC_RESULT(patchConstantFunctionRelocations(ctx, ownerFunction, reinterpret_cast<const void*>(targetAddress)));
 
             patchAbsolute64(writableCode, reloc, targetAddress);
         }

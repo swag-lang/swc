@@ -61,6 +61,7 @@ public:
     void                                      restoreFromPreserveOffsets(ByteSpan src) const;
     std::vector<DataSegmentRelocation>        copyRelocations() const;
     const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
+    std::mutex&                               allocationMutex(uint32_t allocationOffset) const;
     template<typename T>
     std::pair<uint32_t, T*> reserve()
     {
@@ -123,6 +124,8 @@ private:
     std::vector<DataSegmentRelocation>                                     relocations_;
     std::vector<DataSegmentAllocation>                                     allocations_;
     mutable std::shared_mutex                                              mutex_;
+    mutable std::mutex                                                     allocationMutexesMutex_;
+    mutable std::unordered_map<uint32_t, std::unique_ptr<std::mutex>>       allocationMutexes_;
 };
 
 SWC_END_NAMESPACE();

@@ -676,8 +676,6 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Logging, "all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
     addArg(HelpOptionGroup::Logging, "all", "--syntax-color-lum", "-scl", CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
 
-    addArg(HelpOptionGroup::Testing, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal C++ unit tests before executing command.");
-    addArg(HelpOptionGroup::Testing, "all", "--verbose-unittest", "-vu", CommandLineType::Bool, &cmdLine_->verboseUnittest, nullptr, "Print each internal unit test status.");
     addArg(HelpOptionGroup::Testing, "test", "--test-native", "-tn", CommandLineType::Bool, &cmdLine_->testNative, nullptr, "Enable native backend testing for #test sources.");
     addArg(HelpOptionGroup::Testing, "test", "--test-jit", "-tj", CommandLineType::Bool, &cmdLine_->testJit, nullptr, "Enable JIT execution for #test functions during testing.");
     addArg(HelpOptionGroup::Testing, "test", "--lex-only", nullptr, CommandLineType::Bool, &cmdLine_->lexOnly, nullptr, "Stop test inputs after lexing. Cannot be combined with --syntax-only or --sema-only.");
@@ -689,8 +687,14 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
 
     addArg(HelpOptionGroup::Development, "all", "--verbose-info", "-vi", CommandLineType::Bool, &cmdLine_->verboseInfo, nullptr, "Print computed command, environment, toolchain and native artifact information before running the command.");
     addArg(HelpOptionGroup::Development, "all", "--dev-mode", "-dm", CommandLineType::Bool, &CompilerInstance::dbgDevMode, nullptr, "Open a message box when an error is reported.");
+
+#if SWC_HAS_UNITTEST
+    addArg(HelpOptionGroup::Development, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal C++ unit tests before executing command.");
+    addArg(HelpOptionGroup::Development, "all", "--verbose-unittest", "-vu", CommandLineType::Bool, &cmdLine_->verboseUnittest, nullptr, "Print each internal unit test status.");
+#endif
+
 #if SWC_DEV_MODE
-    addArg(HelpOptionGroup::Testing, "all", "--micro-verify", nullptr, CommandLineType::Bool, &cmdLine_->microVerify, nullptr, "Run dev-only Micro IR legality and pass-invariant verification. Intended for backend validation and slower than normal compilation.");
+    addArg(HelpOptionGroup::Development, "all", "--micro-verify", nullptr, CommandLineType::Bool, &cmdLine_->microVerify, nullptr, "Run dev-only Micro IR legality and pass-invariant verification. Intended for backend validation and slower than normal compilation.");
     addArg(HelpOptionGroup::Development, "all", "--randomize", "-rz", CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize single-threaded job scheduling. Forces --num-cores=1.");
     addArg(HelpOptionGroup::Development, "all", "--seed", "-rs", CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set the seed for --randomize. Forces --randomize and --num-cores=1.");
 #endif

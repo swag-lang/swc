@@ -178,14 +178,19 @@ namespace
         printInfoLine(ctx, "syntaxOnly", boolToUtf8(cmdLine.syntaxOnly));
         printInfoLine(ctx, "semaOnly", boolToUtf8(cmdLine.semaOnly));
         printInfoLine(ctx, "output", boolToUtf8(cmdLine.output));
+        printInfoLine(ctx, "runtime", boolToUtf8(cmdLine.runtime));
+
+#if SWC_HAS_UNITTEST
         printInfoLine(ctx, "unittest", boolToUtf8(cmdLine.unittest));
         printInfoLine(ctx, "verboseUnittest", boolToUtf8(cmdLine.verboseUnittest));
-        printInfoLine(ctx, "runtime", boolToUtf8(cmdLine.runtime));
+#endif
+
 #ifdef SWC_DEV_MODE
         printInfoLine(ctx, "microVerify", boolToUtf8(cmdLine.microVerify));
         printInfoLine(ctx, "randomize", boolToUtf8(cmdLine.randomize));
         printInfoLine(ctx, "randSeed", std::to_string(cmdLine.randSeed));
 #endif
+
         printInfoLine(ctx, "syntaxColorLum", std::to_string(cmdLine.syntaxColorLum));
         printInfoLine(ctx, "numCores", std::to_string(cmdLine.numCores));
         printInfoLine(ctx, "tabSize", std::to_string(cmdLine.tabSize));

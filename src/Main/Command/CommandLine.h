@@ -69,9 +69,12 @@ struct CommandLine
     bool syntaxOnly       = false;
     bool semaOnly         = false;
     bool output           = true;
-    bool unittest         = true;
-    bool verboseUnittest  = false;
     bool runtime          = true;
+
+#if SWC_HAS_UNITTEST
+    bool unittest        = true;
+    bool verboseUnittest = false;
+#endif
 
 #ifdef SWC_DEV_MODE
     bool     microVerify = false;

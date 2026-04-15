@@ -15,6 +15,7 @@ enum class JobKind
     Parser,
     Sema,
     CodeGen,
+    JitPatch,
     NativeObj,
 };
 

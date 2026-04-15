@@ -201,6 +201,9 @@
     <ClCompile Include="src\Backend\JIT\JITMemory.cpp">
       <Filter>src\Backend\JIT</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\JIT\JITPatchJob.cpp">
+      <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Debug\DebugInfo.cpp">
       <Filter>src\Backend\Debug</Filter>
     </ClCompile>
@@ -1056,6 +1059,9 @@
       <Filter>src\Backend\JIT</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\JIT\JITMemoryManager.h">
+      <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\JIT\JITPatchJob.h">
       <Filter>src\Backend\JIT</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Debug\DebugInfo.h">

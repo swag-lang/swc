@@ -31,6 +31,10 @@ const char* TaskState::kindName(const TaskStateKind kind)
             return "Wait symbol codegen pre-solved";
         case TaskStateKind::SemaWaitSymCodeGenCompleted:
             return "Wait symbol codegen completed";
+        case TaskStateKind::SemaWaitSymJitPrepared:
+            return "Wait symbol JIT prepared";
+        case TaskStateKind::SemaWaitSymJitCompleted:
+            return "Wait symbol JIT completed";
         case TaskStateKind::SemaWaitTypeCompleted:
             return "Wait type completed";
         case TaskStateKind::SemaWaitMainThreadRunJit:
@@ -57,6 +61,8 @@ bool TaskState::hasPauseReason() const
         case TaskStateKind::SemaWaitSymSemaCompleted:
         case TaskStateKind::SemaWaitSymCodeGenPreSolved:
         case TaskStateKind::SemaWaitSymCodeGenCompleted:
+        case TaskStateKind::SemaWaitSymJitPrepared:
+        case TaskStateKind::SemaWaitSymJitCompleted:
         case TaskStateKind::SemaWaitTypeCompleted:
         case TaskStateKind::SemaWaitMainThreadRunJit:
             return true;
@@ -86,6 +92,8 @@ bool TaskState::canPause() const
         case TaskStateKind::SemaWaitSymSemaCompleted:
         case TaskStateKind::SemaWaitSymCodeGenPreSolved:
         case TaskStateKind::SemaWaitSymCodeGenCompleted:
+        case TaskStateKind::SemaWaitSymJitPrepared:
+        case TaskStateKind::SemaWaitSymJitCompleted:
             return nodeRef.isValid() && symbol != nullptr && waiterSymbol != nullptr;
 
         case TaskStateKind::SemaWaitTypeCompleted:

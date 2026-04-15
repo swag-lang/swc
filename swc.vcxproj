@@ -176,6 +176,7 @@
         <ClCompile Include="src\Backend\JIT\JITExecManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemory.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JITPatchJob.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfo.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp"/>
@@ -478,6 +479,7 @@
         <ClInclude Include="src\Backend\JIT\JITExecManager.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemory.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
+        <ClInclude Include="src\Backend\JIT\JITPatchJob.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfoCodeView.h"/>
         <ClInclude Include="src\Backend\\Encoder\Encoder.h"/>

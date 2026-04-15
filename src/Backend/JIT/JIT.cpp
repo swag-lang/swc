@@ -5,6 +5,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/JIT/JITMemoryManager.h"
+#include "Backend/JIT/JITPatchJob.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
@@ -118,20 +119,51 @@ namespace
     {
         if (ctx.state().codeRef.isValid())
             return ctx.state().codeRef;
-        if (ownerFunction)
+        if (ownerFunction && ownerFunction->decl())
             return ownerFunction->codeRef();
         return SourceCodeRef::invalid();
     }
 
+    SourceCodeRef symbolCodeRef(const SymbolFunction& function)
+    {
+        if (!function.decl())
+            return SourceCodeRef::invalid();
+        return function.codeRef();
+    }
+
+    const SymbolFunction* waitOwnerFunction(const TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
+    {
+        if (ownerFunction)
+            return ownerFunction;
+        if (ctx.state().runJitFunction)
+            return ctx.state().runJitFunction;
+        return &targetFunction;
+    }
+
     void setWaitCodeGenCompleted(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
     {
-        if (!ownerFunction)
-            return;
+        ownerFunction = waitOwnerFunction(ctx, ownerFunction, targetFunction);
 
         TaskState& wait   = ctx.state();
         wait.kind         = TaskStateKind::SemaWaitSymCodeGenCompleted;
         wait.nodeRef      = fallbackWaitNodeRef(ctx, ownerFunction);
         wait.codeRef      = fallbackWaitCodeRef(ctx, ownerFunction);
+        wait.symbol       = &targetFunction;
+        wait.waiterSymbol = ownerFunction;
+    }
+
+    void setWaitJitPrepared(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
+    {
+        ownerFunction = waitOwnerFunction(ctx, ownerFunction, targetFunction);
+
+        TaskState& wait   = ctx.state();
+        wait.kind         = TaskStateKind::SemaWaitSymJitPrepared;
+        wait.nodeRef      = fallbackWaitNodeRef(ctx, ownerFunction);
+        if (wait.nodeRef.isInvalid())
+            wait.nodeRef = targetFunction.declNodeRef();
+        wait.codeRef = fallbackWaitCodeRef(ctx, ownerFunction);
+        if (!wait.codeRef.isValid())
+            wait.codeRef = symbolCodeRef(targetFunction);
         wait.symbol       = &targetFunction;
         wait.waiterSymbol = ownerFunction;
     }
@@ -172,8 +204,12 @@ namespace
         if (targetFunction.loweredCode().bytes.empty())
             return Result::Error;
 
-        SWC_RESULT(targetFunction.jit(ctx));
-        return targetFunction.jitPatchAddress() ? Result::Continue : Result::Error;
+        JITPatchJob::schedule(ctx, targetFunction);
+        if (targetFunction.jitPatchAddress())
+            return Result::Continue;
+
+        setWaitJitPrepared(ctx, ownerFunction, targetFunction);
+        return Result::Pause;
     }
 
     ABICall::Arg packArgValue(const ABITypeNormalize::NormalizedType& argType, const void* valuePtr)
@@ -504,6 +540,13 @@ namespace
         return patchConstantFunctionRelocationsRec(ctx, ownerFunction, shardIndex, sourceRef, visited);
     }
 
+    Result patchConstantFunctionRelocationsThreadSafe(TaskContext& ctx, const SymbolFunction* ownerFunction, const void* ptr)
+    {
+        static std::mutex mutex;
+        const std::scoped_lock lock(mutex);
+        return patchConstantFunctionRelocations(ctx, ownerFunction, ptr);
+    }
+
     Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
     {
         SWC_ASSERT(!writableCode.empty());
@@ -537,7 +580,7 @@ namespace
             }
 
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
-                SWC_RESULT(patchConstantFunctionRelocations(ctx, ownerFunction, reinterpret_cast<const void*>(targetAddress)));
+                SWC_RESULT(patchConstantFunctionRelocationsThreadSafe(ctx, ownerFunction, reinterpret_cast<const void*>(targetAddress)));
 
             patchAbsolute64(writableCode, reloc, targetAddress);
         }

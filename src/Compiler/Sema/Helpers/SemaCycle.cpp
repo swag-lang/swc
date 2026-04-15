@@ -260,6 +260,24 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 break;
             }
 
+            case TaskStateKind::SemaWaitSymJitPrepared:
+            {
+                SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                reportStalledDependency(*sema, ctx, state);
+                break;
+            }
+
+            case TaskStateKind::SemaWaitSymJitCompleted:
+            {
+                SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                reportStalledDependency(*sema, ctx, state);
+                break;
+            }
+
             case TaskStateKind::SemaWaitTypeCompleted:
             {
                 if (state.symbol && !reportedSymbols.insert(state.symbol).second)

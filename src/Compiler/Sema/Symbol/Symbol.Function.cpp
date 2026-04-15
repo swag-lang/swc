@@ -4,6 +4,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITPatchJob.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -87,6 +88,23 @@ namespace
                 stack.push_back({.function = dependency, .expanded = false});
             }
         }
+    }
+
+    SourceCodeRef safeCodeRef(const SymbolFunction& function)
+    {
+        if (!function.decl())
+            return SourceCodeRef::invalid();
+        return function.codeRef();
+    }
+
+    void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction& function)
+    {
+        TaskState& wait   = ctx.state();
+        wait.kind         = TaskStateKind::SemaWaitSymJitCompleted;
+        wait.nodeRef      = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : function.declNodeRef();
+        wait.codeRef      = ctx.state().codeRef.isValid() ? ctx.state().codeRef : safeCodeRef(function);
+        wait.symbol       = &function;
+        wait.waiterSymbol = &function;
     }
 
     bool isLocalLayoutReady(TaskContext& ctx, TypeRef typeRef)
@@ -511,6 +529,12 @@ bool SymbolFunction::tryMarkCodeGenJobScheduled() noexcept
     return flags_.tryAdd(SymbolFlagsE::CodeGenJobScheduled);
 }
 
+bool SymbolFunction::tryMarkJitPatchJobScheduled() noexcept
+{
+    bool expected = false;
+    return jitPatchJobScheduled_.compare_exchange_strong(expected, true, std::memory_order_acq_rel, std::memory_order_acquire);
+}
+
 void SymbolFunction::addCallDependency(SymbolFunction* sym)
 {
     if (!sym || sym == this)
@@ -666,6 +690,7 @@ void SymbolFunction::resetJitState() noexcept
     jitExecMemory_.reset();
     jitPreparedAddress_.store(nullptr, std::memory_order_release);
     jitEntryAddress_.store(nullptr, std::memory_order_release);
+    jitPatchJobScheduled_.store(false, std::memory_order_release);
 }
 
 Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter)
@@ -726,37 +751,7 @@ Result SymbolFunction::jit(TaskContext& ctx)
 
     SmallVector<SymbolFunction*> jitOrder;
     appendDepOrder(jitOrder, *this);
-
-    SmallVector<SymbolFunction*> preparedFunctions;
-    preparedFunctions.reserve(jitOrder.size());
-    for (SymbolFunction* function : jitOrder)
-    {
-        if (ctx.state().jitEmissionError)
-            return Result::Error;
-        if (function->isIgnored())
-        {
-            ctx.state().jitEmissionError = true;
-            return Result::Error;
-        }
-        if (function->jitPrepare(ctx))
-            preparedFunctions.push_back(function);
-    }
-
-    for (SymbolFunction* function : preparedFunctions)
-    {
-        if (ctx.state().jitEmissionError)
-            return Result::Error;
-        SWC_RESULT(function->jitPatch(ctx));
-    }
-
-    for (SymbolFunction* function : preparedFunctions)
-    {
-        if (ctx.state().jitEmissionError)
-            return Result::Error;
-        function->jitFinalize(ctx);
-    }
-
-    return Result::Continue;
+    return jitBatch(ctx, jitOrder);
 }
 
 void SymbolFunction::setGenericRoot(bool value) noexcept
@@ -836,8 +831,7 @@ Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
-    SmallVector<SymbolFunction*> preparedFunctions;
-    preparedFunctions.reserve(functions.size());
+    SymbolFunction* pendingFunction = nullptr;
     for (SymbolFunction* function : functions)
     {
         if (ctx.state().jitEmissionError)
@@ -849,25 +843,48 @@ Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction
             ctx.state().jitEmissionError = true;
             return Result::Error;
         }
-        if (function->jitPrepare(ctx))
-            preparedFunctions.push_back(function);
+
+        if (function->hasJitEntryAddress())
+            continue;
+
+        JITPatchJob::schedule(ctx, *function);
+        if (!pendingFunction)
+            pendingFunction = function;
     }
 
-    for (SymbolFunction* function : preparedFunctions)
+    if (pendingFunction)
     {
-        if (ctx.state().jitEmissionError)
-            return Result::Error;
-        SWC_RESULT(function->jitPatch(ctx));
+        setWaitJitCompleted(ctx, *pendingFunction);
+        return Result::Pause;
     }
 
-    for (SymbolFunction* function : preparedFunctions)
+    return Result::Continue;
+}
+
+Result SymbolFunction::jitMaterialize(TaskContext& ctx)
+{
+    if (ctx.state().jitEmissionError)
+        return Result::Error;
+
+    if (isIgnored())
     {
-        if (ctx.state().jitEmissionError)
-            return Result::Error;
-        function->jitFinalize(ctx);
+        ctx.state().jitEmissionError = true;
+        return Result::Error;
     }
 
-    return ctx.state().jitEmissionError ? Result::Error : Result::Continue;
+    if (hasJitEntryAddress())
+        return Result::Continue;
+
+    if (!jitPrepare(ctx) && !hasJitPreparedAddress())
+        return ctx.state().jitEmissionError ? Result::Error : Result::Continue;
+
+    SWC_RESULT(jitPatch(ctx));
+    jitFinalize(ctx);
+    if (hasJitEntryAddress())
+        return Result::Continue;
+
+    ctx.state().jitEmissionError = true;
+    return Result::Error;
 }
 
 bool SymbolFunction::jitPrepare(TaskContext& ctx)
@@ -897,6 +914,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
 
     jitPreparedAddress_.store(entry, std::memory_order_release);
     ctx.compiler().registerPreparedJitFunction(this);
+    ctx.compiler().notifyAlive();
     return true;
 }
 

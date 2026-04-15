@@ -10,6 +10,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
@@ -176,6 +177,21 @@ namespace
             .constantRef   = constantRef,
         });
         return code;
+    }
+
+    template<typename FUNC>
+    Result runAfterPauses(TaskContext& ctx, const FUNC& func)
+    {
+        while (true)
+        {
+            const Result result = func();
+            if (result != Result::Pause)
+                return result;
+
+            Sema::waitDone(ctx, ctx.compiler().jobClientId());
+            if (Stats::hasError())
+                return Result::Error;
+        }
     }
 }
 
@@ -482,7 +498,9 @@ var GValue: s32 = 0
     if (nativeFunctions.empty())
         return Result::Error;
 
-    SWC_RESULT(SymbolFunction::jitBatch(compilerCtx, nativeFunctions));
+    SWC_RESULT(runAfterPauses(compilerCtx, [&] {
+        return SymbolFunction::jitBatch(compilerCtx, nativeFunctions);
+    }));
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 

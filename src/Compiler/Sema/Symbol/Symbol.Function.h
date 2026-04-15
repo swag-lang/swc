@@ -13,6 +13,7 @@ class SymbolVariable;
 class SymbolStruct;
 class SymbolImpl;
 class SymbolInterface;
+class JITPatchJob;
 class TaskContext;
 
 enum class SymbolFunctionFlagsE : uint16_t
@@ -126,6 +127,7 @@ public:
 
 private:
     struct GenericData;
+    friend class JITPatchJob;
 
     static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure |
                                                             SymbolFunctionFlagsE::Method |
@@ -139,8 +141,10 @@ private:
     bool         hasLoweredCode() const noexcept;
     bool         hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
     bool         hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
+    bool         tryMarkJitPatchJobScheduled() noexcept;
     GenericData& ensureGenericData(const TaskContext& ctx) const noexcept;
     GenericData* genericData() const noexcept;
+    Result       jitMaterialize(TaskContext& ctx);
     bool         jitPrepare(TaskContext& ctx);
     Result       jitPatch(TaskContext& ctx);
     void         jitFinalize(TaskContext& ctx);
@@ -170,6 +174,7 @@ private:
     JITMemory                         jitExecMemory_;
     std::atomic<void*>                jitPreparedAddress_ = nullptr;
     std::atomic<void*>                jitEntryAddress_    = nullptr;
+    std::atomic_bool                  jitPatchJobScheduled_ = false;
     mutable std::atomic<GenericData*> genericData_        = nullptr;
 };
 

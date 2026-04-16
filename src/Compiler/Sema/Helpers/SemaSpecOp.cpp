@@ -606,7 +606,7 @@ namespace
         }
     }
 
-    Result tryResolveReceiverOnlySpecOp(Sema& sema, AstNodeRef exprRef, IdentifierRef opId, bool allowConstEval, SymbolFunction*& outCalledFn, bool& outHandled)
+    Result tryResolveReceiverOnlySpecOp(Sema& sema, SymbolFunction*& outCalledFn, bool& outHandled, AstNodeRef exprRef, IdentifierRef opId, bool allowConstEval)
     {
         outCalledFn = nullptr;
         outHandled  = false;
@@ -930,13 +930,13 @@ Result SemaSpecOp::tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, A
 Result SemaSpecOp::tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled)
 {
     const IdentifierRef opCountId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCount);
-    return tryResolveReceiverOnlySpecOp(sema, exprRef, opCountId, true, outCalledFn, outHandled);
+    return tryResolveReceiverOnlySpecOp(sema, outCalledFn, outHandled, exprRef, opCountId, true);
 }
 
 Result SemaSpecOp::tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled)
 {
     const IdentifierRef opDataId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpData);
-    return tryResolveReceiverOnlySpecOp(sema, exprRef, opDataId, false, outCalledFn, outHandled);
+    return tryResolveReceiverOnlySpecOp(sema, outCalledFn, outHandled, exprRef, opDataId, false);
 }
 
 Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)

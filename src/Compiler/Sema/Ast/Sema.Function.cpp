@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -1406,6 +1407,17 @@ namespace
 
 Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    if (spanConstraintsRef.isValid())
+    {
+        SmallVector<AstNodeRef> constraintRefs;
+        sema.ast().appendNodes(constraintRefs, spanConstraintsRef);
+        for (const AstNodeRef constraintRef : constraintRefs)
+        {
+            if (childRef == constraintRef)
+                return Result::SkipChildren;
+        }
+    }
+
     if (childRef == nodeParamsRef)
     {
         auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
@@ -1423,6 +1435,18 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
             const bool shortWithoutExplicitReturnType = hasFlag(AstFunctionFlagsE::Short) && nodeReturnTypeRef.isInvalid();
             if (!shortWithoutExplicitReturnType)
                 return Result::SkipChildren;
+        }
+
+        bool        whereSatisfied = true;
+        CastFailure whereFailure;
+        SWC_RESULT(SemaGeneric::evaluateFunctionWhereConstraints(sema, whereSatisfied, sym, &whereFailure));
+        if (!whereSatisfied)
+        {
+            if (whereFailure.diagId == DiagnosticId::sema_err_function_where_failed)
+                return Result::SkipChildren;
+
+            bool directSatisfied = true;
+            return SemaGeneric::evaluateFunctionWhereConstraints(sema, directSatisfied, sym, nullptr);
         }
 
         auto frame = sema.frame();

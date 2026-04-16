@@ -988,7 +988,12 @@ SymbolStruct* SymbolFunction::ownerStruct()
     if (SymbolMap* symMap = ownerSymMap())
     {
         if (symMap->isImpl())
-            return symMap->cast<SymbolImpl>().symStruct();
+        {
+            auto& symImpl = symMap->cast<SymbolImpl>();
+            if (symImpl.isForStruct())
+                return symImpl.symStruct();
+            return nullptr;
+        }
         if (symMap->isStruct())
             return &symMap->cast<SymbolStruct>();
     }
@@ -1001,7 +1006,12 @@ const SymbolStruct* SymbolFunction::ownerStruct() const
     if (const SymbolMap* symMap = ownerSymMap())
     {
         if (symMap->isImpl())
-            return symMap->cast<SymbolImpl>().symStruct();
+        {
+            const auto& symImpl = symMap->cast<SymbolImpl>();
+            if (symImpl.isForStruct())
+                return symImpl.symStruct();
+            return nullptr;
+        }
         if (symMap->isStruct())
             return &symMap->cast<SymbolStruct>();
     }

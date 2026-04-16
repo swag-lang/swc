@@ -482,12 +482,88 @@ namespace
         return std::format("has type '{}', expected '{}'", srcTypeName, dstTypeName);
     }
 
+    bool isFunctionWhereFailure(DiagnosticId diagId)
+    {
+        return diagId == DiagnosticId::sema_err_function_where_not_bool ||
+               diagId == DiagnosticId::sema_err_function_where_not_const ||
+               diagId == DiagnosticId::sema_err_function_where_failed;
+    }
+
+    const Utf8* castFailureUtf8Argument(const CastFailure& failure, std::string_view name)
+    {
+        for (const auto& arg : failure.arguments)
+        {
+            if (arg.name != name)
+                continue;
+
+            if (const auto* value = std::get_if<Utf8>(&arg.val))
+                return value;
+        }
+
+        return nullptr;
+    }
+
+    Utf8 formatFunctionWhereFailureBindings(const CastFailure& failure)
+    {
+        const Utf8* values = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUES);
+        if (!values || values->empty())
+            return {};
+
+        Utf8 result = " for generic arguments '";
+        result += *values;
+        result += "'";
+        return result;
+    }
+
+    void addFunctionWhereFailureNotes(Sema& sema, Diagnostic& diag, const CastFailure& failure)
+    {
+        if (!isFunctionWhereFailure(failure.diagId))
+            return;
+
+        if (const Utf8* values = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUES))
+        {
+            if (!values->empty())
+            {
+                diag.addNote(DiagnosticId::sema_note_generic_instantiated_with);
+                diag.last().addArgument(Diagnostic::ARG_VALUES, *values);
+            }
+        }
+
+        if (failure.noteNodeRef.isValid())
+        {
+            diag.addNote(DiagnosticId::sema_note_generic_where_declared_here);
+            SemaError::addSpan(sema, diag.last(), failure.noteNodeRef);
+        }
+    }
+
     Utf8 makeCandidateFailureText(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
     {
         if (fail.kind == MatchFailKind::InvalidArgumentType)
         {
             if (fail.castFailure.diagId != DiagnosticId::None)
             {
+                if (isFunctionWhereFailure(fail.castFailure.diagId))
+                {
+                    const Utf8 bindingText = formatFunctionWhereFailureBindings(fail.castFailure);
+                    switch (fail.castFailure.diagId)
+                    {
+                        case DiagnosticId::sema_err_function_where_not_bool:
+                        {
+                            const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<invalid>"};
+                            return std::format("its 'where' constraint has type '{}' instead of 'bool'{}", typeName, bindingText);
+                        }
+
+                        case DiagnosticId::sema_err_function_where_not_const:
+                            return std::format("its 'where' constraint is not a compile-time constant{}", bindingText);
+
+                        case DiagnosticId::sema_err_function_where_failed:
+                            return std::format("its 'where' constraint evaluated to false{}", bindingText);
+
+                        default:
+                            break;
+                    }
+                }
+
                 if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? failedParameter(fn, fail) : nullptr)
                     return std::format("parameter '{}' cannot accept argument {}: {}", param->name(ctx), fail.argIndex + 1, Diagnostic::diagIdMessage(fail.castFailure.diagId));
                 return Utf8{Diagnostic::diagIdMessage(fail.castFailure.diagId)};
@@ -606,6 +682,7 @@ namespace
                     }
                     (void) addCastFailureArgs(diagElement, fail.castFailure);
                     addCastFailureNote(sema, diag, fail.castFailure);
+                    addFunctionWhereFailureNotes(sema, diag, fail.castFailure);
                     if (!isNote)
                         setCallArgumentFailureArgs(diagElement, fn, fail, ctx);
                 }

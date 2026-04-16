@@ -19,6 +19,56 @@ constexpr std::string_view END_OF_OPTIONS     = "--";
 
 namespace
 {
+    size_t levenshtein(std::string_view a, std::string_view b)
+    {
+        const size_t m = a.size();
+        const size_t n = b.size();
+        if (m == 0)
+            return n;
+        if (n == 0)
+            return m;
+
+        std::vector<size_t> prev(n + 1), curr(n + 1);
+        for (size_t j = 0; j <= n; j++)
+            prev[j] = j;
+
+        for (size_t i = 1; i <= m; i++)
+        {
+            curr[0] = i;
+            for (size_t j = 1; j <= n; j++)
+            {
+                const size_t cost = (a[i - 1] == b[j - 1]) ? 0 : 1;
+                curr[j]           = std::min({curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost});
+            }
+            std::swap(prev, curr);
+        }
+        return prev[n];
+    }
+
+    std::optional<Utf8> bestMatch(std::string_view query, const std::vector<Utf8>& candidates)
+    {
+        if (candidates.empty() || query.length() < 3)
+            return std::nullopt;
+
+        const size_t maxDist = std::max<size_t>(1, std::min<size_t>(3, query.length() / 3));
+
+        size_t      bestDist = std::numeric_limits<size_t>::max();
+        const Utf8* best     = nullptr;
+        for (const Utf8& c : candidates)
+        {
+            const size_t d = levenshtein(query, c);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best     = &c;
+            }
+        }
+
+        if (!best || bestDist > maxDist)
+            return std::nullopt;
+        return *best;
+    }
+
     std::vector<Utf8> splitPipe(std::string_view s)
     {
         std::vector<Utf8> out;
@@ -346,6 +396,7 @@ bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, c
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_enum);
     setReportArguments(diag, info, arg);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
+    attachSuggestion(diag, suggestChoice(value, info.choices));
     diag.report(ctx);
     return false;
 }
@@ -485,7 +536,52 @@ void CommandLineParser::reportInvalidArgument(TaskContext& ctx, const Utf8& arg)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_arg);
     setReportArguments(diag, arg);
+    attachSuggestion(diag, suggestArgument(arg));
     diag.report(ctx);
+}
+
+void CommandLineParser::attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion)
+{
+    if (!suggestion.has_value())
+        return;
+
+    // Bind {value} on the note element itself so it wins over any {value} the
+    // parent diagnostic already has (e.g. the invalid enum input).
+    DiagnosticElement& note = diag.addElement(DiagnosticId::cmd_note_did_you_mean);
+    note.setSeverity(DiagnosticSeverity::Note);
+    note.addArgument(Diagnostic::ARG_VALUE, suggestion.value());
+}
+
+std::optional<Utf8> CommandLineParser::suggestArgument(const Utf8& query) const
+{
+    std::vector<Utf8> candidates;
+    candidates.reserve(args_.size() * 2);
+    for (const ArgInfo& a : args_)
+    {
+        if (!a.longForm.empty())
+        {
+            candidates.push_back(a.longForm);
+            if (a.isBoolLike())
+                candidates.emplace_back(Utf8(LONG_NO_PREFIX) + a.longForm.substr(LONG_PREFIX_LEN));
+        }
+        if (!a.shortForm.empty())
+            candidates.push_back(a.shortForm);
+    }
+    return bestMatch(query, candidates);
+}
+
+std::optional<Utf8> CommandLineParser::suggestCommand(const Utf8& query)
+{
+    std::vector<Utf8> candidates;
+    candidates.reserve(std::size(COMMANDS));
+    for (const CommandInfo& cmd : COMMANDS)
+        candidates.emplace_back(cmd.name);
+    return bestMatch(query, candidates);
+}
+
+std::optional<Utf8> CommandLineParser::suggestChoice(const Utf8& query, const std::vector<Utf8>& choices)
+{
+    return bestMatch(query, choices);
 }
 
 namespace
@@ -574,6 +670,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             parser.setReportArguments(diag, command);
             diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
+            parser.attachSuggestion(diag, suggestCommand(command));
             diag.report(ctx);
             return Result::Error;
         }
@@ -599,6 +696,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             setReportArguments(diag, argv[1]);
             diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
+            attachSuggestion(diag, suggestCommand(candidate));
             diag.report(ctx);
             return Result::Error;
         }

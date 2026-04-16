@@ -1,3 +1,5 @@
+SWC_DIAG_DEF(cmd_note_did_you_mean)
+
 SWC_DIAG_DEF(cmd_note_relocation_target_symbol_missing)
 SWC_DIAG_DEF(cmd_note_relocation_target_symbol_not_function)
 SWC_DIAG_DEF(cmd_note_relocation_local_target_unavailable)

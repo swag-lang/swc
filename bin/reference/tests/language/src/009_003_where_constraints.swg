@@ -218,3 +218,34 @@ participate in overload resolution.
     // generic struct constraint.
     // let bad: Point's32
 }
+
+/**
+# 'Generic Methods' with inherited arguments
+Function 'where' constraints can use a method's own generic parameters, and
+also generic arguments inherited from the surrounding generic struct instance.
+This makes it possible to specialize behavior based on both the receiver type
+and additional generic call arguments.
+*/
+
+struct(T) Holder
+{
+    value: T
+}
+
+impl Holder
+{
+    func(U) pair(const me, other: U)->U
+        where T == f32 and U == s32
+    {
+        return other
+    }
+}
+
+#test
+{
+    let holder: Holder'f32 = {value: 1.5}
+    let value = holder.pair's32(42)
+
+    @assert(value == 42)
+    #assert(#typeof(value) == s32)
+}

@@ -18,6 +18,14 @@ namespace
         HelpOptionGroup group = HelpOptionGroup::Other;
     };
 
+    template<class... Ts>
+    struct Overloaded : Ts...
+    {
+        using Ts::operator()...;
+    };
+    template<class... Ts>
+    Overloaded(Ts...) -> Overloaded<Ts...>;
+
     Utf8 formatPathValue(const fs::path& value)
     {
         if (value.empty())
@@ -62,116 +70,69 @@ namespace
         return result;
     }
 
-    Utf8 enumValueFromIndex(const Utf8& enumValues, int index)
+    Utf8 enumIntNameFromValue(const ArgInfo& arg, int value)
     {
-        if (enumValues.empty())
-            return std::to_string(index);
-
-        std::istringstream iss(enumValues);
-        Utf8               value;
-        int                currentIndex = 0;
-        while (std::getline(iss, value, '|'))
+        for (size_t i = 0; i < arg.choiceIntValues.size(); i++)
         {
-            if (currentIndex == index)
-                return value;
-
-            currentIndex++;
+            if (arg.choiceIntValues[i] == value)
+                return arg.choices[i];
         }
-
-        return std::to_string(index);
+        return std::to_string(value);
     }
 
-    Utf8 formatEnumChoices(const Utf8& enumValues)
+    Utf8 formatChoices(const std::vector<Utf8>& choices)
     {
-        Utf8               result;
-        std::istringstream iss(enumValues);
-        Utf8               value;
-        bool               first = true;
-        while (std::getline(iss, value, '|'))
+        Utf8 result;
+        bool first = true;
+        for (const Utf8& value : choices)
         {
             if (!first)
                 result += ", ";
             result += value;
             first = false;
         }
-
         return result;
-    }
-
-    bool hasDisplayableDefaultValue(const ArgInfo& arg)
-    {
-        switch (arg.type)
-        {
-            case CommandLineType::String:
-            case CommandLineType::Path:
-            case CommandLineType::StringSet:
-            case CommandLineType::PathSet:
-            case CommandLineType::EnumString:
-                return true;
-
-            default:
-                return true;
-        }
     }
 
     Utf8 defaultValueToString(const ArgInfo& arg)
     {
-        switch (arg.type)
-        {
-            case CommandLineType::Bool:
-                return *static_cast<const bool*>(arg.target) ? "true" : "false";
-
-            case CommandLineType::Int:
-                return std::to_string(*static_cast<const int*>(arg.target));
-
-            case CommandLineType::UnsignedInt:
-                return std::to_string(*static_cast<const uint32_t*>(arg.target));
-
-            case CommandLineType::String:
-            {
-                const Utf8& value = *static_cast<const Utf8*>(arg.target);
-                if (value.empty())
-                    return "(none)";
-                return value;
-            }
-
-            case CommandLineType::Path:
-            {
-                Utf8 value = formatPathValue(*static_cast<const fs::path*>(arg.target));
-                if (value.empty())
-                    return "(none)";
-                return value;
-            }
-
-            case CommandLineType::StringSet:
-            {
-                Utf8 value = formatStringSetValue(*static_cast<const std::set<Utf8>*>(arg.target));
-                if (value.empty())
-                    return "(none)";
-                return value;
-            }
-
-            case CommandLineType::PathSet:
-            {
-                Utf8 value = formatPathSetValue(*static_cast<const std::set<fs::path>*>(arg.target));
-                if (value.empty())
-                    return "(none)";
-                return value;
-            }
-
-            case CommandLineType::EnumString:
-            {
-                const Utf8& value = *static_cast<const Utf8*>(arg.target);
-                if (value.empty())
-                    return "(none)";
-                return value;
-            }
-
-            case CommandLineType::EnumInt:
-                return enumValueFromIndex(arg.enumValues, *static_cast<const int*>(arg.target));
-        }
-
-        return "<unknown>";
+        return std::visit(Overloaded{
+                              [](const bool* t) -> Utf8 { return *t ? "true" : "false"; },
+                              [](const int* t) -> Utf8 { return std::to_string(*t); },
+                              [](const uint32_t* t) -> Utf8 { return std::to_string(*t); },
+                              [&](const Utf8* t) -> Utf8 {
+                                  if (t->empty())
+                                      return "(none)";
+                                  return *t;
+                              },
+                              [](const fs::path* t) -> Utf8 {
+                                  Utf8 value = formatPathValue(*t);
+                                  if (value.empty())
+                                      return "(none)";
+                                  return value;
+                              },
+                              [](const std::set<Utf8>* t) -> Utf8 {
+                                  Utf8 value = formatStringSetValue(*t);
+                                  if (value.empty())
+                                      return "(none)";
+                                  return value;
+                              },
+                              [](const std::set<fs::path>* t) -> Utf8 {
+                                  Utf8 value = formatPathSetValue(*t);
+                                  if (value.empty())
+                                      return "(none)";
+                                  return value;
+                              },
+                              [](const std::optional<bool>* t) -> Utf8 {
+                                  if (!t->has_value())
+                                      return "(auto)";
+                                  return t->value() ? "true" : "false";
+                              },
+                              [&](const EnumIntTarget& t) -> Utf8 {
+                                  return enumIntNameFromValue(arg, t.getter(t.target));
+                              },
+                          },
+                          arg.target);
     }
 
     Utf8 makeOptionDisplayName(const ArgInfo& arg)
@@ -316,25 +277,22 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
             Logger::print(ctx, "\n");
 
             const Utf8 metadataPrefix = std::format("    {:<{}}    ", "", maxLen);
-            if ((entry.arg->type == CommandLineType::EnumString || entry.arg->type == CommandLineType::EnumInt) && !entry.arg->enumValues.empty())
+            if (entry.arg->isEnum())
             {
                 Utf8 choiceLine = metadataPrefix;
                 choiceLine += colorize(ctx, LogColor::Dim, "choices:");
                 choiceLine += " ";
-                choiceLine += colorize(ctx, LogColor::Yellow, formatEnumChoices(entry.arg->enumValues));
+                choiceLine += colorize(ctx, LogColor::Yellow, formatChoices(entry.arg->choices));
                 Logger::print(ctx, choiceLine);
                 Logger::print(ctx, "\n");
             }
 
-            if (hasDisplayableDefaultValue(*entry.arg))
-            {
-                Utf8 defaultLine = metadataPrefix;
-                defaultLine += colorize(ctx, LogColor::Dim, "default:");
-                defaultLine += " ";
-                defaultLine += colorize(ctx, LogColor::BrightGreen, defaultValueToString(*entry.arg));
-                Logger::print(ctx, defaultLine);
-                Logger::print(ctx, "\n");
-            }
+            Utf8 defaultLine = metadataPrefix;
+            defaultLine += colorize(ctx, LogColor::Dim, "default:");
+            defaultLine += " ";
+            defaultLine += colorize(ctx, LogColor::BrightGreen, defaultValueToString(*entry.arg));
+            Logger::print(ctx, defaultLine);
+            Logger::print(ctx, "\n");
         }
 
         command_ = oldCommand;

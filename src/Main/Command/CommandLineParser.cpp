@@ -9,17 +9,36 @@
 
 SWC_BEGIN_NAMESPACE();
 
-constexpr std::string_view LONG_PREFIX         = "--";
-constexpr std::string_view SHORT_PREFIX        = "-";
-constexpr std::string_view LONG_NO_PREFIX      = "--no-";
-constexpr std::string_view SHORT_NO_PREFIX     = "-no-";
-constexpr size_t           LONG_PREFIX_LEN     = 2;
-constexpr size_t           SHORT_PREFIX_LEN    = 1;
-constexpr size_t           LONG_NO_PREFIX_LEN  = 5;
-constexpr size_t           SHORT_NO_PREFIX_LEN = 4;
+constexpr std::string_view LONG_PREFIX        = "--";
+constexpr std::string_view SHORT_PREFIX       = "-";
+constexpr std::string_view LONG_NO_PREFIX     = "--no-";
+constexpr size_t           LONG_PREFIX_LEN    = 2;
+constexpr size_t           SHORT_PREFIX_LEN   = 1;
+constexpr size_t           LONG_NO_PREFIX_LEN = 5;
+constexpr std::string_view END_OF_OPTIONS     = "--";
 
 namespace
 {
+    std::vector<Utf8> splitPipe(std::string_view s)
+    {
+        std::vector<Utf8> out;
+        if (s.empty())
+            return out;
+
+        size_t start = 0;
+        while (start <= s.size())
+        {
+            size_t end = s.find('|', start);
+            if (end == std::string_view::npos)
+                end = s.size();
+            out.emplace_back(s.substr(start, end - start));
+            if (end == s.size())
+                break;
+            start = end + 1;
+        }
+        return out;
+    }
+
     bool validateStageSelection(TaskContext& ctx, const CommandLine& cmdLine)
     {
         struct StageOption
@@ -178,8 +197,6 @@ void CommandLineParser::refreshBuildCfg(CommandLine& cmdLine)
     updateDefaultBuildCfg(cmdLine);
 }
 
-// Pipe-delimited list of allowed command names.
-// Adjust to match your tool's commands.
 CommandKind CommandLineParser::isAllowedCommand(const Utf8& cmd)
 {
     int index = 0;
@@ -217,12 +234,26 @@ void CommandLineParser::setReportArguments(Diagnostic& diag, const ArgInfo& info
     setReportArguments(diag, arg);
     diag.addArgument(Diagnostic::ARG_LONG, info.longForm);
     diag.addArgument(Diagnostic::ARG_SHORT, info.shortForm);
-    diag.addArgument(Diagnostic::ARG_VALUES, info.enumValues);
+
+    Utf8 values;
+    for (const Utf8& c : info.choices)
+    {
+        if (!values.empty())
+            values += "|";
+        values += c;
+    }
+    diag.addArgument(Diagnostic::ARG_VALUES, values);
     errorRaised_ = true;
 }
 
-bool CommandLineParser::getNextValue(TaskContext& ctx, const Utf8& arg, int& index, int argc, char* argv[], Utf8& value)
+bool CommandLineParser::getNextValue(TaskContext& ctx, const Utf8& arg, const Utf8* inlineValue, int& index, int argc, char* argv[], Utf8& value)
 {
+    if (inlineValue)
+    {
+        value = *inlineValue;
+        return true;
+    }
+
     if (index + 1 >= argc)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_missing_arg_val);
@@ -252,15 +283,13 @@ bool CommandLineParser::commandMatches(const Utf8& commandList) const
 
 bool CommandLineParser::parseEnumString(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, Utf8* target)
 {
-    if (info.enumValues.empty())
+    if (info.choices.empty())
     {
         *target = value;
         return true;
     }
 
-    std::istringstream iss(info.enumValues);
-    Utf8               allowed;
-    while (std::getline(iss, allowed, '|'))
+    for (const Utf8& allowed : info.choices)
     {
         if (allowed == value)
         {
@@ -272,29 +301,44 @@ bool CommandLineParser::parseEnumString(TaskContext& ctx, const ArgInfo& info, c
     return reportEnumError(ctx, info, arg, value);
 }
 
-bool CommandLineParser::parseEnumInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, int* target)
+bool CommandLineParser::parseEnumInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, const EnumIntTarget& target)
 {
-    if (info.enumValues.empty())
+    for (size_t i = 0; i < info.choices.size(); i++)
     {
-        *target = std::stoi(value);
-        return true;
-    }
-
-    std::istringstream iss(info.enumValues);
-    Utf8               allowed;
-    int                index = 0;
-    while (std::getline(iss, allowed, '|'))
-    {
-        if (allowed == value)
+        if (info.choices[i] == value)
         {
-            *target = index;
+            target.setter(target.target, info.choiceIntValues[i]);
             return true;
         }
-
-        index++;
     }
 
     return reportEnumError(ctx, info, arg, value);
+}
+
+bool CommandLineParser::parseInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, int* out)
+{
+    const char* first = value.data();
+    const char* last  = first + value.size();
+    int         tmp   = 0;
+    const auto [ptr, ec] = std::from_chars(first, last, tmp);
+    if (ec != std::errc{} || ptr != last || value.empty())
+        return reportIntError(ctx, info, arg, value);
+
+    *out = tmp;
+    return true;
+}
+
+bool CommandLineParser::parseUInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, uint32_t* out)
+{
+    const char* first = value.data();
+    const char* last  = first + value.size();
+    uint32_t    tmp   = 0;
+    const auto [ptr, ec] = std::from_chars(first, last, tmp);
+    if (ec != std::errc{} || ptr != last || value.empty())
+        return reportIntError(ctx, info, arg, value);
+
+    *out = tmp;
+    return true;
 }
 
 bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value)
@@ -306,80 +350,135 @@ bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, c
     return false;
 }
 
-void CommandLineParser::addArg(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description)
+bool CommandLineParser::reportIntError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value)
+{
+    Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_int);
+    setReportArguments(diag, info, arg);
+    diag.addArgument(Diagnostic::ARG_VALUE, value);
+    diag.report(ctx);
+    return false;
+}
+
+ArgInfo& CommandLineParser::addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, ArgTarget target)
 {
     ArgInfo info;
     info.commands    = commands ? commands : "";
     info.longForm    = longForm ? longForm : "";
     info.shortForm   = shortForm ? shortForm : "";
-    info.type        = type;
-    info.target      = target;
-    info.enumValues  = enumValues ? enumValues : "";
-    info.group       = group;
     info.description = description ? description : "";
+    info.group       = group;
+    info.target      = target;
 
-    args_.push_back(info);
+    SWC_ASSERT(info.longForm.empty() || !longFormMap_.contains(info.longForm));
+    SWC_ASSERT(info.shortForm.empty() || !shortFormMap_.contains(info.shortForm));
 
+    const size_t idx = args_.size();
     if (!info.longForm.empty())
-        longFormMap_[info.longForm] = args_.back();
+        longFormMap_[info.longForm] = idx;
     if (!info.shortForm.empty())
-        shortFormMap_[info.shortForm] = args_.back();
+        shortFormMap_[info.shortForm] = idx;
+    args_.push_back(std::move(info));
+    return args_.back();
 }
 
-std::optional<ArgInfo> CommandLineParser::findArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, bool* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, int* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, uint32_t* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, fs::path* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<fs::path>* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::optional<bool>* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
+void CommandLineParser::addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, std::vector<Utf8> choices, const char* desc)
+{
+    ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    info.choices  = std::move(choices);
+}
+
+const ArgInfo* CommandLineParser::findArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
     invertBoolean = false;
 
     if (arg.substr(0, LONG_PREFIX_LEN) == LONG_PREFIX)
         return findLongFormArgument(ctx, arg, invertBoolean);
     if (arg.substr(0, SHORT_PREFIX_LEN) == SHORT_PREFIX && arg.length() > SHORT_PREFIX_LEN)
-        return findShortFormArgument(ctx, arg, invertBoolean);
+        return findShortFormArgument(ctx, arg);
 
-    return std::nullopt;
+    return nullptr;
 }
 
-std::optional<ArgInfo> CommandLineParser::findLongFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
+const ArgInfo* CommandLineParser::findLongFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
     const auto it = longFormMap_.find(arg);
     if (it != longFormMap_.end())
-        return it->second;
+        return &args_[it->second];
     if (arg.substr(0, LONG_NO_PREFIX_LEN) == LONG_NO_PREFIX && arg.length() > LONG_NO_PREFIX_LEN)
-        return findNegatedArgument(ctx, arg, LONG_PREFIX, LONG_NO_PREFIX_LEN, longFormMap_, invertBoolean);
-    return std::nullopt;
+        return findNegatedArgument(ctx, arg, invertBoolean);
+    return nullptr;
 }
 
-std::optional<ArgInfo> CommandLineParser::findShortFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
+const ArgInfo* CommandLineParser::findShortFormArgument(TaskContext& ctx, const Utf8& arg)
 {
     const auto it = shortFormMap_.find(arg);
     if (it != shortFormMap_.end())
-        return it->second;
-    if (arg.substr(0, SHORT_NO_PREFIX_LEN) == SHORT_NO_PREFIX && arg.length() > SHORT_NO_PREFIX_LEN)
-        return findNegatedArgument(ctx, arg, SHORT_PREFIX, SHORT_NO_PREFIX_LEN, shortFormMap_, invertBoolean);
-    return std::nullopt;
+        return &args_[it->second];
+    return nullptr;
 }
 
-std::optional<ArgInfo> CommandLineParser::findNegatedArgument(TaskContext& ctx, const Utf8& arg, std::string_view prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean)
+const ArgInfo* CommandLineParser::findNegatedArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
-    const Utf8 baseArg = Utf8(prefix) + arg.substr(noPrefixLen);
-    const auto it      = argMap.find(baseArg);
+    const Utf8 baseArg = Utf8(LONG_PREFIX) + arg.substr(LONG_NO_PREFIX_LEN);
+    const auto it      = longFormMap_.find(baseArg);
 
-    if (it == argMap.end())
+    if (it == longFormMap_.end())
     {
         reportInvalidArgument(ctx, arg);
-        return std::nullopt;
+        return nullptr;
     }
 
-    const ArgInfo& info = it->second;
-    if (info.type != CommandLineType::Bool)
+    const ArgInfo& info = args_[it->second];
+    if (!info.isBoolLike())
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_bool);
         setReportArguments(diag, info, arg);
         diag.report(ctx);
-        return std::nullopt;
+        return nullptr;
     }
 
     invertBoolean = true;
-    return info;
+    return &info;
 }
 
 void CommandLineParser::reportInvalidArgument(TaskContext& ctx, const Utf8& arg)
@@ -389,70 +488,70 @@ void CommandLineParser::reportInvalidArgument(TaskContext& ctx, const Utf8& arg)
     diag.report(ctx);
 }
 
-bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[])
+namespace
 {
-    Utf8 value;
-
-    switch (info.type)
+    template<class... Ts>
+    struct Overloaded : Ts...
     {
-        case CommandLineType::Bool:
-            if (info.target == &cmdLine_->backendOptimize)
-            {
-                cmdLine_->backendOptimize = !invertBoolean;
-                return true;
-            }
+        using Ts::operator()...;
+    };
+    template<class... Ts>
+    Overloaded(Ts...) -> Overloaded<Ts...>;
+}
 
-            *static_cast<bool*>(info.target) = !invertBoolean;
-            return true;
+bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, int& index, int argc, char* argv[])
+{
+    // Boolean-like flags never take a value.
+    if (info.isBoolLike())
+    {
+        if (inlineValue)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_unexpected_value);
+            setReportArguments(diag, info, arg);
+            diag.report(ctx);
+            return false;
+        }
 
-        case CommandLineType::Int:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            *static_cast<int*>(info.target) = std::stoi(value);
-            return true;
-
-        case CommandLineType::UnsignedInt:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            *static_cast<uint32_t*>(info.target) = std::stoul(value);
-            return true;
-
-        case CommandLineType::String:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            *static_cast<Utf8*>(info.target) = value;
-            return true;
-
-        case CommandLineType::Path:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            *static_cast<fs::path*>(info.target) = value.c_str();
-            return true;
-
-        case CommandLineType::StringSet:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            static_cast<std::set<Utf8>*>(info.target)->insert(value);
-            return true;
-
-        case CommandLineType::PathSet:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            static_cast<std::set<fs::path>*>(info.target)->insert(value.c_str());
-            return true;
-
-        case CommandLineType::EnumString:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            return parseEnumString(ctx, info, arg, value, static_cast<Utf8*>(info.target));
-
-        case CommandLineType::EnumInt:
-            if (!getNextValue(ctx, arg, index, argc, argv, value))
-                return false;
-            return parseEnumInt(ctx, info, arg, value, static_cast<int*>(info.target));
+        const bool v = !invertBoolean;
+        std::visit(Overloaded{
+                       [&](bool* t) { *t = v; },
+                       [&](std::optional<bool>* t) { *t = v; },
+                       [](auto&&) { SWC_UNREACHABLE(); },
+                   },
+                   info.target);
+        return true;
     }
 
-    return false;
+    Utf8 value;
+    if (!getNextValue(ctx, arg, inlineValue, index, argc, argv, value))
+        return false;
+
+    return std::visit(Overloaded{
+                          [](bool*) { return false; },
+                          [](std::optional<bool>*) { return false; },
+                          [&](int* t) { return parseInt(ctx, info, arg, value, t); },
+                          [&](uint32_t* t) { return parseUInt(ctx, info, arg, value, t); },
+                          [&](Utf8* t) -> bool {
+                              if (info.isEnum())
+                                  return parseEnumString(ctx, info, arg, value, t);
+                              *t = value;
+                              return true;
+                          },
+                          [&](fs::path* t) -> bool {
+                              *t = value.c_str();
+                              return true;
+                          },
+                          [&](std::set<Utf8>* t) -> bool {
+                              t->insert(value);
+                              return true;
+                          },
+                          [&](std::set<fs::path>* t) -> bool {
+                              t->insert(value.c_str());
+                              return true;
+                          },
+                          [&](const EnumIntTarget& t) { return parseEnumInt(ctx, info, arg, value, t); },
+                      },
+                      info.target);
 }
 
 Result CommandLineParser::parse(int argc, char* argv[])
@@ -486,13 +585,12 @@ Result CommandLineParser::parse(int argc, char* argv[])
     // Require a command as the first positional token (no leading '-').
     if (argc <= 1 || argv[1][0] == '-')
     {
-        // Missing command name
         const Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_missing_command);
         diag.report(ctx);
         return Result::Error;
     }
 
-    // Validate and set the command
+    // Validate and set the command.
     {
         const Utf8 candidate = argv[1];
         cmdLine_->command    = isAllowedCommand(candidate);
@@ -508,28 +606,58 @@ Result CommandLineParser::parse(int argc, char* argv[])
         command_ = candidate;
     }
 
+    bool endOfOptions = false;
     for (int i = 2; i < argc; i++)
     {
-        const Utf8 arg           = argv[i];
-        bool       invertBoolean = false;
+        const Utf8 raw = argv[i];
 
-        const std::optional<ArgInfo> info = findArgument(ctx, arg, invertBoolean);
-        if (!info)
+        // `--` stops option processing. Anything after is positional, which we do not accept.
+        if (!endOfOptions && raw == END_OF_OPTIONS)
         {
-            if (!errorRaised_)
-                reportInvalidArgument(ctx, arg);
-            return Result::Error;
+            endOfOptions = true;
+            continue;
         }
 
-        if (!commandMatches(info.value().commands))
+        if (endOfOptions)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_cmd_arg);
-            setReportArguments(diag, info.value(), arg);
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_unexpected_positional);
+            setReportArguments(diag, raw);
             diag.report(ctx);
             return Result::Error;
         }
 
-        if (!processArgument(ctx, info.value(), arg, invertBoolean, i, argc, argv))
+        // Support `--long=value` and `-s=value`. Split once on the first '='.
+        Utf8                lookup = raw;
+        std::optional<Utf8> inlineValue;
+        if (raw.substr(0, SHORT_PREFIX_LEN) == SHORT_PREFIX)
+        {
+            const size_t eq = raw.find('=');
+            if (eq != Utf8::npos)
+            {
+                lookup      = raw.substr(0, eq);
+                inlineValue = raw.substr(eq + 1);
+            }
+        }
+
+        bool           invertBoolean = false;
+        const ArgInfo* info          = findArgument(ctx, lookup, invertBoolean);
+        if (!info)
+        {
+            if (!errorRaised_)
+                reportInvalidArgument(ctx, raw);
+            return Result::Error;
+        }
+
+        if (!commandMatches(info->commands))
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_cmd_arg);
+            setReportArguments(diag, *info, raw);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        const Utf8* inlinePtr = inlineValue.has_value() ? &inlineValue.value() : nullptr;
+        if (!processArgument(ctx, *info, raw, invertBoolean, inlinePtr, i, argc, argv))
             return Result::Error;
     }
 
@@ -657,67 +785,71 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     global_(&global)
 {
     updateDefaultBuildCfg(*cmdLine_);
-    const auto registeredBuildCfgs = Utf8(cmdLine_->defaultBuildCfg.registeredConfigs);
+    const std::string_view registeredBuildCfgs{cmdLine_->defaultBuildCfg.registeredConfigs.ptr, cmdLine_->defaultBuildCfg.registeredConfigs.length};
 
-    addArg(HelpOptionGroup::Input, "all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
-    addArg(HelpOptionGroup::Input, "all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
-    addArg(HelpOptionGroup::Input, "all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to input paths.");
-    addArg(HelpOptionGroup::Input, "all", "--module", "-m", CommandLineType::Path, &cmdLine_->modulePath, nullptr, "Specify a module path to compile.");
-    addArg(HelpOptionGroup::Input, "all", "--runtime", "-rt", CommandLineType::Bool, &cmdLine_->runtime, nullptr, "Include runtime files in the input set.");
+    add(HelpOptionGroup::Input, "all", "--directory", "-d", &cmdLine_->directories, "Specify one or more directories to process recursively for input files.");
+    add(HelpOptionGroup::Input, "all", "--file", "-f", &cmdLine_->files, "Specify one or more individual files to process directly.");
+    add(HelpOptionGroup::Input, "all", "--file-filter", "-ff", &cmdLine_->fileFilter, "Apply a substring filter to input paths.");
+    add(HelpOptionGroup::Input, "all", "--module", "-m", &cmdLine_->modulePath, "Specify a module path to compile.");
+    add(HelpOptionGroup::Input, "all", "--runtime", "-rt", &cmdLine_->runtime, "Include runtime files in the input set.");
 
-    addArg(HelpOptionGroup::Target, "sema test build run", "--arch", "-a", CommandLineType::EnumString, &cmdLine_->targetArchName, "x86_64", "Set the target architecture used by #arch and compiler target queries.");
-    addArg(HelpOptionGroup::Target, "sema test build run", "--build-cfg", "-bc", CommandLineType::EnumString, &cmdLine_->buildCfg, registeredBuildCfgs.c_str(), "Set the registered build configuration string used by #cfg and @compiler.getBuildCfg().");
-    addArg(HelpOptionGroup::Target, "sema test build run", "--artifact-kind", "-ak", CommandLineType::EnumString, &cmdLine_->backendKindName, "exe|dll|lib", "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.");
-    addArg(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu", CommandLineType::String, &cmdLine_->targetCpu, nullptr, "Set the target CPU string used by #cpu and compiler target queries.");
-    addArg(HelpOptionGroup::Target, "sema test build run", "--artifact-name", "-n", CommandLineType::String, &cmdLine_->name, nullptr, "Set the artifact name exposed through @compiler.getBuildCfg() and used for native outputs.");
-    addArg(HelpOptionGroup::Target, "sema test build run", "--out-dir", "-od", CommandLineType::Path, &cmdLine_->outDir, nullptr, "Set the artifact output directory exposed through @compiler.getBuildCfg().");
-    addArg(HelpOptionGroup::Target, "sema test build run", "--work-dir", "-wd", CommandLineType::Path, &cmdLine_->workDir, nullptr, "Set the work directory exposed through @compiler.getBuildCfg().");
-    addArg(HelpOptionGroup::Target, "sema test build run", "--optimize", "-o", CommandLineType::Bool, &cmdLine_->backendOptimize, nullptr, "Enable backend optimization for JIT folding and native code generation.");
+    addEnum(HelpOptionGroup::Target, "sema test build run", "--arch", "-a", &cmdLine_->targetArchName, std::vector<Utf8>{"x86_64"}, "Set the target architecture used by #arch and compiler target queries.");
+    addEnum(HelpOptionGroup::Target, "sema test build run", "--build-cfg", "-bc", &cmdLine_->buildCfg, splitPipe(registeredBuildCfgs), "Set the registered build configuration string used by #cfg and @compiler.getBuildCfg().");
+    addEnum(HelpOptionGroup::Target, "sema test build run", "--artifact-kind", "-ak", &cmdLine_->backendKindName, std::vector<Utf8>{"exe", "dll", "lib"}, "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.");
+    add(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu", &cmdLine_->targetCpu, "Set the target CPU string used by #cpu and compiler target queries.");
+    add(HelpOptionGroup::Target, "sema test build run", "--artifact-name", "-n", &cmdLine_->name, "Set the artifact name exposed through @compiler.getBuildCfg() and used for native outputs.");
+    add(HelpOptionGroup::Target, "sema test build run", "--out-dir", "-od", &cmdLine_->outDir, "Set the artifact output directory exposed through @compiler.getBuildCfg().");
+    add(HelpOptionGroup::Target, "sema test build run", "--work-dir", "-wd", &cmdLine_->workDir, "Set the work directory exposed through @compiler.getBuildCfg().");
+    add(HelpOptionGroup::Target, "sema test build run", "--optimize", "-o", &cmdLine_->backendOptimize, "Enable backend optimization for JIT folding and native code generation.");
 
-    addArg(HelpOptionGroup::Compiler, "all", "--num-cores", "-j", CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
-    addArg(HelpOptionGroup::Compiler, "all", "--stats", "-st", CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
-    addArg(HelpOptionGroup::Compiler, "all", "--stats-mem", "-stm", CommandLineType::Bool, &cmdLine_->statsMem, nullptr, "Display runtime memory statistics after execution.");
-    addArg(HelpOptionGroup::Compiler, "test build run", "--clear-output", "-co", CommandLineType::Bool, &cmdLine_->clear, nullptr, "Clear native work and artifact folders before building native outputs.");
+    add(HelpOptionGroup::Compiler, "all", "--num-cores", "-j", &cmdLine_->numCores, "Set the maximum number of CPU cores to use (0 = auto-detect).");
+    add(HelpOptionGroup::Compiler, "all", "--stats", "-st", &cmdLine_->stats, "Display runtime statistics after execution.");
+    add(HelpOptionGroup::Compiler, "all", "--stats-mem", "-stm", &cmdLine_->statsMem, "Display runtime memory statistics after execution.");
+    add(HelpOptionGroup::Compiler, "test build run", "--clear-output", "-co", &cmdLine_->clear, "Clear native work and artifact folders before building native outputs.");
 
-    addArg(HelpOptionGroup::Diagnostics, "all", "--path-display", "-pd", CommandLineType::EnumInt, &cmdLine_->filePathDisplay, "as-is|basename|absolute", "Control file path display style for diagnostics, stack traces and file locations.");
-    addArg(HelpOptionGroup::Diagnostics, "all", "--diagnostic-id", "-di", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
-    addArg(HelpOptionGroup::Diagnostics, "all", "--diagnostic-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
+    addEnum<FileSystem::FilePathDisplayMode>(HelpOptionGroup::Diagnostics, "all", "--path-display", "-pd", &cmdLine_->filePathDisplay,
+                                             {{"as-is", FileSystem::FilePathDisplayMode::AsIs},
+                                              {"basename", FileSystem::FilePathDisplayMode::BaseName},
+                                              {"absolute", FileSystem::FilePathDisplayMode::Absolute}},
+                                             "Control file path display style for diagnostics, stack traces and file locations.");
+    add(HelpOptionGroup::Diagnostics, "all", "--diagnostic-id", "-di", &cmdLine_->errorId, "Show diagnostic identifiers.");
+    add(HelpOptionGroup::Diagnostics, "all", "--diagnostic-one-line", "-dl", &cmdLine_->diagOneLine, "Display diagnostics as a single line.");
 
-    addArg(HelpOptionGroup::Logging, "all", "--log-ascii", "-la", CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
-    addArg(HelpOptionGroup::Logging, "all", "--log-color", "-lc", CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
-    addArg(HelpOptionGroup::Logging, "all", "--silent", "-s", CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
-    addArg(HelpOptionGroup::Logging, "all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
-    addArg(HelpOptionGroup::Logging, "all", "--syntax-color-lum", "-scl", CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
+    add(HelpOptionGroup::Logging, "all", "--log-ascii", "-la", &cmdLine_->logAscii, "Restrict console output to ASCII characters (disable Unicode).");
+    add(HelpOptionGroup::Logging, "all", "--log-color", "-lc", &cmdLine_->logColor, "Enable colored log output for better readability.");
+    add(HelpOptionGroup::Logging, "all", "--silent", "-s", &cmdLine_->silent, "Suppress all log output.");
+    add(HelpOptionGroup::Logging, "all", "--syntax-color", "-sc", &cmdLine_->syntaxColor, "Syntax color output code.");
+    add(HelpOptionGroup::Logging, "all", "--syntax-color-lum", "-scl", &cmdLine_->syntaxColorLum, "Syntax color luminosity factor [0-100].");
 
-    addArg(HelpOptionGroup::Testing, "test", "--test-native", "-tn", CommandLineType::Bool, &cmdLine_->testNative, nullptr, "Enable native backend testing for #test sources.");
-    addArg(HelpOptionGroup::Testing, "test", "--test-jit", "-tj", CommandLineType::Bool, &cmdLine_->testJit, nullptr, "Enable JIT execution for #test functions during testing.");
-    addArg(HelpOptionGroup::Testing, "test", "--lex-only", nullptr, CommandLineType::Bool, &cmdLine_->lexOnly, nullptr, "Stop test inputs after lexing. Cannot be combined with --syntax-only or --sema-only.");
-    addArg(HelpOptionGroup::Testing, "test", "--syntax-only", nullptr, CommandLineType::Bool, &cmdLine_->syntaxOnly, nullptr, "Stop test inputs after parsing. Cannot be combined with --lex-only or --sema-only.");
-    addArg(HelpOptionGroup::Testing, "test", "--sema-only", nullptr, CommandLineType::Bool, &cmdLine_->semaOnly, nullptr, "Stop test inputs after semantic analysis. Cannot be combined with --lex-only or --syntax-only.");
-    addArg(HelpOptionGroup::Testing, "test", "--output", nullptr, CommandLineType::Bool, &cmdLine_->output, nullptr, "Enable native artifact generation during testing. Use --no-output to keep JIT-only test runs in-memory.");
-    addArg(HelpOptionGroup::Testing, "test", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, "Show diagnostics normally matched and suppressed by source-driven tests.");
-    addArg(HelpOptionGroup::Testing, "test", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Restrict --verbose-verify output to messages or diagnostic IDs matching a specific string.");
+    add(HelpOptionGroup::Testing, "test", "--test-native", "-tn", &cmdLine_->testNative, "Enable native backend testing for #test sources.");
+    add(HelpOptionGroup::Testing, "test", "--test-jit", "-tj", &cmdLine_->testJit, "Enable JIT execution for #test functions during testing.");
+    add(HelpOptionGroup::Testing, "test", "--lex-only", nullptr, &cmdLine_->lexOnly, "Stop test inputs after lexing. Cannot be combined with --syntax-only or --sema-only.");
+    add(HelpOptionGroup::Testing, "test", "--syntax-only", nullptr, &cmdLine_->syntaxOnly, "Stop test inputs after parsing. Cannot be combined with --lex-only or --sema-only.");
+    add(HelpOptionGroup::Testing, "test", "--sema-only", nullptr, &cmdLine_->semaOnly, "Stop test inputs after semantic analysis. Cannot be combined with --lex-only or --syntax-only.");
+    add(HelpOptionGroup::Testing, "test", "--output", nullptr, &cmdLine_->output, "Enable native artifact generation during testing. Use --no-output to keep JIT-only test runs in-memory.");
+    add(HelpOptionGroup::Testing, "test", "--verbose-verify", "-vv", &cmdLine_->verboseVerify, "Show diagnostics normally matched and suppressed by source-driven tests.");
+    add(HelpOptionGroup::Testing, "test", "--verbose-verify-filter", "-vvf", &cmdLine_->verboseVerifyFilter, "Restrict --verbose-verify output to messages or diagnostic IDs matching a specific string.");
 
-    addArg(HelpOptionGroup::Development, "all", "--verbose-info", "-vi", CommandLineType::Bool, &cmdLine_->verboseInfo, nullptr, "Print computed command, environment, toolchain and native artifact information before running the command.");
-    addArg(HelpOptionGroup::Development, "all", "--dev-stop", "-ds", CommandLineType::Bool, &CompilerInstance::dbgDevStop, nullptr, "Open a message box when an error is reported.");
-    addArg(HelpOptionGroup::Development, "all", "--dev-full", "-df", CommandLineType::Bool, &cmdLine_->devFull, nullptr, "Force every compiled development test and validation.");
+    add(HelpOptionGroup::Development, "all", "--verbose-info", "-vi", &cmdLine_->verboseInfo, "Print computed command, environment, toolchain and native artifact information before running the command.");
+    add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds", &CompilerInstance::dbgDevStop, "Open a message box when an error is reported.");
+    add(HelpOptionGroup::Development, "all", "--dev-full", "-df", &cmdLine_->devFull, "Force every compiled development test and validation.");
 
 #if SWC_HAS_UNITTEST
-    addArg(HelpOptionGroup::Development, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal C++ unit tests before executing command.");
-    addArg(HelpOptionGroup::Development, "all", "--verbose-unittest", "-vu", CommandLineType::Bool, &cmdLine_->verboseUnittest, nullptr, "Print each internal unit test status.");
+    add(HelpOptionGroup::Development, "all", "--unittest", "-ut", &cmdLine_->unittest, "Run internal C++ unit tests before executing command.");
+    add(HelpOptionGroup::Development, "all", "--verbose-unittest", "-vu", &cmdLine_->verboseUnittest, "Print each internal unit test status.");
 #endif
 
 #if SWC_HAS_VALIDATE_MICRO
-    addArg(HelpOptionGroup::Development, "all", "--validate-micro", nullptr, CommandLineType::Bool, &cmdLine_->validateMicro, nullptr, "Run Micro IR legality and pass-invariant validation.");
+    add(HelpOptionGroup::Development, "all", "--validate-micro", nullptr, &cmdLine_->validateMicro, "Run Micro IR legality and pass-invariant validation.");
 #endif
 
 #if SWC_HAS_VALIDATE_NATIVE
-    addArg(HelpOptionGroup::Development, "all", "--validate-native", nullptr, CommandLineType::Bool, &cmdLine_->validateNative, nullptr, "Run native backend validation, including constant relocation validation.");
+    add(HelpOptionGroup::Development, "all", "--validate-native", nullptr, &cmdLine_->validateNative, "Run native backend validation, including constant relocation validation.");
 #endif
 
 #if SWC_DEV_MODE
-    addArg(HelpOptionGroup::Development, "all", "--randomize", "-rz", CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize single-threaded job scheduling. Forces --num-cores=1.");
-    addArg(HelpOptionGroup::Development, "all", "--seed", "-rs", CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set the seed for --randomize. Forces --randomize and --num-cores=1.");
+    add(HelpOptionGroup::Development, "all", "--randomize", "-rz", &cmdLine_->randomize, "Randomize single-threaded job scheduling. Forces --num-cores=1.");
+    add(HelpOptionGroup::Development, "all", "--seed", "-rs", &cmdLine_->randSeed, "Set the seed for --randomize. Forces --randomize and --num-cores=1.");
 #endif
 }
 

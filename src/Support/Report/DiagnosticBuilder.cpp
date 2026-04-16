@@ -78,73 +78,6 @@ namespace
 
         return i;
     }
-
-    struct DiagnosticSpanColumnLess
-    {
-        const DiagnosticElement* element = nullptr;
-        const TaskContext*       ctx     = nullptr;
-
-        bool operator()(const DiagnosticSpan& lhs, const DiagnosticSpan& rhs) const
-        {
-            SWC_ASSERT(element != nullptr);
-            SWC_ASSERT(ctx != nullptr);
-
-            const SourceCodeRange lhsRange = element->codeRange(lhs, *ctx);
-            const SourceCodeRange rhsRange = element->codeRange(rhs, *ctx);
-            if (lhsRange.column != rhsRange.column)
-                return lhsRange.column < rhsRange.column;
-            return lhsRange.offset < rhsRange.offset;
-        }
-    };
-
-    struct ArgumentToUtf8Visitor
-    {
-        const TaskContext* ctx = nullptr;
-
-        const CompilerInstance& compiler() const
-        {
-            SWC_ASSERT(ctx != nullptr);
-            return ctx->compiler();
-        }
-
-        Utf8 operator()(const Utf8& value) const
-        {
-            return value;
-        }
-
-        Utf8 operator()(const TokenId value) const
-        {
-            return Token::toName(value);
-        }
-
-        Utf8 operator()(const DiagnosticId value) const
-        {
-            return Diagnostic::diagIdMessage(value);
-        }
-
-        template<std::integral T>
-        Utf8 operator()(const T value) const
-        {
-            return Utf8{std::to_string(value)};
-        }
-
-        Utf8 operator()(const TypeRef value) const
-        {
-            if (value.isInvalid())
-                return Utf8{"<invalid type>"};
-            return compiler().typeMgr().get(value).toName(*ctx);
-        }
-
-        Utf8 operator()(const ConstantRef value) const
-        {
-            return compiler().cstMgr().get(value).toString(*ctx);
-        }
-
-        Utf8 operator()(const IdentifierRef value) const
-        {
-            return compiler().idMgr().get(value).name;
-        }
-    };
 }
 
 DiagnosticBuilder::DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag) :
@@ -699,8 +632,13 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     writeLocation(el);
     out_ += "\n";
 
+    // Sort underlines by column to process them in order
     std::vector<DiagnosticSpan> sortedSpans = el.spans();
-    std::ranges::stable_sort(sortedSpans, DiagnosticSpanColumnLess{.element = &el, .ctx = ctx_});
+    std::ranges::sort(sortedSpans, [&](const DiagnosticSpan& a, const DiagnosticSpan& b) {
+        const SourceCodeRange loc1 = el.codeRange(a, *ctx_);
+        const SourceCodeRange loc2 = el.codeRange(b, *ctx_);
+        return loc1.column < loc2.column;
+    });
 
     const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
 
@@ -875,9 +813,34 @@ std::string_view DiagnosticBuilder::resolveMessageTemplate(DiagnosticId id, cons
     return msgs[bestIndex];
 }
 
+// Helper function to convert variant argument to string
 Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg) const
 {
-    return std::visit(ArgumentToUtf8Visitor{.ctx = ctx_}, arg.val);
+    auto toUtf8 = [&]<typename T0>(const T0& v) -> Utf8 {
+        using T = std::decay_t<T0>;
+        if constexpr (std::same_as<T, Utf8>)
+            return v;
+        else if constexpr (std::same_as<T, TokenId>)
+            return Token::toName(v);
+        else if constexpr (std::same_as<T, DiagnosticId>)
+            return Diagnostic::diagIdMessage(v);
+        else if constexpr (std::integral<T>)
+            return Utf8{std::to_string(v)};
+        else if constexpr (std::same_as<T, TypeRef>)
+        {
+            if (v.isInvalid())
+                return Utf8{"<invalid type>"};
+            return ctx_->compiler().typeMgr().get(v).toName(*ctx_);
+        }
+        else if constexpr (std::same_as<T, ConstantRef>)
+            return ctx_->compiler().cstMgr().get(v).toString(*ctx_);
+        else if constexpr (std::same_as<T, IdentifierRef>)
+            return ctx_->compiler().idMgr().get(v).name;
+        else
+            SWC_UNREACHABLE();
+    };
+
+    return std::visit(toUtf8, arg.val);
 }
 
 void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const

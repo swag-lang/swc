@@ -77,16 +77,10 @@ void X64UnwindWindows::buildInfo(std::vector<std::byte>& outUnwindInfo, const ui
     SWC_UNUSED(codeSize);
     outUnwindInfo.clear();
 
-    struct UnwindOpCodeOffsetGreater
-    {
-        bool operator()(const UnwindOp& lhs, const UnwindOp& rhs) const
-        {
-            return lhs.codeOffset > rhs.codeOffset;
-        }
-    };
-
     std::vector<UnwindOp> unwindOps = unwindOps_;
-    std::ranges::stable_sort(unwindOps, UnwindOpCodeOffsetGreater{});
+    std::ranges::sort(unwindOps, [](const UnwindOp& left, const UnwindOp& right) {
+        return left.codeOffset > right.codeOffset;
+    });
 
     std::vector<uint16_t> unwindSlots;
     unwindSlots.reserve(unwindOps.size() * 3 + 4);

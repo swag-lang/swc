@@ -202,17 +202,6 @@ namespace
         return selection.functions.contains(&function);
     }
 
-    struct FilterJitFunctionPredicate
-    {
-        const JitFunctionSelection* selection = nullptr;
-
-        bool operator()(const SymbolFunction* function) const
-        {
-            SWC_ASSERT(selection != nullptr);
-            return function == nullptr || !shouldRunJitFunction(*selection, *function);
-        }
-    };
-
     void tryAddJitFunction(JitFunctionSelection& selection, const CompilerInstance& compiler, SymbolFunction* function)
     {
         if (!function)
@@ -263,7 +252,9 @@ namespace
 
     void filterJitFunctions(std::vector<SymbolFunction*>& functions, const JitFunctionSelection& selection)
     {
-        std::erase_if(functions, FilterJitFunctionPredicate{.selection = &selection});
+        std::erase_if(functions, [&](const SymbolFunction* function) {
+            return function == nullptr || !shouldRunJitFunction(selection, *function);
+        });
     }
 
     bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)

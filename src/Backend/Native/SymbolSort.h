@@ -25,27 +25,6 @@ namespace SymbolSort
         Utf8 key;
     };
 
-    template<typename T>
-    struct EntryKeyLess
-    {
-        bool operator()(const Entry<T>& lhs, const Entry<T>& rhs) const
-        {
-            return lhs.key < rhs.key;
-        }
-    };
-
-    template<typename T>
-    struct LocationKeyMaker
-    {
-        const CompilerInstance* compiler = nullptr;
-
-        Utf8 operator()(const T& symbol) const
-        {
-            SWC_ASSERT(compiler != nullptr);
-            return locationKey(*compiler, symbol);
-        }
-    };
-
     template<typename T, typename MAKE_KEY>
     void sortAndUnique(std::vector<T*>& values, const MAKE_KEY& makeKey)
     {
@@ -61,7 +40,9 @@ namespace SymbolSort
             entries.push_back({.symbol = symbol, .key = makeKey(*symbol)});
         }
 
-        std::ranges::stable_sort(entries, EntryKeyLess<T>{});
+        std::ranges::stable_sort(entries, [](const Entry<T>& lhs, const Entry<T>& rhs) {
+            return lhs.key < rhs.key;
+        });
 
         values.clear();
         values.reserve(entries.size());
@@ -79,7 +60,7 @@ namespace SymbolSort
     template<typename T>
     void sortAndUniqueByLocation(std::vector<T*>& values, const CompilerInstance& compiler)
     {
-        sortAndUnique(values, LocationKeyMaker<T>{.compiler = &compiler});
+        sortAndUnique(values, [&](const T& symbol) { return locationKey(compiler, symbol); });
     }
 }
 

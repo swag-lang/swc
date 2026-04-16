@@ -95,7 +95,7 @@ private:
     bool               reportIntError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
     Result             checkCommandLine(TaskContext& ctx) const;
 
-    ArgInfo& addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, ArgTarget target);
+    ArgInfo& addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, const ArgTarget& target);
 
     void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, bool* target, const char* desc);
     void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, int* target, const char* desc);

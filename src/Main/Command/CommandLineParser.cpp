@@ -359,7 +359,7 @@ bool CommandLineParser::reportIntError(TaskContext& ctx, const ArgInfo& info, co
     return false;
 }
 
-ArgInfo& CommandLineParser::addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, ArgTarget target)
+ArgInfo& CommandLineParser::addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, const ArgTarget& target)
 {
     ArgInfo info;
     info.commands    = commands ? commands : "";

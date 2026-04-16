@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -32,6 +32,15 @@ namespace
         const SymbolVariable*   param           = nullptr;
         bool                    untypedVariadic = false;
         SmallVector<AstNodeRef> argRefs;
+    };
+
+    struct InlineArgumentMapContext
+    {
+        AstNodeRef                            callRef      = AstNodeRef::invalid();
+        const SymbolFunction*                 fn           = nullptr;
+        std::span<AstNodeRef>                 args         = {};
+        AstNodeRef                            ufcsArg      = AstNodeRef::invalid();
+        std::span<const ResolvedCallArgument> resolvedArgs = {};
     };
 
     AstNodeRef wrapCodeArgument(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
@@ -144,6 +153,21 @@ namespace
         unaryPtr->setCodeRef(sema.node(suffixInfo.exprRef).codeRef());
         unaryPtr->nodeExprRef = literalRef;
         return unaryRef;
+    }
+
+    bool shouldStripLiteralSuffixInlineValue(const SymbolFunction& fn, size_t paramIndex, size_t numFixed)
+    {
+        return fn.specOpKind() == SpecOpKind::OpAffectLiteral && paramIndex + 1 == numFixed;
+    }
+
+    AstNodeRef bindingInlineArgumentRef(Sema& sema, const InlineArgumentMapContext& context, const SymbolVariable& param, size_t paramIndex, size_t numFixed, AstNodeRef argRef)
+    {
+        AstNodeRef argValueRef = bindingArgumentRef(sema, param, argRef);
+        if (!shouldStripLiteralSuffixInlineValue(*context.fn, paramIndex, numFixed))
+            return argValueRef;
+
+        argValueRef = bindingResolvedArgumentRef(sema, param, context.resolvedArgs, paramIndex, argRef);
+        return stripUserDefinedLiteralInlineValue(sema, argValueRef);
     }
 
     bool tryGetSimpleInlineConstant(Sema& sema, AstNodeRef inlineRootRef, ConstantRef& outConstant)
@@ -687,23 +711,18 @@ namespace
         return Result::Continue;
     }
 
-    Result mapArguments(Sema& sema,
-                        bool& outMapped,
-                        AstNodeRef callRef,
-                        const SymbolFunction& fn,
-                        std::span<AstNodeRef> args,
-                        AstNodeRef ufcsArg,
-                        std::span<const ResolvedCallArgument> resolvedArgs,
-                        SmallVector<SemaClone::ParamBinding>& outBindings,
-                        InlineVariadicBinding& outVariadic)
+    Result mapArguments(Sema& sema, bool& outMapped, const InlineArgumentMapContext& context, SmallVector<SemaClone::ParamBinding>& outBindings, InlineVariadicBinding& outVariadic)
     {
         outMapped   = false;
         outVariadic = {};
 
-        const auto& params = fn.parameters();
+        SWC_ASSERT(context.fn != nullptr);
+        const SymbolFunction& fn     = *context.fn;
+        const auto&           params = fn.parameters();
+        const auto            args   = context.args;
         if (params.empty())
         {
-            outMapped = !ufcsArg.isValid() && args.empty();
+            outMapped = !context.ufcsArg.isValid() && args.empty();
             return Result::Continue;
         }
 
@@ -720,9 +739,9 @@ namespace
         std::vector<SemaClone::ParamBinding> bound(numFixed);
         size_t                               nextParam = 0;
 
-        if (ufcsArg.isValid())
+        if (context.ufcsArg.isValid())
         {
-            const AstNodeRef ufcsRef = bindingArgumentRef(sema, *params[0], ufcsArg);
+            const AstNodeRef ufcsRef = bindingArgumentRef(sema, *params[0], context.ufcsArg);
             if (numFixed > 0)
             {
                 bound[0].idRef   = params[0]->idRef();
@@ -761,12 +780,7 @@ namespace
             if (paramIndex >= params.size())
                 return Result::Continue;
 
-            AstNodeRef argValueRef = bindingArgumentRef(sema, *params[paramIndex], namedArg.nodeArgRef);
-            if (fn.specOpKind() == SpecOpKind::OpAffectLiteral && paramIndex + 1 == numFixed)
-            {
-                argValueRef = bindingResolvedArgumentRef(sema, *params[paramIndex], resolvedArgs, paramIndex, namedArg.nodeArgRef);
-                argValueRef = stripUserDefinedLiteralInlineValue(sema, argValueRef);
-            }
+            AstNodeRef argValueRef = bindingInlineArgumentRef(sema, context, *params[paramIndex], paramIndex, numFixed, namedArg.nodeArgRef);
             if (hasAnyVariadic && paramIndex == numFixed)
             {
                 outVariadic.argRefs.push_back(argValueRef);
@@ -791,12 +805,7 @@ namespace
             while (nextParam < numFixed && isBindingAssigned(bound[nextParam]))
                 nextParam++;
 
-            AstNodeRef argValueRef = nextParam < numFixed ? bindingArgumentRef(sema, *params[nextParam], argRef) : bindingValueArgumentRef(sema, argRef);
-            if (nextParam < numFixed && fn.specOpKind() == SpecOpKind::OpAffectLiteral && nextParam + 1 == numFixed)
-            {
-                argValueRef = bindingResolvedArgumentRef(sema, *params[nextParam], resolvedArgs, nextParam, argRef);
-                argValueRef = stripUserDefinedLiteralInlineValue(sema, argValueRef);
-            }
+            AstNodeRef argValueRef = nextParam < numFixed ? bindingInlineArgumentRef(sema, context, *params[nextParam], nextParam, numFixed, argRef) : bindingValueArgumentRef(sema, argRef);
             if (nextParam < numFixed)
             {
                 bound[nextParam].idRef   = params[nextParam]->idRef();
@@ -830,7 +839,7 @@ namespace
                 bound[i].idRef = param->idRef();
                 if (SemaHelpers::isDirectCallerLocationDefault(sema, *param))
                 {
-                    const SourceCodeRange codeRange = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+                    const SourceCodeRange codeRange = sema.node(context.callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
                     bound[i].typeRef                = param->typeRef();
                     SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(sema, bound[i].cstRef, codeRange, SemaHelpers::currentLocationFunction(sema)));
                 }
@@ -888,10 +897,18 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SmallVector<ResolvedCallArgument> resolvedArgs;
     sema.appendResolvedCallArguments(callRef, resolvedArgs);
 
+    const InlineArgumentMapContext context{
+        .callRef      = callRef,
+        .fn           = &fn,
+        .args         = args,
+        .ufcsArg      = ufcsArg,
+        .resolvedArgs = resolvedArgs.span(),
+    };
+
     SmallVector<SemaClone::ParamBinding> bindings;
     InlineVariadicBinding                variadicBinding;
     bool                                 mapped = false;
-    SWC_RESULT(mapArguments(sema, mapped, callRef, fn, args, ufcsArg, resolvedArgs.span(), bindings, variadicBinding));
+    SWC_RESULT(mapArguments(sema, mapped, context, bindings, variadicBinding));
     if (!mapped)
         return Result::Continue;
 

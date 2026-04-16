@@ -21,17 +21,6 @@ struct Duration
     timeInSeconds: f32
 }
 
-// @TODO: Re-enable when implicit scalar-to-`Duration` conversion compiles again.
-// impl Duration
-// {
-//     // Initialize from milliseconds without a suffix (implicit path)
-//     #[Swag.ConstExpr, Swag.Implicit, Swag.Inline]
-//     mtd opAffect(valueMs: s32)
-//     {
-//         me.timeInSeconds = valueMs / 1000.0
-//     }
-// }
-
 /**
 Use the special function 'opAffectLiteral' to convert a value plus suffix.
 */
@@ -62,12 +51,17 @@ func toto(x: Duration) {}
 
 #test
 {
-    let delay1: Duration = 500'ms
-    let delay2: Duration = 500'ms
-    let delay3: Duration = 2'min
-    let delay4: Duration = 60'min
+    let delaySeconds: Duration      = 5's
+    let delayMilliseconds: Duration = 500'ms
+    let delayMinutes: Duration      = 2'min
+    let delayHours: Duration        = 1'h
+
+    @assert(delaySeconds.timeInSeconds == 5.0)
+    @assert(delayMilliseconds.timeInSeconds == 0.5)
+    @assert(delayMinutes.timeInSeconds == 120.0)
+    @assert(delayHours.timeInSeconds == 3600.0)
 
     // Use the 'Duration' type in functions
     toto(5'ms)
-    toto(120'min)
+    toto(1'h)
 }

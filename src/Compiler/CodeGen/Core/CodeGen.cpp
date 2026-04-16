@@ -564,7 +564,8 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     CodeGenNodePayload& dstPayload = setPayload(dstNodeRef, typeRef);
     dstPayload.reg                 = srcPayloadCopy.reg;
     dstPayload.storageKind         = srcPayloadCopy.storageKind;
-    dstPayload.materializedPointerLikeValue = srcPayloadCopy.materializedPointerLikeValue;
+    if (srcPayloadCopy.hasMaterializedPointerLikeValue())
+        dstPayload.markMaterializedPointerLikeValue();
     return dstPayload;
 }
 
@@ -586,7 +587,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodePayload->reg                        = nextVirtualRegister();
     nodePayload->typeRef                    = typeRef;
     nodePayload->storageKind                = CodeGenNodePayload::StorageKind::Value;
-    nodePayload->materializedPointerLikeValue = false;
+    nodePayload->clearMaterializedPointerLikeValue();
     return *(nodePayload);
 }
 

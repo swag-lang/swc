@@ -53,6 +53,10 @@ struct CodeGenNodePayload
             setIsValue();
     }
 
+    void markMaterializedPointerLikeValue() { materializedPointerLikeValue = true; }
+    void clearMaterializedPointerLikeValue() { materializedPointerLikeValue = false; }
+    bool hasMaterializedPointerLikeValue() const { return materializedPointerLikeValue; }
+
     TypeRef effectiveTypeRef(TypeRef fallbackTypeRef) const
     {
         if (typeRef.isValid())

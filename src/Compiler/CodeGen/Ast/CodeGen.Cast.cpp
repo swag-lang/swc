@@ -164,7 +164,7 @@ namespace
         // Keeping them as an address payload causes later member/index lowering to dereference one level too far.
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
         dstPayload.reg                 = pointeeAddressReg;
-        dstPayload.materializedPointerLikeValue = true;
+        dstPayload.markMaterializedPointerLikeValue();
         return true;
     }
 

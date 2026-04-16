@@ -122,6 +122,13 @@ const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
 #assert(RuntimeConstAffectOne.x == 1.0)
 #assert(RuntimeConstAffectOne.y == 1.0)
 
+func assertRuntimeLiteralAffect(value: RuntimeLiteralAffectTarget, expectedSeconds: f32)
+{
+    @assert(value.timeInSeconds == expectedSeconds)
+    @assert(value.calls == 1)
+    @assert(value.sentinel == 1234)
+}
+
 #test
 {
     var target = RuntimeAffectTarget{}
@@ -233,18 +240,14 @@ const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
 {
     let delay: RuntimeLiteralAffectTarget = 5's
 
-    @assert(delay.timeInSeconds == 5.0)
-    @assert(delay.calls == 1)
-    @assert(delay.sentinel == 1234)
+    assertRuntimeLiteralAffect(delay, 5.0)
 }
 
 #test
 {
     let delay: RuntimeLiteralAffectTarget = 500'ms
 
-    @assert(delay.timeInSeconds == 0.5)
-    @assert(delay.calls == 1)
-    @assert(delay.sentinel == 1234)
+    assertRuntimeLiteralAffect(delay, 0.5)
 }
 
 #test
@@ -252,25 +255,19 @@ const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
     var delay = RuntimeLiteralAffectTarget{}
     delay = 2'min
 
-    @assert(delay.timeInSeconds == 120.0)
-    @assert(delay.calls == 1)
-    @assert(delay.sentinel == 1234)
+    assertRuntimeLiteralAffect(delay, 120.0)
 }
 
 #test
 {
     func takesImplicit(value: RuntimeLiteralAffectTarget)
     {
-        @assert(value.timeInSeconds == 0.5)
-        @assert(value.calls == 1)
-        @assert(value.sentinel == 1234)
+        assertRuntimeLiteralAffect(value, 0.5)
     }
 
     func takesExplicit(value: RuntimeLiteralAffectTarget)
     {
-        @assert(value.timeInSeconds == 3600.0)
-        @assert(value.calls == 1)
-        @assert(value.sentinel == 1234)
+        assertRuntimeLiteralAffect(value, 3600.0)
     }
 
     takesImplicit(500'ms)

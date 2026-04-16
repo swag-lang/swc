@@ -47,7 +47,7 @@ swc_devmode test --artifact-kind exe -d "%ROOT%\bin\tests\native" --out-dir "%EX
 if errorlevel 1 exit /b 1
 swc_devmode run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\!BUILD_CFG!" --work-dir "%RUN_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
 if errorlevel 1 exit /b 1
-timeout /t 1 /nobreak >nul
+powershell -NoProfile -Command "Start-Sleep -Seconds 1" >nul
 for %%K in (dll lib) do (
     swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\native" --out-dir "%NATIVE_OUTPUT%\%%K\!BUILD_CFG!" --work-dir "%NATIVE_OUTPUT%\work\%%K\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
     if errorlevel 1 exit /b 1

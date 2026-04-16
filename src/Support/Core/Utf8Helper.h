@@ -38,6 +38,8 @@ namespace Utf8Helper
     bool parseUInt(const LangSpec& langSpec, std::string_view s, size_t& p, int& out) noexcept;
     bool parseSignedOrAbs(const LangSpec& langSpec, std::string_view s, size_t& p, int& value, bool& hasSign) noexcept;
 
+    size_t levenshtein(std::string_view a, std::string_view b);
+
     std::string_view trimLeft(std::string_view s);
     std::string_view trimRight(std::string_view s);
     std::string_view trim(std::string_view s);

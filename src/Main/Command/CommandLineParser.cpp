@@ -19,32 +19,6 @@ constexpr std::string_view END_OF_OPTIONS     = "--";
 
 namespace
 {
-    size_t levenshtein(std::string_view a, std::string_view b)
-    {
-        const size_t m = a.size();
-        const size_t n = b.size();
-        if (m == 0)
-            return n;
-        if (n == 0)
-            return m;
-
-        std::vector<size_t> prev(n + 1), curr(n + 1);
-        for (size_t j = 0; j <= n; j++)
-            prev[j] = j;
-
-        for (size_t i = 1; i <= m; i++)
-        {
-            curr[0] = i;
-            for (size_t j = 1; j <= n; j++)
-            {
-                const size_t cost = (a[i - 1] == b[j - 1]) ? 0 : 1;
-                curr[j]           = std::min({curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost});
-            }
-            std::swap(prev, curr);
-        }
-        return prev[n];
-    }
-
     std::optional<Utf8> bestMatch(std::string_view query, const std::vector<Utf8>& candidates)
     {
         if (candidates.empty() || query.length() < 3)
@@ -56,7 +30,7 @@ namespace
         const Utf8* best     = nullptr;
         for (const Utf8& c : candidates)
         {
-            const size_t d = levenshtein(query, c);
+            const size_t d = Utf8Helper::levenshtein(query, c);
             if (d < bestDist)
             {
                 bestDist = d;
@@ -584,17 +558,6 @@ std::optional<Utf8> CommandLineParser::suggestChoice(const Utf8& query, const st
     return bestMatch(query, choices);
 }
 
-namespace
-{
-    template<class... Ts>
-    struct Overloaded : Ts...
-    {
-        using Ts::operator()...;
-    };
-    template<class... Ts>
-    Overloaded(Ts...) -> Overloaded<Ts...>;
-}
-
 bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, int& index, int argc, char* argv[])
 {
     // Boolean-like flags never take a value.
@@ -609,12 +572,12 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
         }
 
         const bool v = !invertBoolean;
-        std::visit(Overloaded{
-                       [&](bool* t) { *t = v; },
-                       [&](std::optional<bool>* t) { *t = v; },
-                       [](auto&&) { SWC_UNREACHABLE(); },
-                   },
-                   info.target);
+        if (auto* t = std::get_if<bool*>(&info.target))
+            **t = v;
+        else if (auto* t1 = std::get_if<std::optional<bool>*>(&info.target))
+            **t1 = v;
+        else
+            SWC_UNREACHABLE();
         return true;
     }
 
@@ -622,32 +585,36 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     if (!getNextValue(ctx, arg, inlineValue, index, argc, argv, value))
         return false;
 
-    return std::visit(Overloaded{
-                          [](bool*) { return false; },
-                          [](std::optional<bool>*) { return false; },
-                          [&](int* t) { return parseInt(ctx, info, arg, value, t); },
-                          [&](uint32_t* t) { return parseUInt(ctx, info, arg, value, t); },
-                          [&](Utf8* t) -> bool {
-                              if (info.isEnum())
-                                  return parseEnumString(ctx, info, arg, value, t);
-                              *t = value;
-                              return true;
-                          },
-                          [&](fs::path* t) -> bool {
-                              *t = value.c_str();
-                              return true;
-                          },
-                          [&](std::set<Utf8>* t) -> bool {
-                              t->insert(value);
-                              return true;
-                          },
-                          [&](std::set<fs::path>* t) -> bool {
-                              t->insert(value.c_str());
-                              return true;
-                          },
-                          [&](const EnumIntTarget& t) { return parseEnumInt(ctx, info, arg, value, t); },
-                      },
-                      info.target);
+    if (auto* t = std::get_if<int*>(&info.target))
+        return parseInt(ctx, info, arg, value, *t);
+    if (auto* t = std::get_if<uint32_t*>(&info.target))
+        return parseUInt(ctx, info, arg, value, *t);
+    if (auto* t = std::get_if<Utf8*>(&info.target))
+    {
+        if (info.isEnum())
+            return parseEnumString(ctx, info, arg, value, *t);
+        **t = value;
+        return true;
+    }
+    if (auto* t = std::get_if<fs::path*>(&info.target))
+    {
+        **t = value.c_str();
+        return true;
+    }
+    if (auto* t = std::get_if<std::set<Utf8>*>(&info.target))
+    {
+        (*t)->insert(value);
+        return true;
+    }
+    if (auto* t = std::get_if<std::set<fs::path>*>(&info.target))
+    {
+        (*t)->insert(value.c_str());
+        return true;
+    }
+    if (auto* t = std::get_if<EnumIntTarget>(&info.target))
+        return parseEnumInt(ctx, info, arg, value, *t);
+
+    SWC_UNREACHABLE();
 }
 
 Result CommandLineParser::parse(int argc, char* argv[])

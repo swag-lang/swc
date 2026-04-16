@@ -492,4 +492,31 @@ Utf8 Utf8Helper::countWithLabel(const size_t value, const std::string_view singu
     return std::format("{} {}", toNiceBigNumber(value), label);
 }
 
+size_t Utf8Helper::levenshtein(std::string_view a, std::string_view b)
+{
+    const size_t m = a.size();
+    const size_t n = b.size();
+    if (m == 0)
+        return n;
+    if (n == 0)
+        return m;
+
+    std::vector<size_t> prev(n + 1);
+    std::vector<size_t> curr(n + 1);
+    for (size_t j = 0; j <= n; j++)
+        prev[j] = j;
+
+    for (size_t i = 1; i <= m; i++)
+    {
+        curr[0] = i;
+        for (size_t j = 1; j <= n; j++)
+        {
+            const size_t cost = (a[i - 1] == b[j - 1]) ? 0 : 1;
+            curr[j]           = std::min({curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost});
+        }
+        std::swap(prev, curr);
+    }
+    return prev[n];
+}
+
 SWC_END_NAMESPACE();

@@ -18,14 +18,6 @@ namespace
         HelpOptionGroup group = HelpOptionGroup::Other;
     };
 
-    template<class... Ts>
-    struct Overloaded : Ts...
-    {
-        using Ts::operator()...;
-    };
-    template<class... Ts>
-    Overloaded(Ts...) -> Overloaded<Ts...>;
-
     Utf8 formatPathValue(const fs::path& value)
     {
         if (value.empty())
@@ -96,43 +88,39 @@ namespace
 
     Utf8 defaultValueToString(const ArgInfo& arg)
     {
-        return std::visit(Overloaded{
-                              [](const bool* t) -> Utf8 { return *t ? "true" : "false"; },
-                              [](const int* t) -> Utf8 { return std::to_string(*t); },
-                              [](const uint32_t* t) -> Utf8 { return std::to_string(*t); },
-                              [&](const Utf8* t) -> Utf8 {
-                                  if (t->empty())
-                                      return "(none)";
-                                  return *t;
-                              },
-                              [](const fs::path* t) -> Utf8 {
-                                  Utf8 value = formatPathValue(*t);
-                                  if (value.empty())
-                                      return "(none)";
-                                  return value;
-                              },
-                              [](const std::set<Utf8>* t) -> Utf8 {
-                                  Utf8 value = formatStringSetValue(*t);
-                                  if (value.empty())
-                                      return "(none)";
-                                  return value;
-                              },
-                              [](const std::set<fs::path>* t) -> Utf8 {
-                                  Utf8 value = formatPathSetValue(*t);
-                                  if (value.empty())
-                                      return "(none)";
-                                  return value;
-                              },
-                              [](const std::optional<bool>* t) -> Utf8 {
-                                  if (!t->has_value())
-                                      return "(auto)";
-                                  return t->value() ? "true" : "false";
-                              },
-                              [&](const EnumIntTarget& t) -> Utf8 {
-                                  return enumIntNameFromValue(arg, t.getter(t.target));
-                              },
-                          },
-                          arg.target);
+        if (auto* t = std::get_if<bool*>(&arg.target))
+            return **t ? "true" : "false";
+        if (auto* t = std::get_if<int*>(&arg.target))
+            return std::to_string(**t);
+        if (auto* t = std::get_if<uint32_t*>(&arg.target))
+            return std::to_string(**t);
+        if (auto* t = std::get_if<Utf8*>(&arg.target))
+            return (*t)->empty() ? Utf8("(none)") : **t;
+        if (auto* t = std::get_if<fs::path*>(&arg.target))
+        {
+            Utf8 value = formatPathValue(**t);
+            return value.empty() ? Utf8("(none)") : value;
+        }
+        if (auto* t = std::get_if<std::set<Utf8>*>(&arg.target))
+        {
+            Utf8 value = formatStringSetValue(**t);
+            return value.empty() ? Utf8("(none)") : value;
+        }
+        if (auto* t = std::get_if<std::set<fs::path>*>(&arg.target))
+        {
+            Utf8 value = formatPathSetValue(**t);
+            return value.empty() ? Utf8("(none)") : value;
+        }
+        if (auto* t = std::get_if<std::optional<bool>*>(&arg.target))
+        {
+            if (!(*t)->has_value())
+                return "(auto)";
+            return (*t)->value() ? "true" : "false";
+        }
+        if (auto* t = std::get_if<EnumIntTarget>(&arg.target))
+            return enumIntNameFromValue(arg, t->getter(t->target));
+
+        SWC_UNREACHABLE();
     }
 
     Utf8 makeOptionDisplayName(const ArgInfo& arg)

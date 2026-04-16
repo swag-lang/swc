@@ -60,15 +60,14 @@ You can then place the suffix right after the numeric literal when the type is '
 
 func toto(x: Duration) {}
 
-// @TODO: Re-enable when user-defined literal suffixes resolve for `Duration` again.
-// #test
-// {
-//     let delay1: Duration = 5's
-//     let delay2: Duration = 500'ms
-//     let delay3: Duration = 2'min
-//     let delay4: Duration = 1'h
-//
-//     // Use the 'Duration' type in functions
-//     toto(5'ms)
-//     toto(100'h)
-// }
+#test
+{
+    let delay1: Duration = 500'ms
+    let delay2: Duration = 500'ms
+    let delay3: Duration = 2'min
+    let delay4: Duration = 60'min
+
+    // Use the 'Duration' type in functions
+    toto(5'ms)
+    toto(120'min)
+}

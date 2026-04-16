@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -81,7 +82,7 @@ namespace
 
         if (sema.node(argRef).is(AstNodeId::EmbeddedBlock))
         {
-            if (const auto* inlinePayload = sema.semaPayload<SemaInlinePayload>(argRef);
+            if (const auto* inlinePayload = sema.inlinePayload(argRef);
                 inlinePayload && inlinePayload->callRef.isValid())
                 return inlinePayload->callRef;
         }
@@ -116,6 +117,33 @@ namespace
         }
 
         return bindingValueArgumentRef(sema, argRef);
+    }
+
+    AstNodeRef bindingResolvedArgumentRef(Sema& sema, const SymbolVariable& param, std::span<const ResolvedCallArgument> resolvedArgs, size_t paramIndex, AstNodeRef fallbackArgRef)
+    {
+        if (paramIndex < resolvedArgs.size() && resolvedArgs[paramIndex].argRef.isValid())
+            return bindingArgumentRef(sema, param, resolvedArgs[paramIndex].argRef);
+        return bindingArgumentRef(sema, param, fallbackArgRef);
+    }
+
+    AstNodeRef stripUserDefinedLiteralInlineValue(Sema& sema, AstNodeRef argRef)
+    {
+        UserDefinedLiteralSuffixInfo suffixInfo;
+        if (!Cast::resolveUserDefinedLiteralSuffix(sema, argRef, suffixInfo) || !suffixInfo.literalRef.isValid())
+            return argRef;
+
+        const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
+        const AstNodeRef              literalRef = SemaClone::cloneAst(sema, suffixInfo.literalRef, noBindings);
+        if (literalRef.isInvalid())
+            return argRef;
+
+        if (suffixInfo.unaryOp != TokenId::SymPlus && suffixInfo.unaryOp != TokenId::SymMinus)
+            return literalRef;
+
+        auto [unaryRef, unaryPtr] = sema.ast().makeNode<AstNodeId::UnaryExpr>(sema.node(suffixInfo.exprRef).tokRef());
+        unaryPtr->setCodeRef(sema.node(suffixInfo.exprRef).codeRef());
+        unaryPtr->nodeExprRef = literalRef;
+        return unaryRef;
     }
 
     bool tryGetSimpleInlineConstant(Sema& sema, AstNodeRef inlineRootRef, ConstantRef& outConstant)
@@ -659,7 +687,15 @@ namespace
         return Result::Continue;
     }
 
-    Result mapArguments(Sema& sema, bool& outMapped, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings, InlineVariadicBinding& outVariadic)
+    Result mapArguments(Sema& sema,
+                        bool& outMapped,
+                        AstNodeRef callRef,
+                        const SymbolFunction& fn,
+                        std::span<AstNodeRef> args,
+                        AstNodeRef ufcsArg,
+                        std::span<const ResolvedCallArgument> resolvedArgs,
+                        SmallVector<SemaClone::ParamBinding>& outBindings,
+                        InlineVariadicBinding& outVariadic)
     {
         outMapped   = false;
         outVariadic = {};
@@ -690,7 +726,7 @@ namespace
             if (numFixed > 0)
             {
                 bound[0].idRef   = params[0]->idRef();
-                bound[0].exprRef = ufcsArg;
+                bound[0].exprRef = ufcsRef;
                 nextParam        = 1;
             }
             else if (hasAnyVariadic)
@@ -725,7 +761,12 @@ namespace
             if (paramIndex >= params.size())
                 return Result::Continue;
 
-            const AstNodeRef argValueRef = bindingArgumentRef(sema, *params[paramIndex], namedArg.nodeArgRef);
+            AstNodeRef argValueRef = bindingArgumentRef(sema, *params[paramIndex], namedArg.nodeArgRef);
+            if (fn.specOpKind() == SpecOpKind::OpAffectLiteral && paramIndex + 1 == numFixed)
+            {
+                argValueRef = bindingResolvedArgumentRef(sema, *params[paramIndex], resolvedArgs, paramIndex, namedArg.nodeArgRef);
+                argValueRef = stripUserDefinedLiteralInlineValue(sema, argValueRef);
+            }
             if (hasAnyVariadic && paramIndex == numFixed)
             {
                 outVariadic.argRefs.push_back(argValueRef);
@@ -750,7 +791,12 @@ namespace
             while (nextParam < numFixed && isBindingAssigned(bound[nextParam]))
                 nextParam++;
 
-            const AstNodeRef argValueRef = nextParam < numFixed ? bindingArgumentRef(sema, *params[nextParam], argRef) : bindingValueArgumentRef(sema, argRef);
+            AstNodeRef argValueRef = nextParam < numFixed ? bindingArgumentRef(sema, *params[nextParam], argRef) : bindingValueArgumentRef(sema, argRef);
+            if (nextParam < numFixed && fn.specOpKind() == SpecOpKind::OpAffectLiteral && nextParam + 1 == numFixed)
+            {
+                argValueRef = bindingResolvedArgumentRef(sema, *params[nextParam], resolvedArgs, nextParam, argRef);
+                argValueRef = stripUserDefinedLiteralInlineValue(sema, argValueRef);
+            }
             if (nextParam < numFixed)
             {
                 bound[nextParam].idRef   = params[nextParam]->idRef();
@@ -839,10 +885,13 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!resolveFunctionDeclInCurrentAst(sema, fn, decl))
         return Result::Continue;
 
+    SmallVector<ResolvedCallArgument> resolvedArgs;
+    sema.appendResolvedCallArguments(callRef, resolvedArgs);
+
     SmallVector<SemaClone::ParamBinding> bindings;
     InlineVariadicBinding                variadicBinding;
     bool                                 mapped = false;
-    SWC_RESULT(mapArguments(sema, mapped, callRef, fn, args, ufcsArg, bindings, variadicBinding));
+    SWC_RESULT(mapArguments(sema, mapped, callRef, fn, args, ufcsArg, resolvedArgs.span(), bindings, variadicBinding));
     if (!mapped)
         return Result::Continue;
 
@@ -905,7 +954,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
         SWC_ASSERT(inlinePayload != nullptr);
         SWC_RESULT(finalizeInlineBlock(inSema, nodeRef, *inlinePayload));
-        inSema.setSemaPayload(nodeRef, inlinePayload);
+        if (auto* existingPayload = inSema.inlinePayload(nodeRef))
+            SWC_ASSERT(existingPayload == inlinePayload);
+        else
+            inSema.setInlinePayload(nodeRef, inlinePayload);
         return Result::Continue;
     });
 

@@ -11,6 +11,10 @@ SWC_DIAG_DEF(cmdline_err_missing_command, Error, "missing command before argumen
 SWC_DIAG_DEF(cmdline_err_invalid_command, Error, "invalid command '{arg}'; command must be one of '{values}'")
 SWC_DIAG_DEF(cmdline_err_invalid_folder, Error, "invalid folder path: '{path}'; {because}")
 SWC_DIAG_DEF(cmdline_err_invalid_file, Error, "invalid file path: '{path}'; {because}")
+SWC_DIAG_DEF(cmdline_err_rsp_file_failed, Error, "cannot read response file '{path}': {because}")
+SWC_DIAG_DEF(cmdline_err_rsp_file_cycle, Error, "response file cycle detected at '{path}'")
+SWC_DIAG_DEF(cmdline_err_rsp_file_depth, Error, "response file nesting too deep at '{path}'")
+SWC_DIAG_DEF(cmdline_err_rsp_file_unterminated, Error, "unterminated quoted token in response file '{path}'")
 
 SWC_DIAG_DEF(cmd_err_no_input, Error, "no input file specified")
 SWC_DIAG_DEF(cmd_err_native_linker_not_implemented, Error, "native linker is not implemented for this target OS")

@@ -652,6 +652,47 @@ bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
     return it != shard->semaPayloads.end() && it->second != nullptr;
 }
 
+bool NodePayload::hasInlinePayload(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
+    if (!shard)
+        return false;
+
+    const std::shared_lock lock(shard->mutex);
+    const auto             it = shard->inlinePayloads.find(nodeRef);
+    return it != shard->inlinePayloads.end() && it->second != nullptr;
+}
+
+void NodePayload::setInlinePayload(AstNodeRef nodeRef, void* payload)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    SWC_ASSERT(payload);
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*                 shard    = ensureShard(shardIdx);
+    const std::unique_lock lock(shard->mutex);
+    SWC_ASSERT(!shard->inlinePayloads.contains(nodeRef));
+    shard->inlinePayloads[nodeRef] = payload;
+}
+
+void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return nullptr;
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
+    if (!shard)
+        return nullptr;
+
+    const std::shared_lock lock(shard->mutex);
+    const auto             it = shard->inlinePayloads.find(nodeRef);
+    if (it == shard->inlinePayloads.end())
+        return nullptr;
+    return it->second;
+}
+
 void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());

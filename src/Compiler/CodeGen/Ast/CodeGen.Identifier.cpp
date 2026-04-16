@@ -469,8 +469,15 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
     if (!view.sym())
     {
         const AstNodeRef parentRef = codeGen.visit().parentNodeRef();
+        if (codeGen.curNode().codeRef().isValid() &&
+            codeGen.token(codeGen.curNode().codeRef()).id == TokenId::SymSingleQuote &&
+            parentRef.isValid() &&
+            codeGen.node(parentRef).is(AstNodeId::CastExpr))
+            return Result::Continue;
+
         if (parentRef.isValid() &&
             (codeGen.node(parentRef).is(AstNodeId::NamedType) ||
+             codeGen.node(parentRef).is(AstNodeId::SuffixLiteral) ||
              codeGen.node(parentRef).is(AstNodeId::QuotedExpr) ||
              codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)))
             return Result::Continue;

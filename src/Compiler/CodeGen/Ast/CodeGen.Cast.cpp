@@ -112,6 +112,62 @@ namespace
         return resolveUsingStructCastPath(codeGen, sourceType.payloadTypeRef(), dstType.payloadTypeRef(), outSteps);
     }
 
+    bool tryEmitAddressBackedPointerLikeCast(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef sourceTypeRef, TypeRef dstTypeRef)
+    {
+        if (!srcPayload.isAddress())
+            return false;
+
+        const TypeManager& typeMgr = codeGen.typeMgr();
+        const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef      sourceTypeToCheck     = resolvedSourceTypeRef.isValid() ? resolvedSourceTypeRef : sourceTypeRef;
+        if (!sourceTypeToCheck.isValid())
+            return false;
+
+        const TypeInfo& sourceType = typeMgr.get(sourceTypeToCheck);
+        const TypeInfo& dstType    = typeMgr.get(dstTypeRef);
+        if (sourceType.isPointerOrReference() || sourceType.isNull())
+            return false;
+        if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
+            return false;
+
+        MicroReg pointeeAddressReg = srcPayload.reg;
+        if (dstType.isReference() || dstType.isMoveReference())
+        {
+            const TypeRef resolvedDstPointeeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
+            const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
+            if (!dstPointeeTypeRef.isValid())
+                return false;
+
+            if (sourceTypeToCheck != dstPointeeTypeRef)
+            {
+                SmallVector<SymbolStructUsingPathStep> usingPath;
+                if (!resolveUsingStructCastPath(codeGen, sourceTypeRef, dstType.payloadTypeRef(), usingPath))
+                    return false;
+
+                for (const auto& step : usingPath)
+                {
+                    SWC_ASSERT(step.field != nullptr);
+                    SWC_ASSERT(!step.isPointer);
+                    pointeeAddressReg = codeGen.offsetAddressReg(pointeeAddressReg, step.field->offset());
+                }
+            }
+        }
+        else
+        {
+            const TypeRef resolvedDstPointeeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
+            const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
+            if (!dstPointeeTypeRef.isValid() || sourceTypeToCheck != dstPointeeTypeRef)
+                return false;
+        }
+
+        // Addressable values cast to references/pointers must become the pointer value itself.
+        // Keeping them as an address payload causes later member/index lowering to dereference one level too far.
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        dstPayload.reg                 = pointeeAddressReg;
+        dstPayload.materializedPointerLikeValue = true;
+        return true;
+    }
+
     Result emitUsingPointerLikeCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef, const SmallVector<SymbolStructUsingPathStep>& usingPath)
     {
         const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
@@ -851,6 +907,9 @@ namespace
             builder.emitLoadRegPtrReloc(dstPayload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);
             return Result::Continue;
         }
+
+        if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
+            return Result::Continue;
 
         if (dstType.isString() && srcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, srcType);

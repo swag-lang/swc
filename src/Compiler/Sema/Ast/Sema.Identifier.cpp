@@ -236,13 +236,26 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (view.cstRef().isValid())
         return Result::Continue;
 
+    const AstNodeRef parentRef = sema.visit().parentNodeRef();
+    if (!sema.curViewSymbol().sym() &&
+        !sema.curViewSymbolList().hasSymbolList() &&
+        codeRef().isValid() &&
+        sema.token(codeRef()).id == TokenId::SymSingleQuote &&
+        parentRef.isValid() &&
+        sema.node(parentRef).is(AstNodeId::CastExpr))
+        return Result::Continue;
+
+    if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::SuffixLiteral))
+        return Result::Continue;
+
     if (sema.curViewType().typeRef().isValid())
     {
-        const AstNodeRef parentRef = sema.visit().parentNodeRef();
         if (parentRef.isValid())
         {
             const AstNode& parentNode = sema.node(parentRef);
-            if (parentNode.is(AstNodeId::NamedType) || parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
+            if (parentNode.is(AstNodeId::NamedType) ||
+                parentNode.is(AstNodeId::QuotedExpr) ||
+                parentNode.is(AstNodeId::QuotedListExpr))
                 return Result::Continue;
 
             // Generic specialization can clone a type parameter into a plain identifier and

@@ -763,6 +763,17 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
     return ownerStruct->registerSpecOp(sym, kind);
 }
 
+Result SemaSpecOp::collectAffectCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates)
+{
+    UserDefinedLiteralSuffixInfo suffixInfo;
+    if (!Cast::resolveUserDefinedLiteralSuffix(sema, valueRef, suffixInfo))
+        return collectAssignSpecOpCandidates(sema, ownerStruct, codeRef, TokenId::SymEqual, outCandidates);
+
+    const IdentifierRef opAffectLiteralId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffectLiteral);
+    const AstNodeRef    genericArg        = makeSyntheticStringConstantArg(sema, codeRef, suffixInfo.suffix);
+    return collectSpecOpCandidates(sema, ownerStruct, opAffectLiteralId, std::span{&genericArg, 1}, outCandidates);
+}
+
 SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction& sym)
 {
     const IdentifierRef      idRef = sym.idRef();
@@ -843,7 +854,10 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));
+    if (tok.id == TokenId::SymEqual)
+        SWC_RESULT(collectAffectCandidates(sema, *ownerStruct, node.codeRef(), node.nodeRightRef, candidates));
+    else
+        SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));
     if (candidates.empty())
         return Result::Continue;
 
@@ -883,7 +897,7 @@ Result SemaSpecOp::tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, A
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, sema.node(valueRef).codeRef()));
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, sema.node(valueRef).codeRef(), TokenId::SymEqual, candidates));
+    SWC_RESULT(collectAffectCandidates(sema, *ownerStruct, sema.node(valueRef).codeRef(), valueRef, candidates));
     if (candidates.empty())
         return Result::Continue;
 

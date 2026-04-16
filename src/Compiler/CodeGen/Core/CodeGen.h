@@ -34,6 +34,7 @@ struct CodeGenNodePayload
     TypeRef         typeRef                 = TypeRef::invalid();
     TypeRef         runtimeArrayFillTypeRef = TypeRef::invalid();
     StorageKind     storageKind             = StorageKind::Value;
+    bool            materializedPointerLikeValue = false;
     SymbolVariable* runtimeStorageSym       = nullptr;
     SymbolFunction* runtimeFunctionSymbol   = nullptr;
     ConstantRef     runtimeArrayFillCstRef  = ConstantRef::invalid();

@@ -564,6 +564,7 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     CodeGenNodePayload& dstPayload = setPayload(dstNodeRef, typeRef);
     dstPayload.reg                 = srcPayloadCopy.reg;
     dstPayload.storageKind         = srcPayloadCopy.storageKind;
+    dstPayload.materializedPointerLikeValue = srcPayloadCopy.materializedPointerLikeValue;
     return dstPayload;
 }
 
@@ -582,9 +583,10 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 
-    nodePayload->reg         = nextVirtualRegister();
-    nodePayload->typeRef     = typeRef;
-    nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
+    nodePayload->reg                        = nextVirtualRegister();
+    nodePayload->typeRef                    = typeRef;
+    nodePayload->storageKind                = CodeGenNodePayload::StorageKind::Value;
+    nodePayload->materializedPointerLikeValue = false;
     return *(nodePayload);
 }
 
@@ -1198,7 +1200,7 @@ Result CodeGen::preNode(AstNode& node)
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     SWC_RESULT(info.codeGenPreNode(*this, node));
 
-    const SemaInlinePayload* inlinePayload = sema().semaPayload<SemaInlinePayload>(curNodeRef());
+    const SemaInlinePayload* inlinePayload = sema().inlinePayload(curNodeRef());
     if (inlinePayload && inlinePayload->inlineRootRef == curNodeRef())
     {
         CodeGenFrame frame = this->frame();

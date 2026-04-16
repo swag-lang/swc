@@ -124,12 +124,11 @@ namespace
         }
     }
 
-    AstNodeRef makeVarInitReceiverRef(Sema& sema, SymbolVariable& symVar, TypeRef typeRef, AstNodeRef valueRef)
+    AstNodeRef makeVarInitReceiverRef(Sema& sema, SymbolVariable& symVar, AstNodeRef valueRef)
     {
-        const TokenRef tokRef            = valueRef.isValid() ? sema.node(valueRef).tokRef() : sema.curNode().tokRef();
+        const TokenRef tokRef            = valueRef.isValid() ? Cast::userDefinedLiteralValueTokRef(sema, valueRef) : sema.curNode().tokRef();
         auto [receiverRef, receiverNode] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
         sema.setSymbol(receiverRef, &symVar);
-        sema.setType(receiverRef, typeRef);
         sema.setIsValue(*receiverNode);
         sema.setIsLValue(*receiverNode);
         return receiverRef;
@@ -592,7 +591,7 @@ namespace
         if (!symVar)
             return Result::Continue;
 
-        const AstNodeRef receiverRef = makeVarInitReceiverRef(sema, *symVar, explicitTypeRef, context.nodeInitRef);
+        const AstNodeRef receiverRef = makeVarInitReceiverRef(sema, *symVar, context.nodeInitRef);
         bool             handled     = false;
         SWC_RESULT(SemaSpecOp::tryResolveVarInitAffect(sema, receiverRef, context.nodeInitRef, handled));
         if (!handled)

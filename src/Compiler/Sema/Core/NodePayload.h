@@ -118,6 +118,9 @@ protected:
     bool  hasCodeGenPayload(AstNodeRef nodeRef) const;
     void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
     void* getCodeGenPayload(AstNodeRef nodeRef) const;
+    bool  hasInlinePayload(AstNodeRef nodeRef) const;
+    void  setInlinePayload(AstNodeRef nodeRef, void* payload);
+    void* getInlinePayload(AstNodeRef nodeRef) const;
     bool  hasSemaPayload(AstNodeRef nodeRef) const;
     void  setSemaPayload(AstNodeRef nodeRef, void* payload);
     void* getSemaPayload(AstNodeRef nodeRef) const;
@@ -169,6 +172,7 @@ private:
         mutable std::shared_mutex               mutex;
         PagedStore                              store;
         std::unordered_map<AstNodeRef, void*>   codeGenPayloads;
+        std::unordered_map<AstNodeRef, void*>   inlinePayloads;
         std::unordered_map<AstNodeRef, void*>   semaPayloads;
         std::unordered_map<AstNodeRef, SpanRef> resolvedCallArgsByNode;
     };

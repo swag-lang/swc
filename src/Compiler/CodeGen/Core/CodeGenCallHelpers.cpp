@@ -490,7 +490,7 @@ namespace
         const TypeRef sourceTypeRef = argPayload.effectiveTypeRef(argView.typeRef());
         SWC_ASSERT(sourceTypeRef.isValid());
         const TypeInfo& sourceType = ctx.typeMgr().get(sourceTypeRef);
-        if (!resolvedArg.bindsReferenceToValue && sourceType.isPointerOrReference())
+        if ((!resolvedArg.bindsReferenceToValue && sourceType.isPointerOrReference()) || argPayload.materializedPointerLikeValue)
             return;
 
         const CallConv&                        callConv         = CallConv::get(codeGen.function().callConvKind());

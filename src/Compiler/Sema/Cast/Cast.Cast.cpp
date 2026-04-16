@@ -229,9 +229,10 @@ namespace
         auto [receiverRef, receiverNode] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
         if (storageSym)
             sema.setSymbol(receiverRef, storageSym);
-        if (initCstRef.isValid())
+        else if (initCstRef.isValid())
             sema.setConstant(receiverRef, initCstRef);
-        sema.setType(receiverRef, dstTypeRef);
+        else
+            sema.setType(receiverRef, dstTypeRef);
         sema.setIsValue(*receiverNode);
         sema.setIsLValue(*receiverNode);
         return receiverRef;
@@ -266,14 +267,18 @@ namespace
 
         const SourceCodeRef codeRef = sema.node(outSourceArgRef).codeRef();
         TypeRef             paramTypeRef;
-        SWC_RESULT(Cast::resolveStructAffectCastCandidate(sema, codeRef, view.typeRef(), dstTypeRef, castKind, outCalledFn, paramTypeRef));
+        SWC_RESULT(Cast::resolveStructAffectCastCandidate(sema, codeRef, view.typeRef(), dstTypeRef, castKind, outCalledFn, paramTypeRef, outSourceArgRef));
         if (!outCalledFn)
             return Result::Continue;
 
         if (paramTypeRef.isValid() && view.typeRef() != paramTypeRef)
         {
             SemaNodeView sourceView(sema, outSourceArgRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            SWC_RESULT(Cast::cast(sema, sourceView, paramTypeRef, CastKind::Parameter));
+            CastFlags                 paramCastFlags = CastFlagsE::Zero;
+            UserDefinedLiteralSuffixInfo suffixInfo;
+            if (Cast::resolveUserDefinedLiteralSuffix(sema, outSourceArgRef, suffixInfo))
+                paramCastFlags.add(CastFlagsE::LiteralSuffixConsume);
+            SWC_RESULT(Cast::cast(sema, sourceView, paramTypeRef, CastKind::Parameter, paramCastFlags));
             outSourceArgRef = sourceView.nodeRef();
             if (!castFlags.has(CastFlagsE::FromExplicitNode))
                 view = sourceView;
@@ -295,7 +300,7 @@ namespace
             return Result::Continue;
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        const TokenRef                    tokRef      = sema.node(sourceArgRef).tokRef();
+        const TokenRef                    tokRef      = Cast::userDefinedLiteralValueTokRef(sema, sourceArgRef);
         const AstNodeRef                  receiverRef = makeStructAffectReceiverRef(sema, dstTypeRef, tokRef, nullptr, receiverInitCstRef);
         resolvedArgs.push_back({.argRef = receiverRef, .bindsReferenceToValue = true});
         resolvedArgs.push_back({.argRef = sourceArgRef});
@@ -322,7 +327,8 @@ namespace
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, dstTypeRef));
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        const AstNodeRef                  receiverRef = makeStructAffectReceiverRef(sema, dstTypeRef, sema.node(sourceArgRef).tokRef(), &storageSym, ConstantRef::invalid());
+        const TokenRef                    tokRef      = Cast::userDefinedLiteralValueTokRef(sema, sourceArgRef);
+        const AstNodeRef                  receiverRef = makeStructAffectReceiverRef(sema, dstTypeRef, tokRef, &storageSym, ConstantRef::invalid());
         resolvedArgs.push_back({.argRef = receiverRef, .bindsReferenceToValue = true});
         resolvedArgs.push_back({.argRef = sourceArgRef});
 
@@ -1568,6 +1574,16 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
 Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
+    UserDefinedLiteralSuffixInfo suffixInfo;
+    const bool                   hasUserDefinedLiteralSuffix = dstTypeRef.isValid() && resolveUserDefinedLiteralSuffix(sema, castRequest.errorNodeRef, suffixInfo);
+    TypeRef                      literalSuffixDstTypeRef     = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
+    if (!literalSuffixDstTypeRef.isValid())
+        literalSuffixDstTypeRef = dstTypeRef;
+    if (hasUserDefinedLiteralSuffix &&
+        !castRequest.flags.has(CastFlagsE::LiteralSuffixConsume) &&
+        !sema.typeMgr().get(literalSuffixDstTypeRef).isStruct())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
     if (srcTypeRef == dstTypeRef)
         return castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
 
@@ -1690,7 +1706,9 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (view.cstRef().isValid() && sema.isFoldedTypedConst(view.nodeRef()))
         effectiveFlags.add(CastFlagsE::FoldedTypedConst);
 
-    if (srcTypeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
+    UserDefinedLiteralSuffixInfo suffixInfo;
+    const bool                   hasUserDefinedLiteralSuffix = resolveUserDefinedLiteralSuffix(sema, view.nodeRef(), suffixInfo);
+    if (srcTypeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero && !hasUserDefinedLiteralSuffix)
         return Result::Continue;
 
     CastRequest castRequest(effectiveKind);

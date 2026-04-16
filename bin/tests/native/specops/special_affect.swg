@@ -91,6 +91,33 @@ impl RuntimeConstAffectVector2
     }
 }
 
+struct RuntimeLiteralAffectTarget
+{
+    timeInSeconds: f32
+    calls: s32
+    sentinel: s32 = 1234
+}
+
+impl RuntimeLiteralAffectTarget
+{
+    #[Swag.Implicit, Swag.NoInline]
+    mtd(suffix: string) opAffectLiteral(value: s32)
+    {
+        .calls += 1
+
+        #if suffix == "s" do
+            .timeInSeconds = value
+        #elif suffix == "ms" do
+            .timeInSeconds = value / 1000.0
+        #elif suffix == "min" do
+            .timeInSeconds = value * 60.0
+        #elif suffix == "h" do
+            .timeInSeconds = value * 3600.0
+        #else do
+            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+    }
+}
+
 const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
 #assert(RuntimeConstAffectOne.x == 1.0)
 #assert(RuntimeConstAffectOne.y == 1.0)
@@ -152,17 +179,6 @@ const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
 
 #test
 {
-    let source = RuntimeAffectSource{value: 37}
-    let target: RuntimeAffectTarget = source
-
-    @assert(target.value == 42)
-    @assert(target.tag == 30)
-    @assert(target.calls == 1)
-    @assert(target.sentinel == 1234)
-}
-
-#test
-{
     var holder = RuntimeAffectHolder{}
     holder.target = 77's32
 
@@ -211,6 +227,54 @@ const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
 
     takesExplicit(cast(RuntimeParamAffectTarget) 5's32)
     takesImplicit(7'u16)
+}
+
+#test
+{
+    let delay: RuntimeLiteralAffectTarget = 5's
+
+    @assert(delay.timeInSeconds == 5.0)
+    @assert(delay.calls == 1)
+    @assert(delay.sentinel == 1234)
+}
+
+#test
+{
+    let delay: RuntimeLiteralAffectTarget = 500'ms
+
+    @assert(delay.timeInSeconds == 0.5)
+    @assert(delay.calls == 1)
+    @assert(delay.sentinel == 1234)
+}
+
+#test
+{
+    var delay = RuntimeLiteralAffectTarget{}
+    delay = 2'min
+
+    @assert(delay.timeInSeconds == 120.0)
+    @assert(delay.calls == 1)
+    @assert(delay.sentinel == 1234)
+}
+
+#test
+{
+    func takesImplicit(value: RuntimeLiteralAffectTarget)
+    {
+        @assert(value.timeInSeconds == 0.5)
+        @assert(value.calls == 1)
+        @assert(value.sentinel == 1234)
+    }
+
+    func takesExplicit(value: RuntimeLiteralAffectTarget)
+    {
+        @assert(value.timeInSeconds == 3600.0)
+        @assert(value.calls == 1)
+        @assert(value.sentinel == 1234)
+    }
+
+    takesImplicit(500'ms)
+    takesExplicit(cast(RuntimeLiteralAffectTarget) 1'h)
 }
 
 #test

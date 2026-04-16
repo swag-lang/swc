@@ -678,6 +678,7 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), assignPayload->calledFn);
         if (assignPayload->calledFn->specOpKind() == SpecOpKind::OpAffect ||
+            assignPayload->calledFn->specOpKind() == SpecOpKind::OpAffectLiteral ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpAssign ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpIndexAffect ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpIndexAssign)

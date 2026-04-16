@@ -224,6 +224,10 @@ namespace
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()        = node.flags();
         nodePtr->setCodeRef(node.codeRef());
+        const bool preserveSyntheticSymbol = storedView.sym() &&
+                                             (!node.codeRef().isValid() || sema.token(node.codeRef()).id != TokenId::Identifier);
+        if (preserveSyntheticSymbol)
+            sema.setSymbol(nodeRef, storedView.sym());
         const bool carryInline = !storedView.hasSymbol() && (storedView.typeRef().isValid() || storedView.cstRef().isValid());
         if (carryInline)
         {
@@ -1141,9 +1145,23 @@ AstNodeRef AstAggregateBody::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstSuffixLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
+    const AstNodeRef   sourceRef  = nodeRef(sema.ast());
+    const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
     auto [newRef, newPtr]  = sema.ast().makeNode<AstNodeId::SuffixLiteral>(tokRef());
+    newPtr->setCodeRef(codeRef());
     newPtr->nodeLiteralRef = SemaClone::cloneAst(sema, nodeLiteralRef, cloneContextAsInline(cloneContext));
     newPtr->nodeSuffixRef  = SemaClone::cloneAst(sema, nodeSuffixRef, cloneContextAsInline(cloneContext));
+    if (storedView.typeRef().isValid())
+        sema.setType(newRef, storedView.typeRef());
+    if (storedView.cstRef().isValid())
+        sema.setConstant(newRef, storedView.cstRef());
+    if (sema.isValueStored(sourceRef))
+        sema.setIsValue(newRef);
+    if (sema.isLValueStored(sourceRef))
+        sema.setIsLValue(newRef);
+    if (sema.isFoldedTypedConstStored(sourceRef))
+        sema.setFoldedTypedConst(newRef);
     return newRef;
 }
 

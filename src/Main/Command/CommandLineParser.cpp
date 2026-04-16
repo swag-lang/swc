@@ -43,6 +43,61 @@ namespace
         return *best;
     }
 
+    constexpr uint32_t RSP_MAX_DEPTH = 16;
+
+    // Split response-file content into whitespace-separated tokens.
+    // Supports `"..."` and `'...'` for tokens containing spaces. No escape sequences.
+    // Returns false if a quote is left unterminated.
+    bool tokenizeResponseFile(std::string_view content, std::vector<Utf8>& out)
+    {
+        Utf8 token;
+        char quote = 0;
+        bool inTok = false;
+
+        auto flush = [&]() {
+            if (inTok || quote)
+            {
+                out.push_back(std::move(token));
+                token.clear();
+                inTok = false;
+            }
+        };
+
+        for (char c : content)
+        {
+            if (quote)
+            {
+                if (c == quote)
+                    quote = 0;
+                else
+                    token.push_back(c);
+                continue;
+            }
+
+            if (c == '"' || c == '\'')
+            {
+                quote = c;
+                inTok = true;
+                continue;
+            }
+
+            if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f' || c == '\v')
+            {
+                flush();
+                continue;
+            }
+
+            token.push_back(c);
+            inTok = true;
+        }
+
+        if (quote)
+            return false;
+
+        flush();
+        return true;
+    }
+
     std::vector<Utf8> splitPipe(std::string_view s)
     {
         std::vector<Utf8> out;
@@ -270,7 +325,92 @@ void CommandLineParser::setReportArguments(Diagnostic& diag, const ArgInfo& info
     errorRaised_ = true;
 }
 
-bool CommandLineParser::getNextValue(TaskContext& ctx, const Utf8& arg, const Utf8* inlineValue, int& index, int argc, char* argv[], Utf8& value)
+Result CommandLineParser::expandResponseFiles(TaskContext& ctx, const std::vector<Utf8>& in, std::vector<Utf8>& out)
+{
+    std::set<fs::path> visited;
+    out.reserve(in.size());
+
+    for (const Utf8& token : in)
+    {
+        if (!token.empty() && token[0] == '@' && token.size() > 1)
+        {
+            const fs::path path = token.substr(1).c_str();
+            SWC_RESULT(expandOneResponseFile(ctx, path, out, visited, 0));
+            continue;
+        }
+
+        out.push_back(token);
+    }
+
+    return Result::Continue;
+}
+
+Result CommandLineParser::expandOneResponseFile(TaskContext& ctx, const fs::path& path, std::vector<Utf8>& out, std::set<fs::path>& visited, uint32_t depth)
+{
+    if (depth >= RSP_MAX_DEPTH)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_depth);
+        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    std::error_code ec;
+    fs::path        canonical = fs::weakly_canonical(path, ec);
+    if (ec)
+        canonical = fs::absolute(path, ec);
+
+    if (!visited.insert(canonical).second)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_cycle);
+        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    std::ifstream file(canonical, std::ios::binary);
+    if (!file)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_failed);
+        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(std::make_error_code(std::errc::no_such_file_or_directory)));
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    const std::string content = buffer.str();
+
+    std::vector<Utf8> tokens;
+    if (!tokenizeResponseFile(content, tokens))
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_unterminated);
+        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    for (const Utf8& token : tokens)
+    {
+        if (!token.empty() && token[0] == '@' && token.size() > 1)
+        {
+            const fs::path nestedRaw = token.substr(1).c_str();
+            fs::path       nested    = nestedRaw;
+            if (nested.is_relative())
+                nested = canonical.parent_path() / nested;
+            SWC_RESULT(expandOneResponseFile(ctx, nested, out, visited, depth + 1));
+            continue;
+        }
+
+        out.push_back(token);
+    }
+
+    visited.erase(canonical);
+    return Result::Continue;
+}
+
+bool CommandLineParser::getNextValue(TaskContext& ctx, const Utf8& arg, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args, Utf8& value)
 {
     if (inlineValue)
     {
@@ -278,7 +418,7 @@ bool CommandLineParser::getNextValue(TaskContext& ctx, const Utf8& arg, const Ut
         return true;
     }
 
-    if (index + 1 >= argc)
+    if (index + 1 >= args.size())
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_missing_arg_val);
         setReportArguments(diag, arg);
@@ -286,7 +426,7 @@ bool CommandLineParser::getNextValue(TaskContext& ctx, const Utf8& arg, const Ut
         return false;
     }
 
-    value = argv[++index];
+    value = args[++index];
     return true;
 }
 
@@ -558,7 +698,7 @@ std::optional<Utf8> CommandLineParser::suggestChoice(const Utf8& query, const st
     return bestMatch(query, choices);
 }
 
-bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, int& index, int argc, char* argv[])
+bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args)
 {
     // Boolean-like flags never take a value.
     if (info.isBoolLike())
@@ -582,7 +722,7 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     }
 
     Utf8 value;
-    if (!getNextValue(ctx, arg, inlineValue, index, argc, argv, value))
+    if (!getNextValue(ctx, arg, inlineValue, index, args, value))
         return false;
 
     if (auto* t = std::get_if<int*>(&info.target))
@@ -671,10 +811,18 @@ Result CommandLineParser::parse(int argc, char* argv[])
         command_ = candidate;
     }
 
-    bool endOfOptions = false;
+    std::vector<Utf8> rawArgs;
+    rawArgs.reserve(static_cast<size_t>(argc) - 2);
     for (int i = 2; i < argc; i++)
+        rawArgs.emplace_back(argv[i]);
+
+    std::vector<Utf8> args;
+    SWC_RESULT(expandResponseFiles(ctx, rawArgs, args));
+
+    bool endOfOptions = false;
+    for (size_t i = 0; i < args.size(); i++)
     {
-        const Utf8 raw = argv[i];
+        const Utf8& raw = args[i];
 
         // `--` stops option processing. Anything after is positional, which we do not accept.
         if (!endOfOptions && raw == END_OF_OPTIONS)
@@ -722,7 +870,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         }
 
         const Utf8* inlinePtr = inlineValue.has_value() ? &inlineValue.value() : nullptr;
-        if (!processArgument(ctx, *info, raw, invertBoolean, inlinePtr, i, argc, argv))
+        if (!processArgument(ctx, *info, raw, invertBoolean, inlinePtr, i, args))
             return Result::Error;
     }
 

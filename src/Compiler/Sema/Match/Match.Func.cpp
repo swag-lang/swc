@@ -809,10 +809,12 @@ namespace
     }
 
     // Probes if an implicit conversion from 'from' to 'to' is possible and returns its rank.
-    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
+    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument, bool allowUserDefinedLiteralSuffix)
     {
         outRank = ConvRank::Bad;
-        if (from == to)
+        UserDefinedLiteralSuffixInfo suffixInfo;
+        const bool                   hasUserDefinedLiteralSuffix = Cast::resolveUserDefinedLiteralSuffix(sema, argRef, suffixInfo);
+        if (from == to && (!hasUserDefinedLiteralSuffix || allowUserDefinedLiteralSuffix))
         {
             outRank = ConvRank::Exact;
             return Result::Continue;
@@ -840,6 +842,8 @@ namespace
         castRequest.setConstantFoldingSrc(argNodeView.cstRef());
         if (isUfcsArgument)
             castRequest.flags.add(CastFlagsE::UfcsArgument);
+        if (allowUserDefinedLiteralSuffix)
+            castRequest.flags.add(CastFlagsE::LiteralSuffixConsume);
 
         const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, to, from);
         const TypeRef castToTypeRef    = bindValueTypeRef.isValid() ? bindValueTypeRef : to;
@@ -1237,8 +1241,9 @@ namespace
             }
 
             const bool isUfcsArgument = allowsImplicitAddressBinding(fn, i, ufcsArg);
+            const bool allowUserDefinedLiteralSuffix = fn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffectLiteral);
             auto       r              = ConvRank::Bad;
-            SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument));
+            SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument, allowUserDefinedLiteralSuffix));
             if (r == ConvRank::Bad)
             {
                 if (cf.diagId == DiagnosticId::None)
@@ -1273,7 +1278,7 @@ namespace
                     const TypeRef    argTy  = sema.viewType(argRef).typeRef();
                     CastFailure      cf{};
                     auto             r = ConvRank::Bad;
-                    SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
+                    SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false, false));
                     if (r == ConvRank::Bad)
                     {
                         if (cf.diagId == DiagnosticId::None)
@@ -1556,6 +1561,8 @@ namespace
             CastFlags flags = CastFlagsE::Zero;
             if (castTypeRef == paramTypeRef && allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
                 flags.add(CastFlagsE::UfcsArgument);
+            if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffectLiteral))
+                flags.add(CastFlagsE::LiteralSuffixConsume);
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, mapping.paramArgs[i].callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());

@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -16,6 +17,82 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef unwrapLiteralSuffixCarrier(const Sema& sema, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid())
+        {
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::NamedArgument))
+            {
+                nodeRef = node.cast<AstNamedArgument>().nodeArgRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::InitializerExpr))
+            {
+                nodeRef = node.cast<AstInitializerExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::CastExpr))
+            {
+                nodeRef = node.cast<AstCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::AutoCastExpr))
+            {
+                nodeRef = node.cast<AstAutoCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            return nodeRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
+    const AstSuffixLiteral* customLiteralSuffixNode(const Sema& sema, AstNodeRef nodeRef, AstNodeRef& outExprRef)
+    {
+        outExprRef = AstNodeRef::invalid();
+        nodeRef    = unwrapLiteralSuffixCarrier(sema, nodeRef);
+        if (nodeRef.isInvalid())
+            return nullptr;
+
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::SuffixLiteral))
+        {
+            const auto& suffixLiteral = node.cast<AstSuffixLiteral>();
+            if (sema.node(suffixLiteral.nodeSuffixRef).is(AstNodeId::Identifier))
+            {
+                outExprRef = nodeRef;
+                return &suffixLiteral;
+            }
+
+            return nullptr;
+        }
+
+        if (!node.is(AstNodeId::UnaryExpr))
+            return nullptr;
+
+        const Token& tok = sema.token(node.codeRef());
+        if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus}))
+            return nullptr;
+
+        AstNodeRef operandRef = unwrapLiteralSuffixCarrier(sema, node.cast<AstUnaryExpr>().nodeExprRef);
+        if (operandRef.isInvalid())
+            return nullptr;
+        if (sema.node(operandRef).isNot(AstNodeId::SuffixLiteral))
+            return nullptr;
+
+        const auto& suffixLiteral = sema.node(operandRef).cast<AstSuffixLiteral>();
+        if (sema.node(suffixLiteral.nodeSuffixRef).isNot(AstNodeId::Identifier))
+            return nullptr;
+
+        outExprRef = nodeRef;
+        return &suffixLiteral;
+    }
+
     struct CastStructArgs
     {
         Sema*           sema;
@@ -365,6 +442,40 @@ namespace
 
 }
 
+bool Cast::resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo)
+{
+    outInfo = {};
+
+    AstNodeRef              exprRef       = AstNodeRef::invalid();
+    const AstSuffixLiteral* suffixLiteral = customLiteralSuffixNode(sema, nodeRef, exprRef);
+    if (!suffixLiteral)
+        return false;
+
+    const AstNode&      suffixNode = sema.node(suffixLiteral->nodeSuffixRef);
+    const SourceView&   srcView    = sema.compiler().srcView(suffixNode.srcViewRef());
+    const Token&        tok        = sema.token(suffixNode.codeRef());
+    const std::string_view suffix  = tok.string(srcView);
+    if (suffix.empty())
+        return false;
+
+    outInfo.exprRef    = exprRef;
+    outInfo.literalRef = suffixLiteral->nodeLiteralRef;
+    outInfo.suffix     = suffix;
+    if (exprRef.isValid() && sema.node(exprRef).is(AstNodeId::UnaryExpr))
+        outInfo.unaryOp = sema.token(sema.node(exprRef).codeRef()).id;
+    return true;
+}
+
+TokenRef Cast::userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRef)
+{
+    UserDefinedLiteralSuffixInfo suffixInfo;
+    if (resolveUserDefinedLiteralSuffix(sema, nodeRef, suffixInfo) && suffixInfo.literalRef.isValid())
+        return sema.node(suffixInfo.literalRef).tokRef();
+    if (nodeRef.isValid())
+        return sema.node(nodeRef).tokRef();
+    return TokenRef::invalid();
+}
+
 Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo&      srcType = sema.typeMgr().get(srcTypeRef);
@@ -395,14 +506,14 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     TypeRef             paramTypeRef = TypeRef::invalid();
     const SourceCodeRef codeRef      = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
                                                                                                                                           : sema.node(sema.curNodeRef()).codeRef();
-    SWC_RESULT(resolveStructAffectCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, paramTypeRef));
+    SWC_RESULT(resolveStructAffectCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, paramTypeRef, castRequest.errorNodeRef));
     if (calledFn)
         return Result::Continue;
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef)
+Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef)
 {
     outCalledFn     = nullptr;
     outParamTypeRef = TypeRef::invalid();
@@ -417,20 +528,24 @@ Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& c
 
     SWC_RESULT(sema.waitSemaCompleted(&dstType, sema.curNodeRef()));
 
-    const IdentifierRef opAffectId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect);
-    const auto          candidates = dstType.payloadSymStruct().getSpecOp(opAffectId);
+    SmallVector<Symbol*> candidates;
+    SWC_RESULT(SemaSpecOp::collectAffectCandidates(sema, dstType.payloadSymStruct(), codeRef, srcNodeRef, candidates));
     if (candidates.empty())
         return Result::Continue;
 
     auto            bestRank = AffectCastRank::Bad;
     SymbolFunction* bestFn   = nullptr;
-    for (SymbolFunction* calledFn : candidates)
+    for (Symbol* candidate : candidates)
     {
+        auto* const calledFn = candidate ? candidate->safeCast<SymbolFunction>() : nullptr;
+        if (!calledFn)
+            continue;
+
         // Special ops can be registered on the struct before the method
         // signature itself has finished semantic resolution.
         SWC_RESULT(sema.waitSemaCompleted(calledFn, codeRef));
 
-        if (!calledFn || !allowsStructAffectCast(*calledFn, castKind))
+        if (!allowsStructAffectCast(*calledFn, castKind))
             continue;
 
         const AffectCastRank rank = rankStructAffectCandidate(sema, codeRef, srcTypeRef, dstTypeRef, *calledFn);

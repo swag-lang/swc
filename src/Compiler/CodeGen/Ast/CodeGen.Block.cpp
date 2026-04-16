@@ -13,7 +13,7 @@ namespace
     // the inline root of a mixin expansion.
     bool isMixinBody(CodeGen& codeGen)
     {
-        const SemaInlinePayload* inlinePayload = codeGen.sema().semaPayload<SemaInlinePayload>(codeGen.curNodeRef());
+        const SemaInlinePayload* inlinePayload = codeGen.sema().inlinePayload(codeGen.curNodeRef());
         return inlinePayload &&
                inlinePayload->inlineRootRef == codeGen.curNodeRef() &&
                inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);

@@ -87,6 +87,29 @@ impl ConstAffectVector2
     }
 }
 
+struct LiteralAffectTarget
+{
+    timeInSeconds: f32
+}
+
+impl LiteralAffectTarget
+{
+    #[Swag.Implicit]
+    mtd(suffix: string) opAffectLiteral(value: s32)
+    {
+        #if suffix == "s" do
+            .timeInSeconds = value
+        #elif suffix == "ms" do
+            .timeInSeconds = value / 1000.0
+        #elif suffix == "min" do
+            .timeInSeconds = value * 60.0
+        #elif suffix == "h" do
+            .timeInSeconds = value * 3600.0
+        #else do
+            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+    }
+}
+
 const ConstAffectOne: ConstAffectVector2 = 1.0
 #assert(ConstAffectOne.x == 1.0)
 #assert(ConstAffectOne.y == 1.0)
@@ -106,12 +129,9 @@ const ConstAffectOne: ConstAffectVector2 = 1.0
 {
     let fromInt: AffectTarget = 42's32
     var fromFloat: AffectTarget = 3.5'f32
-    let source = AffectSource{value: 8}
-    let fromSource: AffectTarget = source
 
     #assert(#typeof(fromInt) == AffectTarget)
     #assert(#typeof(fromFloat) == AffectTarget)
-    #assert(#typeof(fromSource) == AffectTarget)
 }
 
 #test
@@ -146,6 +166,23 @@ const ConstAffectOne: ConstAffectVector2 = 1.0
 
     let complete: ParamAffectTarget = 2'u64
     #assert(#typeof(complete) == ParamAffectTarget)
+}
+
+#test
+{
+    let delay1: LiteralAffectTarget = 5's
+    let delay2: LiteralAffectTarget = 500'ms
+    let delay3 = cast(LiteralAffectTarget) 2'min
+    var delay4 = LiteralAffectTarget{}
+    delay4 = 1'h
+
+    func takesImplicit(value: LiteralAffectTarget) {}
+    takesImplicit(5'ms)
+
+    #assert(#typeof(delay1) == LiteralAffectTarget)
+    #assert(#typeof(delay2) == LiteralAffectTarget)
+    #assert(#typeof(delay3) == LiteralAffectTarget)
+    #assert(#typeof(delay4) == LiteralAffectTarget)
 }
 
 #test

@@ -34,14 +34,17 @@ Result AstAsCastExpr::semaPreNodeChild(const Sema& sema, const AstNodeRef& child
     return Result::Continue;
 }
 
+Result AstSuffixLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeSuffixRef && sema.node(childRef).is(AstNodeId::Identifier))
+        return Result::SkipChildren;
+
+    return Result::Continue;
+}
+
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     const TaskContext& ctx        = sema.ctx();
-    const SemaNodeView suffixView = sema.viewType(nodeSuffixRef);
-    const TypeRef      typeRef    = suffixView.typeRef();
-    sema.setType(sema.curNodeRef(), typeRef);
-    sema.setIsValue(sema.curNodeRef());
-
     SemaNodeView nodeLiteralView = sema.viewNodeTypeConstant(nodeLiteralRef);
     SWC_ASSERT(nodeLiteralView.cstRef().isValid());
 
@@ -77,6 +80,20 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
         }
     }
 
+    UserDefinedLiteralSuffixInfo suffixInfo;
+    if (Cast::resolveUserDefinedLiteralSuffix(sema, sema.curNodeRef(), suffixInfo))
+    {
+        sema.setType(sema.curNodeRef(), nodeLiteralView.typeRef());
+        sema.setIsValue(sema.curNodeRef());
+        sema.setConstant(nodeLiteralView.nodeRef(), cstRef);
+        sema.setConstant(sema.curNodeRef(), cstRef);
+        return Result::Continue;
+    }
+
+    const SemaNodeView suffixView = sema.viewType(nodeSuffixRef);
+    const TypeRef      typeRef    = suffixView.typeRef();
+    sema.setType(sema.curNodeRef(), typeRef);
+    sema.setIsValue(sema.curNodeRef());
     sema.setConstant(nodeLiteralView.nodeRef(), cstRef);
     nodeLiteralView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     SWC_RESULT(Cast::cast(sema, nodeLiteralView, typeRef, CastKind::LiteralSuffix));

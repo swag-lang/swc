@@ -84,30 +84,36 @@ namespace
             return false;
 
         const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
-        // Nested UFCS receiver discovery can happen before plain identifiers are fully typed,
-        // but a non-type variable symbol is already enough to identify a valid receiver.
         if (view.sym())
         {
-            if (view.sym()->isType())
+            if (view.sym()->isNamespace() || view.sym()->isModule())
                 return false;
             if (view.sym()->isVariable())
                 return true;
         }
 
-        if (!view.type() || view.type()->isType())
-            return false;
+        if (sema.isValue(nodeRef))
+            return true;
 
-        return sema.isValue(view.nodeRef());
+        // The resolved expression type is the most reliable signal here. Some receiver
+        // expressions (for example enum-value member accesses or inlined clones) can still
+        // carry a type symbol on the node while already having a concrete non-type result.
+        if (view.type() && !view.type()->isType())
+            return true;
+
+        return false;
     }
 
     AstNodeRef resolveUfcsReceiverArg(Sema& sema, AstNodeRef calleeExprRef)
     {
-        const AstNodeRef resolvedCalleeRef = SemaHelpers::unwrapCallCalleeRef(sema, calleeExprRef);
+        AstNodeRef resolvedCalleeRef = calleeExprRef;
+        if (resolvedCalleeRef.isValid() && sema.node(resolvedCalleeRef).isNot(AstNodeId::MemberAccessExpr))
+            resolvedCalleeRef = SemaHelpers::unwrapCallCalleeRef(sema, calleeExprRef);
         if (resolvedCalleeRef.isInvalid() || sema.node(resolvedCalleeRef).isNot(AstNodeId::MemberAccessExpr))
             return AstNodeRef::invalid();
 
         const auto& outerMember = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();
-        if (sema.isValue(outerMember.nodeLeftRef))
+        if (isNestedUfcsReceiverValue(sema, outerMember.nodeLeftRef))
         {
             const SemaNodeView outerLeftView = sema.viewNodeTypeSymbol(outerMember.nodeLeftRef);
             if (outerLeftView.type() && outerLeftView.type()->isInterface())

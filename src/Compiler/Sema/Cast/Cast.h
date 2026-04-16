@@ -1,4 +1,5 @@
 #pragma once
+#include <string_view>
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -32,6 +33,14 @@ struct DynamicStructCastSourceInfo
     bool                        sourceIsConst = false;
 };
 
+struct UserDefinedLiteralSuffixInfo
+{
+    AstNodeRef       exprRef = AstNodeRef::invalid();
+    AstNodeRef       literalRef = AstNodeRef::invalid();
+    TokenId          unaryOp = TokenId::Invalid;
+    std::string_view suffix;
+};
+
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo);
 
 struct Cast
@@ -50,7 +59,9 @@ struct Cast
     static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& view);
     static TypeRef    runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
     static Result     retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    static Result     resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef);
+    static bool       resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo);
+    static TokenRef   userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRef);
+    static Result     resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef = AstNodeRef::invalid());
 
 private:
     static Result castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

@@ -164,7 +164,8 @@ namespace
     {
         {
             const std::shared_lock lk(shard.mutex);
-            if (const auto it = shard.map.find(value); it != shard.map.end())
+            const auto it = shard.map.find(value);
+            if (it != shard.map.end())
                 return it->second;
         }
 
@@ -173,7 +174,8 @@ namespace
 
         {
             const std::unique_lock lk(shard.mutex);
-            if (const auto it = shard.map.find(value); it != shard.map.end())
+            const auto it = shard.map.find(value);
+            if (it != shard.map.end())
                 return it->second;
 
             const std::pair<std::string_view, Ref> res      = shard.dataSegment.addString(value.getString());
@@ -237,13 +239,15 @@ namespace
         if (stored.dataSegmentRef().isInvalid())
         {
             const std::shared_lock lk(shard.mutex);
-            if (const auto it = shard.map.find(stored); it != shard.map.end())
+            const auto it = shard.map.find(stored);
+            if (it != shard.map.end())
                 return it->second;
         }
         else
         {
             const std::unique_lock lk(shard.mutex);
-            if (const auto it = shard.map.find(stored); it != shard.map.end())
+            const auto it = shard.map.find(stored);
+            if (it != shard.map.end())
             {
                 updateStoredDataSegmentRef(shard, it->second, stored.dataSegmentRef());
                 return it->second;
@@ -327,17 +331,19 @@ namespace
 
 ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
-    if (const ConstantRef cstRef = tryGetBuiltinConstant(ctx, value); cstRef.isValid())
+    const ConstantRef builtin = tryGetBuiltinConstant(ctx, value);
+    if (builtin.isValid())
     {
         recordConstantBuiltinFastHit();
-        return cstRef;
+        return builtin;
     }
 
     uint32_t cacheIndex = INVALID_REF;
     if (smallScalarCacheIndex(cacheIndex, ctx, value))
     {
-        if (const ConstantRef cstRef = tryGetSmallScalarCache(cacheIndex); cstRef.isValid())
-            return cstRef;
+        const ConstantRef cached = tryGetSmallScalarCache(cacheIndex);
+        if (cached.isValid())
+            return cached;
 
         recordConstantSmallScalarCacheMiss();
         const ConstantRef cstRef = addConstantSlow(ctx, value);
@@ -626,9 +632,10 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
 
-    if (const ConstantRef cached = tryGetTypeInfoCache(shard, typeRef); cached.isValid())
+    const ConstantRef cachedBeforeBuild = tryGetTypeInfoCache(shard, typeRef);
+    if (cachedBeforeBuild.isValid())
     {
-        outRef = cached;
+        outRef = cachedBeforeBuild;
         return Result::Continue;
     }
 
@@ -636,9 +643,10 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     SWC_RESULT(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
     SWC_ASSERT(infoResult.span.data());
 
-    if (const ConstantRef cached = tryGetTypeInfoCache(shard, typeRef); cached.isValid())
+    const ConstantRef cachedAfterBuild = tryGetTypeInfoCache(shard, typeRef);
+    if (cachedAfterBuild.isValid())
     {
-        outRef = cached;
+        outRef = cachedAfterBuild;
         return Result::Continue;
     }
 

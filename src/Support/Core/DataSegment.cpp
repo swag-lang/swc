@@ -12,6 +12,61 @@ namespace
             return value;
         return (value + (align - 1)) & ~(align - 1);
     }
+
+    bool containsLargeBlockRange(const DataSegment::LargeBlock& block, const Ref ref, const uint32_t size) noexcept
+    {
+        return ref >= block.offset && ref + size <= block.offset + block.size;
+    }
+
+    std::byte* findLargeBlockPtr(std::vector<DataSegment::LargeBlock>& blocks, const Ref ref, const uint32_t size) noexcept
+    {
+        for (DataSegment::LargeBlock& block : blocks)
+        {
+            if (ref < block.offset)
+                break;
+            if (containsLargeBlockRange(block, ref, size))
+                return block.storage.get() + (ref - block.offset);
+        }
+
+        return nullptr;
+    }
+
+    const std::byte* findLargeBlockPtr(const std::vector<DataSegment::LargeBlock>& blocks, const Ref ref, const uint32_t size) noexcept
+    {
+        for (const DataSegment::LargeBlock& block : blocks)
+        {
+            if (ref < block.offset)
+                break;
+            if (containsLargeBlockRange(block, ref, size))
+                return block.storage.get() + (ref - block.offset);
+        }
+
+        return nullptr;
+    }
+
+    struct RelocationOffsetProjection
+    {
+        const std::vector<DataSegmentRelocation>* relocations = nullptr;
+
+        uint32_t operator()(const uint32_t index) const
+        {
+            return (*relocations)[index].offset;
+        }
+    };
+
+    struct RelocationIndexLess
+    {
+        const std::vector<DataSegmentRelocation>* relocations = nullptr;
+
+        bool operator()(const uint32_t lhs, const uint32_t rhs) const
+        {
+            const uint32_t lhsOffset = (*relocations)[lhs].offset;
+            const uint32_t rhsOffset = (*relocations)[rhs].offset;
+            if (lhsOffset != rhsOffset)
+                return lhsOffset < rhsOffset;
+            return lhs < rhs;
+        }
+    };
 }
 
 std::pair<ByteSpan, Ref> DataSegment::addSpan(ByteSpan value)
@@ -201,9 +256,8 @@ void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocat
 
 void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, const uint32_t offset, const uint32_t size) const
 {
-    const auto begin = std::ranges::lower_bound(relocationsByOffset_, offset, {}, [this](const uint32_t index) {
-        return relocations_[index].offset;
-    });
+    const RelocationOffsetProjection projection{.relocations = &relocations_};
+    const auto begin = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
 
     for (auto it = begin; it != relocationsByOffset_.end(); ++it)
     {
@@ -291,13 +345,8 @@ std::byte* DataSegment::findPtrLocked(const Ref ref, const uint32_t size) noexce
 
     if (!largeBlocks_.empty())
     {
-        for (const LargeBlock& block : largeBlocks_)
-        {
-            if (ref < block.offset)
-                break;
-            if (ref >= block.offset && ref + size <= block.offset + block.size)
-                return block.storage.get() + (ref - block.offset);
-        }
+        if (std::byte* ptr = findLargeBlockPtr(largeBlocks_, ref, size))
+            return ptr;
     }
 
     SWC_ASSERT(ref + size <= store_.extentSize());
@@ -310,13 +359,8 @@ const std::byte* DataSegment::findPtrLocked(const Ref ref, const uint32_t size) 
 
     if (!largeBlocks_.empty())
     {
-        for (const LargeBlock& block : largeBlocks_)
-        {
-            if (ref < block.offset)
-                break;
-            if (ref >= block.offset && ref + size <= block.offset + block.size)
-                return block.storage.get() + (ref - block.offset);
-        }
+        if (const std::byte* ptr = findLargeBlockPtr(largeBlocks_, ref, size))
+            return ptr;
     }
 
     SWC_ASSERT(ref + size <= store_.extentSize());
@@ -347,13 +391,8 @@ void DataSegment::rebuildRelocationsByOffsetLocked() const
 
     relocationsByOffset_.resize(relocations_.size());
     std::iota(relocationsByOffset_.begin(), relocationsByOffset_.end(), 0u);
-    std::ranges::sort(relocationsByOffset_, [this](const uint32_t lhs, const uint32_t rhs) {
-        const uint32_t lhsOffset = relocations_[lhs].offset;
-        const uint32_t rhsOffset = relocations_[rhs].offset;
-        if (lhsOffset != rhsOffset)
-            return lhsOffset < rhsOffset;
-        return lhs < rhs;
-    });
+    const RelocationIndexLess sortRelocations{.relocations = &relocations_};
+    std::ranges::sort(relocationsByOffset_, sortRelocations);
     relocationsByOffsetDirty_ = false;
 }
 

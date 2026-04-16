@@ -30,6 +30,25 @@ namespace
         std::map<Utf8, std::unique_ptr<TreeNode>> children;
     };
 
+    TreeNode& getOrCreateChild(TreeNode& node, std::string_view segment)
+    {
+        Utf8 key(segment);
+        auto it = node.children.find(key);
+        if (it == node.children.end())
+        {
+            auto child     = std::make_unique<TreeNode>();
+            child->segment = key;
+            it             = node.children.emplace(std::move(key), std::move(child)).first;
+        }
+
+        return *it->second;
+    }
+
+    bool comparePeakBytesDesc(const TreeNode* lhs, const TreeNode* rhs)
+    {
+        return lhs->peakBytes > rhs->peakBytes;
+    }
+
     void insertIntoTree(TreeNode& root, const MemoryProfile::CategorySnapshot& snap)
     {
         TreeNode*        node = &root;
@@ -50,16 +69,7 @@ namespace
                 name    = name.substr(sep + 1);
             }
 
-            Utf8 key(segment);
-            auto it = node->children.find(key);
-            if (it == node->children.end())
-            {
-                auto child     = std::make_unique<TreeNode>();
-                child->segment = key;
-                it             = node->children.emplace(std::move(key), std::move(child)).first;
-            }
-
-            node = it->second.get();
+            node = &getOrCreateChild(*node, segment);
         }
 
         node->peakBytes += snap.peakBytes;
@@ -144,9 +154,7 @@ namespace
         sorted.reserve(node.children.size());
         for (const auto& child : node.children | std::views::values)
             sorted.push_back(child.get());
-        std::ranges::sort(sorted, [](const TreeNode* a, const TreeNode* b) {
-            return a->peakBytes > b->peakBytes;
-        });
+        std::ranges::sort(sorted, comparePeakBytesDesc);
 
         for (const auto* child : sorted)
         {

@@ -66,6 +66,18 @@ public:
     Result      parse(int argc, char* argv[]);
 
 private:
+    template<typename E>
+    static void setEnumIntValue(void* target, int value)
+    {
+        *static_cast<E*>(target) = static_cast<E>(value);
+    }
+
+    template<typename E>
+    static int getEnumIntValue(const void* target)
+    {
+        return static_cast<int>(*static_cast<const E*>(target));
+    }
+
     std::vector<ArgInfo>   args_;
     std::map<Utf8, size_t> longFormMap_;
     std::map<Utf8, size_t> shortFormMap_;
@@ -119,12 +131,8 @@ private:
     {
         EnumIntTarget et;
         et.target = target;
-        et.setter = [](void* t, int v) {
-            *static_cast<E*>(t) = static_cast<E>(v);
-        };
-        et.getter = [](const void* t) {
-            return static_cast<int>(*static_cast<const E*>(t));
-        };
+        et.setter = &CommandLineParser::setEnumIntValue<E>;
+        et.getter = &CommandLineParser::getEnumIntValue<E>;
 
         ArgInfo& info = addImpl(g, cmds, lf, sf, desc, et);
         for (const auto& [name, val] : choices)

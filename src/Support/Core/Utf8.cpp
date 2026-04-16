@@ -7,6 +7,27 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // <cctype> expects unsigned-char values; using signed chars here is undefined for non-ASCII bytes.
+    bool isWhitespaceByte(const char8_t ch)
+    {
+        return std::isspace(static_cast<unsigned char>(ch)) != 0;
+    }
+
+    bool isControlByte(const char8_t ch)
+    {
+        return ch < 0x20 || ch == 0x7F;
+    }
+
+    char toLowerAsciiByte(const char8_t ch)
+    {
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+
+    char toUpperAsciiByte(const char8_t ch)
+    {
+        return static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+    }
+
     Utf8 replaceOutsideQuotes(std::string_view input, std::string_view from, std::string_view to)
     {
         Utf8 result;
@@ -65,12 +86,12 @@ Utf8::Utf8(const Runtime::String& value) :
 
 void Utf8::trim_start()
 {
-    erase(begin(), std::ranges::find_if(begin(), end(), [](char8_t ch) { return !std::isspace(ch); }));
+    erase(begin(), std::ranges::find_if_not(begin(), end(), isWhitespaceByte));
 }
 
 void Utf8::trim_end()
 {
-    erase(std::ranges::find_if(rbegin(), rend(), [](char8_t ch) { return !std::isspace(ch); }).base(), end());
+    erase(std::ranges::find_if_not(rbegin(), rend(), isWhitespaceByte).base(), end());
 }
 
 void Utf8::trim()
@@ -81,17 +102,17 @@ void Utf8::trim()
 
 void Utf8::clean()
 {
-    std::ranges::replace_if(*this, [](char8_t ch) { return ch < 0x20 || ch == 0x7F; }, ' ');
+    std::ranges::replace_if(*this, isControlByte, ' ');
 }
 
 void Utf8::make_lower()
 {
-    std::ranges::transform(*this, begin(), [](char8_t ch) { return static_cast<char>(std::tolower(ch)); });
+    std::ranges::transform(*this, begin(), toLowerAsciiByte);
 }
 
 void Utf8::make_upper()
 {
-    std::ranges::transform(*this, begin(), [](char8_t ch) { return static_cast<char>(std::toupper(ch)); });
+    std::ranges::transform(*this, begin(), toUpperAsciiByte);
 }
 
 void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopReplace)

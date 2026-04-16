@@ -1,5 +1,6 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
+#include <tuple>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -14,6 +15,44 @@ class StringMap
 {
     static_assert(std::is_trivially_copyable_v<T>, "StringMap<T> POD version requires trivially copyable T");
     static_assert(std::is_trivially_destructible_v<T>, "StringMap<T> POD version requires trivially destructible T");
+
+    struct KeepExisting
+    {
+        void operator()(T&) const noexcept
+        {
+        }
+    };
+
+    struct CopyValue
+    {
+        const T* value = nullptr;
+
+        void operator()(T& dst) const
+        {
+            dst = *value;
+        }
+    };
+
+    struct MoveValue
+    {
+        T* value = nullptr;
+
+        void operator()(T& dst) const
+        {
+            dst = std::move(*value);
+        }
+    };
+
+    template<class... Args>
+    struct EmplaceValue
+    {
+        std::tuple<Args&&...> args;
+
+        void operator()(T& dst)
+        {
+            dst = std::make_from_tuple<T>(std::move(args));
+        }
+    };
 
 public:
     using value_type = T;
@@ -32,19 +71,22 @@ public:
     // Insert-or-assign with precomputed hash. Returns {ptr, inserted?}.
     std::pair<T*, bool> insert_or_assign(std::string_view key, uint32_t hash, const T& value)
     {
-        return upsertHashed(key, hash, [&](T& dst) { dst = value; }, [&](T& dst) { dst = value; });
+        const CopyValue action{.value = &value};
+        return upsertHashed(key, hash, action, action);
     }
 
     std::pair<T*, bool> insert_or_assign(std::string_view key, uint32_t hash, T&& value)
     {
-        return upsertHashed(key, hash, [&](T& dst) { dst = std::move(value); }, [&](T& dst) { dst = std::move(value); });
+        const MoveValue action{.value = &value};
+        return upsertHashed(key, hash, action, action);
     }
 
     // Try-emplace with precomputed hash. (Construct only if missing.)
     template<class... Args>
     std::pair<T*, bool> try_emplace(std::string_view key, uint32_t hash, Args&&... args)
     {
-        return upsertHashed(key, hash, [&](T& dst) { dst = T(std::forward<Args>(args)...); }, [&](T&) {});
+        EmplaceValue<Args...> onInsert{.args = std::forward_as_tuple(std::forward<Args>(args)...)};
+        return upsertHashed(key, hash, std::move(onInsert), KeepExisting{});
     }
 
     // Get existing or create default-constructed (zero-initialized) if missing.

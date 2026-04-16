@@ -23,29 +23,32 @@ namespace
         DiagnosticId                  id = DiagnosticId::None;
     };
 
+    template<size_t N>
+    void addDiagnosticInfo(std::array<DiagnosticIdInfo, N>& infos, DiagnosticId id, std::string_view name, DiagnosticSeverity severity, std::string_view msg)
+    {
+        DiagnosticIdInfo& info = infos[static_cast<size_t>(id)];
+        if (info.id == DiagnosticId::None)
+        {
+            info.id       = id;
+            info.name     = name;
+            info.severity = severity;
+        }
+        else
+        {
+            SWC_ASSERT(info.id == id);
+            SWC_ASSERT(info.name == name);
+            SWC_ASSERT(info.severity == severity);
+        }
+
+        info.messages.push_back(msg);
+    }
+
     std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> makeDiagnosticInfos()
     {
         std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> arr{};
 
-        auto add = [&](DiagnosticId id, std::string_view name, DiagnosticSeverity severity, std::string_view msg) {
-            DiagnosticIdInfo& info = arr[static_cast<size_t>(id)];
-            if (info.id == DiagnosticId::None)
-            {
-                info.id       = id;
-                info.name     = name;
-                info.severity = severity;
-            }
-            else
-            {
-                SWC_ASSERT(info.id == id);
-                SWC_ASSERT(info.name == name);
-                SWC_ASSERT(info.severity == severity);
-            }
-            info.messages.push_back(msg);
-        };
-
 #define SWC_DIAG_DEF(id, sev, msg) \
-    add(DiagnosticId::id, #id, DiagnosticSeverity::sev, msg);
+    addDiagnosticInfo(arr, DiagnosticId::id, #id, DiagnosticSeverity::sev, msg);
 #include "Support/Report/Msg/Errors.msg"
 
 #include "Support/Report/Msg/Notes.msg"

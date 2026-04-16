@@ -35,28 +35,32 @@ namespace CodeGenTypeHelpers
 
     inline MicroOpBits copyBits(const TypeInfo& typeInfo)
     {
-        if (const auto bits = numericBits(typeInfo); bits != MicroOpBits::Zero)
+        const MicroOpBits bits = numericBits(typeInfo);
+        if (bits != MicroOpBits::Zero)
             return bits;
         return MicroOpBits::B64;
     }
 
     inline MicroOpBits conditionBits(const TypeInfo& typeInfo, TaskContext& ctx)
     {
-        if (const auto bits = bitsFromStorageSize(typeInfo.sizeOf(ctx)); bits != MicroOpBits::Zero)
+        const MicroOpBits bits = bitsFromStorageSize(typeInfo.sizeOf(ctx));
+        if (bits != MicroOpBits::Zero)
             return bits;
         return MicroOpBits::B64;
     }
 
     inline MicroOpBits compareBits(const TypeInfo& typeInfo, TaskContext& ctx)
     {
-        if (const auto bits = numericOrBoolBits(typeInfo); bits != MicroOpBits::Zero)
+        const MicroOpBits bits = numericOrBoolBits(typeInfo);
+        if (bits != MicroOpBits::Zero)
             return bits;
         return conditionBits(typeInfo, ctx);
     }
 
     inline MicroOpBits scalarStoreBits(const TypeInfo& typeInfo, TaskContext& ctx)
     {
-        if (const auto bits = numericOrBoolBits(typeInfo); bits != MicroOpBits::Zero)
+        const MicroOpBits bits = numericOrBoolBits(typeInfo);
+        if (bits != MicroOpBits::Zero)
             return bits;
 
         if (typeInfo.isEnum() || typeInfo.isAnyPointer() || (typeInfo.isFunction() && !typeInfo.isLambdaClosure()) || typeInfo.isCString() || typeInfo.isTypeInfo())

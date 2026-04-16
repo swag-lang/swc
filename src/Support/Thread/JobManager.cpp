@@ -7,6 +7,38 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool isWaitingJobForClient(const JobRecord* rec, const JobClientId client)
+    {
+        return rec && rec->clientId == client && rec->state == JobRecord::State::Waiting;
+    }
+
+    bool compareJobRecordIndex(const JobRecord* lhs, const JobRecord* rhs)
+    {
+        return lhs->index < rhs->index;
+    }
+
+    template<typename TRecord>
+    void collectWaitingRecordsForClient(std::vector<TRecord*>& out, const std::unordered_set<JobRecord*>& liveRecs, const JobClientId client)
+    {
+        out.reserve(liveRecs.size());
+        for (JobRecord* rec : liveRecs)
+        {
+            if (isWaitingJobForClient(rec, client))
+                out.push_back(static_cast<TRecord*>(rec));
+        }
+    }
+
+    std::size_t readyRunningCountForClient(const std::unordered_map<JobClientId, std::size_t>& readyRunning, const JobClientId client)
+    {
+        const auto it = readyRunning.find(client);
+        if (it == readyRunning.end())
+            return 0;
+        return it->second;
+    }
+}
+
 struct JobManager::RecordPool
 {
     // Thread-local free list (LIFO for cache locality).
@@ -154,21 +186,8 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
         return;
 
     std::vector<const JobRecord*> temp;
-    temp.reserve(liveRecs_.size());
-    for (const JobRecord* rec : liveRecs_)
-    {
-        if (!rec)
-            continue;
-        if (rec->clientId != client)
-            continue;
-        if (rec->state != JobRecord::State::Waiting)
-            continue;
-        temp.push_back(rec);
-    }
-
-    std::ranges::sort(temp, [](const JobRecord* a, const JobRecord* b) {
-        return a->index < b->index;
-    });
+    collectWaitingRecordsForClient(temp, liveRecs_, client);
+    std::ranges::sort(temp, compareJobRecordIndex);
 
     for (const JobRecord* t : temp)
         waiting.push_back(t->job);
@@ -297,19 +316,8 @@ bool JobManager::wakeAll(JobClientId client)
     if (singleThreaded_)
     {
         std::vector<JobRecord*> temp;
-        temp.reserve(liveRecs_.size());
-        for (JobRecord* rec : liveRecs_)
-        {
-            if (!rec)
-                continue;
-            if (rec->clientId != client)
-                continue;
-            if (rec->state != JobRecord::State::Waiting)
-                continue;
-            temp.push_back(rec);
-        }
-
-        std::ranges::sort(temp, [](const JobRecord* a, const JobRecord* b) { return a->index < b->index; });
+        collectWaitingRecordsForClient(temp, liveRecs_, client);
+        std::ranges::sort(temp, compareJobRecordIndex);
         for (JobRecord* rec : temp)
         {
             rec->state = JobRecord::State::Ready;
@@ -348,9 +356,7 @@ void JobManager::waitAll(JobClientId client)
         // Existing multithreaded behavior
         std::unique_lock lk(mtx_);
         idleCv_.wait(lk, [&] {
-            const std::unordered_map<JobClientId, std::size_t>::const_iterator it = clientReadyRunning_.find(client);
-            const std::size_t                                                  n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
-            return n == 0;
+            return readyRunningCountForClient(clientReadyRunning_, client) == 0;
         });
         return;
     }
@@ -364,9 +370,7 @@ void JobManager::waitAll(JobClientId client)
         {
             const std::unique_lock lk(mtx_);
 
-            const std::unordered_map<JobClientId, std::size_t>::const_iterator it = clientReadyRunning_.find(client);
-            const std::size_t                                                  n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
-            if (n == 0)
+            if (readyRunningCountForClient(clientReadyRunning_, client) == 0)
                 break;
 
             rec = popReadyForClientLocked(client);

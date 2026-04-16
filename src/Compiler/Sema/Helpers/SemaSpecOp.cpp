@@ -288,6 +288,36 @@ namespace
         return true;
     }
 
+    const Symbol* currentSpecOpWaiterSymbol(Sema& sema)
+    {
+        const AstNodeRef   rootRef = sema.visit().root();
+        const SemaNodeView rootView = sema.viewSymbol(rootRef);
+        if (rootView.hasSymbol())
+            return rootView.sym();
+        return sema.topSymMap();
+    }
+
+    Result waitSpecOpCandidateReady(Sema& sema, const SymbolFunction& symFunc)
+    {
+        if (!symFunc.isGenericRoot())
+        {
+            SWC_RESULT(sema.waitTyped(&symFunc, symFunc.codeRef()));
+            return Result::Continue;
+        }
+
+        // Literal special operators are published during pre-decl and can be specialized before
+        // declaration finishes, which silently drops the candidate. Other generic special ops are
+        // resolved later and must not wait here because that introduces cycles while their own
+        // bodies are being instantiated.
+        if (symFunc.specOpKind() != SpecOpKind::OpAffectLiteral)
+            return Result::Continue;
+        if (currentSpecOpWaiterSymbol(sema) == &symFunc)
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitDeclared(&symFunc, symFunc.codeRef()));
+        return Result::Continue;
+    }
+
     Result reportSpecOpError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
     {
         const auto& codeRef = sym.codeRef();
@@ -437,10 +467,7 @@ namespace
                 if (!symFunc || symFunc->idRef() != idRef)
                     continue;
 
-                // Parallel sema can expose special operator methods before their signature is typed.
-                // Wait for concrete overloads here so operator resolution never ranks half-built methods.
-                if (!symFunc->isGenericRoot())
-                    SWC_RESULT(sema.waitTyped(symFunc, symFunc->codeRef()));
+                SWC_RESULT(waitSpecOpCandidateReady(sema, *symFunc));
 
                 if (!canExplicitlySpecializeSpecOp(sema, *symFunc, genericArgNodes))
                 {

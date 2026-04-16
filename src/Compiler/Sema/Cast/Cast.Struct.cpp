@@ -79,7 +79,7 @@ namespace
         if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus}))
             return nullptr;
 
-        AstNodeRef operandRef = unwrapLiteralSuffixCarrier(sema, node.cast<AstUnaryExpr>().nodeExprRef);
+        const AstNodeRef operandRef = unwrapLiteralSuffixCarrier(sema, node.cast<AstUnaryExpr>().nodeExprRef);
         if (operandRef.isInvalid())
             return nullptr;
         if (sema.node(operandRef).isNot(AstNodeId::SuffixLiteral))
@@ -451,10 +451,10 @@ bool Cast::resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef,
     if (!suffixLiteral)
         return false;
 
-    const AstNode&      suffixNode = sema.node(suffixLiteral->nodeSuffixRef);
-    const SourceView&   srcView    = sema.compiler().srcView(suffixNode.srcViewRef());
-    const Token&        tok        = sema.token(suffixNode.codeRef());
-    const std::string_view suffix  = tok.string(srcView);
+    const AstNode&         suffixNode = sema.node(suffixLiteral->nodeSuffixRef);
+    const SourceView&      srcView    = sema.compiler().srcView(suffixNode.srcViewRef());
+    const Token&           tok        = sema.token(suffixNode.codeRef());
+    const std::string_view suffix     = tok.string(srcView);
     if (suffix.empty())
         return false;
 
@@ -481,12 +481,14 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     const TypeInfo&      srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
     const CastStructArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
+    const SourceCodeRef  codeRef = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
+                                                                                                                                      : sema.node(sema.curNodeRef()).codeRef();
 
-    SWC_RESULT(sema.waitSemaCompleted(&dstType, castRequest.errorNodeRef));
+    SWC_RESULT(sema.waitSemaCompleted(&dstType.payloadSymStruct(), codeRef));
 
     if (srcType.isStruct())
     {
-        SWC_RESULT(ctx.sema->waitSemaCompleted(ctx.srcType, ctx.castRequest->errorNodeRef));
+        SWC_RESULT(ctx.sema->waitSemaCompleted(&srcType.payloadSymStruct(), codeRef));
         return castStructToStruct(ctx);
     }
 
@@ -502,10 +504,8 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         return Result::Continue;
     }
 
-    SymbolFunction*     calledFn     = nullptr;
-    TypeRef             paramTypeRef = TypeRef::invalid();
-    const SourceCodeRef codeRef      = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
-                                                                                                                                          : sema.node(sema.curNodeRef()).codeRef();
+    SymbolFunction* calledFn     = nullptr;
+    TypeRef         paramTypeRef = TypeRef::invalid();
     SWC_RESULT(resolveStructAffectCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, paramTypeRef, castRequest.errorNodeRef));
     if (calledFn)
         return Result::Continue;
@@ -526,7 +526,7 @@ Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& c
     if (srcType.isStruct() || srcType.isAggregateStruct() || !dstType.isStruct())
         return Result::Continue;
 
-    SWC_RESULT(sema.waitSemaCompleted(&dstType, sema.curNodeRef()));
+    SWC_RESULT(sema.waitSemaCompleted(&dstType.payloadSymStruct(), codeRef));
 
     SmallVector<Symbol*> candidates;
     SWC_RESULT(SemaSpecOp::collectAffectCandidates(sema, dstType.payloadSymStruct(), codeRef, srcNodeRef, candidates));

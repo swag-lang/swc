@@ -220,24 +220,6 @@ namespace
         return result;
     }
 
-    Utf8 formatGenericStructSpecialization(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs)
-    {
-        Utf8 result = root.getFullScopedName(sema.ctx());
-        if (params.empty())
-            return result;
-
-        result += "<";
-        for (size_t i = 0; i < params.size(); ++i)
-        {
-            if (i)
-                result += ", ";
-            result += formatResolvedGenericArg(sema, resolvedArgs[i]);
-        }
-
-        result += ">";
-        return result;
-    }
-
     AstNodeRef genericStructConstraintExprRef(Sema& sema, AstNodeRef whereRef)
     {
         if (!whereRef.isValid())
@@ -252,7 +234,7 @@ namespace
     {
         const AstNodeRef mainRef = errorNodeRef.isValid() ? errorNodeRef : root.declNodeRef();
         auto             diag    = SemaError::report(sema, diagId, mainRef);
-        diag.addArgument(Diagnostic::ARG_SYM, formatGenericStructSpecialization(sema, root, params, resolvedArgs));
+        diag.addArgument(Diagnostic::ARG_SYM, root.name(sema.ctx()));
 
         if (!params.empty())
         {

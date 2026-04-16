@@ -6,7 +6,7 @@ SWC_DIAG_DEF(sema_note_other_definition, Note, "previous definition of '{tok}' i
 SWC_DIAG_DEF(sema_note_previous_capture, Note, "previous capture of '{tok}' is here")
 SWC_DIAG_DEF(sema_note_previous_named_argument, Note, "previous named argument '{value}' is here")
 SWC_DIAG_DEF(sema_note_generic_previous_deduction, Note, "generic parameter '{value}' was previously deduced from argument {prev-index} here")
-SWC_DIAG_DEF(sema_note_generic_instantiated_with, Note, "generic arguments are: {values}")
+SWC_DIAG_DEF(sema_note_generic_instantiated_with, Note, "generic arguments are: '{values}'")
 SWC_DIAG_DEF(sema_note_generic_where_declared_here, Note, "the 'where' constraint is declared here")
 SWC_DIAG_DEF(sema_note_previous_struct_field_initializer, Note, "previous initializer of field '{value}' is here")
 SWC_DIAG_DEF(sema_note_previous_case_value, Note, "previous case value is here")

@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -190,6 +191,139 @@ namespace
     {
         if (const auto* function = root.safeCast<SymbolFunction>())
             appendEnclosingFunctionGenericCloneBindings(sema, *function, outBindings);
+    }
+
+    Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef);
+
+    Utf8 formatResolvedGenericArg(Sema& sema, const SemaGeneric::GenericResolvedArg& arg)
+    {
+        if (arg.typeRef.isValid())
+            return sema.typeMgr().get(arg.typeRef).toName(sema.ctx());
+        if (arg.cstRef.isValid())
+            return sema.cstMgr().get(arg.cstRef).toString(sema.ctx());
+        return "?";
+    }
+
+    Utf8 formatResolvedGenericBindings(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs)
+    {
+        Utf8 result;
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            if (!result.empty())
+                result += ", ";
+
+            result += sema.idMgr().get(params[i].idRef).name;
+            result += " = ";
+            result += formatResolvedGenericArg(sema, resolvedArgs[i]);
+        }
+
+        return result;
+    }
+
+    Utf8 formatGenericStructSpecialization(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs)
+    {
+        Utf8 result = root.getFullScopedName(sema.ctx());
+        if (params.empty())
+            return result;
+
+        result += "<";
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            if (i)
+                result += ", ";
+            result += formatResolvedGenericArg(sema, resolvedArgs[i]);
+        }
+
+        result += ">";
+        return result;
+    }
+
+    AstNodeRef genericStructConstraintExprRef(Sema& sema, AstNodeRef whereRef)
+    {
+        if (!whereRef.isValid())
+            return AstNodeRef::invalid();
+
+        if (const auto* constraintExpr = sema.node(whereRef).safeCast<AstConstraintExpr>())
+            return constraintExpr->nodeExprRef;
+        return AstNodeRef::invalid();
+    }
+
+    Diagnostic reportGenericStructConstraintDiag(Sema& sema, DiagnosticId diagId, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef)
+    {
+        const AstNodeRef mainRef = errorNodeRef.isValid() ? errorNodeRef : root.declNodeRef();
+        auto             diag    = SemaError::report(sema, diagId, mainRef);
+        diag.addArgument(Diagnostic::ARG_SYM, formatGenericStructSpecialization(sema, root, params, resolvedArgs));
+
+        if (!params.empty())
+        {
+            diag.addNote(DiagnosticId::sema_note_generic_instantiated_with);
+            diag.last().addArgument(Diagnostic::ARG_VALUES, formatResolvedGenericBindings(sema, params, resolvedArgs));
+        }
+
+        if (whereRef.isValid())
+        {
+            diag.addNote(DiagnosticId::sema_note_generic_where_declared_here);
+            SemaError::addSpan(sema, diag.last(), whereRef);
+        }
+
+        return diag;
+    }
+
+    Result raiseGenericStructConstraintNotBool(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef, TypeRef typeRef)
+    {
+        auto diag = reportGenericStructConstraintDiag(sema, DiagnosticId::sema_err_generic_struct_where_not_bool, root, params, resolvedArgs, errorNodeRef, whereRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef.isValid() ? sema.typeMgr().get(typeRef).toName(sema.ctx()) : Utf8{"<invalid>"});
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result raiseGenericStructConstraintNotConst(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef)
+    {
+        const auto diag = reportGenericStructConstraintDiag(sema, DiagnosticId::sema_err_generic_struct_where_not_const, root, params, resolvedArgs, errorNodeRef, whereRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result raiseGenericStructConstraintFailed(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef)
+    {
+        const auto diag = reportGenericStructConstraintDiag(sema, DiagnosticId::sema_err_generic_struct_where_failed, root, params, resolvedArgs, errorNodeRef, whereRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef)
+    {
+        const auto* decl = genericStructDecl(root);
+        if (!decl || decl->spanWhereRef.isInvalid())
+            return Result::Continue;
+
+        SmallVector<SemaClone::ParamBinding> bindings;
+        buildGenericCloneBindings(params, resolvedArgs, bindings);
+        appendEnclosingGenericCloneBindings(sema, root, bindings);
+
+        SmallVector<AstNodeRef> whereRefs;
+        sema.ast().appendNodes(whereRefs, decl->spanWhereRef);
+        for (const AstNodeRef whereRef : whereRefs)
+        {
+            const AstNodeRef whereExprRef = genericStructConstraintExprRef(sema, whereRef);
+            if (whereExprRef.isInvalid())
+                continue;
+
+            AstNodeRef clonedExprRef = AstNodeRef::invalid();
+            SWC_RESULT(evalGenericClonedNode(sema, root, whereExprRef, bindings.span(), clonedExprRef));
+
+            const SemaNodeView whereView = sema.viewNodeTypeConstant(clonedExprRef);
+            if (!whereView.typeRef().isValid() || !whereView.type()->isBool())
+                return raiseGenericStructConstraintNotBool(sema, root, params, resolvedArgs, errorNodeRef, whereRef, whereView.typeRef());
+
+            if (!whereView.cstRef().isValid())
+                return raiseGenericStructConstraintNotConst(sema, root, params, resolvedArgs, errorNodeRef, whereRef);
+
+            if (whereView.cstRef() != sema.cstMgr().cstTrue())
+                return raiseGenericStructConstraintFailed(sema, root, params, resolvedArgs, errorNodeRef, whereRef);
+        }
+
+        return Result::Continue;
     }
 
     Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, const SymbolInterface* itf, const AttributeList& attrs, bool declPass)
@@ -606,7 +740,7 @@ namespace
         return Result::Continue;
     }
 
-    Result createGenericInstance(Sema& sema, Symbol& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, Symbol*& outInstance)
+    Result createGenericInstance(Sema& sema, Symbol& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, Symbol*& outInstance, AstNodeRef errorNodeRef = AstNodeRef::invalid())
     {
         outInstance = findOrCreateGenericInstance(sema, root, params, resolvedArgs);
         if (!outInstance->isSemaCompleted())
@@ -625,7 +759,10 @@ namespace
             auto result = Result::Continue;
             if (!isGenericNodeCompleted(*outInstance))
             {
-                result = runGenericNode(sema, root, genericDeclNodeRef(*outInstance));
+                if (root.isStruct())
+                    result = validateGenericStructWhereConstraints(sema, root.cast<SymbolStruct>(), params, resolvedArgs, errorNodeRef);
+                if (result == Result::Continue)
+                    result = runGenericNode(sema, root, genericDeclNodeRef(*outInstance));
                 if (result == Result::Continue)
                     setGenericNodeCompleted(*outInstance);
             }
@@ -677,7 +814,7 @@ namespace
         if (SemaGeneric::hasMissingGenericArgs(resolvedArgs.span()))
             return Result::Continue;
 
-        return createGenericInstance(sema, genericRoot, params.span(), resolvedArgs.span(), outInstance);
+        return createGenericInstance(sema, genericRoot, params.span(), resolvedArgs.span(), outInstance, sema.curNodeRef());
     }
 }
 
@@ -733,7 +870,7 @@ namespace SemaGeneric
         }
 
         Symbol* instance = nullptr;
-        SWC_RESULT(createGenericInstance(sema, genericRoot, params.span(), resolvedArgs.span(), instance));
+        SWC_RESULT(createGenericInstance(sema, genericRoot, params.span(), resolvedArgs.span(), instance, sema.curNodeRef()));
         outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
         return Result::Continue;
     }
@@ -865,7 +1002,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         Symbol* instance = nullptr;
-        SWC_RESULT(createGenericInstance(sema, genericRoot, targetParams.span(), resolvedArgs.span(), instance));
+        SWC_RESULT(createGenericInstance(sema, genericRoot, targetParams.span(), resolvedArgs.span(), instance, sema.curNodeRef()));
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
     }

@@ -193,3 +193,28 @@ provided they are evaluable at compile time.
     }
 }
 */
+
+/**
+# 'Generic Structs' with 'where'
+The 'where' clause also applies to generic structs. If the condition is
+not met, an error is emitted immediately because generic structs do not
+participate in overload resolution.
+*/
+
+#test
+{
+    struct(T) Point
+        where T == f32 or T == f64
+    {
+        x, y: T
+    }
+
+    let point: Point'f32 = {x: 1.5, y: 2.5}
+    @assert(point.x == 1.5)
+    @assert(point.y == 2.5)
+    #assert(#typeof(point.x) == f32)
+
+    // The following would be an error because 's32' does not satisfy the
+    // generic struct constraint.
+    // let bad: Point's32
+}

@@ -251,6 +251,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             // still need normal symbol binding even if their final type has already been set.
             if (!sema.curViewSymbol().sym() && !sema.curViewSymbolList().hasSymbolList())
             {
+                if (hasFlag(AstIdentifierFlagsE::GenericTypeBinding))
+                    return Result::Continue;
+
                 if (const auto* compilerCall = parentNode.safeCast<AstCompilerCallOne>())
                 {
                     switch (sema.token(compilerCall->codeRef()).id)

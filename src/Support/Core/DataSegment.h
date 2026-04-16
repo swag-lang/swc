@@ -138,15 +138,15 @@ private:
     void                                                                   recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
     PagedStore                                                             store_;
     std::vector<LargeBlock>                                                largeBlocks_;
-    std::map<uintptr_t, LargeBlockRange>                                    largeBlockRanges_;
+    std::map<uintptr_t, LargeBlockRange>                                   largeBlockRanges_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> stringMap_;
     std::vector<DataSegmentRelocation>                                     relocations_;
-    mutable std::vector<uint32_t>                                           relocationsByOffset_;
+    mutable std::vector<uint32_t>                                          relocationsByOffset_;
     mutable bool                                                           relocationsByOffsetDirty_ = false;
     std::vector<DataSegmentAllocation>                                     allocations_;
     mutable std::shared_mutex                                              mutex_;
     mutable std::mutex                                                     allocationMutexesMutex_;
-    mutable std::unordered_map<uint32_t, std::unique_ptr<std::mutex>>       allocationMutexes_;
+    mutable std::unordered_map<uint32_t, std::unique_ptr<std::mutex>>      allocationMutexes_;
 };
 
 SWC_END_NAMESPACE();

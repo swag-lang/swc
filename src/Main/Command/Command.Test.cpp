@@ -425,11 +425,11 @@ namespace
                 return false;
 
             const JitFunctionSelection jitSelection = selectJitFunctions(compiler);
-            expectedTestCount                      = jitSelection.expectedTestCount;
-            allFunctions                           = compiler.nativeCodeSegment();
-            initFunctions    = std::move(nativeBuilder.initFunctions);
-            preMainFunctions = std::move(nativeBuilder.preMainFunctions);
-            testFunctions    = std::move(nativeBuilder.testFunctions);
+            expectedTestCount                       = jitSelection.expectedTestCount;
+            allFunctions                            = compiler.nativeCodeSegment();
+            initFunctions                           = std::move(nativeBuilder.initFunctions);
+            preMainFunctions                        = std::move(nativeBuilder.preMainFunctions);
+            testFunctions                           = std::move(nativeBuilder.testFunctions);
             filterJitFunctions(allFunctions, jitSelection);
             filterJitFunctions(initFunctions, jitSelection);
             filterJitFunctions(preMainFunctions, jitSelection);

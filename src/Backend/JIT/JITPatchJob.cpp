@@ -34,7 +34,7 @@ JobResult JITPatchJob::exec()
     if (result == Result::Error)
         symbolFunc_->setIgnored(ctx());
 
-    return Job::toJobResult(ctx(), result);
+    return toJobResult(ctx(), result);
 }
 
 SWC_END_NAMESPACE();

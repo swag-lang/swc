@@ -28,7 +28,7 @@ namespace PreRaPeephole
             if (firstOps[1].opBits != secondOps[1].opBits || !isFoldableImmediateBits(firstOps[1].opBits))
                 return false;
 
-            MicroOp  combinedOp  = MicroOp::Add;
+            auto     combinedOp  = MicroOp::Add;
             uint64_t combinedImm = 0;
             if (!MicroPassHelpers::tryReassociateBinaryImmediate(firstOps[2].microOp, firstOps[3].valueU64, secondOps[2].microOp, secondOps[3].valueU64, firstOps[1].opBits, combinedOp, combinedImm))
                 return false;

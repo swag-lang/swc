@@ -331,10 +331,10 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     *rootStorage                         = reinterpret_cast<uint64_t>(nestedStorage);
     segment.addRelocation(rootOffset, nestedOffset);
 
-    ConstantValue     value   = ConstantValue::makeValuePointer(*fixture.compilerCtx,
-                                                                fixture.compiler->typeMgr().typeU8(),
-                                                                reinterpret_cast<uint64_t>(rootStorage),
-                                                                TypeInfoFlagsE::Const);
+    ConstantValue value = ConstantValue::makeValuePointer(*fixture.compilerCtx,
+                                                          fixture.compiler->typeMgr().typeU8(),
+                                                          reinterpret_cast<uint64_t>(rootStorage),
+                                                          TypeInfoFlagsE::Const);
     value.setDataSegmentRef({.shardIndex = 0, .offset = rootOffset});
     const ConstantRef rootRef = fixture.compiler->cstMgr().addConstant(*fixture.compilerCtx, value);
 
@@ -384,10 +384,10 @@ SWC_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
     *tableStorage                          = 0;
     segment.addFunctionRelocation(tableOffset, targetFunction);
 
-    ConstantValue     value   = ConstantValue::makeValuePointer(*fixture.compilerCtx,
-                                                                fixture.compiler->typeMgr().typeVoid(),
-                                                                reinterpret_cast<uint64_t>(tableStorage),
-                                                                TypeInfoFlagsE::Const);
+    ConstantValue value = ConstantValue::makeValuePointer(*fixture.compilerCtx,
+                                                          fixture.compiler->typeMgr().typeVoid(),
+                                                          reinterpret_cast<uint64_t>(tableStorage),
+                                                          TypeInfoFlagsE::Const);
     value.setDataSegmentRef({.shardIndex = 0, .offset = tableOffset});
     const ConstantRef rootRef = fixture.compiler->cstMgr().addConstant(*fixture.compilerCtx, value);
 

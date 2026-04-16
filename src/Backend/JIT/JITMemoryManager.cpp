@@ -70,7 +70,7 @@ std::byte* JITMemoryManager::allocateSlow(const uint32_t allocationSize)
         void*          ptr       = Os::allocExecutableMemory(blockSize);
         SWC_ASSERT(ptr);
 
-        auto block = std::make_unique<Block>();
+        auto block  = std::make_unique<Block>();
         block->ptr  = ptr;
         block->size = blockSize;
 

@@ -50,7 +50,7 @@ namespace
         static bool same(const CanonicalValue& lhs, const CanonicalValue& rhs)
         {
             return lhs.reg == rhs.reg && lhs.valueId == rhs.valueId;
-        }        
+        }
     };
 
     struct CanonicalValueContext

@@ -261,7 +261,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     rtLoc->lineEnd   = codeRange.line;
     rtLoc->colEnd    = codeRange.column + codeRange.len;
 
-    const auto          bytes  = ByteSpan{storage, sizeof(Runtime::SourceCodeLocation)};
+    const auto    bytes  = ByteSpan{storage, sizeof(Runtime::SourceCodeLocation)};
     ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
     cstVal.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
     outCstRef = sema.cstMgr().addMaterializedPayloadConstant(cstVal);

@@ -59,7 +59,7 @@ namespace
 
     struct JITRelocationPatchContext
     {
-        std::unordered_set<uint64_t>                         visitedConstantAllocations;
+        std::unordered_set<uint64_t>                        visitedConstantAllocations;
         std::unordered_map<const SymbolFunction*, uint64_t> resolvedFunctionAddresses;
     };
 
@@ -168,9 +168,9 @@ namespace
     {
         ownerFunction = waitOwnerFunction(ctx, ownerFunction, targetFunction);
 
-        TaskState& wait   = ctx.state();
-        wait.kind         = TaskStateKind::SemaWaitSymJitPrepared;
-        wait.nodeRef      = fallbackWaitNodeRef(ctx, ownerFunction);
+        TaskState& wait = ctx.state();
+        wait.kind       = TaskStateKind::SemaWaitSymJitPrepared;
+        wait.nodeRef    = fallbackWaitNodeRef(ctx, ownerFunction);
         if (wait.nodeRef.isInvalid())
             wait.nodeRef = targetFunction.declNodeRef();
         wait.codeRef = fallbackWaitCodeRef(ctx, ownerFunction);
@@ -280,7 +280,7 @@ namespace
             }
         }
 
-        void* entryAddress   = targetFunction.jitPatchAddress();
+        void* entryAddress = targetFunction.jitPatchAddress();
         if (!entryAddress)
         {
             const Result prepareResult = ensureLocalFunctionTargetPrepared(ctx, targetFunction, ownerFunction);
@@ -515,8 +515,8 @@ namespace
         if (!patchContext.visitedConstantAllocations.insert(visitKey).second)
             return Result::Continue;
 
-        SmallVector<ConstantFunctionPatch>     patches;
-        std::vector<DataSegmentRelocation>     relocations;
+        SmallVector<ConstantFunctionPatch> patches;
+        std::vector<DataSegmentRelocation> relocations;
         segment.copyRelocations(relocations, allocation.offset, allocation.size);
         for (const DataSegmentRelocation& relocation : relocations)
         {
@@ -664,8 +664,8 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 
 Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 {
-    const TaskScopedContext scopedContext(ctx);
-    const auto              globals = ctx.compiler().nativeGlobalVariablesSnapshot();
+    const TaskScopedContext   scopedContext(ctx);
+    const auto                globals = ctx.compiler().nativeGlobalVariablesSnapshot();
     JITRelocationPatchContext patchContext;
     patchContext.resolvedFunctionAddresses.reserve(globals.size());
 
@@ -815,7 +815,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     ABICall::callAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
     builder.emitRet();
 
-    MachineCode  loweredCode;
+    MachineCode loweredCode;
     SWC_RESULT(loweredCode.emit(ctx, builder));
 
     JITMemory executableMemory;

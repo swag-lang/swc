@@ -196,25 +196,25 @@ private:
         return reinterpret_cast<T*>((*pages)[pageIndex]->bytes() + offset);
     }
 
-    const std::vector<Page*>* snapshotPages() const noexcept;
+    const std::vector<Page*>*     snapshotPages() const noexcept;
     const std::vector<PageRange>* snapshotPageRanges() const noexcept;
-    void                      publishPages();
+    void                          publishPages();
 
     uint32_t       publishedPageCount() const noexcept;
     uint32_t       publishedPageUsed(uint32_t index) const noexcept;
     const uint8_t* publishedPageBytes(uint32_t index) const noexcept;
     uint8_t*       publishedPageBytesMutable(uint32_t index) const noexcept;
 
-    std::vector<std::unique_ptr<Page>>                     pagesStorage_;
-    std::vector<std::unique_ptr<const std::vector<Page*>>> publishedPagesStorage_;
+    std::vector<std::unique_ptr<Page>>                         pagesStorage_;
+    std::vector<std::unique_ptr<const std::vector<Page*>>>     publishedPagesStorage_;
     std::vector<std::unique_ptr<const std::vector<PageRange>>> publishedPageRangesStorage_;
-    std::atomic<const std::vector<Page*>*>                 publishedPages_{nullptr};
-    std::atomic<const std::vector<PageRange>*>             publishedPageRanges_{nullptr};
-    uint64_t                                               totalBytes_    = 0;
-    uint32_t                                               pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
-    Page*                                                  curPage_       = nullptr;
-    uint32_t                                               curPageIndex_  = 0;
-    uint8_t*                                               lastPtr_       = nullptr;
+    std::atomic<const std::vector<Page*>*>                     publishedPages_{nullptr};
+    std::atomic<const std::vector<PageRange>*>                 publishedPageRanges_{nullptr};
+    uint64_t                                                   totalBytes_    = 0;
+    uint32_t                                                   pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
+    Page*                                                      curPage_       = nullptr;
+    uint32_t                                                   curPageIndex_  = 0;
+    uint8_t*                                                   lastPtr_       = nullptr;
 };
 
 class PagedStore::SpanView

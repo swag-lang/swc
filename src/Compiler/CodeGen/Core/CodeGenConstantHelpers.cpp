@@ -261,7 +261,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
         return ConstantRef::invalid();
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
-    const ByteSpan storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
+    const ByteSpan       storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
     const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
     if (typeInfo.isArray())
     {

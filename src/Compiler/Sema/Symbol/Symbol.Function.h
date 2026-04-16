@@ -172,10 +172,10 @@ private:
     SymbolFunction*                   closureAdapter_ = nullptr;
     std::mutex                        emitMutex_;
     JITMemory                         jitExecMemory_;
-    std::atomic<void*>                jitPreparedAddress_ = nullptr;
-    std::atomic<void*>                jitEntryAddress_    = nullptr;
+    std::atomic<void*>                jitPreparedAddress_   = nullptr;
+    std::atomic<void*>                jitEntryAddress_      = nullptr;
     std::atomic_bool                  jitPatchJobScheduled_ = false;
-    mutable std::atomic<GenericData*> genericData_        = nullptr;
+    mutable std::atomic<GenericData*> genericData_          = nullptr;
 };
 
 SWC_END_NAMESPACE();

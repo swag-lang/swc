@@ -1,6 +1,6 @@
 #pragma once
-#include <array>
 #include "Backend/Micro/MicroReg.h"
+#include <array>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -78,7 +78,7 @@ private:
 
     uint32_t* directIndexSlot(const MicroReg reg)
     {
-        const uint32_t kind = static_cast<uint32_t>(reg.kind());
+        const uint32_t kind  = static_cast<uint32_t>(reg.kind());
         const uint32_t index = reg.index();
         if (kind >= K_DIRECT_KIND_COUNT || index > K_MAX_DIRECT_INDEX)
             return nullptr;
@@ -101,8 +101,8 @@ private:
     }
 
     std::array<std::vector<uint32_t>, K_DIRECT_KIND_COUNT> directRegToIndex_;
-    std::unordered_map<MicroReg, uint32_t> regToIndex_;
-    std::vector<MicroReg>                  regs_;
+    std::unordered_map<MicroReg, uint32_t>                 regToIndex_;
+    std::vector<MicroReg>                                  regs_;
 };
 
 SWC_END_NAMESPACE();

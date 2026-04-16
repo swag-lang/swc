@@ -844,10 +844,10 @@ uint32_t MicroSsaState::createPhi(const uint32_t blockIndex, const MicroReg reg,
     if (phiIndex >= phiInfos_.size())
         phiInfos_.push_back({});
 
-    PhiInfo& phi     = phiInfos_[phiIndex];
-    phi.reg          = reg;
-    phi.regIndex     = regIndex;
-    phi.blockIndex   = blockIndex;
+    PhiInfo& phi      = phiInfos_[phiIndex];
+    phi.reg           = reg;
+    phi.regIndex      = regIndex;
+    phi.blockIndex    = blockIndex;
     phi.resultValueId = K_INVALID_VALUE;
     phi.predecessorBlocks.clear();
     phi.predecessorBlocks.assign(block.predecessors.begin(), block.predecessors.end());

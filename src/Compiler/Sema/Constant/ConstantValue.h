@@ -58,32 +58,32 @@ public:
     bool le(const ConstantValue& rhs) const noexcept;
     bool gt(const ConstantValue& rhs) const noexcept;
 
-    ConstantKind kind() const { return kind_; }
-    TypeRef      typeRef() const { return typeRef_; }
-    void         setTypeRef(TypeRef ref) { typeRef_ = ref; }
+    ConstantKind   kind() const { return kind_; }
+    TypeRef        typeRef() const { return typeRef_; }
+    void           setTypeRef(TypeRef ref) { typeRef_ = ref; }
     DataSegmentRef dataSegmentRef() const noexcept;
     void           setDataSegmentRef(DataSegmentRef ref) noexcept;
     bool           resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
-    bool         isValid() const { return kind_ != ConstantKind::Invalid; }
-    bool         isBool() const { return kind_ == ConstantKind::Bool; }
-    bool         isChar() const { return kind_ == ConstantKind::Char; }
-    bool         isRune() const { return kind_ == ConstantKind::Rune; }
-    bool         isString() const { return kind_ == ConstantKind::String; }
-    bool         isInt() const { return kind_ == ConstantKind::Int; }
-    bool         isFloat() const { return kind_ == ConstantKind::Float; }
-    bool         isValuePointer() const { return kind_ == ConstantKind::ValuePointer; }
-    bool         isBlockPointer() const { return kind_ == ConstantKind::BlockPointer; }
-    bool         isSlice() const { return kind_ == ConstantKind::Slice; }
-    bool         isNull() const { return kind_ == ConstantKind::Null; }
-    bool         isTypeValue() const { return kind_ == ConstantKind::TypeValue; }
-    bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
-    bool         isStruct() const { return kind_ == ConstantKind::Struct; }
-    bool         isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
-    bool         isArray() const { return kind_ == ConstantKind::Array; }
-    bool         isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
-    bool         isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
-    bool         isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
-    bool         isUndefined() const { return kind_ == ConstantKind::Undefined; }
+    bool           isValid() const { return kind_ != ConstantKind::Invalid; }
+    bool           isBool() const { return kind_ == ConstantKind::Bool; }
+    bool           isChar() const { return kind_ == ConstantKind::Char; }
+    bool           isRune() const { return kind_ == ConstantKind::Rune; }
+    bool           isString() const { return kind_ == ConstantKind::String; }
+    bool           isInt() const { return kind_ == ConstantKind::Int; }
+    bool           isFloat() const { return kind_ == ConstantKind::Float; }
+    bool           isValuePointer() const { return kind_ == ConstantKind::ValuePointer; }
+    bool           isBlockPointer() const { return kind_ == ConstantKind::BlockPointer; }
+    bool           isSlice() const { return kind_ == ConstantKind::Slice; }
+    bool           isNull() const { return kind_ == ConstantKind::Null; }
+    bool           isTypeValue() const { return kind_ == ConstantKind::TypeValue; }
+    bool           isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
+    bool           isStruct() const { return kind_ == ConstantKind::Struct; }
+    bool           isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
+    bool           isArray() const { return kind_ == ConstantKind::Array; }
+    bool           isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
+    bool           isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
+    bool           isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
+    bool           isUndefined() const { return kind_ == ConstantKind::Undefined; }
 
     bool isPayloadBorrowed() const
     {
@@ -253,8 +253,8 @@ public:
     void setPayloadArray(ByteSpan bytes) { payloadArray_.val = normalizePayloadBytes(bytes); }
 
 private:
-    static ByteSpan normalizePayloadBytes(ByteSpan bytes) noexcept;
-    static uint64_t packDataSegmentRef(DataSegmentRef ref) noexcept;
+    static ByteSpan       normalizePayloadBytes(ByteSpan bytes) noexcept;
+    static uint64_t       packDataSegmentRef(DataSegmentRef ref) noexcept;
     static DataSegmentRef unpackDataSegmentRef(uint64_t packedRef) noexcept;
 
     ConstantKind          kind_    = ConstantKind::Invalid;

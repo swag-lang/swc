@@ -238,7 +238,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
             SWC_UNREACHABLE();
     }
 
-    other.kind_            = ConstantKind::Invalid;
+    other.kind_ = ConstantKind::Invalid;
     other.dataSegmentRef_.store(packDataSegmentRef({}), std::memory_order_relaxed);
     other.payloadBorrowed_ = false;
 }
@@ -378,7 +378,7 @@ void ConstantValue::setDataSegmentRef(const DataSegmentRef ref) noexcept
 
 bool ConstantValue::resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept
 {
-    outRef = {};
+    outRef                              = {};
     const DataSegmentRef dataSegmentRef = this->dataSegmentRef();
     if (dataSegmentRef.isInvalid() || !ptr)
         return false;

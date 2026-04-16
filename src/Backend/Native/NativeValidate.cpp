@@ -190,7 +190,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
     if (constant.kind() == ConstantKind::Struct)
     {
-        const ByteSpan payload           = constant.getStruct();
+        const ByteSpan payload = constant.getStruct();
         DataSegmentRef payloadRef;
         const bool     hasPayloadRef = builder_.compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
         SWC_ASSERT(hasPayloadRef);
@@ -209,7 +209,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
     if (constant.kind() == ConstantKind::Array)
     {
-        const ByteSpan payload           = constant.getArray();
+        const ByteSpan payload = constant.getArray();
         DataSegmentRef payloadRef;
         const bool     hasPayloadRef = builder_.compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
         SWC_ASSERT(hasPayloadRef);

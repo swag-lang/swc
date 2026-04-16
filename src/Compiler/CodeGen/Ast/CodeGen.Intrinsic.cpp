@@ -1265,6 +1265,13 @@ namespace
 
     Result codeGenDataOf(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
+        if (const auto* dataPayload = codeGen.sema().semaPayload<DataOfSpecOpPayload>(codeGen.curNodeRef());
+            dataPayload && dataPayload->calledFn != nullptr)
+        {
+            codeGen.sema().setSymbol(codeGen.curNodeRef(), dataPayload->calledFn);
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+        }
+
         SmallVector<AstNodeRef> children;
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(!children.empty());

@@ -51,4 +51,4 @@
 
 ## Coding Rules
 
-- See `@coding-rules.md`
+- Follow the rules defined in `@coding-rules.md` when designing and writing code.

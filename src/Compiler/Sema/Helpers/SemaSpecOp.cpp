@@ -543,7 +543,8 @@ namespace
                                 std::span<AstNodeRef> args,
                                 AstNodeRef            ufcsArg,
                                 bool                  allowNoMatch = false,
-                                bool*                 outMatched   = nullptr)
+                                bool*                 outMatched   = nullptr,
+                                bool                  allowConstEval = true)
     {
         if (outMatched)
             *outMatched = false;
@@ -573,9 +574,12 @@ namespace
         auto& calledFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
         SemaHelpers::addCurrentFunctionCallDependency(sema, &calledFn);
 
-        SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
-        if (sema.viewConstant(sema.curNodeRef()).hasConstant())
-            return Result::Continue;
+        if (allowConstEval)
+        {
+            SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
+            if (sema.viewConstant(sema.curNodeRef()).hasConstant())
+                return Result::Continue;
+        }
 
         SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
         SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__spec_op_runtime_storage"));
@@ -600,6 +604,96 @@ namespace
             default:
                 return false;
         }
+    }
+
+    Result tryResolveReceiverOnlySpecOp(Sema& sema, AstNodeRef exprRef, IdentifierRef opId, bool allowConstEval, SymbolFunction*& outCalledFn, bool& outHandled)
+    {
+        outCalledFn = nullptr;
+        outHandled  = false;
+
+        const SemaNodeView  exprView(sema, exprRef, SemaNodeViewPartE::Type);
+        const SymbolStruct* ownerStruct = structSpecOpOwner(sema, exprView);
+        if (!ownerStruct)
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(ownerStruct, sema.node(exprRef).codeRef()));
+
+        SmallVector<Symbol*> candidates;
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opId, std::span<const AstNodeRef>{}, candidates));
+        if (candidates.empty())
+            return Result::Continue;
+
+        SmallVector<AstNodeRef> args;
+        bool                    matched = false;
+        SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args.span(), exprRef, true, &matched, allowConstEval));
+        if (!matched)
+        {
+            auto* const calledFn = candidates.size() == 1 ? candidates.front()->safeCast<SymbolFunction>() : nullptr;
+            if (!calledFn)
+                return Result::Continue;
+
+            SmallVector<ResolvedCallArgument> resolvedArgs;
+            ResolvedCallArgument              resolvedArg;
+            resolvedArg.argRef = exprRef;
+
+            const SymbolVariable* const receiver = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
+            if (receiver && sema.typeMgr().get(receiver->typeRef()).isReference())
+            {
+                resolvedArg.bindsReferenceToValue = true;
+
+                bool               needsRuntimeStorage = !sema.isGlobalScope();
+                const SemaNodeView operandView         = sema.viewNodeTypeSymbol(exprRef);
+                if (operandView.sym() &&
+                    operandView.sym()->isVariable() &&
+                    operandView.type() &&
+                    !operandView.type()->isReference() &&
+                    !operandView.type()->isAnyPointer())
+                {
+                    auto& symVar = operandView.sym()->cast<SymbolVariable>();
+                    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                    {
+                        symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+                        needsRuntimeStorage = false;
+                    }
+                }
+
+                if (needsRuntimeStorage)
+                {
+                    const TypeRef storageTypeRef = sema.typeMgr().get(receiver->typeRef()).payloadTypeRef();
+                    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, exprRef, sema.node(exprRef), storageTypeRef, "__call_arg_ref_storage"));
+                }
+            }
+
+            resolvedArgs.push_back(resolvedArg);
+            sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
+            sema.setSymbol(sema.curNodeRef(), calledFn);
+            sema.setType(sema.curNodeRef(), calledFn->returnTypeRef());
+            sema.setIsValue(sema.curNode());
+            sema.unsetIsLValue(sema.curNodeRef());
+
+            SemaHelpers::addCurrentFunctionCallDependency(sema, calledFn);
+            if (allowConstEval)
+            {
+                SWC_RESULT(SemaJIT::tryRunConstCall(sema, *calledFn, sema.curNodeRef(), resolvedArgs.span()));
+            }
+
+            if (!allowConstEval || !sema.viewConstant(sema.curNodeRef()).hasConstant())
+            {
+                SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), *calledFn, args.span(), exprRef));
+                SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, sema.node(sema.curNodeRef()), *calledFn, "__spec_op_runtime_storage"));
+            }
+
+            outCalledFn = calledFn;
+            outHandled  = true;
+            return Result::Continue;
+        }
+
+        const SemaNodeView currentSymView = sema.curViewSymbol();
+        if (currentSymView.sym() && currentSymView.sym()->isFunction())
+            outCalledFn = &currentSymView.sym()->cast<SymbolFunction>();
+
+        outHandled = true;
+        return Result::Continue;
     }
 
 }
@@ -835,89 +929,14 @@ Result SemaSpecOp::tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, A
 
 Result SemaSpecOp::tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled)
 {
-    outCalledFn = nullptr;
-    outHandled  = false;
+    const IdentifierRef opCountId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCount);
+    return tryResolveReceiverOnlySpecOp(sema, exprRef, opCountId, true, outCalledFn, outHandled);
+}
 
-    const SemaNodeView  exprView(sema, exprRef, SemaNodeViewPartE::Type);
-    const SymbolStruct* ownerStruct = structSpecOpOwner(sema, exprView);
-    if (!ownerStruct)
-        return Result::Continue;
-
-    SWC_RESULT(sema.waitSemaCompleted(ownerStruct, sema.node(exprRef).codeRef()));
-
-    SmallVector<Symbol*> candidates;
-    const IdentifierRef  opCountId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCount);
-    SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opCountId, std::span<const AstNodeRef>{}, candidates));
-    if (candidates.empty())
-        return Result::Continue;
-
-    SmallVector<AstNodeRef> args;
-    bool                    matched = false;
-    SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args.span(), exprRef, true, &matched));
-    if (!matched)
-    {
-        auto* const calledFn = candidates.size() == 1 ? candidates.front()->safeCast<SymbolFunction>() : nullptr;
-        if (!calledFn)
-            return Result::Continue;
-
-        SmallVector<ResolvedCallArgument> resolvedArgs;
-        ResolvedCallArgument              resolvedArg;
-        resolvedArg.argRef = exprRef;
-
-        const SymbolVariable* const receiver = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
-        if (receiver && sema.typeMgr().get(receiver->typeRef()).isReference())
-        {
-            resolvedArg.bindsReferenceToValue = true;
-
-            bool               needsRuntimeStorage = !sema.isGlobalScope();
-            const SemaNodeView operandView         = sema.viewNodeTypeSymbol(exprRef);
-            if (operandView.sym() &&
-                operandView.sym()->isVariable() &&
-                operandView.type() &&
-                !operandView.type()->isReference() &&
-                !operandView.type()->isAnyPointer())
-            {
-                auto& symVar = operandView.sym()->cast<SymbolVariable>();
-                if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-                {
-                    symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
-                    needsRuntimeStorage = false;
-                }
-            }
-
-            if (needsRuntimeStorage)
-            {
-                const TypeRef storageTypeRef = sema.typeMgr().get(receiver->typeRef()).payloadTypeRef();
-                SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, exprRef, sema.node(exprRef), storageTypeRef, "__call_arg_ref_storage"));
-            }
-        }
-
-        resolvedArgs.push_back(resolvedArg);
-        sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
-        sema.setSymbol(sema.curNodeRef(), calledFn);
-        sema.setType(sema.curNodeRef(), calledFn->returnTypeRef());
-        sema.setIsValue(sema.curNode());
-        sema.unsetIsLValue(sema.curNodeRef());
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, calledFn);
-        SWC_RESULT(SemaJIT::tryRunConstCall(sema, *calledFn, sema.curNodeRef(), resolvedArgs.span()));
-        if (!sema.viewConstant(sema.curNodeRef()).hasConstant())
-        {
-            SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), *calledFn, args.span(), exprRef));
-            SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, sema.node(sema.curNodeRef()), *calledFn, "__spec_op_runtime_storage"));
-        }
-
-        outCalledFn = calledFn;
-        outHandled  = true;
-        return Result::Continue;
-    }
-
-    const SemaNodeView currentSymView = sema.curViewSymbol();
-    if (currentSymView.sym() && currentSymView.sym()->isFunction())
-        outCalledFn = &currentSymView.sym()->cast<SymbolFunction>();
-
-    outHandled = outCalledFn != nullptr;
-    return Result::Continue;
+Result SemaSpecOp::tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled)
+{
+    const IdentifierRef opDataId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpData);
+    return tryResolveReceiverOnlySpecOp(sema, exprRef, opDataId, false, outCalledFn, outHandled);
 }
 
 Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)

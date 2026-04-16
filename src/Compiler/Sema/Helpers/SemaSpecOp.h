@@ -27,6 +27,11 @@ struct CountOfSpecOpPayload
     SymbolFunction* calledFn = nullptr;
 };
 
+struct DataOfSpecOpPayload
+{
+    SymbolFunction* calledFn = nullptr;
+};
+
 struct RelationalSpecOpPayload
 {
     SymbolFunction* calledFn = nullptr;
@@ -71,6 +76,7 @@ namespace SemaSpecOp
     Result     registerSymbol(Sema& sema, SymbolFunction& sym);
     Result     tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
     Result     tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
+    Result     tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
     Result     tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result     tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
     Result     tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);

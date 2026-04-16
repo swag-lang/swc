@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -215,6 +216,27 @@ namespace
 {
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
+        bool            handledSpecOp = false;
+        SymbolFunction* calledFn      = nullptr;
+        SWC_RESULT(SemaSpecOp::tryResolveDataOf(sema, children[0], calledFn, handledSpecOp));
+        if (handledSpecOp)
+        {
+            if (calledFn != nullptr)
+            {
+                auto* payload = sema.semaPayload<DataOfSpecOpPayload>(sema.curNodeRef());
+                if (!payload)
+                {
+                    payload = sema.compiler().allocate<DataOfSpecOpPayload>();
+                    sema.setSemaPayload(sema.curNodeRef(), payload);
+                }
+
+                payload->calledFn = calledFn;
+            }
+
+            sema.setIsValue(node);
+            return Result::Continue;
+        }
+
         SemaNodeView view = sema.viewNodeTypeConstantSymbol(children[0]);
         if (view.sym() && view.sym()->isConstant() && view.cstRef().isInvalid())
         {

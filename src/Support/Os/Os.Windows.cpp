@@ -142,6 +142,27 @@ namespace
         return result;
     }
 
+    std::string pathFilenameString(const fs::path& path)
+    {
+        return path.filename().generic_string();
+    }
+
+    bool tryGetModulePath(fs::path& outModulePath, const uintptr_t moduleBase)
+    {
+        outModulePath.clear();
+        if (!moduleBase)
+            return false;
+
+        char        modulePath[MAX_PATH + 1]{};
+        const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(moduleBase), modulePath, MAX_PATH);
+        if (!len)
+            return false;
+
+        modulePath[len] = 0;
+        outModulePath   = modulePath;
+        return true;
+    }
+
     void appendQuotedCommandArg(std::wstring& out, const std::wstring_view arg)
     {
         const bool needsQuotes = arg.empty() || arg.find_first_of(L" \t\"") != std::wstring_view::npos;
@@ -431,28 +452,19 @@ namespace
             return;
 
         const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
-        if (modBase)
+        fs::path   modulePath;
+        const bool hasModulePath = tryGetModulePath(modulePath, modBase);
+        if (hasModulePath)
         {
-            char        modulePath[MAX_PATH + 1]{};
-            const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-            if (len)
-            {
-                modulePath[len]       = 0;
-                const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
-                outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
-            }
+            const Utf8 moduleName = FileSystem::formatFileName(ctx, modulePath);
+            outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
         }
 
         outMsg += "\n";
-        if (modBase)
+        if (hasModulePath)
         {
-            char        modulePath[MAX_PATH + 1]{};
-            const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-            if (len)
-            {
-                modulePath[len] = 0;
-                appendOsField(outMsg, "module path", modulePath);
-            }
+            const Utf8 modulePathUtf8 = modulePath.string();
+            appendOsField(outMsg, "module path", modulePathUtf8);
         }
 
         appendWindowsAddressSymbol(outMsg, ctx, address);
@@ -467,16 +479,12 @@ namespace
         if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
         {
             const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
-            if (modBase)
+            fs::path   modulePath;
+            const bool hasModulePath = tryGetModulePath(modulePath, modBase);
+            if (hasModulePath)
             {
-                char        modulePath[MAX_PATH + 1]{};
-                const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-                if (len)
-                {
-                    modulePath[len]       = 0;
-                    const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
-                    outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
-                }
+                const Utf8 moduleName = FileSystem::formatFileName(ctx, modulePath);
+                outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
             }
         }
 
@@ -561,16 +569,12 @@ namespace
         if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
         {
             const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
-            if (modBase)
+            fs::path   modulePath;
+            const bool hasModulePath = tryGetModulePath(modulePath, modBase);
+            if (hasModulePath)
             {
-                char        modulePath[MAX_PATH + 1]{};
-                const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-                if (len)
-                {
-                    modulePath[len]       = 0;
-                    outAddress.moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
-                    hasInfo               = true;
-                }
+                outAddress.moduleName = FileSystem::formatFileName(ctx, modulePath);
+                hasInfo               = true;
             }
         }
 
@@ -672,9 +676,7 @@ namespace
             }
         }
 
-        std::ranges::sort(versionRoots, std::greater{}, [](const fs::path& path) {
-            return path.filename().generic_string();
-        });
+        std::ranges::sort(versionRoots, std::greater{}, pathFilenameString);
         for (const auto& root : versionRoots)
             candidates.push_back(root);
     }
@@ -966,7 +968,8 @@ namespace Os
         outToolchain = {};
 
         std::vector<fs::path> candidates;
-        if (const auto vctools = readEnvUtf8("VCToolsInstallDir"))
+        const auto vctools = readEnvUtf8("VCToolsInstallDir");
+        if (vctools)
             candidates.emplace_back(std::string(*vctools));
 
         appendVisualStudioToolchainRoots(candidates, "C:\\Program Files\\Microsoft Visual Studio");
@@ -991,10 +994,12 @@ namespace Os
             return WindowsToolchainDiscoveryResult::MissingMsvcToolchain;
 
         candidates.clear();
-        if (const auto sdkDir = readEnvUtf8("WindowsSdkDir"))
+        const auto sdkDir = readEnvUtf8("WindowsSdkDir");
+        if (sdkDir)
         {
             const fs::path libRoot = fs::path(std::string(*sdkDir)) / "Lib";
-            if (const auto sdkVersion = readEnvUtf8("WindowsSDKVersion"))
+            const auto     sdkVersion = readEnvUtf8("WindowsSDKVersion");
+            if (sdkVersion)
                 candidates.emplace_back(libRoot / std::string(*sdkVersion));
         }
 
@@ -1015,9 +1020,7 @@ namespace Os
                     versions.push_back(it->path());
             }
 
-            std::ranges::sort(versions, std::greater{}, [](const fs::path& path) {
-                return path.filename().generic_string();
-            });
+            std::ranges::sort(versions, std::greater{}, pathFilenameString);
             for (const auto& version : versions)
                 candidates.push_back(version);
         }

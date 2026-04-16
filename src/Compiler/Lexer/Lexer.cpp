@@ -78,6 +78,19 @@ namespace
 
         return bestCandidate;
     }
+
+    std::optional<std::string_view> findTokenNameSuggestion(const DiagnosticId id, const std::string_view tokenName)
+    {
+        switch (id)
+        {
+            case DiagnosticId::parser_err_invalid_compiler:
+                return findClosestTokenName(tokenName, true);
+            case DiagnosticId::parser_err_invalid_intrinsic:
+                return findClosestTokenName(tokenName, false);
+            default:
+                return std::nullopt;
+        }
+    }
 }
 
 // Helper: does the next char after the 'x'/'u'/'U' count as a hard terminator
@@ -127,16 +140,9 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
         const std::string_view tkn = srcView_->codeView(offset, len);
         diag.addArgument(Diagnostic::ARG_TOK, tkn);
 
-        if (id == DiagnosticId::parser_err_invalid_compiler)
-        {
-            if (const auto suggestion = findClosestTokenName(tkn, true); suggestion.has_value())
-                diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
-        }
-        else if (id == DiagnosticId::parser_err_invalid_intrinsic)
-        {
-            if (const auto suggestion = findClosestTokenName(tkn, false); suggestion.has_value())
-                diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
-        }
+        const auto suggestion = findTokenNameSuggestion(id, tkn);
+        if (suggestion.has_value())
+            diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
     }
 
     return diag;

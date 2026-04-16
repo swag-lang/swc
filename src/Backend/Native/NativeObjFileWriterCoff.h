@@ -39,7 +39,8 @@ private:
         {
             if (name.size() <= IMAGE_SIZEOF_SHORT_NAME)
                 return 0;
-            if (const auto it = offsets.find(name); it != offsets.end())
+            const auto it = offsets.find(name);
+            if (it != offsets.end())
                 return it->second;
 
             const uint32_t offset = size;

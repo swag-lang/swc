@@ -44,6 +44,66 @@ namespace
     }
 
     constexpr uint32_t RSP_MAX_DEPTH = 16;
+    using ResolvePathFn              = Result (*)(TaskContext&, fs::path&);
+
+    void flushResponseFileToken(std::vector<Utf8>& out, Utf8& token, bool& inTok)
+    {
+        if (!inTok)
+            return;
+
+        out.push_back(std::move(token));
+        token.clear();
+        inTok = false;
+    }
+
+    Result resolveCommandLinePath(TaskContext& ctx, fs::path& path, const ResolvePathFn resolvePath)
+    {
+        if (path.empty())
+            return Result::Continue;
+        return resolvePath(ctx, path);
+    }
+
+    Result resolveCommandLinePathSet(TaskContext& ctx, std::set<fs::path>& paths, const ResolvePathFn resolvePath)
+    {
+        if (paths.empty())
+            return Result::Continue;
+
+        std::set<fs::path> resolvedPaths;
+        for (const fs::path& path : paths)
+        {
+            fs::path temp = path;
+            SWC_RESULT(resolvePath(ctx, temp));
+            resolvedPaths.insert(std::move(temp));
+        }
+
+        paths = std::move(resolvedPaths);
+        return Result::Continue;
+    }
+
+    Result makeAbsoluteDirectory(TaskContext& ctx, fs::path& path, Utf8& pathStorage)
+    {
+        if (path.empty())
+        {
+            pathStorage.clear();
+            return Result::Continue;
+        }
+
+        const fs::path originalPath = path;
+        std::error_code ec;
+        fs::path        absolutePath = fs::absolute(path, ec);
+        if (ec)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+            diag.addArgument(Diagnostic::ARG_PATH, Utf8(originalPath));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        path        = std::move(absolutePath);
+        pathStorage = Utf8(path);
+        return Result::Continue;
+    }
 
     // Split response-file content into whitespace-separated tokens.
     // Supports `"..."` and `'...'` for tokens containing spaces. No escape sequences.
@@ -53,15 +113,6 @@ namespace
         Utf8 token;
         char quote = 0;
         bool inTok = false;
-
-        auto flush = [&]() {
-            if (inTok || quote)
-            {
-                out.push_back(std::move(token));
-                token.clear();
-                inTok = false;
-            }
-        };
 
         for (char c : content)
         {
@@ -83,7 +134,7 @@ namespace
 
             if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f' || c == '\v')
             {
-                flush();
+                flushResponseFileToken(out, token, inTok);
                 continue;
             }
 
@@ -94,7 +145,7 @@ namespace
         if (quote)
             return false;
 
-        flush();
+        flushResponseFileToken(out, token, inTok);
         return true;
     }
 
@@ -914,79 +965,16 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->numCores = 1;
 #endif
 
-    // Resolve all folders
-    std::set<fs::path> resolvedFolders;
-    for (const fs::path& folder : cmdLine_->directories)
-    {
-        fs::path temp = folder;
-        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
-        resolvedFolders.insert(std::move(temp));
-    }
-    cmdLine_->directories = std::move(resolvedFolders);
-
-    // Resolve all files
-    std::set<fs::path> resolvedFiles;
-    for (const fs::path& file : cmdLine_->files)
-    {
-        fs::path temp = file;
-        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
-        resolvedFiles.insert(std::move(temp));
-    }
-    cmdLine_->files = std::move(resolvedFiles);
-
-    // Module path should exist
-    if (!cmdLine_->modulePath.empty())
-    {
-        fs::path temp = cmdLine_->modulePath;
-        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
-        cmdLine_->modulePath = std::move(temp);
-    }
+    SWC_RESULT(resolveCommandLinePathSet(ctx, cmdLine_->directories, FileSystem::resolveFolder));
+    SWC_RESULT(resolveCommandLinePathSet(ctx, cmdLine_->files, FileSystem::resolveFile));
+    SWC_RESULT(resolveCommandLinePath(ctx, cmdLine_->modulePath, FileSystem::resolveFolder));
 
     cmdLine_->originalDirectories = cmdLine_->directories;
     cmdLine_->originalFiles       = cmdLine_->files;
     cmdLine_->originalModulePath  = cmdLine_->modulePath;
 
-    if (!cmdLine_->outDir.empty())
-    {
-        std::error_code ec;
-        fs::path        temp = fs::absolute(cmdLine_->outDir, ec);
-        if (ec)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(cmdLine_->outDir));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        cmdLine_->outDir        = std::move(temp);
-        cmdLine_->outDirStorage = Utf8(cmdLine_->outDir);
-    }
-    else
-    {
-        cmdLine_->outDirStorage.clear();
-    }
-
-    if (!cmdLine_->workDir.empty())
-    {
-        std::error_code ec;
-        fs::path        temp = fs::absolute(cmdLine_->workDir, ec);
-        if (ec)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(cmdLine_->workDir));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        cmdLine_->workDir        = std::move(temp);
-        cmdLine_->workDirStorage = Utf8(cmdLine_->workDir);
-    }
-    else
-    {
-        cmdLine_->workDirStorage.clear();
-    }
+    SWC_RESULT(makeAbsoluteDirectory(ctx, cmdLine_->outDir, cmdLine_->outDirStorage));
+    SWC_RESULT(makeAbsoluteDirectory(ctx, cmdLine_->workDir, cmdLine_->workDirStorage));
 
     updateDefaultBuildCfg(*cmdLine_);
 

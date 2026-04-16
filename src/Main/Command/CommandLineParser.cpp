@@ -670,7 +670,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             parser.setReportArguments(diag, command);
             diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
-            parser.attachSuggestion(diag, suggestCommand(command));
+            attachSuggestion(diag, suggestCommand(command));
             diag.report(ctx);
             return Result::Error;
         }

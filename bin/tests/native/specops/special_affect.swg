@@ -118,6 +118,53 @@ impl RuntimeLiteralAffectTarget
     }
 }
 
+struct RuntimeLiteralOverloadTarget
+{
+    timeInSeconds: f32
+    tag: s32
+    calls: s32
+    sentinel: s32 = 5678
+}
+
+impl RuntimeLiteralOverloadTarget
+{
+    #[Swag.Implicit, Swag.Overload, Swag.NoInline]
+    mtd(suffix: string) opAffectLiteral(value: s32)
+    {
+        .tag = 10
+        .calls += 1
+
+        #if suffix == "s" do
+            .timeInSeconds = value
+        #elif suffix == "ms" do
+            .timeInSeconds = value / 1000.0
+        #elif suffix == "min" do
+            .timeInSeconds = value * 60.0
+        #elif suffix == "h" do
+            .timeInSeconds = value * 3600.0
+        #else do
+            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+    }
+
+    #[Swag.Implicit, Swag.Overload, Swag.NoInline]
+    mtd(suffix: string) opAffectLiteral(value: f32)
+    {
+        .tag = 20
+        .calls += 1
+
+        #if suffix == "s" do
+            .timeInSeconds = value
+        #elif suffix == "ms" do
+            .timeInSeconds = value / 1000.0
+        #elif suffix == "min" do
+            .timeInSeconds = value * 60.0
+        #elif suffix == "h" do
+            .timeInSeconds = value * 3600.0
+        #else do
+            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+    }
+}
+
 const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
 #assert(RuntimeConstAffectOne.x == 1.0)
 #assert(RuntimeConstAffectOne.y == 1.0)
@@ -127,6 +174,14 @@ func assertRuntimeLiteralAffect(value: RuntimeLiteralAffectTarget, expectedSecon
     @assert(value.timeInSeconds == expectedSeconds)
     @assert(value.calls == 1)
     @assert(value.sentinel == 1234)
+}
+
+func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, expectedSeconds: f32, expectedTag: s32)
+{
+    @assert(value.timeInSeconds == expectedSeconds)
+    @assert(value.tag == expectedTag)
+    @assert(value.calls == 1)
+    @assert(value.sentinel == 5678)
 }
 
 #test
@@ -272,6 +327,45 @@ func assertRuntimeLiteralAffect(value: RuntimeLiteralAffectTarget, expectedSecon
 
     takesImplicit(500'ms)
     takesExplicit(cast(RuntimeLiteralAffectTarget) 1'h)
+}
+
+#test
+{
+    let delay: RuntimeLiteralOverloadTarget = 5's
+
+    assertRuntimeLiteralOverloadAffect(delay, 5.0, 10)
+}
+
+#test
+{
+    let delay: RuntimeLiteralOverloadTarget = 1.5's
+
+    assertRuntimeLiteralOverloadAffect(delay, 1.5, 20)
+}
+
+#test
+{
+    let intDelay = cast(RuntimeLiteralOverloadTarget) 250'ms
+    assertRuntimeLiteralOverloadAffect(intDelay, 0.25, 10)
+
+    let floatDelay = cast(RuntimeLiteralOverloadTarget) 0.5'h
+    assertRuntimeLiteralOverloadAffect(floatDelay, 1800.0, 20)
+}
+
+#test
+{
+    func takesInt(value: RuntimeLiteralOverloadTarget)
+    {
+        assertRuntimeLiteralOverloadAffect(value, 120.0, 10)
+    }
+
+    func takesFloat(value: RuntimeLiteralOverloadTarget)
+    {
+        assertRuntimeLiteralOverloadAffect(value, 0.25, 20)
+    }
+
+    takesInt(2'min)
+    takesFloat(250.0'ms)
 }
 
 #test

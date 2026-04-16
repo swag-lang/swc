@@ -110,6 +110,49 @@ impl LiteralAffectTarget
     }
 }
 
+struct LiteralOverloadTarget
+{
+    timeInSeconds: f32
+    tag: s32
+}
+
+impl LiteralOverloadTarget
+{
+    #[Swag.Implicit, Swag.Overload]
+    mtd(suffix: string) opAffectLiteral(value: s32)
+    {
+        .tag = 10
+
+        #if suffix == "s" do
+            .timeInSeconds = value
+        #elif suffix == "ms" do
+            .timeInSeconds = value / 1000.0
+        #elif suffix == "min" do
+            .timeInSeconds = value * 60.0
+        #elif suffix == "h" do
+            .timeInSeconds = value * 3600.0
+        #else do
+            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+    }
+
+    #[Swag.Implicit, Swag.Overload]
+    mtd(suffix: string) opAffectLiteral(value: f32)
+    {
+        .tag = 20
+
+        #if suffix == "s" do
+            .timeInSeconds = value
+        #elif suffix == "ms" do
+            .timeInSeconds = value / 1000.0
+        #elif suffix == "min" do
+            .timeInSeconds = value * 60.0
+        #elif suffix == "h" do
+            .timeInSeconds = value * 3600.0
+        #else do
+            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+    }
+}
+
 const ConstAffectOne: ConstAffectVector2 = 1.0
 #assert(ConstAffectOne.x == 1.0)
 #assert(ConstAffectOne.y == 1.0)
@@ -183,6 +226,24 @@ const ConstAffectOne: ConstAffectVector2 = 1.0
     #assert(#typeof(delay2) == LiteralAffectTarget)
     #assert(#typeof(delay3) == LiteralAffectTarget)
     #assert(#typeof(delay4) == LiteralAffectTarget)
+}
+
+#test
+{
+    let fromInt: LiteralOverloadTarget = 5's
+    let fromFloat: LiteralOverloadTarget = 1.5's
+
+    let castInt = cast(LiteralOverloadTarget) 250'ms
+    let castFloat = cast(LiteralOverloadTarget) 0.5'h
+
+    func takesImplicit(value: LiteralOverloadTarget) {}
+    takesImplicit(2'min)
+    takesImplicit(250.0'ms)
+
+    #assert(#typeof(fromInt) == LiteralOverloadTarget)
+    #assert(#typeof(fromFloat) == LiteralOverloadTarget)
+    #assert(#typeof(castInt) == LiteralOverloadTarget)
+    #assert(#typeof(castFloat) == LiteralOverloadTarget)
 }
 
 #test

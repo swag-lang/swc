@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -87,6 +88,19 @@ namespace
     bool isEnumTypeExpr(Sema& sema, const SemaNodeView& exprView)
     {
         return enumTypeExprSymbol(sema, exprView) != nullptr;
+    }
+
+    Result validateForeachAliasCount(Sema& sema, const AstForeachStmt& node)
+    {
+        SmallVector<TokenRef> tokNames;
+        sema.ast().appendTokens(tokNames, node.spanNamesRef);
+        if (tokNames.size() <= 2)
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{node.srcViewRef(), tokNames[2]});
+        diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(tokNames.size()));
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef)
@@ -185,8 +199,16 @@ Result AstForeachStmt::semaPreNode(Sema& sema) const
 
 Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    if (const auto* payload = sema.semaPayload<LoopSemaPayload>(sema.curNodeRef());
+        payload &&
+        payload->usesCustomVisit &&
+        (childRef == nodeWhereRef || childRef == nodeBodyRef))
+        return Result::SkipChildren;
+
     if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
     {
+        SWC_RESULT(validateForeachAliasCount(sema, *this));
+
         const SemaNodeView exprView     = sema.viewType(nodeExprRef);
         TypeRef            valueTypeRef = TypeRef::invalid();
         TypeRef            indexTypeRef = TypeRef::invalid();
@@ -206,14 +228,6 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         sema.ast().appendTokens(tokNames, spanNamesRef);
         if (!tokNames.empty())
         {
-            if (tokNames.size() > 2)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{srcViewRef(), tokNames[2]});
-                diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(tokNames.size()));
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-
             const SemaNodeView elementView = sema.viewType(nodeExprRef);
             TypeRef            typeRef     = TypeRef::invalid();
             TypeRef            indexRef    = TypeRef::invalid();
@@ -250,6 +264,16 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (childRef == nodeExprRef)
     {
+        SWC_RESULT(validateForeachAliasCount(sema, *this));
+
+        bool canResolveVisit = false;
+        SWC_RESULT(SemaSpecOp::canResolveVisit(sema, *this, canResolveVisit));
+        if (canResolveVisit)
+        {
+            ensureLoopSemaPayload(sema, sema.curNodeRef()).usesCustomVisit = true;
+            return Result::Continue;
+        }
+
         const SemaNodeView exprView = sema.viewType(nodeExprRef);
         if (!isEnumTypeExpr(sema, exprView))
             SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
@@ -266,6 +290,18 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
         SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
     }
 
+    return Result::Continue;
+}
+
+Result AstForeachStmt::semaPostNode(Sema& sema) const
+{
+    const auto* payload = sema.semaPayload<LoopSemaPayload>(sema.curNodeRef());
+    if (!payload || !payload->usesCustomVisit)
+        return Result::Continue;
+
+    bool handled = false;
+    SWC_RESULT(SemaSpecOp::tryResolveVisit(sema, *this, handled));
+    SWC_ASSERT(handled);
     return Result::Continue;
 }
 

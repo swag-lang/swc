@@ -14,6 +14,7 @@ struct LoopSemaPayload
     SmallVector<ResolvedCallArgument> countResolvedArgs;
     AstNodeRef                        lowerBoundRef = AstNodeRef::invalid();
     AstNodeRef                        upperBoundRef = AstNodeRef::invalid();
+    bool                              usesCustomVisit = false;
     bool                              isRangeLoop   = false;
     bool                              inclusive     = false;
     bool                              usesLoopIndex = false;

@@ -1521,6 +1521,7 @@ struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNode(Sema& sema) const;
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

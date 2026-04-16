@@ -312,11 +312,16 @@ namespace
         outAliasIdentifiers.fill(IdentifierRef::invalid());
 
         SmallVector<AstNodeRef> aliases;
+        SmallVector<TokenRef>   foreachNames;
         if (callRef.isValid())
         {
             const auto* aliasCall = sema.node(callRef).safeCast<AstAliasCallExpr>();
             if (aliasCall)
                 aliasCall->collectAliases(aliases, sema.ast());
+
+            const auto* foreachStmt = sema.node(callRef).safeCast<AstForeachStmt>();
+            if (foreachStmt)
+                sema.ast().appendTokens(foreachNames, foreachStmt->spanNamesRef);
         }
 
         AliasUsageInfo aliasUsage;
@@ -334,11 +339,13 @@ namespace
             return usageResult;
         }
 
-        if (aliases.size() > aliasUsage.aliasCount)
+        const size_t providedAliasCount = !aliases.empty() ? aliases.size() : foreachNames.size();
+        if (providedAliasCount > aliasUsage.aliasCount)
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, aliases[aliasUsage.aliasCount]);
+            const SourceCodeRef errorRef = !aliases.empty() ? sema.node(aliases[aliasUsage.aliasCount]).codeRef() : SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[aliasUsage.aliasCount]};
+            auto                diag     = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, errorRef);
             diag.addArgument(Diagnostic::ARG_COUNT, aliasUsage.aliasCount);
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(aliases.size()));
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(providedAliasCount));
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -348,6 +355,15 @@ namespace
             const AstNode& aliasNode = sema.node(aliases[slot]);
             if (aliasNode.is(AstNodeId::Identifier))
                 outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), aliasNode.codeRef());
+        }
+
+        for (size_t slot = 0; slot < foreachNames.size(); ++slot)
+            outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]});
+
+        if (callRef.isValid() && (!foreachNames.empty() || sema.node(callRef).is(AstNodeId::ForeachStmt)))
+        {
+            for (uint32_t slot = static_cast<uint32_t>(foreachNames.size()); slot < aliasUsage.aliasCount; ++slot)
+                outAliasIdentifiers[slot] = SemaHelpers::getUniqueIdentifier(sema, "__foreach_alias");
         }
 
         return Result::Continue;

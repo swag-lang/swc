@@ -425,10 +425,11 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
     SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(switchState != nullptr);
 
-    if (childRef == nodeExprRef)
+    const AstNodeRef exprRef = codeGen.resolvedNodeRef(nodeExprRef);
+    if (childRef == exprRef)
     {
-        const SemaNodeView        exprView       = codeGen.viewType(nodeExprRef);
-        const CodeGenNodePayload& exprPayload    = codeGen.payload(nodeExprRef);
+        const SemaNodeView        exprView       = codeGen.viewType(exprRef);
+        const CodeGenNodePayload& exprPayload    = codeGen.payload(exprRef);
         const TypeInfo&           exprType       = codeGen.typeMgr().get(exprView.typeRef());
         const TypeRef             compareTypeRef = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
         const TypeInfo&           compareType    = codeGen.typeMgr().get(compareTypeRef);
@@ -521,7 +522,7 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
     {
         builder.placeLabel(switchState->noMatchLabel);
         const auto&          switchNode    = codeGen.node(codeGen.curNodeRef()).cast<AstSwitchStmt>();
-        const AstNodeRef     switchExprRef = switchNode.nodeExprRef;
+        const AstNodeRef     switchExprRef = codeGen.resolvedNodeRef(switchNode.nodeExprRef);
         const SwitchPayload* semaPayload   = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
         const Result         result        = CodeGenSafety::emitSwitchCheck(codeGen, codeGen.node(switchExprRef), semaPayload ? semaPayload->runtimePanicSymbol : nullptr);
         if (result != Result::Continue)

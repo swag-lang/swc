@@ -14,6 +14,7 @@ struct AstBinaryExpr;
 struct AstIndexExpr;
 struct AstRelationalExpr;
 struct AstUnaryExpr;
+struct AstForeachStmt;
 struct SemaNodeView;
 
 struct AssignSpecOpPayload
@@ -82,6 +83,8 @@ namespace SemaSpecOp
     Result     tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
     Result     tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
     Result     tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
+    Result     canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched);
+    Result     tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outHandled);
     Result     tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result     tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
     Result     tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);

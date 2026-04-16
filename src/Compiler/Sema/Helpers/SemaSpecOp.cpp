@@ -214,6 +214,38 @@ namespace
         return nodeRef;
     }
 
+    AstNodeRef makeSyntheticBoolConstantArg(Sema& sema, const SourceCodeRef& codeRef, bool value)
+    {
+        const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::BoolLiteral>(codeRef.tokRef);
+        nodePtr->setCodeRef(codeRef);
+        sema.setType(nodeRef, sema.typeMgr().typeBool());
+        sema.setConstant(nodeRef, sema.cstMgr().cstBool(value));
+        sema.setIsValue(*nodePtr);
+        return nodeRef;
+    }
+
+    AstNodeRef makeForeachVisitBodyRef(Sema& sema, const AstForeachStmt& node)
+    {
+        if (node.nodeWhereRef.isInvalid())
+            return node.nodeBodyRef;
+
+        auto [ifRef, ifPtr]       = sema.ast().makeNode<AstNodeId::IfStmt>(node.tokRef());
+        ifPtr->nodeConditionRef   = node.nodeWhereRef;
+        ifPtr->nodeIfBlockRef     = node.nodeBodyRef;
+        ifPtr->nodeElseBlockRef   = AstNodeRef::invalid();
+        ifPtr->setCodeRef(node.codeRef());
+        return ifRef;
+    }
+
+    AstNodeRef makeSyntheticCodeBlockArg(Sema& sema, const AstForeachStmt& node)
+    {
+        auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::CompilerCodeBlock>(node.tokRef());
+        nodePtr->setCodeRef(node.codeRef());
+        nodePtr->nodeBodyRef    = makeForeachVisitBodyRef(sema, node);
+        nodePtr->payloadTypeRef = sema.typeMgr().typeVoid();
+        return nodeRef;
+    }
+
     std::string_view assignGenericOpString(TokenId tokId)
     {
         if (tokId == TokenId::SymEqual)
@@ -564,6 +596,97 @@ namespace
         return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
     }
 
+    Result collectVisitSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const AstForeachStmt& node, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
+    {
+        outCandidates.clear();
+
+        if (node.tokSpecializationRef.isValid())
+        {
+            const SourceView&     srcView    = sema.srcView(node.srcViewRef());
+            const SourceCodeRange tokenRange = srcView.tokenCodeRange(sema.ctx(), node.tokSpecializationRef);
+            if (tokenRange.srcView && tokenRange.len > 1)
+            {
+                Utf8 opVisitName = "opVisit";
+                opVisitName += tokenRange.srcView->codeView(tokenRange.offset + 1, tokenRange.len - 1);
+                const IdentifierRef specializedId = sema.idMgr().addIdentifierOwned(opVisitName);
+                return collectSpecOpCandidates(sema, ownerStruct, specializedId, genericArgNodes, outCandidates);
+            }
+        }
+
+        if (node.modifierFlags.has(AstModifierFlagsE::Reverse))
+        {
+            const IdentifierRef reverseId = sema.idMgr().addIdentifier("opVisitReverse");
+            SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, reverseId, genericArgNodes, outCandidates));
+            if (!outCandidates.empty())
+                return Result::Continue;
+        }
+
+        const IdentifierRef opVisitId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpVisit);
+        return collectSpecOpCandidates(sema, ownerStruct, opVisitId, genericArgNodes, outCandidates);
+    }
+
+    bool foreachRequestsByAddress(const Sema& sema, const AstForeachStmt& node)
+    {
+        if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))
+            return true;
+
+        SmallVector<TokenRef> foreachNames;
+        sema.ast().appendTokens(foreachNames, node.spanNamesRef);
+        if (foreachNames.empty())
+            return false;
+
+        const SourceView& srcView = sema.srcView(node.srcViewRef());
+        for (uint32_t tokIndex = node.tokRef().get(); tokIndex < foreachNames.front().get(); ++tokIndex)
+        {
+            if (srcView.token(TokenRef{tokIndex}).id == TokenId::SymAmpersand)
+                return true;
+        }
+
+        const SourceCodeRange codeRange = node.codeRangeWithChildren(sema.ctx(), sema.ast());
+        if (codeRange.srcView && codeRange.len)
+        {
+            const std::string_view code = codeRange.srcView->codeView(codeRange.offset, codeRange.len);
+            const size_t           inPos = code.find(" in ");
+            const size_t           ampPos = code.find('&');
+            if (ampPos != std::string_view::npos && (inPos == std::string_view::npos || ampPos < inPos))
+                return true;
+        }
+
+        return false;
+    }
+
+    Result matchSyntheticCall(Sema&                              sema,
+                              std::span<Symbol*>                 candidates,
+                              std::span<AstNodeRef>              args,
+                              AstNodeRef                         ufcsArg,
+                              bool                               allowNoMatch,
+                              SmallVector<ResolvedCallArgument>& outResolvedArgs,
+                              bool&                              outMatched)
+    {
+        outResolvedArgs.clear();
+        outMatched = false;
+
+        const SemaNodeView calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
+        if (allowNoMatch)
+        {
+            const bool savedSilent = sema.ctx().silentDiagnostic();
+            sema.ctx().setSilentDiagnostic(true);
+            const Result matchResult = Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &outResolvedArgs);
+            sema.ctx().setSilentDiagnostic(savedSilent);
+            if (matchResult == Result::Pause)
+                return Result::Pause;
+            if (matchResult != Result::Continue)
+                return Result::Continue;
+        }
+        else
+        {
+            SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &outResolvedArgs));
+        }
+
+        outMatched = true;
+        return Result::Continue;
+    }
+
     Result resolveSyntheticCall(Sema&                 sema,
                                 const AstNode&        node,
                                 std::span<Symbol*>    candidates,
@@ -573,27 +696,11 @@ namespace
                                 bool*                 outMatched   = nullptr,
                                 bool                  allowConstEval = true)
     {
-        if (outMatched)
-            *outMatched = false;
-
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        const SemaNodeView                calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
-        if (allowNoMatch)
-        {
-            const bool savedSilent = sema.ctx().silentDiagnostic();
-            sema.ctx().setSilentDiagnostic(true);
-            const Result matchResult = Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs);
-            sema.ctx().setSilentDiagnostic(savedSilent);
-            if (matchResult == Result::Pause)
-                return Result::Pause;
-            if (matchResult != Result::Continue)
-                return Result::Continue;
-        }
-        else
-        {
-            SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &resolvedArgs));
-        }
-
+        bool                            matched = false;
+        SWC_RESULT(matchSyntheticCall(sema, candidates, args, ufcsArg, allowNoMatch, resolvedArgs, matched));
+        if (!matched)
+            return Result::Continue;
         if (outMatched)
             *outMatched = true;
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
@@ -978,6 +1085,62 @@ Result SemaSpecOp::tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFuncti
 {
     const IdentifierRef opDataId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpData);
     return tryResolveReceiverOnlySpecOp(sema, outCalledFn, outHandled, exprRef, opDataId, false);
+}
+
+Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched)
+{
+    outMatched = false;
+
+    const SemaNodeView  exprView(sema, node.nodeExprRef, SemaNodeViewPartE::Type);
+    const SymbolStruct* ownerStruct = structSpecOpOwner(sema, exprView);
+    if (!ownerStruct)
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
+
+    SmallVector<AstNodeRef> genericArgs;
+    genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), foreachRequestsByAddress(sema, node)));
+    genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), node.modifierFlags.has(AstModifierFlagsE::Reverse)));
+
+    SmallVector<Symbol*> candidates;
+    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, node, genericArgs.span(), candidates));
+    if (candidates.empty())
+        return Result::Continue;
+
+    SmallVector<AstNodeRef>            args;
+    SmallVector<ResolvedCallArgument>  resolvedArgs;
+    args.push_back(makeSyntheticCodeBlockArg(sema, node));
+    SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args.span(), node.nodeExprRef, true, resolvedArgs, outMatched));
+    return Result::Continue;
+}
+
+Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outHandled)
+{
+    outHandled = false;
+
+    const SemaNodeView  exprView(sema, node.nodeExprRef, SemaNodeViewPartE::Type);
+    const SymbolStruct* ownerStruct = structSpecOpOwner(sema, exprView);
+    if (!ownerStruct)
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
+
+    SmallVector<AstNodeRef> genericArgs;
+    genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), foreachRequestsByAddress(sema, node)));
+    genericArgs.push_back(makeSyntheticBoolConstantArg(sema, node.codeRef(), node.modifierFlags.has(AstModifierFlagsE::Reverse)));
+
+    SmallVector<Symbol*> candidates;
+    SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, node, genericArgs.span(), candidates));
+    if (candidates.empty())
+        return Result::Continue;
+
+    SmallVector<AstNodeRef> args;
+    args.push_back(makeSyntheticCodeBlockArg(sema, node));
+
+    bool matched = false;
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, true, &matched, false));
+    outHandled = matched;
+    return Result::Continue;
 }
 
 Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)

@@ -1176,4 +1176,12 @@ AstNodeRef AstConstraintExpr::semaClone(Sema& sema, const CloneContext& cloneCon
     return newRef;
 }
 
+AstNodeRef AstConstraintBlock::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ConstraintBlock>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstConstraintBlock>();
+    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 SWC_END_NAMESPACE();

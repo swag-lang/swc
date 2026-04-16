@@ -17,6 +17,69 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isTypeSyntaxNode(const AstNode& node)
+    {
+        switch (node.id())
+        {
+            case AstNodeId::BuiltinType:
+            case AstNodeId::NamedType:
+            case AstNodeId::QualifiedType:
+            case AstNodeId::ArrayType:
+            case AstNodeId::SliceType:
+            case AstNodeId::ReferenceType:
+            case AstNodeId::MoveRefType:
+            case AstNodeId::ValuePointerType:
+            case AstNodeId::BlockPointerType:
+            case AstNodeId::VariadicType:
+            case AstNodeId::TypedVariadicType:
+            case AstNodeId::CodeType:
+            case AstNodeId::RetValType:
+            case AstNodeId::LambdaType:
+            case AstNodeId::CompilerTypeExpr:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    void normalizeTypeOperandToConstant(Sema& sema, SemaNodeView& view)
+    {
+        if (!view.typeRef().isValid() || view.cstRef().isValid())
+            return;
+
+        const AstNodeRef targetRef = view.nodeRef();
+        if (targetRef.isInvalid())
+            return;
+
+        const AstNode& targetNode = sema.node(targetRef);
+        bool           isTypeExpr = isTypeSyntaxNode(targetNode);
+        if (!isTypeExpr)
+        {
+            if (const auto* ident = targetNode.safeCast<AstIdentifier>())
+            {
+                if (ident->hasFlag(AstIdentifierFlagsE::GenericTypeBinding))
+                    isTypeExpr = true;
+                else
+                {
+                    const SemaNodeView symbolView = sema.viewNodeTypeSymbol(targetRef);
+                    isTypeExpr                    = symbolView.sym() && symbolView.sym()->isType();
+                }
+            }
+        }
+
+        if (!isTypeExpr)
+            return;
+
+        TypeRef typeValueRef = view.typeRef();
+        if (view.type() && view.type()->isTypeValue())
+            typeValueRef = view.type()->payloadTypeRef();
+
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeValueRef));
+        sema.setConstant(targetRef, cstRef);
+        view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    }
+
     bool isNullComparableConstant(Sema& sema, const ConstantValue& cst) noexcept
     {
         if (cst.isNull())
@@ -510,8 +573,12 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
     const Token& tok           = sema.token({srcViewRef(), tokRef()});
 
+    normalizeTypeOperandToConstant(sema, nodeLeftView);
+    normalizeTypeOperandToConstant(sema, nodeRightView);
     SWC_RESULT(SemaCheck::isValueOrType(sema, nodeLeftView));
     SWC_RESULT(SemaCheck::isValueOrType(sema, nodeRightView));
+    normalizeTypeOperandToConstant(sema, nodeLeftView);
+    normalizeTypeOperandToConstant(sema, nodeRightView);
     sema.setIsValue(*this);
 
     bool handledSpecialOp = false;

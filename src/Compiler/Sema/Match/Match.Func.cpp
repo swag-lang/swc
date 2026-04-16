@@ -1173,6 +1173,15 @@ namespace
             return Result::Continue;
         }
 
+        bool        whereSatisfied = true;
+        CastFailure whereFailure;
+        SWC_RESULT(SemaGeneric::evaluateFunctionWhereConstraints(sema, whereSatisfied, fn, &whereFailure));
+        if (!whereSatisfied)
+        {
+            failBadType(outFail, 0, 0, whereFailure, false);
+            return Result::Continue;
+        }
+
         // Rank each provided argument (excluding the variadic parameter itself when variadic)
         const uint32_t numCommon = (vi.any() && numParams > 0) ? (numParams - 1) : numParams;
         for (uint32_t i = 0; i < numCommon; ++i)

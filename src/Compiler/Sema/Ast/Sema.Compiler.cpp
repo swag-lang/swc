@@ -29,6 +29,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef compilerRunFunctionStorageRef(const AstNode& node)
+    {
+        if (const auto* runBlock = node.safeCast<AstCompilerRunBlock>())
+            return runBlock->nodeBodyRef;
+        return AstNodeRef::invalid();
+    }
+
     bool isMacroFunction(const SymbolFunction* function)
     {
         return function && function->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
@@ -1279,11 +1286,15 @@ namespace
     Result setupCompilerRunFunction(Sema& sema, TypeRef returnTypeRef)
     {
         const AstNodeRef nodeRef = sema.curNodeRef();
-        if (!sema.viewSymbol(nodeRef).hasSymbol())
+        const AstNode&   node    = sema.node(nodeRef);
+        AstNodeRef       symRef  = compilerRunFunctionStorageRef(node);
+        if (symRef.isInvalid())
+            symRef = nodeRef;
+
+        if (!sema.viewSymbol(symRef).hasSymbol())
         {
             TaskContext&        ctx   = sema.ctx();
             const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
-            const AstNode&      node  = sema.node(nodeRef);
 
             auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
             symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
@@ -1291,11 +1302,11 @@ namespace
             symFn->setReturnTypeRef(returnTypeRef);
             symFn->setAttributes(ctx, sema.frame().currentAttributes());
             symFn->setDeclared(ctx);
-            sema.setSymbol(nodeRef, symFn);
+            sema.setSymbol(symRef, symFn);
         }
 
         SemaFrame frame = sema.frame();
-        auto&     symFn = sema.viewSymbol(nodeRef).sym()->cast<SymbolFunction>();
+        auto&     symFn = sema.viewSymbol(symRef).sym()->cast<SymbolFunction>();
 
         // `#run` lowers to a helper function that is executed during sema. The enclosing
         // runtime function must not keep it as a normal runtime call dependency, or JIT/native
@@ -1317,6 +1328,7 @@ Result AstCompilerRunBlock::semaPreNode(Sema& sema)
 
 Result AstCompilerRunBlock::semaPostNode(Sema& sema)
 {
+    const auto& node = sema.curNode().cast<AstCompilerRunBlock>();
     auto* runExprSymFn = sema.currentFunction();
     SWC_ASSERT(runExprSymFn != nullptr);
 
@@ -1328,6 +1340,8 @@ Result AstCompilerRunBlock::semaPostNode(Sema& sema)
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
     finalizeCompilerRunFunction(sema.ctx(), *runExprSymFn, returnTypeRef);
+    if (node.hasFlag(AstCompilerRunBlockFlagsE::Immediate))
+        return SemaJIT::runExprImmediate(sema, *runExprSymFn, sema.curNodeRef());
     return SemaJIT::runExpr(sema, *runExprSymFn, sema.curNodeRef());
 }
 

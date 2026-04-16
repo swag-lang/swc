@@ -773,6 +773,39 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     return submitJitNode(sema, nodeExprRef, request, payload, resultMeta, false);
 }
 
+Result SemaJIT::runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
+{
+    SWC_RESULT(SemaCheck::isValue(sema, nodeExprRef));
+
+    if (sema.viewConstant(nodeExprRef).hasConstant())
+        return Result::Continue;
+
+    const SemaNodeView initialView = sema.viewType(nodeExprRef);
+    SWC_RESULT(sema.waitSemaCompleted(initialView.type(), nodeExprRef));
+
+    const TypeRef           exprTypeRef = sema.viewType(nodeExprRef).typeRef();
+    const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
+    SWC_RESULT(prepareJitFunction(sema, symFn));
+
+    SmallVector<std::byte> resultStorage;
+    resultStorage.resize(resultMeta.resultSize);
+
+    JITExecManager::Request request;
+    request.function     = &symFn;
+    request.nodeRef      = nodeExprRef;
+    request.codeRef      = sema.node(nodeExprRef).codeRef();
+    request.arg0         = reinterpret_cast<uint64_t>(resultStorage.data());
+    request.hasArg0      = true;
+    request.runImmediate = true;
+
+    const Result jitResult = sema.compiler().jitExecMgr().submit(sema.ctx(), request);
+    if (jitResult != Result::Continue)
+        return reportJitEvaluationFailure(sema, symFn);
+
+    sema.setConstant(nodeExprRef, makeJitCallResultConstantRef(sema, resultMeta, resultStorage.data()));
+    return Result::Continue;
+}
+
 Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs)
 {
     ///////////////////////////////////////////

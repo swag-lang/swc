@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
+#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
@@ -107,6 +108,8 @@ public:
     Result                  emit(TaskContext& ctx);
     Result                  ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
     GenericInstanceStorage& genericInstanceStorage(const TaskContext& ctx) const noexcept;
+    AstNodeRef              findGenericEvalNode(const TaskContext& ctx, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
+    void                    cacheGenericEvalNode(const TaskContext& ctx, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }

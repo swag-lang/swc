@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
+#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
@@ -81,6 +82,8 @@ public:
     void                          setGenericInstance(SymbolStruct* root) noexcept;
     SymbolStruct*                 genericRootSym() noexcept;
     const SymbolStruct*           genericRootSym() const noexcept;
+    AstNodeRef                    findGenericEvalNode(AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
+    void                          cacheGenericEvalNode(AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     bool                          tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
     GenericInstanceStorage&       genericInstanceStorage() noexcept;
     const GenericInstanceStorage& genericInstanceStorage() const noexcept;

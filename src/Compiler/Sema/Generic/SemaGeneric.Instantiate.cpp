@@ -5,6 +5,8 @@
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -231,6 +233,21 @@ namespace
         return false;
     }
 
+    AstNodeRef findCachedGenericEvalNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            return function->findGenericEvalNode(sema.ctx(), sourceRef, bindings);
+        return root.cast<SymbolStruct>().findGenericEvalNode(sourceRef, bindings);
+    }
+
+    void cacheGenericEvalNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            function->cacheGenericEvalNode(sema.ctx(), sourceRef, bindings, evalRef);
+        else
+            root.cast<SymbolStruct>().cacheGenericEvalNode(sourceRef, bindings, evalRef);
+    }
+
     Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
     {
         if (key.typeRef.isValid())
@@ -354,14 +371,69 @@ namespace
         return sema.token(constraintNode.codeRef()).id == TokenId::KwdWhere;
     }
 
-    AstNodeRef functionConstraintExprRef(Sema& sema, AstNodeRef constraintRef)
+    AstNodeRef makeConstraintBlockRunNode(Sema& sema, AstNodeRef constraintBlockRef, std::span<const SemaClone::ParamBinding> bindings)
     {
-        if (!isWhereConstraint(sema, constraintRef))
-            return AstNodeRef::invalid();
+        const auto& constraintBlock = sema.node(constraintBlockRef).cast<AstConstraintBlock>();
+        SmallVector<AstNodeRef> sourceChildren;
+        sema.ast().appendNodes(sourceChildren, constraintBlock.spanChildrenRef);
+
+        SmallVector<AstNodeRef> clonedChildren;
+        clonedChildren.reserve(sourceChildren.size());
+        const SemaClone::CloneContext cloneContext{bindings};
+        for (const AstNodeRef childRef : sourceChildren)
+        {
+            const AstNodeRef clonedChildRef = SemaClone::cloneAst(sema, childRef, cloneContext);
+            if (clonedChildRef.isInvalid())
+                return AstNodeRef::invalid();
+            clonedChildren.push_back(clonedChildRef);
+        }
+
+        TokenRef bodyTokRef = constraintBlock.tokRef();
+        if (!clonedChildren.empty())
+            bodyTokRef = sema.node(clonedChildren[0]).tokRef();
+
+        auto [bodyRef, bodyPtr]  = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(bodyTokRef);
+        bodyPtr->spanChildrenRef = sema.ast().pushSpan(clonedChildren.span());
+
+        auto [runRef, runPtr] = sema.ast().makeNode<AstNodeId::CompilerRunBlock>(constraintBlock.tokRef());
+        runPtr->nodeBodyRef   = bodyRef;
+        runPtr->addFlag(AstCompilerRunBlockFlagsE::Immediate);
+        return runRef;
+    }
+
+    Result evalGenericConstraintNode(Sema& sema, const Symbol& root, AstNodeRef constraintRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outEvalRef)
+    {
+        outEvalRef = AstNodeRef::invalid();
+        if (constraintRef.isInvalid())
+            return Result::Continue;
 
         if (const auto* constraintExpr = sema.node(constraintRef).safeCast<AstConstraintExpr>())
-            return constraintExpr->nodeExprRef;
-        return AstNodeRef::invalid();
+        {
+            outEvalRef = findCachedGenericEvalNode(sema, root, constraintExpr->nodeExprRef, bindings);
+            if (outEvalRef.isValid() && sema.viewStored(outEvalRef, SemaNodeViewPartE::Constant).cstRef().isValid())
+                return Result::Continue;
+            return evalGenericClonedNode(sema, root, constraintExpr->nodeExprRef, bindings, outEvalRef);
+        }
+
+        if (sema.node(constraintRef).is(AstNodeId::ConstraintBlock))
+        {
+            outEvalRef = findCachedGenericEvalNode(sema, root, constraintRef, bindings);
+            if (outEvalRef.isValid())
+            {
+                if (sema.viewStored(outEvalRef, SemaNodeViewPartE::Constant).cstRef().isValid())
+                    return Result::Continue;
+            }
+            else
+            {
+                outEvalRef = makeConstraintBlockRunNode(sema, constraintRef, bindings);
+                cacheGenericEvalNode(sema, root, constraintRef, bindings, outEvalRef);
+            }
+            if (outEvalRef.isInvalid())
+                return Result::Error;
+            return runGenericNode(sema, root, outEvalRef);
+        }
+
+        return Result::Continue;
     }
 
     Diagnostic reportFunctionConstraintDiag(Sema& sema, DiagnosticId diagId, const SymbolFunction& function, AstNodeRef errorNodeRef, AstNodeRef whereRef, const Utf8& bindings)
@@ -429,14 +501,15 @@ namespace
         sema.ast().appendNodes(constraintRefs, decl->spanConstraintsRef);
         for (const AstNodeRef constraintRef : constraintRefs)
         {
-            const AstNodeRef exprRef = functionConstraintExprRef(sema, constraintRef);
-            if (exprRef.isInvalid())
+            if (!isWhereConstraint(sema, constraintRef))
                 continue;
 
-            AstNodeRef clonedExprRef = AstNodeRef::invalid();
-            SWC_RESULT(evalGenericClonedNode(sema, function, exprRef, bindings, clonedExprRef));
+            AstNodeRef evalRef = AstNodeRef::invalid();
+            SWC_RESULT(evalGenericConstraintNode(sema, function, constraintRef, bindings, evalRef));
+            if (evalRef.isInvalid())
+                continue;
 
-            const SemaNodeView whereView = sema.viewNodeTypeConstant(clonedExprRef);
+            const SemaNodeView whereView = sema.viewNodeTypeConstant(evalRef);
             if (!whereView.typeRef().isValid() || !whereView.type()->isBool())
             {
                 outSatisfied = false;
@@ -475,16 +548,6 @@ namespace
         }
 
         return Result::Continue;
-    }
-
-    AstNodeRef genericStructConstraintExprRef(Sema& sema, AstNodeRef whereRef)
-    {
-        if (!whereRef.isValid())
-            return AstNodeRef::invalid();
-
-        if (const auto* constraintExpr = sema.node(whereRef).safeCast<AstConstraintExpr>())
-            return constraintExpr->nodeExprRef;
-        return AstNodeRef::invalid();
     }
 
     Diagnostic reportGenericStructConstraintDiag(Sema& sema, DiagnosticId diagId, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef)
@@ -544,14 +607,12 @@ namespace
         sema.ast().appendNodes(whereRefs, decl->spanWhereRef);
         for (const AstNodeRef whereRef : whereRefs)
         {
-            const AstNodeRef whereExprRef = genericStructConstraintExprRef(sema, whereRef);
-            if (whereExprRef.isInvalid())
+            AstNodeRef evalRef = AstNodeRef::invalid();
+            SWC_RESULT(evalGenericConstraintNode(sema, root, whereRef, bindings.span(), evalRef));
+            if (evalRef.isInvalid())
                 continue;
 
-            AstNodeRef clonedExprRef = AstNodeRef::invalid();
-            SWC_RESULT(evalGenericClonedNode(sema, root, whereExprRef, bindings.span(), clonedExprRef));
-
-            const SemaNodeView whereView = sema.viewNodeTypeConstant(clonedExprRef);
+            const SemaNodeView whereView = sema.viewNodeTypeConstant(evalRef);
             if (!whereView.typeRef().isValid() || !whereView.type()->isBool())
                 return raiseGenericStructConstraintNotBool(sema, root, params, resolvedArgs, errorNodeRef, whereRef, whereView.typeRef());
 
@@ -726,10 +787,21 @@ namespace
         if (sourceRef.isInvalid())
             return Result::Continue;
 
-        const SemaClone::CloneContext cloneContext{bindings};
-        outClonedRef = SemaClone::cloneAst(sema, sourceRef, cloneContext);
-        if (outClonedRef.isInvalid())
-            return Result::Error;
+        outClonedRef = findCachedGenericEvalNode(sema, root, sourceRef, bindings);
+        if (outClonedRef.isValid())
+        {
+            if (sema.viewStored(outClonedRef, SemaNodeViewPartE::Constant).cstRef().isValid())
+                return Result::Continue;
+        }
+        else
+        {
+            const SemaClone::CloneContext cloneContext{bindings};
+            outClonedRef = SemaClone::cloneAst(sema, sourceRef, cloneContext);
+            if (outClonedRef.isInvalid())
+                return Result::Error;
+
+            cacheGenericEvalNode(sema, root, sourceRef, bindings, outClonedRef);
+        }
 
         return runGenericNode(sema, root, outClonedRef);
     }

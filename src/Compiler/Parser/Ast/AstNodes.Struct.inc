@@ -367,7 +367,12 @@ struct AstCompilerMessageFunc : AstNodeT<AstNodeId::CompilerMessageFunc>
 };
 
 // -----------------------------------------------------------------------------
-struct AstCompilerRunBlock : AstNodeT<AstNodeId::CompilerRunBlock>
+enum class AstCompilerRunBlockFlagsE : AstNode::ParserFlags
+{
+    Immediate = 1 << 0,
+};
+
+struct AstCompilerRunBlock : AstNodeT<AstNodeId::CompilerRunBlock, AstCompilerRunBlockFlagsE>
 {
     AstNodeRef nodeBodyRef;
 
@@ -1194,6 +1199,7 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
 // -----------------------------------------------------------------------------
 struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

@@ -31,14 +31,13 @@ enum class RtAttributeFlagsE : uint64_t
     Overload     = 1 << 17,
     CalleeReturn = 1 << 18,
     Discardable  = 1 << 19,
-    NotGeneric   = 1 << 20,
+    Global       = 1 << 20,
     Tls          = 1 << 21,
     NoCopy       = 1 << 22,
     Opaque       = 1 << 23,
     EnumIndex    = 1 << 24,
     NoDuplicate  = 1 << 25,
     NoDoc        = 1 << 26,
-    Global       = 1 << 27,
 };
 using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 

@@ -97,10 +97,6 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.Enum | AttributeUsage.EnumValue)]
     attr Deprecated(msg: string = null)
 
-    // The following function is forced to not be generic, even if defined inside a generic 'struct'.
-    #[AttrUsage(AttributeUsage.Function)]
-    attr NotGeneric()
-
     // Put the following global variable in the 'tls' segment.
     // A copy of the variable will be available for each thread.
     #[AttrUsage(AttributeUsage.GlobalVariable)]

@@ -112,7 +112,6 @@ namespace
             {.name = IdentifierManager::PredefinedName::Overload, .flag = RtAttributeFlagsE::Overload},
             {.name = IdentifierManager::PredefinedName::CalleeReturn, .flag = RtAttributeFlagsE::CalleeReturn},
             {.name = IdentifierManager::PredefinedName::Discardable, .flag = RtAttributeFlagsE::Discardable},
-            {.name = IdentifierManager::PredefinedName::NotGeneric, .flag = RtAttributeFlagsE::NotGeneric},
             {.name = IdentifierManager::PredefinedName::Tls, .flag = RtAttributeFlagsE::Tls},
             {.name = IdentifierManager::PredefinedName::NoCopy, .flag = RtAttributeFlagsE::NoCopy},
             {.name = IdentifierManager::PredefinedName::Opaque, .flag = RtAttributeFlagsE::Opaque},

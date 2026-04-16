@@ -80,10 +80,6 @@ attr Discardable()          // Allow caller to ignore return value
 #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.Enum | AttributeUsage.EnumValue)]
 attr Deprecated(msg: string = null) // Mark definition as deprecated
 
-// Force function to not be generic, even inside a generic struct
-#[AttrUsage(AttributeUsage.Function)]
-attr NotGeneric()
-
 /**
 # Memory & Layout (Globals and Structs)
 */

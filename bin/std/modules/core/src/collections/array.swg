@@ -256,7 +256,6 @@ impl Array
 
     // Creates a new byte array of a given size.
     // Often used for raw memory me.buffers.
-    #[NotGeneric]
     func createBuffer(size: u64)->Array'u8
     {
         var result: retval

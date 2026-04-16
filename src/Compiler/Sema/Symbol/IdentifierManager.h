@@ -59,7 +59,6 @@ public:
         CalleeReturn,
         Foreign,
         Discardable,
-        NotGeneric,
         Tls,
         NoCopy,
         Opaque,

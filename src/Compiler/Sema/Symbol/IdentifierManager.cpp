@@ -47,7 +47,6 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::CalleeReturn, .str = "CalleeReturn"},
         {.name = PredefinedName::Foreign, .str = "Foreign"},
         {.name = PredefinedName::Discardable, .str = "Discardable"},
-        {.name = PredefinedName::NotGeneric, .str = "NotGeneric"},
         {.name = PredefinedName::Tls, .str = "Tls"},
         {.name = PredefinedName::NoCopy, .str = "NoCopy"},
         {.name = PredefinedName::Opaque, .str = "Opaque"},

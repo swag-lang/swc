@@ -81,6 +81,12 @@ func runWhen(cond: #code bool, stmt: #code void)
 }
 
 #[Swag.Macro]
+func defaultBeforeStmt(value: s32 = 40, stmt: #code void)
+{
+    #inject(stmt)
+}
+
+#[Swag.Macro]
 func breakAsContinue(stmt: #code void)
 {
     #inject(stmt, break = continue)
@@ -166,6 +172,17 @@ func remapLoopFlow(stmt: #code void)
         bumpStmt()
     }
 
+    @assert(StmtEvalCount == 1)
+}
+
+// Default runtime arg followed by trailing #code block
+#test
+{
+    StmtEvalCount = 0
+    defaultBeforeStmt()
+    {
+        bumpStmt()
+    }
     @assert(StmtEvalCount == 1)
 }
 

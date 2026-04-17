@@ -173,7 +173,7 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
             hasDefault          = true;
             previousDefaultParm = &param;
         }
-        else if (hasDefault)
+        else if (hasDefault && !type.isCodeBlock())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param);
             if (param.idRef().isValid() && previousDefaultParm && previousDefaultParm->idRef().isValid())

@@ -111,6 +111,21 @@ namespace
         return resolvedRef;
     }
 
+    bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)
+    {
+        const AstNode& argNode = sema.node(argRef);
+        if (!argNode.is(AstNodeId::CompilerCodeBlock))
+            return false;
+
+        const AstNodeRef bodyRef = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
+        if (bodyRef.isInvalid())
+            return false;
+        if (!sema.node(bodyRef).is(AstNodeId::EmbeddedBlock))
+            return false;
+
+        return sema.node(bodyRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+    }
+
     AstNodeRef bindingArgumentRef(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -823,6 +838,17 @@ namespace
             const AstNode& argNode = sema.node(argRef);
             if (argNode.is(AstNodeId::NamedArgument))
                 continue;
+
+            if (numFixed &&
+                isImplicitTrailingCodeBlockArg(sema, argRef) &&
+                params[numFixed - 1]->type(sema.ctx()).isCodeBlock() &&
+                !isBindingAssigned(bound[numFixed - 1]))
+            {
+                const size_t trailingParamIndex = numFixed - 1;
+                bound[trailingParamIndex].idRef   = params[trailingParamIndex]->idRef();
+                bound[trailingParamIndex].exprRef = bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef);
+                continue;
+            }
 
             while (nextParam < numFixed && isBindingAssigned(bound[nextParam]))
                 nextParam++;

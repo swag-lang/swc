@@ -33,6 +33,12 @@ func runWhen(cond: #code bool, stmt: #code void)
     }
 }
 
+#[Swag.Macro]
+func defaultBeforeStmt(value: s32 = 40, stmt: #code void)
+{
+    #inject(stmt)
+}
+
 #test
 {
     var count = 0
@@ -85,7 +91,17 @@ func runWhen(cond: #code bool, stmt: #code void)
 #test
 {
     var count = 0
-    #scope(Outer)
+    defaultBeforeStmt()
+    {
+        count += 1
+    }
+    @assert(count == 1)
+}
+
+#test
+{
+    var count = 0
+#scope(Outer)
     {
         for 4
         {

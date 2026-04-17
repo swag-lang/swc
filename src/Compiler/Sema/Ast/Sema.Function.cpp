@@ -1415,14 +1415,16 @@ namespace
         AstNodeRef       trailingBlockSiblingRef = AstNodeRef::invalid();
         const AstNodeRef trailingBlockArgRef     = resolveTrailingCodeBlockArgument(sema, nodeCallee, symbols, args.span(), ufcsArg, trailingBlockSiblingRef);
         if (trailingBlockArgRef.isValid())
+        {
+            if (trailingBlockSiblingRef.isValid())
+                sema.markImplicitCodeBlockArg(sema.visit().parentNodeRef(), trailingBlockSiblingRef);
             args.push_back(trailingBlockArgRef);
+        }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
         const auto                        resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
         SWC_RESULT(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
-        if (trailingBlockSiblingRef.isValid())
-            sema.markImplicitCodeBlockArg(sema.visit().parentNodeRef(), trailingBlockSiblingRef);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
 

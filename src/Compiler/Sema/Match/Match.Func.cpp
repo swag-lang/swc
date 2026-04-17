@@ -237,6 +237,21 @@ namespace
         return ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
     }
 
+    bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)
+    {
+        const AstNode& argNode = sema.node(argRef);
+        if (!argNode.is(AstNodeId::CompilerCodeBlock))
+            return false;
+
+        const AstNodeRef bodyRef = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
+        if (bodyRef.isInvalid())
+            return false;
+        if (!sema.node(bodyRef).is(AstNodeId::EmbeddedBlock))
+            return false;
+
+        return sema.node(bodyRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+    }
+
     bool allowsImplicitAddressBinding(const SymbolFunction& fn, uint32_t paramIndex, AstNodeRef ufcsArg)
     {
         if (ufcsArg.isValid() && paramIndex == 0)
@@ -410,6 +425,16 @@ namespace
 
                 outMapping.paramArgs[found].argRef       = argRef;
                 outMapping.paramArgs[found].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                continue;
+            }
+
+            if (isImplicitTrailingCodeBlockArg(sema, argRef) &&
+                numParams > 0 &&
+                params.back()->type(sema.ctx()).isCodeBlock() &&
+                !outMapping.paramArgs.back().argRef.isValid())
+            {
+                outMapping.paramArgs.back().argRef       = argRef;
+                outMapping.paramArgs.back().callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
                 continue;
             }
 

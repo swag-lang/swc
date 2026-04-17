@@ -6,6 +6,7 @@ enum TestFlags: u32
     A,
     B,
     C,
+    AB = A | B,
 }
 
 #test
@@ -19,4 +20,6 @@ enum TestFlags: u32
     @assert(masked == TestFlags.B)
     @assert(cast(u32) missing == 0)
     @assert(toggled == TestFlags.A)
+    @assert(TestFlags.AB == (TestFlags.A | TestFlags.B))
+    @assert((TestFlags.AB & TestFlags.B) == TestFlags.B)
 }

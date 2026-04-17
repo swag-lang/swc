@@ -60,6 +60,7 @@ enum EE
 #assert(cast(f32) A11.A == 0)
 #assert(cast(f64) A12.A == 0)
 #assert(cast(string) A13.A == "0")
+#assert(cast(u32) AliasInit.B == 7)
 #assert(cast(s32) BB.A == 0)
 
 #assert(cast(string) CC.A == "0") // swc-expected-error {{sema_err_cannot_cast}}
@@ -120,6 +121,12 @@ enum StartsAtZero: u32 {
   #assert(A == 0)
   B,
   #assert(B == 1)
+}
+
+enum AliasInit: u32 {
+  A = 7,
+  B = A,
+  #assert(B == A)
 }
 
 enum RuneOk: rune {

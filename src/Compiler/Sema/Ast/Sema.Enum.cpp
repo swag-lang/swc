@@ -92,6 +92,32 @@ namespace
         else
             sym.setNextValue(ApsInt{bits, isUnsigned});
     }
+
+    Result normalizeEnumInitializerConstant(Sema& sema, const SymbolEnum& symEnum, SemaNodeView& nodeInitView, ConstantRef& valueCst)
+    {
+        if (nodeInitView.cstRef().isInvalid())
+            return SemaError::raiseExprNotConst(sema, nodeInitView.nodeRef());
+
+        if (nodeInitView.type()->isEnum() && nodeInitView.typeRef() == symEnum.typeRef())
+        {
+            const ConstantValue& initValue = sema.cstMgr().get(nodeInitView.cstRef());
+            SWC_ASSERT(initValue.isEnumValue());
+            valueCst = initValue.getEnumValue();
+            return Result::Continue;
+        }
+
+        // Cast initializer constant to the underlying type.
+        // If the user wrote an explicit cast, preserve explicit semantics here.
+        bool isExplicitInitCast = false;
+        if (nodeInitView.node()->is(AstNodeId::AutoCastExpr))
+            isExplicitInitCast = true;
+        if (nodeInitView.node()->is(AstNodeId::CastExpr))
+            isExplicitInitCast = nodeInitView.node()->cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit);
+        const CastKind initCastKind = isExplicitInitCast ? CastKind::Explicit : CastKind::Initialization;
+        SWC_RESULT(Cast::cast(sema, nodeInitView, symEnum.underlyingTypeRef(), initCastKind));
+        valueCst = nodeInitView.cstRef();
+        return Result::Continue;
+    }
 }
 
 Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -176,20 +202,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     ConstantRef valueCst;
     if (nodeInitView.nodeRef().isValid())
     {
-        // Must be constant
-        if (nodeInitView.cstRef().isInvalid())
-            return SemaError::raiseExprNotConst(sema, nodeInitRef);
-
-        // Cast initializer constant to the underlying type.
-        // If the user wrote an explicit cast, preserve explicit semantics here.
-        bool isExplicitInitCast = false;
-        if (nodeInitView.node()->is(AstNodeId::AutoCastExpr))
-            isExplicitInitCast = true;
-        if (nodeInitView.node()->is(AstNodeId::CastExpr))
-            isExplicitInitCast = nodeInitView.node()->cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit);
-        const CastKind initCastKind = isExplicitInitCast ? CastKind::Explicit : CastKind::Initialization;
-        SWC_RESULT(Cast::cast(sema, nodeInitView, underlyingTypeRef, initCastKind));
-        valueCst = nodeInitView.cstRef();
+        SWC_RESULT(normalizeEnumInitializerConstant(sema, symEnum, nodeInitView, valueCst));
         if (underlyingType.isInt())
         {
             const ConstantValue& cstVal = sema.cstMgr().get(valueCst);

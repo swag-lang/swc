@@ -72,6 +72,16 @@ enum QQ : u64 { A, B, C }
 #assert(#kindof(QQ) == u64)
 
 #[Swag.EnumFlags]
+enum QQ0 : u32
+{
+    A,
+    B,
+    AB = A | B,
+}
+#assert(#typeof(QQ0.AB) == QQ0)
+#assert(cast(u32) QQ0.AB == 3)
+
+#[Swag.EnumFlags]
 enum RR : u8
 {
     A,

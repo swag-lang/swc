@@ -237,10 +237,10 @@ namespace
 
         propagateSkippedFunctions(selection, graph);
 
-        for (SymbolFunction* function : compiler.nativeCodeSegment())
+        for (const SymbolFunction* function : compiler.nativeCodeSegment())
             tryAddJitFunction(selection, compiler, function);
 
-        for (SymbolFunction* function : compiler.nativeTestFunctions())
+        for (const SymbolFunction* function : compiler.nativeTestFunctions())
         {
             tryAddJitFunction(selection, compiler, function);
             if (function && shouldRunJitFunction(selection, *function))

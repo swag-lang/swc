@@ -993,7 +993,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
         SWC_ASSERT(inlinePayload != nullptr);
         SWC_RESULT(finalizeInlineBlock(inSema, nodeRef, *inlinePayload));
-        if (auto* existingPayload = inSema.inlinePayload(nodeRef))
+        if (const auto* existingPayload = inSema.inlinePayload(nodeRef))
             SWC_ASSERT(existingPayload == inlinePayload);
         else
             inSema.setInlinePayload(nodeRef, inlinePayload);

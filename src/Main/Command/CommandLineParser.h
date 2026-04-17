@@ -92,7 +92,7 @@ private:
     void                       setReportArguments(Diagnostic& diag, const Utf8& arg);
     void                       setReportArguments(Diagnostic& diag, const ArgInfo& info, const Utf8& arg);
     bool                       getNextValue(TaskContext& ctx, const Utf8& arg, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args, Utf8& value);
-    Result                     expandResponseFiles(TaskContext& ctx, const std::vector<Utf8>& in, std::vector<Utf8>& out);
+    static Result              expandResponseFiles(TaskContext& ctx, const std::vector<Utf8>& in, std::vector<Utf8>& out);
     static Result              expandOneResponseFile(TaskContext& ctx, const fs::path& path, std::vector<Utf8>& out, std::set<fs::path>& visited, uint32_t depth);
     bool                       commandMatches(const Utf8& commandList) const;
     bool                       parseEnumString(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, Utf8* target);

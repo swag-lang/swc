@@ -29,6 +29,7 @@ SWC_DIAG_DEF(sema_note_function_declared_here, Note, "function '{sym}' is declar
 SWC_DIAG_DEF(sema_note_function_return_type_declared_here, Note, "function return type '{requested-type}' is declared here")
 SWC_DIAG_DEF(sema_note_expression_not_addressable, Note, "this expression is not addressable")
 SWC_DIAG_DEF(sema_note_expression_not_assignable, Note, "this expression is not assignable")
+SWC_DIAG_DEF(sema_note_assignment_target_here, Note, "while checking this assignment target")
 SWC_DIAG_DEF(sema_note_strict_alias, Note, "'#[Swag.Strict]' can only be applied to a type alias")
 SWC_DIAG_DEF(sema_note_overload_candidate_failed, Note, "candidate '{sym}' is not viable: {what}")
 SWC_DIAG_DEF(sema_note_overload_candidate_too_many_arguments, Note, "candidate '{sym}' is not viable: too many arguments; expected {count}, but got {value}")

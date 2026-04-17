@@ -131,13 +131,20 @@ namespace
             symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
     }
 
-    Result tryAssignmentCast(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView, TypeRef srcTypeRef, bool rebindReference)
+    Result tryAssignmentCast(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView, TypeRef srcTypeRef, bool rebindReference, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None)
     {
         CastRequest castRequest(CastKind::Assignment);
-        castRequest.errorNodeRef    = leftRef;
+        castRequest.errorNodeRef    = errorNodeRef.isValid() ? errorNodeRef : leftRef;
         const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView, rebindReference);
         if (Cast::castAllowed(sema, castRequest, srcTypeRef, targetTypeRef) != Result::Continue)
+        {
+            if (noteId != DiagnosticId::None && castRequest.failure.noteId == DiagnosticId::None)
+            {
+                castRequest.failure.noteId     = noteId;
+                castRequest.failure.noteNodeRef = leftRef;
+            }
             return Cast::emitCastFailure(sema, castRequest.failure);
+        }
         return Result::Continue;
     }
 
@@ -317,7 +324,7 @@ namespace
                 SWC_RESULT(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef(), targetLeftView, nodeRightView));
             }
 
-            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), rebindReference));
+            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), rebindReference, nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
         }
 
         return Result::Continue;

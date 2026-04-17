@@ -64,3 +64,10 @@
     a -= 1
     a *= 2 // swc-expected-error {{sema_err_binary_operand_type}}
 }
+
+#test
+{
+    var ptr: const [*] u16
+    var count: u64
+    ptr, count += 1 // swc-expected-error {{sema_err_cannot_cast}}
+}

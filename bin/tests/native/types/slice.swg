@@ -106,3 +106,25 @@ var A: [..] s32
     @assert(b == "ring")
     @assert(c == "st")
 }
+
+#test
+{
+    var arr: [5] s32 = [10, 20, 30, 40, 50]
+    var arrRef: &[5] s32 = &arr
+    let arrSlice = arrRef[1 to 3]
+    @assert(@countof(arrSlice) == 3)
+    @assert(arrSlice[0] == 20)
+    arrSlice[1] = 77
+    @assert(arr[2] == 77)
+
+    var view: [..] s32 = arr
+    let viewRef: const &[..] s32 = &view
+    let sub = viewRef[1 until 3]
+    @assert(@countof(sub) == 2)
+    @assert(sub[0] == 20)
+    @assert(sub[1] == 77)
+
+    let text = "string"
+    let textRef: const &string = &text
+    @assert(textRef[1 to 3] == "tri")
+}

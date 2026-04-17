@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenLoopHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -141,10 +142,12 @@ namespace
             return Result::Continue;
         }
 
-        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
-        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
-        const TypeInfo&           exprType    = *exprView.type();
-        MicroBuilder&             builder     = codeGen.builder();
+        CodeGenNodePayload exprPayload = codeGen.payload(exprRef);
+        const SemaNodeView exprView    = codeGen.viewType(exprRef);
+        TypeRef            exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
+        MicroBuilder&   builder  = codeGen.builder();
 
         if (exprType.isIntUnsigned())
         {

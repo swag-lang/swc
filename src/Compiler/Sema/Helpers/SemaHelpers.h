@@ -33,6 +33,7 @@ namespace SemaHelpers
     bool                  binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
     bool                  canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
     TypeRef               unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef);
+    TypeRef               unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);
     const SymbolFunction* resolveLambdaBindingFunction(Sema& sema);
     SymbolFunction*       callableTypeFunction(TaskContext& ctx, TypeRef typeRef);
     Result                attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);

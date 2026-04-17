@@ -71,3 +71,22 @@
     var A = "titi"
     var B = A[1]
 }
+
+#test
+{
+    var text = "hello"
+    var textRef: &string = &text
+    var ch = textRef[1]
+    #assert(#typeof(ch) == u8)
+
+    var grid: [2, 3] s32
+    var gridRef: &[2, 3] s32 = &grid
+    #assert(#typeof(gridRef[0]) == #type [3] s32)
+    #assert(#typeof(gridRef[0, 0]) == s32)
+
+    var backing: [2] s32
+    var slice: [..] s32 = backing
+    var sliceRef: &[..] s32 = &slice
+    var elem = sliceRef[0]
+    #assert(#typeof(elem) == s32)
+}

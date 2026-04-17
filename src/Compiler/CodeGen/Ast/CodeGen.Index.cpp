@@ -4,6 +4,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -261,13 +262,15 @@ namespace
         const auto* slicePayload = codeGen.sema().semaPayload<SliceIndexSemaPayload>(codeGen.curNodeRef());
         SWC_ASSERT(slicePayload != nullptr);
 
-        const CodeGenNodePayload& indexedPayload = codeGen.payload(node.nodeExprRef);
-        const SemaNodeView        indexedView    = codeGen.viewType(node.nodeExprRef);
-        const SemaNodeView        resultView     = codeGen.curViewType();
+        CodeGenNodePayload indexedPayload = codeGen.payload(node.nodeExprRef);
+        const SemaNodeView indexedView    = codeGen.viewType(node.nodeExprRef);
+        TypeRef            indexedTypeRef = indexedPayload.effectiveTypeRef(indexedView.typeRef());
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
+        const SemaNodeView resultView = codeGen.curViewType();
         SWC_ASSERT(indexedView.type());
         SWC_ASSERT(resultView.type());
 
-        const TypeInfo& indexedType = *indexedView.type();
+        const TypeInfo& indexedType = codeGen.typeMgr().get(indexedTypeRef);
         const TypeInfo& resultType  = *resultView.type();
         MicroBuilder&   builder     = codeGen.builder();
 
@@ -452,16 +455,19 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
         return Result::Continue;
     }
 
-    const CodeGenNodePayload& indexedPayload = codeGen.payload(nodeExprRef);
-    const SemaNodeView        indexedView    = codeGen.viewType(nodeExprRef);
-    const SemaNodeView        resultView     = codeGen.curViewType();
+    CodeGenNodePayload indexedPayload = codeGen.payload(nodeExprRef);
+    const SemaNodeView indexedView    = codeGen.viewType(nodeExprRef);
+    TypeRef            indexedTypeRef = indexedPayload.effectiveTypeRef(indexedView.typeRef());
+    CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
+    const SemaNodeView resultView = codeGen.curViewType();
 
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());
 
-    const TypeRef      resultTypeRef = resolveIndexedResultTypeRef(codeGen, *indexedView.type());
+    const TypeInfo&    indexedType   = codeGen.typeMgr().get(indexedTypeRef);
+    const TypeRef      resultTypeRef = resolveIndexedResultTypeRef(codeGen, indexedType);
     CodeGenNodePayload indexedResultPayload;
-    SWC_RESULT(emitIndexAddress(codeGen, indexedResultPayload, nodeArgRef, *indexedView.type(), indexedPayload, resultTypeRef));
+    SWC_RESULT(emitIndexAddress(codeGen, indexedResultPayload, nodeArgRef, indexedType, indexedPayload, resultTypeRef));
     codeGen.setPayloadAddressReg(codeGen.curNodeRef(), indexedResultPayload.reg, resultTypeRef);
     return Result::Continue;
 }
@@ -476,6 +482,7 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(currentTypeRef.isValid());
 
     CodeGenNodePayload currentPayload = codeGen.payload(nodeExprRef);
+    CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, currentPayload, currentTypeRef);
     for (const AstNodeRef indexRef : indexRefs)
     {
         const TypeInfo& currentType = codeGen.typeMgr().get(currentTypeRef);

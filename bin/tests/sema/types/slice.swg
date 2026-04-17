@@ -84,3 +84,21 @@ var B: [..] void // swc-expected-error {{sema_err_bad_slice_element_type}}
     @assert(s[0] == 1'u16)
     @assert(s[2] == 3'u16)
 }
+
+#test
+{
+    var arr: [5] s32 = [10, 20, 30, 40, 50]
+    var arrRef: &[5] s32 = &arr
+    let arrSlice = arrRef[1 to 3]
+    #assert(#typeof(arrSlice) == [..] s32)
+
+    var view: [..] s32 = arr
+    let viewRef: const &[..] s32 = &view
+    let sub = viewRef[1 until 3]
+    #assert(#typeof(sub) == [..] s32)
+
+    let text = "string"
+    let textRef: const &string = &text
+    let textSlice = textRef[1 to 3]
+    #assert(#typeof(textSlice) == string)
+}

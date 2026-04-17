@@ -17,7 +17,25 @@ struct ZeroSized
 {
 }
 
+enum RefCountKind
+{
+    A
+    B
+    C
+    D
+}
+
+struct RefCountedRuntime
+{
+    count: u64
+}
+
 impl CountedRuntime
+{
+    mtd opCount() => me.count
+}
+
+impl RefCountedRuntime
 {
     mtd opCount() => me.count
 }
@@ -116,4 +134,132 @@ impl CountedRuntime
 
     const V0 = #run countZeroSizedSlice()
     #assert(V0 == 3'u64)
+}
+
+#test
+{
+    func countStringRef()->u64
+    {
+        var text = "hello"
+        var textRef: &string = &text
+        return @countof(textRef)
+    }
+
+    func loopStringRef()->u64
+    {
+        var text = "hello"
+        let textRef: const &string = &text
+        var count: u64 = 0
+        for textRef do
+            count += 1
+        return count
+    }
+
+    const V0 = #run countStringRef()
+    const V1 = #run loopStringRef()
+    #assert(V0 == 5'u64)
+    #assert(V1 == 5'u64)
+}
+
+#test
+{
+    func countCStringRef()->u64
+    {
+        var value: cstring = cast(cstring) @dataof("abcd")
+        var valueRef: &cstring = &value
+        return @countof(valueRef)
+    }
+
+    func loopCStringRef()->u64
+    {
+        var value: cstring = cast(cstring) @dataof("abcd")
+        let valueRef: &cstring = &value
+        var count: u64 = 0
+        for valueRef do
+            count += 1
+        return count
+    }
+
+    const V0 = #run countCStringRef()
+    const V1 = #run loopCStringRef()
+    #assert(V0 == 4'u64)
+    #assert(V1 == 4'u64)
+}
+
+#test
+{
+    func countArrayAndSliceRef()->u64
+    {
+        var array: [2, 3] u8
+        var arrayRef: &[2, 3] u8 = &array
+
+        var flat: [6] u8 = [1, 2, 3, 4, 5, 6]
+        let slice = cast([..] u8) flat
+        let sliceRef: const &[..] u8 = &slice
+        return @countof(arrayRef) + @countof(sliceRef)
+    }
+
+    func loopSliceRef()->u64
+    {
+        var flat: [6] u8 = [1, 2, 3, 4, 5, 6]
+        let slice = cast([..] u8) flat
+        let sliceRef: const &[..] u8 = &slice
+        var count: u64 = 0
+        for sliceRef do
+            count += 1
+        return count
+    }
+
+    const V0 = #run countArrayAndSliceRef()
+    const V1 = #run loopSliceRef()
+    #assert(V0 == 12'u64)
+    #assert(V1 == 6'u64)
+}
+
+#test
+{
+    func countUnsignedRef()->u32
+    {
+        var value: u32 = 7
+        var valueRef: &u32 = &value
+        return @countof(valueRef)
+    }
+
+    func loopUnsignedRef()->u32
+    {
+        var value: u32 = 7
+        let valueRef: &u32 = &value
+        var count: u32 = 0
+        for valueRef do
+            count += 1
+        return count
+    }
+
+    const V0 = #run countUnsignedRef()
+    const V1 = #run loopUnsignedRef()
+    #assert(#typeof(V0) == u32)
+    #assert(V0 == 7'u32)
+    #assert(V1 == 7'u32)
+}
+
+#test
+{
+    func countEnumRef()->u64
+    {
+        var kind = RefCountKind.C
+        var kindRef: &RefCountKind = &kind
+        return @countof(kindRef)
+    }
+
+    func countSpecRef()->u64
+    {
+        let value = RefCountedRuntime{count: 11}
+        let valueRef: const &RefCountedRuntime = &value
+        return @countof(valueRef)
+    }
+
+    const V0 = #run countEnumRef()
+    const V1 = #run countSpecRef()
+    #assert(V0 == 4'u64)
+    #assert(V1 == 11'u64)
 }

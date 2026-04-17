@@ -23,7 +23,25 @@ struct ZeroSized
 {
 }
 
+enum RefCountKind
+{
+    A
+    B
+    C
+    D
+}
+
+struct RefCountedRuntime
+{
+    count: u64
+}
+
 impl CountedRuntime
+{
+    mtd opCount() => me.count
+}
+
+impl RefCountedRuntime
 {
     mtd opCount() => me.count
 }
@@ -163,4 +181,121 @@ namespace NS {}
 
     let sl3 = @mkslice(&buf[0], 0)
     @assert(@countof(sl3) == 0)
+}
+
+func countStringRef(value: &string)->u64
+{
+    return @countof(value)
+}
+
+func countCStringRef(value: &cstring)->u64
+{
+    return @countof(value)
+}
+
+func countSliceRef(value: const &[..] u8)->u64
+{
+    return @countof(value)
+}
+
+func countUnsignedRef(value: &u32)->u32
+{
+    return @countof(value)
+}
+
+func countEnumRef(value: &RefCountKind)->u64
+{
+    return @countof(value)
+}
+
+func countSpecOpRef(value: const &RefCountedRuntime)->u64
+{
+    return @countof(value)
+}
+
+func loopStringRef(value: const &string)->u64
+{
+    var count: u64 = 0
+    for value do
+        count += 1
+    return count
+}
+
+func loopCStringRef(value: &cstring)->u64
+{
+    var count: u64 = 0
+    for value do
+        count += 1
+    return count
+}
+
+func loopSliceRef(value: const &[..] u8)->u64
+{
+    var count: u64 = 0
+    for value do
+        count += 1
+    return count
+}
+
+func loopUnsignedRef(value: &u32)->u32
+{
+    var count: u32 = 0
+    for value do
+        count += 1
+    return count
+}
+
+#test
+{
+    var text = "hello"
+    var textRef: &string = &text
+    @assert(@countof(textRef) == 5)
+    @assert(countStringRef(textRef) == 5)
+    @assert(loopStringRef(textRef) == 5)
+}
+
+#test
+{
+    var cstr: cstring = cast(cstring) @dataof("abcd")
+    var cstrRef: &cstring = &cstr
+    @assert(@countof(cstrRef) == 4)
+    @assert(countCStringRef(cstrRef) == 4)
+    @assert(loopCStringRef(cstrRef) == 4)
+}
+
+#test
+{
+    var array: [2, 3] u8
+    var arrayRef: &[2, 3] u8 = &array
+    @assert(@countof(arrayRef) == 6)
+
+    var flat: [6] u8 = [1, 2, 3, 4, 5, 6]
+    let slice = cast([..] u8) flat
+    var sliceRef: const &[..] u8 = &slice
+    @assert(@countof(sliceRef) == 6)
+    @assert(countSliceRef(sliceRef) == 6)
+    @assert(loopSliceRef(sliceRef) == 6)
+}
+
+#test
+{
+    var number: u32 = 7
+    var numberRef: &u32 = &number
+    @assert(#typeof(@countof(numberRef)) == u32)
+    @assert(@countof(numberRef) == 7)
+    @assert(countUnsignedRef(numberRef) == 7)
+    @assert(loopUnsignedRef(numberRef) == 7)
+}
+
+#test
+{
+    var kind = RefCountKind.C
+    var kindRef: &RefCountKind = &kind
+    @assert(@countof(kindRef) == 4)
+    @assert(countEnumRef(kindRef) == 4)
+
+    let counted = RefCountedRuntime{count: 11}
+    let countedRef: const &RefCountedRuntime = &counted
+    @assert(@countof(countedRef) == 11)
+    @assert(countSpecOpRef(countedRef) == 11)
 }

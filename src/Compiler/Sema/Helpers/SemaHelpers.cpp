@@ -121,6 +121,30 @@ TypeRef SemaHelpers::unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
     return typeRef;
 }
 
+TypeRef SemaHelpers::unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef)
+{
+    while (typeRef.isValid())
+    {
+        const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
+        const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias);
+        if (unwrapped.isValid())
+        {
+            typeRef = unwrapped;
+            continue;
+        }
+
+        if (typeInfo.isReference())
+        {
+            typeRef = typeInfo.payloadTypeRef();
+            continue;
+        }
+
+        break;
+    }
+
+    return typeRef;
+}
+
 SymbolFunction* SemaHelpers::callableTypeFunction(TaskContext& ctx, TypeRef typeRef)
 {
     typeRef = unwrapLambdaBindingType(ctx, typeRef);
@@ -795,30 +819,33 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
         }
     }
 
-    if (view.type()->isEnum())
+    const TypeRef   countTypeRef = unwrapAliasRefType(ctx, view.typeRef());
+    const TypeInfo& countType    = sema.typeMgr().get(countTypeRef);
+
+    if (countType.isEnum())
     {
-        SWC_RESULT(sema.waitSemaCompleted(view.type(), view.nodeRef()));
-        outResult.cstRef  = sema.cstMgr().addInt(ctx, view.type()->payloadSymEnum().count());
+        SWC_RESULT(sema.waitSemaCompleted(&countType, view.nodeRef()));
+        outResult.cstRef  = sema.cstMgr().addInt(ctx, countType.payloadSymEnum().count());
         outResult.typeRef = sema.cstMgr().get(outResult.cstRef).typeRef();
         return Result::Continue;
     }
 
-    if (view.type()->isCString())
+    if (countType.isCString())
     {
         outResult.typeRef = sema.typeMgr().typeU64();
         return Result::Continue;
     }
 
-    if (view.type()->isString())
+    if (countType.isString())
     {
         outResult.typeRef = sema.typeMgr().typeU64();
         return Result::Continue;
     }
 
-    if (view.type()->isArray())
+    if (countType.isArray())
     {
-        const uint64_t  sizeOf     = view.type()->sizeOf(ctx);
-        const TypeRef   typeRef    = view.type()->payloadArrayElemTypeRef();
+        const uint64_t  sizeOf     = countType.sizeOf(ctx);
+        const TypeRef   typeRef    = countType.payloadArrayElemTypeRef();
         const TypeInfo& ty         = sema.typeMgr().get(typeRef);
         const uint64_t  sizeOfElem = ty.sizeOf(ctx);
         SWC_ASSERT(sizeOfElem > 0);
@@ -827,22 +854,22 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
         return Result::Continue;
     }
 
-    if (view.type()->isAggregateArray())
+    if (countType.isAggregateArray())
     {
-        outResult.cstRef  = sema.cstMgr().addInt(ctx, view.type()->payloadAggregate().types.size());
+        outResult.cstRef  = sema.cstMgr().addInt(ctx, countType.payloadAggregate().types.size());
         outResult.typeRef = sema.cstMgr().get(outResult.cstRef).typeRef();
         return Result::Continue;
     }
 
-    if (view.type()->isSlice() || view.type()->isAnyVariadic())
+    if (countType.isSlice() || countType.isAnyVariadic())
     {
         outResult.typeRef = sema.typeMgr().typeU64();
         return Result::Continue;
     }
 
-    if (view.type()->isIntUnsigned())
+    if (countType.isIntUnsigned())
     {
-        outResult.typeRef = view.typeRef();
+        outResult.typeRef = countTypeRef;
         return Result::Continue;
     }
 

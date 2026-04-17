@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
@@ -1195,17 +1196,19 @@ namespace
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
         }
 
-        MicroBuilder&             builder       = codeGen.builder();
-        const SemaNodeView        exprView      = countOfExprView(codeGen, exprRef);
-        const CodeGenNodePayload& exprPayload   = countOfExprPayload(codeGen, exprRef);
-        const TypeInfo* const     exprType      = exprView.type();
-        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
-        SWC_ASSERT(exprType != nullptr);
+        MicroBuilder&      builder       = codeGen.builder();
+        const SemaNodeView exprView      = countOfExprView(codeGen, exprRef);
+        CodeGenNodePayload exprPayload   = countOfExprPayload(codeGen, exprRef);
+        TypeRef            exprTypeRef   = exprPayload.effectiveTypeRef(exprView.typeRef());
+        const TypeRef      resultTypeRef = codeGen.curViewType().typeRef();
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        SWC_ASSERT(exprTypeRef.isValid());
+        const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
 
-        if (exprType->isIntUnsigned())
+        if (exprType.isIntUnsigned())
         {
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-            const uint32_t            intBits       = exprType->payloadIntBitsOr(64);
+            const uint32_t            intBits       = exprType.payloadIntBitsOr(64);
             const MicroOpBits         opBits        = microOpBitsFromBitWidth(intBits);
             if (exprPayload.isAddress())
                 builder.emitLoadRegMem(resultPayload.reg, exprPayload.reg, 0, opBits);
@@ -1216,7 +1219,7 @@ namespace
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         const MicroReg            baseReg       = materializeCountLikeBaseReg(codeGen, exprPayload);
-        if (exprType->isCString())
+        if (exprType.isCString())
         {
             // C strings do not carry a cached length in their runtime representation, so count bytes until
             // the terminating zero.
@@ -1248,13 +1251,13 @@ namespace
             return Result::Continue;
         }
 
-        if (exprType->isString())
+        if (exprType.isString())
         {
             builder.emitLoadRegMem(resultPayload.reg, baseReg, offsetof(Runtime::String, length), MicroOpBits::B64);
             return Result::Continue;
         }
 
-        if (exprType->isSlice() || exprType->isAnyVariadic())
+        if (exprType.isSlice() || exprType.isAnyVariadic())
         {
             builder.emitLoadRegMem(resultPayload.reg, baseReg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);
             return Result::Continue;

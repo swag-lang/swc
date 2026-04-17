@@ -245,7 +245,7 @@ namespace
         if (!decl->spanGenericParamsRef.isValid())
             return expected.empty();
 
-        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
         if (expected.empty())
             return false;
         if (params.size() != expected.size())
@@ -476,7 +476,7 @@ namespace
             return false;
 
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
         if (genericArgNodes.size() > params.size())
             return false;
 

@@ -21,6 +21,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Sema& semaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
+    {
+        const SourceView& srcView = sema.compiler().srcView(fn.srcViewRef());
+        if (sema.ast().srcView().fileRef() == srcView.fileRef())
+            return sema;
+
+        SourceFile& sourceFile = sema.compiler().file(srcView.fileRef());
+        AstNodeRef  declRef    = fn.declNodeRef();
+        if (declRef.isInvalid() && fn.decl())
+            declRef = fn.decl()->nodeRef(sourceFile.ast());
+        SWC_ASSERT(declRef.isValid());
+
+        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        return *ownedSema;
+    }
+
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)
     {
         if (rawArgRef.isInvalid() || valueNodeRef.isInvalid())
@@ -1059,20 +1075,22 @@ namespace
 
         if (fn.parameters().empty())
         {
+            std::unique_ptr<Sema> declSemaHolder;
+            Sema&                 declSema = semaForFunctionDecl(sema, fn, declSemaHolder);
             const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
             if (!decl || decl->nodeParamsRef.isInvalid())
                 return Result::Continue;
 
             SmallVector<AstNodeRef> paramNodes;
-            const AstNode&          paramsNode = sema.node(decl->nodeParamsRef);
+            const AstNode&          paramsNode = declSema.node(decl->nodeParamsRef);
             if (paramsNode.is(AstNodeId::FunctionParamList))
-                sema.ast().appendNodes(paramNodes, paramsNode.cast<AstFunctionParamList>().spanChildrenRef);
+                declSema.ast().appendNodes(paramNodes, paramsNode.cast<AstFunctionParamList>().spanChildrenRef);
             else
-                paramsNode.collectChildrenFromAst(paramNodes, sema.ast());
+                paramsNode.collectChildrenFromAst(paramNodes, declSema.ast());
 
             SmallVector<GenericRootCallParam> params;
             for (const AstNodeRef paramRef : paramNodes)
-                appendGenericRootCallParams(sema, paramRef, params);
+                appendGenericRootCallParams(declSema, paramRef, params);
 
             const uint32_t numParams = static_cast<uint32_t>(params.size());
             const uint32_t numArgs   = countCallArgs(args, ufcsArg);

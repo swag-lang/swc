@@ -133,6 +133,22 @@ namespace
         return root.cast<SymbolStruct>().declNodeRef();
     }
 
+    Sema& semaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema)
+    {
+        const SourceView& srcView = sema.compiler().srcView(root.srcViewRef());
+        if (sema.ast().srcView().fileRef() == srcView.fileRef())
+            return sema;
+
+        SourceFile& sourceFile = sema.compiler().file(srcView.fileRef());
+        AstNodeRef  declRef    = genericDeclNodeRef(root);
+        if (declRef.isInvalid() && root.decl())
+            declRef = root.decl()->nodeRef(sourceFile.ast());
+        SWC_ASSERT(declRef.isValid());
+
+        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        return *ownedSema;
+    }
+
     Result runGenericNode(Sema& sema, const Symbol& root, AstNodeRef nodeRef)
     {
         SWC_ASSERT(root.isFunction() || root.isStruct());
@@ -166,7 +182,7 @@ namespace
             return;
 
         SmallVector<SemaGeneric::GenericParamDesc> ownerParams;
-        SemaGeneric::collectGenericParams(sema, structDecl->spanGenericParamsRef, ownerParams);
+        SemaGeneric::collectGenericParams(sema, *structDecl, structDecl->spanGenericParamsRef, ownerParams);
         if (ownerParams.empty())
             return;
 
@@ -198,10 +214,10 @@ namespace
 
     Utf8 formatResolvedGenericArg(Sema& sema, const SemaGeneric::GenericResolvedArg& arg)
     {
-        if (arg.typeRef.isValid())
-            return sema.typeMgr().get(arg.typeRef).toName(sema.ctx());
         if (arg.cstRef.isValid())
             return sema.cstMgr().get(arg.cstRef).toString(sema.ctx());
+        if (arg.typeRef.isValid())
+            return sema.typeMgr().get(arg.typeRef).toName(sema.ctx());
         return "?";
     }
 
@@ -310,7 +326,7 @@ namespace
             return;
 
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
         if (params.empty())
             return;
 
@@ -336,7 +352,7 @@ namespace
             return;
 
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
         if (params.empty())
             return;
 
@@ -1111,16 +1127,23 @@ namespace
         if (!spanRef.isValid())
             return Result::Continue;
 
+        std::unique_ptr<Sema> sourceSemaHolder;
+        Sema&                 sourceSema = semaForGenericDecl(sema, genericRoot, sourceSemaHolder);
+
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, spanRef, params);
+        if (genericRoot.decl())
+            SemaGeneric::collectGenericParams(sourceSema, *genericRoot.decl(), spanRef, params);
+        else
+            SemaGeneric::collectGenericParams(sourceSema, spanRef, params);
         if (genericArgNodes.size() > params.size())
             return Result::Continue;
 
+        const AstNodeRef errorNodeRef = genericArgNodes.empty() ? sema.curNodeRef() : genericArgNodes.front();
         SmallVector<SemaGeneric::GenericResolvedArg> resolvedArgs(params.size());
         for (size_t i = 0; i < genericArgNodes.size(); ++i)
             SWC_RESULT(SemaGeneric::resolveExplicitGenericArg(sema, params[i], genericArgNodes[i], resolvedArgs[i]));
 
-        SWC_RESULT(materializeGenericArgs(sema, genericRoot, params.span(), resolvedArgs.span(), genericArgNodes, sema.curNodeRef()));
+        SWC_RESULT(materializeGenericArgs(sourceSema, genericRoot, params.span(), resolvedArgs.span(), genericArgNodes, errorNodeRef));
         if (SemaGeneric::hasMissingGenericArgs(resolvedArgs.span()))
             return Result::Continue;
 
@@ -1128,15 +1151,15 @@ namespace
         {
             SmallVector<SemaClone::ParamBinding> cloneBindings;
             buildGenericCloneBindings(params.span(), resolvedArgs.span(), cloneBindings);
-            appendEnclosingGenericCloneBindings(sema, *function, cloneBindings);
-            const Utf8 bindingText = formatFunctionWhereBindings(sema, *function, params.span(), resolvedArgs.span());
+            appendEnclosingGenericCloneBindings(sourceSema, *function, cloneBindings);
+            const Utf8 bindingText = formatFunctionWhereBindings(sourceSema, *function, params.span(), resolvedArgs.span());
             bool       satisfied   = true;
-            SWC_RESULT(checkFunctionWhereConstraints(sema, satisfied, *function, cloneBindings.span(), bindingText, nullptr, sema.curNodeRef()));
+            SWC_RESULT(checkFunctionWhereConstraints(sourceSema, satisfied, *function, cloneBindings.span(), bindingText, nullptr, errorNodeRef));
             if (!satisfied)
                 return Result::Error;
         }
 
-        return createGenericInstance(sema, genericRoot, params.span(), resolvedArgs.span(), outInstance, sema.curNodeRef());
+        return createGenericInstance(sourceSema, genericRoot, params.span(), resolvedArgs.span(), outInstance, errorNodeRef);
     }
 }
 
@@ -1144,8 +1167,10 @@ namespace SemaGeneric
 {
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure)
     {
-        const Utf8 bindingText = formatFunctionWhereBindings(sema, function);
-        return checkFunctionWhereConstraints(sema, outSatisfied, function, {}, bindingText, outFailure, sema.curNodeRef());
+        std::unique_ptr<Sema> sourceSemaHolder;
+        Sema&                 sourceSema  = semaForGenericDecl(sema, function, sourceSemaHolder);
+        const Utf8            bindingText = formatFunctionWhereBindings(sourceSema, function);
+        return checkFunctionWhereConstraints(sourceSema, outSatisfied, function, {}, bindingText, outFailure, genericDeclNodeRef(function));
     }
 
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)
@@ -1170,17 +1195,21 @@ namespace SemaGeneric
         if (!decl)
             return Result::Continue;
 
+        std::unique_ptr<Sema> sourceSemaHolder;
+        Sema&                 sourceSema = semaForGenericDecl(sema, genericRoot, sourceSemaHolder);
+
         SmallVector<GenericParamDesc> params;
-        collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        collectGenericParams(sourceSema, *decl, decl->spanGenericParamsRef, params);
         if (params.empty())
             return Result::Continue;
 
+        const AstNodeRef errorNodeRef = sema.curNodeRef();
         SmallVector<GenericResolvedArg> resolvedArgs(params.size());
         SWC_RESULT(deduceGenericFunctionArgs(sema, genericRoot, params.span(), resolvedArgs, args, ufcsArg, outFailure, outFailureArgIndex));
         if (outFailure && outFailure->diagId != DiagnosticId::None)
             return Result::Continue;
 
-        SWC_RESULT(materializeGenericArgs(sema, genericRoot, params.span(), resolvedArgs.span(), std::span<const AstNodeRef>{}, sema.curNodeRef()));
+        SWC_RESULT(materializeGenericArgs(sourceSema, genericRoot, params.span(), resolvedArgs.span(), {}, errorNodeRef));
         if (hasMissingGenericArgs(resolvedArgs.span()))
         {
             if (outFailure)
@@ -1202,16 +1231,16 @@ namespace SemaGeneric
             *outFailure = {};
         SmallVector<SemaClone::ParamBinding> cloneBindings;
         buildGenericCloneBindings(params.span(), resolvedArgs.span(), cloneBindings);
-        appendEnclosingGenericCloneBindings(sema, genericRoot, cloneBindings);
-        const Utf8   bindingText = formatFunctionWhereBindings(sema, genericRoot, params.span(), resolvedArgs.span());
+        appendEnclosingGenericCloneBindings(sourceSema, genericRoot, cloneBindings);
+        const Utf8   bindingText = formatFunctionWhereBindings(sourceSema, genericRoot, params.span(), resolvedArgs.span());
         CastFailure  localFailure;
         CastFailure* whereFailure = outFailure ? outFailure : &localFailure;
-        SWC_RESULT(checkFunctionWhereConstraints(sema, whereSatisfied, genericRoot, cloneBindings.span(), bindingText, whereFailure, sema.curNodeRef()));
+        SWC_RESULT(checkFunctionWhereConstraints(sourceSema, whereSatisfied, genericRoot, cloneBindings.span(), bindingText, whereFailure, errorNodeRef));
         if (!whereSatisfied)
             return Result::Continue;
 
         Symbol* instance = nullptr;
-        SWC_RESULT(createGenericInstance(sema, genericRoot, params.span(), resolvedArgs.span(), instance, sema.curNodeRef()));
+        SWC_RESULT(createGenericInstance(sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, errorNodeRef));
         outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
         return Result::Continue;
     }
@@ -1227,6 +1256,9 @@ namespace SemaGeneric
     Result instantiateStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance)
     {
         outInstance = nullptr;
+
+        std::unique_ptr<Sema> targetSemaHolder;
+        Sema&                 targetSema = semaForGenericDecl(sema, genericRoot, targetSemaHolder);
 
         if (!hasGenericParams(genericRoot))
             return Result::Continue;
@@ -1278,7 +1310,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         SmallVector<GenericParamDesc> enclosingParams;
-        collectGenericParams(sema, enclosingDecl->spanGenericParamsRef, enclosingParams);
+        collectGenericParams(sema, *enclosingDecl, enclosingDecl->spanGenericParamsRef, enclosingParams);
 
         SmallVector<GenericInstanceKey> enclosingArgs;
         if (!enclosingRoot->tryGetGenericInstanceArgs(*enclosingInstance, enclosingArgs))
@@ -1292,7 +1324,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         SmallVector<GenericParamDesc> targetParams;
-        collectGenericParams(sema, targetDecl->spanGenericParamsRef, targetParams);
+        collectGenericParams(targetSema, *targetDecl, targetDecl->spanGenericParamsRef, targetParams);
 
         // If the current function has generic type params that conflict with target params, skip deduction
         if (const auto* func = sema.currentFunction())
@@ -1301,7 +1333,7 @@ namespace SemaGeneric
             if (funcDecl && funcDecl->spanGenericParamsRef.isValid())
             {
                 SmallVector<GenericParamDesc> funcParams;
-                collectGenericParams(sema, funcDecl->spanGenericParamsRef, funcParams);
+                collectGenericParams(sema, *funcDecl, funcDecl->spanGenericParamsRef, funcParams);
                 for (const auto& fp : funcParams)
                 {
                     if (fp.kind != GenericParamKind::Type)
@@ -1338,12 +1370,12 @@ namespace SemaGeneric
         }
 
         // Materialize defaults and create instance
-        SWC_RESULT(materializeGenericArgs(sema, genericRoot, targetParams.span(), resolvedArgs.span(), std::span<const AstNodeRef>{}, sema.curNodeRef()));
+        SWC_RESULT(materializeGenericArgs(targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), {}, genericDeclNodeRef(genericRoot)));
         if (hasMissingGenericArgs(resolvedArgs.span()))
             return Result::Continue;
 
         Symbol* instance = nullptr;
-        SWC_RESULT(createGenericInstance(sema, genericRoot, targetParams.span(), resolvedArgs.span(), instance, sema.curNodeRef()));
+        SWC_RESULT(createGenericInstance(targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), instance, genericDeclNodeRef(genericRoot)));
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
     }

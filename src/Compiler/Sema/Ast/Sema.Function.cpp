@@ -410,6 +410,26 @@ namespace
             }
         }
 
+        const TypeInfo& concretizedTypeInfo = sema.typeMgr().get(ioTypeRef);
+        if (concretizedTypeInfo.isIntUnsized())
+        {
+            TypeInfo::Sign sign = concretizedTypeInfo.payloadIntSign();
+            if (sign == TypeInfo::Sign::Unknown)
+                sign = TypeInfo::Sign::Signed;
+
+            const TypeRef concreteTypeRef = sema.typeMgr().typeInt(32, sign);
+            SemaNodeView  castView        = sema.viewNodeTypeConstant(exprRef);
+            SWC_RESULT(Cast::cast(sema, castView, concreteTypeRef, CastKind::Implicit));
+            ioTypeRef = concreteTypeRef;
+        }
+        else if (concretizedTypeInfo.isFloatUnsized())
+        {
+            const TypeRef concreteTypeRef = sema.typeMgr().typeF64();
+            SemaNodeView  castView        = sema.viewNodeTypeConstant(exprRef);
+            SWC_RESULT(Cast::cast(sema, castView, concreteTypeRef, CastKind::Implicit));
+            ioTypeRef = concreteTypeRef;
+        }
+
         const TypeRef concreteArrayTypeRef = deduceHomogeneousAggregateArrayType(sema, ioTypeRef);
         if (!concreteArrayTypeRef.isValid())
             return Result::Continue;

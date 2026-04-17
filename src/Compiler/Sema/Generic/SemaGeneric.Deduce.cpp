@@ -13,6 +13,22 @@ namespace
 {
     constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
 
+    Sema& semaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
+    {
+        const SourceView& srcView = sema.compiler().srcView(fn.srcViewRef());
+        if (sema.ast().srcView().fileRef() == srcView.fileRef())
+            return sema;
+
+        SourceFile& sourceFile = sema.compiler().file(srcView.fileRef());
+        AstNodeRef  declRef    = fn.declNodeRef();
+        if (declRef.isInvalid() && fn.decl())
+            declRef = fn.decl()->nodeRef(sourceFile.ast());
+        SWC_ASSERT(declRef.isValid());
+
+        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        return *ownedSema;
+    }
+
     Result deduceFromTypePattern(Sema&                                          sema,
                                  std::span<const SemaGeneric::GenericParamDesc> params,
                                  std::span<SemaGeneric::GenericResolvedArg>     resolvedArgs,
@@ -471,6 +487,8 @@ namespace
     void collectFunctionParamDescs(Sema& sema, const SymbolFunction& root, const AstFunctionDecl& decl, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outParams)
     {
         outParams.clear();
+        std::unique_ptr<Sema> declSemaHolder;
+        Sema&                 declSema = semaForFunctionDecl(sema, root, declSemaHolder);
         const auto& symbolParams = root.parameters();
         if (!symbolParams.empty())
         {
@@ -488,13 +506,13 @@ namespace
                     desc.idRef      = symParam->idRef();
                     desc.typeRef    = varDecl.typeOrInitRef();
                     desc.isVariadic = desc.typeRef.isValid() &&
-                                      (sema.node(desc.typeRef).is(AstNodeId::VariadicType) || sema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
+                                      (declSema.node(desc.typeRef).is(AstNodeId::VariadicType) || declSema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
                     outParams.push_back(desc);
                 }
                 else if (paramNode->is(AstNodeId::FunctionParamMe))
                 {
                     SemaGeneric::GenericFunctionParamDesc desc;
-                    desc.idRef      = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+                    desc.idRef      = declSema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
                     desc.isVariadic = false;
                     outParams.push_back(desc);
                 }
@@ -508,11 +526,11 @@ namespace
             return;
 
         SmallVector<AstNodeRef> params;
-        appendFunctionParamNodes(sema, decl.nodeParamsRef, params);
+        appendFunctionParamNodes(declSema, decl.nodeParamsRef, params);
         outParams.reserve(params.size());
 
         for (const AstNodeRef paramRef : params)
-            appendFunctionParamDesc(sema, paramRef, outParams);
+            appendFunctionParamDesc(declSema, paramRef, outParams);
     }
 
     bool buildGenericCallArgMapping(Sema& sema, std::span<const SemaGeneric::GenericFunctionParamDesc> params, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool prependUfcsArg, SmallVector<SemaGeneric::GenericCallArgEntry>& outMapping)
@@ -591,8 +609,11 @@ namespace SemaGeneric
         if (!decl)
             return Result::Continue;
 
+        std::unique_ptr<Sema> declSemaHolder;
+        Sema&                 declSema = semaForFunctionDecl(sema, root, declSemaHolder);
+
         SmallVector<GenericFunctionParamDesc> params;
-        collectFunctionParamDescs(sema, root, *decl, params);
+        collectFunctionParamDescs(declSema, root, *decl, params);
 
         SmallVector<GenericCallArgEntry> mapping;
         const bool                       prependUfcsArg = ufcsArg.isValid() && !root.isMethod();
@@ -626,7 +647,7 @@ namespace SemaGeneric
                 }
             }
 
-            if (deduceFromTypePattern(sema, genericParams, ioResolvedArgs.span(), params[i].typeRef, argTypeRef, valueArgRef, entry.callArgIndex, outFailure) == Result::Error)
+            if (deduceFromTypePattern(declSema, genericParams, ioResolvedArgs.span(), params[i].typeRef, argTypeRef, valueArgRef, entry.callArgIndex, outFailure) == Result::Error)
             {
                 if (outFailureArgIndex)
                     *outFailureArgIndex = entry.callArgIndex;

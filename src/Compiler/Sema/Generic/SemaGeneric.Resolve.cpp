@@ -9,6 +9,44 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
+    void collectGenericParams(Sema& sema, const AstNode& declNode, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
+    {
+        outParams.clear();
+        if (spanRef.isInvalid())
+            return;
+
+        const SourceView& srcView = sema.compiler().srcView(declNode.srcViewRef());
+        const Ast&        ast     = srcView.file()->ast();
+
+        SmallVector<AstNodeRef> params;
+        ast.appendNodes(params, spanRef);
+        outParams.reserve(params.size());
+
+        for (const AstNodeRef paramRef : params)
+        {
+            const AstNode& paramNode = ast.node(paramRef);
+
+            GenericParamDesc desc;
+            desc.paramRef = paramRef;
+            desc.idRef    = SemaHelpers::resolveIdentifier(sema, paramNode.codeRef());
+
+            if (const auto* nodeType = paramNode.safeCast<AstGenericParamType>())
+            {
+                desc.kind       = GenericParamKind::Type;
+                desc.defaultRef = nodeType->nodeAssignRef;
+            }
+            else
+            {
+                const auto& nodeValue = paramNode.cast<AstGenericParamValue>();
+                desc.kind             = GenericParamKind::Value;
+                desc.explicitType     = nodeValue.nodeTypeRef;
+                desc.defaultRef       = nodeValue.nodeAssignRef;
+            }
+
+            outParams.push_back(desc);
+        }
+    }
+
     void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs)
     {
         if (startSymMap)
@@ -53,7 +91,6 @@ namespace SemaGeneric
         SmallVector<AstNodeRef> params;
         sema.ast().appendNodes(params, spanRef);
         outParams.reserve(params.size());
-
         for (const AstNodeRef paramRef : params)
         {
             const AstNode& paramNode = sema.node(paramRef);
@@ -115,6 +152,16 @@ namespace SemaGeneric
     {
         outArg = {};
 
+        const SemaNodeView typeView = sema.viewNodeType(nodeRef);
+        if (typeView.typeRef().isValid() && !sema.isValue(nodeRef))
+        {
+            // Explicit type arguments only need the resolved type. Avoid forcing symbol payload
+            // queries on complex type syntax such as quoted generic specializations.
+            outArg.typeRef = typeView.typeRef();
+            outArg.present = true;
+            return Result::Continue;
+        }
+
         const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
         if (view.sym() && view.sym()->isType())
         {
@@ -125,16 +172,6 @@ namespace SemaGeneric
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
 
             outArg.typeRef = typeRef;
-            outArg.present = true;
-            return Result::Continue;
-        }
-
-        if (view.typeRef().isValid() && !sema.isValue(nodeRef))
-        {
-            // Explicit type arguments must be self-contained for nested generic
-            // instantiations. Keep the resolved type, not the original syntax node,
-            // otherwise an inner clone can accidentally reintroduce outer bindings.
-            outArg.typeRef = view.typeRef();
             outArg.present = true;
             return Result::Continue;
         }

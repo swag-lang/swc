@@ -93,8 +93,18 @@ Sema::Sema(TaskContext& ctx, Sema& parent, AstNodeRef root) :
 }
 
 Sema::Sema(TaskContext& ctx, Sema& parent, AstNodeRef root, bool declPass) :
+    Sema(ctx, parent, *parent.nodePayloadContext_, root, declPass)
+{
+}
+
+Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeRef root) :
+    Sema(ctx, parent, payloadContext, root, false)
+{
+}
+
+Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeRef root, bool declPass) :
     ctx_(&ctx),
-    nodePayloadContext_(parent.nodePayloadContext_),
+    nodePayloadContext_(&payloadContext),
     startSymMap_(parent.curScope_ ? (parent.curScope_->isTopLevel() ? SemaFrame::currentSymMap(parent) : parent.curScope_->symMap()) : parent.startSymMap_),
     declPass_(declPass)
 {

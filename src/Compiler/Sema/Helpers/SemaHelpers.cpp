@@ -1186,7 +1186,7 @@ namespace
             return false;
 
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, decl->spanGenericParamsRef, params);
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
         if (params.empty())
             return false;
 

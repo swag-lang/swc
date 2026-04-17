@@ -181,7 +181,7 @@ AstNodeRef Parser::parseCompilerFunc()
     if (what == TokenId::CompilerRun || nextIs(TokenId::SymLeftCurly))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerFunc>(consume());
-        if (nextIs(TokenId::SymLeftCurly))
+        if (is(TokenId::SymLeftCurly))
             nodePtr->nodeBodyRef = parseFunctionBody();
         else if (what == TokenId::CompilerAst)
             nodePtr->nodeBodyRef = parseExpression();

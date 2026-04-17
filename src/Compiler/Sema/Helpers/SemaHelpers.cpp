@@ -710,9 +710,9 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
                     break;
             }
 
-            if (!leftView.type()->isInt())
+            if (!leftView.type()->isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef(), rightView.typeRef());
-            if (!rightView.type()->isInt())
+            if (!rightView.type()->isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
             break;
 

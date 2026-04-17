@@ -95,3 +95,23 @@
     @assert(a == 10000000042's64)
     @assert(b == 42'u64)
 }
+
+// Rune bitwise and shift operators behave like int-like unsigned values
+#test
+{
+    let r = 'A''rune
+    let a = r & 0x7F
+    let b = r | 0x20
+    let c = r << 1
+    let d = c >> 1
+
+    #assert(#typeof(a) == rune)
+    #assert(#typeof(b) == rune)
+    #assert(#typeof(c) == rune)
+    #assert(#typeof(d) == rune)
+
+    @assert(a == 'A''rune)
+    @assert(b == 'a''rune)
+    @assert(c == cast(rune) 130'u32)
+    @assert(d == 'A''rune)
+}

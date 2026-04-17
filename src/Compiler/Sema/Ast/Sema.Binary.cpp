@@ -152,10 +152,10 @@ namespace
             return Result::Continue;
         }
 
-        if (type.isInt())
+        if (type.isIntLike())
         {
-            ApsInt     val1 = leftCst.getInt();
-            ApsInt     val2 = rightCst.getInt();
+            ApsInt     val1 = leftCst.getIntLike();
+            ApsInt     val2 = rightCst.getIntLike();
             const bool wrap = node.modifierFlags.has(AstModifierFlagsE::Wrap);
 
             if (type.isIntUnsized())
@@ -205,7 +205,7 @@ namespace
                 return Result::Error;
             }
 
-            const ConstantRef intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, type.payloadIntBits(), type.payloadIntSign()));
+            const ConstantRef intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeFromIntLike(ctx, foldedValue, type));
             if (keepEnumRes)
             {
                 const ConstantValue enumResult = ConstantValue::makeEnumValue(ctx, intResult, nodeLeftView.typeRef());

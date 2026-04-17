@@ -12,7 +12,7 @@ shift
 goto parse_args
 
 :run
-swc_devmode syntax -m "%CORE_MODULE%" !EXTRA_ARGS!
+swc_devmode sema -m "%CORE_MODULE%" !EXTRA_ARGS!
 if errorlevel 1 exit /b 1
 
 exit /b 0

@@ -12,6 +12,9 @@
 #assert('\n''rune == '\n')
 #assert('a''rune == 'a')
 #assert('\0''rune == '\0')
+#assert(65'rune == 'A')
+#assert(0xFFFD'rune == '\uFFFD')
+#assert(#typeof(65'rune) == rune)
 
 #assert('A''u8 == 65)
 #assert('Z''u8 == 90)

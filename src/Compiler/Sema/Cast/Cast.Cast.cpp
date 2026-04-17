@@ -760,7 +760,7 @@ Result Cast::castIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef 
             }
             else
             {
-                if (!(srcType.isInt() && dstType.isInt()))
+                if (!(srcType.isInt() && (dstType.isInt() || dstType.isRune())))
                     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             }
             break;

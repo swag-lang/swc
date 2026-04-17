@@ -15,3 +15,21 @@
     let c = @compiler
     c.compileString(1) // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#test
+{
+    const bad = [
+        0'u16,
+        1 // swc-expected-error {{sema_err_cannot_cast}}
+    ]
+}
+
+#test
+{
+    const bad = [
+        [
+            0'u16,
+            1 // swc-expected-error {{sema_err_cannot_cast}}
+        ]
+    ]
+}

@@ -21,6 +21,12 @@ namespace
         const TypeInfo* dstType;
     };
 
+    struct ArrayElemLocation
+    {
+        AstNodeRef    nodeRef = AstNodeRef::invalid();
+        SourceCodeRef codeRef = SourceCodeRef::invalid();
+    };
+
     Result failArrayDimCount(const CastArrayArgs& args, size_t srcCount, size_t dstCount)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_num_dims, args.srcTypeRef, args.dstTypeRef);
@@ -50,26 +56,44 @@ namespace
         return args.castRequest->fail(diagnosticId, args.srcTypeRef, args.dstTypeRef);
     }
 
-    CastRequest makeElemCastRequest(const CastArrayArgs& args)
+    ArrayElemLocation arrayElemLocation(const CastArrayArgs& args, size_t elemIndex)
+    {
+        if (!args.castRequest->errorNodeRef.isValid())
+            return {};
+
+        const AstNode& node = args.sema->node(args.castRequest->errorNodeRef);
+        if (node.isNot(AstNodeId::ArrayLiteral))
+            return {};
+
+        const auto&     literal = node.cast<AstArrayLiteral>();
+        const AstNodeRef nodeRef = args.sema->ast().nthNode(literal.spanChildrenRef, elemIndex);
+        if (nodeRef.isInvalid())
+            return {};
+
+        return {nodeRef, args.sema->node(nodeRef).codeRef()};
+    }
+
+    CastRequest makeElemCastRequest(const CastArrayArgs& args, const ArrayElemLocation& location)
     {
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
-        elemCtx.errorNodeRef = args.castRequest->errorNodeRef;
+        elemCtx.errorNodeRef = location.nodeRef.isValid() ? location.nodeRef : args.castRequest->errorNodeRef;
+        elemCtx.errorCodeRef = location.codeRef.isValid() ? location.codeRef : args.castRequest->errorCodeRef;
         return elemCtx;
     }
 
-    Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType)
+    Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location)
     {
-        CastRequest  elemCtx = makeElemCastRequest(args);
+        CastRequest  elemCtx = makeElemCastRequest(args, location);
         const Result res     = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
             args.castRequest->failure = elemCtx.failure;
         return res;
     }
 
-    Result foldElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, ConstantRef valueRef, ConstantRef& outRef)
+    Result foldElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef, ConstantRef& outRef)
     {
-        CastRequest elemCtx = makeElemCastRequest(args);
+        CastRequest elemCtx = makeElemCastRequest(args, location);
         elemCtx.setConstantFoldingSrc(valueRef);
         const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
@@ -126,10 +150,11 @@ namespace
         SmallVector<ConstantRef> newValues;
         newValues.reserve(values.size());
 
-        for (const auto& valueRef : values)
+        for (size_t i = 0; i < values.size(); ++i)
         {
+            const ArrayElemLocation location = arrayElemLocation(args, i);
             ConstantRef castedRef;
-            SWC_RESULT(foldElemCast(args, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef));
+            SWC_RESULT(foldElemCast(args, srcElemTypeRef, dstElemTypeRef, location, values[i], castedRef));
             newValues.push_back(castedRef);
         }
 
@@ -164,9 +189,10 @@ namespace
             TypeManager&  typeMgr         = args.sema->typeMgr();
             const TypeRef dstSubArrayType = typeMgr.addType(TypeInfo::makeArray(subDims.span(), dstElemTypeRef, args.dstType->flags()));
 
-            for (const auto srcElemTypeRef : srcTypes)
+            for (size_t i = 0; i < srcTypes.size(); ++i)
             {
-                SWC_RESULT(checkElemCast(args, srcElemTypeRef, dstSubArrayType));
+                const ArrayElemLocation location = arrayElemLocation(args, i);
+                SWC_RESULT(checkElemCast(args, srcTypes[i], dstSubArrayType, location));
             }
 
             if (!args.castRequest->isConstantFolding())
@@ -185,8 +211,9 @@ namespace
 
             for (size_t i = 0; i < values.size(); ++i)
             {
+                const ArrayElemLocation location = arrayElemLocation(args, i);
                 ConstantRef castedRef;
-                SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, values[i], castedRef));
+                SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, location, values[i], castedRef));
                 const ByteSpanRW dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
             }
@@ -203,9 +230,10 @@ namespace
         if (srcTypes.size() > totalCount)
             return failArrayTooManyValues(args, srcTypes.size(), totalCount);
 
-        for (const auto srcElemTypeRef : srcTypes)
+        for (size_t i = 0; i < srcTypes.size(); ++i)
         {
-            SWC_RESULT(checkElemCast(args, srcElemTypeRef, dstElemTypeRef));
+            const ArrayElemLocation location = arrayElemLocation(args, i);
+            SWC_RESULT(checkElemCast(args, srcTypes[i], dstElemTypeRef, location));
         }
 
         if (!args.castRequest->isConstantFolding())
@@ -221,8 +249,9 @@ namespace
 
         for (size_t i = 0; i < values.size(); ++i)
         {
+            const ArrayElemLocation location = arrayElemLocation(args, i);
             ConstantRef castedRef;
-            SWC_RESULT(foldElemCast(args, srcTypes[i], dstElemTypeRef, values[i], castedRef));
+            SWC_RESULT(foldElemCast(args, srcTypes[i], dstElemTypeRef, location, values[i], castedRef));
             newValues.push_back(castedRef);
         }
 
@@ -240,13 +269,13 @@ namespace
         while (args.sema->typeMgr().get(leafTypeRef).isArray())
             leafTypeRef = args.sema->typeMgr().get(leafTypeRef).payloadArrayElemTypeRef();
 
-        SWC_RESULT(checkElemCast(args, args.srcTypeRef, leafTypeRef));
+        SWC_RESULT(checkElemCast(args, args.srcTypeRef, leafTypeRef, {}));
 
         if (!args.castRequest->isConstantFolding())
             return Result::Continue;
 
         ConstantRef elemRef;
-        SWC_RESULT(foldElemCast(args, args.srcTypeRef, leafTypeRef, args.castRequest->constantFoldingSrc(), elemRef));
+        SWC_RESULT(foldElemCast(args, args.srcTypeRef, leafTypeRef, {}, args.castRequest->constantFoldingSrc(), elemRef));
 
         uint64_t totalCount = 1;
         for (const auto dim : args.dstType->payloadArrayDims())

@@ -655,6 +655,9 @@ namespace
         return Result::Continue;
     }
 
+    bool canLeadAggregateArrayElementDriveConcretization(Sema& sema, TypeRef elemTypeRef, ConstantRef elemCstRef);
+    bool shouldDeferAggregateArrayConcretization(Sema& sema, const SemaNodeView& nodeInitView);
+
     Result castOrConcretizeInit(Sema& sema, const SemaPostVarDeclArgs& context, bool codeParameterDefault, TypeRef explicitTypeRef, SemaNodeView& nodeInitView)
     {
         SWC_UNUSED(context);
@@ -667,6 +670,9 @@ namespace
 
         if (nodeInitView.cstRef().isValid())
         {
+            if (explicitTypeRef.isInvalid() && shouldDeferAggregateArrayConcretization(sema, nodeInitView))
+                return Result::Continue;
+
             ConstantRef newCstRef;
             SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown));
             sema.setConstant(nodeInitView.nodeRef(), newCstRef);
@@ -680,6 +686,64 @@ namespace
         }
 
         return Result::Continue;
+    }
+
+    bool canLeadAggregateArrayElementDriveConcretization(Sema& sema, TypeRef elemTypeRef, ConstantRef elemCstRef)
+    {
+        const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
+        if (elemType.isAggregateArray())
+        {
+            if (!elemCstRef.isValid())
+                return false;
+
+            const ConstantValue& elemCst = sema.cstMgr().get(elemCstRef);
+            if (!elemCst.isAggregateArray())
+                return false;
+
+            const auto& values = elemCst.getAggregateArray();
+            if (values.empty())
+                return false;
+
+            const TypeRef nestedLeadTypeRef = sema.cstMgr().get(values[0]).typeRef();
+            return canLeadAggregateArrayElementDriveConcretization(sema, nestedLeadTypeRef, values[0]);
+        }
+
+        if (elemType.isArray())
+            return true;
+
+        return !elemType.isIntUnsized() && !elemType.isFloatUnsized();
+    }
+
+    bool shouldDeferAggregateArrayConcretization(Sema& sema, const SemaNodeView& nodeInitView)
+    {
+        if (!nodeInitView.typeRef().isValid() || nodeInitView.cstRef().isInvalid())
+            return false;
+
+        const TypeInfo& initType = sema.typeMgr().get(nodeInitView.typeRef());
+        if (!initType.isAggregateArray())
+            return false;
+
+        const auto& elemTypes = initType.payloadAggregate().types;
+        if (elemTypes.empty())
+            return false;
+
+        const TypeInfo& firstElem = sema.typeMgr().get(elemTypes[0]);
+        for (size_t i = 1; i < elemTypes.size(); ++i)
+        {
+            const TypeInfo& elemType = sema.typeMgr().get(elemTypes[i]);
+            if (elemType.kind() != firstElem.kind() && !(firstElem.isScalarNumeric() && elemType.isScalarNumeric()))
+                return false;
+        }
+
+        const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
+        if (!cst.isAggregateArray())
+            return false;
+
+        const auto& values = cst.getAggregateArray();
+        if (values.empty())
+            return false;
+
+        return canLeadAggregateArrayElementDriveConcretization(sema, elemTypes[0], values[0]);
     }
 
     Result concretizeAggregateArray(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef explicitTypeRef, TypeRef& finalTypeRef, SemaNodeView& nodeInitView)

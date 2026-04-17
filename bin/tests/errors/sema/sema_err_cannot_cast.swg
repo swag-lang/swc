@@ -18,18 +18,18 @@
 
 #test
 {
-    const bad = [
+    const bad: [2] u16 = [
         0'u16,
-        1 // swc-expected-error {{sema_err_cannot_cast}}
+        true // swc-expected-error {{sema_err_cannot_cast}}
     ]
 }
 
 #test
 {
-    const bad = [
+    const bad: [1, 2] u16 = [
         [
             0'u16,
-            1 // swc-expected-error {{sema_err_cannot_cast}}
+            true // swc-expected-error {{sema_err_cannot_cast}}
         ]
     ]
 }

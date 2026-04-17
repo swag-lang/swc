@@ -1116,40 +1116,65 @@ namespace
         if (!sym.typeRef().isValid())
             return Result::Continue;
 
-        const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(sema.curNodeRef());
-        if (payload && payload->runtimeStorageSym != nullptr)
-            return Result::Continue;
-
-        if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
+        if (payload.runtimeStorageSym == nullptr)
         {
-            SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = boundStorage;
-            return Result::Continue;
+            if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+            {
+                payload.runtimeStorageSym = boundStorage;
+                return Result::Continue;
+            }
+
+            payload.runtimeStorageSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__closure_runtime_storage");
         }
 
-        auto& storageSym = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__closure_runtime_storage");
+        auto& storageSym = *payload.runtimeStorageSym;
+        if (&storageSym == SemaHelpers::currentRuntimeStorage(sema))
+            return Result::Continue;
+
         storageSym.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        storageSym.setTypeRef(sym.typeRef());
-        storageSym.registerAttributes(sema);
-        storageSym.setDeclared(sema.ctx());
-        SWC_RESULT(Match::ghosting(sema, storageSym));
+        if (!storageSym.typeRef().isValid())
+            storageSym.setTypeRef(sym.typeRef());
+
+        if (!storageSym.isDeclared())
+        {
+            storageSym.registerAttributes(sema);
+            storageSym.setDeclared(sema.ctx());
+            SWC_RESULT(Match::ghosting(sema, storageSym));
+        }
 
         // Closure storage must live in the enclosing function (resolved by walking parents),
         // not the symbol that the closure body is currently being analysed under.
         SymbolFunction* ownerFunction = resolveEnclosingFunctionForClosureRuntimeStorage(sema);
         if (!ownerFunction)
             ownerFunction = sema.currentFunction();
-        if (ownerFunction)
+        if (!storageSym.isSemaCompleted() && ownerFunction)
         {
             const TypeInfo& symType = sema.typeMgr().get(sym.typeRef());
             SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
             ownerFunction->addLocalVariable(sema.ctx(), &storageSym);
+
+            storageSym.setTyped(sema.ctx());
+            storageSym.setSemaCompleted(sema.ctx());
         }
 
-        storageSym.setTyped(sema.ctx());
-        storageSym.setSemaCompleted(sema.ctx());
-
-        SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef()).runtimeStorageSym = &storageSym;
         return Result::Continue;
+    }
+
+    SymbolVariable* findClosureCaptureSymbol(SymbolFunction& sym, const SymbolVariable& sourceVar)
+    {
+        std::vector<const Symbol*> symbols;
+        sym.getAllSymbols(symbols, true);
+        for (const Symbol* symbol : symbols)
+        {
+            const auto* captureSym = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+            if (!captureSym || !captureSym->isClosureCapture())
+                continue;
+            if (captureSym->closureCapturedSource() == &sourceVar)
+                return const_cast<SymbolVariable*>(captureSym);
+        }
+
+        return nullptr;
     }
 
     Result buildClosureCaptureSymbols(Sema& sema, const AstClosureExpr& node, SymbolFunction& sym)
@@ -1200,6 +1225,15 @@ namespace
                 storageAlign = 1;
 
             captureOffset = Math::alignUpU64(captureOffset, storageAlign);
+            if (SymbolVariable* const existingCapture = findClosureCaptureSymbol(sym, sourceVar))
+            {
+                if (existingCapture->decl() == &captureArg)
+                {
+                    captureOffset += storageSize;
+                    continue;
+                }
+            }
+
             if (captureOffset + storageSize > Runtime::CLOSURE_CAPTURE_BUFFER_SIZE)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_too_large, captureArg.nodeIdentifierRef);

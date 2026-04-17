@@ -112,21 +112,43 @@ namespace
         sema.pushFramePopOnPostNode(frame);
     }
 
-    Result appendForeachAliasSymbols(Sema& sema, SmallVector<Symbol*>& outSymbols, const AstForeachStmt& node, TypeRef valueTypeRef, TypeRef indexTypeRef)
+    Result ensureLoopLocalStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        SemaHelpers::ensureCurrentLocalScopeSymbol(sema, &symVar);
+        return SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, symVar, typeRef);
+    }
+
+    template<typename F>
+    SymbolVariable& getOrCreateLoopLocalSymbol(LoopSemaPayload& payload, size_t index, F&& createSymbol)
+    {
+        if (payload.localSymbols.size() > index)
+            return payload.localSymbols[index]->cast<SymbolVariable>();
+
+        SWC_ASSERT(payload.localSymbols.size() == index);
+        auto& symVar = createSymbol();
+        payload.localSymbols.push_back(&symVar);
+        return symVar;
+    }
+
+    Result appendForeachAliasSymbols(Sema& sema, SmallVector<Symbol*>& outSymbols, LoopSemaPayload& payload, const AstForeachStmt& node, TypeRef valueTypeRef, TypeRef indexTypeRef)
     {
         SmallVector<TokenRef> tokNames;
         sema.ast().appendTokens(tokNames, node.spanNamesRef);
 
         const size_t count = std::min<size_t>(tokNames.size(), 2);
+        size_t       index = 0;
         for (size_t i = 0; i < count; ++i)
         {
             const TokenRef tokNameRef = tokNames[i];
             if (tokNameRef.isInvalid())
                 continue;
 
-            auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, node, tokNameRef);
-            SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, symVar, i == 0 ? valueTypeRef : indexTypeRef));
+            auto& symVar = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& {
+                return SemaHelpers::registerSymbol<SymbolVariable>(sema, node, tokNameRef);
+            });
+            SWC_RESULT(ensureLoopLocalStorage(sema, symVar, index == 0 ? valueTypeRef : indexTypeRef));
             outSymbols.push_back(&symVar);
+            index += 1;
         }
 
         return Result::Continue;
@@ -235,23 +257,30 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         const SemaNodeView exprView     = sema.viewType(nodeExprRef);
         TypeRef            valueTypeRef = TypeRef::invalid();
         TypeRef            indexTypeRef = TypeRef::invalid();
+        auto&              payload      = ensureLoopSemaPayload(sema, sema.curNodeRef());
         SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
 
         pushLoopFrame(sema, sema.curNodeRef(), indexTypeRef);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         SmallVector<Symbol*> symbols;
         symbols.reserve(4);
-        SWC_RESULT(appendForeachAliasSymbols(sema, symbols, *this, valueTypeRef, indexTypeRef));
+        SWC_RESULT(appendForeachAliasSymbols(sema, symbols, payload, *this, valueTypeRef, indexTypeRef));
 
-        auto& stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state");
-        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
+        const size_t stateIndex = symbols.size();
+        auto& stateSym          = getOrCreateLoopLocalSymbol(payload, stateIndex, [&]() -> SymbolVariable& {
+            return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state");
+        });
+        SWC_RESULT(ensureLoopLocalStorage(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
         symbols.push_back(&stateSym);
 
-        auto& sourceSpillSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill");
-        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
+        auto& sourceSpillSym = getOrCreateLoopLocalSymbol(payload, stateIndex + 1, [&]() -> SymbolVariable& {
+            return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill");
+        });
+        SWC_RESULT(ensureLoopLocalStorage(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
         symbols.push_back(&sourceSpillSym);
 
-        sema.setSymbolList(sema.curNodeRef(), symbols.span());
+        SWC_ASSERT(payload.localSymbols.size() == symbols.size());
+        sema.setSymbolList(sema.curNodeRef(), payload.localSymbols.span());
     }
 
     return Result::Continue;

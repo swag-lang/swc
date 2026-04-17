@@ -5,6 +5,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class Symbol;
 
 struct LoopSemaPayload
 {
@@ -18,6 +19,7 @@ struct LoopSemaPayload
     bool                              isRangeLoop     = false;
     bool                              inclusive       = false;
     bool                              usesLoopIndex   = false;
+    SmallVector<Symbol*>              localSymbols;
 };
 
 SWC_END_NAMESPACE();

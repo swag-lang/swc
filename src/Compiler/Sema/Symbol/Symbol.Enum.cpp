@@ -9,6 +9,13 @@ SWC_BEGIN_NAMESPACE();
 void SymbolEnum::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexImpls_);
+
+    if (std::ranges::find(impls_, &symImpl) != impls_.end())
+    {
+        symImpl.setSymEnum(this);
+        return;
+    }
+
     symImpl.setSymEnum(this);
     impls_.push_back(&symImpl);
     sema.compiler().notifyAlive();

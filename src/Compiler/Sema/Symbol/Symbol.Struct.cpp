@@ -239,6 +239,13 @@ namespace
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexImpls_);
+
+    if (std::ranges::find(impls_, &symImpl) != impls_.end())
+    {
+        symImpl.setSymStruct(this);
+        return;
+    }
+
     symImpl.setSymStruct(this);
     impls_.push_back(&symImpl);
     sema.compiler().notifyAlive();
@@ -253,6 +260,13 @@ std::vector<SymbolImpl*> SymbolStruct::impls() const
 void SymbolStruct::addInterface(SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexInterfaces_);
+
+    if (std::ranges::find(interfaces_, &symImpl) != interfaces_.end())
+    {
+        symImpl.setSymStruct(this);
+        return;
+    }
+
     symImpl.setSymStruct(this);
     interfaces_.push_back(&symImpl);
 }
@@ -262,6 +276,12 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
     const std::unique_lock lk(mutexInterfaces_);
     for (const auto* itf : interfaces_)
     {
+        if (itf == &symImpl)
+        {
+            symImpl.setSymStruct(this);
+            return Result::Continue;
+        }
+
         if (itf->idRef() == symImpl.idRef())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, symImpl);

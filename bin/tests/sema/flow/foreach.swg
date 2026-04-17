@@ -151,3 +151,11 @@
         var y = idx
     }
 }
+
+#test
+{
+    foreach g in @gvtd
+    {
+        #assert(#typeof(g) == s32) // swc-expected-error {{sema_err_compiler_assert}}
+    }
+}

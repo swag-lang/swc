@@ -61,20 +61,8 @@ Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadN
     if (storageTypeRef.isInvalid())
         return Result::Continue;
 
-    const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(payloadNodeRef);
-    if (payload && payload->runtimeStorageSym != nullptr)
-        return Result::Continue;
-
-    if (SymbolVariable* const boundStorage = currentRuntimeStorage(sema))
-    {
-        ensureCodeGenNodePayload(sema, payloadNodeRef).runtimeStorageSym = boundStorage;
-        return Result::Continue;
-    }
-
-    auto& storageSym = registerUniqueRuntimeStorageSymbol(sema, storageNode, privateName);
-    SWC_RESULT(declareGhostAndCompleteStorage(sema, storageSym, storageTypeRef));
-
-    ensureCodeGenNodePayload(sema, payloadNodeRef).runtimeStorageSym = &storageSym;
+    auto& storageSym = getOrCreateRuntimeStorageSymbol(sema, payloadNodeRef, storageNode, privateName);
+    SWC_RESULT(ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, storageTypeRef));
     return Result::Continue;
 }
 

@@ -110,7 +110,7 @@ namespace
             SWC_RESULT(SemaCheck::isValue(sema, countView.nodeRef()));
             SWC_RESULT(Cast::cast(sema, countView, sema.typeMgr().typeU64(), CastKind::Implicit));
 
-            if (!whatView.type() || !whatView.type()->isAnyPointer())
+            if (!whatView.type() || (!whatView.type()->isAnyPointer() && !whatView.type()->isReference()))
                 return SemaError::raiseRequestedTypeFam(sema, whatView.nodeRef(), whatView.typeRef(), sema.typeMgr().typeBlockPtrVoid());
             return Result::Continue;
         }

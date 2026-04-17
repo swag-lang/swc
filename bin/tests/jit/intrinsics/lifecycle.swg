@@ -105,6 +105,52 @@ impl EmbeddedTrackedWithOps
     }
 }
 
+struct ReceiverLifecycleTracked
+{
+    value: s32 = 3
+}
+
+impl ReceiverLifecycleTracked
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropTrace = DropTrace * 100 + cast(s64) .value
+    }
+
+    mtd opPostCopy()
+    {
+        PostCopyCount += 1
+        .value += 10
+    }
+
+    mtd opPostMove()
+    {
+        PostMoveCount += 1
+        .value += 20
+    }
+
+    mtd reset()
+    {
+        @init(me, 1)
+    }
+
+    mtd touchPostCopy()
+    {
+        @postcopy(me, 1)
+    }
+
+    mtd touchPostMove()
+    {
+        @postmove(me, 1)
+    }
+
+    mtd touchDrop()
+    {
+        @drop(me, 1)
+    }
+}
+
 func intrinsicSingleInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
@@ -196,6 +242,17 @@ func intrinsicDropThenInitArrayInfo()->s32
     return rgb[3].r * 100 + rgb[3].g * 10 + rgb[3].b
 }
 
+func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+    var value = ReceiverLifecycleTracked{7}
+    value.touchPostCopy()
+    value.touchPostMove()
+    value.touchDrop()
+    value.reset()
+    return {value.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
 #test
 {
     let v = intrinsicSingleInfo()
@@ -269,4 +326,14 @@ func intrinsicDropThenInitArrayInfo()->s32
 {
     let v = intrinsicDropThenInitArrayInfo()
     @assert(v == 567)
+}
+
+#test
+{
+    let v = intrinsicReceiverLifecycleInfo()
+    @assert(v.first == 3)
+    @assert(v.drops == 1)
+    @assert(v.dropTrace == 37)
+    @assert(v.postCopy == 1)
+    @assert(v.postMove == 1)
 }

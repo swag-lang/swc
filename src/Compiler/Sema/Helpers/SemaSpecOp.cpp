@@ -246,6 +246,94 @@ namespace
         return nodeRef;
     }
 
+    IdentifierRef foreachVisitSpecializationId(Sema& sema, const AstForeachStmt& node)
+    {
+        if (node.tokSpecializationRef.isInvalid())
+            return IdentifierRef::invalid();
+
+        const SourceCodeRange tokenRange = sema.srcView(node.srcViewRef()).tokenCodeRange(sema.ctx(), node.tokSpecializationRef);
+        if (!tokenRange.srcView || tokenRange.len <= 1)
+            return IdentifierRef::invalid();
+
+        Utf8 opVisitName = "opVisit";
+        opVisitName += tokenRange.srcView->codeView(tokenRange.offset + 1, tokenRange.len - 1);
+        return sema.idMgr().addIdentifierOwned(opVisitName);
+    }
+
+    AstNodeRef unwrapVisitFunctionDeclRef(Sema& sema, AstNodeRef childRef)
+    {
+        const AstNode& childNode = sema.node(childRef);
+        if (const auto* accessNode = childNode.safeCast<AstAccessModifier>())
+            return accessNode->nodeWhatRef;
+        return childRef;
+    }
+
+    bool implDeclContainsFunctionId(Sema& sema, const SymbolImpl& symImpl, IdentifierRef idRef)
+    {
+        const auto* implDecl = symImpl.decl() ? symImpl.decl()->safeCast<AstImpl>() : nullptr;
+        if (!implDecl)
+            return false;
+
+        SmallVector<AstNodeRef> children;
+        sema.ast().appendNodes(children, implDecl->spanChildrenRef);
+        for (const AstNodeRef childRef : children)
+        {
+            const AstNodeRef declRef  = unwrapVisitFunctionDeclRef(sema, childRef);
+            const auto*      funcDecl = sema.node(declRef).safeCast<AstFunctionDecl>();
+            if (!funcDecl || funcDecl->tokNameRef.isInvalid())
+                continue;
+
+            const IdentifierRef childId = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{funcDecl->srcViewRef(), funcDecl->tokNameRef});
+            if (childId == idRef)
+                return true;
+        }
+
+        return false;
+    }
+
+    Result waitVisitSpecOpRegistration(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, const SourceCodeRef& codeRef)
+    {
+        if (idRef.isInvalid())
+            return Result::Continue;
+
+        bool foundDecl       = false;
+        bool foundRegistered = false;
+        for (const SymbolImpl* symImpl : ownerStruct.impls())
+        {
+            if (!symImpl || symImpl->isIgnored())
+                continue;
+            if (!implDeclContainsFunctionId(sema, *symImpl, idRef))
+                continue;
+
+            foundDecl = true;
+            if (symImpl->findFunction(idRef))
+            {
+                foundRegistered = true;
+                break;
+            }
+        }
+
+        if (foundDecl && !foundRegistered)
+            return sema.waitIdentifier(idRef, codeRef);
+        return Result::Continue;
+    }
+
+    Result waitPendingVisitSpecOp(Sema& sema, const SymbolStruct& ownerStruct, const AstForeachStmt& node)
+    {
+        const IdentifierRef specializedId = foreachVisitSpecializationId(sema, node);
+        if (specializedId.isValid())
+            return waitVisitSpecOpRegistration(sema, ownerStruct, specializedId, node.codeRef());
+
+        if (node.modifierFlags.has(AstModifierFlagsE::Reverse))
+        {
+            const IdentifierRef reverseId = sema.idMgr().addIdentifier("opVisitReverse");
+            SWC_RESULT(waitVisitSpecOpRegistration(sema, ownerStruct, reverseId, node.codeRef()));
+        }
+
+        const IdentifierRef opVisitId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpVisit);
+        return waitVisitSpecOpRegistration(sema, ownerStruct, opVisitId, node.codeRef());
+    }
+
     std::string_view assignGenericOpString(TokenId tokId)
     {
         if (tokId == TokenId::SymEqual)
@@ -338,10 +426,12 @@ namespace
         }
 
         // Literal special operators are published during pre-decl and can be specialized before
-        // declaration finishes, which silently drops the candidate. Other generic special ops are
-        // resolved later and must not wait here because that introduces cycles while their own
-        // bodies are being instantiated.
-        if (symFunc.specOpKind() != SpecOpKind::OpAffectLiteral)
+        // declaration finishes, which silently drops the candidate. Generic `opVisit` can also be
+        // queried from `foreach` before the declaration is fully ready in some build modes, so make
+        // both cases wait for declaration completion unless we are currently resolving that same
+        // special operator.
+        if (symFunc.specOpKind() != SpecOpKind::OpAffectLiteral &&
+            symFunc.specOpKind() != SpecOpKind::OpVisit)
             return Result::Continue;
         if (currentSpecOpWaiterSymbol(sema) == &symFunc)
             return Result::Continue;
@@ -600,18 +690,9 @@ namespace
     {
         outCandidates.clear();
 
-        if (node.tokSpecializationRef.isValid())
-        {
-            const SourceView&     srcView    = sema.srcView(node.srcViewRef());
-            const SourceCodeRange tokenRange = srcView.tokenCodeRange(sema.ctx(), node.tokSpecializationRef);
-            if (tokenRange.srcView && tokenRange.len > 1)
-            {
-                Utf8 opVisitName = "opVisit";
-                opVisitName += tokenRange.srcView->codeView(tokenRange.offset + 1, tokenRange.len - 1);
-                const IdentifierRef specializedId = sema.idMgr().addIdentifierOwned(opVisitName);
-                return collectSpecOpCandidates(sema, ownerStruct, specializedId, genericArgNodes, outCandidates);
-            }
-        }
+        const IdentifierRef specializedId = foreachVisitSpecializationId(sema, node);
+        if (specializedId.isValid())
+            return collectSpecOpCandidates(sema, ownerStruct, specializedId, genericArgNodes, outCandidates);
 
         if (node.modifierFlags.has(AstModifierFlagsE::Reverse))
         {
@@ -645,8 +726,8 @@ namespace
         const SourceCodeRange codeRange = node.codeRangeWithChildren(sema.ctx(), sema.ast());
         if (codeRange.srcView && codeRange.len)
         {
-            const std::string_view code = codeRange.srcView->codeView(codeRange.offset, codeRange.len);
-            const size_t           inPos = code.find(" in ");
+            const std::string_view code  = codeRange.srcView->codeView(codeRange.offset, codeRange.len);
+            const size_t           inPos  = code.find(" in ");
             const size_t           ampPos = code.find('&');
             if (ampPos != std::string_view::npos && (inPos == std::string_view::npos || ampPos < inPos))
                 return true;
@@ -1091,7 +1172,7 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
 {
     outMatched = false;
 
-    const SemaNodeView  exprView(sema, node.nodeExprRef, SemaNodeViewPartE::Type);
+    const SemaNodeView   exprView(sema, node.nodeExprRef, SemaNodeViewPartE::Type);
     const SymbolStruct* ownerStruct = structSpecOpOwner(sema, exprView);
     if (!ownerStruct)
         return Result::Continue;
@@ -1105,11 +1186,11 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
     SmallVector<Symbol*> candidates;
     SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, node, genericArgs.span(), candidates));
     if (candidates.empty())
-        return Result::Continue;
+        return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 
     SmallVector<AstNodeRef>            args;
-    SmallVector<ResolvedCallArgument>  resolvedArgs;
     args.push_back(makeSyntheticCodeBlockArg(sema, node));
+    SmallVector<ResolvedCallArgument> resolvedArgs;
     SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args.span(), node.nodeExprRef, true, resolvedArgs, outMatched));
     return Result::Continue;
 }
@@ -1132,11 +1213,10 @@ Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
     SmallVector<Symbol*> candidates;
     SWC_RESULT(collectVisitSpecOpCandidates(sema, *ownerStruct, node, genericArgs.span(), candidates));
     if (candidates.empty())
-        return Result::Continue;
+        return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 
     SmallVector<AstNodeRef> args;
     args.push_back(makeSyntheticCodeBlockArg(sema, node));
-
     bool matched = false;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, true, &matched, false));
     outHandled = matched;

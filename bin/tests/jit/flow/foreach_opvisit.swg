@@ -131,7 +131,7 @@ struct JitReverseVisits
 impl JitReverseVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
     {
         #if ptr do
             #error("JitReverseVisits does not expose pointer iteration.")
@@ -151,7 +151,7 @@ impl JitReverseVisits
     }
 
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisitReverse(const me, stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code void)
     {
         #if ptr do
             #error("JitReverseVisits does not expose pointer iteration.")
@@ -193,7 +193,7 @@ struct JitConstPointerVisits
 impl JitHiddenAliasVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
     {
         #if ptr do
             #error("JitHiddenAliasVisits does not expose pointer iteration.")
@@ -217,7 +217,7 @@ impl JitHiddenAliasVisits
 impl JitFieldPointerVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code void)
+    mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
     {
         #if back do
             #error("JitFieldPointerVisits does not expose reverse iteration.")
@@ -270,7 +270,7 @@ impl JitFieldPointerVisits
 impl JitPairVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisitPairs(const me, stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code void)
     {
         #if ptr do
             #error("JitPairVisits does not expose pointer iteration.")
@@ -305,7 +305,7 @@ impl JitPairVisits
 impl JitConstPointerVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
     {
         #if back do
             #error("JitConstPointerVisits does not expose reverse iteration.")

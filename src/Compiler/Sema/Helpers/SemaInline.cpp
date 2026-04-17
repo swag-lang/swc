@@ -313,15 +313,21 @@ namespace
 
         SmallVector<AstNodeRef> aliases;
         SmallVector<TokenRef>   foreachNames;
+        bool                    isForeachCall = false;
         if (callRef.isValid())
         {
-            const auto* aliasCall = sema.node(callRef).safeCast<AstAliasCallExpr>();
+            const AstNode& callNode = sema.node(callRef);
+
+            const auto* aliasCall = callNode.safeCast<AstAliasCallExpr>();
             if (aliasCall)
                 aliasCall->collectAliases(aliases, sema.ast());
 
-            const auto* foreachStmt = sema.node(callRef).safeCast<AstForeachStmt>();
+            const auto* foreachStmt = callNode.safeCast<AstForeachStmt>();
             if (foreachStmt)
+            {
+                isForeachCall = true;
                 sema.ast().appendTokens(foreachNames, foreachStmt->spanNamesRef);
+            }
         }
 
         AliasUsageInfo aliasUsage;
@@ -360,7 +366,7 @@ namespace
         for (size_t slot = 0; slot < foreachNames.size(); ++slot)
             outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]});
 
-        if (callRef.isValid() && (!foreachNames.empty() || sema.node(callRef).is(AstNodeId::ForeachStmt)))
+        if (isForeachCall)
         {
             for (uint32_t slot = static_cast<uint32_t>(foreachNames.size()); slot < aliasUsage.aliasCount; ++slot)
                 outAliasIdentifiers[slot] = SemaHelpers::getUniqueIdentifier(sema, "__foreach_alias");

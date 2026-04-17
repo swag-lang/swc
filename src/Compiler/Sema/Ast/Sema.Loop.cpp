@@ -103,6 +103,35 @@ namespace
         return Result::Error;
     }
 
+    void pushLoopFrame(Sema& sema, AstNodeRef loopRef, TypeRef indexTypeRef)
+    {
+        SemaFrame frame = sema.frame();
+        frame.setCurrentBreakContent(loopRef, SemaFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopIndexTypeRef(indexTypeRef);
+        frame.setCurrentLoopIndexOwnerRef(loopRef);
+        sema.pushFramePopOnPostNode(frame);
+    }
+
+    Result appendForeachAliasSymbols(Sema& sema, SmallVector<Symbol*>& outSymbols, const AstForeachStmt& node, TypeRef valueTypeRef, TypeRef indexTypeRef)
+    {
+        SmallVector<TokenRef> tokNames;
+        sema.ast().appendTokens(tokNames, node.spanNamesRef);
+
+        const size_t count = std::min<size_t>(tokNames.size(), 2);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const TokenRef tokNameRef = tokNames[i];
+            if (tokNameRef.isInvalid())
+                continue;
+
+            auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, node, tokNameRef);
+            SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, symVar, i == 0 ? valueTypeRef : indexTypeRef));
+            outSymbols.push_back(&symVar);
+        }
+
+        return Result::Continue;
+    }
+
     Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef)
     {
         bool sourceIsConst = false;
@@ -164,13 +193,7 @@ Result AstForCStyleStmt::semaPreNode(Sema& sema)
 Result AstForCStyleStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodePostStmtRef || (childRef == nodeBodyRef && nodePostStmtRef.isInvalid()))
-    {
-        SemaFrame frame = sema.frame();
-        frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
-        frame.setCurrentLoopIndexTypeRef(sema.typeMgr().typeU64());
-        frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
-        sema.pushFramePopOnPostNode(frame);
-    }
+        pushLoopFrame(sema, sema.curNodeRef(), sema.typeMgr().typeU64());
 
     return Result::Continue;
 }
@@ -214,37 +237,11 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         TypeRef            indexTypeRef = TypeRef::invalid();
         SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
 
-        SemaFrame frame = sema.frame();
-        frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
-        frame.setCurrentLoopIndexTypeRef(indexTypeRef);
-        frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
-        sema.pushFramePopOnPostNode(frame);
+        pushLoopFrame(sema, sema.curNodeRef(), indexTypeRef);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         SmallVector<Symbol*> symbols;
         symbols.reserve(4);
-
-        // Alias names
-        SmallVector<TokenRef> tokNames;
-        sema.ast().appendTokens(tokNames, spanNamesRef);
-        if (!tokNames.empty())
-        {
-            const SemaNodeView elementView = sema.viewType(nodeExprRef);
-            TypeRef            typeRef     = TypeRef::invalid();
-            TypeRef            indexRef    = TypeRef::invalid();
-            SWC_RESULT(foreachElementTypes(sema, *this, elementView, typeRef, indexRef));
-
-            const size_t count = std::min<size_t>(tokNames.size(), 2);
-            for (size_t i = 0; i < count; i++)
-            {
-                const auto tokNameRef = tokNames[i];
-                if (tokNameRef.isInvalid())
-                    continue;
-
-                auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
-                SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, symVar, i == 0 ? typeRef : indexRef));
-                symbols.push_back(&symVar);
-            }
-        }
+        SWC_RESULT(appendForeachAliasSymbols(sema, symbols, *this, valueTypeRef, indexTypeRef));
 
         auto& stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state");
         SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
@@ -313,11 +310,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         TypeRef indexTypeRef = TypeRef::invalid();
         SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexTypeRef, sema.curNodeRef(), *this));
 
-        SemaFrame frame = sema.frame();
-        frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
-        frame.setCurrentLoopIndexTypeRef(indexTypeRef);
-        frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
-        sema.pushFramePopOnPostNode(frame);
+        pushLoopFrame(sema, sema.curNodeRef(), indexTypeRef);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
 
         // Create a variable

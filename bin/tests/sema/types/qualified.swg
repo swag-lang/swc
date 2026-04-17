@@ -17,6 +17,9 @@ var E2: #null [*] s32
 var E3: #null any
 var E4: #null string
 var E5: #null cstring
+var E6: #null typeinfo = null
+
+#assert(#typeof(E6) == #null typeinfo)
 
 namespace NS {}
 const F: const NS // swc-expected-error {{sema_err_not_type}}

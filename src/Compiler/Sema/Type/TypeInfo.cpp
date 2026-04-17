@@ -669,9 +669,9 @@ TypeInfo TypeInfo::makeCString(TypeInfoFlags flags)
     return TypeInfo{TypeInfoKind::CString, flags};
 }
 
-TypeInfo TypeInfo::makeTypeInfo()
+TypeInfo TypeInfo::makeTypeInfo(TypeInfoFlags flags)
 {
-    return TypeInfo{TypeInfoKind::TypeInfo};
+    return TypeInfo{TypeInfoKind::TypeInfo, flags};
 }
 
 TypeInfo TypeInfo::makeEnum(SymbolEnum* sym)

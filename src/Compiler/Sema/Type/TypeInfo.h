@@ -290,7 +290,7 @@ public:
     static TypeInfo makeNull();
     static TypeInfo makeUndefined();
     static TypeInfo makeCString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeTypeInfo();
+    static TypeInfo makeTypeInfo(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeEnum(SymbolEnum* sym);
     static TypeInfo makeStruct(SymbolStruct* sym);
     static TypeInfo makeInterface(SymbolInterface* sym);

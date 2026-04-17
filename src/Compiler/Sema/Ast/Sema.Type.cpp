@@ -277,6 +277,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::String:
             case TypeInfoKind::CString:
             case TypeInfoKind::Any:
+            case TypeInfoKind::TypeInfo:
                 break;
             default:
                 const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
@@ -325,6 +326,9 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             break;
         case TypeInfoKind::Any:
             typeRef = typeMgr.addType(TypeInfo::makeAny(typeFlags));
+            break;
+        case TypeInfoKind::TypeInfo:
+            typeRef = typeMgr.addType(TypeInfo::makeTypeInfo(typeFlags));
             break;
         default:
             SWC_UNREACHABLE();

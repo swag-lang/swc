@@ -11,10 +11,23 @@ class Sema;
 class Diagnostic;
 class SymbolFunction;
 
+enum class CastSpecialOpPayloadKind : uint8_t
+{
+    OpCast,
+    Affect,
+};
+
 struct CastAffectPayload
 {
-    SymbolFunction* calledFn           = nullptr;
-    ConstantRef     receiverInitCstRef = ConstantRef::invalid();
+    CastSpecialOpPayloadKind kind                = CastSpecialOpPayloadKind::Affect;
+    SymbolFunction*          calledFn           = nullptr;
+    ConstantRef              receiverInitCstRef = ConstantRef::invalid();
+};
+
+struct CastSpecOpPayload
+{
+    CastSpecialOpPayloadKind kind     = CastSpecialOpPayloadKind::OpCast;
+    SymbolFunction*          calledFn = nullptr;
 };
 
 enum class DynamicStructCastSourceKind : uint8_t
@@ -61,6 +74,7 @@ struct Cast
     static Result     retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static bool       resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo);
     static TokenRef   userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRef);
+    static Result     resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, AstNodeRef srcNodeRef = AstNodeRef::invalid());
     static Result     resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef = AstNodeRef::invalid());
 
 private:

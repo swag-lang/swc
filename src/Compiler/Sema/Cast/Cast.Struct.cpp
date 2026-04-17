@@ -17,6 +17,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    enum class OpCastRank : uint8_t
+    {
+        Bad,
+        ConstReceiver,
+        MutableReceiver,
+    };
+
     AstNodeRef unwrapLiteralSuffixCarrier(const Sema& sema, AstNodeRef nodeRef)
     {
         while (nodeRef.isValid())
@@ -254,6 +261,52 @@ namespace
             default:
                 return false;
         }
+    }
+
+    bool allowsStructOpCast(const SymbolFunction& calledFn, const CastKind castKind)
+    {
+        if (castKind == CastKind::Explicit)
+            return true;
+
+        return calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Implicit);
+    }
+
+    OpCastRank rankStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const SymbolFunction& calledFn, AstNodeRef srcNodeRef)
+    {
+        if (calledFn.parameters().size() != 1)
+            return OpCastRank::Bad;
+        if (calledFn.returnTypeRef() != dstTypeRef)
+            return OpCastRank::Bad;
+
+        const TypeRef receiverTypeRef = calledFn.parameters()[0]->typeRef();
+        if (!receiverTypeRef.isValid())
+            return OpCastRank::Bad;
+
+        CastRequest castRequest(CastKind::Parameter);
+        castRequest.errorCodeRef = codeRef;
+        castRequest.errorNodeRef = srcNodeRef;
+        castRequest.flags.add(CastFlagsE::UfcsArgument);
+        if (srcNodeRef.isValid())
+        {
+            const ConstantRef srcCstRef = sema.viewConstant(srcNodeRef).cstRef();
+            if (srcCstRef.isValid())
+                castRequest.setConstantFoldingSrc(srcCstRef);
+        }
+
+        if (Cast::castAllowed(sema, castRequest, srcTypeRef, receiverTypeRef) != Result::Continue)
+            return OpCastRank::Bad;
+
+        const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
+        if (!receiverType.isReference())
+            return OpCastRank::Bad;
+        if (!receiverType.isConst())
+        {
+            if (srcNodeRef.isInvalid() || !sema.isLValue(srcNodeRef))
+                return OpCastRank::Bad;
+            return OpCastRank::MutableReceiver;
+        }
+
+        return OpCastRank::ConstReceiver;
     }
 
     AffectCastRank rankStructAffectCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const SymbolFunction& calledFn)
@@ -511,6 +564,52 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         return Result::Continue;
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+}
+
+Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, AstNodeRef srcNodeRef)
+{
+    outCalledFn = nullptr;
+
+    if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
+        return Result::Continue;
+
+    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+    if (!srcType.isStruct())
+        return Result::Continue;
+
+    const SymbolStruct& ownerStruct = srcType.payloadSymStruct();
+    SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, codeRef));
+
+    const IdentifierRef            opCastId    = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCast);
+    const SmallVector<SymbolFunction*> candidates = ownerStruct.getSpecOp(opCastId);
+    if (candidates.empty())
+        return Result::Continue;
+
+    auto            bestRank = OpCastRank::Bad;
+    SymbolFunction* bestFn   = nullptr;
+    for (SymbolFunction* calledFn : candidates)
+    {
+        if (!calledFn)
+            continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(calledFn, codeRef));
+
+        if (!allowsStructOpCast(*calledFn, castKind))
+            continue;
+
+        const OpCastRank rank = rankStructOpCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, *calledFn, srcNodeRef);
+        if (rank == OpCastRank::Bad)
+            continue;
+
+        if (bestFn == nullptr || rank > bestRank)
+        {
+            bestRank = rank;
+            bestFn   = calledFn;
+        }
+    }
+
+    outCalledFn = bestFn;
+    return Result::Continue;
 }
 
 Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef)

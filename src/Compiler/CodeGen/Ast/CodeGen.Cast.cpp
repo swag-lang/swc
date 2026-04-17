@@ -826,6 +826,13 @@ namespace
         return Result::Continue;
     }
 
+    Result emitStructOpCast(CodeGen& codeGen, const CastSpecOpPayload& castPayload)
+    {
+        SWC_ASSERT(castPayload.calledFn != nullptr);
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), castPayload.calledFn);
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
+
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         MicroBuilder&             builder             = codeGen.builder();
@@ -850,8 +857,16 @@ namespace
             return Result::Continue;
         }
 
+        if (const auto* specOpPayload = codeGen.sema().semaPayload<CastSpecOpPayload>(codeGen.curNodeRef());
+            specOpPayload &&
+            specOpPayload->kind == CastSpecialOpPayloadKind::OpCast &&
+            specOpPayload->calledFn != nullptr)
+            return emitStructOpCast(codeGen, *specOpPayload);
+
         if (const auto* affectPayload = codeGen.sema().semaPayload<CastAffectPayload>(codeGen.curNodeRef());
-            affectPayload && affectPayload->calledFn != nullptr)
+            affectPayload &&
+            affectPayload->kind == CastSpecialOpPayloadKind::Affect &&
+            affectPayload->calledFn != nullptr)
             return emitStructAffectCast(codeGen, srcNodeRef, dstTypeRef, *affectPayload);
 
         const AstNodeRef resolvedSrcNodeRef = codeGen.viewZero(srcNodeRef).nodeRef();

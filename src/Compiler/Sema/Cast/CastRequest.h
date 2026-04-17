@@ -4,6 +4,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class SymbolFunction;
+
 enum class CastKind
 {
     LiteralSuffix,
@@ -38,6 +40,7 @@ struct CastRequest
     SourceCodeRef errorCodeRef = SourceCodeRef::invalid();
     ConstantRef   srcConstRef  = ConstantRef::invalid();
     ConstantRef   outConstRef  = ConstantRef::invalid();
+    SymbolFunction* selectedStructOpCast = nullptr;
     CastFailure   failure{};
 
     CastRequest() = delete;

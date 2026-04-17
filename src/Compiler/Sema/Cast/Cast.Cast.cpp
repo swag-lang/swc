@@ -206,7 +206,7 @@ namespace
         return Result::Continue;
     }
 
-    AstNodeRef sourceArgRefForStructAffectCast(const Sema& sema, const SemaNodeView& view, const CastFlags castFlags)
+    AstNodeRef sourceArgRefForStructSpecCast(const Sema& sema, const SemaNodeView& view, const CastFlags castFlags)
     {
         SWC_UNUSED(sema);
 
@@ -222,6 +222,94 @@ namespace
             return view.node()->cast<AstAutoCastExpr>().nodeExprRef;
 
         return AstNodeRef::invalid();
+    }
+
+    struct StructOpCastData
+    {
+        SymbolFunction* calledFn     = nullptr;
+        AstNodeRef      sourceArgRef = AstNodeRef::invalid();
+    };
+
+    bool structOpCastBindsReferenceToValue(Sema& sema, const SymbolFunction& calledFn, AstNodeRef sourceArgRef)
+    {
+        if (sourceArgRef.isInvalid() || calledFn.parameters().empty())
+            return false;
+
+        const TypeRef receiverTypeRef = calledFn.parameters().front()->typeRef();
+        if (!receiverTypeRef.isValid())
+            return false;
+
+        const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
+        if (!receiverType.isReference())
+            return false;
+
+        const TypeRef sourceTypeRef = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type).typeRef();
+        if (!sourceTypeRef.isValid())
+            return true;
+
+        const TypeRef unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
+        return !sema.typeMgr().get(resolvedSourceTypeRef).isPointerOrReference();
+    }
+
+    void buildStructOpCastResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, AstNodeRef sourceArgRef, const SymbolFunction& calledFn)
+    {
+        ResolvedCallArgument resolvedArg;
+        resolvedArg.argRef                = sourceArgRef;
+        resolvedArg.bindsReferenceToValue = structOpCastBindsReferenceToValue(sema, calledFn, sourceArgRef);
+        outResolvedArgs.push_back(resolvedArg);
+    }
+
+    Result prepareStructOpCast(Sema& sema, StructOpCastData& outData, const SemaNodeView& view, CastRequest& castRequest, CastFlags castFlags)
+    {
+        outData.calledFn     = castRequest.selectedStructOpCast;
+        outData.sourceArgRef = sourceArgRefForStructSpecCast(sema, view, castFlags);
+        if (!outData.calledFn || outData.sourceArgRef.isInvalid())
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(outData.calledFn, sema.node(outData.sourceArgRef).codeRef()));
+        return Result::Continue;
+    }
+
+    Result tryConstantFoldStructOpCast(Sema& sema, AstNodeRef callRef, const StructOpCastData& castData, ConstantRef& outConstRef)
+    {
+        outConstRef = ConstantRef::invalid();
+        if (!castData.calledFn || castData.sourceArgRef.isInvalid())
+            return Result::Continue;
+
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        buildStructOpCastResolvedArgs(sema, resolvedArgs, castData.sourceArgRef, *castData.calledFn);
+
+        SWC_RESULT(SemaJIT::tryRunConstCall(sema, *castData.calledFn, callRef, resolvedArgs.span()));
+        const SemaNodeView callView(sema, callRef, SemaNodeViewPartE::Constant);
+        if (callView.cstRef().isValid())
+            outConstRef = callView.cstRef();
+        return Result::Continue;
+    }
+
+    Result finalizeRuntimeStructOpCast(Sema& sema, AstNodeRef castNodeRef, const StructOpCastData& castData)
+    {
+        if (castNodeRef.isInvalid() || castData.sourceArgRef.isInvalid() || !castData.calledFn || sema.isGlobalScope())
+            return Result::Continue;
+
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        buildStructOpCastResolvedArgs(sema, resolvedArgs, castData.sourceArgRef, *castData.calledFn);
+
+        sema.setResolvedCallArguments(castNodeRef, resolvedArgs);
+        sema.setIsValue(castNodeRef);
+        sema.unsetIsLValue(castNodeRef);
+
+        auto* payload = sema.semaPayload<CastSpecOpPayload>(castNodeRef);
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<CastSpecOpPayload>();
+            sema.setSemaPayload(castNodeRef, payload);
+        }
+
+        payload->kind     = CastSpecialOpPayloadKind::OpCast;
+        payload->calledFn = castData.calledFn;
+        SemaHelpers::addCurrentFunctionCallDependency(sema, castData.calledFn);
+        return SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, sema.node(castNodeRef), *castData.calledFn, "__cast_runtime_storage");
     }
 
     Result computeStructAffectReceiverInit(Sema& sema, TypeRef dstTypeRef, const SymbolFunction& calledFn, ConstantRef& outInitCstRef)
@@ -279,7 +367,7 @@ namespace
     Result prepareStructAffectCast(Sema& sema, StructAffectCastData& outData, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
     {
         outData              = {};
-        outData.sourceArgRef = sourceArgRefForStructAffectCast(sema, view, castFlags);
+        outData.sourceArgRef = sourceArgRefForStructSpecCast(sema, view, castFlags);
         if (outData.sourceArgRef.isInvalid())
             return Result::Continue;
 
@@ -342,6 +430,7 @@ namespace
             sema.setSemaPayload(castNodeRef, payload);
         }
 
+        payload->kind               = CastSpecialOpPayloadKind::Affect;
         payload->calledFn           = castData.calledFn;
         payload->receiverInitCstRef = castData.receiverInitCstRef;
         SWC_ASSERT(castData.calledFn != nullptr);
@@ -1574,6 +1663,8 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
 Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
+    castRequest.selectedStructOpCast = nullptr;
+
     UserDefinedLiteralSuffixInfo suffixInfo;
     const bool                   hasUserDefinedLiteralSuffix = dstTypeRef.isValid() && resolveUserDefinedLiteralSuffix(sema, castRequest.errorNodeRef, suffixInfo);
     TypeRef                      literalSuffixDstTypeRef     = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
@@ -1650,6 +1741,19 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
+    if (res != Result::Continue && srcType.isStruct())
+    {
+        SymbolFunction* calledFn = nullptr;
+        const SourceCodeRef codeRef = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
+                                                                                                                                       : sema.node(sema.curNodeRef()).codeRef();
+        SWC_RESULT(resolveStructOpCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, castRequest.errorNodeRef));
+        if (calledFn)
+        {
+            castRequest.selectedStructOpCast = calledFn;
+            return Result::Continue;
+        }
+    }
+
     if (res == Result::Continue &&
         castRequest.isConstantFolding() &&
         castRequest.outConstRef.isValid())
@@ -1723,8 +1827,19 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     // Success !
     if (result == Result::Continue)
     {
+        StructOpCastData     structOpCastData;
+        SWC_RESULT(prepareStructOpCast(sema, structOpCastData, view, castRequest, effectiveFlags));
         StructAffectCastData structAffectData;
-        SWC_RESULT(prepareStructAffectCast(sema, structAffectData, view, dstTypeRef, effectiveKind, effectiveFlags));
+        if (!structOpCastData.calledFn)
+            SWC_RESULT(prepareStructAffectCast(sema, structAffectData, view, dstTypeRef, effectiveKind, effectiveFlags));
+        if (structOpCastData.calledFn && castRequest.constantFoldingResult().isInvalid())
+        {
+            ConstantRef structOpCastConstRef = ConstantRef::invalid();
+            SWC_RESULT(tryConstantFoldStructOpCast(sema, view.nodeRef(), structOpCastData, structOpCastConstRef));
+            if (structOpCastConstRef.isValid())
+                castRequest.setConstantFoldingResult(structOpCastConstRef);
+        }
+
         if (structAffectData.calledFn && srcCstRef.isValid())
             castRequest.setConstantFoldingResult(ConstantRef::invalid());
 
@@ -1761,7 +1876,9 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
             SWC_RESULT(setupCastOverflowRuntimeSafety(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
             SWC_RESULT(setupCastFromAnyRuntime(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
-            if (structAffectData.calledFn)
+            if (structOpCastData.calledFn)
+                SWC_RESULT(finalizeRuntimeStructOpCast(sema, runtimeCastNodeRef, structOpCastData));
+            else if (structAffectData.calledFn)
                 SWC_RESULT(finalizeRuntimeStructAffectCast(sema, runtimeCastNodeRef, structAffectData, dstTypeRef));
         }
         else

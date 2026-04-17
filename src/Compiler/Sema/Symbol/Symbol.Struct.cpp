@@ -285,6 +285,8 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
         if (itf->idRef() == symImpl.idRef())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, symImpl);
+            if (const SymbolInterface* symInterface = symImpl.symInterface())
+                diag.addArgument(Diagnostic::ARG_SYM, symInterface->getFullScopedName(sema.ctx()));
             diag.addArgument(Diagnostic::ARG_WHAT, name(sema.ctx()));
             auto&             note    = diag.addElement(DiagnosticId::sema_note_other_implementation);
             const SourceView& srcView = sema.compiler().srcView(itf->srcViewRef());

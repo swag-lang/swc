@@ -298,6 +298,7 @@
         <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
+        <ClCompile Include="src\Main\CompilerTagRegistry.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
         <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
@@ -527,6 +528,7 @@
         <ClInclude Include="src\Main\TaskState.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>
         <ClInclude Include="src\Main\Global.h"/>
+        <ClInclude Include="src\Main\CompilerTagRegistry.h"/>
         <ClInclude Include="src\Main\CompilerInstance.h"/>
         <ClInclude Include="src\Main\ExternalModuleManager.h"/>
         <ClInclude Include="src\Main\Version.h"/>

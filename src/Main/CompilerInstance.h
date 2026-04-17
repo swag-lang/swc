@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Runtime.h"
 #include "Compiler/SourceFile.h"
+#include "Main/CompilerTagRegistry.h"
 #include "Main/ExitCodes.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/Utf8.h"
@@ -30,13 +31,6 @@ struct CommandLine;
 class CompilerInstance
 {
 public:
-    struct CompilerTag
-    {
-        Utf8       name;
-        Utf8       source;
-        ConstantRef cstRef = ConstantRef::invalid();
-    };
-
     CompilerInstance(const Global& global, const CommandLine& cmdLine);
     ~CompilerInstance();
 
@@ -124,7 +118,7 @@ public:
     bool                     registerForeignLib(std::string_view name);
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
     const CompilerTag*       findCompilerTag(std::string_view name) const;
-    const std::vector<CompilerTag>& compilerTags() const { return compilerTags_; }
+    const std::vector<CompilerTag>& compilerTags() const { return compilerTags_.all(); }
     void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
     bool                     tryRegisterReportedDiagnostic(std::string_view message);
@@ -212,7 +206,7 @@ private:
     std::atomic<uint32_t>                              pendingImplRegistrations_ = 0;
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;
-    std::vector<CompilerTag>                           compilerTags_;
+    CompilerTagRegistry                                compilerTags_;
     std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
     std::unordered_map<Utf8, Utf8>                     inMemoryFiles_;
     std::mutex                                         reportedDiagnosticsMutex_;

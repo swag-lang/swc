@@ -121,6 +121,8 @@ SWC_DIAG_DEF(sema_err_struct_circular_reference, Error, "field '{value}' cannot 
 SWC_DIAG_DEF(sema_err_struct_circular_reference, Error, "struct definition has a circular reference")
 SWC_DIAG_DEF(sema_err_cyclic_dependency, Error, "cyclic dependency detected for symbol '{sym}': {what}")
 SWC_DIAG_DEF(sema_err_cyclic_dependency, Error, "cyclic dependency detected for symbol '{sym}'")
+SWC_DIAG_DEF(sema_err_stalled_dependency, Error, "could not resolve dependency '{sym}' while processing '{value}' ({what})")
+SWC_DIAG_DEF(sema_err_stalled_dependency, Error, "could not resolve dependency '{sym}' ({what})")
 SWC_DIAG_DEF(sema_err_variadic_not_last, Error, "variadic parameter is not last; [help] move the variadic parameter to the end of the parameter list")
 SWC_DIAG_DEF(sema_err_variadic_not_last, Error, "variadic parameter '{sym}' must be last, but it is followed by parameter '{value}'; [help] move '{sym}' to the end of the parameter list")
 SWC_DIAG_DEF(sema_err_parameter_default_value_not_last, Error, "parameter with default value is followed by a parameter without a default value; [help] move parameters with defaults to the end, or give later parameters defaults too")

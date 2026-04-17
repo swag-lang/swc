@@ -38,3 +38,10 @@
     if let x = 4 where x > 2 do
         let y = x
 }
+
+struct Broken
+{
+    field: MissingType // swc-expected-error {{sema_err_unknown_symbol}}
+}
+
+const BrokenSize = #sizeof(Broken)

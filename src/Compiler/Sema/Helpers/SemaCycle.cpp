@@ -57,10 +57,40 @@ namespace
         return "<dependency>";
     }
 
+    Utf8 stalledDependencyReason(const TaskState& state)
+    {
+        switch (state.kind)
+        {
+            case TaskStateKind::SemaWaitImplRegistrations:
+                return "waiting for implementation registrations";
+            case TaskStateKind::SemaWaitSymDeclared:
+                return "waiting for declaration";
+            case TaskStateKind::SemaWaitSymTyped:
+                return "waiting for typing";
+            case TaskStateKind::SemaWaitSymSemaCompleted:
+                return "waiting for semantic analysis completion";
+            case TaskStateKind::SemaWaitSymCodeGenPreSolved:
+                return "waiting for code generation presolve";
+            case TaskStateKind::SemaWaitSymCodeGenCompleted:
+                return "waiting for code generation completion";
+            case TaskStateKind::SemaWaitSymJitPrepared:
+                return "waiting for JIT preparation";
+            case TaskStateKind::SemaWaitSymJitCompleted:
+                return "waiting for JIT completion";
+            case TaskStateKind::SemaWaitTypeCompleted:
+                return "waiting for type completion";
+            default:
+                return "waiting for dependency completion";
+        }
+    }
+
     void reportStalledDependency(Sema& sema, TaskContext& ctx, const TaskState& state)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cyclic_dependency, state.codeRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_stalled_dependency, state.codeRef);
         diag.addArgument(Diagnostic::ARG_SYM, stalledDependencyName(ctx, sema, state));
+        diag.addArgument(Diagnostic::ARG_WHAT, stalledDependencyReason(state));
+        if (state.waiterSymbol)
+            diag.addArgument(Diagnostic::ARG_VALUE, state.waiterSymbol->name(ctx));
         diag.report(ctx);
     }
 }
@@ -196,21 +226,40 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
         if (!sema)
             continue;
 
+        if (state.kind == TaskStateKind::SemaWaitIdentifier)
+        {
+            auto diag = SemaError::report(*sema, DiagnosticId::sema_err_unknown_symbol, state.codeRef);
+            diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
+            diag.report(ctx);
+        }
+    }
+
+    const bool suppressStalledDependencies = Stats::hasError() || ctx.hasError();
+
+    for (Job* job : jobs)
+    {
+        const auto& state = job->ctx().state();
+        if (state.symbol && state.symbol->isIgnored())
+            continue;
+        if (state.waiterSymbol && state.waiterSymbol->isIgnored())
+            continue;
+
+        if (state.kind == TaskStateKind::SemaWaitIdentifier)
+            continue;
+
+        Sema* sema = jobSema(job);
+        if (!sema)
+            continue;
+
         if (state.waiterSymbol)
             const_cast<Symbol*>(state.waiterSymbol)->setIgnored(ctx);
 
         switch (state.kind)
         {
-            case TaskStateKind::SemaWaitIdentifier:
-            {
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_unknown_symbol, state.codeRef);
-                diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
-                diag.report(ctx);
-                break;
-            }
-
             case TaskStateKind::SemaWaitImplRegistrations:
             {
+                if (suppressStalledDependencies)
+                    break;
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }
@@ -219,6 +268,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             {
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                if (suppressStalledDependencies)
                     break;
                 reportStalledDependency(*sema, ctx, state);
                 break;
@@ -229,6 +280,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
+                if (suppressStalledDependencies)
+                    break;
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }
@@ -237,6 +290,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             {
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                if (suppressStalledDependencies)
                     break;
                 reportStalledDependency(*sema, ctx, state);
                 break;
@@ -247,6 +302,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
+                if (suppressStalledDependencies)
+                    break;
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }
@@ -255,6 +312,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             {
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                if (suppressStalledDependencies)
                     break;
                 reportStalledDependency(*sema, ctx, state);
                 break;
@@ -265,6 +324,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
+                if (suppressStalledDependencies)
+                    break;
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }
@@ -274,6 +335,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
+                if (suppressStalledDependencies)
+                    break;
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }
@@ -281,6 +344,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             case TaskStateKind::SemaWaitTypeCompleted:
             {
                 if (state.symbol && !reportedSymbols.insert(state.symbol).second)
+                    break;
+                if (suppressStalledDependencies)
                     break;
                 reportStalledDependency(*sema, ctx, state);
                 break;

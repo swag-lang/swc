@@ -9,6 +9,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -330,13 +331,70 @@ namespace
         builder.emitLoadRegReg(payload.reg, runtimeValueReg, MicroOpBits::B64);
         return Result::Continue;
     }
+
+    Result materializeSliceSpecOpBoundReg(MicroReg& outReg, CodeGen& codeGen, const SliceSpecOpSemaPayload& specOpPayload, bool upperBound)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        if (!upperBound)
+        {
+            outReg = codeGen.nextVirtualIntRegister();
+            if (!specOpPayload.lowerBoundRef.isValid())
+            {
+                builder.emitLoadRegImm(outReg, ApInt(0, 64), MicroOpBits::B64);
+                return Result::Continue;
+            }
+
+            auto       lowerBits = MicroOpBits::B64;
+            const auto lowerReg  = materializeIndexReg(codeGen, specOpPayload.lowerBoundRef, lowerBits);
+            builder.emitLoadRegReg(outReg, lowerReg, MicroOpBits::B64);
+            return Result::Continue;
+        }
+
+        outReg = codeGen.nextVirtualIntRegister();
+        if (specOpPayload.upperBoundRef.isValid())
+        {
+            auto       upperBits = MicroOpBits::B64;
+            const auto upperReg  = materializeIndexReg(codeGen, specOpPayload.upperBoundRef, upperBits);
+            builder.emitLoadRegReg(outReg, upperReg, MicroOpBits::B64);
+            if (!specOpPayload.inclusive)
+                builder.emitOpBinaryRegImm(outReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+            return Result::Continue;
+        }
+
+        SWC_ASSERT(specOpPayload.countFn != nullptr);
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
+        SWC_ASSERT(!resolvedArgs.empty());
+        ResolvedCallArgument receiverArg = resolvedArgs.front();
+
+        SWC_RESULT(CodeGenCallHelpers::emitCallWithResolvedArgsToReg(codeGen,
+                                                                     codeGen.curNodeRef(),
+                                                                     *specOpPayload.countFn,
+                                                                     std::span<const ResolvedCallArgument>(&receiverArg, 1),
+                                                                     outReg));
+        builder.emitOpBinaryRegImm(outReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
+    Result materializeSliceSpecOpArgPayloads(CodeGen& codeGen, const SliceSpecOpSemaPayload& specOpPayload)
+    {
+        const TypeRef u64TypeRef = codeGen.typeMgr().typeU64();
+        MicroReg      lowerReg   = MicroReg::invalid();
+        MicroReg      upperReg   = MicroReg::invalid();
+        SWC_RESULT(materializeSliceSpecOpBoundReg(lowerReg, codeGen, specOpPayload, false));
+        SWC_RESULT(materializeSliceSpecOpBoundReg(upperReg, codeGen, specOpPayload, true));
+
+        CodeGenNodePayload& lowerPayload = codeGen.setPayloadValue(specOpPayload.lowerArgRef, u64TypeRef);
+        lowerPayload.reg                 = lowerReg;
+
+        CodeGenNodePayload& upperPayload = codeGen.setPayloadValue(specOpPayload.upperArgRef, u64TypeRef);
+        upperPayload.reg                 = upperReg;
+        return Result::Continue;
+    }
 }
 
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    if (codeGen.node(nodeArgRef).is(AstNodeId::RangeExpr))
-        return emitSliceValue(codeGen, *this);
-
     const auto* payloadBase = codeGen.sema().semaPayload<IndexSpecOpPayloadBase>(codeGen.curNodeRef());
     if (payloadBase && payloadBase->kind == IndexSpecOpPayloadKind::DeferredAssign)
         return Result::Continue;
@@ -346,6 +404,12 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         const auto* specOpPayload = reinterpret_cast<const IndexSpecOpSemaPayload*>(payloadBase);
         calledFn                  = specOpPayload->calledFn;
+    }
+    else if (payloadBase && payloadBase->kind == IndexSpecOpPayloadKind::ReadSlice)
+    {
+        const auto* specOpPayload = reinterpret_cast<const SliceSpecOpSemaPayload*>(payloadBase);
+        calledFn                  = specOpPayload->calledFn;
+        SWC_RESULT(materializeSliceSpecOpArgPayloads(codeGen, *specOpPayload));
     }
     else
     {
@@ -361,6 +425,9 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
                 calledFn = &storedSymView.sym()->cast<SymbolFunction>();
         }
     }
+
+    if (codeGen.node(nodeArgRef).is(AstNodeId::RangeExpr) && (!payloadBase || payloadBase->kind != IndexSpecOpPayloadKind::ReadSlice))
+        return emitSliceValue(codeGen, *this);
 
     if (calledFn != nullptr)
     {

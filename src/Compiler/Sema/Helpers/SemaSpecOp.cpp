@@ -16,6 +16,7 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -84,6 +85,69 @@ namespace
         if (type.isReference() || type.isAnyPointer())
             return unwrapAlias(ctx, type.payloadTypeRef());
         return unwrapAlias(ctx, typeRef);
+    }
+
+    TypeRef resolveIndexOperandTypeRef(Sema& sema, const SemaNodeView& argView)
+    {
+        TypeRef       indexTypeRef = argView.typeRef();
+        const TypeRef aliasTypeRef = argView.type()->unwrap(sema.ctx(), argView.typeRef(), TypeExpandE::Alias);
+        if (aliasTypeRef.isValid())
+            indexTypeRef = aliasTypeRef;
+
+        const TypeInfo& indexType = sema.typeMgr().get(indexTypeRef);
+        if (indexType.isEnum() && indexType.payloadSymEnum().attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex))
+            indexTypeRef = indexType.payloadSymEnum().underlyingTypeRef();
+
+        return indexTypeRef;
+    }
+
+    ConstantRef resolveIndexOperandConstantRef(const SemaNodeView& argView)
+    {
+        if (argView.cstRef().isInvalid())
+            return ConstantRef::invalid();
+        if (!argView.cst() || !argView.cst()->isEnumValue())
+            return argView.cstRef();
+        return argView.cst()->getEnumValue();
+    }
+
+    Result checkSliceSpecOpBound(Sema& sema, AstNodeRef argRef, const SemaNodeView& argView, int64_t& constIndex, bool& hasConstIndex)
+    {
+        if (argRef.isInvalid())
+            return Result::Continue;
+
+        const TypeRef   indexTypeRef = resolveIndexOperandTypeRef(sema, argView);
+        const TypeInfo* indexType    = &sema.typeMgr().get(indexTypeRef);
+        if (indexType->isReference())
+            indexType = &sema.typeMgr().get(indexType->payloadTypeRef());
+
+        if (!indexType->isInt())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_not_int, argRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, argView.typeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (!argView.cst())
+            return Result::Continue;
+
+        const ConstantRef resolvedCstRef = resolveIndexOperandConstantRef(argView);
+        SWC_ASSERT(resolvedCstRef.isValid());
+        const auto& idxInt = sema.cstMgr().get(resolvedCstRef).getInt();
+        if (!idxInt.fits64())
+            return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, argRef);
+
+        constIndex = idxInt.asI64();
+        if (indexType->isIntSigned() && idxInt.isNegative())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_negative, argRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        hasConstIndex = true;
+        return Result::Continue;
     }
 
     bool isSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
@@ -220,6 +284,23 @@ namespace
         nodePtr->setCodeRef(codeRef);
         sema.setType(nodeRef, sema.typeMgr().typeBool());
         sema.setConstant(nodeRef, sema.cstMgr().cstBool(value));
+        sema.setIsValue(*nodePtr);
+        return nodeRef;
+    }
+
+    AstNodeRef makeSyntheticU64Arg(Sema& sema, const SourceCodeRef& codeRef, std::optional<uint64_t> value = std::nullopt)
+    {
+        const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::IntegerLiteral>(codeRef.tokRef);
+        nodePtr->setCodeRef(codeRef);
+        sema.setType(nodeRef, sema.typeMgr().typeU64());
+
+        if (value.has_value())
+        {
+            const TaskContext&  ctx      = sema.ctx();
+            const ConstantValue constant = ConstantValue::makeIntSized<uint64_t>(ctx, *value);
+            sema.setConstant(nodeRef, sema.cstMgr().addConstant(ctx, constant));
+        }
+
         sema.setIsValue(*nodePtr);
         return nodeRef;
     }
@@ -663,6 +744,31 @@ namespace
             else
                 outConstCandidates.push_back(sym);
         }
+    }
+
+    SymbolFunction* selectReceiverOnlyCandidate(Sema& sema, std::span<Symbol*> candidates, bool receiverIsConst)
+    {
+        SmallVector<Symbol*> mutableCandidates;
+        SmallVector<Symbol*> constCandidates;
+        splitMutableReceiverCandidates(sema, candidates, mutableCandidates, constCandidates);
+
+        const auto preferredCandidates = receiverIsConst || mutableCandidates.empty() ? constCandidates.span() : mutableCandidates.span();
+        for (Symbol* sym : preferredCandidates)
+        {
+            if (auto* const symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr)
+                return symFunc;
+        }
+
+        if (!receiverIsConst)
+        {
+            for (Symbol* sym : constCandidates)
+            {
+                if (auto* const symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr)
+                    return symFunc;
+            }
+        }
+
+        return nullptr;
     }
 
     Result collectIndexAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, SmallVector<Symbol*>& outCandidates)
@@ -1220,6 +1326,137 @@ Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
     bool matched = false;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, true, &matched, false));
     outHandled = matched;
+    return Result::Continue;
+}
+
+Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)
+{
+    outHandled = false;
+
+    const SymbolStruct* ownerStruct = structSpecOpOwner(sema, indexedView);
+    if (!ownerStruct)
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
+
+    const auto&        range        = sema.node(node.nodeArgRef).cast<AstRangeExpr>();
+    const SemaNodeView nodeDownView = sema.viewTypeConstant(range.nodeExprDownRef);
+    const SemaNodeView nodeUpView   = sema.viewTypeConstant(range.nodeExprUpRef);
+    int64_t            constDown    = 0;
+    int64_t            constUp      = 0;
+    bool               hasConstDown = false;
+    bool               hasConstUp   = false;
+    SWC_RESULT(checkSliceSpecOpBound(sema, range.nodeExprDownRef, nodeDownView, constDown, hasConstDown));
+    SWC_RESULT(checkSliceSpecOpBound(sema, range.nodeExprUpRef, nodeUpView, constUp, hasConstUp));
+
+    if (hasConstDown && hasConstUp)
+    {
+        const bool ok = range.hasFlag(AstRangeExprFlagsE::Inclusive) ? constDown <= constUp : constDown < constUp;
+        if (!ok)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, node.nodeArgRef);
+            diag.addArgument(Diagnostic::ARG_LEFT, nodeDownView.cstRef());
+            diag.addArgument(Diagnostic::ARG_RIGHT, nodeUpView.cstRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+    }
+
+    SmallVector<Symbol*> candidates;
+    const IdentifierRef  opSliceId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSlice);
+    SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opSliceId, std::span<const AstNodeRef>{}, candidates));
+    if (candidates.empty())
+        return Result::Continue;
+
+    SymbolFunction* countFn = nullptr;
+    if (!range.nodeExprUpRef.isValid())
+    {
+        SmallVector<Symbol*> countCandidates;
+        const IdentifierRef  opCountId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCount);
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opCountId, std::span<const AstNodeRef>{}, countCandidates));
+        countFn = selectReceiverOnlyCandidate(sema, countCandidates.span(), indexedView.type()->isConst());
+        if (!countFn)
+            return Result::Continue;
+    }
+
+    std::optional<uint64_t> lowerConst;
+    if (!range.nodeExprDownRef.isValid())
+        lowerConst = 0;
+    else if (hasConstDown)
+        lowerConst = static_cast<uint64_t>(constDown);
+
+    std::optional<uint64_t> upperConst;
+    if (range.nodeExprUpRef.isValid() && hasConstUp)
+    {
+        const uint64_t adjustedUpper = range.hasFlag(AstRangeExprFlagsE::Inclusive) ? static_cast<uint64_t>(constUp) : static_cast<uint64_t>(constUp - 1);
+        upperConst                   = adjustedUpper;
+    }
+    else if (!range.nodeExprUpRef.isValid())
+    {
+        upperConst = 0;
+    }
+
+    const AstNodeRef lowerArgRef = makeSyntheticU64Arg(sema, node.codeRef(), lowerConst);
+    const AstNodeRef upperArgRef = makeSyntheticU64Arg(sema, node.codeRef(), upperConst);
+
+    SmallVector<AstNodeRef> args;
+    args.push_back(lowerArgRef);
+    args.push_back(upperArgRef);
+
+    SmallVector<ResolvedCallArgument> resolvedArgs;
+    bool                              matched = false;
+    if (!indexedView.type()->isConst())
+    {
+        SmallVector<Symbol*> mutableCandidates;
+        SmallVector<Symbol*> constCandidates;
+        splitMutableReceiverCandidates(sema, candidates.span(), mutableCandidates, constCandidates);
+
+        if (!mutableCandidates.empty())
+        {
+            SWC_RESULT(matchSyntheticCall(sema, mutableCandidates.span(), args.span(), node.nodeExprRef, true, resolvedArgs, matched));
+            if (matched)
+                candidates = std::move(mutableCandidates);
+            else if (!constCandidates.empty())
+                candidates = std::move(constCandidates);
+        }
+    }
+
+    if (!matched)
+        SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args.span(), node.nodeExprRef, true, resolvedArgs, matched));
+    if (!matched)
+        return Result::Continue;
+
+    sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
+
+    const auto symView = sema.curViewSymbol();
+    SWC_ASSERT(symView.sym() && symView.sym()->isFunction());
+    auto& calledFn = symView.sym()->cast<SymbolFunction>();
+    SemaHelpers::addCurrentFunctionCallDependency(sema, &calledFn);
+    if (countFn)
+        SemaHelpers::addCurrentFunctionCallDependency(sema, countFn);
+
+    const TypeRef    returnTypeRef = calledFn.returnTypeRef();
+    const AstNodeRef resultNodeRef = sema.viewZero(sema.curNodeRef()).nodeRef();
+    auto*            payload       = sema.compiler().allocate<SliceSpecOpSemaPayload>();
+    payload->calledFn              = &calledFn;
+    payload->countFn               = countFn;
+    payload->lowerArgRef           = lowerArgRef;
+    payload->upperArgRef           = upperArgRef;
+    payload->lowerBoundRef         = range.nodeExprDownRef;
+    payload->upperBoundRef         = range.nodeExprUpRef;
+    payload->inclusive             = range.hasFlag(AstRangeExprFlagsE::Inclusive);
+    sema.setSemaPayload(sema.curNodeRef(), payload);
+
+    sema.setSymbol(sema.curNodeRef(), &calledFn);
+    sema.setType(sema.curNodeRef(), returnTypeRef);
+    sema.setType(resultNodeRef, returnTypeRef);
+    sema.setIsValue(sema.curNode());
+    sema.setIsValue(resultNodeRef);
+    sema.unsetIsLValue(sema.curNodeRef());
+    sema.unsetIsLValue(resultNodeRef);
+    SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__spec_op_runtime_storage"));
+
+    outHandled = true;
     return Result::Continue;
 }
 

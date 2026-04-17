@@ -80,17 +80,19 @@ namespace SemaSpecOp
     Result     validateSymbol(Sema& sema, SymbolFunction& sym);
     Result     registerSymbol(Sema& sema, SymbolFunction& sym);
     Result     collectAffectCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates);
-    Result     tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
-    Result     tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
-    Result     tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
     Result     canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched);
-    Result     tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outHandled);
-    Result     tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
-    Result     tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
-    Result     tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);
-    Result     tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, bool& outHandled);
-    Result     tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled);
-    Result     tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled);
+
+    Result tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
+    Result tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
+    Result tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
+    Result tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outHandled);
+    Result tryResolveSlice(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
+    Result tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
+    Result tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
+    Result tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);
+    Result tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, bool& outHandled);
+    Result tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled);
+    Result tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled);
 }
 
 SWC_END_NAMESPACE();

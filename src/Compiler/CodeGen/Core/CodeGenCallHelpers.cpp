@@ -1214,4 +1214,32 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     return Result::Continue;
 }
 
+Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg)
+{
+    codeGen.function().addCallDependency(&calledFunction);
+
+    const CallConvKind                     callConvKind  = calledFunction.callConvKind();
+    const CallConv&                        callConv      = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    SWC_ASSERT(!normalizedRet.isVoid);
+    SWC_ASSERT(!normalizedRet.isIndirect);
+
+    SmallVector<ABICall::PreparedArg> preparedArgs;
+    uint32_t                          transientStackSize = 0;
+    SWC_RESULT(buildPreparedABIArguments(codeGen, callRef, calledFunction, MicroReg::invalid(), args, preparedArgs, transientStackSize));
+
+    MicroBuilder&               builder      = codeGen.builder();
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+    if (calledFunction.isForeign())
+        ABICall::callExtern(builder, callConvKind, &calledFunction, preparedCall);
+    else
+        ABICall::callLocal(builder, callConvKind, &calledFunction, preparedCall);
+
+    if (transientStackSize)
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
+
+    ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

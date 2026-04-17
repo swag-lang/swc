@@ -9,6 +9,7 @@ enum class IndexSpecOpPayloadKind : uint8_t
 {
     None,
     Read,
+    ReadSlice,
     DeferredAssign,
 };
 
@@ -32,6 +33,22 @@ struct IndexSpecOpSemaPayload : IndexSpecOpPayloadBase
     }
 
     SymbolFunction* calledFn = nullptr;
+};
+
+struct SliceSpecOpSemaPayload : IndexSpecOpPayloadBase
+{
+    SliceSpecOpSemaPayload()
+    {
+        kind = IndexSpecOpPayloadKind::ReadSlice;
+    }
+
+    SymbolFunction* calledFn     = nullptr;
+    SymbolFunction* countFn      = nullptr;
+    AstNodeRef       lowerArgRef = AstNodeRef::invalid();
+    AstNodeRef       upperArgRef = AstNodeRef::invalid();
+    AstNodeRef       lowerBoundRef = AstNodeRef::invalid();
+    AstNodeRef       upperBoundRef = AstNodeRef::invalid();
+    bool             inclusive     = false;
 };
 
 SWC_END_NAMESPACE();

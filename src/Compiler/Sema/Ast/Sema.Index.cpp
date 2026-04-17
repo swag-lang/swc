@@ -218,7 +218,13 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeArgView  = sema.viewTypeConstant(nodeArgRef);
 
     if (sema.node(nodeArgRef).is(AstNodeId::RangeExpr))
+    {
+        bool handled = false;
+        SWC_RESULT(SemaSpecOp::tryResolveSlice(sema, *this, nodeExprView, handled));
+        if (handled)
+            return Result::Continue;
         return semaSliceIndex(sema, *this, nodeExprView);
+    }
 
     bool handled = false;
     SWC_RESULT(SemaSpecOp::tryResolveIndex(sema, *this, nodeExprView, handled));

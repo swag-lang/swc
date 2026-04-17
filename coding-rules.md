@@ -4,8 +4,7 @@
 
 ### 1. Simplify and Clarify
 
-- Prefer **named functions** over unnecessary lambdas **if it's more clear only**.
-  (lambdas are sometimes better than complex struct machinary).
+- Prefer **named functions** over lambdas only used as local functions.
 - Avoid **inline struct construction** in function calls. Use local variables or pass them as arguments instead.
 - Keep code easy to read and reason about.
 - Avoid if (init; condition) when the initialization is non-trivial; perform such setup separately before the if

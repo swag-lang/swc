@@ -570,6 +570,11 @@ void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf,
     addImpl(g, cmds, lf, sf, desc, target);
 }
 
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::vector<Utf8>* target, const char* desc)
+{
+    addImpl(g, cmds, lf, sf, desc, target);
+}
+
 void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc)
 {
     addImpl(g, cmds, lf, sf, desc, target);
@@ -739,6 +744,11 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     if (auto* t = std::get_if<fs::path*>(&info.target))
     {
         **t = value.c_str();
+        return true;
+    }
+    if (auto* t = std::get_if<std::vector<Utf8>*>(&info.target))
+    {
+        (*t)->push_back(value);
         return true;
     }
     if (auto* t = std::get_if<std::set<Utf8>*>(&info.target))
@@ -1053,6 +1063,9 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     add(HelpOptionGroup::Compiler, "all", "--stats-mem", "-stm",
         &cmdLine_->statsMem,
         "Display runtime memory statistics after execution.");
+    add(HelpOptionGroup::Compiler, "sema test build run", "--tag", nullptr,
+        &cmdLine_->tags,
+        "Register a compiler tag consumed by #hastag and #gettag. Syntax: Name, Name = value, or Name: type = value.");
     add(HelpOptionGroup::Compiler, "test build run", "--clear-output", "-co",
         &cmdLine_->clear,
         "Clear native work and artifact folders before building native outputs.");

@@ -33,6 +33,7 @@ using ArgTarget = std::variant<
     uint32_t*,
     Utf8*,
     fs::path*,
+    std::vector<Utf8>*,
     std::set<Utf8>*,
     std::set<fs::path>*,
     std::optional<bool>*,
@@ -120,6 +121,7 @@ private:
     void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, uint32_t* target, const char* desc);
     void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, const char* desc);
     void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, fs::path* target, const char* desc);
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::vector<Utf8>* target, const char* desc);
     void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc);
     void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<fs::path>* target, const char* desc);
     void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::optional<bool>* target, const char* desc);

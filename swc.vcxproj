@@ -153,6 +153,7 @@
         <ClCompile Include="src\Unittest\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Compiler.Tags.cpp"/>
         <ClCompile Include="src\Unittest\Test.Debug.DebugInfo.cpp"/>
         <ClCompile Include="src\Unittest\Test.Encoder.EncodeX64.cpp"/>
         <ClCompile Include="src\Unittest\Test.JIT.Execution.cpp"/>

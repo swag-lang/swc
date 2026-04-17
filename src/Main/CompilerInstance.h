@@ -30,6 +30,13 @@ struct CommandLine;
 class CompilerInstance
 {
 public:
+    struct CompilerTag
+    {
+        Utf8       name;
+        Utf8       source;
+        ConstantRef cstRef = ConstantRef::invalid();
+    };
+
     CompilerInstance(const Global& global, const CommandLine& cmdLine);
     ~CompilerInstance();
 
@@ -99,10 +106,10 @@ public:
     const std::vector<SymbolFunction*>& nativeMainFunctions() const { return nativeMainFunctions_; }
     const std::vector<SymbolVariable*>& nativeGlobalVariables() const { return nativeGlobalVariables_; }
 
-    void setupSema(TaskContext& ctx);
-    void notifyAlive() { changed_.store(true, std::memory_order_release); }
-    bool changed() const { return changed_.load(std::memory_order_acquire); }
-    bool consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
+    Result setupSema(TaskContext& ctx);
+    void   notifyAlive() { changed_.store(true, std::memory_order_release); }
+    bool   changed() const { return changed_.load(std::memory_order_acquire); }
+    bool   consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
 
     uint32_t pendingImplRegistrations() const;
     void     incPendingImplRegistrations();
@@ -116,6 +123,8 @@ public:
 
     bool                     registerForeignLib(std::string_view name);
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
+    const CompilerTag*       findCompilerTag(std::string_view name) const;
+    const std::vector<CompilerTag>& compilerTags() const { return compilerTags_; }
     void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
     bool                     tryRegisterReportedDiagnostic(std::string_view message);
@@ -203,6 +212,7 @@ private:
     std::atomic<uint32_t>                              pendingImplRegistrations_ = 0;
     AstCompilerFunc*                                   mainFunc_                 = nullptr;
     std::vector<Utf8>                                  foreignLibs_;
+    std::vector<CompilerTag>                           compilerTags_;
     std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
     std::unordered_map<Utf8, Utf8>                     inMemoryFiles_;
     std::mutex                                         reportedDiagnosticsMutex_;

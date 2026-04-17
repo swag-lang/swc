@@ -61,7 +61,8 @@ namespace Command
             files.push_back(f);
         }
 
-        compiler.setupSema(ctx);
+        if (compiler.setupSema(ctx) == Result::Error)
+            return;
 
         auto*               symModule       = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         const IdentifierRef idRef           = ctx.idMgr().addIdentifier("test", Math::hash("test"));

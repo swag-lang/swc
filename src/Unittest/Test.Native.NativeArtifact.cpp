@@ -40,7 +40,7 @@ namespace
             CommandLineParser::refreshBuildCfg(this->cmdLine);
             compiler    = std::make_unique<CompilerInstance>(global, this->cmdLine);
             compilerCtx = std::make_unique<TaskContext>(*compiler);
-            compiler->setupSema(*compilerCtx);
+            SWC_ASSERT(compiler->setupSema(*compilerCtx) == Result::Continue);
             nativeBuilder   = std::make_unique<NativeBackendBuilder>(*compiler, false);
             artifactBuilder = std::make_unique<NativeArtifactBuilder>(*nativeBuilder);
         }

@@ -57,7 +57,8 @@ namespace Unittest
     {
         CompilerInstance compiler(ctx.global(), ctx.cmdLine());
         TaskContext      testCtx(compiler);
-        compiler.setupSema(testCtx);
+        if (compiler.setupSema(testCtx) != Result::Continue)
+            return Result::Error;
         TimedActionLog::ScopedStage stage(testCtx, TimedActionLog::Stage::Unittest);
         Logger::ScopedStageMute     muteNestedStages(testCtx.global().logger());
 

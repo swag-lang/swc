@@ -62,6 +62,24 @@ namespace
         return result;
     }
 
+    Utf8 formatVectorValue(const std::vector<Utf8>& values)
+    {
+        if (values.empty())
+            return {};
+
+        Utf8 result;
+        bool first = true;
+        for (const Utf8& value : values)
+        {
+            if (!first)
+                result += ", ";
+            result += value;
+            first = false;
+        }
+
+        return result;
+    }
+
     Utf8 enumIntNameFromValue(const ArgInfo& arg, int value)
     {
         for (size_t i = 0; i < arg.choiceIntValues.size(); i++)
@@ -99,6 +117,11 @@ namespace
         if (auto* t = std::get_if<fs::path*>(&arg.target))
         {
             Utf8 value = formatPathValue(**t);
+            return value.empty() ? Utf8("(none)") : value;
+        }
+        if (auto* t = std::get_if<std::vector<Utf8>*>(&arg.target))
+        {
+            Utf8 value = formatVectorValue(**t);
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::set<Utf8>*>(&arg.target))

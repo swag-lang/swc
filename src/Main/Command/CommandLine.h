@@ -99,6 +99,7 @@ struct CommandLine
 
     Utf8           verboseVerifyFilter;
     std::set<Utf8> fileFilter;
+    std::vector<Utf8> tags;
 
     std::set<fs::path> directories;
     std::set<fs::path> files;

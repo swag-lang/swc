@@ -15,6 +15,7 @@ SWC_DIAG_DEF(cmdline_err_rsp_file_failed)
 SWC_DIAG_DEF(cmdline_err_rsp_file_cycle)
 SWC_DIAG_DEF(cmdline_err_rsp_file_depth)
 SWC_DIAG_DEF(cmdline_err_rsp_file_unterminated)
+SWC_DIAG_DEF(cmdline_err_invalid_tag)
 
 SWC_DIAG_DEF(cmd_err_no_input)
 SWC_DIAG_DEF(cmd_err_native_linker_not_implemented)

@@ -285,6 +285,79 @@ namespace
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
         return Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr);
     }
+
+    Result tryFoldCompilerTagConstExpr(Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNode& node = sema.node(nodeRef);
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (childRef.isValid())
+                SWC_RESULT(tryFoldCompilerTagConstExpr(sema, childRef));
+        }
+
+        if (!node.is(AstNodeId::CallExpr) &&
+            !node.is(AstNodeId::AliasCallExpr) &&
+            !node.is(AstNodeId::IntrinsicCallExpr))
+            return Result::Continue;
+
+        if (sema.viewConstant(nodeRef).hasConstant())
+            return Result::Continue;
+
+        const SemaNodeView symView(sema, nodeRef, SemaNodeViewPartE::Symbol);
+        auto* const        calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
+        if (!calledFn || !calledFn->attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+            return Result::Continue;
+
+        SmallVector<ResolvedCallArgument> resolvedArgs;
+        sema.appendResolvedCallArguments(nodeRef, resolvedArgs);
+        return SemaJIT::tryRunConstCall(sema, *calledFn, nodeRef, resolvedArgs.span());
+    }
+
+    bool hasNonConstExprCall(Sema& sema, AstNodeRef nodeRef, AstNodeRef& outBadRef)
+    {
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::CallExpr) ||
+            node.is(AstNodeId::AliasCallExpr) ||
+            node.is(AstNodeId::IntrinsicCallExpr))
+        {
+            const SemaNodeView symView(sema, nodeRef, SemaNodeViewPartE::Symbol);
+            const auto* const calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
+            if (!calledFn || !calledFn->attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+            {
+                outBadRef = nodeRef;
+                return true;
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (childRef.isValid() && hasNonConstExprCall(sema, childRef, outBadRef))
+                return true;
+        }
+
+        return false;
+    }
+
+    Result requireCompilerTagConstExpr(Sema& sema, AstNodeRef nodeRef)
+    {
+        const SemaNodeView symView(sema, nodeRef, SemaNodeViewPartE::Symbol);
+        if (const auto* const calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
+            calledFn && !calledFn->attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+        {
+            return SemaError::raiseExprNotConst(sema, nodeRef);
+        }
+
+        AstNodeRef badRef = AstNodeRef::invalid();
+        if (!hasNonConstExprCall(sema, nodeRef, badRef))
+            return Result::Continue;
+
+        return SemaError::raiseExprNotConst(sema, badRef.isValid() ? badRef : nodeRef);
+    }
 }
 
 Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -993,6 +1066,94 @@ namespace
         return Result::Continue;
     }
 
+    Result resolveCompilerTagName(Sema& sema, AstNodeRef nodeRef, std::string_view& outName)
+    {
+        outName = {};
+        SWC_RESULT(tryFoldCompilerTagConstExpr(sema, nodeRef));
+        SWC_RESULT(SemaCheck::isConstant(sema, nodeRef));
+        SWC_RESULT(requireCompilerTagConstExpr(sema, nodeRef));
+
+        const SemaNodeView view = sema.viewConstant(nodeRef);
+        SWC_ASSERT(view.cst());
+        if (!view.cst()->isString())
+            return SemaError::raiseInvalidType(sema, nodeRef, view.cst()->typeRef(), sema.typeMgr().typeString());
+
+        outName = view.cst()->getString();
+        return Result::Continue;
+    }
+
+    Result resolveCompilerTagRequestedType(Sema& sema, AstNodeRef nodeRef, TypeRef& outTypeRef)
+    {
+        outTypeRef            = TypeRef::invalid();
+        SemaNodeView typeView = sema.viewTypeConstant(nodeRef);
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, typeView));
+
+        if (typeView.type() && typeView.type()->isTypeValue())
+            outTypeRef = typeView.type()->payloadTypeRef();
+        else if (typeView.cstRef().isValid())
+            outTypeRef = sema.cstMgr().makeTypeValue(sema, typeView.cstRef());
+
+        if (!outTypeRef.isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
+        return Result::Continue;
+    }
+
+    Result semaCompilerHasTag(Sema& sema, const AstCompilerCallOne& node)
+    {
+        std::string_view tagName;
+        SWC_RESULT(resolveCompilerTagName(sema, node.nodeArgRef, tagName));
+
+        const bool hasTag = sema.compiler().findCompilerTag(tagName) != nullptr;
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(hasTag));
+        return Result::Continue;
+    }
+
+    Result semaCompilerGetTag(Sema& sema, const AstCompilerCall& node)
+    {
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        if (children.size() != 3)
+            return Result::Continue;
+
+        const AstNodeRef nameRef        = children[0];
+        const AstNodeRef typeNodeRef    = children[1];
+        const AstNodeRef defaultValueRef = children[2];
+
+        std::string_view tagName;
+        SWC_RESULT(resolveCompilerTagName(sema, nameRef, tagName));
+
+        TypeRef requestedTypeRef = TypeRef::invalid();
+        SWC_RESULT(resolveCompilerTagRequestedType(sema, typeNodeRef, requestedTypeRef));
+
+        SWC_RESULT(tryFoldCompilerTagConstExpr(sema, defaultValueRef));
+        SWC_RESULT(SemaCheck::isConstant(sema, defaultValueRef));
+        SWC_RESULT(requireCompilerTagConstExpr(sema, defaultValueRef));
+        SemaNodeView defaultView = sema.viewNodeTypeConstant(defaultValueRef);
+        SWC_ASSERT(defaultView.cstRef().isValid());
+        SWC_RESULT(Cast::cast(sema, defaultView, requestedTypeRef, CastKind::Initialization));
+        const ConstantRef typedDefaultRef = defaultView.cstRef();
+        SWC_ASSERT(typedDefaultRef.isValid());
+
+        if (const auto* tag = sema.compiler().findCompilerTag(tagName))
+        {
+            const TypeRef tagTypeRef = sema.cstMgr().get(tag->cstRef).typeRef();
+            CastRequest   castRequest(CastKind::Implicit);
+            castRequest.errorNodeRef = typeNodeRef;
+            castRequest.setConstantFoldingSrc(tag->cstRef);
+            const Result castResult = Cast::castAllowed(sema, castRequest, tagTypeRef, requestedTypeRef);
+            if (castResult == Result::Pause)
+                return Result::Pause;
+            if (castResult != Result::Continue)
+                return Cast::emitCastFailure(sema, castRequest.failure);
+
+            sema.setConstant(sema.curNodeRef(), tag->cstRef);
+            return Result::Continue;
+        }
+
+        sema.setConstant(sema.curNodeRef(), typedDefaultRef);
+        return Result::Continue;
+    }
+
     Result semaCompilerInclude(Sema& sema, const AstCompilerCallOne& node)
     {
         const TaskContext& ctx      = sema.ctx();
@@ -1055,8 +1216,9 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerInclude(sema, *this);
         case TokenId::CompilerInject:
             return substituteCompilerInject(sema, sema.curNodeRef(), nodeArgRef);
-
         case TokenId::CompilerHasTag:
+            return semaCompilerHasTag(sema, *this);
+
         case TokenId::CompilerRunes:
         case TokenId::CompilerLoad:
             // TODO
@@ -1074,6 +1236,7 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
 
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::CompilerForeignLib ||
+        tok.id == TokenId::CompilerHasTag ||
         tok.id == TokenId::CompilerInclude ||
         tok.id == TokenId::CompilerDeclType)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
@@ -1128,14 +1291,13 @@ Result AstCompilerInject::semaPostNode(Sema& sema) const
     return substituteCompilerInject(sema, sema.curNodeRef(), nodeExprRef, replacements.span());
 }
 
-Result AstCompilerCall::semaPostNode(const Sema& sema) const
+Result AstCompilerCall::semaPostNode(Sema& sema) const
 {
     const Token& tok = sema.token(codeRef());
     switch (tok.id)
     {
         case TokenId::CompilerGetTag:
-            // TODO
-            SWC_INTERNAL_ERROR();
+            return semaCompilerGetTag(sema, *this);
 
         default:
             SWC_INTERNAL_ERROR();

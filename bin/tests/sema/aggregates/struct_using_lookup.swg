@@ -15,6 +15,24 @@ struct OuterPtr
     using p: *Inner
 }
 
+struct OuterAnonymousStruct
+{
+    using data: struct
+    {
+        x: s32
+        y: s32
+    }
+}
+
+struct OuterAnonymousUnion
+{
+    using data: union
+    {
+        bytes: [8] u8
+        words: [2] u32
+    }
+}
+
 #test
 {
     var a: OuterValue
@@ -27,6 +45,22 @@ struct OuterPtr
     var a: OuterPtr
     let x = a.x
     #assert(#typeof(x) == s32)
+}
+
+#test
+{
+    var s: OuterAnonymousStruct
+    #assert(#typeof(s.x) == s32)
+    #assert(#typeof(s.y) == s32)
+    #assert(#typeof(s.data.x) == s32)
+}
+
+#test
+{
+    var u: OuterAnonymousUnion
+    #assert(#typeof(u.bytes) == #type [8] u8)
+    #assert(#typeof(u.words) == #type [2] u32)
+    #assert(#typeof(u.data.words) == #type [2] u32)
 }
 
 #test

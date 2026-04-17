@@ -29,6 +29,15 @@ AstNodeRef Parser::parseRetValType()
 
 AstNodeRef Parser::parseSingleType()
 {
+    const auto parseAnonymousAggregateBody = [this]() -> AstNodeRef
+    {
+        const ParserContextFlags savedFlags = contextFlags_;
+        contextFlags_.remove(ParserContextFlagsE::InUsingMemberDecl);
+        const AstNodeRef bodyRef = parseAggregateBody();
+        contextFlags_            = savedFlags;
+        return bodyRef;
+    };
+
     // Builtin
     if (Token::isType(tok().id))
     {
@@ -45,19 +54,19 @@ AstNodeRef Parser::parseSingleType()
         case TokenId::KwdStruct:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(consume());
-            nodePtr->nodeBodyRef    = parseAggregateBody();
+            nodePtr->nodeBodyRef    = parseAnonymousAggregateBody();
             return nodeRef;
         }
         case TokenId::KwdUnion:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>(consume());
-            nodePtr->nodeBodyRef    = parseAggregateBody();
+            nodePtr->nodeBodyRef    = parseAnonymousAggregateBody();
             return nodeRef;
         }
         case TokenId::SymLeftCurly:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(ref());
-            nodePtr->nodeBodyRef    = parseAggregateBody();
+            nodePtr->nodeBodyRef    = parseAnonymousAggregateBody();
             return nodeRef;
         }
 

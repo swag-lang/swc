@@ -463,6 +463,12 @@ Result AstAnonymousStructDecl::codeGenPreNode(const CodeGen& codeGen)
     return Result::SkipChildren;
 }
 
+Result AstAnonymousUnionDecl::codeGenPreNode(const CodeGen& codeGen)
+{
+    SWC_UNUSED(codeGen);
+    return Result::SkipChildren;
+}
+
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView view = codeGen.curViewSymbol();

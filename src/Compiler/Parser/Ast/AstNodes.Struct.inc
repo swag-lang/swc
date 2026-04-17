@@ -1164,6 +1164,11 @@ struct AstAnonymousStructDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousS
 // -----------------------------------------------------------------------------
 struct AstAnonymousUnionDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousUnionDecl>
 {
+    static Result codeGenPreNode(const CodeGen& codeGen);
+    Result        semaPreDecl(Sema& sema) const;
+    Result        semaPreNode(Sema& sema) const;
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

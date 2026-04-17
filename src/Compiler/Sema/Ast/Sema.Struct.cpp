@@ -195,6 +195,37 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstAnonymousUnionDecl::semaPreDecl(Sema& sema) const
+{
+    auto& sym = SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_union");
+    sym.addExtraFlag(SymbolStructFlagsE::Union);
+    return Result::SkipChildren;
+}
+
+Result AstAnonymousUnionDecl::semaPreNode(Sema& sema) const
+{
+    if (sema.enteringState())
+        SemaHelpers::declareSymbol(sema, *this);
+    const Symbol& sym = *sema.curViewSymbol().sym();
+    return Match::ghosting(sema, sym);
+}
+
+Result AstAnonymousUnionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    return semaPreNodeChildStructCommon(sema, childRef, nodeBodyRef);
+}
+
+Result AstAnonymousUnionDecl::semaPostNode(Sema& sema)
+{
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    sym.removeIgnoredFields();
+    SWC_RESULT(sym.canBeCompleted(sema));
+    SWC_RESULT(sym.computeLayout(sema.ctx()));
+    sym.setSemaCompleted(sema.ctx());
+    sema.setType(sema.curNodeRef(), sym.typeRef());
+    return Result::Continue;
+}
+
 Result AstStructInitializerList::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;

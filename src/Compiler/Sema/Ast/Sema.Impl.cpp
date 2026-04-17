@@ -29,8 +29,12 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIdentRef)
     {
-        const SemaNodeView  identView = sema.viewNode(nodeIdentRef);
-        const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), identView.node()->codeRef());
+        const SemaNodeView identView{sema, nodeIdentRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol};
+        IdentifierRef      idRef     = IdentifierRef::invalid();
+        if (identView.hasSymbol())
+            idRef = identView.sym()->idRef();
+        else
+            idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node()->codeRef());
         auto*               sym       = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
 
@@ -55,6 +59,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     {
         const SemaNodeView identView = sema.viewSymbol(nodeIdentRef);
         Symbol&            sym       = *(identView.sym());
+        symImpl.setIdRef(sym.idRef());
         if (nodeForRef.isInvalid())
         {
             if (sym.isStruct())

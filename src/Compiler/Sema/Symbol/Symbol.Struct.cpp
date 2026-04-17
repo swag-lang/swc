@@ -234,6 +234,17 @@ namespace
             out.push_back({.idRef = binding.idRef, .exprRef = binding.exprRef, .typeRef = binding.typeRef, .cstRef = binding.cstRef});
         }
     }
+
+    bool sameInterfaceImplementation(const SymbolImpl& lhs, const SymbolImpl& rhs)
+    {
+        if (const SymbolInterface* lhsInterface = lhs.symInterface())
+        {
+            if (const SymbolInterface* rhsInterface = rhs.symInterface())
+                return lhsInterface == rhsInterface;
+        }
+
+        return lhs.idRef() == rhs.idRef();
+    }
 }
 
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
@@ -282,7 +293,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
             return Result::Continue;
         }
 
-        if (itf->idRef() == symImpl.idRef())
+        if (sameInterfaceImplementation(*itf, symImpl))
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, symImpl);
             if (const SymbolInterface* symInterface = symImpl.symInterface())

@@ -33,7 +33,7 @@ namespace PostRaPeephole
         // "fallthrough jump" case) are about to be erased by a sibling rule
         // in the same pass; treat them as no-ops so we don't miss folds
         // whose liveness window the stale terminator would otherwise close.
-        bool regDeadAfter(Context& ctx, MicroInstrRef fromRef, MicroReg reg)
+        bool regDeadAfter(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
         {
             MicroInstrRef cur = ctx.nextRef(fromRef);
             for (int step = 0; step < K_MAX_LIVENESS_WINDOW && cur.isValid(); ++step, cur = ctx.nextRef(cur))

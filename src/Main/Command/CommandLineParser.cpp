@@ -54,16 +54,15 @@ namespace
         char quote = 0;
         bool inTok = false;
 
-        auto flush = [&]() {
+        auto flush = [&] {
             if (inTok || quote)
             {
                 out.push_back(std::move(token));
-                token.clear();
                 inTok = false;
             }
         };
 
-        for (char c : content)
+        for (const char c : content)
         {
             if (quote)
             {
@@ -614,8 +613,9 @@ const ArgInfo* CommandLineParser::findLongFormArgument(TaskContext& ctx, const U
     return nullptr;
 }
 
-const ArgInfo* CommandLineParser::findShortFormArgument(TaskContext& ctx, const Utf8& arg)
+const ArgInfo* CommandLineParser::findShortFormArgument(const TaskContext& ctx, const Utf8& arg)
 {
+    SWC_UNUSED(ctx);
     const auto it = shortFormMap_.find(arg);
     if (it != shortFormMap_.end())
         return &args_[it->second];

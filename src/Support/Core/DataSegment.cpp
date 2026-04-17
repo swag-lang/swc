@@ -390,7 +390,7 @@ void DataSegment::rebuildRelocationsByOffsetLocked() const
         return;
 
     relocationsByOffset_.resize(relocations_.size());
-    std::iota(relocationsByOffset_.begin(), relocationsByOffset_.end(), 0u);
+    std::ranges::iota(relocationsByOffset_, 0u);
     const RelocationIndexLess sortRelocations{.relocations = &relocations_};
     std::ranges::sort(relocationsByOffset_, sortRelocations);
     relocationsByOffsetDirty_ = false;

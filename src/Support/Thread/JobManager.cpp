@@ -19,14 +19,14 @@ namespace
         return lhs->index < rhs->index;
     }
 
-    template<typename TRecord>
-    void collectWaitingRecordsForClient(std::vector<TRecord*>& out, const std::unordered_set<JobRecord*>& liveRecs, const JobClientId client)
+    template<typename T>
+    void collectWaitingRecordsForClient(std::vector<T*>& out, const std::unordered_set<JobRecord*>& liveRecs, const JobClientId client)
     {
         out.reserve(liveRecs.size());
         for (JobRecord* rec : liveRecs)
         {
             if (isWaitingJobForClient(rec, client))
-                out.push_back(static_cast<TRecord*>(rec));
+                out.push_back(static_cast<T*>(rec));
         }
     }
 

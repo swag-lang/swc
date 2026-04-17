@@ -202,7 +202,7 @@ namespace
         return selection.functions.contains(&function);
     }
 
-    void tryAddJitFunction(JitFunctionSelection& selection, const CompilerInstance& compiler, SymbolFunction* function)
+    void tryAddJitFunction(JitFunctionSelection& selection, const CompilerInstance& compiler, const SymbolFunction* function)
     {
         if (!function)
             return;

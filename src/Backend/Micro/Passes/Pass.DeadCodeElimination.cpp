@@ -85,9 +85,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
     SWC_ASSERT(context.builder != nullptr);
 
-    MicroStorage&        storage  = *context.instructions;
-    MicroOperandStorage& operands = *context.operands;
-
+    MicroStorage&        storage = *context.instructions;
     MicroSsaState        localSsaState;
     const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
     if (!ssaState || !ssaState->isValid())

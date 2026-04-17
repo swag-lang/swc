@@ -39,7 +39,7 @@ namespace PostRaPeephole
         // from `fromRef`; the reg is dead iff the next touch is a redefinition
         // (no intervening read). Fallthrough-jumps-to-next-label are treated
         // as no-ops because a sibling pattern in this same pass erases them.
-        bool regDeadAfter(Context& ctx, MicroInstrRef fromRef, MicroReg reg)
+        bool regDeadAfter(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
         {
             MicroInstrRef cur = ctx.nextRef(fromRef);
             for (int step = 0; step < K_MAX_LIVENESS_WINDOW && cur.isValid(); ++step, cur = ctx.nextRef(cur))

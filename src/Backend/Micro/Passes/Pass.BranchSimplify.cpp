@@ -37,12 +37,12 @@ namespace
 
     struct KnownValueTraits
     {
-        static bool isValid(const KnownValue&)
+        [[maybe_unused]] static bool isValid(const KnownValue&)
         {
             return true;
         }
 
-        static bool same(const KnownValue& lhs, const KnownValue& rhs)
+        [[maybe_unused]] static bool same(const KnownValue& lhs, const KnownValue& rhs)
         {
             return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
         }

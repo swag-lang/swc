@@ -275,9 +275,9 @@ namespace
 
     struct GenericEvalEntry
     {
-        AstNodeRef                      sourceRef = AstNodeRef::invalid();
+        AstNodeRef                         sourceRef = AstNodeRef::invalid();
         std::vector<GenericEvalBindingKey> bindings;
-        AstNodeRef                      evalRef   = AstNodeRef::invalid();
+        AstNodeRef                         evalRef = AstNodeRef::invalid();
     };
 
     bool sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs)
@@ -629,7 +629,7 @@ GenericInstanceStorage& SymbolFunction::genericInstanceStorage(const TaskContext
 
 AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
 {
-    const auto& data = ensureGenericData(ctx);
+    const auto&            data = ensureGenericData(ctx);
     const std::scoped_lock lock(data.evalCacheMutex);
     for (const auto& entry : data.evalCache)
     {
@@ -649,7 +649,7 @@ void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const AstNodeR
     if (sourceRef.isInvalid() || evalRef.isInvalid())
         return;
 
-    auto& data = ensureGenericData(ctx);
+    auto&                  data = ensureGenericData(ctx);
     const std::scoped_lock lock(data.evalCacheMutex);
     for (auto& entry : data.evalCache)
     {
@@ -662,7 +662,7 @@ void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const AstNodeR
         return;
     }
 
-    auto& newEntry  = data.evalCache.emplace_back();
+    auto& newEntry     = data.evalCache.emplace_back();
     newEntry.sourceRef = sourceRef;
     newEntry.evalRef   = evalRef;
     copyGenericEvalBindings(newEntry.bindings, bindings);
@@ -916,7 +916,7 @@ Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
-    SymbolFunction* pendingFunction = nullptr;
+    const SymbolFunction* pendingFunction = nullptr;
     for (SymbolFunction* function : functions)
     {
         if (ctx.state().jitEmissionError)
@@ -1074,7 +1074,7 @@ SymbolStruct* SymbolFunction::ownerStruct()
     {
         if (symMap->isImpl())
         {
-            auto& symImpl = symMap->cast<SymbolImpl>();
+            const auto& symImpl = symMap->cast<SymbolImpl>();
             if (symImpl.isForStruct())
                 return symImpl.symStruct();
             return nullptr;

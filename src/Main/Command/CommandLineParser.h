@@ -93,7 +93,7 @@ private:
     void                       setReportArguments(Diagnostic& diag, const ArgInfo& info, const Utf8& arg);
     bool                       getNextValue(TaskContext& ctx, const Utf8& arg, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args, Utf8& value);
     Result                     expandResponseFiles(TaskContext& ctx, const std::vector<Utf8>& in, std::vector<Utf8>& out);
-    Result                     expandOneResponseFile(TaskContext& ctx, const fs::path& path, std::vector<Utf8>& out, std::set<fs::path>& visited, uint32_t depth);
+    static Result              expandOneResponseFile(TaskContext& ctx, const fs::path& path, std::vector<Utf8>& out, std::set<fs::path>& visited, uint32_t depth);
     bool                       commandMatches(const Utf8& commandList) const;
     bool                       parseEnumString(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, Utf8* target);
     bool                       parseEnumInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, const EnumIntTarget& target);
@@ -101,7 +101,7 @@ private:
     bool                       parseUInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, uint32_t* out);
     const ArgInfo*             findArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
     const ArgInfo*             findLongFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
-    const ArgInfo*             findShortFormArgument(TaskContext& ctx, const Utf8& arg);
+    const ArgInfo*             findShortFormArgument(const TaskContext& ctx, const Utf8& arg);
     const ArgInfo*             findNegatedArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
     void                       reportInvalidArgument(TaskContext& ctx, const Utf8& arg);
     static void                attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion);

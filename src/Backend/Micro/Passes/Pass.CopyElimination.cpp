@@ -42,12 +42,12 @@ namespace
 
     struct CanonicalValueTraits
     {
-        static bool isValid(const CanonicalValue& value)
+        [[maybe_unused]] static bool isValid(const CanonicalValue& value)
         {
             return value.valid();
         }
 
-        static bool same(const CanonicalValue& lhs, const CanonicalValue& rhs)
+        [[maybe_unused]] static bool same(const CanonicalValue& lhs, const CanonicalValue& rhs)
         {
             return lhs.reg == rhs.reg && lhs.valueId == rhs.valueId;
         }

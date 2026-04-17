@@ -30,7 +30,7 @@ JobResult JITPatchJob::exec()
     SWC_ASSERT(symbolFunc_ != nullptr);
     ctx().state().reset();
 
-    Result result = symbolFunc_->jitMaterialize(ctx());
+    const Result result = symbolFunc_->jitMaterialize(ctx());
     if (result == Result::Error)
         symbolFunc_->setIgnored(ctx());
 

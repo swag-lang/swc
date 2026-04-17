@@ -158,8 +158,8 @@ public:
         return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
     }
 
-    bool hasInlinePayload(AstNodeRef n) const { return nodePayloadContext().hasInlinePayload(n); }
-    void setInlinePayload(AstNodeRef n, SemaInlinePayload* payload) { nodePayloadContext().setInlinePayload(n, payload); }
+    bool               hasInlinePayload(AstNodeRef n) const { return nodePayloadContext().hasInlinePayload(n); }
+    void               setInlinePayload(AstNodeRef n, SemaInlinePayload* payload) { nodePayloadContext().setInlinePayload(n, payload); }
     SemaInlinePayload* inlinePayload(AstNodeRef n) const { return static_cast<SemaInlinePayload*>(nodePayloadContext().getInlinePayload(n)); }
 
     bool hasSemaPayload(AstNodeRef n) const { return nodePayloadContext().hasSemaPayload(n); }

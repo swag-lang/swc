@@ -1240,9 +1240,9 @@ namespace
                 return Result::Continue;
             }
 
-            const bool isUfcsArgument = allowsImplicitAddressBinding(fn, i, ufcsArg);
+            const bool isUfcsArgument                = allowsImplicitAddressBinding(fn, i, ufcsArg);
             const bool allowUserDefinedLiteralSuffix = fn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffectLiteral);
-            auto       r              = ConvRank::Bad;
+            auto       r                             = ConvRank::Bad;
             SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument, allowUserDefinedLiteralSuffix));
             if (r == ConvRank::Bad)
             {

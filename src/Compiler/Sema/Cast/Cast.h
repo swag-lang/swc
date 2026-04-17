@@ -1,8 +1,8 @@
 #pragma once
-#include <string_view>
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include <string_view>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -35,9 +35,9 @@ struct DynamicStructCastSourceInfo
 
 struct UserDefinedLiteralSuffixInfo
 {
-    AstNodeRef       exprRef = AstNodeRef::invalid();
+    AstNodeRef       exprRef    = AstNodeRef::invalid();
     AstNodeRef       literalRef = AstNodeRef::invalid();
-    TokenId          unaryOp = TokenId::Invalid;
+    TokenId          unaryOp    = TokenId::Invalid;
     std::string_view suffix;
 };
 

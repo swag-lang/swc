@@ -12,12 +12,12 @@ struct LoopSemaPayload
     ConstantRef                       countCstRef  = ConstantRef::invalid();
     SymbolFunction*                   countFn      = nullptr;
     SmallVector<ResolvedCallArgument> countResolvedArgs;
-    AstNodeRef                        lowerBoundRef = AstNodeRef::invalid();
-    AstNodeRef                        upperBoundRef = AstNodeRef::invalid();
+    AstNodeRef                        lowerBoundRef   = AstNodeRef::invalid();
+    AstNodeRef                        upperBoundRef   = AstNodeRef::invalid();
     bool                              usesCustomVisit = false;
-    bool                              isRangeLoop   = false;
-    bool                              inclusive     = false;
-    bool                              usesLoopIndex = false;
+    bool                              isRangeLoop     = false;
+    bool                              inclusive       = false;
+    bool                              usesLoopIndex   = false;
 };
 
 SWC_END_NAMESPACE();

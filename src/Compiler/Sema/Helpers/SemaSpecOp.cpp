@@ -229,10 +229,10 @@ namespace
         if (node.nodeWhereRef.isInvalid())
             return node.nodeBodyRef;
 
-        auto [ifRef, ifPtr]       = sema.ast().makeNode<AstNodeId::IfStmt>(node.tokRef());
-        ifPtr->nodeConditionRef   = node.nodeWhereRef;
-        ifPtr->nodeIfBlockRef     = node.nodeBodyRef;
-        ifPtr->nodeElseBlockRef   = AstNodeRef::invalid();
+        auto [ifRef, ifPtr]     = sema.ast().makeNode<AstNodeId::IfStmt>(node.tokRef());
+        ifPtr->nodeConditionRef = node.nodeWhereRef;
+        ifPtr->nodeIfBlockRef   = node.nodeBodyRef;
+        ifPtr->nodeElseBlockRef = AstNodeRef::invalid();
         ifPtr->setCodeRef(node.codeRef());
         return ifRef;
     }
@@ -410,7 +410,7 @@ namespace
 
     const Symbol* currentSpecOpWaiterSymbol(Sema& sema)
     {
-        const AstNodeRef   rootRef = sema.visit().root();
+        const AstNodeRef   rootRef  = sema.visit().root();
         const SemaNodeView rootView = sema.viewSymbol(rootRef);
         if (rootView.hasSymbol())
             return rootView.sym();
@@ -726,7 +726,7 @@ namespace
         const SourceCodeRange codeRange = node.codeRangeWithChildren(sema.ctx(), sema.ast());
         if (codeRange.srcView && codeRange.len)
         {
-            const std::string_view code  = codeRange.srcView->codeView(codeRange.offset, codeRange.len);
+            const std::string_view code   = codeRange.srcView->codeView(codeRange.offset, codeRange.len);
             const size_t           inPos  = code.find(" in ");
             const size_t           ampPos = code.find('&');
             if (ampPos != std::string_view::npos && (inPos == std::string_view::npos || ampPos < inPos))
@@ -773,12 +773,12 @@ namespace
                                 std::span<Symbol*>    candidates,
                                 std::span<AstNodeRef> args,
                                 AstNodeRef            ufcsArg,
-                                bool                  allowNoMatch = false,
-                                bool*                 outMatched   = nullptr,
+                                bool                  allowNoMatch   = false,
+                                bool*                 outMatched     = nullptr,
                                 bool                  allowConstEval = true)
     {
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        bool                            matched = false;
+        bool                              matched = false;
         SWC_RESULT(matchSyntheticCall(sema, candidates, args, ufcsArg, allowNoMatch, resolvedArgs, matched));
         if (!matched)
             return Result::Continue;
@@ -1172,7 +1172,7 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
 {
     outMatched = false;
 
-    const SemaNodeView   exprView(sema, node.nodeExprRef, SemaNodeViewPartE::Type);
+    const SemaNodeView  exprView(sema, node.nodeExprRef, SemaNodeViewPartE::Type);
     const SymbolStruct* ownerStruct = structSpecOpOwner(sema, exprView);
     if (!ownerStruct)
         return Result::Continue;
@@ -1188,7 +1188,7 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
     if (candidates.empty())
         return waitPendingVisitSpecOp(sema, *ownerStruct, node);
 
-    SmallVector<AstNodeRef>            args;
+    SmallVector<AstNodeRef> args;
     args.push_back(makeSyntheticCodeBlockArg(sema, node));
     SmallVector<ResolvedCallArgument> resolvedArgs;
     SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args.span(), node.nodeExprRef, true, resolvedArgs, outMatched));

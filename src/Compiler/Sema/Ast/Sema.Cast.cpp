@@ -44,8 +44,8 @@ Result AstSuffixLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
-    const TaskContext& ctx        = sema.ctx();
-    SemaNodeView nodeLiteralView = sema.viewNodeTypeConstant(nodeLiteralRef);
+    const TaskContext& ctx             = sema.ctx();
+    SemaNodeView       nodeLiteralView = sema.viewNodeTypeConstant(nodeLiteralRef);
     SWC_ASSERT(nodeLiteralView.cstRef().isValid());
 
     ConstantRef cstRef = nodeLiteralView.cstRef();

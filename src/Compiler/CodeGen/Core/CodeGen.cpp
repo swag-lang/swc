@@ -584,9 +584,9 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 
-    nodePayload->reg                        = nextVirtualRegister();
-    nodePayload->typeRef                    = typeRef;
-    nodePayload->storageKind                = CodeGenNodePayload::StorageKind::Value;
+    nodePayload->reg         = nextVirtualRegister();
+    nodePayload->typeRef     = typeRef;
+    nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
     nodePayload->clearMaterializedPointerLikeValue();
     return *(nodePayload);
 }

@@ -164,7 +164,7 @@ namespace
     {
         {
             const std::shared_lock lk(shard.mutex);
-            const auto it = shard.map.find(value);
+            const auto             it = shard.map.find(value);
             if (it != shard.map.end())
                 return it->second;
         }
@@ -174,7 +174,7 @@ namespace
 
         {
             const std::unique_lock lk(shard.mutex);
-            const auto it = shard.map.find(value);
+            const auto             it = shard.map.find(value);
             if (it != shard.map.end())
                 return it->second;
 
@@ -239,14 +239,14 @@ namespace
         if (stored.dataSegmentRef().isInvalid())
         {
             const std::shared_lock lk(shard.mutex);
-            const auto it = shard.map.find(stored);
+            const auto             it = shard.map.find(stored);
             if (it != shard.map.end())
                 return it->second;
         }
         else
         {
             const std::unique_lock lk(shard.mutex);
-            const auto it = shard.map.find(stored);
+            const auto             it = shard.map.find(stored);
             if (it != shard.map.end())
             {
                 updateStoredDataSegmentRef(shard, it->second, stored.dataSegmentRef());

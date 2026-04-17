@@ -117,7 +117,7 @@ namespace
         if (!srcPayload.isAddress())
             return false;
 
-        const TypeManager& typeMgr = codeGen.typeMgr();
+        const TypeManager& typeMgr               = codeGen.typeMgr();
         const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
         const TypeRef      sourceTypeToCheck     = resolvedSourceTypeRef.isValid() ? resolvedSourceTypeRef : sourceTypeRef;
         if (!sourceTypeToCheck.isValid())

@@ -1148,7 +1148,7 @@ AstNodeRef AstSuffixLiteral::semaClone(Sema& sema, const CloneContext& cloneCont
     const AstNodeRef   sourceRef  = nodeRef(sema.ast());
     const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 
-    auto [newRef, newPtr]  = sema.ast().makeNode<AstNodeId::SuffixLiteral>(tokRef());
+    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::SuffixLiteral>(tokRef());
     newPtr->setCodeRef(codeRef());
     newPtr->nodeLiteralRef = SemaClone::cloneAst(sema, nodeLiteralRef, cloneContextAsInline(cloneContext));
     newPtr->nodeSuffixRef  = SemaClone::cloneAst(sema, nodeSuffixRef, cloneContextAsInline(cloneContext));

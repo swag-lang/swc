@@ -257,7 +257,7 @@ void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocat
 void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, const uint32_t offset, const uint32_t size) const
 {
     const RelocationOffsetProjection projection{.relocations = &relocations_};
-    const auto begin = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    const auto                       begin = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
 
     for (auto it = begin; it != relocationsByOffset_.end(); ++it)
     {

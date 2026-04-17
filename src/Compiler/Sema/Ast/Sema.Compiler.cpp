@@ -1328,8 +1328,8 @@ Result AstCompilerRunBlock::semaPreNode(Sema& sema)
 
 Result AstCompilerRunBlock::semaPostNode(Sema& sema)
 {
-    const auto& node = sema.curNode().cast<AstCompilerRunBlock>();
-    auto* runExprSymFn = sema.currentFunction();
+    const auto& node         = sema.curNode().cast<AstCompilerRunBlock>();
+    auto*       runExprSymFn = sema.currentFunction();
     SWC_ASSERT(runExprSymFn != nullptr);
 
     const TypeRef returnTypeRef = runExprSymFn->returnTypeRef();

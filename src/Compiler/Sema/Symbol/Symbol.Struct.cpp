@@ -203,9 +203,9 @@ namespace
 
     struct GenericEvalEntry
     {
-        AstNodeRef                      sourceRef = AstNodeRef::invalid();
+        AstNodeRef                         sourceRef = AstNodeRef::invalid();
         std::vector<GenericEvalBindingKey> bindings;
-        AstNodeRef                      evalRef   = AstNodeRef::invalid();
+        AstNodeRef                         evalRef = AstNodeRef::invalid();
     };
 
     bool sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs)
@@ -414,7 +414,7 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
 
 AstNodeRef SymbolStruct::findGenericEvalNode(const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
 {
-    const auto& data = ensureGenericData();
+    const auto&            data = ensureGenericData();
     const std::scoped_lock lock(data.evalCacheMutex);
     for (const auto& entry : data.evalCache)
     {
@@ -434,7 +434,7 @@ void SymbolStruct::cacheGenericEvalNode(const AstNodeRef sourceRef, std::span<co
     if (sourceRef.isInvalid() || evalRef.isInvalid())
         return;
 
-    auto& data = ensureGenericData();
+    auto&                  data = ensureGenericData();
     const std::scoped_lock lock(data.evalCacheMutex);
     for (auto& entry : data.evalCache)
     {
@@ -447,7 +447,7 @@ void SymbolStruct::cacheGenericEvalNode(const AstNodeRef sourceRef, std::span<co
         return;
     }
 
-    auto& newEntry  = data.evalCache.emplace_back();
+    auto& newEntry     = data.evalCache.emplace_back();
     newEntry.sourceRef = sourceRef;
     newEntry.evalRef   = evalRef;
     copyGenericEvalBindings(newEntry.bindings, bindings);

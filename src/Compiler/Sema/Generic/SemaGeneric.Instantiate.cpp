@@ -349,7 +349,7 @@ namespace
 
     Utf8 formatFunctionWhereBindings(Sema& sema, const SymbolFunction& function, std::span<const SemaGeneric::GenericParamDesc> params = {}, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs = {})
     {
-        Utf8                      out;
+        Utf8                       out;
         SmallVector<IdentifierRef> seenIds;
 
         if (!params.empty())
@@ -372,7 +372,7 @@ namespace
 
     AstNodeRef makeConstraintBlockRunNode(Sema& sema, AstNodeRef constraintBlockRef, std::span<const SemaClone::ParamBinding> bindings)
     {
-        const auto& constraintBlock = sema.node(constraintBlockRef).cast<AstConstraintBlock>();
+        const auto&             constraintBlock = sema.node(constraintBlockRef).cast<AstConstraintBlock>();
         SmallVector<AstNodeRef> sourceChildren;
         sema.ast().appendNodes(sourceChildren, constraintBlock.spanChildrenRef);
 
@@ -458,10 +458,10 @@ namespace
 
     void fillFunctionConstraintFailure(CastFailure& outFailure, DiagnosticId diagId, AstNodeRef whereRef, TypeRef typeRef, const Utf8& bindings)
     {
-        outFailure            = {};
-        outFailure.diagId     = diagId;
+        outFailure             = {};
+        outFailure.diagId      = diagId;
         outFailure.noteNodeRef = whereRef;
-        outFailure.srcTypeRef = typeRef;
+        outFailure.srcTypeRef  = typeRef;
         if (!bindings.empty())
             outFailure.addArgument(Diagnostic::ARG_VALUES, bindings);
     }
@@ -1203,8 +1203,8 @@ namespace SemaGeneric
         SmallVector<SemaClone::ParamBinding> cloneBindings;
         buildGenericCloneBindings(params.span(), resolvedArgs.span(), cloneBindings);
         appendEnclosingGenericCloneBindings(sema, genericRoot, cloneBindings);
-        const Utf8 bindingText = formatFunctionWhereBindings(sema, genericRoot, params.span(), resolvedArgs.span());
-        CastFailure localFailure;
+        const Utf8   bindingText = formatFunctionWhereBindings(sema, genericRoot, params.span(), resolvedArgs.span());
+        CastFailure  localFailure;
         CastFailure* whereFailure = outFailure ? outFailure : &localFailure;
         SWC_RESULT(checkFunctionWhereConstraints(sema, whereSatisfied, genericRoot, cloneBindings.span(), bindingText, whereFailure, sema.curNodeRef()));
         if (!whereSatisfied)

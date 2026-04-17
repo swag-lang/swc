@@ -433,10 +433,10 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 // -----------------------------------------------------------------------------
 enum class AstIdentifierFlagsE : AstNode::ParserFlags
 {
-    Zero              = 0,
-    InCompilerDefined = 1 << 0,
-    CallCallee        = 1 << 1,
-    InClosureCapture  = 1 << 2,
+    Zero               = 0,
+    InCompilerDefined  = 1 << 0,
+    CallCallee         = 1 << 1,
+    InClosureCapture   = 1 << 2,
     GenericTypeBinding = 1 << 3,
 };
 

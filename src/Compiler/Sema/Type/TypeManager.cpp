@@ -176,7 +176,7 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 
     {
         const std::shared_lock lk(shard.mutex);
-        const auto it = shard.map.find(typeInfo);
+        const auto             it = shard.map.find(typeInfo);
         if (it != shard.map.end())
             return it->second;
     }

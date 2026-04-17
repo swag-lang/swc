@@ -103,7 +103,9 @@ namespace
 void swcAssert(const char* expr, const char* file, int line)
 {
     const Utf8 fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
-    const Utf8 msg     = std::format("Assertion Failed!\nFile: {}\nExpression: {}\n", fileLoc, expr);
+    Utf8       msg     = std::format("Assertion Failed!\nFile: {}\nExpression: {}\n", fileLoc, expr);
+    if (const TaskContext* const ctx = TaskContext::current())
+        appendInternalErrorTaskContext(msg, *ctx);
     Os::panicBox(msg.c_str());
 }
 

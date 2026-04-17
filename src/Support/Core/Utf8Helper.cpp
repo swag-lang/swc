@@ -312,6 +312,15 @@ std::string_view Utf8Helper::trim(std::string_view s)
     return trimRight(trimLeft(s));
 }
 
+Utf8 Utf8Helper::normalizePathForCompare(const fs::path& path)
+{
+    Utf8 result{path.generic_string()};
+#ifdef _WIN32
+    result.make_lower();
+#endif
+    return result;
+}
+
 // ASCII-case-insensitive starts-with
 bool Utf8Helper::startsWith(std::string_view s, std::string_view pfx, bool matchCase)
 {

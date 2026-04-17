@@ -43,6 +43,7 @@ namespace Utf8Helper
     std::string_view trimLeft(std::string_view s);
     std::string_view trimRight(std::string_view s);
     std::string_view trim(std::string_view s);
+    Utf8             normalizePathForCompare(const fs::path& path);
     bool             startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
     Utf8             addArticleAAn(std::string_view s);
     Utf8             countWithLabel(size_t value, std::string_view singular, const char* plural = nullptr);

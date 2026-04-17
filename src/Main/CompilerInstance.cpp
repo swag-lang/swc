@@ -17,6 +17,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Core/Timer.h"
@@ -82,24 +83,6 @@ namespace
         return g_RuntimeContextTlsId;
     }
 
-    Utf8 normalizePathForCompare(const fs::path& path)
-    {
-        Utf8 result{path.generic_string()};
-#ifdef _WIN32
-        result.make_lower();
-#endif
-        return result;
-    }
-
-    std::string_view trimView(std::string_view value)
-    {
-        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
-            value.remove_prefix(1);
-        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
-            value.remove_suffix(1);
-        return value;
-    }
-
     Result reportInvalidCompilerTag(TaskContext& ctx, std::string_view rawTag, std::string_view because)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_tag);
@@ -151,7 +134,7 @@ namespace
     bool tryParseIntegerLiteral(std::string_view rawValue, ParsedIntegerLiteral& outValue, Utf8& outBecause)
     {
         outValue = {};
-        rawValue = trimView(rawValue);
+        rawValue = Utf8Helper::trim(rawValue);
         if (rawValue.empty())
         {
             outBecause = "missing integer value";
@@ -320,7 +303,7 @@ namespace
     {
         outCstRef = ConstantRef::invalid();
 
-        rawValue = trimView(rawValue);
+        rawValue = Utf8Helper::trim(rawValue);
         if (rawValue.empty())
         {
             outBecause = "missing floating-point value";
@@ -385,7 +368,7 @@ namespace
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
         if (type.isBool())
         {
-            rawValue = trimView(rawValue);
+            rawValue = Utf8Helper::trim(rawValue);
             if (rawValue == "true")
             {
                 outCstRef = ctx.cstMgr().cstTrue();
@@ -404,7 +387,7 @@ namespace
 
         if (type.isString())
         {
-            outCstRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, trimView(rawValue)));
+            outCstRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, Utf8Helper::trim(rawValue)));
             return Result::Continue;
         }
 
@@ -419,7 +402,7 @@ namespace
 
     Result parseOneCompilerTag(TaskContext& ctx, std::string_view rawTag, CompilerInstance::CompilerTag& outTag)
     {
-        rawTag = trimView(rawTag);
+        rawTag = Utf8Helper::trim(rawTag);
         if (rawTag.empty())
             return reportInvalidCompilerTag(ctx, rawTag, "missing tag name");
 
@@ -429,7 +412,7 @@ namespace
         const size_t equalPos = rawTag.find('=');
         if (equalPos == std::string_view::npos)
         {
-            const std::string_view name = trimView(rawTag);
+            const std::string_view name = Utf8Helper::trim(rawTag);
             if (name.empty())
                 return reportInvalidCompilerTag(ctx, rawTag, "missing tag name");
 
@@ -438,8 +421,8 @@ namespace
             return Result::Continue;
         }
 
-        const std::string_view leftPart  = trimView(rawTag.substr(0, equalPos));
-        const std::string_view rightPart = trimView(rawTag.substr(equalPos + 1));
+        const std::string_view leftPart  = Utf8Helper::trim(rawTag.substr(0, equalPos));
+        const std::string_view rightPart = Utf8Helper::trim(rawTag.substr(equalPos + 1));
         if (leftPart.empty())
             return reportInvalidCompilerTag(ctx, rawTag, "missing tag name");
         if (rightPart.empty())
@@ -449,8 +432,8 @@ namespace
         std::string_view typePart;
         if (const size_t colonPos = leftPart.find(':'); colonPos != std::string_view::npos)
         {
-            namePart = trimView(leftPart.substr(0, colonPos));
-            typePart = trimView(leftPart.substr(colonPos + 1));
+            namePart = Utf8Helper::trim(leftPart.substr(0, colonPos));
+            typePart = Utf8Helper::trim(leftPart.substr(colonPos + 1));
         }
 
         if (namePart.empty())
@@ -1032,7 +1015,7 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
         return nullptr;
 
     const fs::path wantedPath{std::string(fileName)};
-    const Utf8     wantedPathNormalized = normalizePathForCompare(wantedPath);
+    const Utf8     wantedPathNormalized = Utf8Helper::normalizePathForCompare(wantedPath);
 
     const std::shared_lock lock(mutex_);
     for (const std::unique_ptr<SourceView>& srcViewPtr : srcViews_)
@@ -1045,7 +1028,7 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
         if (!sourceFile)
             continue;
 
-        if (normalizePathForCompare(sourceFile->path()) == wantedPathNormalized)
+        if (Utf8Helper::normalizePathForCompare(sourceFile->path()) == wantedPathNormalized)
             return srcView;
     }
 
@@ -1136,7 +1119,7 @@ void CompilerInstance::registerInMemoryFile(fs::path path, const std::string_vie
     path = path.lexically_normal();
 
     const std::unique_lock lock(mutex_);
-    inMemoryFiles_[normalizePathForCompare(path)] = Utf8(content);
+    inMemoryFiles_[Utf8Helper::normalizePathForCompare(path)] = Utf8(content);
 }
 
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
@@ -1160,7 +1143,7 @@ SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
     fileRef.dbgPtr = files_.back().get();
 #endif
 
-    const Utf8 key = normalizePathForCompare(files_.back()->path());
+    const Utf8 key = Utf8Helper::normalizePathForCompare(files_.back()->path());
     {
         const std::shared_lock lock(mutex_);
         const auto             it = inMemoryFiles_.find(key);

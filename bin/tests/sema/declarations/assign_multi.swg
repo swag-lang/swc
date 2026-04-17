@@ -69,5 +69,6 @@
 {
     var ptr: const [*] u16
     var count: u64
-    ptr, count += 1 // swc-expected-error {{sema_err_cannot_cast}}
+    ptr, count += 1
+    ptr, count -= 1
 }

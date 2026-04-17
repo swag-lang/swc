@@ -406,11 +406,11 @@ namespace
                 }
                 else if (nodeLeftView.type()->isScalarNumeric() &&
                          nodeRightView.type()->isScalarNumeric() &&
+                         !nodeLeftView.type()->isCharRune() &&
+                         !nodeRightView.type()->isCharRune() &&
                          nodeLeftView.typeRef() != nodeRightView.typeRef() &&
-                         (nodeLeftView.type()->isScalarUnsized() ||
-                          nodeRightView.type()->isScalarUnsized() ||
-                          nodeLeftView.type()->isFloat() ||
-                          nodeRightView.type()->isFloat()))
+                         op != TokenId::SymGreaterGreater &&
+                         op != TokenId::SymLowerLower)
                 {
                     SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
                     resultTypeRef = nodeLeftView.typeRef();
@@ -478,7 +478,7 @@ namespace
 
 Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeLeftRef)
+    if (childRef == nodeLeftRef && SemaHelpers::canUseContextualBinding(sema, nodeRightRef))
     {
         const SemaNodeView nodeLeftView = sema.viewType(nodeLeftRef);
         auto               frame        = sema.frame();

@@ -556,7 +556,7 @@ namespace
 
 Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeLeftRef)
+    if (childRef == nodeLeftRef && SemaHelpers::canUseContextualBinding(sema, nodeRightRef))
     {
         const SemaNodeView nodeLeftView = sema.viewType(nodeLeftRef);
         SemaFrame          frame        = sema.frame();

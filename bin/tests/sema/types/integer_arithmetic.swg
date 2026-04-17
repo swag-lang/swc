@@ -56,6 +56,18 @@
 #assert(3'u32 * 4 == 12)
 #assert(3'u64 * 4 == 12)
 
+#test
+{
+    let value: u32 = 3
+    let scale: u64 = 1000
+    let millis0 = value * scale
+    let millis1 = scale * value
+    #assert(#typeof(millis0) == u64)
+    #assert(#typeof(millis1) == u64)
+    #assert(millis0 == 3000'u64)
+    #assert(millis1 == 3000'u64)
+}
+
 #assert(4 / 2 == 2)
 #assert(4's32 / 2 == 2)
 #assert(4's8 / 2 == 2)

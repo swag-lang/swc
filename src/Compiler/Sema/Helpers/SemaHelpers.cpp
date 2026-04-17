@@ -171,6 +171,35 @@ bool SemaHelpers::binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFl
     }
 }
 
+bool SemaHelpers::canUseContextualBinding(Sema& sema, AstNodeRef nodeRef)
+{
+    if (nodeRef.isInvalid())
+        return false;
+
+    const AstNode& node = sema.node(nodeRef);
+    switch (node.id())
+    {
+        case AstNodeId::AutoMemberAccessExpr:
+        case AstNodeId::IntegerLiteral:
+        case AstNodeId::BinaryLiteral:
+        case AstNodeId::HexaLiteral:
+        case AstNodeId::FloatLiteral:
+        case AstNodeId::NullLiteral:
+        case AstNodeId::ArrayLiteral:
+        case AstNodeId::StructLiteral:
+            return true;
+
+        case AstNodeId::ParenExpr:
+            return canUseContextualBinding(sema, node.cast<AstParenExpr>().nodeExprRef);
+
+        case AstNodeId::UnaryExpr:
+            return canUseContextualBinding(sema, node.cast<AstUnaryExpr>().nodeExprRef);
+
+        default:
+            return false;
+    }
+}
+
 Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef)
 {
     if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, safetyKind))

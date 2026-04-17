@@ -31,6 +31,7 @@ namespace SemaHelpers
     Result                attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView);
     Result                setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef);
     bool                  binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
+    bool                  canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
     TypeRef               unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef);
     const SymbolFunction* resolveLambdaBindingFunction(Sema& sema);
     SymbolFunction*       callableTypeFunction(TaskContext& ctx, TypeRef typeRef);

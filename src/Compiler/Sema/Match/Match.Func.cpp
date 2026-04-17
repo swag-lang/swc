@@ -1344,11 +1344,17 @@ namespace
         return Result::Continue;
     }
 
+    bool candidateUsesGenericInstance(const Candidate& candidate)
+    {
+        return candidate.fn && candidate.fn->isGenericInstance();
+    }
+
     // Compares two candidates and returns -1 if 'a' is better than 'b', 1 if 'b' is better, or 0 if they are equivalent.
     // Selection is based on:
     // 1. Better conversion ranks (Exact > Standard > Bad)
     // 2. UFCS usage (non-UFCS is generally preferred)
     // 3. Number of default arguments used (fewer is better)
+    // 4. Prefer concrete overloads over instantiated generic fallbacks
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
         const auto     na = static_cast<uint32_t>(a.perArg.size());
@@ -1367,6 +1373,11 @@ namespace
         // Tie-breaker: prefer fewer defaults used
         if (a.usedDefaults != b.usedDefaults)
             return (a.usedDefaults < b.usedDefaults) ? -1 : 1;
+
+        const bool aGenericInstance = candidateUsesGenericInstance(a);
+        const bool bGenericInstance = candidateUsesGenericInstance(b);
+        if (aGenericInstance != bGenericInstance)
+            return aGenericInstance ? 1 : -1;
 
         return 0;
     }

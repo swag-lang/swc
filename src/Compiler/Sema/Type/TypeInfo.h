@@ -156,6 +156,7 @@ public:
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
     bool isIndexable() const noexcept { return isArray() || isSlice() || isString() || isAnyVariadic(); }
+    bool supportsNullableQualifier() const noexcept;
 
     bool isEnumFlags() const noexcept;
     bool isLambdaClosure() const noexcept;

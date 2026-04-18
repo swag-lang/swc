@@ -287,6 +287,10 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         if (sym.acceptOverloads() && other->acceptOverloads())
         {
             SWC_ASSERT(sym.isTyped());
+            if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
+                continue;
+            if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
+                continue;
             SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
             if (!sym.deepCompare(other))
                 continue;
@@ -318,6 +322,10 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         if (sym.acceptOverloads() && other->acceptOverloads())
         {
             SWC_ASSERT(sym.isTyped());
+            if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
+                continue;
+            if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
+                continue;
             SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
             if (!sym.deepCompare(other))
                 continue;

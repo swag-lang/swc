@@ -52,6 +52,42 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedStructPayloadOutsideDataSegment)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_StoresNullableCStringFromBlockPointer)
+{
+    const TypeRef nullableCStringTypeRef = ctx.typeMgr().addType(TypeInfo::makeCString(TypeInfoFlagsE::Nullable));
+
+    ConstantValue value = ConstantValue::makeBlockPointer(ctx, ctx.typeMgr().typeU8(), 0x1234, TypeInfoFlagsE::Const);
+    value.setTypeRef(nullableCStringTypeRef);
+
+    const ConstantRef    cstRef = ctx.cstMgr().addConstant(ctx, value);
+    const ConstantValue& stored = ctx.cstMgr().get(cstRef);
+    if (!stored.isBlockPointer() || stored.typeRef() != nullableCStringTypeRef)
+        return Result::Error;
+
+    if (stored.getBlockPointer() != 0x1234)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantValue_MakesNullableCStringFromRuntimePointer)
+{
+    const TypeRef nullableCStringTypeRef = ctx.typeMgr().addType(TypeInfo::makeCString(TypeInfoFlagsE::Nullable));
+
+    const uint64_t rawPtr = 0x1234;
+    ConstantValue   value = ConstantValue::make(ctx, &rawPtr, nullableCStringTypeRef);
+    if (!value.isBlockPointer() || value.typeRef() != nullableCStringTypeRef)
+        return Result::Error;
+
+    if (value.getBlockPointer() != rawPtr)
+        return Result::Error;
+
+    const uint64_t nullPtr = 0;
+    value                  = ConstantValue::make(ctx, &nullPtr, nullableCStringTypeRef);
+    if (!value.isNull() || value.typeRef() != nullableCStringTypeRef)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
 {
     std::array source{

@@ -65,6 +65,44 @@ namespace
         return typeRef;
     }
 
+    bool isImplicitNullableQualificationCast(const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        if (srcType.isNullable() || !dstType.isNullable())
+            return false;
+        if (!dstType.supportsNullableQualifier())
+            return false;
+        if (srcType.kind() != dstType.kind())
+            return false;
+        if (srcType.isConst() != dstType.isConst())
+            return false;
+
+        switch (srcType.kind())
+        {
+            case TypeInfoKind::ValuePointer:
+            case TypeInfoKind::BlockPointer:
+            case TypeInfoKind::Slice:
+                return srcType.payloadTypeRef() == dstType.payloadTypeRef();
+
+            case TypeInfoKind::String:
+            case TypeInfoKind::CString:
+            case TypeInfoKind::Any:
+            case TypeInfoKind::TypeInfo:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    Result castAddNullableQualifier(CastRequest& castRequest)
+    {
+        if (!castRequest.isConstantFolding())
+            return Result::Continue;
+
+        castRequest.setConstantFoldingResult(castRequest.constantFoldingSrc());
+        return Result::Continue;
+    }
+
     bool isTruthyBoolCastKind(const CastKind castKind)
     {
         return castKind == CastKind::Condition || castKind == CastKind::BoolExpr;
@@ -1681,6 +1719,9 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     const TypeManager& typeMgr = sema.typeMgr();
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
+
+    if (isImplicitNullableQualificationCast(srcType, dstType))
+        return castAddNullableQualifier(castRequest);
 
     if (srcType.isAlias() || dstType.isAlias())
     {

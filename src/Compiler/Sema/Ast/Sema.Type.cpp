@@ -269,23 +269,14 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 
     if (this->hasFlag(AstQualifiedTypeFlagsE::Nullable))
     {
-        switch (view.type()->kind())
+        if (!view.type()->supportsNullableQualifier())
         {
-            case TypeInfoKind::ValuePointer:
-            case TypeInfoKind::BlockPointer:
-            case TypeInfoKind::Slice:
-            case TypeInfoKind::String:
-            case TypeInfoKind::CString:
-            case TypeInfoKind::Any:
-            case TypeInfoKind::TypeInfo:
-                break;
-            default:
-                const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
-                const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
-                auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
-                diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
-                diag.report(sema.ctx());
-                return Result::Error;
+            const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
+            const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
+            auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
+            diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
         }
 
         typeFlags.add(TypeInfoFlagsE::Nullable);

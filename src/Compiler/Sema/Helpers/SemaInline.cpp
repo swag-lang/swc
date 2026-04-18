@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -223,6 +224,19 @@ namespace
 
         outConstant = exprView.cstRef();
         return outConstant.isValid();
+    }
+
+    void normalizeInlineConstantType(Sema& sema, ConstantRef& ioConstant, TypeRef targetTypeRef)
+    {
+        if (!ioConstant.isValid() || !targetTypeRef.isValid())
+            return;
+
+        ConstantValue constantValue = sema.cstMgr().get(ioConstant);
+        if (constantValue.typeRef() == targetTypeRef)
+            return;
+
+        constantValue.setTypeRef(targetTypeRef);
+        ioConstant = sema.cstMgr().addConstant(sema.ctx(), constantValue);
     }
 
     bool resolveFunctionDeclInCurrentAst(const Sema& sema, const SymbolFunction& fn, const AstFunctionDecl*& outDecl)
@@ -691,6 +705,7 @@ namespace
             ConstantRef cstRef = ConstantRef::invalid();
             if (tryGetSimpleInlineConstant(sema, inlineRootRef, cstRef))
             {
+                normalizeInlineConstantType(sema, cstRef, payload.returnTypeRef);
                 sema.setFoldedTypedConst(inlineRootRef);
                 sema.setConstant(inlineRootRef, cstRef);
                 sema.setFoldedTypedConst(payload.callRef);

@@ -1064,6 +1064,24 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
     return nullptr;
 }
 
+bool TypeInfo::supportsNullableQualifier() const noexcept
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Slice:
+        case TypeInfoKind::String:
+        case TypeInfoKind::CString:
+        case TypeInfoKind::Any:
+        case TypeInfoKind::TypeInfo:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 bool TypeInfo::isEnumFlags() const noexcept
 {
     return isEnum() && payloadEnum_.sym->isEnumFlags();

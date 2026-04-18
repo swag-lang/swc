@@ -772,6 +772,21 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
         return value;
     }
 
+    if (ty.isCString())
+    {
+        const uint64_t ptrValue = *static_cast<const uint64_t*>(valuePtr);
+        if (ty.isNullable() && !ptrValue)
+        {
+            ConstantValue nullValue = makeNull(ctx);
+            nullValue.setTypeRef(typeRef);
+            return nullValue;
+        }
+
+        ConstantValue value = makeBlockPointer(ctx, ctx.typeMgr().typeU8(), ptrValue, TypeInfoFlagsE::Const);
+        value.setTypeRef(typeRef);
+        return value;
+    }
+
     if (ty.isAnyTypeInfo(ctx))
     {
         const uint64_t val = *static_cast<const uint64_t*>(valuePtr);

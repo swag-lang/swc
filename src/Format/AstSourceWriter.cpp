@@ -36,26 +36,6 @@ namespace
         cursor += length;
     }
 
-    uint32_t firstSourceOffset(const SourceView& srcView)
-    {
-        const auto& tokens = srcView.tokens();
-        SWC_ASSERT(!tokens.empty());
-
-        uint32_t result = sourceTokenByteStart(srcView, tokens.back());
-        for (const Token& token : tokens)
-        {
-            if (token.is(TokenId::EndOfFile))
-                break;
-
-            result = std::min(result, sourceTokenByteStart(srcView, token));
-            break;
-        }
-
-        if (!srcView.trivia().empty())
-            result = std::min(result, srcView.trivia().front().tok.byteStart);
-        return result;
-    }
-
     void writeExactSource(Format::Context& formatCtx)
     {
         const SourceView& srcView = *formatCtx.srcView;
@@ -63,7 +43,8 @@ namespace
         const uint32_t    eofByte = sourceTokenByteStart(srcView, tokens.back());
         SWC_ASSERT(eofByte == srcView.stringView().size());
 
-        const uint32_t prefixOffset = firstSourceOffset(srcView);
+        const uint32_t prefixOffset = srcView.sourceStartOffset();
+        SWC_ASSERT(prefixOffset <= eofByte);
         formatCtx.output.clear();
         formatCtx.output.reserve(srcView.stringView().size());
 

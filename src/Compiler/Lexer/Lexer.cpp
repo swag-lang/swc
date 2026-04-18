@@ -1299,6 +1299,7 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
 
     uint32_t startOffset = 0;
     checkFormat(startOffset);
+    srcView_->setSourceStartOffset(startOffset);
 
     const auto* base = reinterpret_cast<const char8_t*>(srcView.stringView().data());
     buffer_          = base + startOffset;

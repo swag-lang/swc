@@ -69,6 +69,7 @@ SWC_DIAG_DEF(sema_err_let_missing_init, Error, "'let' variable is missing an ini
 SWC_DIAG_DEF(sema_err_ref_missing_init, Error, "reference of type '{type}' requires an initializer; [help] bind the reference when it is declared")
 SWC_DIAG_DEF(sema_err_ref_missing_init, Error, "reference is missing an initializer; [help] bind the reference when it is declared")
 SWC_DIAG_DEF(sema_err_using_member_type, Error, "'using' requires a struct value or pointer-to-struct, found '{type}'; [help] use a struct member, or a pointer to a struct")
+SWC_DIAG_DEF(sema_err_using_module_namespace, Error, "'using' cannot import the current module namespace '{sym}'; [help] declarations in this module already contribute to it")
 SWC_DIAG_DEF(sema_err_decomposition_not_struct, Error, "cannot decompose value of type '{type}' because it is not a struct; [help] decompose a struct value instead")
 SWC_DIAG_DEF(sema_err_decomposition_too_many_names, Error, "too many bindings in decomposition; struct has {count} fields; [help] remove the extra binding names")
 SWC_DIAG_DEF(sema_err_decomposition_not_enough_names, Error, "not enough bindings in decomposition; struct has {count} fields; [help] add the missing binding names")

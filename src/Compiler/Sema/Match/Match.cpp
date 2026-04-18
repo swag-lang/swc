@@ -21,6 +21,25 @@ namespace
         return lhs.kind() < rhs.kind();
     }
 
+    Result reportUsingCurrentModuleNamespace(Sema& sema, const MatchContext& lookUpCxt)
+    {
+        if (lookUpCxt.count() != 1)
+            return Result::Continue;
+        if (lookUpCxt.first() != &sema.moduleNamespace())
+            return Result::Continue;
+        if (sema.curNode().isNot(AstNodeId::Identifier))
+            return Result::Continue;
+
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (!parentRef.isValid() || sema.node(parentRef).isNot(AstNodeId::UsingDecl))
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_module_namespace, lookUpCxt.codeRef);
+        SemaError::setReportArguments(sema, diag, lookUpCxt.first());
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     void addSymMap(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchContext::Priority& priority)
     {
         SWC_ASSERT(symMap != nullptr);
@@ -236,6 +255,8 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
             return Result::Continue;
         return sema.waitIdentifier(idRef, lookUpCxt.codeRef);
     }
+
+    SWC_RESULT(reportUsingCurrentModuleNamespace(sema, lookUpCxt));
 
     for (const Symbol* other : lookUpCxt.symbols())
     {

@@ -1,6 +1,6 @@
 #global export
 #foreignlib("ole32")
-using Swag, Win32
+using Swag
 
 #[Foreign("ole32")]
 {

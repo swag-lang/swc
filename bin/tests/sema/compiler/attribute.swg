@@ -76,6 +76,14 @@ enum AttrAutoScopeMode: u8
 }
 attr AttrAutoScope(mode: AttrAutoScopeMode)
 
+#[Swag.EnumFlags]
+enum AttrAutoScopeFlags: u8
+{
+    A
+    B
+}
+attr AttrAutoScopeFlag(mode: AttrAutoScopeFlags)
+
 #[MatchCallFixed(1)]
 var MatchCallOk1: s32 = 0
 
@@ -130,5 +138,17 @@ var MatchCallOk3: s32 = 0
 #test
 {
     #[AttrAutoScope(.C)] // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
+    var V: s32 = 0
+}
+
+#test
+{
+    #[AttrAutoScopeFlag(.A | .B)]
+    var V: s32 = 0
+}
+
+#test
+{
+    #[AttrAutoScopeFlag(.A | .C)] // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
     var V: s32 = 0
 }

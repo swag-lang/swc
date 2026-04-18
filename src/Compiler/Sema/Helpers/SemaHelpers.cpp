@@ -213,6 +213,12 @@ bool SemaHelpers::canUseContextualBinding(Sema& sema, AstNodeRef nodeRef)
         case AstNodeId::StructLiteral:
             return true;
 
+        case AstNodeId::BinaryExpr:
+        {
+            const auto& binary = node.cast<AstBinaryExpr>();
+            return canUseContextualBinding(sema, binary.nodeLeftRef) || canUseContextualBinding(sema, binary.nodeRightRef);
+        }
+
         case AstNodeId::ParenExpr:
             return canUseContextualBinding(sema, node.cast<AstParenExpr>().nodeExprRef);
 

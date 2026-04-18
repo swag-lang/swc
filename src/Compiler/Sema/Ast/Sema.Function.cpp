@@ -816,6 +816,54 @@ namespace
         return false;
     }
 
+    bool childCanConsumeContextualBinding(Sema& sema, AstNodeRef childRef)
+    {
+        if (childRef.isInvalid())
+            return false;
+
+        const AstNode& childNode = sema.node(childRef);
+        if (childNode.is(AstNodeId::NamedArgument))
+            return childCanConsumeContextualBinding(sema, childNode.cast<AstNamedArgument>().nodeArgRef);
+
+        return SemaHelpers::canUseContextualBinding(sema, childRef);
+    }
+
+    template<typename T>
+    TypeRef resolveCallArgumentContextBindingType(Sema& sema, const T& call, AstNodeRef childRef)
+    {
+        if (!childCanConsumeContextualBinding(sema, childRef))
+            return TypeRef::invalid();
+
+        const SemaNodeView   nodeCallee = sema.view(call.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        SmallVector<Symbol*> symbols;
+        collectCalleeSymbolsWithFallback(sema, nodeCallee, symbols);
+
+        const AstNodeRef ufcsArg = resolveUfcsReceiverArg(sema, call.nodeExprRef);
+        TypeRef          bindingTypeRef = TypeRef::invalid();
+        for (Symbol* const sym : symbols)
+        {
+            const SymbolFunction* fn = resolveCalledFunction(sema, sym);
+            if (!fn)
+                continue;
+
+            const SymbolVariable* param = mappedCallParameter(sema, call, *fn, childRef, ufcsArg);
+            if (!param)
+                continue;
+
+            const TypeRef paramTypeRef = param->typeRef();
+            if (bindingTypeRef.isInvalid())
+            {
+                bindingTypeRef = paramTypeRef;
+                continue;
+            }
+
+            if (bindingTypeRef != paramTypeRef)
+                return TypeRef::invalid();
+        }
+
+        return bindingTypeRef;
+    }
+
     template<typename T>
     TypeRef resolveCallArgumentLambdaBindingType(Sema& sema, const T& call, AstNodeRef childRef)
     {
@@ -938,6 +986,11 @@ namespace
         return false;
     }
 
+    bool isCallAliasChild(const AstIntrinsicCallExpr&, const Ast&, AstNodeRef)
+    {
+        return false;
+    }
+
     bool isCallAliasChild(const AstAliasCallExpr& call, const Ast& ast, AstNodeRef childRef)
     {
         for (size_t i = 0; i < ast.spanSize(call.spanAliasesRef); ++i)
@@ -967,7 +1020,9 @@ namespace
         if (isAttributeContextCall(node))
             SemaHelpers::pushConstExprRequirement(sema, childRef);
 
-        const TypeRef bindingTypeRef = resolveCallArgumentLambdaBindingType(sema, node, childRef);
+        TypeRef bindingTypeRef = resolveCallArgumentContextBindingType(sema, node, childRef);
+        if (!bindingTypeRef.isValid())
+            bindingTypeRef = resolveCallArgumentLambdaBindingType(sema, node, childRef);
         if (bindingTypeRef.isValid())
         {
             auto frame = sema.frame();
@@ -1754,9 +1809,7 @@ Result AstAliasCallExpr::semaPostNode(Sema& sema) const
 
 Result AstIntrinsicCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeExprRef && hasFlag(AstCallExprFlagsE::AttributeContext))
-        SemaHelpers::pushConstExprRequirement(sema, childRef);
-    return Result::Continue;
+    return semaCallExprPreNodeChildCommon(sema, *this, childRef);
 }
 
 Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const

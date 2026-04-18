@@ -3,8 +3,16 @@
 enum OverA { A, B }
 enum OverB { A, B }
 
+#[Swag.EnumFlags]
+enum OverFlags: u8
+{
+    A
+    B
+}
+
 func overload(x: s32, e: OverA)->s32 { return 10 }
 func overload(x: f32, e: OverB)->f32 { return 20.0 }
+func withFlags(e: OverFlags)->OverFlags { return e }
 
 #test
 {
@@ -60,4 +68,15 @@ impl Vec2
 {
     let r3 = fct(1.0, .A)
     #assert(#typeof(r3) == f32)
+}
+
+#test
+{
+    let flags = withFlags(.A | .B)
+    @assert(flags == OverFlags.A | OverFlags.B)
+}
+
+#test
+{
+    let flags = withFlags(.A | .C) // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
 }

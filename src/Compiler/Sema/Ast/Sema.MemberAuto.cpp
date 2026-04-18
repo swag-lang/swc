@@ -367,11 +367,14 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     SmallVector4<AutoMemberCandidate> candidates;
     SWC_RESULT(collectAutoMemberCandidates(sema, candidates));
+    const bool deferCallArgument = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument) && sema.frame().bindingTypes().empty();
     if (candidates.empty())
     {
         // In a call-argument position, `.EnumValue` might need the selected overload's
         // parameter type (enum scope) to be resolved. Defer resolution until overload
-        // resolution can provide that context.
+        // resolution can provide that context. Even if another contextual binding type
+        // is active, an empty candidate set means that binding cannot resolve this
+        // auto-member right now.
         if (hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument))
             return Result::SkipChildren;
         return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
@@ -384,7 +387,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     // If nothing matched, report a smart error.
     if (matches.empty())
     {
-        if (hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument))
+        if (deferCallArgument)
         {
             // If we have candidates but none matched, we still want to try to defer if this is a function argument.
             // This is because another candidate (the function argument type itself) might be available later

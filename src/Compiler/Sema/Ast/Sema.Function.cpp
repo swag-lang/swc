@@ -501,8 +501,12 @@ namespace
         const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
         if (exprRef.isValid())
         {
+            const SemaNodeView exprTypeView = sema.viewType(exprRef);
             if (returnType.isVoid())
             {
+                if (exprTypeView.type() && exprTypeView.type()->isVoid())
+                    return Result::Continue;
+
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_in_void, exprRef);
                 if (const auto* currentFn = sema.currentFunction())
                 {

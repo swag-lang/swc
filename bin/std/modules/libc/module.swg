@@ -10,7 +10,7 @@
         cfg.moduleRevision  = #swcrevision
         cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "Libc"
-        cfg.backendKind     = .Export
+        cfg.backendKind     = .SharedLibrary
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/libc"
 
         cfg.genDoc.kind            = .Api

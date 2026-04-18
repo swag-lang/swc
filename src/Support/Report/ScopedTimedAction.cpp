@@ -318,9 +318,9 @@ namespace
         {
             case Runtime::BuildCfgBackendKind::Executable:
                 return "exe";
-            case Runtime::BuildCfgBackendKind::Library:
+            case Runtime::BuildCfgBackendKind::SharedLibrary:
                 return "dll";
-            case Runtime::BuildCfgBackendKind::Export:
+            case Runtime::BuildCfgBackendKind::StaticLibrary:
                 return "lib";
             case Runtime::BuildCfgBackendKind::None:
                 return "none";
@@ -476,7 +476,7 @@ namespace
     {
         const CommandLine&       cmdLine  = ctx.cmdLine();
         const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
-        return joinParts(ctx, {cmdLine.buildCfg, buildCfgBackendKindName(buildCfg.backendKind), cmdLine.targetArchName}, LogColor::Gray);
+        return joinParts(ctx, {cmdLine.buildCfg, buildCfgBackendKindName(buildCfg.backendKind), commandLineTargetArchName(cmdLine.targetArch)}, LogColor::Gray);
     }
 }
 

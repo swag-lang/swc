@@ -497,9 +497,9 @@ namespace
         {
             case Runtime::BuildCfgBackendKind::Executable:
                 return "exe";
-            case Runtime::BuildCfgBackendKind::Library:
+            case Runtime::BuildCfgBackendKind::SharedLibrary:
                 return "dll";
-            case Runtime::BuildCfgBackendKind::Export:
+            case Runtime::BuildCfgBackendKind::StaticLibrary:
                 return "lib";
             case Runtime::BuildCfgBackendKind::None:
                 return "none";
@@ -514,7 +514,7 @@ namespace
                            codeViewPathString(Os::getExeFullName()),
                            ctx.cmdLine().buildCfg,
                            buildInfoBackendKindName(ctx.compiler().buildCfg().backendKind),
-                           ctx.cmdLine().targetArchName);
+                           commandLineTargetArchName(ctx.cmdLine().targetArch));
     }
 
     FunctionLines collectFunctionLines(TaskContext& ctx, const MachineCode& code)

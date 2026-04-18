@@ -728,9 +728,9 @@ namespace Swag
     enum BuildCfgBackendKind
     {
         None           // Nothing
-        Export         // The module is an 'export' module which does not have its own code.
+        SharedLibrary  // The module needs to be compiled as a shared library.
         Executable     // The module needs to be compiled to an executable application.
-        Library        // The module needs to be compiled as a library.
+        StaticLibrary  // The module needs to be compiled as a static library.
     }
 
     // The native backend sub category.
@@ -807,7 +807,7 @@ namespace Swag
         warnDefaultDisabled:           bool                                 // All warnings are disabled, except those specified above
         warnDefaultErrors:             bool                                 // All warnings are treated as errors, except those specified above
 
-        backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, dynamic lib...)
+        backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library...)
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
 
         linkerArgs:                    string                               // Additional linker arguments

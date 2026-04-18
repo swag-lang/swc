@@ -16,7 +16,7 @@
         cfg.moduleRevision  = #swcrevision
         cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "FreeType"
-        cfg.backendKind     = .Export
+        cfg.backendKind     = .SharedLibrary
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/freetype"
 
         cfg.genDoc.kind            = .Api

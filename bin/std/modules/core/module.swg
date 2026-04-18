@@ -18,7 +18,7 @@
         cfg.moduleRevision  = #swcrevision
         cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "Core"
-        cfg.backendKind     = .Library
+        cfg.backendKind     = .StaticLibrary
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/core"
 
         cfg.genDoc.kind            = .Api

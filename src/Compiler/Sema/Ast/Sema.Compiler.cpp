@@ -1309,7 +1309,8 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     TaskContext& ctx                = sema.ctx();
     const Token& tok                = sema.token(codeRef());
     const bool   ignoreTestFunc     = tok.id == TokenId::CompilerFuncTest && !ctx.cmdLine().isTestMode();
-    const bool   ignoreMainFunc     = tok.id == TokenId::CompilerFuncMain && (ctx.cmdLine().backendKindName == "dll" || ctx.cmdLine().backendKindName == "lib");
+    const bool   ignoreMainFunc     = tok.id == TokenId::CompilerFuncMain && (ctx.cmdLine().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary ||
+                                                                               ctx.cmdLine().backendKind == Runtime::BuildCfgBackendKind::StaticLibrary);
     const bool   ignoreCompilerFunc = ignoreTestFunc || ignoreMainFunc;
 
     if (tok.id == TokenId::CompilerFuncMain && !ignoreMainFunc)

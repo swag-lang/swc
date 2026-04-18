@@ -12,7 +12,7 @@
         cfg.moduleRevision  = #swcrevision
         cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "XAudio2"
-        cfg.backendKind     = .Export
+        cfg.backendKind     = .SharedLibrary
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/xaudio2"
 
         cfg.genDoc.kind            = .Api

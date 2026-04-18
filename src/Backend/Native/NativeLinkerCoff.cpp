@@ -72,7 +72,7 @@ Result NativeLinkerCoff::link()
             args    = buildLinkArguments(false);
             exePath = &toolchain_.linkExe;
             break;
-        case Runtime::BuildCfgBackendKind::Library:
+        case Runtime::BuildCfgBackendKind::SharedLibrary:
             args                     = buildLinkArguments(true);
             exePath                  = &toolchain_.linkExe;
             options.outputLineFilter = [](const std::string_view line) {
@@ -80,7 +80,7 @@ Result NativeLinkerCoff::link()
             };
             runOptions = &options;
             break;
-        case Runtime::BuildCfgBackendKind::Export:
+        case Runtime::BuildCfgBackendKind::StaticLibrary:
             args    = buildLibArguments();
             exePath = &toolchain_.libExe;
             break;

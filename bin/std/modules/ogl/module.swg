@@ -14,7 +14,7 @@
         cfg.moduleRevision  = #swcrevision
         cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "Ogl"
-        cfg.backendKind     = .Library
+        cfg.backendKind     = .StaticLibrary
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/ogl"
 
         cfg.genDoc.kind            = .Api

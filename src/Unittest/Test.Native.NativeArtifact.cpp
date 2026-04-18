@@ -92,7 +92,7 @@ namespace
         cmdLine.workDir.clear();
         cmdLine.outDirStorage.clear();
         cmdLine.workDirStorage.clear();
-        cmdLine.backendKindName = "exe";
+        cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
 
         if (!root.empty())
             cmdLine.directories.insert(root);
@@ -101,10 +101,10 @@ namespace
         return cmdLine;
     }
 
-    CommandLine makeStandaloneNativeArtifactCmdLine(const TaskContext& ctx, std::string_view testName, std::string_view artifactKind)
+    CommandLine makeStandaloneNativeArtifactCmdLine(const TaskContext& ctx, std::string_view testName, const Runtime::BuildCfgBackendKind artifactKind)
     {
-        CommandLine cmdLine     = makeNativeArtifactCmdLine(ctx);
-        cmdLine.backendKindName = artifactKind;
+        CommandLine cmdLine = makeNativeArtifactCmdLine(ctx);
+        cmdLine.backendKind = artifactKind;
 
         const fs::path tempRoot = Os::getTemporaryPath();
         SWC_ASSERT(!tempRoot.empty());
@@ -251,7 +251,7 @@ SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceDefaultsFromModulePath)
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Build;
     cmdLine.buildCfg        = "debug";
-    cmdLine.backendKindName = "dll";
+    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.modulePath      = fs::path("bin/std/modules/win32");
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -273,7 +273,7 @@ SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceOverrideWins)
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Build;
     cmdLine.buildCfg        = "debug";
-    cmdLine.backendKindName = "dll";
+    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.modulePath      = fs::path("bin/std/modules/win32");
     cmdLine.moduleNamespace = "WindowsSdk";
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -288,24 +288,24 @@ SWC_TEST_BEGIN(NativeArtifact_ExplicitArtifactKindOverridesBuildCfgMutation)
     CommandLine cmdLine;
     cmdLine.command              = CommandKind::Build;
     cmdLine.buildCfg             = "debug";
-    cmdLine.backendKindName      = "dll";
+    cmdLine.backendKind          = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.artifactKindExplicit = true;
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Export) != Runtime::BuildCfgBackendKind::Library)
+    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::SharedLibrary)
         return Result::Error;
-    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::Library)
+    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::SharedLibrary)
         return Result::Error;
 
     cmdLine.artifactKindExplicit = false;
-    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Export) != Runtime::BuildCfgBackendKind::Export)
+    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::StaticLibrary)
         return Result::Error;
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_keeps_only_referenced_constants", "dll");
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_keeps_only_referenced_constants", Runtime::BuildCfgBackendKind::SharedLibrary);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -334,7 +334,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_allows_interior_constant_addresses", "dll");
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_allows_interior_constant_addresses", Runtime::BuildCfgBackendKind::SharedLibrary);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -372,7 +372,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_keeps_referenced_dependencies", "dll");
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_keeps_referenced_dependencies", Runtime::BuildCfgBackendKind::SharedLibrary);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -421,7 +421,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_emits_function_relocations", "dll");
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -470,7 +470,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "startup_calls_runtime_exit_wrapper", "exe");
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "startup_calls_runtime_exit_wrapper", Runtime::BuildCfgBackendKind::Executable);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -518,7 +518,7 @@ var GValue: s32 = 0
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
     cmdLine.buildCfg        = "debug";
-    cmdLine.backendKindName = "exe";
+    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::Executable;
     cmdLine.name            = "compiler_run_expr_test";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -618,7 +618,7 @@ impl Buffer
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Test;
     cmdLine.buildCfg        = "debug";
-    cmdLine.backendKindName = "exe";
+    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::Executable;
     cmdLine.name            = "silent_spec_op_probe";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -655,7 +655,7 @@ SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "TestCountMismatchIsReportedBeforeStartupBuild");
 
-    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine(ctx, "test_count_mismatch", "exe");
+    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine(ctx, "test_count_mismatch", Runtime::BuildCfgBackendKind::Executable);
     cmdLine.command     = CommandKind::Test;
     cmdLine.files.insert(sourcePath);
     cmdLine.directories.clear();

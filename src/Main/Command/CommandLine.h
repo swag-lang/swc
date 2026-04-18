@@ -32,8 +32,9 @@ struct CommandLine
 {
     CommandKind command = CommandKind::Syntax;
 
-    Runtime::TargetOs   targetOs   = Runtime::TargetOs::Windows;
-    Runtime::TargetArch targetArch = Runtime::TargetArch::X86_64;
+    Runtime::TargetOs            targetOs     = Runtime::TargetOs::Windows;
+    Runtime::TargetArch          targetArch   = Runtime::TargetArch::X86_64;
+    Runtime::BuildCfgBackendKind backendKind  = Runtime::BuildCfgBackendKind::Executable;
 
 #if defined(_M_X64) || defined(__x86_64__)
     Utf8 targetCpu = "x86_64";
@@ -44,8 +45,6 @@ struct CommandLine
 #endif
 
     Utf8                buildCfg        = "fast-debug";
-    Utf8                targetArchName  = "x86_64";
-    Utf8                backendKindName = "exe";
     Utf8                name;
     Utf8                moduleNamespace;
     Utf8                moduleNamespaceStorage;
@@ -63,16 +62,16 @@ struct CommandLine
     bool statsMem         = false;
     bool clear            = false;
     bool dryRun           = false;
-    bool verboseVerify    = false;
-    bool sourceDrivenTest = false;
+    bool verboseVerify      = false;
+    bool sourceDrivenTest   = false;
     bool artifactKindExplicit = false;
-    bool testNative       = true;
-    bool testJit          = true;
-    bool lexOnly          = false;
-    bool syntaxOnly       = false;
-    bool semaOnly         = false;
-    bool output           = true;
-    bool runtime          = true;
+    bool testNative        = true;
+    bool testJit           = true;
+    bool lexOnly           = false;
+    bool syntaxOnly        = false;
+    bool semaOnly          = false;
+    bool output            = true;
+    bool runtime           = true;
 
     bool devFull = false;
 
@@ -175,21 +174,38 @@ inline Utf8 commandLineDefaultModuleNamespace(const Utf8& artifactName)
     return result;
 }
 
-inline Runtime::BuildCfgBackendKind commandLineBackendKind(const Utf8& backendKindName)
+inline Utf8 commandLineTargetArchName(const Runtime::TargetArch targetArch)
 {
-    if (backendKindName == "exe")
-        return Runtime::BuildCfgBackendKind::Executable;
-    if (backendKindName == "dll")
-        return Runtime::BuildCfgBackendKind::Library;
-    if (backendKindName == "lib")
-        return Runtime::BuildCfgBackendKind::Export;
+    switch (targetArch)
+    {
+        case Runtime::TargetArch::X86_64:
+            return "x86_64";
+    }
+
+    SWC_UNREACHABLE();
+}
+
+inline Utf8 commandLineBackendKindName(const Runtime::BuildCfgBackendKind backendKind)
+{
+    switch (backendKind)
+    {
+        case Runtime::BuildCfgBackendKind::Executable:
+            return "exe";
+        case Runtime::BuildCfgBackendKind::SharedLibrary:
+            return "dll";
+        case Runtime::BuildCfgBackendKind::StaticLibrary:
+            return "lib";
+        case Runtime::BuildCfgBackendKind::None:
+            return "none";
+    }
+
     SWC_UNREACHABLE();
 }
 
 inline Runtime::BuildCfgBackendKind commandLineEffectiveBackendKind(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind currentKind)
 {
     if (cmdLine.artifactKindExplicit)
-        return commandLineBackendKind(cmdLine.backendKindName);
+        return cmdLine.backendKind;
     return currentKind;
 }
 

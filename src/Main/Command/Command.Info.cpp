@@ -33,34 +33,6 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Utf8 targetArchName(const Runtime::TargetArch value)
-    {
-        switch (value)
-        {
-            case Runtime::TargetArch::X86_64:
-                return "X86_64";
-        }
-
-        SWC_UNREACHABLE();
-    }
-
-    Utf8 buildCfgBackendKindName(const Runtime::BuildCfgBackendKind value)
-    {
-        switch (value)
-        {
-            case Runtime::BuildCfgBackendKind::Executable:
-                return "exe";
-            case Runtime::BuildCfgBackendKind::Library:
-                return "dll";
-            case Runtime::BuildCfgBackendKind::Export:
-                return "lib";
-            case Runtime::BuildCfgBackendKind::None:
-                return "none";
-        }
-
-        SWC_UNREACHABLE();
-    }
-
     Utf8 filePathDisplayModeName(const FileSystem::FilePathDisplayMode value)
     {
         switch (value)
@@ -153,11 +125,11 @@ namespace
 
         printInfoLine(ctx, "command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::Yellow);
         printInfoLine(ctx, "targetOs", targetOsName(cmdLine.targetOs));
-        printInfoLine(ctx, "targetArch", targetArchName(cmdLine.targetArch));
+        printInfoLine(ctx, "targetArch", commandLineTargetArchName(cmdLine.targetArch));
         printInfoLine(ctx, "targetCpu", cmdLine.targetCpu);
         printInfoLine(ctx, "buildCfg", cmdLine.buildCfg);
-        printInfoLine(ctx, "targetArchName", cmdLine.targetArchName);
-        printInfoLine(ctx, "backendKind", buildCfgBackendKindName(buildCfg.backendKind));
+        printInfoLine(ctx, "targetArchName", commandLineTargetArchName(cmdLine.targetArch));
+        printInfoLine(ctx, "backendKind", commandLineBackendKindName(buildCfg.backendKind));
         printInfoLine(ctx, "name", Utf8(buildCfg.name));
         printInfoLine(ctx, "moduleNamespace", Utf8(buildCfg.moduleNamespace));
         printInfoLine(ctx, "workDir", Utf8(buildCfg.workDir));

@@ -122,7 +122,7 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
     if (!fs::exists(builder_.artifactPath))
         return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.artifactPath));
     if (builder_.compiler().buildCfg().backend.debugInfo &&
-        builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Export &&
+        builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary &&
         !fs::exists(builder_.pdbPath))
     {
         return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.pdbPath));

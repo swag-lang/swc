@@ -248,7 +248,7 @@ namespace
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
 
-        buildCfg.backendKind = commandLineBackendKind(cmdLine.backendKindName);
+        buildCfg.backendKind = cmdLine.backendKind;
 
         if (cmdLine.isTestMode())
         {
@@ -735,12 +735,7 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     if (auto* t = std::get_if<Utf8*>(&info.target))
     {
         if (info.isEnum())
-        {
-            const bool parsed = parseEnumString(ctx, info, arg, value, *t);
-            if (parsed && *t == &cmdLine_->backendKindName)
-                cmdLine_->artifactKindExplicit = true;
-            return parsed;
-        }
+            return parseEnumString(ctx, info, arg, value, *t);
         **t = value;
         return true;
     }
@@ -765,7 +760,12 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
         return true;
     }
     if (auto* t = std::get_if<EnumIntTarget>(&info.target))
-        return parseEnumInt(ctx, info, arg, value, *t);
+    {
+        const bool parsed = parseEnumInt(ctx, info, arg, value, *t);
+        if (parsed && t->target == &cmdLine_->backendKind)
+            cmdLine_->artifactKindExplicit = true;
+        return parsed;
+    }
 
     SWC_UNREACHABLE();
 }
@@ -901,11 +901,6 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     if (!cmdLine_->verboseVerifyFilter.empty())
         cmdLine_->verboseVerify = true;
 
-    if (cmdLine_->targetArchName == "x86_64")
-        cmdLine_->targetArch = Runtime::TargetArch::X86_64;
-    else
-        SWC_UNREACHABLE();
-
     if (cmdLine_->devFull)
     {
 #if SWC_HAS_UNITTEST
@@ -1030,16 +1025,22 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
         "Include runtime files in the input set.");
 
     addEnum(HelpOptionGroup::Target, "sema test build run", "--arch", "-a",
-            &cmdLine_->targetArchName,
-            std::vector<Utf8>{"x86_64"},
+            &cmdLine_->targetArch,
+            {
+                {"x86_64", Runtime::TargetArch::X86_64},
+            },
             "Set the target architecture used by #arch and compiler target queries.");
     addEnum(HelpOptionGroup::Target, "sema test build run", "--build-cfg", "-bc",
             &cmdLine_->buildCfg,
             splitPipe(registeredBuildCfgs),
             "Set the registered build configuration string used by #cfg and @compiler.getBuildCfg().");
     addEnum(HelpOptionGroup::Target, "sema test build run", "--artifact-kind", "-ak",
-            &cmdLine_->backendKindName,
-            std::vector<Utf8>{"exe", "dll", "lib"},
+            &cmdLine_->backendKind,
+            {
+                {"exe", Runtime::BuildCfgBackendKind::Executable},
+                {"dll", Runtime::BuildCfgBackendKind::SharedLibrary},
+                {"lib", Runtime::BuildCfgBackendKind::StaticLibrary},
+            },
             "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.");
     add(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu",
         &cmdLine_->targetCpu,

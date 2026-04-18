@@ -12,7 +12,7 @@
         cfg.moduleRevision  = #swcrevision
         cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "Pixel"
-        cfg.backendKind     = .Library
+        cfg.backendKind     = .StaticLibrary
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/pixel"
 
         cfg.genDoc.kind            = .Api

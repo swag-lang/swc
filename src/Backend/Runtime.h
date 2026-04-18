@@ -376,9 +376,9 @@ namespace Runtime
     enum class BuildCfgBackendKind
     {
         None,
-        Export,
+        SharedLibrary,
         Executable,
-        Library,
+        StaticLibrary,
     };
 
     enum class BuildCfgBackendSubKind

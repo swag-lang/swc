@@ -62,7 +62,7 @@ struct CommandLine
     bool stats            = false;
     bool statsMem         = false;
     bool clear            = false;
-    bool verboseInfo      = false;
+    bool dryRun           = false;
     bool verboseVerify    = false;
     bool sourceDrivenTest = false;
     bool testNative       = true;

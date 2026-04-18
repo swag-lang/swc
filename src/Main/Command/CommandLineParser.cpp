@@ -1135,9 +1135,9 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
         &cmdLine_->verboseVerifyFilter,
         "Restrict --verbose-verify output to messages or diagnostic IDs matching a specific string.");
 
-    add(HelpOptionGroup::Development, "all", "--verbose-info", "-vi",
-        &cmdLine_->verboseInfo,
-        "Print computed command, environment, toolchain and native artifact information before running the command.");
+    add(HelpOptionGroup::Development, "all", "--dry-run", "-dr",
+        &cmdLine_->dryRun,
+        "Print computed command, environment, toolchain and native artifact information without running the command.");
     add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds",
         &CompilerInstance::dbgDevStop,
         "Open a message box when an error is reported.");

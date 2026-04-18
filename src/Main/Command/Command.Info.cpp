@@ -170,7 +170,7 @@ namespace
         printInfoLine(ctx, "silent", boolToUtf8(cmdLine.silent));
         printInfoLine(ctx, "stats", boolToUtf8(cmdLine.stats));
         printInfoLine(ctx, "clear", boolToUtf8(cmdLine.clear));
-        printInfoLine(ctx, "verboseInfo", boolToUtf8(cmdLine.verboseInfo));
+        printInfoLine(ctx, "dryRun", boolToUtf8(cmdLine.dryRun));
         printInfoLine(ctx, "verboseVerify", boolToUtf8(cmdLine.verboseVerify));
         printInfoLine(ctx, "sourceDrivenTest", boolToUtf8(cmdLine.isTestMode()));
         printInfoLine(ctx, "testNative", boolToUtf8(cmdLine.testNative));
@@ -218,7 +218,7 @@ namespace
 
 namespace Command
 {
-    void verboseInfo(CompilerInstance& compiler)
+    void dryRun(CompilerInstance& compiler)
     {
         const TaskContext           ctx(compiler);
         const Logger::ScopedLock    loggerLock{ctx.global().logger()};

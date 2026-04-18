@@ -263,8 +263,11 @@ void CompilerInstance::logStats()
 void CompilerInstance::processCommand()
 {
     const Timer time(&Stats::get().timeTotal);
-    if (cmdLine().verboseInfo)
-        Command::verboseInfo(*this);
+    if (cmdLine().dryRun)
+    {
+        Command::dryRun(*this);
+        return;
+    }
 
     switch (cmdLine().command)
     {

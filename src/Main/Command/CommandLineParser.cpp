@@ -248,14 +248,7 @@ namespace
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
 
-        if (cmdLine.backendKindName == "exe")
-            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Executable;
-        else if (cmdLine.backendKindName == "dll")
-            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Library;
-        else if (cmdLine.backendKindName == "lib")
-            buildCfg.backendKind = Runtime::BuildCfgBackendKind::Export;
-        else
-            SWC_UNREACHABLE();
+        buildCfg.backendKind = commandLineBackendKind(cmdLine.backendKindName);
 
         if (cmdLine.isTestMode())
         {
@@ -742,7 +735,12 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     if (auto* t = std::get_if<Utf8*>(&info.target))
     {
         if (info.isEnum())
-            return parseEnumString(ctx, info, arg, value, *t);
+        {
+            const bool parsed = parseEnumString(ctx, info, arg, value, *t);
+            if (parsed && *t == &cmdLine_->backendKindName)
+                cmdLine_->artifactKindExplicit = true;
+            return parsed;
+        }
         **t = value;
         return true;
     }

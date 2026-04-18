@@ -65,6 +65,7 @@ struct CommandLine
     bool dryRun           = false;
     bool verboseVerify    = false;
     bool sourceDrivenTest = false;
+    bool artifactKindExplicit = false;
     bool testNative       = true;
     bool testJit          = true;
     bool lexOnly          = false;
@@ -172,6 +173,24 @@ inline Utf8 commandLineDefaultModuleNamespace(const Utf8& artifactName)
     if (!result.empty() && result[0] >= 'a' && result[0] <= 'z')
         result[0] = static_cast<char>(result[0] - 'a' + 'A');
     return result;
+}
+
+inline Runtime::BuildCfgBackendKind commandLineBackendKind(const Utf8& backendKindName)
+{
+    if (backendKindName == "exe")
+        return Runtime::BuildCfgBackendKind::Executable;
+    if (backendKindName == "dll")
+        return Runtime::BuildCfgBackendKind::Library;
+    if (backendKindName == "lib")
+        return Runtime::BuildCfgBackendKind::Export;
+    SWC_UNREACHABLE();
+}
+
+inline Runtime::BuildCfgBackendKind commandLineEffectiveBackendKind(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind currentKind)
+{
+    if (cmdLine.artifactKindExplicit)
+        return commandLineBackendKind(cmdLine.backendKindName);
+    return currentKind;
 }
 
 SWC_END_NAMESPACE();

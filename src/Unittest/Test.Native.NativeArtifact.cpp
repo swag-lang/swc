@@ -283,6 +283,26 @@ SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceOverrideWins)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_ExplicitArtifactKindOverridesBuildCfgMutation)
+{
+    CommandLine cmdLine;
+    cmdLine.command              = CommandKind::Build;
+    cmdLine.buildCfg             = "debug";
+    cmdLine.backendKindName      = "dll";
+    cmdLine.artifactKindExplicit = true;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Export) != Runtime::BuildCfgBackendKind::Library)
+        return Result::Error;
+    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::Library)
+        return Result::Error;
+
+    cmdLine.artifactKindExplicit = false;
+    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Export) != Runtime::BuildCfgBackendKind::Export)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_keeps_only_referenced_constants", "dll");

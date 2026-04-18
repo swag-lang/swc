@@ -9,11 +9,12 @@ namespace
 {
     SymbolMap* followNamespace(Sema& sema, SymbolMap* root, std::span<const IdentifierRef> nsPath)
     {
+        constexpr SymbolFlags namespaceFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
         SymbolMap* m = root;
         for (const IdentifierRef idRef : nsPath)
         {
             TaskContext& ctx = sema.ctx();
-            auto*        ns  = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
+            auto*        ns  = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, namespaceFlags);
             Symbol*      res = m->addSingleSymbol(ctx, ns);
             SWC_ASSERT(res->isNamespace());
             m = res->asSymMap();

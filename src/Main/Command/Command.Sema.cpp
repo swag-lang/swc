@@ -70,8 +70,9 @@ namespace Command
         if (moduleNamespaceName.empty())
             moduleNamespaceName = commandLineDefaultModuleNamespace(commandLineDefaultArtifactName(compiler.cmdLine()));
 
-        const IdentifierRef idRef = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));
-        auto*               moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
+        constexpr SymbolFlags namespaceFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+        const IdentifierRef   idRef          = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));
+        auto*                 moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, namespaceFlags);
         symModule->addSingleSymbol(ctx, moduleNamespace);
         compiler.setSymModule(symModule);
 

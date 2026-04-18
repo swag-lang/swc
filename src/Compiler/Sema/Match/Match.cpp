@@ -21,6 +21,17 @@ namespace
         return lhs.kind() < rhs.kind();
     }
 
+    void addCurrentModuleNamespaceSymbol(Sema& sema, MatchContext& lookUpCxt, uint16_t scopeDepth)
+    {
+        if (!sema.moduleNamespace().idRef().isValid())
+            return;
+
+        MatchContext::Priority priority;
+        priority.scopeDepth = scopeDepth;
+        priority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
+        lookUpCxt.localSymbols.push_back({.symbol = &sema.moduleNamespace(), .priority = priority});
+    }
+
     Result reportUsingCurrentModuleNamespace(Sema& sema, const MatchContext& lookUpCxt)
     {
         if (lookUpCxt.count() != 1)
@@ -209,6 +220,8 @@ namespace
             priority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
             addSymMap(lookUpCxt, &sema.moduleNamespace(), priority);
         }
+
+        addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(scopeDepth + 2));
     }
 
     void lookup(MatchContext& lookUpCxt, IdentifierRef idRef)

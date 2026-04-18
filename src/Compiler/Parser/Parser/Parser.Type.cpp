@@ -29,8 +29,7 @@ AstNodeRef Parser::parseRetValType()
 
 AstNodeRef Parser::parseSingleType()
 {
-    const auto parseAnonymousAggregateBody = [this]() -> AstNodeRef
-    {
+    const auto parseAnonymousAggregateBody = [this]() -> AstNodeRef {
         const ParserContextFlags savedFlags = contextFlags_;
         contextFlags_.remove(ParserContextFlagsE::InUsingMemberDecl);
         const AstNodeRef bodyRef = parseAggregateBody();

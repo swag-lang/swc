@@ -1784,9 +1784,9 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
     if (res != Result::Continue && srcType.isStruct())
     {
-        SymbolFunction* calledFn = nullptr;
-        const SourceCodeRef codeRef = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
-                                                                                                                                       : sema.node(sema.curNodeRef()).codeRef();
+        SymbolFunction*     calledFn = nullptr;
+        const SourceCodeRef codeRef  = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
+                                                                                                                                          : sema.node(sema.curNodeRef()).codeRef();
         SWC_RESULT(resolveStructOpCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, castRequest.errorNodeRef));
         if (calledFn)
         {
@@ -1868,7 +1868,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     // Success !
     if (result == Result::Continue)
     {
-        StructOpCastData     structOpCastData;
+        StructOpCastData structOpCastData;
         SWC_RESULT(prepareStructOpCast(sema, structOpCastData, view, castRequest, effectiveFlags));
         StructAffectCastData structAffectData;
         if (!structOpCastData.calledFn)

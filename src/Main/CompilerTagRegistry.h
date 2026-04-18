@@ -9,8 +9,8 @@ class TaskContext;
 
 struct CompilerTag
 {
-    Utf8       name;
-    Utf8       source;
+    Utf8        name;
+    Utf8        source;
     ConstantRef cstRef = ConstantRef::invalid();
 };
 

@@ -34,14 +34,14 @@ using CastFlags = EnumFlags<CastFlagsE>;
 
 struct CastRequest
 {
-    CastKind      kind         = CastKind::Implicit;
-    CastFlags     flags        = CastFlagsE::Zero;
-    AstNodeRef    errorNodeRef = AstNodeRef::invalid();
-    SourceCodeRef errorCodeRef = SourceCodeRef::invalid();
-    ConstantRef   srcConstRef  = ConstantRef::invalid();
-    ConstantRef   outConstRef  = ConstantRef::invalid();
+    CastKind        kind                 = CastKind::Implicit;
+    CastFlags       flags                = CastFlagsE::Zero;
+    AstNodeRef      errorNodeRef         = AstNodeRef::invalid();
+    SourceCodeRef   errorCodeRef         = SourceCodeRef::invalid();
+    ConstantRef     srcConstRef          = ConstantRef::invalid();
+    ConstantRef     outConstRef          = ConstantRef::invalid();
     SymbolFunction* selectedStructOpCast = nullptr;
-    CastFailure   failure{};
+    CastFailure     failure{};
 
     CastRequest() = delete;
     explicit CastRequest(CastKind kind);

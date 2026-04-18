@@ -850,10 +850,10 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerTestFunctionsPreserveStackDebugMetadata");
 
     CommandLine cmdLine;
-    cmdLine.command         = CommandKind::Test;
-    cmdLine.buildCfg        = "debug";
-    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::SharedLibrary;
-    cmdLine.name            = "compiler_test_debug";
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.buildCfg    = "debug";
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.name        = "compiler_test_debug";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -913,10 +913,10 @@ var GValue: s32 = 7
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerFilePrivateGlobalsReachCodeViewDataSymbols");
 
     CommandLine cmdLine;
-    cmdLine.command         = CommandKind::Test;
-    cmdLine.buildCfg        = "debug";
-    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::SharedLibrary;
-    cmdLine.name            = "compiler_fileprivate_global_debug";
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.buildCfg    = "debug";
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.name        = "compiler_fileprivate_global_debug";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 

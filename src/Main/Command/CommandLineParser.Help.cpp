@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Main/Command/Command.Print.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/Command/Command.Print.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
@@ -18,9 +18,9 @@ namespace
 
     struct HelpOptionEntry
     {
-        const ArgInfo*   arg = nullptr;
-        Utf8             displayName;
-        HelpOptionGroup  group = HelpOptionGroup::Other;
+        const ArgInfo*  arg = nullptr;
+        Utf8            displayName;
+        HelpOptionGroup group = HelpOptionGroup::Other;
     };
 
     Utf8 formatPathValue(const fs::path& value)
@@ -216,7 +216,7 @@ namespace
 
 void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 {
-    const Logger::ScopedLock loggerLock(ctx.global().logger());
+    const Logger::ScopedLock        loggerLock(ctx.global().logger());
     std::vector<Logger::FieldEntry> entries;
     bool                            hasPrintedGroup = false;
 
@@ -266,8 +266,8 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
     std::ranges::sort(helpEntries, optionEntryLess);
 
-    HelpOptionGroup                currentGroup = HelpOptionGroup::Other;
-    bool                           firstGroup   = true;
+    auto                            currentGroup = HelpOptionGroup::Other;
+    bool                            firstGroup   = true;
     std::vector<Logger::FieldEntry> groupEntries;
     for (const HelpOptionEntry& entry : helpEntries)
     {

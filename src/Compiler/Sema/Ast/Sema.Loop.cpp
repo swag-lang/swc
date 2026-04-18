@@ -267,7 +267,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SWC_RESULT(appendForeachAliasSymbols(sema, symbols, payload, *this, valueTypeRef, indexTypeRef));
 
         const size_t stateIndex = symbols.size();
-        auto& stateSym          = getOrCreateLoopLocalSymbol(payload, stateIndex, [&]() -> SymbolVariable& {
+        auto&        stateSym   = getOrCreateLoopLocalSymbol(payload, stateIndex, [&]() -> SymbolVariable& {
             return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state");
         });
         SWC_RESULT(ensureLoopLocalStorage(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));

@@ -1138,7 +1138,7 @@ namespace
         if (genericArgNodes.size() > params.size())
             return Result::Continue;
 
-        const AstNodeRef errorNodeRef = genericArgNodes.empty() ? sema.curNodeRef() : genericArgNodes.front();
+        const AstNodeRef                             errorNodeRef = genericArgNodes.empty() ? sema.curNodeRef() : genericArgNodes.front();
         SmallVector<SemaGeneric::GenericResolvedArg> resolvedArgs(params.size());
         for (size_t i = 0; i < genericArgNodes.size(); ++i)
             SWC_RESULT(SemaGeneric::resolveExplicitGenericArg(sema, params[i], genericArgNodes[i], resolvedArgs[i]));
@@ -1203,7 +1203,7 @@ namespace SemaGeneric
         if (params.empty())
             return Result::Continue;
 
-        const AstNodeRef errorNodeRef = sema.curNodeRef();
+        const AstNodeRef                errorNodeRef = sema.curNodeRef();
         SmallVector<GenericResolvedArg> resolvedArgs(params.size());
         SWC_RESULT(deduceGenericFunctionArgs(sema, genericRoot, params.span(), resolvedArgs, args, ufcsArg, outFailure, outFailureArgIndex));
         if (outFailure && outFailure->diagId != DiagnosticId::None)

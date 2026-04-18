@@ -1102,7 +1102,7 @@ namespace
         {
             std::unique_ptr<Sema> declSemaHolder;
             Sema&                 declSema = semaForFunctionDecl(sema, fn, declSemaHolder);
-            const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
+            const auto*           decl     = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
             if (!decl || decl->nodeParamsRef.isInvalid())
                 return Result::Continue;
 

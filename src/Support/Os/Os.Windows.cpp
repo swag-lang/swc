@@ -875,8 +875,8 @@ namespace Os
     {
         outExitCode = 0;
 
-        const Utf8 commandLineUtf8 = formatProcessCommandLine(exePath, args);
-        const std::wstring commandLine = toWide(commandLineUtf8);
+        const Utf8         commandLineUtf8 = formatProcessCommandLine(exePath, args);
+        const std::wstring commandLine     = toWide(commandLineUtf8);
 
         STARTUPINFOW        startupInfo{};
         PROCESS_INFORMATION processInfo{};

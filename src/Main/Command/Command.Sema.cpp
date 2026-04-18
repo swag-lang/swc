@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
-#include "Main/Command/CommandLine.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -70,8 +70,8 @@ namespace Command
         if (moduleNamespaceName.empty())
             moduleNamespaceName = commandLineDefaultModuleNamespace(commandLineDefaultArtifactName(compiler.cmdLine()));
 
-        constexpr SymbolFlags namespaceFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
-        const IdentifierRef   idRef          = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));
+        constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+        const IdentifierRef   idRef           = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));
         auto*                 moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, namespaceFlags);
         symModule->addSingleSymbol(ctx, moduleNamespace);
         compiler.setSymModule(symModule);

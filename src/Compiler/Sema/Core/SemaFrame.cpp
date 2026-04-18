@@ -10,7 +10,7 @@ namespace
     SymbolMap* followNamespace(Sema& sema, SymbolMap* root, std::span<const IdentifierRef> nsPath)
     {
         constexpr SymbolFlags namespaceFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
-        SymbolMap* m = root;
+        SymbolMap*            m              = root;
         for (const IdentifierRef idRef : nsPath)
         {
             TaskContext& ctx = sema.ctx();

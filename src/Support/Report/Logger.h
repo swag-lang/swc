@@ -20,9 +20,9 @@ public:
         Utf8                        label;
         Utf8                        value;
         std::vector<FieldValuePart> valueParts;
-        LogColor                    labelColor = LogColor::Gray;
-        LogColor                    valueColor = LogColor::White;
-        uint32_t indentLevel = 0;
+        LogColor                    labelColor  = LogColor::Gray;
+        LogColor                    valueColor  = LogColor::White;
+        uint32_t                    indentLevel = 0;
     };
 
     struct FieldGroupStyle

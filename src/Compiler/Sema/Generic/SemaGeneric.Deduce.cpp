@@ -488,8 +488,8 @@ namespace
     {
         outParams.clear();
         std::unique_ptr<Sema> declSemaHolder;
-        Sema&                 declSema = semaForFunctionDecl(sema, root, declSemaHolder);
-        const auto& symbolParams = root.parameters();
+        Sema&                 declSema     = semaForFunctionDecl(sema, root, declSemaHolder);
+        const auto&           symbolParams = root.parameters();
         if (!symbolParams.empty())
         {
             outParams.reserve(symbolParams.size());

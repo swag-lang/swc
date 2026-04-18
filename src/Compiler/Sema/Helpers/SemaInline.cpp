@@ -2,8 +2,8 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
@@ -859,7 +859,7 @@ namespace
                 params[numFixed - 1]->type(sema.ctx()).isCodeBlock() &&
                 !isBindingAssigned(bound[numFixed - 1]))
             {
-                const size_t trailingParamIndex = numFixed - 1;
+                const size_t trailingParamIndex   = numFixed - 1;
                 bound[trailingParamIndex].idRef   = params[trailingParamIndex]->idRef();
                 bound[trailingParamIndex].exprRef = bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef);
                 continue;

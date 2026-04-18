@@ -30,12 +30,12 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeIdentRef)
     {
         const SemaNodeView identView{sema, nodeIdentRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol};
-        IdentifierRef      idRef     = IdentifierRef::invalid();
+        IdentifierRef      idRef = IdentifierRef::invalid();
         if (identView.hasSymbol())
             idRef = identView.sym()->idRef();
         else
             idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node()->codeRef());
-        auto*               sym       = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
+        auto* sym = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
 
         // An `impl` block will be registered to its target (struct/enum/interface) only in the

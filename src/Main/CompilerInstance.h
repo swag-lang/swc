@@ -118,14 +118,14 @@ public:
     bool                         setMainFunc(AstCompilerFunc* node);
     AstCompilerFunc*             mainFunc() const { return mainFunc_; }
 
-    bool                     registerForeignLib(std::string_view name);
-    const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
-    const CompilerTag*       findCompilerTag(std::string_view name) const;
+    bool                            registerForeignLib(std::string_view name);
+    const std::vector<Utf8>&        foreignLibs() const { return foreignLibs_; }
+    const CompilerTag*              findCompilerTag(std::string_view name) const;
     const std::vector<CompilerTag>& compilerTags() const { return compilerTags_.all(); }
-    void                     registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
-    SymbolFunction*          runtimeFunctionSymbol(IdentifierRef idRef) const;
-    bool                     tryRegisterReportedDiagnostic(std::string_view message);
-    void                     registerInMemoryFile(fs::path path, std::string_view content);
+    void                            registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
+    SymbolFunction*                 runtimeFunctionSymbol(IdentifierRef idRef) const;
+    bool                            tryRegisterReportedDiagnostic(std::string_view message);
+    void                            registerInMemoryFile(fs::path path, std::string_view content);
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *(files_[ref.get()].get()); }

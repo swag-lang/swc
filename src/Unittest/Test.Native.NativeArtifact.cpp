@@ -249,10 +249,10 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceDefaultsFromModulePath)
 {
     CommandLine cmdLine;
-    cmdLine.command         = CommandKind::Build;
-    cmdLine.buildCfg        = "debug";
-    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::SharedLibrary;
-    cmdLine.modulePath      = fs::path("bin/std/modules/win32");
+    cmdLine.command     = CommandKind::Build;
+    cmdLine.buildCfg    = "debug";
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.modulePath  = fs::path("bin/std/modules/win32");
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     if (Utf8(cmdLine.defaultBuildCfg.moduleNamespace) != "Win32")
@@ -516,10 +516,10 @@ var GValue: s32 = 0
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "CompilerRunExprInsideTestKeepsJitRunnable");
 
     CommandLine cmdLine;
-    cmdLine.command         = CommandKind::Test;
-    cmdLine.buildCfg        = "debug";
-    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::Executable;
-    cmdLine.name            = "compiler_run_expr_test";
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.buildCfg    = "debug";
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
+    cmdLine.name        = "compiler_run_expr_test";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -616,10 +616,10 @@ impl Buffer
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "SilentSpecOpProbeDoesNotDropStructCopyTests");
 
     CommandLine cmdLine;
-    cmdLine.command         = CommandKind::Test;
-    cmdLine.buildCfg        = "debug";
-    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::Executable;
-    cmdLine.name            = "silent_spec_op_probe";
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.buildCfg    = "debug";
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
+    cmdLine.name        = "silent_spec_op_probe";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 

@@ -269,11 +269,11 @@ void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::s
     entry.valueColor = msgColor;
 
     FieldGroupStyle style;
-    const size_t legacyColumn = messageColumn > 2 ? messageColumn - 2 : 0;
-    style.blankLineBefore = false;
-    style.minLabelWidth   = std::min(legacyColumn, static_cast<size_t>(28));
-    style.maxLabelWidth   = style.minLabelWidth;
-    style.maxLineWidth    = std::max(style.maxLineWidth, style.minLabelWidth + 2 + displayWidth(message));
+    const size_t    legacyColumn = messageColumn > 2 ? messageColumn - 2 : 0;
+    style.blankLineBefore        = false;
+    style.minLabelWidth          = std::min(legacyColumn, static_cast<size_t>(28));
+    style.maxLabelWidth          = style.minLabelWidth;
+    style.maxLineWidth           = std::max(style.maxLineWidth, style.minLabelWidth + 2 + displayWidth(message));
     printField(ctx, entry, style);
 }
 

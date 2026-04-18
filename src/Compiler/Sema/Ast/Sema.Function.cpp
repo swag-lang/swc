@@ -842,7 +842,7 @@ namespace
         SmallVector<Symbol*> symbols;
         collectCalleeSymbolsWithFallback(sema, nodeCallee, symbols);
 
-        const AstNodeRef ufcsArg = resolveUfcsReceiverArg(sema, call.nodeExprRef);
+        const AstNodeRef ufcsArg        = resolveUfcsReceiverArg(sema, call.nodeExprRef);
         TypeRef          bindingTypeRef = TypeRef::invalid();
         for (Symbol* const sym : symbols)
         {

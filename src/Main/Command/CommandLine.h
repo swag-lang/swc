@@ -32,9 +32,9 @@ struct CommandLine
 {
     CommandKind command = CommandKind::Syntax;
 
-    Runtime::TargetOs            targetOs     = Runtime::TargetOs::Windows;
-    Runtime::TargetArch          targetArch   = Runtime::TargetArch::X86_64;
-    Runtime::BuildCfgBackendKind backendKind  = Runtime::BuildCfgBackendKind::Executable;
+    Runtime::TargetOs            targetOs    = Runtime::TargetOs::Windows;
+    Runtime::TargetArch          targetArch  = Runtime::TargetArch::X86_64;
+    Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::Executable;
 
 #if defined(_M_X64) || defined(__x86_64__)
     Utf8 targetCpu = "x86_64";
@@ -44,7 +44,7 @@ struct CommandLine
     Utf8 targetCpu = "unknown-cpu";
 #endif
 
-    Utf8                buildCfg        = "fast-debug";
+    Utf8                buildCfg = "fast-debug";
     Utf8                name;
     Utf8                moduleNamespace;
     Utf8                moduleNamespaceStorage;
@@ -52,27 +52,27 @@ struct CommandLine
     Utf8                workDirStorage;
     std::optional<bool> backendOptimize;
 
-    bool logColor         = true;
-    bool logAscii         = false;
-    bool syntaxColor      = true;
-    bool diagOneLine      = false;
-    bool errorId          = false;
-    bool silent           = false;
-    bool stats            = false;
-    bool statsMem         = false;
-    bool clear            = false;
-    bool dryRun           = false;
-    bool showConfig       = false;
-    bool verboseVerify      = false;
-    bool sourceDrivenTest   = false;
+    bool logColor             = true;
+    bool logAscii             = false;
+    bool syntaxColor          = true;
+    bool diagOneLine          = false;
+    bool errorId              = false;
+    bool silent               = false;
+    bool stats                = false;
+    bool statsMem             = false;
+    bool clear                = false;
+    bool dryRun               = false;
+    bool showConfig           = false;
+    bool verboseVerify        = false;
+    bool sourceDrivenTest     = false;
     bool artifactKindExplicit = false;
-    bool testNative        = true;
-    bool testJit           = true;
-    bool lexOnly           = false;
-    bool syntaxOnly        = false;
-    bool semaOnly          = false;
-    bool output            = true;
-    bool runtime           = true;
+    bool testNative           = true;
+    bool testJit              = true;
+    bool lexOnly              = false;
+    bool syntaxOnly           = false;
+    bool semaOnly             = false;
+    bool output               = true;
+    bool runtime              = true;
 
     bool devFull = false;
 
@@ -100,8 +100,8 @@ struct CommandLine
     uint32_t                        diagMaxColumn   = 120;
     FileSystem::FilePathDisplayMode filePathDisplay = FileSystem::FilePathDisplayMode::Absolute;
 
-    Utf8           verboseVerifyFilter;
-    std::set<Utf8> fileFilter;
+    Utf8              verboseVerifyFilter;
+    std::set<Utf8>    fileFilter;
     std::vector<Utf8> tags;
 
     std::set<fs::path> directories;

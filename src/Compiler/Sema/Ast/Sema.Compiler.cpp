@@ -324,7 +324,7 @@ namespace
             node.is(AstNodeId::IntrinsicCallExpr))
         {
             const SemaNodeView symView(sema, nodeRef, SemaNodeViewPartE::Symbol);
-            const auto* const calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
+            const auto* const  calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
             if (!calledFn || !calledFn->attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             {
                 outBadRef = nodeRef;
@@ -1115,8 +1115,8 @@ namespace
         if (children.size() != 3)
             return Result::Continue;
 
-        const AstNodeRef nameRef        = children[0];
-        const AstNodeRef typeNodeRef    = children[1];
+        const AstNodeRef nameRef         = children[0];
+        const AstNodeRef typeNodeRef     = children[1];
         const AstNodeRef defaultValueRef = children[2];
 
         std::string_view tagName;
@@ -1310,7 +1310,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     const Token& tok                = sema.token(codeRef());
     const bool   ignoreTestFunc     = tok.id == TokenId::CompilerFuncTest && !ctx.cmdLine().isTestMode();
     const bool   ignoreMainFunc     = tok.id == TokenId::CompilerFuncMain && (ctx.cmdLine().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary ||
-                                                                               ctx.cmdLine().backendKind == Runtime::BuildCfgBackendKind::StaticLibrary);
+                                                                        ctx.cmdLine().backendKind == Runtime::BuildCfgBackendKind::StaticLibrary);
     const bool   ignoreCompilerFunc = ignoreTestFunc || ignoreMainFunc;
 
     if (tok.id == TokenId::CompilerFuncMain && !ignoreMainFunc)

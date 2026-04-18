@@ -19,7 +19,7 @@ enum class CastSpecialOpPayloadKind : uint8_t
 
 struct CastAffectPayload
 {
-    CastSpecialOpPayloadKind kind                = CastSpecialOpPayloadKind::Affect;
+    CastSpecialOpPayloadKind kind               = CastSpecialOpPayloadKind::Affect;
     SymbolFunction*          calledFn           = nullptr;
     ConstantRef              receiverInitCstRef = ConstantRef::invalid();
 };

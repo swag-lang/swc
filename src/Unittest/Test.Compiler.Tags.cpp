@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 SWC_TEST_BEGIN(Compiler_CommandLineTagsReachSema)
 {
-    static constexpr std::string_view SOURCE = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global fileprivate
 #assert(#hastag("User.Flag"))
 #assert(#gettag("User.Flag", bool, false))
 #assert(#gettag("User.Count", u64, 0) == 42)
@@ -23,7 +23,7 @@ SWC_TEST_BEGIN(Compiler_CommandLineTagsReachSema)
 #assert(#gettag("User.Name", string, "fallback") == "hello")
 #assert(#gettag("User.Missing", string, "fallback") == "fallback")
 )";
-    const fs::path                  sourcePath = Unittest::makeTestSourcePath("Compiler", "CommandLineTagsReachSema");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "CommandLineTagsReachSema");
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Sema;
@@ -57,10 +57,10 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_InternalTagPrecedesUserOverride)
 {
-    static constexpr std::string_view SOURCE = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global fileprivate
 #assert(#gettag("Swag.Endian", string, "big") == "little")
 )";
-    const fs::path                  sourcePath = Unittest::makeTestSourcePath("Compiler", "InternalTagPrecedesUserOverride");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InternalTagPrecedesUserOverride");
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Sema;

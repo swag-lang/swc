@@ -73,16 +73,16 @@ SWC_TEST_BEGIN(ConstantValue_MakesNullableCStringFromRuntimePointer)
 {
     const TypeRef nullableCStringTypeRef = ctx.typeMgr().addType(TypeInfo::makeCString(TypeInfoFlagsE::Nullable));
 
-    const uint64_t rawPtr = 0x1234;
-    ConstantValue   value = ConstantValue::make(ctx, &rawPtr, nullableCStringTypeRef);
+    constexpr uint64_t rawPtr = 0x1234;
+    ConstantValue      value  = ConstantValue::make(ctx, &rawPtr, nullableCStringTypeRef);
     if (!value.isBlockPointer() || value.typeRef() != nullableCStringTypeRef)
         return Result::Error;
 
     if (value.getBlockPointer() != rawPtr)
         return Result::Error;
 
-    const uint64_t nullPtr = 0;
-    value                  = ConstantValue::make(ctx, &nullPtr, nullableCStringTypeRef);
+    constexpr uint64_t nullPtr = 0;
+    value                      = ConstantValue::make(ctx, &nullPtr, nullableCStringTypeRef);
     if (!value.isNull() || value.typeRef() != nullableCStringTypeRef)
         return Result::Error;
 }

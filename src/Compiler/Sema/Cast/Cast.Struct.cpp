@@ -580,7 +580,7 @@ Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeR
     const SymbolStruct& ownerStruct = srcType.payloadSymStruct();
     SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, codeRef));
 
-    const IdentifierRef            opCastId    = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCast);
+    const IdentifierRef                opCastId   = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCast);
     const SmallVector<SymbolFunction*> candidates = ownerStruct.getSpecOp(opCastId);
     if (candidates.empty())
         return Result::Continue;

@@ -65,7 +65,7 @@ namespace
         if (node.isNot(AstNodeId::ArrayLiteral))
             return {};
 
-        const auto&     literal = node.cast<AstArrayLiteral>();
+        const auto&      literal = node.cast<AstArrayLiteral>();
         const AstNodeRef nodeRef = args.sema->ast().nthNode(literal.spanChildrenRef, elemIndex);
         if (nodeRef.isInvalid())
             return {};
@@ -153,7 +153,7 @@ namespace
         for (size_t i = 0; i < values.size(); ++i)
         {
             const ArrayElemLocation location = arrayElemLocation(args, i);
-            ConstantRef castedRef;
+            ConstantRef             castedRef;
             SWC_RESULT(foldElemCast(args, srcElemTypeRef, dstElemTypeRef, location, values[i], castedRef));
             newValues.push_back(castedRef);
         }
@@ -212,7 +212,7 @@ namespace
             for (size_t i = 0; i < values.size(); ++i)
             {
                 const ArrayElemLocation location = arrayElemLocation(args, i);
-                ConstantRef castedRef;
+                ConstantRef             castedRef;
                 SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, location, values[i], castedRef));
                 const ByteSpanRW dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
@@ -250,7 +250,7 @@ namespace
         for (size_t i = 0; i < values.size(); ++i)
         {
             const ArrayElemLocation location = arrayElemLocation(args, i);
-            ConstantRef castedRef;
+            ConstantRef             castedRef;
             SWC_RESULT(foldElemCast(args, srcTypes[i], dstElemTypeRef, location, values[i], castedRef));
             newValues.push_back(castedRef);
         }

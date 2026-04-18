@@ -42,13 +42,13 @@ struct SliceSpecOpSemaPayload : IndexSpecOpPayloadBase
         kind = IndexSpecOpPayloadKind::ReadSlice;
     }
 
-    SymbolFunction* calledFn     = nullptr;
-    SymbolFunction* countFn      = nullptr;
-    AstNodeRef       lowerArgRef = AstNodeRef::invalid();
-    AstNodeRef       upperArgRef = AstNodeRef::invalid();
-    AstNodeRef       lowerBoundRef = AstNodeRef::invalid();
-    AstNodeRef       upperBoundRef = AstNodeRef::invalid();
-    bool             inclusive     = false;
+    SymbolFunction* calledFn      = nullptr;
+    SymbolFunction* countFn       = nullptr;
+    AstNodeRef      lowerArgRef   = AstNodeRef::invalid();
+    AstNodeRef      upperArgRef   = AstNodeRef::invalid();
+    AstNodeRef      lowerBoundRef = AstNodeRef::invalid();
+    AstNodeRef      upperBoundRef = AstNodeRef::invalid();
+    bool            inclusive     = false;
 };
 
 SWC_END_NAMESPACE();

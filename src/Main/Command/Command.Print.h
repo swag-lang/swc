@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace CommandPrint
 {
-    inline constexpr LogColor helpArgumentLabelColor()
+    constexpr LogColor helpArgumentLabelColor()
     {
         return LogColor::BrightBlue;
     }

@@ -157,7 +157,7 @@ namespace
 
         const TypeRef   indexedTypeRef = resolveIndexedExprTypeRef(sema, nodeExprView);
         const TypeInfo& indexedType    = sema.typeMgr().get(indexedTypeRef);
-        const TypeRef resultTypeRef = sliceResultTypeRef(sema, nodeExprView);
+        const TypeRef   resultTypeRef  = sliceResultTypeRef(sema, nodeExprView);
         if (!resultTypeRef.isValid())
             return SemaError::raiseTypeNotIndexable(sema, node.nodeExprRef, nodeExprView.typeRef());
 
@@ -227,8 +227,8 @@ namespace
 
 Result AstIndexExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView = sema.viewTypeConstant(nodeExprRef);
-    const SemaNodeView nodeArgView  = sema.viewTypeConstant(nodeArgRef);
+    const SemaNodeView nodeExprView   = sema.viewTypeConstant(nodeExprRef);
+    const SemaNodeView nodeArgView    = sema.viewTypeConstant(nodeArgRef);
     const TypeRef      indexedTypeRef = resolveIndexedExprTypeRef(sema, nodeExprView);
     const TypeInfo&    indexedType    = sema.typeMgr().get(indexedTypeRef);
 
@@ -342,7 +342,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
 Result AstIndexListExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView = sema.viewTypeConstant(nodeExprRef);
+    const SemaNodeView nodeExprView   = sema.viewTypeConstant(nodeExprRef);
     const TypeRef      indexedTypeRef = resolveIndexedExprTypeRef(sema, nodeExprView);
     const TypeInfo&    indexedType    = sema.typeMgr().get(indexedTypeRef);
 

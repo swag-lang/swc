@@ -261,10 +261,10 @@ namespace
             cmdLine.moduleNamespaceStorage = commandLineDefaultModuleNamespace(commandLineDefaultArtifactName(cmdLine));
 
         buildCfg.moduleNamespace = Utf8Helper::runtimeStringFromUtf8(cmdLine.moduleNamespaceStorage);
-        buildCfg.name           = Utf8Helper::runtimeStringFromUtf8(cmdLine.name);
-        buildCfg.outDir         = Utf8Helper::runtimeStringFromUtf8(cmdLine.outDirStorage);
-        buildCfg.workDir        = Utf8Helper::runtimeStringFromUtf8(cmdLine.workDirStorage);
-        cmdLine.defaultBuildCfg = buildCfg;
+        buildCfg.name            = Utf8Helper::runtimeStringFromUtf8(cmdLine.name);
+        buildCfg.outDir          = Utf8Helper::runtimeStringFromUtf8(cmdLine.outDirStorage);
+        buildCfg.workDir         = Utf8Helper::runtimeStringFromUtf8(cmdLine.workDirStorage);
+        cmdLine.defaultBuildCfg  = buildCfg;
     }
 }
 

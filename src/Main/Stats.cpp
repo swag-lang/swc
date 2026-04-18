@@ -237,8 +237,8 @@ namespace
 
 void Stats::print(const TaskContext& ctx) const
 {
-    const Logger::ScopedLock loggerLock(ctx.global().logger());
-    bool                     hasPrintedGroup = false;
+    const Logger::ScopedLock        loggerLock(ctx.global().logger());
+    bool                            hasPrintedGroup = false;
     std::vector<Logger::FieldEntry> entries;
 
     if (ctx.cmdLine().stats)

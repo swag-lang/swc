@@ -9,12 +9,19 @@ class TaskContext;
 class Logger
 {
 public:
+    struct FieldValuePart
+    {
+        Utf8     text;
+        LogColor color = LogColor::Reset;
+    };
+
     struct FieldEntry
     {
-        Utf8     label;
-        Utf8     value;
-        LogColor labelColor = LogColor::Gray;
-        LogColor valueColor = LogColor::White;
+        Utf8                        label;
+        Utf8                        value;
+        std::vector<FieldValuePart> valueParts;
+        LogColor                    labelColor = LogColor::Gray;
+        LogColor                    valueColor = LogColor::White;
         uint32_t indentLevel = 0;
     };
 

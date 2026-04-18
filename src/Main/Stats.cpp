@@ -45,6 +45,22 @@ namespace
         entry.indentLevel = indentLevel;
         entries.push_back(std::move(entry));
     }
+
+    void addFieldParts(std::vector<Logger::FieldEntry>& entries, const std::string_view label, std::vector<Logger::FieldValuePart> valueParts, LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0)
+    {
+        if (valueParts.empty())
+        {
+            addField(entries, label, "<empty>", LogColor::Gray, indentLevel);
+            return;
+        }
+
+        Logger::FieldEntry entry;
+        entry.label       = Utf8(label);
+        entry.valueParts  = std::move(valueParts);
+        entry.valueColor  = valueColor;
+        entry.indentLevel = indentLevel;
+        entries.push_back(std::move(entry));
+    }
 }
 
 #if SWC_HAS_STATS
@@ -125,15 +141,41 @@ namespace
         }
     }
 
-    Utf8 formatMemoryValue(const size_t totalPeakBytes, const size_t peakBytes, const size_t totalBytes, const size_t allocCount, const MemoryProfile::CategorySnapshot* leaf)
+    void appendValuePart(std::vector<Logger::FieldValuePart>& parts, Utf8 text, const LogColor color)
+    {
+        if (text.empty())
+            return;
+
+        Logger::FieldValuePart part;
+        part.text  = std::move(text);
+        part.color = color;
+        parts.push_back(std::move(part));
+    }
+
+    std::vector<Logger::FieldValuePart> formatMemoryValueParts(const size_t totalPeakBytes, const size_t peakBytes, const size_t totalBytes, const size_t allocCount, const MemoryProfile::CategorySnapshot* leaf)
     {
         const double peakPct = totalPeakBytes ? 100.0 * static_cast<double>(peakBytes) / static_cast<double>(totalPeakBytes) : 0.0;
 
-        Utf8 value = std::format("peak {} ({:.1f}%)", Utf8Helper::toNiceSize(peakBytes), peakPct);
+        std::vector<Logger::FieldValuePart> parts;
+        appendValuePart(parts, "peak ", LogColor::Gray);
+        appendValuePart(parts, Utf8Helper::toNiceSize(peakBytes), LogColor::White);
+        appendValuePart(parts, " (", LogColor::Gray);
+        appendValuePart(parts, std::format("{:.1f}%", peakPct), LogColor::White);
+        appendValuePart(parts, ")", LogColor::Gray);
+
         if (totalBytes && totalBytes != peakBytes)
-            value += std::format(", churn {}", Utf8Helper::toNiceSize(totalBytes));
+        {
+            appendValuePart(parts, ", ", LogColor::Gray);
+            appendValuePart(parts, "churn ", LogColor::Gray);
+            appendValuePart(parts, Utf8Helper::toNiceSize(totalBytes), LogColor::White);
+        }
+
         if (allocCount)
-            value += std::format(", allocs {}", Utf8Helper::toNiceBigNumber(allocCount));
+        {
+            appendValuePart(parts, ", ", LogColor::Gray);
+            appendValuePart(parts, "allocs ", LogColor::Gray);
+            appendValuePart(parts, Utf8Helper::toNiceBigNumber(allocCount), LogColor::White);
+        }
 
         if (leaf && leaf->file)
         {
@@ -141,10 +183,14 @@ namespace
             const size_t     lastSep  = filePath.find_last_of("\\/");
             if (lastSep != std::string_view::npos)
                 filePath = filePath.substr(lastSep + 1);
-            value += std::format(", {}:{}", filePath, leaf->line);
+
+            appendValuePart(parts, ", ", LogColor::Gray);
+            appendValuePart(parts, Utf8(filePath), LogColor::Gray);
+            appendValuePart(parts, ":", LogColor::Gray);
+            appendValuePart(parts, std::format("{}", leaf->line), LogColor::White);
         }
 
-        return value;
+        return parts;
     }
 
     void appendMemoryTree(std::vector<Logger::FieldEntry>& entries, const TreeNode& node, const size_t totalPeakBytes, const uint32_t depth)
@@ -160,7 +206,7 @@ namespace
             if (!child->peakBytes && !child->totalBytes)
                 continue;
 
-            addField(entries, child->segment, formatMemoryValue(totalPeakBytes, child->peakBytes, child->totalBytes, child->allocCount, child->leaf), LogColor::White, depth);
+            addFieldParts(entries, child->segment, formatMemoryValueParts(totalPeakBytes, child->peakBytes, child->totalBytes, child->allocCount, child->leaf), LogColor::White, depth);
             if (!child->children.empty())
                 appendMemoryTree(entries, *child, totalPeakBytes, depth + 1);
         }
@@ -293,7 +339,7 @@ void Stats::print(const TaskContext& ctx) const
             if (taggedPeak < summary.totalPeakBytes)
             {
                 const size_t untaggedPeak = summary.totalPeakBytes - taggedPeak;
-                addField(entries, "Untagged", formatMemoryValue(summary.totalPeakBytes, untaggedPeak, 0, 0, nullptr));
+                addFieldParts(entries, "Untagged", formatMemoryValueParts(summary.totalPeakBytes, untaggedPeak, 0, 0, nullptr));
             }
 
             appendMemoryTree(entries, root, summary.totalPeakBytes, 0);

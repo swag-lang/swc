@@ -34,6 +34,17 @@ namespace
         return Utf8Helper::countChars(text);
     }
 
+    size_t valueDisplayWidth(const Logger::FieldEntry& entry)
+    {
+        if (entry.valueParts.empty())
+            return displayWidth(entry.value);
+
+        size_t width = 0;
+        for (const Logger::FieldValuePart& part : entry.valueParts)
+            width += displayWidth(part.text);
+        return width;
+    }
+
     size_t entryIndentWidth(const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style)
     {
         return style.lineIndent + style.indentPerLevel * entry.indentLevel;
@@ -53,21 +64,18 @@ namespace
         return std::min(width, style.maxLabelWidth);
     }
 
-    void appendValueLines(Utf8& out, const TaskContext& ctx, const std::string_view value, const LogColor color, const size_t indentWidth)
+    void appendValue(Utf8& out, const TaskContext& ctx, const Logger::FieldEntry& entry, const LogColor defaultValueColor)
     {
-        size_t lineStart = 0;
-        while (true)
+        if (entry.valueParts.empty())
         {
-            const size_t lineEnd = value.find('\n', lineStart);
-            const auto   line    = lineEnd == std::string_view::npos ? value.substr(lineStart) : value.substr(lineStart, lineEnd - lineStart);
-            appendSpaces(out, indentWidth);
-            appendColoredText(out, ctx, color, line);
-            out += "\n";
+            appendColoredText(out, ctx, defaultValueColor, entry.value);
+            return;
+        }
 
-            if (lineEnd == std::string_view::npos)
-                return;
-
-            lineStart = lineEnd + 1;
+        for (const Logger::FieldValuePart& part : entry.valueParts)
+        {
+            const LogColor partColor = part.color == LogColor::Reset ? defaultValueColor : part.color;
+            appendColoredText(out, ctx, partColor, part.text);
         }
     }
 
@@ -77,22 +85,14 @@ namespace
         const LogColor valueColor  = entry.valueColor == LogColor::Reset ? style.defaultValueColor : entry.valueColor;
         const size_t   indentWidth = entryIndentWidth(entry, style);
         const size_t   labelWidth  = entryLabelWidth(entry, style);
-        const bool     stackValue  = entry.value.find('\n') != std::string_view::npos || labelWidth > labelColumn || labelColumn + 2 + displayWidth(entry.value) > style.maxLineWidth;
 
         Utf8 out;
         appendSpaces(out, indentWidth);
         appendColoredText(out, ctx, labelColor, entry.label);
-
-        if (!stackValue)
-        {
-            appendSpaces(out, labelColumn - labelWidth + 2);
-            appendColoredText(out, ctx, valueColor, entry.value);
-            out += "\n";
-            return out;
-        }
-
+        const size_t padding = labelWidth < labelColumn ? labelColumn - labelWidth + 2 : 2;
+        appendSpaces(out, padding);
+        appendValue(out, ctx, entry, valueColor);
         out += "\n";
-        appendValueLines(out, ctx, entry.value, valueColor, indentWidth + style.indentPerLevel);
         return out;
     }
 }

@@ -6,7 +6,7 @@ call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
 if errorlevel 1 exit /b %errorlevel%
 if /I "%~1"=="dm" shift
 
-set "WIN32_MODULE=%ROOT%\bin\std\modules\win32"
+set "BIN_REL=std\modules\win32"
 set "BUILD_CFG=fast-debug"
 set "EXTRA_ARGS="
 
@@ -23,10 +23,10 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%common.bat" :set_paths modules "win32" "exe" "%BUILD_CFG%"
+call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "exe" "%BUILD_CFG%"
 if errorlevel 1 exit /b %errorlevel%
 
-%SWC_EXE% build -m "%WIN32_MODULE%" --module-namespace Win32 --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+%SWC_EXE% build -m "%ROOT%\bin\%BIN_REL%" --module-namespace Win32 --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if errorlevel 1 exit /b 1
 
 exit /b 0

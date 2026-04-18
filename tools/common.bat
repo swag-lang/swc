@@ -21,7 +21,7 @@ if /I "%~2"=="dm" (
 exit /b 0
 
 :set_paths
-if "%~4"=="" exit /b 1
-set "OUT_DIR=%OUTPUT_ROOT%\%~1\%~2\%~3\%~4"
-set "WORK_DIR=%TMP_ROOT%\%~1\%~2\%~3\%~4"
+if "%~3"=="" exit /b 1
+set "OUT_DIR=%OUTPUT_ROOT%\%~1\%~2\%~3"
+set "WORK_DIR=%TMP_ROOT%\%~1\%~2\%~3"
 exit /b 0

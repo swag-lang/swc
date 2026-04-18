@@ -6,8 +6,7 @@ call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
 if errorlevel 1 exit /b %errorlevel%
 if /I "%~1"=="dm" shift
 
-set "TEST_DIR_REL="
-set "MODULE_LABEL="
+set "BIN_REL="
 set "MODULE_NAMESPACE="
 set "BUILD_CFG=fast-debug"
 set "ARTIFACT_LABEL=exe"
@@ -16,14 +15,8 @@ set "EXTRA_ARGS="
 
 :parse_args
 if "%~1"=="" goto run
-if /I "%~1"=="--test-dir-rel" (
-    set "TEST_DIR_REL=%~2"
-    shift
-    shift
-    goto parse_args
-)
-if /I "%~1"=="--module-label" (
-    set "MODULE_LABEL=%~2"
+if /I "%~1"=="--bin-rel" (
+    set "BIN_REL=%~2"
     shift
     shift
     goto parse_args
@@ -71,14 +64,13 @@ shift
 goto parse_args
 
 :run
-if not defined TEST_DIR_REL exit /b 1
-if not defined MODULE_LABEL exit /b 1
+if not defined BIN_REL exit /b 1
 if not defined MODULE_NAMESPACE exit /b 1
 
-call "%TOOLS_DIR%common.bat" :set_paths tests "%MODULE_LABEL%" "%ARTIFACT_LABEL%" "%BUILD_CFG%"
+call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "%ARTIFACT_LABEL%" "%BUILD_CFG%"
 if errorlevel 1 exit /b %errorlevel%
 
-%SWC_EXE% test --artifact-kind exe -d "%ROOT%\%TEST_DIR_REL%" --module-namespace %MODULE_NAMESPACE% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%STAGE_ARGS%%EXTRA_ARGS%
+%SWC_EXE% test --artifact-kind exe -d "%ROOT%\bin\%BIN_REL%" --module-namespace %MODULE_NAMESPACE% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%STAGE_ARGS%%EXTRA_ARGS%
 if errorlevel 1 exit /b %errorlevel%
 
 exit /b 0

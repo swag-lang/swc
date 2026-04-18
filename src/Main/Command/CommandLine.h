@@ -62,6 +62,7 @@ struct CommandLine
     bool statsMem         = false;
     bool clear            = false;
     bool dryRun           = false;
+    bool showConfig       = false;
     bool verboseVerify      = false;
     bool sourceDrivenTest   = false;
     bool artifactKindExplicit = false;
@@ -122,6 +123,11 @@ struct CommandLine
     bool isTestMode() const noexcept
     {
         return sourceDrivenTest || isTestCommand();
+    }
+
+    bool isExecutionPreviewOnly() const noexcept
+    {
+        return dryRun || showConfig;
     }
 };
 

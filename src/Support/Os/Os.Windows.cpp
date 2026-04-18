@@ -847,6 +847,26 @@ namespace Os
         return az;
     }
 
+    Utf8 formatProcessCommandLine(const fs::path& exePath, const std::span<const Utf8> args)
+    {
+        std::wstring commandLine;
+        appendQuotedCommandArg(commandLine, exePath.wstring());
+        for (const Utf8& arg : args)
+        {
+            commandLine.push_back(L' ');
+            appendQuotedCommandArg(commandLine, toWide(arg));
+        }
+
+        const int utf8Size = WideCharToMultiByte(CP_UTF8, 0, commandLine.c_str(), static_cast<int>(commandLine.size()), nullptr, 0, nullptr, nullptr);
+        if (utf8Size <= 0)
+            return {};
+
+        Utf8 result;
+        result.resize(utf8Size);
+        WideCharToMultiByte(CP_UTF8, 0, commandLine.c_str(), static_cast<int>(commandLine.size()), result.data(), utf8Size, nullptr, nullptr);
+        return result;
+    }
+
     ProcessRunResult runProcess(uint32_t&                   outExitCode,
                                 const fs::path&             exePath,
                                 const std::span<const Utf8> args,
@@ -855,13 +875,8 @@ namespace Os
     {
         outExitCode = 0;
 
-        std::wstring commandLine;
-        appendQuotedCommandArg(commandLine, exePath.wstring());
-        for (const Utf8& arg : args)
-        {
-            commandLine.push_back(L' ');
-            appendQuotedCommandArg(commandLine, toWide(arg));
-        }
+        const Utf8 commandLineUtf8 = formatProcessCommandLine(exePath, args);
+        const std::wstring commandLine = toWide(commandLineUtf8);
 
         STARTUPINFOW        startupInfo{};
         PROCESS_INFORMATION processInfo{};

@@ -1136,7 +1136,10 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
 
     add(HelpOptionGroup::Development, "all", "--dry-run", "-dr",
         &cmdLine_->dryRun,
-        "Print computed command, environment, toolchain and native artifact information without running the command.");
+        "Preview the planned stages, outputs and external commands without executing compile-time code, native tools, tests or emitted artifacts.");
+    add(HelpOptionGroup::Development, "all", "--show-config", nullptr,
+        &cmdLine_->showConfig,
+        "Print computed command, environment, toolchain and native artifact information and exit.");
     add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds",
         &CompilerInstance::dbgDevStop,
         "Open a message box when an error is reported.");

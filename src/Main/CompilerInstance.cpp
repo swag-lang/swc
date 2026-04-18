@@ -263,9 +263,12 @@ void CompilerInstance::logStats()
 void CompilerInstance::processCommand()
 {
     const Timer time(&Stats::get().timeTotal);
-    if (cmdLine().dryRun)
+    if (cmdLine().isExecutionPreviewOnly())
     {
-        Command::dryRun(*this);
+        if (cmdLine().dryRun)
+            Command::dryRun(*this);
+        if (cmdLine().showConfig)
+            Command::showConfig(*this);
         return;
     }
 

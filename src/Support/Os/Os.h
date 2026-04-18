@@ -67,6 +67,7 @@ namespace Os
 
     fs::path                        getTemporaryPath();
     fs::path                        getExeFullName();
+    Utf8                            formatProcessCommandLine(const fs::path& exePath, std::span<const Utf8> args);
     ProcessRunResult                runProcess(uint32_t& outExitCode, const fs::path& exePath, std::span<const Utf8> args, const fs::path& workingDirectory, const ProcessRunOptions* options = nullptr);
     WindowsToolchainDiscoveryResult discoverWindowsToolchainPaths(WindowsToolchainPaths& outToolchain);
 

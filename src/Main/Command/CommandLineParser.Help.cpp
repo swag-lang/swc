@@ -13,6 +13,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using CommandPrint::addInfoEntry;
+    using CommandPrint::helpArgumentLabelColor;
     using CommandPrint::nextInfoGroupStyle;
 
     struct HelpOptionEntry
@@ -230,20 +231,20 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     entries.clear();
     if (command.empty())
     {
-        addInfoEntry(entries, "swc", "<command> [options]", LogColor::White, 0, LogColor::BrightCyan);
-        addInfoEntry(entries, "swc help", "<command>", LogColor::White, 0, LogColor::BrightCyan);
+        addInfoEntry(entries, "swc", "<command> [options]", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "swc help", "<command>", LogColor::White, 0, helpArgumentLabelColor());
         Logger::printFieldGroup(ctx, "Usage", entries, nextInfoGroupStyle(hasPrintedGroup, 18));
 
         entries.clear();
         std::vector commands(std::begin(COMMANDS), std::end(COMMANDS));
         std::ranges::sort(commands, commandInfoLess);
         for (const CommandInfo& cmd : commands)
-            addInfoEntry(entries, cmd.name, cmd.description, LogColor::White, 0, LogColor::BrightCyan);
+            addInfoEntry(entries, cmd.name, cmd.description, LogColor::White, 0, helpArgumentLabelColor());
         Logger::printFieldGroup(ctx, "Commands", entries, nextInfoGroupStyle(hasPrintedGroup, 12));
         return;
     }
 
-    addInfoEntry(entries, std::format("swc {}", command), "[options]", LogColor::White, 0, LogColor::BrightCyan);
+    addInfoEntry(entries, std::format("swc {}", command), "[options]", LogColor::White, 0, helpArgumentLabelColor());
     Logger::printFieldGroup(ctx, "Usage", entries, nextInfoGroupStyle(hasPrintedGroup, 18));
 
     const Utf8 oldCommand = command_;
@@ -282,7 +283,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
             firstGroup   = false;
         }
 
-        addInfoEntry(groupEntries, entry.displayName, entry.arg->description, LogColor::White, 0, LogColor::BrightCyan);
+        addInfoEntry(groupEntries, entry.displayName, entry.arg->description, LogColor::White, 0, helpArgumentLabelColor());
         if (entry.arg->isEnum())
             addInfoEntry(groupEntries, "choices", formatChoices(entry.arg->choices), LogColor::Yellow, 1, LogColor::Dim);
         addInfoEntry(groupEntries, "default", defaultValueToString(*entry.arg), LogColor::BrightGreen, 1, LogColor::Dim);

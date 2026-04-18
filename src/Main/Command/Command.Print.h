@@ -7,6 +7,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace CommandPrint
 {
+    inline constexpr LogColor helpArgumentLabelColor()
+    {
+        return LogColor::BrightBlue;
+    }
+
     inline Logger::FieldGroupStyle infoGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 24)
     {
         Logger::FieldGroupStyle style;

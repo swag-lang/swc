@@ -35,7 +35,6 @@
     - Place them in the appropriate `bin/tests` folder.
 
 - **C++ unit tests**:
-    - Backend only
     - Must be placed in `src/Unittest`
 
 - Individual tests must not exceed **40 seconds** of runtime  

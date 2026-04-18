@@ -896,7 +896,7 @@ namespace
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
 
-        if (srcType.isNull() && dstType.isPointerLike())
+        if (resolvedSrcType.isNull() && resolvedDstType.isPointerLike())
         {
             const uint64_t dstSize = dstType.sizeOf(codeGen.ctx());
             if (dstSize <= sizeof(uint64_t))
@@ -1056,7 +1056,7 @@ namespace
         const bool dstFloatType   = resolvedDstType.isFloat();
         const bool dstIntLikeType = resolvedDstType.isNumericIntLike();
 
-        if (dstType.isBool() && (srcType.isPointerLike() || srcType.isReference() || srcType.isMoveReference() || srcType.isNull()))
+        if (resolvedDstType.isBool() && (resolvedSrcType.isPointerLike() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference() || resolvedSrcType.isNull()))
         {
             MicroReg srcReg = srcPayload.reg;
             if (srcPayload.isAddress())

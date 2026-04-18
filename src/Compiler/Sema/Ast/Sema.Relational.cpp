@@ -438,9 +438,9 @@ namespace
             return Result::Continue;
         if (compareLeftView.type()->isType() && compareRightView.type()->isType())
             return Result::Continue;
-        if (compareLeftView.type()->isNull() && compareRightView.type()->isPointerLike())
+        if (compareLeftView.type()->isNull() && compareRightView.type()->isPointerLikeAliasAware(sema.ctx()))
             return Result::Continue;
-        if (compareLeftView.type()->isPointerLike() && compareRightView.type()->isNull())
+        if (compareLeftView.type()->isPointerLikeAliasAware(sema.ctx()) && compareRightView.type()->isNull())
             return Result::Continue;
         if (compareLeftView.type()->isAnyPointer() && compareRightView.type()->isAnyPointer())
             return Result::Continue;
@@ -487,7 +487,7 @@ namespace
         {
             if (!self.type() || !other.type())
                 return;
-            if (self.type()->isNull() && other.type()->isPointerLike())
+            if (self.type()->isNull() && other.type()->isPointerLikeAliasAware(sema.ctx()))
                 Cast::createCast(sema, other.typeRef(), self.nodeRef());
         }
 

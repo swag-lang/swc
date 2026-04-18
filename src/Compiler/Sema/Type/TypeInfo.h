@@ -9,6 +9,7 @@ class SymbolStruct;
 class SymbolInterface;
 class SymbolAlias;
 class SymbolFunction;
+class TaskContext;
 class TypeManager;
 
 enum class TypeInfoFlagsE : uint8_t
@@ -162,6 +163,8 @@ public:
     bool isLambdaClosure() const noexcept;
     bool isLambdaMethod() const noexcept;
     bool isAnyTypeInfo(const TaskContext& ctx) const noexcept;
+    bool isPointerLikeAliasAware(const TaskContext& ctx) const noexcept;
+    bool isConvertibleToBoolAliasAware(const TaskContext& ctx) const noexcept;
 
     Sign payloadIntSign() const noexcept
     {

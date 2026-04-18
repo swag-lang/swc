@@ -700,7 +700,7 @@ namespace
             return objectReg;
         }
 
-        if (objectValueType.isPointerLike() || objectValueType.isReference())
+        if (objectValueType.isPointerLikeAliasAware(codeGen.ctx()) || objectValueType.isReference())
         {
             const MicroReg objectReg = codeGen.nextVirtualIntRegister();
             if (objectPayload.isAddress())

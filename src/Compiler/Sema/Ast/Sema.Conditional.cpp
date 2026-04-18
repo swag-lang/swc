@@ -122,7 +122,7 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
-    if (!nodeLeftView.type()->isConvertibleToBool())
+    if (!nodeLeftView.type()->isConvertibleToBoolAliasAware(sema.ctx()))
         return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
 
     SWC_RESULT(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef(), CastKind::Implicit));

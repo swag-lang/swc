@@ -1111,6 +1111,24 @@ bool TypeInfo::isAnyTypeInfo(const TaskContext& ctx) const noexcept
     return type.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::TypeInfo);
 }
 
+bool TypeInfo::isPointerLikeAliasAware(const TaskContext& ctx) const noexcept
+{
+    if (isPointerLike())
+        return true;
+    if (!isAlias())
+        return false;
+    return ctx.typeMgr().get(payloadSymAlias().underlyingTypeRef()).isPointerLikeAliasAware(ctx);
+}
+
+bool TypeInfo::isConvertibleToBoolAliasAware(const TaskContext& ctx) const noexcept
+{
+    if (isConvertibleToBool())
+        return true;
+    if (!isAlias())
+        return false;
+    return ctx.typeMgr().get(payloadSymAlias().underlyingTypeRef()).isConvertibleToBoolAliasAware(ctx);
+}
+
 TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExpand expandFlags) const noexcept
 {
     auto result = typeRef_;

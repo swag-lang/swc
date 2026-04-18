@@ -103,7 +103,7 @@ namespace
             return false;
 
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        return typeInfo.isPointerLike() || typeInfo.isNull();
+        return typeInfo.isPointerLikeAliasAware(codeGen.ctx()) || typeInfo.isNull();
     }
 
     Result codeGenIfStmtPostBlockChild(CodeGen& codeGen, AstNodeRef ifRef, AstNodeRef ifBlockRef, AstNodeRef elseBlockRef, AstNodeRef childRef)

@@ -158,7 +158,7 @@ namespace
 
     Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
-        if (view.type()->isConvertibleToBool())
+        if (view.type()->isConvertibleToBoolAliasAware(sema.ctx()))
             return Result::Continue;
         return reportInvalidType(sema, expr, view);
     }

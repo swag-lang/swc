@@ -130,7 +130,7 @@ namespace
             return false;
 
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        return typeInfo.isPointerLike() || typeInfo.isNull();
+        return typeInfo.isPointerLikeAliasAware(sema.ctx()) || typeInfo.isNull();
     }
 
     void restoreMaskedIfVarDeclCondition(const Sema& sema, AstNodeRef nodeRef)
@@ -342,7 +342,7 @@ namespace
             return Result::Continue;
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (type.isConvertibleToBool())
+        if (type.isConvertibleToBoolAliasAware(sema.ctx()))
             return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast, sym->codeRef());

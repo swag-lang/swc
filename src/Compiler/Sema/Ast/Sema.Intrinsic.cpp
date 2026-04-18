@@ -395,7 +395,7 @@ namespace
         if (objectTypeRef.isValid())
         {
             const TypeInfo& objectType = sema.typeMgr().get(objectTypeRef);
-            if (!objectType.isNull() && !objectType.isPointerLike() && !objectType.isReference())
+            if (!objectType.isNull() && !objectType.isPointerLikeAliasAware(sema.ctx()) && !objectType.isReference())
                 objectStorageSize = objectType.sizeOf(sema.ctx());
         }
 

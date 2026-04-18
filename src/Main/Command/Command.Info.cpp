@@ -159,6 +159,7 @@ namespace
         printInfoLine(ctx, "targetArchName", cmdLine.targetArchName);
         printInfoLine(ctx, "backendKind", buildCfgBackendKindName(buildCfg.backendKind));
         printInfoLine(ctx, "name", Utf8(buildCfg.name));
+        printInfoLine(ctx, "moduleNamespace", Utf8(buildCfg.moduleNamespace));
         printInfoLine(ctx, "workDir", Utf8(buildCfg.workDir));
         printInfoLine(ctx, "backendOptimize", boolToUtf8(buildCfg.backend.optimize));
         printInfoLine(ctx, "logColor", boolToUtf8(cmdLine.logColor));

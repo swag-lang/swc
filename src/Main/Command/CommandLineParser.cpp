@@ -263,6 +263,11 @@ namespace
             buildCfg.backend.enableExceptions = true;
         }
 
+        cmdLine.moduleNamespaceStorage = cmdLine.moduleNamespace;
+        if (cmdLine.moduleNamespaceStorage.empty())
+            cmdLine.moduleNamespaceStorage = commandLineDefaultModuleNamespace(commandLineDefaultArtifactName(cmdLine));
+
+        buildCfg.moduleNamespace = Utf8Helper::runtimeStringFromUtf8(cmdLine.moduleNamespaceStorage);
         buildCfg.name           = Utf8Helper::runtimeStringFromUtf8(cmdLine.name);
         buildCfg.outDir         = Utf8Helper::runtimeStringFromUtf8(cmdLine.outDirStorage);
         buildCfg.workDir        = Utf8Helper::runtimeStringFromUtf8(cmdLine.workDirStorage);
@@ -1044,6 +1049,9 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     add(HelpOptionGroup::Target, "sema test build run", "--artifact-name", "-n",
         &cmdLine_->name,
         "Set the artifact name exposed through @compiler.getBuildCfg() and used for native outputs.");
+    add(HelpOptionGroup::Target, "sema test build run", "--module-namespace", nullptr,
+        &cmdLine_->moduleNamespace,
+        "Force the module namespace name exposed through @compiler.getBuildCfg() and used as the semantic module root.");
     add(HelpOptionGroup::Target, "sema test build run", "--out-dir", "-od",
         &cmdLine_->outDir,
         "Set the artifact output directory exposed through @compiler.getBuildCfg().");

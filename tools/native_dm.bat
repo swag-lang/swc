@@ -30,10 +30,10 @@ goto parse_args
 
 :run
 if /I "!ARTIFACT_KIND!"=="run" (
-    swc_devmode run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\!BUILD_CFG!" --work-dir "%RUN_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+    swc_devmode run -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%RUN_OUTPUT%\!BUILD_CFG!" --work-dir "%RUN_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
     if errorlevel 1 exit /b 1
 ) else (
-    swc_devmode test --artifact-kind !ARTIFACT_KIND! -d "%ROOT%\bin\tests\native" --out-dir "%NATIVE_OUTPUT%\!ARTIFACT_KIND!\!BUILD_CFG!" --work-dir "%NATIVE_OUTPUT%\work\!ARTIFACT_KIND!\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+    swc_devmode test --artifact-kind !ARTIFACT_KIND! -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%NATIVE_OUTPUT%\!ARTIFACT_KIND!\!BUILD_CFG!" --work-dir "%NATIVE_OUTPUT%\work\!ARTIFACT_KIND!\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
     if errorlevel 1 exit /b 1
 )
 

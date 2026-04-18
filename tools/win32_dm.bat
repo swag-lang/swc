@@ -12,7 +12,7 @@ shift
 goto parse_args
 
 :run
-swc_devmode build -m "%WIN32_MODULE%" !EXTRA_ARGS!
+swc_devmode build -m "%WIN32_MODULE%" --module-namespace Win32 !EXTRA_ARGS!
 if errorlevel 1 exit /b 1
 
 exit /b 0

@@ -246,6 +246,43 @@ SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceDefaultsFromModulePath)
+{
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Build;
+    cmdLine.buildCfg        = "debug";
+    cmdLine.backendKindName = "dll";
+    cmdLine.modulePath      = fs::path("bin/std/modules/win32");
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    if (Utf8(cmdLine.defaultBuildCfg.moduleNamespace) != "Win32")
+        return Result::Error;
+
+    CompilerInstance            compiler(ctx.global(), cmdLine);
+    NativeBackendBuilder        nativeBuilder(compiler, false);
+    const NativeArtifactBuilder artifactBuilder(nativeBuilder);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths, 0);
+    if (paths.name != "win32")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceOverrideWins)
+{
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Build;
+    cmdLine.buildCfg        = "debug";
+    cmdLine.backendKindName = "dll";
+    cmdLine.modulePath      = fs::path("bin/std/modules/win32");
+    cmdLine.moduleNamespace = "WindowsSdk";
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    if (Utf8(cmdLine.defaultBuildCfg.moduleNamespace) != "WindowsSdk")
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_keeps_only_referenced_constants", "dll");

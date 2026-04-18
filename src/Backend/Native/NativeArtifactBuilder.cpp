@@ -190,20 +190,7 @@ Utf8 NativeArtifactBuilder::artifactName() const
     const auto buildCfgName = Utf8(builder_->compiler().buildCfg().name);
     if (!buildCfgName.empty())
         return FileSystem::sanitizeFileName(buildCfgName);
-
-    const auto& cmdLine     = builder_->ctx().cmdLine();
-    const auto& directories = inputDirectories(cmdLine);
-    const auto& files       = inputFiles(cmdLine);
-    const auto& modulePath  = inputModulePath(cmdLine);
-
-    if (!modulePath.empty())
-        return FileSystem::sanitizeFileName(Utf8(modulePath.filename().string()));
-    if (files.size() == 1)
-        return FileSystem::sanitizeFileName(Utf8(files.begin()->stem().string()));
-    if (directories.size() == 1)
-        return FileSystem::sanitizeFileName(Utf8(directories.begin()->filename().string()));
-
-    return "native";
+    return commandLineDefaultArtifactName(builder_->ctx().cmdLine());
 }
 
 Utf8 NativeArtifactBuilder::artifactExtension() const

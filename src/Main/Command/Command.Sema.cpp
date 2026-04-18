@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
+#include "Main/Command/CommandLine.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -64,8 +65,12 @@ namespace Command
         if (compiler.setupSema(ctx) == Result::Error)
             return;
 
-        auto*               symModule       = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-        const IdentifierRef idRef           = ctx.idMgr().addIdentifier("test", Math::hash("test"));
+        auto* symModule = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        Utf8  moduleNamespaceName(compiler.buildCfg().moduleNamespace);
+        if (moduleNamespaceName.empty())
+            moduleNamespaceName = commandLineDefaultModuleNamespace(commandLineDefaultArtifactName(compiler.cmdLine()));
+
+        const IdentifierRef idRef = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));
         auto*               moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
         symModule->addSingleSymbol(ctx, moduleNamespace);
         compiler.setSymModule(symModule);

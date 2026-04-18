@@ -31,29 +31,38 @@ set "BUILD_CFG=%~1"
 
 for %%S in (lexer parser errors\lexer errors\parser sema errors\sema jit safety) do (
     set "STAGE_ARGS="
+    set "MODULE_NAMESPACE="
     if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
+    if /I "%%S"=="lexer" set "MODULE_NAMESPACE=Lexer"
     if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
+    if /I "%%S"=="parser" set "MODULE_NAMESPACE=Parser"
     if /I "%%S"=="errors\lexer" set "STAGE_ARGS=--lex-only"
+    if /I "%%S"=="errors\lexer" set "MODULE_NAMESPACE=Lexer"
     if /I "%%S"=="errors\parser" set "STAGE_ARGS=--syntax-only"
+    if /I "%%S"=="errors\parser" set "MODULE_NAMESPACE=Parser"
     if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
+    if /I "%%S"=="sema" set "MODULE_NAMESPACE=Sema"
     if /I "%%S"=="errors\sema" set "STAGE_ARGS=--sema-only"
+    if /I "%%S"=="errors\sema" set "MODULE_NAMESPACE=Sema"
     if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
+    if /I "%%S"=="jit" set "MODULE_NAMESPACE=Jit"
     if /I "%%S"=="safety" set "STAGE_ARGS=--no-output"
-    swc_devmode test -d "%ROOT%\bin\tests\%%S" --build-cfg !BUILD_CFG! !STAGE_ARGS! !EXTRA_ARGS!
+    if /I "%%S"=="safety" set "MODULE_NAMESPACE=Safety"
+    swc_devmode test -d "%ROOT%\bin\tests\%%S" --module-namespace !MODULE_NAMESPACE! --build-cfg !BUILD_CFG! !STAGE_ARGS! !EXTRA_ARGS!
     if errorlevel 1 exit /b 1
 )
 
-swc_devmode test --artifact-kind exe -d "%ROOT%\bin\tests\native" --out-dir "%EXE_OUTPUT%\!BUILD_CFG!" --work-dir "%EXE_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+swc_devmode test --artifact-kind exe -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%EXE_OUTPUT%\!BUILD_CFG!" --work-dir "%EXE_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
 if errorlevel 1 exit /b 1
-swc_devmode run -d "%ROOT%\bin\tests\native" --out-dir "%RUN_OUTPUT%\!BUILD_CFG!" --work-dir "%RUN_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+swc_devmode run -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%RUN_OUTPUT%\!BUILD_CFG!" --work-dir "%RUN_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "Start-Sleep -Seconds 1" >nul
 for %%K in (dll lib) do (
-    swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\native" --out-dir "%NATIVE_OUTPUT%\%%K\!BUILD_CFG!" --work-dir "%NATIVE_OUTPUT%\work\%%K\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+    swc_devmode test --artifact-kind %%K -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%NATIVE_OUTPUT%\%%K\!BUILD_CFG!" --work-dir "%NATIVE_OUTPUT%\work\%%K\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
     if errorlevel 1 exit /b 1
 )
 
-swc_devmode test -m "%ROOT%\bin\reference\tests\language" --artifact-kind exe --out-dir "%REFERENCE_OUTPUT%\!BUILD_CFG!" --work-dir "%REFERENCE_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+swc_devmode test -m "%ROOT%\bin\reference\tests\language" --artifact-kind exe --module-namespace Language --out-dir "%REFERENCE_OUTPUT%\!BUILD_CFG!" --work-dir "%REFERENCE_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
 if errorlevel 1 exit /b 1
 
 exit /b 0

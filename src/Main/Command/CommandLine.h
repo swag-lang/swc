@@ -47,6 +47,8 @@ struct CommandLine
     Utf8                targetArchName  = "x86_64";
     Utf8                backendKindName = "exe";
     Utf8                name;
+    Utf8                moduleNamespace;
+    Utf8                moduleNamespaceStorage;
     Utf8                outDirStorage;
     Utf8                workDirStorage;
     std::optional<bool> backendOptimize;
@@ -122,5 +124,54 @@ struct CommandLine
         return sourceDrivenTest || isTestCommand();
     }
 };
+
+inline const std::set<fs::path>& commandLineInputDirectories(const CommandLine& cmdLine)
+{
+    if (!cmdLine.originalDirectories.empty())
+        return cmdLine.originalDirectories;
+    return cmdLine.directories;
+}
+
+inline const std::set<fs::path>& commandLineInputFiles(const CommandLine& cmdLine)
+{
+    if (!cmdLine.originalFiles.empty())
+        return cmdLine.originalFiles;
+    return cmdLine.files;
+}
+
+inline const fs::path& commandLineInputModulePath(const CommandLine& cmdLine)
+{
+    if (!cmdLine.originalModulePath.empty())
+        return cmdLine.originalModulePath;
+    return cmdLine.modulePath;
+}
+
+inline Utf8 commandLineDefaultArtifactName(const CommandLine& cmdLine)
+{
+    if (!cmdLine.name.empty())
+        return FileSystem::sanitizeFileName(cmdLine.name);
+
+    const auto& modulePath = commandLineInputModulePath(cmdLine);
+    if (!modulePath.empty())
+        return FileSystem::sanitizeFileName(Utf8(modulePath.filename().string()));
+
+    const auto& files = commandLineInputFiles(cmdLine);
+    if (files.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(files.begin()->stem().string()));
+
+    const auto& directories = commandLineInputDirectories(cmdLine);
+    if (directories.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(directories.begin()->filename().string()));
+
+    return "native";
+}
+
+inline Utf8 commandLineDefaultModuleNamespace(const Utf8& artifactName)
+{
+    Utf8 result = artifactName;
+    if (!result.empty() && result[0] >= 'a' && result[0] <= 'z')
+        result[0] = static_cast<char>(result[0] - 'a' + 'A');
+    return result;
+}
 
 SWC_END_NAMESPACE();

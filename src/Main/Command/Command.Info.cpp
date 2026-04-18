@@ -6,6 +6,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Command/Command.Print.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -19,6 +20,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using CommandPrint::addBoolEntry;
+    using CommandPrint::addInfoEntry;
+    using CommandPrint::addInfoEntryParts;
+    using CommandPrint::addPathSet;
+    using CommandPrint::addUtf8Set;
+    using CommandPrint::nextInfoGroupStyle;
+
     Utf8 targetOsName(const Runtime::TargetOs value)
     {
         switch (value)
@@ -44,100 +52,13 @@ namespace
 
         SWC_UNREACHABLE();
     }
-
-    Logger::FieldGroupStyle infoGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 24)
-    {
-        Logger::FieldGroupStyle style;
-        style.blankLineBefore = blankLineBefore;
-        style.maxLabelWidth   = maxLabelWidth;
-        return style;
-    }
-
-    Logger::FieldGroupStyle nextInfoGroupStyle(bool& hasPrintedGroup, const size_t maxLabelWidth = 24)
-    {
-        const Logger::FieldGroupStyle style = infoGroupStyle(hasPrintedGroup, maxLabelWidth);
-        hasPrintedGroup                     = true;
-        return style;
-    }
-
-    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, Utf8 value, LogColor color = LogColor::White, const uint32_t indentLevel = 0)
-    {
-        if (value.empty())
-        {
-            value = "<empty>";
-            if (color == LogColor::White)
-                color = LogColor::Gray;
-        }
-
-        Logger::FieldEntry entry;
-        entry.label       = Utf8(label);
-        entry.value       = std::move(value);
-        entry.valueColor  = color;
-        entry.indentLevel = indentLevel;
-        entries.push_back(std::move(entry));
-    }
-
-    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const char* value, const LogColor color = LogColor::White, const uint32_t indentLevel = 0)
-    {
-        addInfoEntry(entries, label, Utf8(value), color, indentLevel);
-    }
-
-    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::string& value, const LogColor color = LogColor::White, const uint32_t indentLevel = 0)
-    {
-        addInfoEntry(entries, label, Utf8(value), color, indentLevel);
-    }
-
-    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::string_view value, const LogColor color = LogColor::White, const uint32_t indentLevel = 0)
-    {
-        addInfoEntry(entries, label, Utf8(value), color, indentLevel);
-    }
-
-    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const fs::path& value, const LogColor color = LogColor::White, const uint32_t indentLevel = 0)
-    {
-        addInfoEntry(entries, label, Utf8(value), color, indentLevel);
-    }
-
-    void addBoolEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const bool enabled)
-    {
-        addInfoEntry(entries, label, enabled ? "on" : "off", enabled ? LogColor::BrightGreen : LogColor::Gray);
-    }
-
-    void addUtf8Set(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::set<Utf8>& values)
-    {
-        if (values.empty())
-        {
-            addInfoEntry(entries, label, "<empty>", LogColor::Gray);
-            return;
-        }
-
-        addInfoEntry(entries, label, Utf8Helper::countWithLabel(values.size(), "entry"));
-        uint32_t index = 0;
-        for (const Utf8& value : values)
-            addInfoEntry(entries, std::format("[{}]", index++), value, LogColor::White, 1);
-    }
-
-    void addPathSet(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::set<fs::path>& values)
-    {
-        if (values.empty())
-        {
-            addInfoEntry(entries, label, "<empty>", LogColor::Gray);
-            return;
-        }
-
-        addInfoEntry(entries, label, Utf8Helper::countWithLabel(values.size(), "entry"));
-        uint32_t index = 0;
-        for (const fs::path& value : values)
-            addInfoEntry(entries, std::format("[{}]", index++), value, LogColor::White, 1);
-    }
-
     void addPlanEntry(std::vector<Logger::FieldEntry>& entries, const uint32_t index, const std::string_view status, const LogColor statusColor, Utf8 detail)
     {
-        Logger::FieldEntry entry;
-        entry.label = std::format("[{}]", index);
-        entry.valueParts.push_back({Utf8(status), statusColor});
-        entry.valueParts.push_back({Utf8(" "), LogColor::White});
-        entry.valueParts.push_back({std::move(detail), LogColor::White});
-        entries.push_back(std::move(entry));
+        std::vector<Logger::FieldValuePart> valueParts;
+        valueParts.push_back({Utf8(status), statusColor});
+        valueParts.push_back({Utf8(" "), LogColor::White});
+        valueParts.push_back({std::move(detail), LogColor::White});
+        addInfoEntryParts(entries, std::format("[{}]", index), std::move(valueParts));
     }
 
     struct DryRunInputSummary

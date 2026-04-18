@@ -1190,6 +1190,9 @@
     <ClInclude Include="src\Main\Command\CommandLineParser.h">
       <Filter>src\Main\Command</Filter>
     </ClInclude>
+    <ClInclude Include="src\Main\Command\Command.Print.h">
+      <Filter>src\Main\Command</Filter>
+    </ClInclude>
     <ClInclude Include="src\Main\Command\Command.h">
       <Filter>src\Main\Command</Filter>
     </ClInclude>

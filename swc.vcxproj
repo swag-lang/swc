@@ -522,6 +522,7 @@
         <ClInclude Include="src\Support\Core\RefTypes.h"/>
         <ClInclude Include="src\Main\Command\CommandLine.h"/>
         <ClInclude Include="src\Main\Command\CommandLineParser.h"/>
+        <ClInclude Include="src\Main\Command\Command.Print.h"/>
         <ClInclude Include="src\Main\Command\Command.h"/>
         <ClInclude Include="src\Main\Stats.h"/>
         <ClInclude Include="src\Main\TaskContext.h"/>

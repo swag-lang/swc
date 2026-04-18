@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/Command/Command.Print.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
@@ -11,11 +12,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using CommandPrint::addInfoEntry;
+    using CommandPrint::nextInfoGroupStyle;
+
     struct HelpOptionEntry
     {
-        const ArgInfo*  arg = nullptr;
-        Utf8            displayName;
-        HelpOptionGroup group = HelpOptionGroup::Other;
+        const ArgInfo*   arg = nullptr;
+        Utf8             displayName;
+        HelpOptionGroup  group = HelpOptionGroup::Other;
     };
 
     Utf8 formatPathValue(const fs::path& value)
@@ -80,13 +84,14 @@ namespace
         return result;
     }
 
-    Utf8 enumIntNameFromValue(const ArgInfo& arg, int value)
+    Utf8 enumIntNameFromValue(const ArgInfo& arg, const int value)
     {
         for (size_t i = 0; i < arg.choiceIntValues.size(); i++)
         {
             if (arg.choiceIntValues[i] == value)
                 return arg.choices[i];
         }
+
         return std::to_string(value);
     }
 
@@ -101,6 +106,7 @@ namespace
             result += value;
             first = false;
         }
+
         return result;
     }
 
@@ -158,12 +164,12 @@ namespace
         return name;
     }
 
-    int optionGroupOrder(HelpOptionGroup group)
+    int optionGroupOrder(const HelpOptionGroup group)
     {
         return static_cast<int>(group);
     }
 
-    const char* optionGroupName(HelpOptionGroup group)
+    const char* optionGroupName(const HelpOptionGroup group)
     {
         switch (group)
         {
@@ -205,109 +211,87 @@ namespace
     {
         return Utf8(lhs.name) < Utf8(rhs.name);
     }
-
-    Utf8 colorize(const TaskContext& ctx, LogColor color, std::string_view text)
-    {
-        Utf8 result;
-        result += LogColorHelper::toAnsi(ctx, color);
-        result += text;
-        result += LogColorHelper::toAnsi(ctx, LogColor::Reset);
-        return result;
-    }
 }
 
 void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 {
     const Logger::ScopedLock loggerLock(ctx.global().logger());
-    Logger::printDim(ctx, std::format("swc: swag compiler version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
-    Logger::printDim(ctx, "Usage:\n");
+    std::vector<Logger::FieldEntry> entries;
+    bool                            hasPrintedGroup = false;
 
+    addInfoEntry(entries, "Version", std::format("swag compiler {}.{}.{}", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM), LogColor::BrightGreen);
+    if (!command.empty())
+        addInfoEntry(entries, "Command", command, LogColor::BrightYellow);
+
+    Logger::FieldGroupStyle headerStyle = nextInfoGroupStyle(hasPrintedGroup, 16);
+    headerStyle.blankLineBefore         = false;
+    Logger::printFieldGroup(ctx, "swc", entries, headerStyle);
+
+    entries.clear();
     if (command.empty())
     {
-        Logger::printDim(ctx, "    swc <command> [options]\n");
-        Logger::printDim(ctx, "    swc help <command>\n\n");
+        addInfoEntry(entries, "swc", "<command> [options]", LogColor::White, 0, LogColor::BrightCyan);
+        addInfoEntry(entries, "swc help", "<command>", LogColor::White, 0, LogColor::BrightCyan);
+        Logger::printFieldGroup(ctx, "Usage", entries, nextInfoGroupStyle(hasPrintedGroup, 18));
 
-        Logger::printDim(ctx, "Commands:\n");
+        entries.clear();
         std::vector commands(std::begin(COMMANDS), std::end(COMMANDS));
         std::ranges::sort(commands, commandInfoLess);
-
-        size_t maxLen = 0;
         for (const CommandInfo& cmd : commands)
-            maxLen = std::max(maxLen, strlen(cmd.name));
-        for (const CommandInfo& cmd : commands)
-            Logger::printDim(ctx, std::format("    {:<{}}    {}\n", cmd.name, maxLen, cmd.description));
+            addInfoEntry(entries, cmd.name, cmd.description, LogColor::White, 0, LogColor::BrightCyan);
+        Logger::printFieldGroup(ctx, "Commands", entries, nextInfoGroupStyle(hasPrintedGroup, 12));
+        return;
     }
-    else
+
+    addInfoEntry(entries, std::format("swc {}", command), "[options]", LogColor::White, 0, LogColor::BrightCyan);
+    Logger::printFieldGroup(ctx, "Usage", entries, nextInfoGroupStyle(hasPrintedGroup, 18));
+
+    const Utf8 oldCommand = command_;
+    command_              = command;
+
+    std::vector<HelpOptionEntry> helpEntries;
+    helpEntries.reserve(args_.size());
+    for (const ArgInfo& arg : args_)
     {
-        Logger::printDim(ctx, std::format("    swc {} [options]\n\n", command));
-        Logger::printDim(ctx, "Options:\n");
+        if (!commandMatches(arg.commands))
+            continue;
 
-        const Utf8 oldCommand = command_;
-        command_              = command;
-
-        std::vector<HelpOptionEntry> entries;
-        entries.reserve(args_.size());
-        for (const ArgInfo& arg : args_)
-        {
-            if (!commandMatches(arg.commands))
-                continue;
-
-            HelpOptionEntry entry;
-            entry.arg         = &arg;
-            entry.displayName = makeOptionDisplayName(arg);
-            entry.group       = arg.group;
-            entries.push_back(std::move(entry));
-        }
-        std::ranges::sort(entries, optionEntryLess);
-
-        size_t maxLen = 0;
-        for (const HelpOptionEntry& entry : entries)
-        {
-            maxLen = std::max(maxLen, entry.displayName.length());
-        }
-
-        auto currentGroup = HelpOptionGroup::Other;
-        bool firstGroup   = true;
-        for (const HelpOptionEntry& entry : entries)
-        {
-            if (firstGroup || currentGroup != entry.group)
-            {
-                if (!firstGroup)
-                    Logger::printDim(ctx, "\n");
-
-                Logger::printDim(ctx, std::format("  {}:\n", optionGroupName(entry.group)));
-                currentGroup = entry.group;
-                firstGroup   = false;
-            }
-
-            Utf8 line = "    ";
-            line += colorize(ctx, LogColor::BrightCyan, std::format("{:<{}}", entry.displayName, maxLen));
-            line += "    ";
-            line += entry.arg->description;
-            Logger::print(ctx, line);
-            Logger::print(ctx, "\n");
-
-            const Utf8 metadataPrefix = std::format("    {:<{}}    ", "", maxLen);
-            if (entry.arg->isEnum())
-            {
-                Utf8 choiceLine = metadataPrefix;
-                choiceLine += colorize(ctx, LogColor::Dim, "choices:");
-                choiceLine += " ";
-                choiceLine += colorize(ctx, LogColor::Yellow, formatChoices(entry.arg->choices));
-                Logger::print(ctx, choiceLine);
-                Logger::print(ctx, "\n");
-            }
-
-            Utf8 defaultLine = metadataPrefix;
-            defaultLine += colorize(ctx, LogColor::Dim, "default:");
-            defaultLine += " ";
-            defaultLine += colorize(ctx, LogColor::BrightGreen, defaultValueToString(*entry.arg));
-            Logger::print(ctx, defaultLine);
-            Logger::print(ctx, "\n");
-        }
-
-        command_ = oldCommand;
+        HelpOptionEntry entry;
+        entry.arg         = &arg;
+        entry.displayName = makeOptionDisplayName(arg);
+        entry.group       = arg.group;
+        helpEntries.push_back(std::move(entry));
     }
+
+    std::ranges::sort(helpEntries, optionEntryLess);
+
+    HelpOptionGroup                currentGroup = HelpOptionGroup::Other;
+    bool                           firstGroup   = true;
+    std::vector<Logger::FieldEntry> groupEntries;
+    for (const HelpOptionEntry& entry : helpEntries)
+    {
+        if (firstGroup || currentGroup != entry.group)
+        {
+            if (!groupEntries.empty())
+            {
+                Logger::printFieldGroup(ctx, optionGroupName(currentGroup), groupEntries, nextInfoGroupStyle(hasPrintedGroup, 34));
+                groupEntries.clear();
+            }
+
+            currentGroup = entry.group;
+            firstGroup   = false;
+        }
+
+        addInfoEntry(groupEntries, entry.displayName, entry.arg->description, LogColor::White, 0, LogColor::BrightCyan);
+        if (entry.arg->isEnum())
+            addInfoEntry(groupEntries, "choices", formatChoices(entry.arg->choices), LogColor::Yellow, 1, LogColor::Dim);
+        addInfoEntry(groupEntries, "default", defaultValueToString(*entry.arg), LogColor::BrightGreen, 1, LogColor::Dim);
+    }
+
+    if (!groupEntries.empty())
+        Logger::printFieldGroup(ctx, optionGroupName(currentGroup), groupEntries, nextInfoGroupStyle(hasPrintedGroup, 34));
+
+    command_ = oldCommand;
 }
 
 SWC_END_NAMESPACE();

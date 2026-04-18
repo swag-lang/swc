@@ -39,61 +39,6 @@ namespace
         if (!tokens.back().is(TokenId::EndOfFile))
             return reportFormatFailure(ctx, &file, "source view is missing the end-of-file token");
 
-        std::unordered_set<uint32_t> visited;
-        SmallVector<AstNodeRef>      children;
-        SmallVector<AstNodeRef>      stack;
-        stack.push_back(rootRef);
-
-        while (!stack.empty())
-        {
-            const AstNodeRef nodeRef = stack.back();
-            stack.pop_back();
-            if (!nodeRef.isValid())
-                return reportFormatFailure(ctx, &file, "AST contains an invalid node reference");
-            if (!visited.insert(nodeRef.get()).second)
-                return reportFormatFailure(ctx, &file, "AST reuses a node in multiple places");
-
-            const AstNode& node = ast.node(nodeRef);
-            if (node.id() == AstNodeId::Invalid)
-                return reportFormatFailure(ctx, &file, "AST exposes the invalid sentinel node");
-            if (node.srcViewRef() != srcView.ref())
-                return reportFormatFailure(ctx, &file, "AST node refers to a different source view");
-            if (node.tokRef().isInvalid())
-                return reportFormatFailure(ctx, &file, "AST node is missing its source token reference");
-            if (node.tokRef().get() >= tokens.size())
-                return reportFormatFailure(ctx, &file, "AST node token reference is outside the token stream");
-
-            children.clear();
-            Ast::nodeIdInfos(node.id()).collectChildren(children, ast, node);
-
-            for (const AstNodeRef childRef : std::ranges::reverse_view(children))
-            {
-                if (!childRef.isValid())
-                    return reportFormatFailure(ctx, &file, "AST contains an invalid child reference");
-
-                const AstNode& child = ast.node(childRef);
-                if (child.srcViewRef() != srcView.ref())
-                    return reportFormatFailure(ctx, &file, "AST child refers to a different source view");
-                if (child.tokRef().isInvalid())
-                    return reportFormatFailure(ctx, &file, "AST child is missing its source token reference");
-                if (child.tokRef().get() >= tokens.size())
-                    return reportFormatFailure(ctx, &file, "AST child token reference is outside the token stream");
-                if (child.tokRef().get() < node.tokRef().get())
-                    return reportFormatFailure(ctx, &file, "AST child starts before its parent");
-
-                stack.push_back(childRef);
-            }
-
-            uint32_t orderedToken = node.tokRef().get();
-            for (const AstNodeRef childRef : children)
-            {
-                const AstNode& child = ast.node(childRef);
-                if (child.tokRef().get() < orderedToken)
-                    return reportFormatFailure(ctx, &file, "AST children are not ordered like the source");
-                orderedToken = child.tokRef().get();
-            }
-        }
-
         return Result::Continue;
     }
 

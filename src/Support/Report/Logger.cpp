@@ -128,7 +128,7 @@ bool Logger::claimStageOnce(const std::string_view key)
 
 void Logger::print(const TaskContext& ctx, std::string_view message)
 {
-    if (ctx.cmdLine().silent)
+    if (ctx.cmdLine().silent || ctx.muteOutput())
         return;
 
     const ScopedLock lock(ctx.global().logger());
@@ -137,7 +137,7 @@ void Logger::print(const TaskContext& ctx, std::string_view message)
 
 void Logger::printDim(const TaskContext& ctx, std::string_view message)
 {
-    if (ctx.cmdLine().silent)
+    if (ctx.cmdLine().silent || ctx.muteOutput())
         return;
 
     const ScopedLock lock(ctx.global().logger());
@@ -220,7 +220,7 @@ void Logger::printStdErr(const LogColor color, const std::string_view message, c
 
 void Logger::printField(const TaskContext& ctx, const FieldEntry& entry, FieldGroupStyle style)
 {
-    if (ctx.cmdLine().silent)
+    if (ctx.cmdLine().silent || ctx.muteOutput())
         return;
 
     const ScopedLock              lock(ctx.global().logger());
@@ -230,7 +230,7 @@ void Logger::printField(const TaskContext& ctx, const FieldEntry& entry, FieldGr
 
 void Logger::printFieldGroup(const TaskContext& ctx, const std::string_view title, const std::vector<FieldEntry>& entries, FieldGroupStyle style)
 {
-    if (ctx.cmdLine().silent || entries.empty())
+    if (ctx.cmdLine().silent || ctx.muteOutput() || entries.empty())
         return;
 
     const ScopedLock lock(ctx.global().logger());
@@ -279,7 +279,7 @@ void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::s
 
 void Logger::printHeaderCentered(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, size_t centerColumn)
 {
-    if (ctx.cmdLine().silent)
+    if (ctx.cmdLine().silent || ctx.muteOutput())
         return;
 
     const ScopedLock lock(ctx.global().logger());

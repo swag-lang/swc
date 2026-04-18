@@ -2,6 +2,7 @@
 #include "Support/Report/ScopedTimedAction.h"
 #include "Backend/Runtime.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"

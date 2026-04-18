@@ -1,5 +1,6 @@
 #pragma once
 #include "Format/AstSourceWriter.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -16,7 +17,7 @@ namespace Format
         bool              skipped = false;
     };
 
-    Result prepareFile(TaskContext& ctx, const SourceFile& file, const Options& options, PreparedFile& outFile);
+    void   prepareFile(const SourceFile& file, const Options& options, PreparedFile& outFile);
     Result writeFile(TaskContext& ctx, const PreparedFile& preparedFile);
 }
 

@@ -118,8 +118,7 @@ namespace Command
             }
 
             Format::PreparedFile preparedFile;
-            if (Format::prepareFile(ctx, *file, options, preparedFile) != Result::Continue)
-                return;
+            Format::prepareFile(*file, options, preparedFile);
             preparedFiles.push_back(std::move(preparedFile));
         }
 

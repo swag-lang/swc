@@ -84,6 +84,8 @@ namespace
     {
         switch (cmdLine.command)
         {
+            case CommandKind::Format:
+                return false;
             case CommandKind::Build:
             case CommandKind::Run:
                 return true;
@@ -417,6 +419,12 @@ namespace
 
         switch (cmdLine.command)
         {
+            case CommandKind::Format:
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "validate the parsed AST can be written back as source");
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "rewrite source files in place when formatted output differs");
+                break;
+
             case CommandKind::Syntax:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {} and stop after syntax", inputCount));
                 break;

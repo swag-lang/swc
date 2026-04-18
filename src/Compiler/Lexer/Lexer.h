@@ -13,9 +13,10 @@ class LangSpec;
 
 enum class LexerFlagsE : uint32_t
 {
-    Default,
-    RawMode,
-    EmitTrivia,
+    Default          = 0,
+    RawMode          = 1 << 0,
+    EmitTrivia       = 1 << 1,
+    IgnoreGlobalSkip = 1 << 2,
 };
 using LexerFlags = EnumFlags<LexerFlagsE>;
 

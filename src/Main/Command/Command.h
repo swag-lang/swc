@@ -8,6 +8,7 @@ namespace Command
 {
     void dryRun(CompilerInstance& compiler);
     void showConfig(CompilerInstance& compiler);
+    void format(CompilerInstance& compiler);
     void syntax(CompilerInstance& compiler);
     void sema(CompilerInstance& compiler);
     void test(CompilerInstance& compiler);

@@ -152,6 +152,7 @@
         <ClCompile Include="src\Unittest\UnittestHelpers.cpp"/>
         <ClCompile Include="src\Unittest\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Compiler.Format.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.Tags.cpp"/>
         <ClCompile Include="src\Unittest\Test.Debug.DebugInfo.cpp"/>
@@ -288,7 +289,10 @@
         <ClCompile Include="src\Compiler\Lexer\SourceView.cpp"/>
         <ClCompile Include="src\Support\Report\SyntaxColor.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
+        <ClCompile Include="src\Format\AstSourceWriter.cpp"/>
+        <ClCompile Include="src\Format\Formatter.cpp"/>
         <ClCompile Include="src\main.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Format.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Info.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Sema.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Syntax.cpp"/>
@@ -518,6 +522,9 @@
         <ClInclude Include="src\Compiler\Lexer\SourceView.h"/>
         <ClInclude Include="src\Support\Report\SyntaxColor.h"/>
         <ClInclude Include="src\Compiler\Lexer\Token.h"/>
+        <ClInclude Include="src\Format\AstSourceWriter.h"/>
+        <ClInclude Include="src\Format\Formatter.h"/>
+        <ClInclude Include="src\Format\FormatOptions.h"/>
         <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc"/>
         <ClInclude Include="src\Support\Core\RefTypes.h"/>
         <ClInclude Include="src\Main\Command\CommandLine.h"/>
@@ -634,6 +641,7 @@
     </ItemGroup>
     <ItemGroup>
         <Folder Include="src\Compiler\"/>
+        <Folder Include="src\Format\"/>
         <Folder Include="src\Support\Memory\mimalloc\"/>
         <Folder Include="src\Support\"/>
     </ItemGroup>

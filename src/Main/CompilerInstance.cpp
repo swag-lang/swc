@@ -276,6 +276,9 @@ void CompilerInstance::processCommand()
 
     switch (cmdLine().command)
     {
+        case CommandKind::Format:
+            Command::format(*this);
+            break;
         case CommandKind::Syntax:
             Command::syntax(*this);
             break;

@@ -314,7 +314,14 @@ AstNodeRef Parser::parseCompilerGlobal()
     nodePtr->spanNameRef.setInvalid();
     nodePtr->nodeModeRef.setInvalid();
 
-    if (tokStr == Token::toName(TokenId::KwdSkipFmt))
+    if (tokStr == Token::toName(TokenId::KwdSkip))
+    {
+        nodePtr->mode        = AstCompilerGlobal::Mode::Skip;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
+        ast_->addFlag(AstFlagsE::GlobalSkip);
+        consume();
+    }
+    else if (tokStr == Token::toName(TokenId::KwdSkipFmt))
     {
         nodePtr->mode        = AstCompilerGlobal::Mode::SkipFmt;
         nodePtr->nodeModeRef = AstNodeRef::invalid();

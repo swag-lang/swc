@@ -12,6 +12,7 @@ namespace TimedActionLog
     {
         Config,
         Modes,
+        Format,
         Syntax,
         Sema,
         JIT,

@@ -804,7 +804,7 @@ void Lexer::lexIdentifier()
                 tmp++;
 
             const auto tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
-            if (tokStr == Token::toName(TokenId::KwdSkip))
+            if (tokStr == Token::toName(TokenId::KwdSkip) && lexerFlags_.hasNot(LexerFlagsE::IgnoreGlobalSkip))
                 srcView_->setMustSkip();
         }
     }
@@ -1453,7 +1453,7 @@ void Lexer::buildTriviaIndex() const
     for (uint32_t tokIdx = 0; tokIdx < numTok; ++tokIdx)
     {
         triviaStart[tokIdx] = tIdx;
-        while (tIdx < triviaStart.size() && triviaStart[tIdx] == tokIdx)
+        while (tIdx < srcView_->trivia().size() && srcView_->trivia()[tIdx].tokRef.get() == tokIdx)
             ++tIdx;
     }
 

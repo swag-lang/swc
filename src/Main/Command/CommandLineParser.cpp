@@ -822,6 +822,9 @@ Result CommandLineParser::parse(int argc, char* argv[])
         }
 
         command_ = candidate;
+
+        if (cmdLine_->command == CommandKind::Format)
+            cmdLine_->runtime = false;
     }
 
     std::vector<Utf8> rawArgs;

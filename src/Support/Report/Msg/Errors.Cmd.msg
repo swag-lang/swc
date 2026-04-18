@@ -33,6 +33,7 @@ SWC_DIAG_DEF(cmdline_err_tag_float_invalid_literal, Error, "invalid compiler tag
 SWC_DIAG_DEF(cmdline_err_tag_float_non_finite, Error, "invalid compiler tag '{arg}'; floating-point compiler tag values must be finite")
 
 SWC_DIAG_DEF(cmd_err_no_input, Error, "no input file specified")
+SWC_DIAG_DEF(cmd_err_format_failed, Error, "cannot format '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_linker_not_implemented, Error, "native linker is not implemented for this target OS")
 SWC_DIAG_DEF(cmd_err_native_object_writer_not_implemented, Error, "native object file writer is not implemented for this target OS")
 SWC_DIAG_DEF(cmd_err_native_target_os_not_supported, Error, "native backend does not support this target OS")

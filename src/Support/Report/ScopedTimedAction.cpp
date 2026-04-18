@@ -48,6 +48,15 @@ namespace
         "mapping contours",
     };
 
+    constexpr std::string_view FORMAT_VERBS[] = {
+        "restoring cadence",
+        "aligning the lines",
+        "preserving the grain",
+        "rewriting with care",
+        "settling the text",
+        "matching the source",
+    };
+
     constexpr std::string_view SEMA_VERBS[] = {
         "weighing meaning",
         "probing depth",
@@ -125,6 +134,8 @@ namespace
                 return pickVerb(CONFIG_VERBS);
             case Stage::Modes:
                 return pickVerb(MODES_VERBS);
+            case Stage::Format:
+                return pickVerb(FORMAT_VERBS);
             case Stage::Syntax:
                 return pickVerb(SYNTAX_VERBS);
             case Stage::Sema:
@@ -156,6 +167,8 @@ namespace
                 return "Config";
             case Stage::Modes:
                 return "Modes";
+            case Stage::Format:
+                return "Format";
             case Stage::Syntax:
                 return "Syntax";
             case Stage::Sema:
@@ -185,6 +198,7 @@ namespace
             case Stage::Modes:
             case Stage::Sema:
                 return LogColor::BrightBlue;
+            case Stage::Format:
             case Stage::Syntax:
             case Stage::Verify:
             case Stage::Unittest:
@@ -303,6 +317,7 @@ namespace
     {
         switch (stage)
         {
+            case Stage::Format:
             case Stage::Syntax:
             case Stage::Sema:
                 return formatCommandSourceRoots(ctx.cmdLine());

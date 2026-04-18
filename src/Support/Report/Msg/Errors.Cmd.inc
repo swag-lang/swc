@@ -33,6 +33,7 @@ SWC_DIAG_DEF(cmdline_err_tag_float_invalid_literal)
 SWC_DIAG_DEF(cmdline_err_tag_float_non_finite)
 
 SWC_DIAG_DEF(cmd_err_no_input)
+SWC_DIAG_DEF(cmd_err_format_failed)
 SWC_DIAG_DEF(cmd_err_native_linker_not_implemented)
 SWC_DIAG_DEF(cmd_err_native_object_writer_not_implemented)
 SWC_DIAG_DEF(cmd_err_native_target_os_not_supported)

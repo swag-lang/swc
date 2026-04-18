@@ -88,6 +88,9 @@
     <Filter Include="src\Main">
       <UniqueIdentifier>{02D740A7-ED97-73A6-16A9-AB8C2FED7F50}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Format">
+      <UniqueIdentifier>{0CC65412-D80B-48AD-A8C4-BE567F9799BF}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Main\Command">
       <UniqueIdentifier>{D25A293C-A4DF-4E67-95FD-58508D1C9E6B}</UniqueIdentifier>
     </Filter>
@@ -127,6 +130,9 @@
       <Filter>src\Unittest</Filter>
     </ClCompile>
     <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Unittest\Test.Compiler.Format.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
     <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp">
@@ -537,8 +543,17 @@
     <ClCompile Include="src\Compiler\Lexer\Token.cpp">
       <Filter>src\Compiler\Lexer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Format\AstSourceWriter.cpp">
+      <Filter>src\Format</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Format\Formatter.cpp">
+      <Filter>src\Format</Filter>
+    </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Command\Command.Format.cpp">
+      <Filter>src\Main\Command</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\Command\Command.Info.cpp">
       <Filter>src\Main\Command</Filter>
@@ -1177,6 +1192,15 @@
     </ClInclude>
     <ClInclude Include="src\Compiler\Lexer\Token.h">
       <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Format\AstSourceWriter.h">
+      <Filter>src\Format</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Format\Formatter.h">
+      <Filter>src\Format</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Format\FormatOptions.h">
+      <Filter>src\Format</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc">
       <Filter>src\Compiler\Lexer</Filter>

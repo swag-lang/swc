@@ -18,7 +18,7 @@ using Stage = TimedActionLog::Stage;
 
 namespace
 {
-    constexpr size_t ACTION_LABEL_WIDTH = 8;
+    constexpr size_t ACTION_LABEL_WIDTH = 10;
 
     // ── Philosophy verb pools ──────────────────────────────────────────
     // Each stage has a rotating set of short, craftsman-philosopher phrases.

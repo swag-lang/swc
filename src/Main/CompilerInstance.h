@@ -59,6 +59,9 @@ public:
     const std::byte*                dataSegmentAddress(DataSegmentKind kind, uint32_t offset) const;
     Runtime::BuildCfg&              buildCfg() { return buildCfg_; }
     const Runtime::BuildCfg&        buildCfg() const { return buildCfg_; }
+    const Utf8&                     lastArtifactLabel() const { return lastArtifactLabel_; }
+    void                            setLastArtifactLabel(Utf8 label) { lastArtifactLabel_ = std::move(label); }
+    void                            clearLastArtifactLabel() { lastArtifactLabel_.clear(); }
     Runtime::ICompiler&             runtimeCompiler() { return runtimeCompiler_; }
     const Runtime::ICompiler&       runtimeCompiler() const { return runtimeCompiler_; }
     Runtime::CompilerMessage&       runtimeCompilerMessage() { return runtimeCompilerMessage_; }
@@ -187,6 +190,7 @@ private:
     DataSegment                              globalInitSegment_;
     DataSegment                              compilerSegment_;
     Runtime::BuildCfg                        buildCfg_{};
+    Utf8                                     lastArtifactLabel_;
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};
     std::unique_ptr<JITExecManager>          jitExecMgr_;

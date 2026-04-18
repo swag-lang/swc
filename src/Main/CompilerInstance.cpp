@@ -263,6 +263,8 @@ void CompilerInstance::logStats()
 void CompilerInstance::processCommand()
 {
     const Timer time(&Stats::get().timeTotal);
+    clearLastArtifactLabel();
+
     if (cmdLine().isExecutionPreviewOnly())
     {
         if (cmdLine().dryRun)

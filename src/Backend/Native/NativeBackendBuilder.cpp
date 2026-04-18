@@ -300,6 +300,7 @@ Result NativeBackendBuilder::run()
     const NativeArtifactBuilder artifactBuilder(*this);
     NativeArtifactPaths         paths;
     artifactBuilder.queryPaths(paths);
+    compiler_.setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
     {
         TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Build);
 

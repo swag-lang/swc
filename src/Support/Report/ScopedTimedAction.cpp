@@ -618,7 +618,11 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     if (snapshot.numErrors)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numErrors, "error"), LogColor::BrightRed});
     else if (!snapshot.numWarnings)
-        parts.push_back({"clean", LogColor::BrightGreen});
+    {
+        const Utf8 artifactLabel = ctx.hasCompiler() ? ctx.compiler().lastArtifactLabel() : Utf8{};
+        if (!artifactLabel.empty())
+            parts.push_back({artifactLabel, LogColor::Gray});
+    }
 
     const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
     Utf8       summaryText;
